@@ -166,7 +166,10 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/risk-evaluation.tsx` | `/clients/:id/job-positions/:jobPositionId/risk-evaluation` | The position's risk evaluation, read by the position; offers to start one while there is none.                                                                                                              |
 | `routes/_authenticated/clients/$clientId/job-positions/risk-evaluations.$evaluationId.tsx` | `/clients/:id/job-positions/risk-evaluations/:evaluationId` | A risk evaluation that is not of a position: the sensitive groups, or one with a name. A position's evaluation found here redirects to its address under the position.                                      |
 | `routes/_authenticated/instructions.tsx`                                                   | `/instructions`                                             | Layout of the instruction library (ADR 012), the sidebar entry between the clients and the organization.                                                                                                    |
-| `routes/_authenticated/instructions/index.tsx`                                             | `/instructions`                                             | The library: the modules by group, uploading files, starting one from the skeleton, archiving.                                                                                                              |
+| `routes/_authenticated/instructions/index.tsx`                                             | `/instructions`                                             | Opens the SSM tab, `/instructions/ssm`.                                                                                                                                                                     |
+| `routes/_authenticated/instructions/_library.tsx`                                          | `/instructions/*`                                           | Pathless layout of the library: the title and the section navigation with one tab per domain.                                                                                                               |
+| `routes/_authenticated/instructions/_library/ssm.tsx`                                      | `/instructions/ssm`                                         | The occupational safety modules by group, uploading files, starting one from the skeleton, archiving.                                                                                                       |
+| `routes/_authenticated/instructions/_library/psi.tsx`                                      | `/instructions/psi`                                         | The fire-safety modules, the same list for the `psi` domain.                                                                                                                                                |
 | `routes/_authenticated/instructions/$moduleId.tsx`                                         | `/instructions/:moduleId`                                   | One module in the in-app Word editor; a full page. Every save is the next version.                                                                                                                          |
 | `routes/_authenticated/risks.tsx`                                                          | `/risks`                                                    | Layout of the risk library (ADR 015), the sidebar entry "Riscuri" after "Instrucțiuni".                                                                                                                     |
 | `routes/_authenticated/risks/index.tsx`                                                    | `/risks`                                                    | The library: the evaluation profiles by name with their counts and global level; "Profil nou", renaming, deleting.                                                                                          |
@@ -368,8 +371,8 @@ The sidebar collapses to icons on desktop and uses a Sheet on mobile; selecting 
 mobile navigation link closes the Sheet. An entry of `navigation` may have `children`, its
 page's tabs: while the entry's route is open they show under it as sub-entries, the current one
 highlighted instead of the parent, and otherwise they are hidden. The icon rail hides them and
-keeps the parent highlighted. "Legislație" is the one entry with children, from
-`legislation-sections.ts`, the same list its tab bar reads.
+keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, from
+`instruction-sections.ts` and `legislation-sections.ts`, the same lists their tab bars read.
 
 - `/dashboard`: overview and existing account/API status.
 - `/clients`: the organization's active clients from `GET /clients` on the shared data table,
@@ -799,23 +802,25 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   `?focus=fire-safety-technician`, at the name until it is saved and at the certificate then.
 - `/instructions`: the organization's instruction library
   ([ADR 012](architecture/adr-012-own-instructions.md)), in `src/features/instructions/`, an entry of
-  the sidebar for owners and specialists alike. The list shows `GET /instruction-modules` by
-  domain, group and title, each module with its domain ("SSM" or "PSI", amendment of
-  2026-10-11), its version and how many articles the file numbers, and how many current
-  positions apply it; the "Domeniu" select lists one domain (`?domain=`), and "Arată arhiva"
-  lists the archived ones instead. "Încarcă fișiere" asks which domain, "Instrucțiuni SSM" or
-  "Instrucțiuni PSI", then takes several `.docx` files and posts each to
-  `POST /instruction-modules/upload` with that `domain`, which titles it after its first line,
-  or the file name when it has none, and puts it in the work activities group; a notice then
-  says to correct titles, groups and domains from the row menu, which also archives and
-  restores. "Scrie o instrucțiune" asks for a title, a group and a domain, `SSM` by default,
-  starts the module from the skeleton and opens it. "Titlu, grup și domeniu" changes them; the
+  the sidebar for owners and specialists alike. The page has one tab per domain (amendment of
+  2026-10-11), "Instrucțiuni SSM" at `/instructions/ssm` and "Instrucțiuni PSI" at
+  `/instructions/psi`, in the section navigation the client and organization pages use;
+  `/instructions` opens the SSM tab. A tab lists `GET /instruction-modules?domain=` by group
+  and title, each module with its version and how many articles the file numbers, and how many
+  current positions apply it; "Arată arhiva" lists the archived ones of the domain instead.
+  "Încarcă fișiere" takes several `.docx` files and posts each to
+  `POST /instruction-modules/upload` with the tab's `domain`, which titles it after its first
+  line, or the file name when it has none, and puts it in the work activities group; a notice
+  then says to correct titles, groups and domains from the row menu, which also archives and
+  restores. "Scrie o instrucțiune" asks for a title, a group and a domain, the tab's by default,
+  starts the module from the skeleton and opens it. "Titlu, grup și domeniu" changes them, and a
+  changed domain moves the module to the other tab; the
   domain of a module a current position applies is shown read-only with how many positions
   apply it, and a `409` with `instruction_module_domain_applied` (a position applied it in the
   meantime) goes on the field with the reason. A title the library already has is reported on
   the field. Archiving a module a position applies is refused with the positions counted.
 - `/instructions/:moduleId`: the module in the same editor as a document, loaded through
-  `GET …/file-link`. Saving sends the bytes to `PUT …/file` as the next version and keeps
+  `GET …/file-link`; "Înapoi" leads to the tab of the module's domain. Saving sends the bytes to `PUT …/file` as the next version and keeps
   what the editor shows, so nothing is fetched again; the badge names the version. An archived
   module opens in view mode. The header names the domain beside the group. A file the editor
   cannot lay out is offered for download, to be fixed in Word and uploaded again.

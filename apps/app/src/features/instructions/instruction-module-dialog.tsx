@@ -1,5 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { instructionDomains, instructionModuleGroups } from '@ssm-usor/contracts';
+import {
+  type InstructionDomain,
+  instructionDomains,
+  instructionModuleGroups,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -42,10 +46,12 @@ export type ModuleEditing = InstructionModule | 'new' | null;
 
 export function InstructionModuleDialog({
   editing,
+  defaultDomain,
   onClose,
   onSaved,
 }: {
   editing: ModuleEditing;
+  defaultDomain: InstructionDomain;
   onClose: () => void;
   /** The module as saved, for a caller that goes on to open it. */
   onSaved?: (module: InstructionModule) => void;
@@ -56,6 +62,7 @@ export function InstructionModuleDialog({
         <ModuleForm
           key={editing === 'new' ? 'new' : editing.id}
           module={editing === 'new' ? null : editing}
+          defaultDomain={defaultDomain}
           onSaved={onSaved}
           onClose={onClose}
         />
@@ -66,10 +73,12 @@ export function InstructionModuleDialog({
 
 function ModuleForm({
   module,
+  defaultDomain,
   onSaved,
   onClose,
 }: {
   module: InstructionModule | null;
+  defaultDomain: InstructionDomain;
   onSaved?: (module: InstructionModule) => void;
   onClose: () => void;
 }) {
@@ -80,7 +89,7 @@ function ModuleForm({
     resolver: zodResolver(moduleFormSchema),
     defaultValues: module
       ? { title: module.title, group: module.group, domain: module.domain }
-      : { title: '', group: 'work_activity', domain: 'ssm' },
+      : { title: '', group: 'work_activity', domain: defaultDomain },
   });
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;

@@ -139,7 +139,7 @@ export function InstructionEditorPage({
   const back = (
     <Button asChild variant="ghost" size="sm">
       <Link
-        to="/instructions"
+        to={module?.domain === 'psi' ? '/instructions/psi' : '/instructions/ssm'}
         data-testid="editor-back"
         onClick={backToList}
         aria-label={pinned ? 'Înapoi' : 'Înapoi la bibliotecă'}

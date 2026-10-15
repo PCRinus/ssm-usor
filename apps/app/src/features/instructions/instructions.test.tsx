@@ -269,6 +269,11 @@ const bodies = (pathname: string, method: string) =>
 
 const mount = (path = '/instructions') => mountApp(authFixture(makeSession()).client, path);
 
+const fireTabLink = () =>
+  within(screen.getByRole('navigation', { name: 'Secțiunile bibliotecii' })).getByRole('link', {
+    name: 'Instrucțiuni PSI',
+  });
+
 beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
@@ -280,20 +285,16 @@ afterEach(() => {
 });
 
 describe('the instruction library', () => {
-  it('lists the modules by group with their version and where they are applied', async () => {
+  it('opens on the occupational safety tab and lists its modules by group with their version and where they are applied', async () => {
     mockApi();
-    mount();
+    const runtime = mount();
     await screen.findByTestId('instruction-library');
+    expect(await screen.findByTestId('instruction-library-ssm')).toBeTruthy();
+    expect(runtime.router.history.location.pathname).toBe('/instructions/ssm');
     const rows = await screen.findAllByTestId('instruction-row');
     expect(rows.map((row) => within(row).getByTestId('instruction-open').textContent)).toEqual([
       'Activități de birou',
       'Scări metalice',
-      'Lucrul cu foc deschis',
-    ]);
-    expect(rows.map((row) => within(row).getByTestId('instruction-domain').textContent)).toEqual([
-      'SSM',
-      'SSM',
-      'PSI',
     ]);
     expect(within(rows[1]!).getByTestId('instruction-version').textContent).toBe(
       'v2 · 12 articole'
@@ -350,39 +351,68 @@ describe('the instruction library', () => {
     expect(await screen.findByTestId('instruction-uploaded')).toBeTruthy();
   });
 
-  it('filters the list by domain', async () => {
+  it('lists the fire-safety modules on their own tab', async () => {
     mockApi();
-    mount();
+    const runtime = mount();
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
-    await user.selectOptions(screen.getByTestId('instruction-domain-filter'), 'psi');
+    await user.click(fireTabLink());
+    const fireTab = await screen.findByTestId('instruction-library-psi');
     await waitFor(() =>
       expect(
-        screen
+        within(fireTab)
           .getAllByTestId('instruction-row')
           .map((row) => within(row).getByTestId('instruction-open').textContent)
       ).toEqual(['Lucrul cu foc deschis'])
     );
+    expect(runtime.router.history.location.pathname).toBe('/instructions/psi');
     const listed = fetchMock.mock.calls
       .map(([input]) => new URL(String(input)))
       .filter((address) => address.pathname === '/instruction-modules')
       .map((address) => address.searchParams.get('domain'));
-    expect(listed).toEqual([null, 'psi']);
+    expect(listed).toEqual(['ssm', 'psi']);
   });
 
-  it('uploads into the domain chosen, occupational safety unless told otherwise', async () => {
+  it('opens Instrucțiuni in the navigation on its tabs, the current one marked', async () => {
+    mockApi();
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    const group = await screen.findByTestId('nav-instructions-group');
+    const entries = within(group).getAllByTestId('nav-sub-entry');
+    expect(entries.map((entry) => [entry.textContent, entry.getAttribute('href')])).toEqual([
+      ['Instrucțiuni SSM', '/instructions/ssm'],
+      ['Instrucțiuni PSI', '/instructions/psi'],
+    ]);
+    await waitFor(() => expect(entries[0]!.getAttribute('aria-current')).toBe('page'));
+
+    await user.click(entries[1]!);
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/instructions/psi'));
+    expect(entries[1]!.getAttribute('aria-current')).toBe('page');
+    expect(entries[0]!.getAttribute('aria-current')).toBeNull();
+    expect(await screen.findByTestId('instruction-library-psi')).toBeTruthy();
+
+    await user.click(screen.getByTestId('nav-dashboard'));
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    expect(group.closest('[data-open]')?.getAttribute('data-open')).toBe('false');
+    await waitFor(() => expect(screen.queryByTestId('nav-instructions-group')).toBeNull());
+  });
+
+  it('uploads into the domain of the open tab', async () => {
     mockApi();
     mount();
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
     const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    const input = screen.getByTestId('instruction-file-input');
-    const click = vi.spyOn(input, 'click').mockImplementation(() => {});
-    await user.upload(input, [
+    await user.upload(screen.getByTestId('instruction-file-input'), [
       new File([new Uint8Array([80, 75, 3, 4])], 'Scari.docx', { type: docxType }),
     ]);
-    await user.click(screen.getByTestId('instruction-upload'));
-    await user.click(await screen.findByTestId('instruction-upload-psi'));
+    await waitFor(() => expect(requests('/instruction-modules/upload', 'POST')).toHaveLength(1));
+    await user.click(fireTabLink());
+    const fireTab = await screen.findByTestId('instruction-library-psi');
+    const input = within(fireTab).getByTestId('instruction-file-input');
+    const click = vi.spyOn(input, 'click').mockImplementation(() => {});
+    await user.click(within(fireTab).getByTestId('instruction-upload'));
     expect(click).toHaveBeenCalledOnce();
     await user.upload(input, [
       new File([new Uint8Array([80, 75, 3, 4])], 'Foc.docx', { type: docxType }),
@@ -395,16 +425,15 @@ describe('the instruction library', () => {
     expect(domains).toEqual(['ssm', 'psi']);
   });
 
-  it('writes a module of the domain chosen', async () => {
+  it("writes a module of the open tab's domain", async () => {
     mockApi({ create: () => Response.json({ module: hotWork }, { status: 201 }) });
-    mount();
+    mount('/instructions/psi');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('instruction-write'));
     expect((screen.getByTestId('instruction-module-domain') as HTMLSelectElement).value).toBe(
-      'ssm'
+      'psi'
     );
     await user.type(screen.getByTestId('instruction-module-title'), 'Lucrul cu foc deschis');
-    await user.selectOptions(screen.getByTestId('instruction-module-domain'), 'psi');
     await user.click(screen.getByTestId('instruction-module-submit'));
     await waitFor(() =>
       expect(bodies('/instruction-modules', 'POST')).toEqual([
@@ -429,7 +458,10 @@ describe('the instruction library', () => {
     );
 
     await waitFor(() => expect(screen.queryByTestId('instruction-module-dialog')).toBeNull());
-    await user.click(within(rows[2]!).getByTestId('instruction-actions'));
+    await user.click(fireTabLink());
+    const fireTab = await screen.findByTestId('instruction-library-psi');
+    const [fireRow] = await within(fireTab).findAllByTestId('instruction-row');
+    await user.click(within(fireRow!).getByTestId('instruction-actions'));
     await user.click(await screen.findByTestId('instruction-rename'));
     const domain = screen.getByTestId('instruction-module-domain') as HTMLInputElement;
     expect(domain.readOnly).toBe(true);

@@ -95,3 +95,5 @@ The IPSU annexes the union of the `psi` modules its client's current positions a
 The fire-safety themes 3.1 cite a module by its title and "Art. 1–N", as [ADR 014](adr-014-training-themes.md) cites 3.2's annexes, and read the module versions of the client's latest IPSU revision, so the fire-safety themes gain what ADR 019 said they did not need: a generated IPSU before them, which the set's generation already orders. The citation of the IPSU's own chapters stays static text.
 
 Order of work: the IPSU assembly in the document engine and the PDF step, with the fire-safety annex title page; the domain on the module, the per-domain decision on the position and the readiness code in the database and the API; the second card, the picker's filter and the state column in the app; the themes' citations and the snapshot.
+
+Note of 2026-10-15: the library shows one domain per tab, "Instrucțiuni SSM" and "Instrucțiuni PSI", in the section navigation the client and organization pages use, rather than one list with a domain column and a filter, which is how it was first built. A module moves between the tabs through its domain in "Titlu, grup și domeniu".

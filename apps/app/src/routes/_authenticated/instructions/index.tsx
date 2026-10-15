@@ -1,13 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
-
-import { useAuth } from '@/features/auth/auth-context';
-import { InstructionLibrary } from '@/features/instructions/instruction-library';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/_authenticated/instructions/')({
-  component: InstructionsPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/instructions/ssm', replace: true });
+  },
 });
-
-function InstructionsPage() {
-  const { session } = useAuth();
-  return <InstructionLibrary userId={session?.user.id ?? ''} />;
-}

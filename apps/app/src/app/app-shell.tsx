@@ -54,6 +54,7 @@ import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
+import { instructionSections } from '@/features/instructions/instruction-sections';
 import { legislationSections } from '@/features/legislation/legislation-sections';
 
 import { CommitVersion } from './commit-version';
@@ -66,7 +67,13 @@ const navigation = [
   { to: '/dashboard', label: 'Prezentare generală', icon: LayoutDashboard, ownerOnly: false },
   { to: '/leads', label: 'Clienți potențiali', icon: Handshake, ownerOnly: true },
   { to: '/clients', label: 'Clienți', icon: Users, ownerOnly: false },
-  { to: '/instructions', label: 'Instrucțiuni', icon: BookOpenText, ownerOnly: false },
+  {
+    to: '/instructions',
+    label: 'Instrucțiuni',
+    icon: BookOpenText,
+    ownerOnly: false,
+    children: instructionSections,
+  },
   { to: '/risks', label: 'Riscuri', icon: ShieldAlert, ownerOnly: false },
   {
     to: '/legislatie',
