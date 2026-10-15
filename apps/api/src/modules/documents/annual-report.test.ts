@@ -1,3 +1,4 @@
+import { fireSafetyDocumentTitles } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import type { DocumentFacts } from './context';
@@ -22,10 +23,12 @@ describe('the annual report', () => {
         {
           title: 'Decizia privind organizarea apărării împotriva incendiilor',
           reference: 'nr. 5 PSI din 19.01.2026',
+          end: ';',
         },
         {
           title: 'Decizia privind instruirea în domeniul situațiilor de urgență',
           reference: 'nr. 6 PSI din 19.01.2026',
+          end: '.',
         },
       ],
       coordinator: 'Florin Cristian TALOȘ, Administrator',
@@ -108,7 +111,11 @@ describe('the annual report', () => {
     });
     expect(scopes(plain)).toHaveLength(5);
     expect(plain.controls.at(-1)!.who).toBe(
-      'Administrator, cu coordonatorul privind apărarea împotriva incendiilor și cadrul tehnic'
+      'Administratorul, cu coordonatorul privind apărarea împotriva incendiilor și cadrul tehnic'
+    );
+    const chaired = reportOf({ client: { ...facts.client, representativeRole: 'Președinte' } });
+    expect(chaired.controls.at(-1)!.who).toBe(
+      'Conducerea, cu coordonatorul privind apărarea împotriva incendiilor și cadrul tehnic'
     );
   });
 
@@ -142,7 +149,45 @@ describe('the annual report', () => {
     );
     expect(report.documents.some((document) => document.title.startsWith('Copertă'))).toBe(false);
     expect(report.documents).toHaveLength(22);
-    expect(report).toMatchObject({ missingCount: 19, allGenerated: false });
+    expect(report).toMatchObject({
+      missingCount: 19,
+      allGenerated: false,
+      allIssued: false,
+      documentsSummary: 'Documente neîntocmite încă: 19.',
+    });
     expect(reportOf({ currentEmployeeCount: 4 }).documents).toHaveLength(17);
+  });
+
+  it('says the documents are issued only when every one is, and drawn up otherwise', () => {
+    const issued = { revision: 1, issueDate: '2026-01-19' };
+    const listedTitles = reportOf().documents.map((document) => document.title);
+    const everyDocument = (draft: { revision: number; issueDate: string } | null) =>
+      reportOf({
+        fireSafety: {
+          ...facts.fireSafety,
+          documents: Object.entries(fireSafetyDocumentTitles)
+            .filter(([, title]) => listedTitles.includes(title))
+            .map(([typeKey, title]) => ({
+              typeKey,
+              title,
+              decisionNumber: null,
+              period: null,
+              draft,
+              issued,
+            })),
+        },
+      });
+    expect(everyDocument(null)).toMatchObject({
+      missingCount: 0,
+      allGenerated: true,
+      allIssued: true,
+      documentsSummary: 'Toate documentele cerute operatorului sunt emise.',
+    });
+    expect(everyDocument({ revision: 2, issueDate: '2026-06-02' })).toMatchObject({
+      allGenerated: true,
+      allIssued: false,
+      documentsSummary:
+        'Documentele cerute operatorului sunt întocmite; starea fiecăruia este cea din tabel.',
+    });
   });
 });

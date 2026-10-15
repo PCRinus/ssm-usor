@@ -12,7 +12,6 @@ import {
   fireExtinguishingAgentLabels,
   fireExtinguishingAgents,
   type FireInstallationKind,
-  fireInstallationKindLabels,
   fireSafetyMissingDocumentData,
   type FireSafetyTypeKeyFromTenEmployees,
   type FireSmokingPolicy,
@@ -39,6 +38,7 @@ import {
   months,
   printedDate,
 } from './context';
+import { installationParts, installationText } from './installations';
 import { buildSiteSheet, type SiteSheetContext } from './site-sheet';
 import {
   dealChapters,
@@ -162,7 +162,7 @@ type FireWorkplaceContext = {
   address: string;
   /** "450 m²", or a dash for a mobile site. */
   areaLabel: string;
-  /** "Clădiri comerciale (1 buc./200 m²)", or a dash for a mobile site and a space with no norm. */
+  /** "Clădiri comerciale (1 buc./200 m²)", "fără normă din anexa 6", or a dash for a mobile site. */
   normLabel: string;
   assemblyPoint: string;
   /** The three texts of section I end without a stop: the posted instructions list them as items. */
@@ -191,6 +191,10 @@ type FireWorkplaceContext = {
   firstIntervention: (Person & { roleLabel: string })[];
   /** "Ion POP și Ana RUS"; the set's leader when nobody answers for this workplace alone. */
   firstInterventionNames: string;
+  /**
+   * Who cuts the power, works the installations and leads the evacuation here: the leader tied
+   * to this workplace, else its manager, else the set's leader.
+   */
   interventionLeaderName: string;
 };
 
@@ -668,11 +672,13 @@ function fireContext(
             .map((role) => roleLabels[role]!)
         ),
       }));
-    const leaderHere = facts.responsiblePersons.find(
-      (person) =>
-        servesAt(workplace.id)(person) && person.roles.includes('fire_intervention_leader')
-    );
-    const interventionLeaderName = leaderHere ? asPerson(leaderHere).name : interventionLeader.name;
+    const leaders = holding('fire_intervention_leader');
+    const leaderHere =
+      leaders.find((person) => person.workplaceId === workplace.id) ??
+      (manager ? null : leaders.find((person) => person.workplaceId === null));
+    const interventionLeaderName = leaderHere
+      ? asPerson(leaderHere).name
+      : (manager?.name ?? interventionLeader.name);
     const hasAreaAndNorm = workplaceHasAreaAndNorm(workplace.kind);
     const norm = hasAreaAndNorm ? fireExtinguisherNormLabels[workplace.extinguisherNorm!] : null;
     const extinguishers = extinguisherGroups(units);
@@ -683,7 +689,11 @@ function fireContext(
       activityRunOn: runOn(workplace.activity!.trim()),
       address: printedAddress(workplace) || '—',
       areaLabel: hasAreaAndNorm ? `${workplace.floorAreaM2!}\u00a0m²` : '—',
-      normLabel: norm?.rate ? `${norm.label} (${norm.rate})` : '—',
+      normLabel: norm?.rate
+        ? `${norm.label} (${norm.rate})`
+        : workplace.extinguisherNorm === 'none' && hasAreaAndNorm
+          ? 'fără normă din anexa 6'
+          : '—',
       assemblyPoint: workplace.assemblyPoint!.trim(),
       combustibleMaterials: withoutFinalStop(workplace.combustibleMaterials!.trim()),
       ignitionSources: withoutFinalStop(workplace.ignitionSources!.trim()),
@@ -693,10 +703,9 @@ function fireContext(
       extinguishers,
       extinguisherCount: extinguishers.reduce((total, group) => total + group.count, 0),
       otherEquipment: otherEquipmentGroups(units),
-      installations: installations.map((installation) => ({
-        kindLabel: fireInstallationKindLabels[installation.kind],
-        description: installation.description?.trim() ?? '',
-      })),
+      installations: installations.map((installation) =>
+        installationParts(installation.kind, installation.description)
+      ),
       hasInstallations: installations.length > 0,
       hasExteriorHydrants: installations.some((each) => each.kind === 'exterior_hydrants'),
       hasInteriorHydrants: installations.some((each) => each.kind === 'interior_hydrants'),
@@ -948,18 +957,12 @@ function fireSchedule({
           },
         ];
   const installationRows = installations.map((installation): FireScheduleRow => {
-    const description = installation.description?.trim();
     const interval =
       installation.lastCheckOn && installation.nextCheckOn
         ? checkInterval(installation.lastCheckOn, installation.nextCheckOn)
         : null;
     return {
-      what:
-        installation.kind === 'other' && description
-          ? description
-          : [fireInstallationKindLabels[installation.kind], description]
-              .filter(Boolean)
-              .join(' – '),
+      what: installationText(installation.kind, installation.description),
       interval: interval ?? producerTerms,
       who: firmsOf([installation.maintainer]),
       basis: installation.nextCheckOn

@@ -18,9 +18,10 @@ import {
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { countOf, listed, runOn } from '../../lib/romanian';
+import { countOf, definiteRole, listed, runOn } from '../../lib/romanian';
 import { documentApplies, printedDate } from './context';
 import type { FireSafetyClientFacts, FireSafetySetFacts } from './fire-safety';
+import { descriptionNamesKind, installationText } from './installations';
 import { monthNames } from './themes';
 
 type MeansRow = { what: string; quantity: string; next: string };
@@ -33,8 +34,11 @@ export type AnnualReportContext = {
   year: number;
   /** The year its measures are proposed for. */
   nextYear: number;
-  /** The decisions of the set, in the binder's order: "nr. 4 PSI din 19.01.2026". */
-  decisions: { title: string; reference: string }[];
+  /**
+   * The decisions of the set, in the binder's order: "nr. 4 PSI din 19.01.2026", and the mark
+   * that ends the item, ";" and "." after the last.
+   */
+  decisions: { title: string; reference: string; end: ';' | '.' }[];
   /** "Ion VLAD, Șef magazin". */
   coordinator: string;
   interventionLeader: string;
@@ -57,6 +61,10 @@ export type AnnualReportContext = {
   documents: { title: string; state: string }[];
   missingCount: number;
   allGenerated: boolean;
+  /** Every document generated and none with a draft beside or in place of its issued revision. */
+  allIssued: boolean;
+  /** The sentence under the table, true to the states it lists. */
+  documentsSummary: string;
 };
 
 export type AnnualReportInput = {
@@ -141,9 +149,18 @@ function installationRows(installations: readonly Installation[]): MeansRow[] {
     const descriptions = found.flatMap((installation) =>
       installation.description?.trim() ? [installation.description.trim()] : []
     );
+    const what =
+      descriptions.length === 1
+        ? installationText(kind, descriptions[0]!)
+        : [
+            ...(kind === 'other' || descriptions.some((each) => descriptionNamesKind(kind, each))
+              ? []
+              : [fireInstallationKindLabels[kind]]),
+            ...descriptions,
+          ].join(' – ');
     return [
       {
-        what: [fireInstallationKindLabels[kind], ...descriptions].join(' – '),
+        what,
         quantity: countOf(found.length, 'instalație', 'instalații'),
         next: datesOf(found.map((installation) => installation.nextCheckOn)),
       },
@@ -187,7 +204,7 @@ export function buildAnnualReport({
   const issueDateOf = (document: StoredDocument) =>
     (document.issued ?? document.draft)?.issueDate ?? null;
 
-  const decisions = decisionOrder.flatMap(([, typeKey]) => {
+  const references = decisionOrder.flatMap(([, typeKey]) => {
     const document = stored.get(typeKey);
     if (!document) return [];
     const date = issueDateOf(document);
@@ -203,6 +220,10 @@ export function buildAnnualReport({
       },
     ];
   });
+  const decisions = references.map((decision, index) => ({
+    ...decision,
+    end: index === references.length - 1 ? ('.' as const) : (';' as const),
+  }));
 
   const categories = (['technical_administrative', 'execution'] as const).flatMap((category) => {
     const positions = facts.jobPositions.filter((position) => position.staffCategory === category);
@@ -276,7 +297,7 @@ export function buildAnnualReport({
           scope: 'zona de lucru, la terminarea programului',
         },
         {
-          who: `${representativeRole}, cu coordonatorul privind apărarea împotriva incendiilor și cadrul tehnic`,
+          who: `${definiteRole(representativeRole) ?? 'Conducerea'}, cu coordonatorul privind apărarea împotriva incendiilor și cadrul tehnic`,
           interval: 'anual: ianuarie',
           scope: 'pe tot perimetrul',
         },
@@ -297,6 +318,18 @@ export function buildAnnualReport({
     };
   });
   const missingCount = listedTypes.filter((typeKey) => !stored.has(typeKey)).length;
+  const allIssued =
+    missingCount === 0 &&
+    listedTypes.every((typeKey) => {
+      const document = stored.get(typeKey)!;
+      return document.issued !== null && document.draft === null;
+    });
+  const documentsSummary =
+    missingCount > 0
+      ? `Documente neîntocmite încă: ${missingCount}.`
+      : allIssued
+        ? 'Toate documentele cerute operatorului sunt emise.'
+        : 'Documentele cerute operatorului sunt întocmite; starea fiecăruia este cea din tabel.';
 
   return {
     year,
@@ -331,5 +364,7 @@ export function buildAnnualReport({
     documents,
     missingCount,
     allGenerated: missingCount === 0,
+    allIssued,
+    documentsSummary,
   };
 }

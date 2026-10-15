@@ -472,7 +472,7 @@ describe('the fire-safety context', () => {
       hasInteriorHydrants: true,
       manager: { name: 'Florin Cristian TALOȘ', jobTitle: 'Administrator' },
       firstInterventionNames: 'Florin Cristian TALOȘ',
-      interventionLeaderName: 'Ioana PETRE',
+      interventionLeaderName: 'Florin Cristian TALOȘ',
     });
     expect(office!.installations[0]).toEqual({
       kindLabel: 'Instalație de detectare, semnalizare și avertizare la incendiu',
@@ -508,7 +508,59 @@ describe('the fire-safety context', () => {
       normLabel: '—',
     });
     expect(site!.extinguisherCount).toBeGreaterThan(0);
-    expect(office).toMatchObject({ areaLabel: '180\u00a0m²', normLabel: '—' });
+    expect(office).toMatchObject({ areaLabel: '180\u00a0m²', normLabel: 'fără normă din anexa 6' });
+  });
+
+  it("has the intervention leader act where he is tied, and each other workplace's manager where he is not", () => {
+    const [manager, leader] = facts.responsiblePersons;
+    const sheetsWith = (persons: DocumentFacts['responsiblePersons']) =>
+      buildFireSafetyContext({ ...facts, responsiblePersons: persons }).fire.workplaces.map(
+        (workplace) => workplace.interventionLeaderName
+      );
+    expect(sheetsWith([manager!, leader!])).toEqual(['Ioana PETRE', 'Florin Cristian TALOȘ']);
+    expect(sheetsWith([manager!, { ...leader!, workplaceId: null }])).toEqual([
+      'Florin Cristian TALOȘ',
+      'Florin Cristian TALOȘ',
+    ]);
+    expect(
+      sheetsWith([
+        { ...manager!, roles: manager!.roles.filter((role) => role !== 'workplace_manager') },
+        { ...leader!, workplaceId: null, roles: ['fire_intervention_leader'] },
+        { ...leader!, fullName: 'Dan ROTARU', roles: ['workplace_manager'] },
+      ])
+    ).toEqual(['Dan ROTARU', 'Ioana PETRE']);
+  });
+
+  it('prints an installation whose description names its kind by the description alone', () => {
+    const [, office] = buildFireSafetyContext({
+      ...facts,
+      fireSafety: {
+        ...facts.fireSafety,
+        installations: [
+          ...facts.fireSafety.installations,
+          {
+            workplaceId: officeId,
+            kind: 'interior_hydrants',
+            description: '2 hidranti interiori Dn 50',
+            maintainer: null,
+            lastCheckOn: null,
+            nextCheckOn: null,
+          },
+          {
+            workplaceId: officeId,
+            kind: 'other',
+            description: 'ușă rezistentă la foc',
+            maintainer: null,
+            lastCheckOn: null,
+            nextCheckOn: null,
+          },
+        ],
+      },
+    }).fire.workplaces;
+    expect(office!.installations.slice(-2)).toEqual([
+      { kindLabel: '2 hidranti interiori Dn 50', description: '' },
+      { kindLabel: 'Ușă rezistentă la foc', description: '' },
+    ]);
   });
 
   it('prints each listed substance with its texts trimmed and the empty ones as the mark to fill in', () => {
