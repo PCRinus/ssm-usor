@@ -776,7 +776,7 @@ function fireContext(
     coordinator,
     interventionLeader,
     workplaceManagers,
-    manyWorkplaceManagers: workplaceManagers.length > 1,
+    manyWorkplaceManagers: managerNames.length > 1,
     designated,
     workplaces,
     hasExteriorHydrants: workplaces.some((workplace) => workplace.hasExteriorHydrants),
