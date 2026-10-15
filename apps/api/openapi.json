@@ -5555,7 +5555,7 @@
           "levels": {
             "type": "string",
             "nullable": true,
-            "minLength": 2,
+            "minLength": 1,
             "maxLength": 40
           },
           "classification": {

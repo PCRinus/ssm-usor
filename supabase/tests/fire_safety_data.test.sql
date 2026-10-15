@@ -1,5 +1,5 @@
 begin;
-select plan(68);
+select plan(70);
 
 -- Fixtures: organization A with an owner, B with a specialist. A has an active client with two
 -- workplaces, a second client with one workplace, a client archived below after its rows are
@@ -345,6 +345,16 @@ select throws_ok(
 select throws_ok(
   $$ update public.fire_buildings set built_area_m2 = 0 where id = 'a1a1a1a1-0000-4000-8000-000000000003' $$,
   '23514', null, 'with a built area above zero'
+);
+
+select lives_ok(
+  $$ update public.fire_buildings set levels = 'P' where id = 'a1a1a1a1-0000-4000-8000-000000000003' $$,
+  'a ground-floor building has the levels "P"'
+);
+
+select throws_ok(
+  $$ update public.fire_buildings set levels = '  ' where id = 'a1a1a1a1-0000-4000-8000-000000000003' $$,
+  '23514', null, 'but not blank levels'
 );
 
 select throws_ok(
