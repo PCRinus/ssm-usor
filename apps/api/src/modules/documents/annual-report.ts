@@ -34,11 +34,8 @@ export type AnnualReportContext = {
   year: number;
   /** The year its measures are proposed for. */
   nextYear: number;
-  /**
-   * The decisions of the set, in the binder's order: "nr. 4 PSI din 19.01.2026", and the mark
-   * that ends the item, ";" and "." after the last.
-   */
-  decisions: { title: string; reference: string; end: ';' | '.' }[];
+  /** The decisions of the set, in the binder's order: "nr. 4 PSI din 19.01.2026". */
+  decisions: { title: string; reference: string }[];
   /** "Ion VLAD, Șef magazin". */
   coordinator: string;
   interventionLeader: string;
@@ -61,8 +58,6 @@ export type AnnualReportContext = {
   documents: { title: string; state: string }[];
   missingCount: number;
   allGenerated: boolean;
-  /** Every document generated and none with a draft beside or in place of its issued revision. */
-  allIssued: boolean;
   /** The sentence under the table, true to the states it lists. */
   documentsSummary: string;
 };
@@ -204,7 +199,7 @@ export function buildAnnualReport({
   const issueDateOf = (document: StoredDocument) =>
     (document.issued ?? document.draft)?.issueDate ?? null;
 
-  const references = decisionOrder.flatMap(([, typeKey]) => {
+  const decisions = decisionOrder.flatMap(([, typeKey]) => {
     const document = stored.get(typeKey);
     if (!document) return [];
     const date = issueDateOf(document);
@@ -220,10 +215,6 @@ export function buildAnnualReport({
       },
     ];
   });
-  const decisions = references.map((decision, index) => ({
-    ...decision,
-    end: index === references.length - 1 ? ('.' as const) : (';' as const),
-  }));
 
   const categories = (['technical_administrative', 'execution'] as const).flatMap((category) => {
     const positions = facts.jobPositions.filter((position) => position.staffCategory === category);
@@ -364,7 +355,6 @@ export function buildAnnualReport({
     documents,
     missingCount,
     allGenerated: missingCount === 0,
-    allIssued,
     documentsSummary,
   };
 }

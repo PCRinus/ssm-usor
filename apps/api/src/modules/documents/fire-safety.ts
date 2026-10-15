@@ -246,6 +246,8 @@ type FireScheduleRow = { what: string; interval: string; who: string; basis: str
 type FireScheduleContext = {
   name: string;
   activity: string;
+  /** The activity inside a sentence: "atelier de sudură". */
+  activityRunOn: string;
   /** The extinguishers' rows, then one per installation, then the free rows. */
   rows: FireScheduleRow[];
   hasRows: boolean;
@@ -974,7 +976,8 @@ function fireSchedule({
           }),
           {
             what: `Reîncărcarea stingătoarelor (${counted(groups)})`,
-            interval: 'la termenul producătorului',
+            interval:
+              'după fiecare utilizare și la cel mult 3 ani sau la termenul producătorului, dacă este mai scurt',
             who: firmsOf(groups.flatMap((group) => group.units.map((unit) => unit.maintainer))),
             basis: 'OMAI 135/2023 – art. 12',
           },
@@ -1003,7 +1006,14 @@ function fireSchedule({
       basis: '—',
     })),
   ];
-  return { name, activity, rows, hasRows: rows.length > 0, empty: rows.length === 0 };
+  return {
+    name,
+    activity,
+    activityRunOn: runOn(activity),
+    rows,
+    hasRows: rows.length > 0,
+    empty: rows.length === 0,
+  };
 }
 
 const staffCategoryLabels: Record<StaffCategory, string> = {

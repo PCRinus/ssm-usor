@@ -705,6 +705,7 @@ describe('the fire-safety context', () => {
     expect(workshop).toEqual({
       name: 'Atelier Ghiroda',
       activity: 'Atelier de sudură',
+      activityRunOn: 'atelier de sudură',
       hasRows: true,
       empty: false,
       rows: [
@@ -741,7 +742,8 @@ describe('the fire-safety context', () => {
         },
         {
           what: 'Reîncărcarea stingătoarelor (P6 – 2\u00a0buc., P50 carosabil – 1\u00a0buc., G5 – 1\u00a0buc.)',
-          interval: 'la termenul producătorului',
+          interval:
+            'după fiecare utilizare și la cel mult 3 ani sau la termenul producătorului, dacă este mai scurt',
           who: 'S.C. FOC STOP S.R.L.',
           basis: 'OMAI 135/2023 – art. 12',
         },

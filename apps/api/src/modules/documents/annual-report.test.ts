@@ -23,12 +23,10 @@ describe('the annual report', () => {
         {
           title: 'Decizia privind organizarea apărării împotriva incendiilor',
           reference: 'nr. 5 PSI din 19.01.2026',
-          end: ';',
         },
         {
           title: 'Decizia privind instruirea în domeniul situațiilor de urgență',
           reference: 'nr. 6 PSI din 19.01.2026',
-          end: '.',
         },
       ],
       coordinator: 'Florin Cristian TALOȘ, Administrator',
@@ -152,7 +150,6 @@ describe('the annual report', () => {
     expect(report).toMatchObject({
       missingCount: 19,
       allGenerated: false,
-      allIssued: false,
       documentsSummary: 'Documente neîntocmite încă: 19.',
     });
     expect(reportOf({ currentEmployeeCount: 4 }).documents).toHaveLength(17);
@@ -180,12 +177,10 @@ describe('the annual report', () => {
     expect(everyDocument(null)).toMatchObject({
       missingCount: 0,
       allGenerated: true,
-      allIssued: true,
       documentsSummary: 'Toate documentele cerute operatorului sunt emise.',
     });
     expect(everyDocument({ revision: 2, issueDate: '2026-06-02' })).toMatchObject({
       allGenerated: true,
-      allIssued: false,
       documentsSummary:
         'Documentele cerute operatorului sunt întocmite; starea fiecăruia este cea din tabel.',
     });

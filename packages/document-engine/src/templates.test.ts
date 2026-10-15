@@ -374,6 +374,7 @@ describe('fire-safety set', () => {
       {
         name: 'Magazin',
         activity: 'Gelaterie',
+        activityRunOn: 'gelaterie',
         hasRows: true,
         empty: false,
         rows: [
@@ -397,7 +398,14 @@ describe('fire-safety set', () => {
           },
         ],
       },
-      { name: 'Depozit', activity: 'Depozitare', hasRows: false, empty: true, rows: [] },
+      {
+        name: 'Depozit',
+        activity: 'Depozitare',
+        activityRunOn: 'depozitare',
+        hasRows: false,
+        empty: true,
+        rows: [],
+      },
     ],
     substances: {
       state: 'listed',
@@ -451,6 +459,7 @@ describe('fire-safety set', () => {
           {
             name: 'Magazin',
             activity: 'Gelaterie',
+            activityRunOn: 'gelaterie',
             hasRows: true,
             empty: false,
             rows: [
@@ -652,6 +661,7 @@ describe('fire-safety set', () => {
     );
     expect(text).toContain('se desemnează ca conducător al locului de muncă: Ion VLAD');
     expect(text).toContain('conform OMAI 163/2007 – art. 149–150, se desemnează:');
+    expect(text).toContain('Legii 307/2006 – art. 19 alin. (1) lit. a) și ale OMAI 163/2007');
     expect(text).not.toContain('șef al locului de muncă');
     expect(text).not.toContain('decizie internă');
     expect(text).not.toMatch(/^Personalul aflat la program/m);
