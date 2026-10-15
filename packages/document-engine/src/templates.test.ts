@@ -1182,6 +1182,15 @@ describe('fire-safety set', () => {
     expect(text).toContain('Maria POPESCU\nAdministrator al S.C. CLIENT DEMO S.R.L.');
   });
 
+  it('names the own instructions themselves in the line above their cover title', () => {
+    const text = documentText(
+      renderDocument(read('fire/2.0_fire_cover_own_instructions.docx'), data)
+    );
+    expect(text).toContain(
+      'Prezentele instrucțiuni proprii în domeniul situațiilor de urgență sunt obligatorii și se aplică la toate locurile de muncă.\nINSTRUCȚIUNI PROPRII ÎN DOMENIUL SITUAȚIILOR DE URGENȚĂ'
+    );
+  });
+
   it('lists the decisions the set holds on their cover, the two required from ten employees last', () => {
     const cover = (seasonsDecision: boolean, controlDecision: boolean) =>
       documentText(
@@ -1238,7 +1247,7 @@ describe('fire-safety set', () => {
       'Anexa 2. I.P.S.U. Depozitarea buteliilor (versiunea din 02.10.2026)',
     ]);
     expect(text).toMatch(
-      /^XXIII\. Dispoziții finale\nXXIV\. Instrucțiuni proprii .*S\.C\. CLIENT DEMO S\.R\.L\.\nAnexa 1\. I\.P\.S\.U\. Lucrul cu foc deschis\nAnexa 2\. I\.P\.S\.U\. Depozitarea buteliilor\nBibliografie$/m
+      /^XXIII\. Dispoziții finale\nXXIV\. Instrucțiuni proprii .*S\.C\. CLIENT DEMO S\.R\.L\.\nBibliografie\nAnexa 1\. I\.P\.S\.U\. Lucrul cu foc deschis\nAnexa 2\. I\.P\.S\.U\. Depozitarea buteliilor$/m
     );
 
     const none = documentText(
@@ -1271,7 +1280,18 @@ describe('fire-safety set', () => {
     expect(text).toContain(
       'testul anual de verificare a cunoștințelor privind situațiile de urgență'
     );
+    expect(text).toContain('lucrările prevăzute la art. 36 din OMAI 712/2005');
+    expect(text).toContain('prevăzut la art. 101 din OMAI 163/2007');
+    expect(text).toContain(
+      'Prezentele instrucțiuni proprii în domeniul situațiilor de urgență sunt obligatorii și se aplică la toate locurile de muncă'
+    );
     for (const gone of [
+      'compartimentelor de muncă',
+      'riscuri de accidentare',
+      'formației de intervenție',
+      'oțetul și sifonul',
+      'copiii în firide',
+      'buc./300 mp',
       '60 minute',
       'TLMSU',
       'cazărmi',
