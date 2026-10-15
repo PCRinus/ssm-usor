@@ -283,6 +283,7 @@ describe('fire-safety set', () => {
       ],
       missingCount: 1,
       allGenerated: false,
+      documentsSummary: 'Documente neîntocmite încă: 1.',
     },
     siteSheet: {
       identity: [
@@ -500,6 +501,7 @@ describe('fire-safety set', () => {
       documents: [],
       missingCount: 0,
       allGenerated: true,
+      documentsSummary: 'Toate documentele cerute operatorului sunt întocmite.',
     },
     siteSheet: {
       ...fire.siteSheet,
@@ -1088,13 +1090,13 @@ describe('fire-safety set', () => {
     expect(text).toContain(
       'Graficele de întreținere și verificare a mijloacelor tehnice de apărare împotriva incendiilor din dotarea S.C. CLIENT DEMO S.R.L., întocmite în baza prevederilor OMAI 163/2007 – art. 18 lit. q) și ale OMAI 135/2023 – art. 8, art. 9 și art. 12'
     );
-    expect(text).toContain('Magazin (Gelaterie)');
+    expect(text).toContain('Magazin (gelaterie)');
     expect(text).toContain('Ce se verifică\nPeriodicitatea\nCine efectuează\nTemei / observații');
     expect(text).toContain('la cel mult 6 luni, în iunie și decembrie');
     expect(text).toContain(
       'Instalația de utilizare a gazelor naturale\nanual\nOperatorul de distribuție\n—'
     );
-    expect(text).toContain('Depozit (Depozitare)');
+    expect(text).toContain('Depozit (depozitare)');
     expect(text).toContain(
       'La acest loc de muncă nu există mijloace sau instalații de apărare împotriva incendiilor care să necesite întreținere ori verificare periodică.'
     );
@@ -1113,6 +1115,40 @@ describe('fire-safety set', () => {
     expect(documentText(sheet).match(/ORGANIZAREA APĂRĂRII ÎMPOTRIVA INCENDIILOR/g)).toHaveLength(
       2
     );
+  });
+
+  it('puts the alarm installations under alarm and the extinguishing ones under limiting and extinguishing', () => {
+    const sheet = 'fire/5.2_fire_workplace_organization.docx';
+    const equipped = {
+      ...fire,
+      workplaces: [
+        {
+          ...workplace,
+          alarmInstallations: [
+            {
+              kindLabel: 'Instalație de detectare și alarmare la incendiu',
+              description: 'Centrală',
+            },
+          ],
+          hasEmergencyLighting: true,
+        },
+      ],
+    };
+    const text = documentText(renderDocument(read(sheet), { ...stageTwoData, fire: equipped }));
+    expect(text).toContain(
+      '1. Mijloace de alarmare/alertare\nTelefon 112 – serviciul profesionist pentru situații de urgență\nInstalație de detectare și alarmare la incendiu – Centrală\nConducătorul locului de muncă: Ion VLAD, șef magazin'
+    );
+    expect(text).toContain(
+      '2. Instalații și dispozitive de limitare și stingere a incendiilor\nHidranți interiori – Unul pe nivel\n3.'
+    );
+    expect(text).toContain(
+      'Loc de adunare: Parcarea din spate\nCăile de evacuare au iluminat de siguranță.'
+    );
+    const bare = documentText(renderDocument(read(sheet), { ...stageTwoData, fire: sparse }));
+    expect(bare).toContain(
+      '2. Instalații și dispozitive de limitare și stingere a incendiilor\nNu este cazul\n3.'
+    );
+    expect(bare).not.toContain('iluminat de siguranță');
   });
 
   it('marks an unset specific measure with a dash on the posted sheet', () => {

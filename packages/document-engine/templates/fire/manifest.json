@@ -57,7 +57,7 @@
       "file": "1.4_fire_decision_smoking.docx",
       "change": {
         "kind": "correction",
-        "note": "Articolul despre locurile pentru fumat este împărțit în fraze scurte, cu aceleași trimiteri la lege."
+        "note": "Articolul despre locurile pentru fumat este împărțit în fraze scurte, cu aceleași trimiteri la lege, iar procesul-verbal de luare de cunoștință are două rânduri libere, ca celelalte decizii."
       }
     },
     {
@@ -227,7 +227,7 @@
       "file": "5.2_fire_workplace_organization.docx",
       "change": {
         "kind": "correction",
-        "note": "„Lucrările cu foc deschis se execută numai pe bază de permis de lucru cu foc” și „conducătorul locului de muncă aflat la program”."
+        "note": "„Lucrările cu foc deschis se execută numai pe bază de permis de lucru cu foc”, „conducătorul locului de muncă aflat la program”, instalațiile de detectare și alarmare sunt trecute la mijloacele de alarmare, cele de stingere la punctul 2 („Nu este cazul” când lipsesc), iar iluminatul de siguranță al căilor de evacuare este menționat la evacuare."
       }
     },
     {
@@ -251,7 +251,7 @@
       "file": "5.4_fire_maintenance_schedules.docx",
       "change": {
         "kind": "correction",
-        "note": "Introducerea spune într-o frază întreagă ce cuprind graficele."
+        "note": "Introducerea spune într-o frază întreagă ce cuprind graficele, iar activitatea locului de muncă din titlu este scrisă cu literă mică."
       }
     },
     {
@@ -335,11 +335,11 @@
       "originals": [],
       "stage": 2,
       "typeKey": "fire_annual_report",
-      "title": "Raportul anual de evaluare a capacității de apărare împotriva incendiilor",
+      "title": "Raportul anual de evaluare a nivelului de apărare împotriva incendiilor",
       "file": "7.2_fire_annual_report.docx",
       "change": {
         "kind": "correction",
-        "note": "Raportul se numește „Raportul anual de evaluare a capacității de apărare împotriva incendiilor”, ca în Legea 307/2006 art. 27 alin. (1) lit. j), ultima decizie din listă se încheie cu punct, iar indicațiile de completare folosesc denumirile instructajelor și „conducătorii locurilor de muncă”."
+        "note": "Raportul se numește „Raportul anual de evaluare a capacității de apărare împotriva incendiilor”, ca în Legea 307/2006 art. 27 alin. (1) lit. j), ultima decizie din listă se încheie cu punct, starea documentelor se încheie cu o frază care ține seama de stările lor, iar indicațiile de completare folosesc denumirile instructajelor și „conducătorii locurilor de muncă”."
       }
     }
   ]
