@@ -287,6 +287,8 @@ export type FireContext = {
   coordinator: Person;
   interventionLeader: Person;
   workplaceManagers: (Person & { workplaceName: string | null })[];
+  /** More than one workplace manager, which decision 1 names in the plural. */
+  manyWorkplaceManagers: boolean;
   /** Each person once, for the acknowledgement tables. */
   designated: Pick<Person, 'name' | 'jobTitle'>[];
   workplaces: FireWorkplaceContext[];
@@ -754,6 +756,7 @@ function fireContext(
     coordinator,
     interventionLeader,
     workplaceManagers,
+    manyWorkplaceManagers: workplaceManagers.length > 1,
     designated,
     workplaces,
     hasExteriorHydrants: workplaces.some((workplace) => workplace.hasExteriorHydrants),

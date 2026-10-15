@@ -190,6 +190,7 @@ describe('fire-safety set', () => {
     coordinator: person,
     interventionLeader: person,
     workplaceManagers: [{ ...person, workplaceName: null }],
+    manyWorkplaceManagers: false,
     designated: [person],
     workplaces: [workplace, { ...workplace, first: false, name: 'Depozit' }],
     hasExteriorHydrants: true,
@@ -633,6 +634,39 @@ describe('fire-safety set', () => {
       expect(text).toContain(`Nr. ${number} din 19.01.2026`);
       expect(text).toContain(`nr. ${number} din 19.01.2026.`);
     }
+  });
+
+  it('has decision 1 name the coordinator by the title, the administrator approve, and the managers by their count', () => {
+    const decision = read('fire/1.1_fire_decision_organization.docx');
+    const text = documentText(renderDocument(decision, stageTwoData));
+    expect(text).toContain(
+      'se numește coordonator privind apărarea împotriva incendiilor Ion VLAD, având funcția de șef magazin'
+    );
+    expect(text).toContain(
+      'Pentru aprobarea actelor de autoritate emise în cadrul S.C. CLIENT DEMO S.R.L., se numește Maria POPESCU, având funcția de administrator în cadrul S.C. CLIENT DEMO S.R.L.;'
+    );
+    expect(text).toContain('se desemnează ca conducător al locului de muncă: Ion VLAD');
+    expect(text).toContain('conform OMAI 163/2007 – art. 149–150, se desemnează:');
+    expect(text).not.toContain('șef al locului de muncă');
+    expect(text).not.toContain('decizie internă');
+    expect(text).not.toMatch(/^Personalul aflat la program/m);
+    expect(text).toMatch(/S\.R\.L\.\nPentru asigurarea funcționării/);
+    expect(
+      text.match(/reprezentant al S\.C\. SERVICIU EXTERN S\.R\.L\. \(după caz\)\.$/gm)
+    ).toHaveLength(9);
+    const many = documentText(
+      renderDocument(decision, {
+        ...stageTwoData,
+        fire: { ...fire, manyWorkplaceManagers: true },
+      })
+    );
+    expect(many).toContain('se desemnează ca conducători ai locurilor de muncă: Ion VLAD');
+    const table = new PizZip(renderDocument(decision, stageTwoData))
+      .file('word/document.xml')!
+      .asText()
+      .match(/<w:tbl>[\s\S]*?<\/w:tbl>/g)!
+      .at(-1)!;
+    expect(table.match(/<w:tr[ >]/g)).toHaveLength(4);
   });
 
   it('numbers the responsibilities under contracts as an item of decision 1 of its own', () => {
