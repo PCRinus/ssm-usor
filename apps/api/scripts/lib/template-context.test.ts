@@ -985,16 +985,16 @@ describe('the fire-safety templates', () => {
       'Număr de înregistrare din registrul comerțului\nJ35/1234/2008, CUI 14399840'
     );
     expect(text).toContain(
-      '1.2.1. Clădirea 1: Atelier Ghiroda, Ghiroda, județul Timiș, Str. Industriilor 4'
+      '1.2.1. Clădirea 1: Sediul social, București, Sector 1, Calea Victoriei 122A'
     );
     expect(text).toContain(
-      '1.2.2. Clădirea 2: Sediul social, București, Sector 1, Calea Victoriei 122A'
+      '1.2.2. Clădirea 2: Atelier Ghiroda, Ghiroda, județul Timiș, Str. Industriilor 4'
     );
     expect(text).toContain(
       'Stabilitatea la foc\nDE COMPLETAT(din proiect sau din alte documente tehnice'
     );
     expect(text).toContain('Substanța 2: Diluant pentru vopsele');
-    expect(text).toContain('Serviciu privat pentru situații de urgență\nnu există; nu este cazul');
+    expect(text).toContain('Serviciu privat pentru situații de urgență\nnu este cazul');
     expect(text).not.toContain('Operatorul nu are clădiri proprii');
     const fewer = documentText(renderDocument(file, { ...buildFireSafetyContext(fewest) }));
     expect(fewer).toContain('declară că în activitatea sa nu utilizează substanțe periculoase');
