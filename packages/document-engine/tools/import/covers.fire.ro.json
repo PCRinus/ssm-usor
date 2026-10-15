@@ -12,7 +12,7 @@
         "Măsurile obligatorii privind instruirea salariaților în domeniul situațiilor de urgență.",
         "Modul de reglementare a lucrărilor cu foc deschis.",
         "Modul de reglementare a fumatului.",
-        "Numirea cadrului tehnic cu atribuții în domeniul apărării împotriva incendiilor.",
+        "Modul de îndeplinire a atribuțiilor de cadru tehnic în domeniul apărării împotriva incendiilor.",
         "Instrucțiunile de apărare împotriva incendiilor și atribuțiile salariaților la locurile de muncă.",
         "Modul de colectare a deșeurilor, reziduurilor și ambalajelor combustibile, precum și de distrugere a acestora.",
         {
@@ -44,7 +44,7 @@
           "b) obligațiile generale și specifice care revin categoriilor de salariați;",
           "c) riscul de incendiu, cauzele potențiale de incendiu prezentate de instalațiile utilitare ale construcțiilor și de procesele de muncă desfășurate, normele, regulile și măsurile de prevenire și înlăturare a acestora;",
           "d) descrierea, funcționarea, întreținerea și modul de utilizare a tuturor sistemelor de protecție împotriva incendiilor aflate în dotare;",
-          "e) acțiunea salariaților în cadrul echipelor de intervenție (răspuns) în caz de incendiu, la antrenamente și exerciții practice."
+          "e) acțiunea salariaților în cadrul echipei de primă intervenție în caz de incendiu, la antrenamente și exerciții practice."
         ]
       }
     },
@@ -55,7 +55,7 @@
       "subtitle": "la nivelul unității, pentru",
       "itemsAfterClient": true,
       "items": [
-        "Test de verificare a cunoștințelor la angajare, după instruirea introductiv-generală și instruirea la locul de muncă;",
+        "Test de verificare a cunoștințelor la angajare, după instructajul introductiv general și instructajul specific locului de muncă;",
         "Test de verificare periodică (anual)."
       ]
     },
@@ -74,7 +74,7 @@
           "text": "Registru de control pentru instalațiile de detectare, semnalizare, alarmare, alertare, limitare și stingere a incendiilor;",
           "when": "installationRegister"
         },
-        "Registru de evidență a situației constatate la stingătoarele de incendiu în urma controlului."
+        "Registru de evidență a controlului stingătoarelor de incendiu."
       ]
     }
   ],

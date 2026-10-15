@@ -702,24 +702,32 @@ describe('fire-safety set', () => {
   it('prints the interval of a staff category in decision 2 only when it has posts', () => {
     const decision = 'fire/1.2_fire_decision_training.docx';
     const full = documentText(renderDocument(read(decision), stageTwoData));
-    expect(full).toContain('personalul administrativ (Manager magazin) va fi instruit la 6 luni');
-    expect(full).toContain('personalul de execuție (Barman) va fi instruit la 3 luni');
+    expect(full).toContain(
+      'personalul administrativ (Manager magazin) va fi instruit o dată la 6 luni'
+    );
+    expect(full).toMatch(/^personalul administrativ .+ ale lunii;$/m);
+    expect(full).toMatch(
+      /^personalul de execuție \(Barman\) va fi instruit o dată la 3 luni, .+ ale lunii\.$/m
+    );
     const sparseText = documentText(
       renderDocument(read(decision), { ...stageTwoData, fire: sparse })
     );
     expect(sparseText).not.toContain('personalul administrativ');
-    expect(sparseText).toContain('personalul de execuție (Barman) va fi instruit la 3 luni');
+    expect(sparseText).toContain('personalul de execuție (Barman) va fi instruit o dată la 3 luni');
   });
 
   it('names who collects the waste and its contractor, or the workers on duty and the contracted firm', () => {
     const decision = 'fire/1.7_fire_decision_waste.docx';
     expect(documentText(renderDocument(read(decision), stageTwoData))).toContain(
-      'De modul de colectare și neutralizare a deșeurilor răspund muncitorii necalificați și șeful de șantier și S.C. ECO S.R.L., firmă autorizată în acest domeniu.'
+      'De colectarea deșeurilor răspund muncitorii necalificați și șeful de șantier, iar de preluarea și neutralizarea lor, S.C. ECO S.R.L., firmă autorizată în acest domeniu.'
+    );
+    expect(documentText(renderDocument(read(decision), stageTwoData))).toMatch(
+      /^deșeuri de carton\.$/m
     );
     expect(
       documentText(renderDocument(read(decision), { ...stageTwoData, fire: sparse }))
     ).toContain(
-      'De modul de colectare și neutralizare a deșeurilor răspund lucrătorii aflați la program din cadrul unității și firma contractată, autorizată în acest domeniu.'
+      'De colectarea deșeurilor răspund lucrătorii aflați la program din cadrul unității, iar de preluarea și neutralizarea lor, firma contractată, autorizată în acest domeniu.'
     );
   });
 
@@ -768,6 +776,9 @@ describe('fire-safety set', () => {
       'Fumatul este permis numai în locurile special amenajate în exteriorul clădirilor, în curtea interioară, marcate'
     );
     expect(allowed).toContain('40\u00a0m față de locurile în care există pericol de explozie');
+    expect(allowed).toContain(
+      '„LOC PENTRU FUMAT” (OMAI 163/2007 – art. 106 alin. (5)). Locurile pentru fumat sunt prevăzute cu scrumiere'
+    );
     expect(allowed).not.toContain('atât în interiorul, cât și în exteriorul clădirilor');
     expect(
       documentText(renderDocument(read(decision), { ...stageTwoData, fire: placeless }))
@@ -861,7 +872,7 @@ describe('fire-safety set', () => {
     expect(xml.match(/<w:br w:type="page"\/>/g)).toHaveLength(2);
     const text = documentText(merged);
     expect(text.match(/^INSTRUCȚIUNI DE APĂRARE ÎMPOTRIVA INCENDIILOR$/gm)).toHaveLength(2);
-    expect(text).toContain('Anexă la Decizia nr. 9 PSI din 19.01.2026');
+    expect(text).toContain('ANEXA\nla Decizia nr. 9 PSI din 19.01.2026');
     expect(text).toMatch(
       /^Locul de muncă: Depozit \(gelaterie\)\nAdresa: Timișoara, județul Timiș, Str. Lungă 5$/m
     );
@@ -934,10 +945,12 @@ describe('fire-safety set', () => {
     );
     expect(list).toContain('LISTA SUBSTANȚELOR PERICULOASE');
     expect(list).toContain(
-      'Lista substanțelor periculoase utilizate în cadrul S.C. CLIENT DEMO S.R.L., întocmită în baza prevederilor Legii 307/2006 – art. 19 lit. f) și ale OMAI 163/2007 – art. 18 lit. p) și art. 20 alin. (3) lit. g).'
+      'Lista substanțelor periculoase utilizate în cadrul S.C. CLIENT DEMO S.R.L., întocmită în baza prevederilor Legii 307/2006 – art. 19 alin. (1) lit. f) și ale OMAI 163/2007 – art. 18 lit. p) și art. 20 alin. (3) lit. g).'
     );
-    expect(list).toContain('Substanța 1');
-    expect(list).toContain('Substanța 2');
+    expect(list).toContain('Substanța 1: Propan');
+    expect(list).toContain('Substanța 2: Diluant');
+    expect(list).not.toContain('Câmp');
+    expect(list).toContain('Proprietăți fizico-chimice(secțiunea 9 a fișei cu date de securitate)');
     expect(list).toContain('Flam. Gas 1, H220; Press. Gas, H280');
     expect(list).toContain('Cușca metalică din curte');
     expect(list.match(/DE COMPLETAT/g)).toHaveLength(5);
@@ -1025,13 +1038,16 @@ describe('fire-safety set', () => {
     const file = read('fire/7.2_fire_annual_report.docx');
     const text = documentText(renderDocument(file, stageTwoData));
     expect(text).toContain(
-      'RAPORTUL ANUAL DE EVALUARE A NIVELULUI DE APĂRARE ÎMPOTRIVA INCENDIILOR\npe anul 2026'
+      'RAPORTUL ANUAL DE EVALUARE A CAPACITĂȚII DE APĂRARE ÎMPOTRIVA INCENDIILOR\npe anul 2026'
     );
     expect(text).toContain(
       'Raport întocmit pentru S.C. CLIENT DEMO S.R.L. în baza prevederilor OMAI 163/2007 – art. 18 lit. c), art. 151 și art. 152 și ale Legii 307/2006 – art. 27 alin. (1) lit. j)'
     );
     expect(text).toContain(
       '– Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a04\u00a0PSI din 19.01.2026;'
+    );
+    expect(text).toContain(
+      '– Decizia privind instruirea în domeniul situațiilor de urgență, nr.\u00a05\u00a0PSI din 19.01.2026.'
     );
     expect(text).toContain(
       'Cadrul tehnic PSI\nDan MARIN, certificat seria A nr. 1234/2024, reprezentant al S.C. SERVICIU EXTERN S.R.L.'
@@ -1151,7 +1167,7 @@ describe('fire-safety set', () => {
       '8.',
       '9.',
     ]);
-    expect(nine[4]).toMatch(/^5\. Numirea cadrului tehnic/);
+    expect(nine[4]).toMatch(/^5\. Modul de îndeplinire a atribuțiilor de cadru tehnic/);
     expect(nine[7]).toMatch(/^8\. Modul de reglementare a lucrărilor în timpul sezonului rece/);
     expect(nine[8]).toMatch(/^9\. Controlul propriu/);
     expect(nine.every((item) => item.endsWith('.'))).toBe(true);
@@ -1171,7 +1187,7 @@ describe('fire-safety set', () => {
     expect(cover(true)![4]).toMatch(/^5\. Registru de control pentru instalațiile/);
     expect(cover(false)).toEqual([
       ...cover(true)!.slice(0, 4),
-      '5. Registru de evidență a situației constatate la stingătoarele de incendiu în urma controlului.',
+      '5. Registru de evidență a controlului stingătoarelor de incendiu.',
     ]);
   });
 
