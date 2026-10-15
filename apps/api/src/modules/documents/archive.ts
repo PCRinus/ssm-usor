@@ -8,9 +8,9 @@ import {
   documentFileName,
   type DocumentRow,
   fileNameOf,
+  inSetOrder,
   readDocuments,
   type RevisionRow,
-  typeOrders,
 } from './documents';
 import { annexDomainOf, snapshotAnnexes } from './snapshot';
 
@@ -33,11 +33,6 @@ function archivedRevision(document: DocumentRow, format: DocumentArchiveFormat) 
   return issued ?? document.document_revisions.find((revision) => revision.status === 'draft');
 }
 
-const inSetOrder = (set: DocumentSet) => (a: DocumentRow, b: DocumentRow) =>
-  (typeOrders[set].get(a.type_key) ?? Infinity) - (typeOrders[set].get(b.type_key) ?? Infinity) ||
-  a.title.localeCompare(b.title, 'ro') ||
-  (b.period ?? 0) - (a.period ?? 0);
-
 /**
  * One file per document of the set, numbered in the binder's order. A Word file's annexes
  * follow it as files of their own: the PDF made at issuing already holds them.
@@ -57,8 +52,9 @@ export async function documentArchive(
   if (error) throw fromDatabaseError(error, 'find client of document archive');
   if (!client) throw new ApiError('not_found', 'This client does not exist.');
 
+  const order = inSetOrder(set);
   const entries = (await readDocuments(db, clientId, set))
-    .sort(inSetOrder(set))
+    .sort((a, b) => order(binderPlace(a), binderPlace(b)))
     .flatMap((document) => {
       const revision = archivedRevision(document, format);
       return revision ? [{ document, revision }] : [];
@@ -107,6 +103,12 @@ export async function documentArchive(
     bytes: zipSync(zippable),
   };
 }
+
+const binderPlace = (document: DocumentRow) => ({
+  typeKey: document.type_key,
+  title: document.title,
+  period: document.period,
+});
 
 const annexesOf = (document: DocumentRow, revision: RevisionRow) =>
   annexDomainOf(document.type_key) ? (snapshotAnnexes(revision.data_snapshot) ?? []) : [];

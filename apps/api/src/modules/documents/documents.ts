@@ -81,7 +81,7 @@ export type DocumentRow = Pick<
 const documentColumns =
   'id, client_id, type_key, title, decision_number, period, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date, first_decision_number), document_template_versions(version, kind, note), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
 
-export const typeOrders = Object.fromEntries(
+const typeOrders = Object.fromEntries(
   Object.entries(documentSetTypeKeys).map(([set, typeKeys]) => [
     set,
     new Map<string, number>(typeKeys.map((key, index) => [key, index])),
@@ -282,9 +282,12 @@ async function presentDocument(
 
 // The pack's own order first, then anything a provider added, by title; a dated type's newest
 // period first.
-const inSetOrder = (set: DocumentSet) => {
+export const inSetOrder = (set: DocumentSet) => {
   const typeOrder = typeOrders[set];
-  return (a: ClientDocument, b: ClientDocument) =>
+  return (
+    a: Pick<ClientDocument, 'typeKey' | 'title' | 'period'>,
+    b: Pick<ClientDocument, 'typeKey' | 'title' | 'period'>
+  ) =>
     (typeOrder.get(a.typeKey) ?? Infinity) - (typeOrder.get(b.typeKey) ?? Infinity) ||
     a.title.localeCompare(b.title, 'ro') ||
     (b.period ?? 0) - (a.period ?? 0);
