@@ -138,7 +138,7 @@ describe('the annual report', () => {
       state: 'ciornă, rev. 1',
     });
     expect(report.documents.map((document) => document.title)).not.toContain(
-      'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor'
+      'Raportul anual de evaluare a capacității de apărare împotriva incendiilor'
     );
     expect(report.documents.some((document) => document.title.startsWith('Copertă'))).toBe(false);
     expect(report.documents).toHaveLength(22);

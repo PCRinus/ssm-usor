@@ -419,7 +419,7 @@ export const facts: DocumentFacts = {
       },
       {
         typeKey: 'fire_annual_report',
-        title: 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor',
+        title: 'Raportul anual de evaluare a capacității de apărare împotriva incendiilor',
         decisionNumber: null,
         period: 2025,
         draft: null,

@@ -23,7 +23,7 @@ export const notApplicableTitles: Partial<Record<BuiltInDocumentTypeKey, string>
   fire_installation_register:
     'Registru de control pentru instalațiile de apărare împotriva incendiilor',
   fire_site_sheet: 'Fișa obiectivului',
-  fire_annual_report: 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor',
+  fire_annual_report: 'Raportul anual de evaluare a capacității de apărare împotriva incendiilor',
 };
 
 // The template titles, held to the fire-safety manifest by a test.
