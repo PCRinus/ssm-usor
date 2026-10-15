@@ -98,6 +98,7 @@ export function DatePicker({
         <PopoverContent align="end" className="w-auto p-0">
           <Calendar
             mode="single"
+            required
             captionLayout="dropdown"
             selected={selected}
             defaultMonth={selected ?? maxDate ?? new Date()}
@@ -108,7 +109,6 @@ export function DatePicker({
               ...(maxDate ? [{ after: maxDate }] : []),
             ]}
             onSelect={(day) => {
-              if (!day) return;
               const next = dateToIso(day);
               setText(formatRoDate(next));
               setSeen(next);
