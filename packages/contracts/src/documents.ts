@@ -515,6 +515,14 @@ export const documentDownloadResponseSchema = z.object({
 
 export type DocumentDownloadResponse = z.infer<typeof documentDownloadResponseSchema>;
 
+export const documentArchiveFormats = ['docx', 'pdf'] as const;
+
+export type DocumentArchiveFormat = (typeof documentArchiveFormats)[number];
+
+export const documentArchiveQuerySchema = documentSetQuerySchema.extend({
+  format: z.enum(documentArchiveFormats).default('docx'),
+});
+
 export const clientDocumentResponseSchema = z.object({ document: clientDocumentSchema });
 
 export type ClientDocumentResponse = z.infer<typeof clientDocumentResponseSchema>;
@@ -541,6 +549,7 @@ export const documentErrorReasons = [
   'not_issued',
   'nothing_behind',
   'regeneration_running',
+  'nothing_to_archive',
 ] as const;
 
 export const issueDocumentRequestSchema = z.object({

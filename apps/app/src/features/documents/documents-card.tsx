@@ -42,11 +42,19 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { ChevronRight, FileText, MoreHorizontal, Sparkles } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Download,
+  FileText,
+  MoreHorizontal,
+  Sparkles,
+} from 'lucide-react';
 import { Fragment, useRef, useState } from 'react';
 
 import {
   type ApiErrorResponse,
+  getDocumentArchive,
   getDocumentDownload,
   getInstructionModuleFileLink,
   getListClientDocumentsQueryKey,
@@ -65,7 +73,7 @@ import { Notice } from '@/components/notice';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { endWayBack } from '@/features/missing-data/way-back';
 import { formatRoDate } from '@/lib/dates';
-import { openDownload } from '@/lib/save-file';
+import { openDownload, saveFile } from '@/lib/save-file';
 
 import { AnnexRow } from './annex-row';
 import {
@@ -207,6 +215,7 @@ export function DocumentsCard<Set extends DocumentSet>({
   const [unfoldedTypes, setUnfoldedTypes] = useState<ReadonlySet<string>>(new Set());
   const [confirming, setConfirming] = useState<Confirming>(null);
   const [error, setError] = useState<string | Refusal | null>(null);
+  const [archiving, setArchiving] = useState(false);
   const busy =
     regenerate.isPending ||
     issue.isPending ||
@@ -231,6 +240,7 @@ export function DocumentsCard<Set extends DocumentSet>({
     (key) => isDatedDocumentType(key) && appliesAt(key, documents.data?.currentEmployeeCount ?? 0)
   );
   const canGenerate = !readOnly && documents.isSuccess && (lacking > 0 || dated);
+  const issuedPdfs = items.filter((item) => item.issued?.hasPdf).length;
 
   function openGenerate() {
     endWayBack();
@@ -334,6 +344,28 @@ export function DocumentsCard<Set extends DocumentSet>({
       setError(
         `Nu am putut descărca „${document.title}”. Verifică conexiunea și încearcă din nou.`
       );
+    }
+  }
+
+  async function downloadArchive(format: 'docx' | 'pdf') {
+    setError(null);
+    setArchiving(true);
+    const pending = toast.loading('Se pregătește arhiva documentației…');
+    try {
+      const archive = await getDocumentArchive(clientId, { set, format }, apiRequest);
+      saveFile(archive, archive instanceof File ? archive.name : `Documentatie ${copy.name}.zip`);
+    } catch (cause) {
+      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      setError(
+        body?.reason === 'nothing_to_archive'
+          ? format === 'pdf'
+            ? 'Niciun document nu are încă PDF. PDF-ul se face când documentul este emis.'
+            : 'Niciun document nu este generat încă.'
+          : 'Nu am putut pregăti arhiva documentației. Verifică conexiunea și încearcă din nou.'
+      );
+    } finally {
+      toast.dismiss(pending);
+      setArchiving(false);
     }
   }
 
@@ -631,16 +663,54 @@ export function DocumentsCard<Set extends DocumentSet>({
             </p>
           )}
         </div>
-        {canGenerate && (
-          <Button ref={generateRef} data-testid="documents-generate" onClick={openGenerate}>
-            <Sparkles aria-hidden="true" />
-            {items.length === 0
-              ? 'Generează documentația'
-              : lacking > 0
-                ? 'Generează documentele lipsă'
-                : 'Generează pentru alt an'}
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {items.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" data-testid="documents-archive" disabled={archiving}>
+                  <Download aria-hidden="true" />
+                  {archiving ? 'Se pregătește arhiva…' : 'Descarcă documentația'}
+                  <ChevronDown aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="max-w-80">
+                <DropdownMenuItem
+                  data-testid="documents-archive-docx"
+                  className="grid gap-0.5"
+                  onSelect={() => void downloadArchive('docx')}
+                >
+                  <span>Arhivă cu fișierele Word</span>
+                  <span className="text-xs text-muted-foreground">
+                    Documentele emise și ciornele celor neemise încă
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  data-testid="documents-archive-pdf"
+                  className="grid gap-0.5"
+                  disabled={issuedPdfs === 0}
+                  onSelect={() => void downloadArchive('pdf')}
+                >
+                  <span>Arhivă cu PDF-urile</span>
+                  <span className="text-xs text-muted-foreground">
+                    {issuedPdfs === 0
+                      ? 'Niciun document emis încă'
+                      : `Doar documentele emise: ${issuedPdfs} din ${items.length}`}
+                  </span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {canGenerate && (
+            <Button ref={generateRef} data-testid="documents-generate" onClick={openGenerate}>
+              <Sparkles aria-hidden="true" />
+              {items.length === 0
+                ? 'Generează documentația'
+                : lacking > 0
+                  ? 'Generează documentele lipsă'
+                  : 'Generează pentru alt an'}
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="grid gap-4">
         {typeof error === 'string' ? (

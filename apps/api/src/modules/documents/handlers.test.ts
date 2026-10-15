@@ -7,6 +7,7 @@ import {
   fireSafetyDocumentTypeKeys,
   generateDocumentsResponseSchema,
 } from '@ssm-usor/contracts';
+import { unzipSync } from 'fflate';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
@@ -1231,6 +1232,123 @@ const convertedFiles = (files: ArrayBuffer[]) =>
     const text = new TextDecoder().decode(file);
     return text.startsWith('{') ? (JSON.parse(text) as unknown) : text;
   });
+
+describe('GET /clients/{clientId}/documents/archive', () => {
+  const path = (id: string, revision: number) => `${organizationId}/${clientId}/${id}/${revision}`;
+  const revision = (id: string, number: number, status: 'draft' | 'issued', pdf = false) => ({
+    ...revisionRow,
+    data_snapshot: revisionRow.data_snapshot as object,
+    id: `${id}-r${number}`,
+    revision: number,
+    status,
+    docx_path: `${path(id, number)}.docx`,
+    pdf_path: pdf ? `${path(id, number)}.pdf` : null,
+  });
+  const archivedDocument = (
+    id: string,
+    type_key: string,
+    title: string,
+    document_revisions: ReturnType<typeof revision>[]
+  ) => ({ ...documentRow, id, type_key, title, decision_number: null, document_revisions });
+  const documents = [
+    archivedDocument('own', 'own_instructions', 'Instrucțiuni proprii SSM', [
+      { ...revision('own', 1, 'issued', true), data_snapshot: ownInstructionsSnapshot },
+    ]),
+    archivedDocument('aid', 'decision_first_aid', 'Decizia privind primul ajutor', [
+      revision('aid', 1, 'draft'),
+    ]),
+    archivedDocument('cover', 'cover_decisions', 'Copertă – Deciziile interne', [
+      revision('cover', 2, 'draft'),
+      revision('cover', 1, 'issued', true),
+    ]),
+  ];
+  const archive = (handlers: Partial<Record<Upstream, Handler>> = {}) =>
+    mockUpstream({
+      documents: () => Response.json(documents),
+      moduleVersions: annexedModuleVersions,
+      file: (_init, url) =>
+        new Response(
+          new TextEncoder().encode(url!.pathname.slice('/storage/v1/object/sign/documents/'.length))
+        ),
+      ...handlers,
+    });
+  const filesOf = async (response: Response) =>
+    Object.fromEntries(
+      Object.entries(unzipSync(new Uint8Array(await response.arrayBuffer()))).map(
+        ([name, bytes]) => [name, new TextDecoder().decode(bytes)]
+      )
+    );
+
+  it("holds each document's issued Word file, or its draft, in the set's order, with the annexes", async () => {
+    archive();
+    const response = await request(`/clients/${clientId}/documents/archive`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('application/zip');
+    expect(response.headers.get('Content-Disposition')).toContain(
+      `filename*=UTF-8''${encodeURIComponent('S.C. PIPETECH S.R.L. - documentația SSM - Word.zip')}`
+    );
+    expect(await filesOf(response)).toEqual({
+      '01 Copertă - Deciziile interne - rev. 1.docx': `${path('cover', 1)}.docx`,
+      '02 Decizia privind primul ajutor - rev. 1 - ciornă.docx': `${path('aid', 1)}.docx`,
+      '03 Instrucțiuni proprii SSM - rev. 1.docx': `${path('own', 1)}.docx`,
+      '03 Instrucțiuni proprii SSM - rev. 1 - Anexa 1 - Scări metalice.docx': 'm-ladders',
+      '03 Instrucțiuni proprii SSM - rev. 1 - Anexa 2 - Birouri.docx': 'm-offices',
+    });
+    expect(
+      new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('document_group')
+    ).toBe('eq.documentation_set');
+  });
+
+  it('holds the PDFs made at issuing, which already hold the annexes, and nothing else', async () => {
+    archive();
+    const response = await request(`/clients/${clientId}/documents/archive?format=pdf`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Disposition')).toContain('documentatia SSM - PDF.zip');
+    expect(await filesOf(response)).toEqual({
+      '01 Copertă - Deciziile interne - rev. 1.pdf': `${path('cover', 1)}.pdf`,
+      '02 Instrucțiuni proprii SSM - rev. 1.pdf': `${path('own', 1)}.pdf`,
+    });
+    expect(calls('/rest/v1/instruction_module_versions')).toHaveLength(0);
+  });
+
+  it('takes the set asked for', async () => {
+    archive({
+      documents: () =>
+        Response.json([
+          archivedDocument('regs', 'fire_registers', 'Registre PSI', [
+            revision('regs', 1, 'draft'),
+          ]),
+        ]),
+    });
+    const response = await request(`/clients/${clientId}/documents/archive?set=fire_safety`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Disposition')).toContain('documentatia PSI - Word.zip');
+    expect(Object.keys(await filesOf(response))).toEqual([
+      '01 Registre PSI - rev. 1 - ciornă.docx',
+    ]);
+    expect(
+      new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('document_group')
+    ).toBe('eq.fire_safety_set');
+  });
+
+  it('says when no document has a file in the format', async () => {
+    archive({ documents: () => Response.json([documents[1]]) });
+    const pdf = await request(`/clients/${clientId}/documents/archive?format=pdf`);
+    expect(pdf.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await pdf.json()).reason).toBe('nothing_to_archive');
+
+    archive({ documents: () => Response.json([]) });
+    expect((await request(`/clients/${clientId}/documents/archive`)).status).toBe(409);
+    expect((await request(`/clients/${clientId}/documents/archive?format=odt`)).status).toBe(400);
+  });
+
+  it('answers 404 for a client of another organization', async () => {
+    archive({ clients: () => Response.json(null) });
+    const response = await request(`/clients/${clientId}/documents/archive`);
+    expect(response.status).toBe(404);
+    expect(calls('/rest/v1/client_documents')).toHaveLength(0);
+  });
+});
 
 describe('POST /documents/{documentId}/regenerate', () => {
   const regenerate = (body: unknown = {}) =>

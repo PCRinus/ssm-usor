@@ -26,6 +26,7 @@
     "@ssm-usor/document-engine": "workspace:*",
     "@ssm-usor/legislation-check": "workspace:*",
     "@supabase/supabase-js": "^2.117.2",
+    "fflate": "^0.8.3",
     "hono": "^4.13.7",
     "zod": "^4.6.4"
   },

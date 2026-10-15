@@ -20055,6 +20055,132 @@
         }
       }
     },
+    "/clients/{clientId}/documents/archive": {
+      "get": {
+        "operationId": "getDocumentArchive",
+        "summary": "Download one of a client's documentation sets as a zip archive",
+        "description": "Every document of the set named by `set`, numbered in the set's order. `format=docx` takes each document's issued Word file, or its draft while nothing is issued, with the own instructions' annexes as files of their own. `format=pdf` takes the PDFs made at issuing, which hold the annexes, and leaves out documents that have none. `409` with the reason `nothing_to_archive` when no document qualifies.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["occupational_safety", "fire_safety"],
+              "default": "occupational_safety"
+            },
+            "required": false,
+            "name": "set",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["docx", "pdf"],
+              "default": "docx"
+            },
+            "required": false,
+            "name": "format",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The archive, named in `Content-Disposition`",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path, set or format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No document has a file in this format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/{documentId}/revisions/{revisionId}/download": {
       "get": {
         "operationId": "getDocumentDownload",

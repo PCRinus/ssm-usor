@@ -6171,6 +6171,27 @@ export const GenerateClientDocumentsSet = {
   fire_safety: 'fire_safety',
 } as const;
 
+export type GetDocumentArchiveParams = {
+  set?: GetDocumentArchiveSet;
+  format?: GetDocumentArchiveFormat;
+};
+
+export type GetDocumentArchiveSet =
+  (typeof GetDocumentArchiveSet)[keyof typeof GetDocumentArchiveSet];
+
+export const GetDocumentArchiveSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type GetDocumentArchiveFormat =
+  (typeof GetDocumentArchiveFormat)[keyof typeof GetDocumentArchiveFormat];
+
+export const GetDocumentArchiveFormat = {
+  docx: 'docx',
+  pdf: 'pdf',
+} as const;
+
 export type GetDocumentDownloadParams = {
   format?: GetDocumentDownloadFormat;
 };
@@ -19007,6 +19028,156 @@ export const useGenerateClientDocuments = <
 > => {
   return useMutation(getGenerateClientDocumentsMutationOptions(options), queryClient);
 };
+
+export const getGetDocumentArchiveUrl = (clientId: string, params?: GetDocumentArchiveParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/documents/archive?${stringifiedParams}`
+    : `/clients/${clientId}/documents/archive`;
+};
+
+/**
+ * Every document of the set named by `set`, numbered in the set's order. `format=docx` takes each document's issued Word file, or its draft while nothing is issued, with the own instructions' annexes as files of their own. `format=pdf` takes the PDFs made at issuing, which hold the annexes, and leaves out documents that have none. `409` with the reason `nothing_to_archive` when no document qualifies.
+ * @summary Download one of a client's documentation sets as a zip archive
+ */
+export const getDocumentArchive = async (
+  clientId: string,
+  params?: GetDocumentArchiveParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getGetDocumentArchiveUrl(clientId, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetDocumentArchiveQueryKey = (
+  clientId: string,
+  params?: GetDocumentArchiveParams
+) => {
+  return [`/clients/${clientId}/documents/archive`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetDocumentArchiveQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDocumentArchive>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: GetDocumentArchiveParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentArchive>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDocumentArchiveQueryKey(clientId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentArchive>>> = ({ signal }) =>
+    getDocumentArchive(clientId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getDocumentArchive>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetDocumentArchiveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDocumentArchive>>
+>;
+export type GetDocumentArchiveQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetDocumentArchive<
+  TData = Awaited<ReturnType<typeof getDocumentArchive>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params: undefined | GetDocumentArchiveParams,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentArchive>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentArchive>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentArchive>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentArchive<
+  TData = Awaited<ReturnType<typeof getDocumentArchive>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: GetDocumentArchiveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentArchive>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentArchive>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentArchive>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentArchive<
+  TData = Awaited<ReturnType<typeof getDocumentArchive>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: GetDocumentArchiveParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentArchive>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Download one of a client's documentation sets as a zip archive
+ */
+
+export function useGetDocumentArchive<
+  TData = Awaited<ReturnType<typeof getDocumentArchive>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: GetDocumentArchiveParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDocumentArchive>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDocumentArchiveQueryOptions(clientId, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getGetDocumentDownloadUrl = (
   documentId: string,

@@ -598,6 +598,9 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   saves a blob, so the file gets the document's name with its diacritics: browsers ignore
   `download` on a link to another origin, and Storage percent-encodes the name in its own
   header. A `404` or `409` reloads the list. An archived client only gets the downloads.
+  "Descarcă documentația" in the card's header downloads the whole set as one zip, of the Word
+  files or of the issued PDFs (disabled until one exists, with the count of issued documents);
+  `apiFetch` returns a zip or PDF as a `File` named from `Content-Disposition`.
   Generating one document again refused with `missing_document_data` names the codes under
   `missing`; the card shows them as the generation form's rows (`DocumentMissingRows`, which
   asks the readiness for the positions and evaluations behind a code, so a refused code gets

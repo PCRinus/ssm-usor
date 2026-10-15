@@ -2,10 +2,12 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import type { Context } from 'hono';
 
 import { createAdminClient } from '../../lib/admin-db';
+import { contentDisposition } from '../../lib/content-disposition';
 import { createDataClient } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { createFileStore } from '../../lib/files';
 import { createPdfConverter, requirePdfConverter } from '../../lib/pdf';
+import { documentArchive } from './archive';
 import { undecidedJobPositions, workersRepresentativeClash } from './context';
 import {
   type Actor,
@@ -35,6 +37,7 @@ import type {
   confirmDocumentSignedCopyRoute,
   deleteDocumentDraftRoute,
   generateClientDocumentsRoute,
+  getDocumentArchiveRoute,
   getDocumentDownloadRoute,
   getDocumentReadinessRoute,
   getRegenerationJobRoute,
@@ -131,6 +134,24 @@ export const getDocumentDownload: RouteHandler<typeof getDocumentDownloadRoute, 
     c.req.valid('query').format
   );
   return c.json(link, 200);
+};
+
+export const getDocumentArchive: RouteHandler<typeof getDocumentArchiveRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId } = c.req.valid('param');
+  const { set, format } = c.req.valid('query');
+  const archive = await documentArchive(
+    createDataClient(c),
+    createFileStore(c),
+    clientId,
+    set,
+    format
+  );
+  return c.body(archive.bytes, 200, {
+    'Content-Type': 'application/zip',
+    'Content-Disposition': contentDisposition('attachment', archive.fileName),
+  });
 };
 
 export const regenerateDocument: RouteHandler<typeof regenerateDocumentRoute, ApiEnv> = async (
