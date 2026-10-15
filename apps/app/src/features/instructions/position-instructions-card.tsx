@@ -497,7 +497,9 @@ function PickInstructionsDialog({
               data-testid={testId('pick-empty')}
               action={
                 <Button asChild variant="outline">
-                  <Link to="/instructions">Deschide biblioteca</Link>
+                  <Link to={domain === 'psi' ? '/instructions/psi' : '/instructions/ssm'}>
+                    Deschide biblioteca
+                  </Link>
                 </Button>
               }
             >

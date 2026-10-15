@@ -1,4 +1,4 @@
-import { type InstructionDomain, instructionDomains } from '@ssm-usor/contracts';
+import type { InstructionDomain } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
@@ -9,7 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
-import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   Table,
@@ -21,7 +20,7 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { BookOpenText, ChevronDown, MoreHorizontal, PenLine, Upload } from 'lucide-react';
+import { BookOpenText, MoreHorizontal, PenLine, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import {
@@ -45,16 +44,17 @@ import {
   positionCountLabel,
 } from './instruction-schema';
 
-// The organization's instruction library (ADR 012): the modules the own instructions annex.
-export function InstructionLibrary({ userId }: { userId: string }) {
+export function InstructionLibrary({
+  domain,
+  userId,
+}: {
+  domain: InstructionDomain;
+  userId: string;
+}) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
   const [showArchived, setShowArchived] = useState(false);
-  const [domainFilter, setDomainFilter] = useState<InstructionDomain | null>(null);
-  const params = {
-    archived: showArchived ? ('true' as const) : ('false' as const),
-    ...(domainFilter ? { domain: domainFilter } : {}),
-  };
+  const params = { archived: showArchived ? ('true' as const) : ('false' as const), domain };
   const modules = useListInstructionModules(params, {
     request: apiRequest,
     query: { queryKey: [...getListInstructionModulesQueryKey(params), userId] },
@@ -66,7 +66,6 @@ export function InstructionLibrary({ userId }: { userId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [uploadDomain, setUploadDomain] = useState<InstructionDomain>('ssm');
 
   async function uploadFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -81,10 +80,7 @@ export function InstructionLibrary({ userId }: { userId: string }) {
         const fallback = file.name.replace(/\.docx$/i, '').trim();
         const { module } = await upload.mutateAsync({
           data: file,
-          params: {
-            title: fallback.length >= 2 ? undefined : fallback,
-            domain: uploadDomain,
-          },
+          params: { title: fallback.length >= 2 ? undefined : fallback, domain },
         });
         titles.push(module.title);
       } catch (cause) {
@@ -133,48 +129,10 @@ export function InstructionLibrary({ userId }: { userId: string }) {
   }
 
   const items = modules.data?.items ?? [];
+  const label = domainLabels[domain];
 
   return (
-    <div data-testid="instruction-library" className="grid gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="max-w-2xl">
-          <h1 className="text-xl font-semibold tracking-tight">Biblioteca de instrucțiuni</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Instrucțiunile proprii ale organizației, câte un fișier Word pentru fiecare activitate,
-            echipament de muncă sau echipament de protecție. Un post de lucru aplică pe cele care îl
-            privesc, iar instrucțiunile proprii ale clientului le anexează.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" data-testid="instruction-upload" disabled={uploading}>
-                <Upload aria-hidden="true" />
-                {uploading ? 'Se încarcă…' : 'Încarcă fișiere'}
-                <ChevronDown aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {instructionDomains.map((domain) => (
-                <DropdownMenuItem
-                  key={domain}
-                  data-testid={`instruction-upload-${domain}`}
-                  onSelect={() => {
-                    setUploadDomain(domain);
-                    fileInput.current?.click();
-                  }}
-                >
-                  {`Instrucțiuni ${domainLabels[domain]}`}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button data-testid="instruction-write" onClick={() => setEditing('new')}>
-            <PenLine aria-hidden="true" />
-            Scrie o instrucțiune
-          </Button>
-        </div>
-      </div>
+    <div data-testid={`instruction-library-${domain}`} className="grid gap-6">
       {error && (
         <Notice
           variant="destructive"
@@ -186,9 +144,8 @@ export function InstructionLibrary({ userId }: { userId: string }) {
       )}
       {uploaded.length > 0 && (
         <Notice variant="info" data-testid="instruction-uploaded">
-          Titlul fiecărei instrucțiuni încărcate este primul rând al fișierului, iar grupul este
-          „Activități”. Corectează-le din meniul rândului unde este cazul, ca și domeniul, cât timp
-          niciun post nu o aplică.
+          Titlul este primul rând al fișierului, iar grupul „Activități”. Le corectezi din meniul
+          rândului, ca și domeniul, cât timp niciun post nu aplică instrucțiunea.
         </Notice>
       )}
       <Card>
@@ -197,27 +154,6 @@ export function InstructionLibrary({ userId }: { userId: string }) {
             {showArchived ? 'Instrucțiuni arhivate' : 'Instrucțiuni în uz'}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
-            <label htmlFor="instruction-domain-filter" className="text-sm text-muted-foreground">
-              Domeniu
-            </label>
-            <div className="w-28">
-              <NativeSelect
-                id="instruction-domain-filter"
-                size="sm"
-                data-testid="instruction-domain-filter"
-                value={domainFilter ?? ''}
-                onChange={(event) =>
-                  setDomainFilter((event.target.value || null) as InstructionDomain | null)
-                }
-              >
-                <NativeSelectOption value="">Toate</NativeSelectOption>
-                {instructionDomains.map((domain) => (
-                  <NativeSelectOption key={domain} value={domain}>
-                    {domainLabels[domain]}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -225,6 +161,20 @@ export function InstructionLibrary({ userId }: { userId: string }) {
               onClick={() => setShowArchived((value) => !value)}
             >
               {showArchived ? 'Arată instrucțiunile în uz' : 'Arată arhiva'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="instruction-upload"
+              disabled={uploading}
+              onClick={() => fileInput.current?.click()}
+            >
+              <Upload aria-hidden="true" />
+              {uploading ? 'Se încarcă…' : 'Încarcă fișiere'}
+            </Button>
+            <Button size="sm" data-testid="instruction-write" onClick={() => setEditing('new')}>
+              <PenLine aria-hidden="true" />
+              Scrie o instrucțiune
             </Button>
           </div>
         </CardHeader>
@@ -251,15 +201,12 @@ export function InstructionLibrary({ userId }: { userId: string }) {
               <BookOpenText className="size-8 text-muted-foreground" aria-hidden="true" />
               <p className="text-sm font-medium">
                 {showArchived
-                  ? 'Nicio instrucțiune arhivată'
-                  : domainFilter
-                    ? `Nicio instrucțiune ${domainLabels[domainFilter]}`
-                    : 'Biblioteca este goală'}
+                  ? `Nicio instrucțiune ${label} arhivată`
+                  : `Nicio instrucțiune ${label} în bibliotecă`}
               </p>
-              {!showArchived && !domainFilter && (
+              {!showArchived && (
                 <p className="max-w-md text-center text-sm text-muted-foreground">
-                  Încarcă fișierele Word cu instrucțiunile pe care le folosești deja, câte unul
-                  pentru fiecare activitate sau echipament, sau scrie una nouă pornind de la
+                  Încarcă fișierele Word pe care le folosești deja sau scrie una nouă pornind de la
                   schelet.
                 </p>
               )}
@@ -269,7 +216,6 @@ export function InstructionLibrary({ userId }: { userId: string }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Titlu</TableHead>
-                  <TableHead>Domeniu</TableHead>
                   <TableHead>Grup</TableHead>
                   <TableHead>Versiune</TableHead>
                   <TableHead>Aplicată la</TableHead>
@@ -301,11 +247,6 @@ export function InstructionLibrary({ userId }: { userId: string }) {
                       >
                         {module.title}
                       </Link>
-                    </TableCell>
-                    <TableCell data-testid="instruction-domain">
-                      <Badge variant={module.domain === 'psi' ? 'secondary' : 'outline'}>
-                        {domainLabels[module.domain]}
-                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{groupLabels[module.group]}</Badge>
@@ -378,6 +319,7 @@ export function InstructionLibrary({ userId }: { userId: string }) {
       />
       <InstructionModuleDialog
         editing={editing}
+        defaultDomain={domain}
         onClose={() => setEditing(null)}
         onSaved={(module) => {
           if (editing === 'new') {
