@@ -182,6 +182,11 @@ type FireWorkplaceContext = {
   extinguisherCount: number;
   otherEquipment: { kindLabel: string; count: number }[];
   installations: { kindLabel: string; description: string }[];
+  /** Detection and gas detection, which the posted sheet lists with the means of alarm. */
+  alarmInstallations: { kindLabel: string; description: string }[];
+  /** Every other installation but the safety lighting, under limiting and extinguishing. */
+  extinguishingInstallations: { kindLabel: string; description: string }[];
+  hasEmergencyLighting: boolean;
   hasInstallations: boolean;
   hasExteriorHydrants: boolean;
   hasInteriorHydrants: boolean;
@@ -192,8 +197,9 @@ type FireWorkplaceContext = {
   /** "Ion POP și Ana RUS"; the set's leader when nobody answers for this workplace alone. */
   firstInterventionNames: string;
   /**
-   * Who cuts the power, works the installations and leads the evacuation here: the leader tied
-   * to this workplace, else its manager, else the set's leader.
+   * Who cuts the power, works the installations and leads the evacuation here: a leader tied to
+   * this workplace or to none, else, where the leaders are tied elsewhere, its manager, else the
+   * set's leader.
    */
   interventionLeaderName: string;
 };
@@ -487,6 +493,8 @@ const capacityUnits: Record<FireExtinguishingAgent, string> = {
 
 const collator = new Intl.Collator('ro');
 
+const alarmKinds = new Set<FireInstallationKind>(['detection_alarm', 'gas_detection']);
+
 function extinguisherGroups(units: FireSafetyClientFacts['equipment']) {
   const extinguishers = units.flatMap((unit) =>
     unit.kind === 'extinguisher' && unit.agent !== null && unit.capacity !== null
@@ -679,7 +687,7 @@ function fireContext(
     const leaders = holding('fire_intervention_leader');
     const leaderHere =
       leaders.find((person) => person.workplaceId === workplace.id) ??
-      (manager ? null : leaders.find((person) => person.workplaceId === null));
+      leaders.find((person) => person.workplaceId === null);
     const interventionLeaderName = leaderHere
       ? asPerson(leaderHere).name
       : (manager?.name ?? interventionLeader.name);
@@ -710,6 +718,16 @@ function fireContext(
       installations: installations.map((installation) =>
         installationParts(installation.kind, installation.description)
       ),
+      alarmInstallations: installations
+        .filter((installation) => alarmKinds.has(installation.kind))
+        .map((installation) => installationParts(installation.kind, installation.description)),
+      extinguishingInstallations: installations
+        .filter(
+          (installation) =>
+            !alarmKinds.has(installation.kind) && installation.kind !== 'emergency_lighting'
+        )
+        .map((installation) => installationParts(installation.kind, installation.description)),
+      hasEmergencyLighting: installations.some((each) => each.kind === 'emergency_lighting'),
       hasInstallations: installations.length > 0,
       hasExteriorHydrants: installations.some((each) => each.kind === 'exterior_hydrants'),
       hasInteriorHydrants: installations.some((each) => each.kind === 'interior_hydrants'),

@@ -146,6 +146,9 @@ describe('fire-safety set', () => {
     extinguisherCount: 3,
     otherEquipment: [{ kindLabel: 'Ladă cu nisip', count: 1 }],
     installations: [{ kindLabel: 'Hidranți interiori', description: 'Unul pe nivel' }],
+    alarmInstallations: [],
+    extinguishingInstallations: [{ kindLabel: 'Hidranți interiori', description: 'Unul pe nivel' }],
+    hasEmergencyLighting: false,
     hasInstallations: true,
     hasExteriorHydrants: true,
     hasInteriorHydrants: true,
@@ -441,6 +444,8 @@ describe('fire-safety set', () => {
         specificMeasuresRunOn: '',
         otherEquipment: [],
         installations: [],
+        alarmInstallations: [],
+        extinguishingInstallations: [],
         hasInstallations: false,
         schedules: [
           {

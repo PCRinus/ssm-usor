@@ -511,7 +511,7 @@ describe('the fire-safety context', () => {
     expect(office).toMatchObject({ areaLabel: '180\u00a0m²', normLabel: 'fără normă din anexa 6' });
   });
 
-  it("has the intervention leader act where he is tied, and each other workplace's manager where he is not", () => {
+  it("has the intervention leader act where he is tied or tied to none, and the workplace's manager where he is tied elsewhere", () => {
     const [manager, leader] = facts.responsiblePersons;
     const sheetsWith = (persons: DocumentFacts['responsiblePersons']) =>
       buildFireSafetyContext({ ...facts, responsiblePersons: persons }).fire.workplaces.map(
@@ -519,16 +519,53 @@ describe('the fire-safety context', () => {
       );
     expect(sheetsWith([manager!, leader!])).toEqual(['Ioana PETRE', 'Florin Cristian TALOȘ']);
     expect(sheetsWith([manager!, { ...leader!, workplaceId: null }])).toEqual([
-      'Florin Cristian TALOȘ',
-      'Florin Cristian TALOȘ',
+      'Ioana PETRE',
+      'Ioana PETRE',
     ]);
     expect(
       sheetsWith([
         { ...manager!, roles: manager!.roles.filter((role) => role !== 'workplace_manager') },
-        { ...leader!, workplaceId: null, roles: ['fire_intervention_leader'] },
+        leader!,
         { ...leader!, fullName: 'Dan ROTARU', roles: ['workplace_manager'] },
       ])
-    ).toEqual(['Dan ROTARU', 'Ioana PETRE']);
+    ).toEqual(['Ioana PETRE', 'Ioana PETRE']);
+  });
+
+  it('sorts the installations of a workplace into those of alarm and those of extinguishing, the safety lighting apart', () => {
+    const [workshop, office] = buildFireSafetyContext({
+      ...facts,
+      fireSafety: {
+        ...facts.fireSafety,
+        installations: [
+          ...facts.fireSafety.installations,
+          ...(['emergency_lighting', 'gas_detection', 'sprinklers'] as const).map((kind) => ({
+            workplaceId: officeId,
+            kind,
+            description: null,
+            maintainer: null,
+            lastCheckOn: null,
+            nextCheckOn: null,
+          })),
+        ],
+      },
+    }).fire.workplaces;
+    expect(workshop).toMatchObject({
+      alarmInstallations: [],
+      extinguishingInstallations: [
+        { kindLabel: 'Hidranți exteriori', description: 'Doi hidranți în curte' },
+      ],
+      hasEmergencyLighting: false,
+    });
+    expect(office!.alarmInstallations.map((each) => each.kindLabel)).toEqual([
+      'Instalație de detectare, semnalizare și avertizare la incendiu',
+      'Instalație de detectare a gazelor',
+    ]);
+    expect(office!.extinguishingInstallations.map((each) => each.kindLabel)).toEqual([
+      'Hidranți interiori',
+      'Instalație de stingere cu sprinklere',
+    ]);
+    expect(office!.hasEmergencyLighting).toBe(true);
+    expect(office!.installations).toHaveLength(5);
   });
 
   it('prints an installation whose description names its kind by the description alone', () => {
