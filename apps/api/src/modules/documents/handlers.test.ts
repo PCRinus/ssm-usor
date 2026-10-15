@@ -1291,8 +1291,9 @@ describe('GET /clients/{clientId}/documents/archive', () => {
       '01 Copertă - Deciziile interne - rev. 1.docx': `${path('cover', 1)}.docx`,
       '02 Decizia privind primul ajutor - rev. 1 - ciornă.docx': `${path('aid', 1)}.docx`,
       '03 Instrucțiuni proprii SSM - rev. 1.docx': `${path('own', 1)}.docx`,
-      '03 Instrucțiuni proprii SSM - rev. 1 - Anexa 1 - Scări metalice.docx': 'm-ladders',
-      '03 Instrucțiuni proprii SSM - rev. 1 - Anexa 2 - Birouri.docx': 'm-offices',
+      '03 Instrucțiuni proprii SSM - rev. 1 - Anexa 1 - I.P.S.S.M. Scări metalice.docx':
+        'm-ladders',
+      '03 Instrucțiuni proprii SSM - rev. 1 - Anexa 2 - I.P.S.S.M. Birouri.docx': 'm-offices',
     });
     expect(
       new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('document_group')

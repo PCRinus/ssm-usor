@@ -1,4 +1,4 @@
-import type { DocumentArchiveFormat, DocumentSet } from '@ssm-usor/contracts';
+import type { DocumentArchiveFormat, DocumentSet, InstructionDomain } from '@ssm-usor/contracts';
 import { type Zippable, zipSync } from 'fflate';
 
 import { type DataClient, fromDatabaseError } from '../../lib/db';
@@ -15,6 +15,7 @@ import {
 import { annexDomainOf, snapshotAnnexes } from './snapshot';
 
 const setNames: Record<DocumentSet, string> = { occupational_safety: 'SSM', fire_safety: 'PSI' };
+const annexCodes: Record<InstructionDomain, string> = { ssm: 'I.P.S.S.M.', psi: 'I.P.S.U.' };
 
 // A Worker opens at most six connections at once and queues the rest, while each read's timeout
 // already runs: a whole set read at once could time out reads that never started.
@@ -89,7 +90,7 @@ export async function documentArchive(
         // organization's module, which the policies keep out of reach.
         if (!path) throw new ApiError('conflict', 'An annexed instruction is not in the library.');
         return {
-          name: `${name}${draft} - Anexa ${annex.number} - ${fileNameOf(annex.title)}.docx`,
+          name: `${name}${draft} - Anexa ${annex.number} - ${annexCodes[annexDomainOf(document.type_key)!]} ${fileNameOf(annex.title)}.docx`,
           read: () => files.readModule(path),
         };
       }),
