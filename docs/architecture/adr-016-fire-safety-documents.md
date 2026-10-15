@@ -105,7 +105,7 @@ Stage 3 waits for these; the first five also decide the data of stage 2.
 2. The periodic interval per staff category (the pack says three months and, in a test key, one), the periodic duration (the IPSU says 60 minutes, OMAI 712/2005 two hours), and who trains at a client of at most nine employees, where art. 31(2) makes it the employer's task.
 3. Smoking: forbidden on the whole site, or one outdoor place with a named supervisor?
 4. Who approves the acts of authority in decision 1, and can one person hold every designation in it?
-5. Clients under ten employees fall under the shorter list of OMAI 163/2007 art. 20: do they get that list or the full set?
+5. Clients under ten employees fall under the shorter list of OMAI 163/2007 art. 20: do they get that list or the full set? (Decided 2026-10-11 by [ADR 020](adr-020-fire-safety-from-ten-employees.md): the set follows the norm, three existing documents and the new ones of art. 18 are generated from ten employees; the question of what the provider does stays open there.)
 6. The missing annex 1 of the IPSU (food service), and whether other activities have annexes.
 7. Corrected first-aid text for decision 7 and the IPSU.
 8. Which IPSU chapters apply to which kind of client, and which can go.

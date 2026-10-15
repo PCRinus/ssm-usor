@@ -13,6 +13,18 @@ export const instructionModuleGroupSchema = z.enum(instructionModuleGroups);
 
 export type InstructionModuleGroup = z.infer<typeof instructionModuleGroupSchema>;
 
+/**
+ * The set whose own instructions annex a module: the occupational safety one (3.2) or the
+ * fire-safety one (2.1). A position decides about each apart (ADR 012, amendment of 2026-10-11).
+ */
+export const instructionDomains = ['ssm', 'psi'] as const;
+
+export const instructionDomainSchema = z.enum(instructionDomains);
+
+export type InstructionDomain = z.infer<typeof instructionDomainSchema>;
+
+const domainOrSsm = instructionDomainSchema.default('ssm');
+
 const title = z.string().trim().min(2).max(200);
 
 export const instructionModuleVersionSchema = z.object({
@@ -31,6 +43,7 @@ export const instructionModuleSchema = z.object({
   id: z.uuid(),
   title,
   group: instructionModuleGroupSchema,
+  domain: instructionDomainSchema,
   archivedAt: z.iso.datetime({ offset: true }).nullable(),
   version: instructionModuleVersionSchema,
   // Current positions applying it, across the organization's clients.
@@ -44,6 +57,8 @@ export type InstructionModule = z.infer<typeof instructionModuleSchema>;
 export const instructionModuleListQuerySchema = z.object({
   // Archived modules leave the list unless asked for.
   archived: z.enum(['true', 'false']).default('false'),
+  // Left out, both domains.
+  domain: instructionDomainSchema.optional(),
 });
 
 export type InstructionModuleListQuery = z.infer<typeof instructionModuleListQuerySchema>;
@@ -62,6 +77,7 @@ export type InstructionModuleResponse = z.infer<typeof instructionModuleResponse
 export const createInstructionModuleRequestSchema = z.object({
   title,
   group: instructionModuleGroupSchema,
+  domain: domainOrSsm,
 });
 
 export type CreateInstructionModuleRequest = z.infer<typeof createInstructionModuleRequestSchema>;
@@ -70,6 +86,7 @@ export type CreateInstructionModuleRequest = z.infer<typeof createInstructionMod
 export const uploadInstructionModuleQuerySchema = z.object({
   title: title.optional(),
   group: instructionModuleGroupSchema.default('work_activity'),
+  domain: domainOrSsm,
 });
 
 export type UploadInstructionModuleQuery = z.infer<typeof uploadInstructionModuleQuerySchema>;
@@ -77,6 +94,8 @@ export type UploadInstructionModuleQuery = z.infer<typeof uploadInstructionModul
 export const updateInstructionModuleRequestSchema = z.object({
   title: title.optional(),
   group: instructionModuleGroupSchema.optional(),
+  // Refused while a position applies the module, whose decision belongs to the other set.
+  domain: instructionDomainSchema.optional(),
   // True archives, false restores.
   archived: z.boolean().optional(),
 });
@@ -114,9 +133,15 @@ export const appliedInstructionSchema = z.object({
 
 export type AppliedInstruction = z.infer<typeof appliedInstructionSchema>;
 
+export const positionInstructionsQuerySchema = z.object({ domain: domainOrSsm });
+
+export type PositionInstructionsQuery = z.infer<typeof positionInstructionsQuerySchema>;
+
 export const positionInstructionsResponseSchema = z.object({
+  domain: instructionDomainSchema,
   items: z.array(appliedInstructionSchema),
-  // Null until decided; false when the post needs none; true while it applies modules.
+  // The domain's decision: null until decided; false when the post needs none; true while it
+  // applies modules of the domain.
   needsInstructions: z.boolean().nullable(),
 });
 
@@ -124,6 +149,8 @@ export type PositionInstructionsResponse = z.infer<typeof positionInstructionsRe
 
 /** Replaces the set: the modules the position applies from now on. */
 export const applyInstructionsRequestSchema = z.object({
+  // Every module must be of this domain; the other domain's set is left as it is.
+  domain: domainOrSsm,
   moduleIds: z.array(z.uuid()).max(100),
 });
 
@@ -141,12 +168,16 @@ export function instructionState(needsInstructions: boolean | null): Instruction
 // Applied modules decide "needs instructions" by themselves, so only "needs none" and taking
 // that back are said in words.
 export const instructionsDecisionSchema = z.object({
+  domain: domainOrSsm,
   needsInstructions: z.boolean().nullable(),
 });
 
 export type InstructionsDecision = z.infer<typeof instructionsDecisionSchema>;
 
-export const copyInstructionsRequestSchema = z.object({ fromJobPositionId: z.uuid() });
+export const copyInstructionsRequestSchema = z.object({
+  fromJobPositionId: z.uuid(),
+  domain: domainOrSsm,
+});
 
 export type CopyInstructionsRequest = z.infer<typeof copyInstructionsRequestSchema>;
 
@@ -155,6 +186,8 @@ export const instructionModuleErrorReasons = [
   'instruction_module_title_taken',
   'instruction_module_applied',
   'instruction_module_archived',
+  'instruction_module_domain_applied',
+  'instruction_module_other_domain',
   'instructions_applied',
   'instructions_decided_by_modules',
 ] as const;

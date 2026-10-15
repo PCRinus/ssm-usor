@@ -61,6 +61,9 @@ const documentTargets: Record<MissingDocumentData, string> = {
   'fire.waste': `${training}fire-waste`,
   'fire.workplaces': `${details}workplace-fire-data`,
   'fire.equipment': `/clients/${clientId}/fire-safety-means?focus=fire-equipment`,
+  'fire.substances': `/clients/${clientId}/fire-safety-means?focus=fire-substances`,
+  'fire.instructions': `/clients/${clientId}/job-positions`,
+  'documents.fire_own_instructions': `/clients/${clientId}/fire-safety-documents?section=own-instructions`,
 };
 
 describe('the rows of the generation form', () => {
@@ -131,6 +134,29 @@ describe('the rows of the generation form', () => {
       `/clients/${clientId}/job-positions/p-contabil#protective-equipment`,
       `/clients/${clientId}/job-positions/p-contabil#instructions`,
       `/clients/${clientId}/job-positions/p-sudor#instructions`,
+    ]);
+  });
+
+  it('lead each position undecided about the fire-safety modules to its PSI card', () => {
+    const groups = documentMissingGroups({
+      missing: ['fire.instructions', 'documents.fire_own_instructions'],
+      clientId,
+      clash: null,
+      undecidedJobPositions: [
+        { id: 'p-contabil', name: 'Contabil', undecided: ['fire_instructions'] },
+        { id: 'p-sudor', name: 'Sudor', undecided: ['fire_instructions'] },
+      ],
+      canEditOrganization: true,
+      set: 'fire_safety',
+    });
+    expect(groups.map((group) => [group.heading, group.rows.map((row) => row.label)])).toEqual([
+      ['Posturile de lucru', ['Contabil · instrucțiuni PSI', 'Sudor · instrucțiuni PSI']],
+      ['Documentația PSI', ['Instrucțiunile proprii PSI, generate înaintea tematicii']],
+    ]);
+    expect(hrefs(groups)).toEqual([
+      `/clients/${clientId}/job-positions/p-contabil#fire-instructions`,
+      `/clients/${clientId}/job-positions/p-sudor#fire-instructions`,
+      `/clients/${clientId}/fire-safety-documents?section=own-instructions`,
     ]);
   });
 

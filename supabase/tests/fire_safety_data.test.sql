@@ -1,5 +1,5 @@
 begin;
-select plan(39);
+select plan(68);
 
 -- Fixtures: organization A with an owner, B with a specialist. A has an active client with two
 -- workplaces, a second client with one workplace, a client archived below after its rows are
@@ -34,12 +34,18 @@ insert into public.client_workplaces (id, organization_id, client_id, name, is_r
 insert into public.employees (id, organization_id, client_id, last_name, first_name, job_title, hired_at) values
   ('e1e1e1e1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Popescu', 'Ion', 'Manager magazin', '2020-03-01');
 
-insert into public.client_fire_safety (client_id, organization_id, periodic_training_hours) values
-  ('c1c1c1c1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 2);
+insert into public.client_fire_safety (client_id, organization_id, periodic_training_hours, substances_state) values
+  ('c1c1c1c1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 2, 'listed');
+insert into public.fire_substances (id, organization_id, client_id, name, classification, quantity) values
+  ('a3a3a3a3-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'Propan', 'Flam. Gas 1, H220', '1 butelie de 11 kg');
 insert into public.fire_equipment (id, organization_id, client_id, workplace_id, kind, agent, capacity) values
   ('e3e3e3e3-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'd1d1d1d1-0000-4000-8000-000000000004', 'extinguisher', 'powder', 6);
 insert into public.fire_installations (id, organization_id, client_id, workplace_id, kind) values
   ('f3f3f3f3-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'd1d1d1d1-0000-4000-8000-000000000004', 'detection_alarm');
+insert into public.fire_maintenance_items (id, organization_id, client_id, workplace_id, subject, interval_label, checked_by) values
+  ('a4a4a4a4-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'd1d1d1d1-0000-4000-8000-000000000004', 'Coșul de fum', 'anual', 'Firmă autorizată');
+insert into public.fire_buildings (id, organization_id, client_id, workplace_id, year_built) values
+  ('a5a5a5a5-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'd1d1d1d1-0000-4000-8000-000000000004', 1975);
 update public.clients set archived_at = now() where id = 'c1c1c1c1-0000-4000-8000-000000000003';
 
 create or replace function pg_temp.act_as(user_id text)
@@ -145,12 +151,84 @@ select lives_ok(
   'forbidding smoking drops the place in the same save'
 );
 
+select is(
+  (select substances_state::text from public.client_fire_safety where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'),
+  'undecided',
+  'a client has not said whether it uses dangerous substances until a member does'
+);
+
+select throws_ok(
+  $$ insert into public.fire_substances (organization_id, client_id, name, classification, quantity)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Propan', 'Flam. Gas 1, H220', '2 butelii de 11 kg') $$,
+  'SUB02', null, 'a substance is listed only under a client that lists them'
+);
+
+select throws_ok(
+  $$ insert into public.fire_substances (organization_id, client_id, name, classification, quantity)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'Propan', 'Flam. Gas 1, H220', '2 butelii de 11 kg') $$,
+  'SUB02', null, 'nor under a client without fire-safety facts'
+);
+
+select lives_ok(
+  $$ update public.client_fire_safety set substances_state = 'listed' where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  'a member says the client uses dangerous substances'
+);
+
+select lives_ok(
+  $$ insert into public.fire_substances (id, organization_id, client_id, name, classification, quantity, storage_place)
+     values ('a1a1a1a1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Propan', 'Flam. Gas 1, H220', '2 butelii de 11 kg', 'Cușca metalică din curte') $$,
+  'and lists one with its classification and quantity'
+);
+
+select throws_ok(
+  $$ insert into public.fire_substances (organization_id, client_id, name, quantity)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Diluant', '5 l') $$,
+  '23502', null, 'a substance has a classification'
+);
+
+select throws_ok(
+  $$ update public.fire_substances set handling = 'x' where id = 'a1a1a1a1-0000-4000-8000-000000000001' $$,
+  '23514', null, 'an optional text has two characters at least'
+);
+
+select throws_ok(
+  $$ update public.client_fire_safety set substances_state = 'none' where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  'SUB01', null, 'a client with substances listed cannot declare it uses none'
+);
+
+select throws_ok(
+  $$ update public.fire_substances set client_id = 'c1c1c1c1-0000-4000-8000-000000000002' where id = 'a1a1a1a1-0000-4000-8000-000000000001' $$,
+  '42501', null, 'a substance never moves to another client'
+);
+
+select lives_ok(
+  $$ delete from public.fire_substances where id = 'a1a1a1a1-0000-4000-8000-000000000001' $$,
+  'a member deletes a substance the client no longer uses'
+);
+
+select lives_ok(
+  $$ update public.client_fire_safety set substances_state = 'none' where client_id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  'once its list is empty, the client may declare it uses none'
+);
+
 select lives_ok(
   $$ update public.client_workplaces
      set activity = 'Gelaterie', floor_area_m2 = 85, extinguisher_norm = 'commercial_200', assembly_point = 'Parcarea din fața magazinului',
          combustible_materials = 'Ambalaje de carton', ignition_sources = 'Aparate electrice', fire_risk_equipment = 'Vitrine frigorifice'
      where id = 'd1d1d1d1-0000-4000-8000-000000000002' $$,
   'a workplace records its fire-safety facts'
+);
+
+select is(
+  (select kind::text from public.client_workplaces where id = 'd1d1d1d1-0000-4000-8000-000000000002'),
+  'fixed_space',
+  'a workplace is a fixed space unless it says otherwise'
+);
+
+select lives_ok(
+  $$ update public.client_workplaces set kind = 'mobile_site', extinguisher_norm = 'none'
+     where id = 'd1d1d1d1-0000-4000-8000-000000000002' $$,
+  'a mobile site keeps its area and may declare no norm from annex 6'
 );
 
 select lives_ok(
@@ -208,6 +286,79 @@ select throws_ok(
 );
 
 select lives_ok(
+  $$ insert into public.fire_maintenance_items (id, organization_id, client_id, workplace_id, subject, interval_label, checked_by)
+     values ('a1a1a1a1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000002', 'Instalația de utilizare a gazelor naturale', 'anual', 'Operatorul de distribuție') $$,
+  'a workplace has a free row of its schedule: what, how often and who'
+);
+
+select throws_ok(
+  $$ insert into public.fire_maintenance_items (organization_id, client_id, workplace_id, subject, checked_by)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000002', 'Coșul de fum', 'Firmă autorizată') $$,
+  '23502', null, 'a free row says how often'
+);
+
+select throws_ok(
+  $$ update public.fire_maintenance_items set interval_label = 'x' where id = 'a1a1a1a1-0000-4000-8000-000000000002' $$,
+  '23514', null, 'in two characters at least'
+);
+
+select throws_ok(
+  $$ insert into public.fire_maintenance_items (organization_id, client_id, workplace_id, subject, interval_label, checked_by)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000003', 'Coșul de fum', 'anual', 'Firmă autorizată') $$,
+  '23503', null, 'a free row cannot be on a workplace of another client'
+);
+
+select lives_ok(
+  $$ update public.fire_maintenance_items set workplace_id = 'd1d1d1d1-0000-4000-8000-000000000001', sort_order = 2
+     where id = 'a1a1a1a1-0000-4000-8000-000000000002' $$,
+  'a free row moves to another workplace of the same client'
+);
+
+select throws_ok(
+  $$ update public.fire_maintenance_items set client_id = 'c1c1c1c1-0000-4000-8000-000000000002' where id = 'a1a1a1a1-0000-4000-8000-000000000002' $$,
+  '42501', null, 'but never to another client'
+);
+
+select throws_ok(
+  $$ insert into public.fire_maintenance_items (organization_id, client_id, workplace_id, subject, interval_label, checked_by)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'd1d1d1d1-0000-4000-8000-000000000004', 'Coșul de fum', 'anual', 'Firmă autorizată') $$,
+  'CLA01', null, 'a free row is not added under an archived client'
+);
+
+select lives_ok(
+  $$ insert into public.fire_buildings (id, organization_id, client_id, workplace_id, year_built, built_area_m2, levels, classification, structure, water_reserve_m3)
+     values ('a1a1a1a1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000002', 1987, 412.5, 'P+1E', 'civil', 'Zidărie portantă', 0) $$,
+  'a workplace has the facts of its building'
+);
+
+select throws_ok(
+  $$ insert into public.fire_buildings (organization_id, client_id, workplace_id)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000002') $$,
+  '23505', null, 'one building per workplace'
+);
+
+select throws_ok(
+  $$ update public.fire_buildings set year_built = 1700 where id = 'a1a1a1a1-0000-4000-8000-000000000003' $$,
+  '23514', null, 'built in a plausible year'
+);
+
+select throws_ok(
+  $$ update public.fire_buildings set built_area_m2 = 0 where id = 'a1a1a1a1-0000-4000-8000-000000000003' $$,
+  '23514', null, 'with a built area above zero'
+);
+
+select throws_ok(
+  $$ insert into public.fire_buildings (organization_id, client_id, workplace_id)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000003') $$,
+  '23503', null, 'a building cannot be on a workplace of another client'
+);
+
+select throws_ok(
+  $$ update public.fire_buildings set workplace_id = 'd1d1d1d1-0000-4000-8000-000000000001' where id = 'a1a1a1a1-0000-4000-8000-000000000003' $$,
+  '42501', null, 'nor move to another workplace'
+);
+
+select lives_ok(
   $$ insert into public.client_responsible_persons (organization_id, client_id, employee_id, workplace_id, full_name, job_title, roles)
      values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000002', 'Ion Popescu', 'Manager magazin',
              '{workplace_manager,first_aid,risk_evaluation_team,imminent_danger,workers_representative,fire_safety_coordinator,fire_intervention_leader}') $$,
@@ -254,12 +405,30 @@ select throws_ok(
   'CLA01', null, 'nor its installations deleted'
 );
 
+select throws_ok(
+  $$ update public.fire_substances set quantity = '2 butelii de 11 kg' where id = 'a3a3a3a3-0000-4000-8000-000000000001' $$,
+  'CLA01', null, 'nor its dangerous substances edited'
+);
+
+select throws_ok(
+  $$ update public.fire_maintenance_items set interval_label = 'la 6 luni' where id = 'a4a4a4a4-0000-4000-8000-000000000001' $$,
+  'CLA01', null, 'nor the free rows of its schedules'
+);
+
+select throws_ok(
+  $$ update public.fire_buildings set levels = 'P+2E' where id = 'a5a5a5a5-0000-4000-8000-000000000001' $$,
+  'CLA01', null, 'nor the facts of its buildings'
+);
+
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002');
 
 select is(
   (select count(*)::int from public.client_fire_safety)
     + (select count(*)::int from public.fire_equipment)
-    + (select count(*)::int from public.fire_installations),
+    + (select count(*)::int from public.fire_installations)
+    + (select count(*)::int from public.fire_substances)
+    + (select count(*)::int from public.fire_maintenance_items)
+    + (select count(*)::int from public.fire_buildings),
   0,
   'a member of another organization reads none of it'
 );

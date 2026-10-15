@@ -19,7 +19,12 @@ import { editorFrameClassName, saveAs } from '@/features/documents/editor-frame'
 import { EditorPlaceholder } from '@/features/documents/editor-placeholder';
 import { formatRoDate } from '@/lib/dates';
 
-import { articleCountLabel, groupLabels, invalidateLibrary } from './instruction-schema';
+import {
+  articleCountLabel,
+  domainLabels,
+  groupLabels,
+  invalidateLibrary,
+} from './instruction-schema';
 
 const DocumentEditor = lazy(() => import('@/features/documents/document-editor'));
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -187,7 +192,8 @@ export function InstructionEditorPage({
             : `Versiunea ${module.version.number}`}
       </Badge>
       <span className="hidden text-xs text-muted-foreground md:inline">
-        {groupLabels[module.group]} · {articleCountLabel(module.version.articleCount).toLowerCase()}
+        {domainLabels[module.domain]} · {groupLabels[module.group]} ·{' '}
+        {articleCountLabel(module.version.articleCount).toLowerCase()}
       </span>
       {editable && (
         <span data-testid="editor-saved-state" className="text-xs text-muted-foreground">

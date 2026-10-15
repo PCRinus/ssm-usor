@@ -9,7 +9,8 @@ import { officeJobTitles } from './seed-employees';
 import type { SeedClient } from './seed-organization';
 
 type Group = Database['public']['Enums']['instruction_module_group'];
-type Fixture = { file: string; title: string; group: Group };
+type Domain = Database['public']['Enums']['instruction_domain'];
+type Fixture = { file: string; title: string; group: Group; domain: Domain };
 
 const fixturesDir = path.join(import.meta.dirname, '..', 'fixtures', 'instruction-modules');
 
@@ -22,11 +23,25 @@ const modulesByTitle: Record<string, string[]> = {
   Gestionar: ['Activități de birou'],
 };
 
+const fireModulesByTitle: Record<string, string[]> = {
+  Sudor: ['Lucrul cu foc deschis'],
+  'Lăcătuș mecanic': ['Lucrul cu foc deschis'],
+  Instalator: ['Lucrul cu foc deschis'],
+};
+
 /** Which fixture modules a seeded position applies; office posts apply the office module. */
 export function instructionsFor(jobTitle: string): string[] | 'none' | null {
   if (modulesByTitle[jobTitle]) return modulesByTitle[jobTitle];
   if (officeJobTitles.includes(jobTitle)) return ['Activități de birou'];
   return null;
+}
+
+/**
+ * Which fire-safety fixture modules a seeded position applies. Never undecided: the fire-safety
+ * set waits for every position to decide, and the seed completes that set for its clients.
+ */
+export function fireInstructionsFor(jobTitle: string): string[] | 'none' {
+  return fireModulesByTitle[jobTitle] ?? 'none';
 }
 
 async function readFixtures(): Promise<Fixture[]> {
@@ -50,6 +65,7 @@ async function seedLibrary(db: SeedClient, organizationId: string, createdBy: st
         organization_id: organizationId,
         title: fixture.title,
         module_group: fixture.group,
+        domain: fixture.domain,
         created_by: createdBy,
       })
       .select('id')
@@ -78,19 +94,24 @@ async function seedLibrary(db: SeedClient, organizationId: string, createdBy: st
   return { ids, added };
 }
 
+type Decide = (jobTitle: string) => string[] | 'none' | null;
+
 // Only positions still undecided are touched, so a rerun leaves alone what was applied or
 // decided by hand.
-export async function seedInstructionModules(
+async function decidePositions(
   db: SeedClient,
   organizationId: string,
-  createdBy: string
+  createdBy: string,
+  ids: Map<string, string>,
+  domain: Domain,
+  decide: Decide
 ) {
-  const { ids, added } = await seedLibrary(db, organizationId, createdBy);
+  const decision = domain === 'psi' ? 'needs_fire_instructions' : 'needs_instructions';
   const positions = await db
     .from('job_positions')
     .select('id, client_id, name')
     .eq('organization_id', organizationId)
-    .is('needs_instructions', null)
+    .is(decision, null)
     .is('archived_at', null);
   if (positions.error) {
     throw new Error(`Could not read job positions: ${positions.error.message}`);
@@ -98,7 +119,7 @@ export async function seedInstructionModules(
   const rows: Database['public']['Tables']['job_position_instructions']['Insert'][] = [];
   const needNone: string[] = [];
   for (const position of positions.data) {
-    const titles = instructionsFor(position.name);
+    const titles = decide(position.name);
     if (titles === 'none') needNone.push(position.id);
     if (!titles || titles === 'none') continue;
     for (const title of titles) {
@@ -109,6 +130,7 @@ export async function seedInstructionModules(
         client_id: position.client_id,
         job_position_id: position.id,
         module_id: moduleId,
+        domain,
         created_by: createdBy,
       });
     }
@@ -120,9 +142,26 @@ export async function seedInstructionModules(
   if (needNone.length > 0) {
     const { error } = await db
       .from('job_positions')
-      .update({ needs_instructions: false })
+      .update(domain === 'psi' ? { needs_fire_instructions: false } : { needs_instructions: false })
       .in('id', needNone);
     if (error) throw new Error(`Could not decide seeded job positions: ${error.message}`);
   }
-  return { modules: added, applied: rows.length, decided: needNone.length };
+  return { applied: rows.length, decided: needNone.length };
+}
+
+export async function seedInstructionModules(
+  db: SeedClient,
+  organizationId: string,
+  createdBy: string
+) {
+  const { ids, added } = await seedLibrary(db, organizationId, createdBy);
+  const ssm = await decidePositions(db, organizationId, createdBy, ids, 'ssm', instructionsFor);
+  const psi = await decidePositions(db, organizationId, createdBy, ids, 'psi', fireInstructionsFor);
+  return {
+    modules: added,
+    applied: ssm.applied,
+    decided: ssm.decided,
+    fireApplied: psi.applied,
+    fireDecided: psi.decided,
+  };
 }

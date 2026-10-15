@@ -1,4 +1,9 @@
-import { type InstructionModuleGroup, instructionModuleGroups } from '@ssm-usor/contracts';
+import {
+  type InstructionDomain,
+  instructionDomains,
+  type InstructionModuleGroup,
+  instructionModuleGroups,
+} from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type {
@@ -14,6 +19,13 @@ export const groupLabels: Record<InstructionModuleGroup, string> = {
   work_activity: 'Activități',
   work_equipment: 'Echipamente de muncă',
   protective_equipment: 'Echipament de protecție',
+};
+
+export const domainLabels: Record<InstructionDomain, string> = { ssm: 'SSM', psi: 'PSI' };
+
+export const domainHints: Record<InstructionDomain, string> = {
+  ssm: 'Anexată la instrucțiunile proprii SSM și citată de tematica SSM.',
+  psi: 'Anexată la instrucțiunile proprii PSI și citată de tematica PSI.',
 };
 
 export const groupHints: Record<InstructionModuleGroup, string> = {
@@ -54,6 +66,21 @@ export function instructionStateLabel(
   return moduleCountLabel(position.instructionCount).toLowerCase().replace(/^o /, '1 ');
 }
 
+export function domainDecision(
+  position: Pick<
+    JobPosition,
+    'needsInstructions' | 'instructionCount' | 'needsFireInstructions' | 'fireInstructionCount'
+  >,
+  domain: InstructionDomain
+) {
+  return domain === 'ssm'
+    ? { needsInstructions: position.needsInstructions, instructionCount: position.instructionCount }
+    : {
+        needsInstructions: position.needsFireInstructions,
+        instructionCount: position.fireInstructionCount,
+      };
+}
+
 export const moduleFormSchema = z.object({
   title: z
     .string()
@@ -61,6 +88,7 @@ export const moduleFormSchema = z.object({
     .min(2, 'Introdu titlul instrucțiunii (cel puțin 2 caractere).')
     .max(200, 'Titlul are cel mult 200 de caractere.'),
   group: z.enum(instructionModuleGroups),
+  domain: z.enum(instructionDomains),
 });
 
 export type ModuleFormValues = z.infer<typeof moduleFormSchema>;

@@ -3,6 +3,9 @@ import {
   type FireExtinguisherNorm,
   fireExtinguisherNormLabels,
   fireExtinguisherNorms,
+  workplaceHasAreaAndNorm,
+  workplaceKindLabels,
+  workplaceKinds,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
@@ -122,10 +125,11 @@ function WorkplaceForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
-  const [countyCode, norm] = useWatch({
+  const [countyCode, kind, norm] = useWatch({
     control: form.control,
-    name: ['countyCode', 'extinguisherNorm'],
+    name: ['countyCode', 'kind', 'extinguisherNorm'],
   });
+  const hasAreaAndNorm = workplaceHasAreaAndNorm(kind);
 
   const onSubmit = form.handleSubmit(async (values) => {
     const data = toWorkplaceRequest(values);
@@ -317,54 +321,84 @@ function WorkplaceForm({
               />
             </Field>
             <Field
-              id="workplace-floor-area"
-              label="Suprafața utilă (m²)"
-              error={errors.floorAreaM2}
-            >
-              <Input
-                id="workplace-floor-area"
-                data-testid="workplace-floor-area"
-                inputMode="numeric"
-                autoComplete="off"
-                disabled={busy}
-                aria-invalid={Boolean(errors.floorAreaM2)}
-                aria-describedby={errors.floorAreaM2 ? 'workplace-floor-area-error' : undefined}
-                {...form.register('floorAreaM2')}
-              />
-            </Field>
-            <Field
-              id="workplace-norm"
-              label="Norma de dotare (anexa 6)"
+              id="workplace-kind"
+              label="Tipul locului de muncă"
               hint={
-                norm
-                  ? fireExtinguisherNormLabels[norm as FireExtinguisherNorm].description
-                  : undefined
+                hasAreaAndNorm
+                  ? undefined
+                  : 'Un șantier nu are suprafață utilă și normă de dotare din anexa 6. Documentele tipăresc „—” în locul lor.'
               }
-              error={errors.extinguisherNorm}
+              className="sm:col-span-2"
             >
               <NativeSelect
-                id="workplace-norm"
-                data-testid="workplace-norm"
+                id="workplace-kind"
+                data-testid="workplace-kind"
                 disabled={busy}
-                aria-invalid={Boolean(errors.extinguisherNorm)}
-                aria-describedby={
-                  errors.extinguisherNorm
-                    ? 'workplace-norm-error'
-                    : norm
-                      ? 'workplace-norm-hint'
-                      : undefined
-                }
-                {...form.register('extinguisherNorm')}
+                aria-describedby={hasAreaAndNorm ? undefined : 'workplace-kind-hint'}
+                {...form.register('kind')}
               >
-                <NativeSelectOption value="">Alege norma</NativeSelectOption>
-                {fireExtinguisherNorms.map((value) => (
+                {workplaceKinds.map((value) => (
                   <NativeSelectOption key={value} value={value}>
-                    {fireExtinguisherNormLabels[value].label} (
-                    {fireExtinguisherNormLabels[value].rate})
+                    {workplaceKindLabels[value]}
                   </NativeSelectOption>
                 ))}
               </NativeSelect>
             </Field>
+            {hasAreaAndNorm && (
+              <>
+                <Field
+                  id="workplace-floor-area"
+                  label="Suprafața utilă (m²)"
+                  error={errors.floorAreaM2}
+                >
+                  <Input
+                    id="workplace-floor-area"
+                    data-testid="workplace-floor-area"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    disabled={busy}
+                    aria-invalid={Boolean(errors.floorAreaM2)}
+                    aria-describedby={errors.floorAreaM2 ? 'workplace-floor-area-error' : undefined}
+                    {...form.register('floorAreaM2')}
+                  />
+                </Field>
+                <Field
+                  id="workplace-norm"
+                  label="Norma de dotare (anexa 6)"
+                  hint={
+                    norm
+                      ? fireExtinguisherNormLabels[norm as FireExtinguisherNorm].description
+                      : undefined
+                  }
+                  error={errors.extinguisherNorm}
+                >
+                  <NativeSelect
+                    id="workplace-norm"
+                    data-testid="workplace-norm"
+                    disabled={busy}
+                    aria-invalid={Boolean(errors.extinguisherNorm)}
+                    aria-describedby={
+                      errors.extinguisherNorm
+                        ? 'workplace-norm-error'
+                        : norm
+                          ? 'workplace-norm-hint'
+                          : undefined
+                    }
+                    {...form.register('extinguisherNorm')}
+                  >
+                    <NativeSelectOption value="">Alege norma</NativeSelectOption>
+                    {fireExtinguisherNorms.map((value) => {
+                      const { label, rate } = fireExtinguisherNormLabels[value];
+                      return (
+                        <NativeSelectOption key={value} value={value}>
+                          {rate ? `${label} (${rate})` : label}
+                        </NativeSelectOption>
+                      );
+                    })}
+                  </NativeSelect>
+                </Field>
+              </>
+            )}
             <Field
               id="workplace-assembly-point"
               label="Punctul de adunare"

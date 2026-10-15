@@ -39,7 +39,8 @@ export type DocumentTypeKey = z.infer<typeof documentTypeKeySchema>;
 
 /**
  * The built-in documents of the fire-safety set, in the order of the provider's binder: the
- * decisions (section 1), the means and the posted sheets (section 5), the registers (section 6).
+ * decisions (section 1), the means and the posted sheets (section 5), the registers (section 6),
+ * the documents for the inspectorate (section 7).
  */
 export const fireSafetyDocumentTypeKeys = [
   'fire_cover_decisions',
@@ -47,10 +48,10 @@ export const fireSafetyDocumentTypeKeys = [
   'fire_decision_training',
   'fire_decision_open_fire',
   'fire_decision_smoking',
-  'fire_decision_seasons',
   'fire_decision_technician',
   'fire_decision_instructions',
   'fire_decision_waste',
+  'fire_decision_seasons',
   'fire_decision_control',
   'fire_cover_own_instructions',
   'fire_own_instructions',
@@ -61,11 +62,15 @@ export const fireSafetyDocumentTypeKeys = [
   'fire_test_annual',
   'fire_means_list',
   'fire_workplace_organization',
+  'fire_substances_list',
+  'fire_maintenance_schedules',
   'fire_cover_registers',
   'fire_registers',
   'fire_work_permit',
   'fire_installation_register',
   'fire_extinguisher_register',
+  'fire_site_sheet',
+  'fire_annual_report',
 ] as const;
 
 export const fireSafetyDocumentTypeKeySchema = z.enum(fireSafetyDocumentTypeKeys);
@@ -110,19 +115,20 @@ export const decisionTypeKeys = [
 ] as const satisfies readonly DocumentTypeKey[];
 
 /**
- * Each fire-safety decision's place in the provider's binder (ADR 018). It prints the first
- * decision number plus its ordinal minus one, so a decision built later takes its place without
- * renumbering the others.
+ * Each fire-safety decision's place in the binder (ADR 018). It prints the first decision number
+ * plus its ordinal minus one, so a decision built later takes its place without renumbering the
+ * others. The two required only from ten employees come last (ADR 020), so a smaller client's
+ * decisions are 1 to 7 with no gap.
  */
 export const fireDecisionOrdinals = {
   organization: 1,
   training: 2,
   openFire: 3,
   smoking: 4,
-  seasons: 5,
-  technician: 6,
-  instructions: 7,
-  waste: 8,
+  technician: 5,
+  instructions: 6,
+  waste: 7,
+  seasons: 8,
   control: 9,
 } as const;
 
@@ -133,12 +139,87 @@ export const fireDecisionTypeKeys = {
   training: 'fire_decision_training',
   openFire: 'fire_decision_open_fire',
   smoking: 'fire_decision_smoking',
-  seasons: 'fire_decision_seasons',
   technician: 'fire_decision_technician',
   instructions: 'fire_decision_instructions',
   waste: 'fire_decision_waste',
+  seasons: 'fire_decision_seasons',
   control: 'fire_decision_control',
 } as const satisfies Record<FireDecision, FireSafetyDocumentTypeKey>;
+
+/**
+ * The fire-safety documents that rest on OMAI 163/2007 art. 17 or 18 alone, which art. 20 does
+ * not ask of an operator under ten employees (ADR 020).
+ */
+export const fireSafetyTypeKeysFromTenEmployees = [
+  'fire_decision_seasons',
+  'fire_decision_control',
+  'fire_maintenance_schedules',
+  'fire_installation_register',
+  'fire_site_sheet',
+  'fire_annual_report',
+] as const satisfies readonly FireSafetyDocumentTypeKey[];
+
+export type FireSafetyTypeKeyFromTenEmployees = (typeof fireSafetyTypeKeysFromTenEmployees)[number];
+
+/**
+ * The template titles of the fire-safety set, which the documents name each other by before
+ * they exist. Held to the fire-safety manifest by a test.
+ */
+export const fireSafetyDocumentTitles = {
+  fire_cover_decisions: 'Copertă – Deciziile interne în domeniul situațiilor de urgență',
+  fire_decision_organization: 'Decizia privind organizarea apărării împotriva incendiilor',
+  fire_decision_training: 'Decizia privind instruirea în domeniul situațiilor de urgență',
+  fire_decision_open_fire: 'Decizia privind lucrul cu foc deschis',
+  fire_decision_smoking: 'Decizia privind fumatul',
+  fire_decision_technician: 'Decizia privind cadrul tehnic PSI',
+  fire_decision_instructions: 'Decizia privind instrucțiunile de apărare împotriva incendiilor',
+  fire_decision_waste: 'Decizia privind colectarea deșeurilor',
+  fire_decision_seasons: 'Decizia privind perioadele caniculare și sezonul rece',
+  fire_decision_control: 'Decizia privind controlul propriu',
+  fire_cover_own_instructions:
+    'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
+  fire_own_instructions: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
+  fire_cover_training_themes: 'Copertă – Tematica de instruire în domeniul situațiilor de urgență',
+  fire_training_themes: 'Tematica de instruire în domeniul situațiilor de urgență',
+  fire_cover_tests: 'Copertă – Testele de verificare a cunoștințelor',
+  fire_test_hiring: 'Test la angajare',
+  fire_test_annual: 'Test anual',
+  fire_means_list: 'Lista mijloacelor de apărare împotriva incendiilor',
+  fire_workplace_organization: 'Organizarea apărării împotriva incendiilor la locul de muncă',
+  fire_substances_list: 'Lista substanțelor periculoase',
+  fire_maintenance_schedules: 'Graficele de întreținere și verificare',
+  fire_cover_registers: 'Copertă – Registrele de evidență în domeniul situațiilor de urgență',
+  fire_registers:
+    'Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc',
+  fire_work_permit: 'Permis de lucru cu foc',
+  fire_installation_register:
+    'Registru de control pentru instalațiile de apărare împotriva incendiilor',
+  fire_extinguisher_register: 'Registru de evidență a controlului stingătoarelor de incendiu',
+  fire_site_sheet: 'Fișa obiectivului',
+  fire_annual_report: 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor',
+} as const satisfies Record<FireSafetyDocumentTypeKey, string>;
+
+/**
+ * The types a client holds once per period rather than once (ADR 020), each period a document
+ * with revisions of its own. Mirrors the check `client_documents_period_only_dated`.
+ */
+export const datedDocumentTypeKeys = [
+  'fire_annual_report',
+] as const satisfies readonly BuiltInDocumentTypeKey[];
+
+export type DatedDocumentTypeKey = (typeof datedDocumentTypeKeys)[number];
+
+export function isDatedDocumentType(typeKey: string): typeKey is DatedDocumentTypeKey {
+  return (datedDocumentTypeKeys as readonly string[]).includes(typeKey);
+}
+
+/** A period is a year; the database holds it to the same range. */
+export const documentPeriodSchema = z.int().min(2000).max(2100);
+
+/** Uploading a dated type names the period's document; left out, the newest period's. */
+export const documentUploadQuerySchema = z.object({
+  period: z.coerce.number().pipe(documentPeriodSchema).optional(),
+});
 
 // The binder holds nine fire-safety decisions, and the ninth's number must fit in four digits.
 export const maxFirstFireDecisionNumber = 9991;
@@ -197,6 +278,13 @@ export const missingDocumentData = [
   'fire.workplaces',
   // An active workplace without an extinguisher.
   'fire.equipment',
+  // The substances state undecided, or listed without an entry.
+  'fire.substances',
+  // A current position undecided about the fire-safety modules (ADR 012, amendment of 2026-10-11).
+  'fire.instructions',
+  // Only for generating the fire-safety training themes again: they cite the modules the
+  // fire-safety own instructions annex (ADR 012, amendment of 2026-10-11).
+  'documents.fire_own_instructions',
 ] as const;
 
 export const missingDocumentDataSchema = z.enum(missingDocumentData);
@@ -217,11 +305,14 @@ export const fireSafetyMissingDocumentData = [
   'responsible.fire_safety_coordinator',
   'responsible.fire_intervention_leader',
   'positions.any',
+  'fire.instructions',
   'fire.workplaces',
   'fire.equipment',
+  'fire.substances',
+  'documents.fire_own_instructions',
 ] as const satisfies readonly MissingDocumentData[];
 
-export const jobPositionDecisions = ['equipment', 'instructions'] as const;
+export const jobPositionDecisions = ['equipment', 'instructions', 'fire_instructions'] as const;
 
 export const jobPositionDecisionSchema = z.enum(jobPositionDecisions);
 
@@ -233,19 +324,21 @@ export const riskEvaluationGapSchema = z.enum(riskEvaluationGaps);
 
 export type RiskEvaluationGap = z.infer<typeof riskEvaluationGapSchema>;
 
-// For the fire-safety set, only `missing` and `ready` say anything: the lists about positions,
-// evaluations and the workers' representative are empty.
+// For the fire-safety set, the lists about evaluations and the workers' representative are empty,
+// and the positions are those undecided about the fire-safety modules.
 export const documentReadinessResponseSchema = z.object({
   ready: z.boolean(),
   missing: z.array(missingDocumentDataSchema),
-  // What decides whether decision 1.5 is part of the set (ADR 010).
+  // What decides whether decision 1.5 (ADR 010) and the fire-safety documents required from ten
+  // employees (ADR 020) are part of their sets.
   currentEmployeeCount: z.int().min(0),
   // The two names behind `responsible.workers_representative_is_legal_representative`.
   workersRepresentativeClash: z
     .object({ representativeName: z.string(), legalRepresentativeName: z.string() })
     .nullable(),
-  // The positions behind `positions.equipment` and `positions.instructions`, each with what it
-  // has not decided yet, so the form can send someone to each section of each position.
+  // The positions behind `positions.equipment`, `positions.instructions` and
+  // `fire.instructions`, each with what it has not decided yet, so the form can send someone to
+  // each section of each position.
   undecidedJobPositions: z.array(
     z.object({
       id: z.uuid(),
@@ -277,8 +370,8 @@ export const documentRevisionStatusSchema = z.enum(documentRevisionStatuses);
 export type DocumentRevisionStatus = z.infer<typeof documentRevisionStatusSchema>;
 
 /**
- * An instruction module the own instructions annex (ADR 012), as the revision printed it: the
- * version it cites, not the library's current one.
+ * An instruction module either set's own instructions annex (ADR 012), as the revision printed
+ * it: the version it cites, not the library's current one.
  */
 export const documentAnnexSchema = z.object({
   number: z.int().min(1),
@@ -360,6 +453,8 @@ export const clientDocumentSchema = z.object({
   title: z.string(),
   // Set for decisions.
   decisionNumber: z.int().nullable(),
+  // The year a dated document reports on (ADR 020); null for every other type.
+  period: documentPeriodSchema.nullable(),
   draft: documentRevisionSchema.nullable(),
   issued: documentRevisionSchema.nullable(),
 });
@@ -375,8 +470,7 @@ export const clientDocumentListResponseSchema = z.object({
     .object({ issueDate: z.iso.date(), firstDecisionNumber: z.int().min(1).max(9999).nullable() })
     .nullable(),
   // Documents of the set this client does not need, such as decision 1.5 under 10 employees.
-  // Always empty for the fire-safety set.
-  notApplicable: z.array(documentTypeKeySchema),
+  notApplicable: z.array(builtInDocumentTypeKeySchema),
   currentEmployeeCount: z.int().min(0),
 });
 
@@ -388,6 +482,10 @@ export const generateDocumentsRequestSchema = z.object({
   // Decisions are numbered from here: "Decizia nr. 1 SSM". Left out, the occupational safety
   // set starts from 1; the fire-safety set requires it, at most `maxFirstFireDecisionNumber`.
   firstDecisionNumber: z.int().min(1).max(9995).optional(),
+  // The year the set's dated documents report on (ADR 020); left out, the current year.
+  // Another year makes another document of each dated type, the documents of other types
+  // being left as they are.
+  period: documentPeriodSchema.optional(),
 });
 
 export type GenerateDocumentsRequest = z.infer<typeof generateDocumentsRequestSchema>;

@@ -114,7 +114,7 @@ export async function completeProviderDetails(organizationId: string) {
 }
 
 // The provider's signer on the fire-safety set (ADR 016), the one fact it asks beyond the
-// others', with the certificate decision 6 prints (ADR 019).
+// others', with the certificate decision 5 prints (ADR 019).
 export async function nameFireSafetyTechnician(organizationId: string) {
   const organization = await admin
     .from('organizations')
@@ -190,9 +190,41 @@ export async function completeDocumentData(
 
 // What the fire-safety set prints about the client (ADR 018, ADR 019): its training schedule,
 // smoking rule and waste, one workplace with its facts and an extinguisher, and a person in each
-// of the set's roles.
+// of the set's roles. Its positions decide about the fire-safety modules apart (ADR 012,
+// amendment of 2026-10-11): each applies one, so the own instructions have an annex to merge.
 export async function completeFireSafetyData(organizationId: string, clientId: string) {
   const base = { organization_id: organizationId, client_id: clientId };
+  const positions = await admin
+    .from('job_positions')
+    .select('id')
+    .eq('client_id', clientId)
+    .is('archived_at', null)
+    .is('needs_fire_instructions', null);
+  if (positions.error) throw positions.error;
+  if (positions.data.length > 0) {
+    const owner = await admin
+      .from('organization_members')
+      .select('user_id')
+      .eq('organization_id', organizationId)
+      .limit(1)
+      .single();
+    if (owner.error) throw owner.error;
+    const moduleId = await createInstructionModule(
+      organizationId,
+      owner.data.user_id,
+      'Lucrul cu foc deschis',
+      'psi'
+    );
+    const applied = await admin.from('job_position_instructions').insert(
+      positions.data.map((position) => ({
+        ...base,
+        job_position_id: position.id,
+        module_id: moduleId,
+        domain: 'psi',
+      }))
+    );
+    if (applied.error) throw applied.error;
+  }
   const workplaceId = await createWorkplace(organizationId, clientId, {
     name: 'Magazin',
     is_registered_office: true,
@@ -214,6 +246,7 @@ export async function completeFireSafetyData(organizationId: string, clientId: s
     training_day_to: 7,
     smoking_policy: 'forbidden_everywhere',
     waste_kinds: ['deșeuri de carton, hârtie, plastic'],
+    substances_state: 'none',
   });
   if (card.error) throw card.error;
   const extinguisher = await admin.from('fire_equipment').insert({
@@ -339,24 +372,29 @@ export async function evaluateRisks(organizationId: string, clientId: string) {
   }
 }
 
-const moduleFixture = new URL(
-  '../../../api/scripts/fixtures/instruction-modules/metal-ladders.docx',
-  import.meta.url
-);
+const moduleFixtures = {
+  ssm: new URL(
+    '../../../api/scripts/fixtures/instruction-modules/metal-ladders.docx',
+    import.meta.url
+  ),
+  psi: new URL('../../../api/scripts/fixtures/instruction-modules/hot-work.docx', import.meta.url),
+};
 
-/** A module of the library, from the fixture file the dev seed uses, as its first version. */
+/** A module of the library, from a fixture file the dev seed uses, as its first version. */
 export async function createInstructionModule(
   organizationId: string,
   createdBy: string,
-  title: string
+  title: string,
+  domain: 'ssm' | 'psi' = 'ssm'
 ) {
-  const bytes = await readFile(moduleFixture);
+  const bytes = await readFile(moduleFixtures[domain]);
   const module = await admin
     .from('instruction_modules')
     .insert({
       organization_id: organizationId,
       title,
-      module_group: 'work_equipment',
+      module_group: domain === 'psi' ? 'work_activity' : 'work_equipment',
+      domain,
       created_by: createdBy,
     })
     .select('id')
@@ -370,7 +408,7 @@ export async function createInstructionModule(
     docx_path: docxPath,
     sha256: createHash('sha256').update(bytes).digest('hex'),
     size_bytes: bytes.length,
-    article_count: 11,
+    article_count: domain === 'psi' ? 7 : 11,
     created_by: createdBy,
   });
   if (version.error) throw version.error;
@@ -540,6 +578,9 @@ export async function cleanUp() {
     await admin.from('client_responsible_persons').delete().eq('organization_id', id);
     await admin.from('fire_equipment').delete().eq('organization_id', id);
     await admin.from('fire_installations').delete().eq('organization_id', id);
+    await admin.from('fire_maintenance_items').delete().eq('organization_id', id);
+    await admin.from('fire_buildings').delete().eq('organization_id', id);
+    await admin.from('fire_substances').delete().eq('organization_id', id);
     await admin.from('client_fire_safety').delete().eq('organization_id', id);
     await admin.from('client_workplaces').delete().eq('organization_id', id);
     await admin.from('employees').delete().eq('organization_id', id);

@@ -109,12 +109,24 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/fire-installations`                          | Verified user with a membership       | `201 { "installation": { … } }`                                                                                           |
 | `PUT /clients/{clientId}/fire-installations/{installationId}`          | Verified user with a membership       | `{ "installation": { … } }` after replacing it                                                                            |
 | `DELETE /clients/{clientId}/fire-installations/{installationId}`       | Verified user with a membership       | `204` after deleting it                                                                                                   |
+| `GET /clients/{clientId}/fire-substances`                              | Verified user with a membership       | `{ "state", "items": [ … ] }`: whether the client uses dangerous substances, and the list in its order                    |
+| `PUT /clients/{clientId}/fire-substances/state`                        | Verified user with a membership       | `{ "state" }` after setting `undecided`, `none` or `listed`; `none` is `409` while entries exist                          |
+| `POST /clients/{clientId}/fire-substances`                             | Verified user with a membership       | `201 { "substance": { … } }`; `409` unless the state is `listed`                                                          |
+| `PUT /clients/{clientId}/fire-substances/{substanceId}`                | Verified user with a membership       | `{ "substance": { … } }` after replacing it                                                                               |
+| `DELETE /clients/{clientId}/fire-substances/{substanceId}`             | Verified user with a membership       | `204` after deleting it                                                                                                   |
+| `GET /clients/{clientId}/fire-maintenance-items`                       | Verified user with a membership       | `{ "items": [ … ] }`: the free rows of the schedules 5.4, by workplace, in their order                                    |
+| `POST /clients/{clientId}/fire-maintenance-items`                      | Verified user with a membership       | `201 { "item": { … } }`, after the workplace's last row                                                                   |
+| `PUT /clients/{clientId}/fire-maintenance-items/{itemId}`              | Verified user with a membership       | `{ "item": { … } }` after replacing it                                                                                    |
+| `DELETE /clients/{clientId}/fire-maintenance-items/{itemId}`           | Verified user with a membership       | `204` after deleting it                                                                                                   |
+| `GET /clients/{clientId}/fire-buildings`                               | Verified user with a membership       | `{ "items": [ … ] }`: the buildings of the active fixed spaces, in workplace order                                        |
+| `PUT /clients/{clientId}/fire-buildings/{workplaceId}`                 | Verified user with a membership       | `{ "building": { … } }`, created the first time; `409` for a mobile site                                                  |
+| `DELETE /clients/{clientId}/fire-buildings/{workplaceId}`              | Verified user with a membership       | `204`, the building cleared, whether or not there was one                                                                 |
 | `GET /clients/{clientId}/documents/readiness?set=`                     | Verified user with a membership       | `{ "ready", "missing": [ … ] }`: what generating the set is waiting for                                                   |
 | `GET /clients/{clientId}/documents?set=`                               | Verified user with a membership       | `{ "items": [ … ], "lastGeneration" }` of one set, in its order; not paginated                                            |
 | `POST /clients/{clientId}/documents/generate?set=`                     | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                                              |
 | `GET /documents/{documentId}/revisions/{revisionId}/download`          | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a link valid for a minute                                                    |
 | `POST /documents/{documentId}/regenerate`                              | Verified user with a membership       | `{ "document": { … } }` with its new draft                                                                                |
-| `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision; the PDF annexes the own instructions' modules                           |
+| `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision; the PDF annexes either set's own instructions' modules                  |
 | `POST /documents/{documentId}/draft`                                   | Verified user with a membership       | `{ "document": { … } }` with a draft copied from its issued revision                                                      |
 | `DELETE /documents/{documentId}/draft`                                 | Verified user with a membership       | `204` after deleting the draft and its file                                                                               |
 | `PUT /documents/{documentId}/signed-copy`                              | Verified user with a membership       | `{ "document": { … } }` after attaching or replacing the signed copy of the issued revision                               |
@@ -143,17 +155,17 @@ access token in the Authorization header; the publishable API key is not a user 
 | `DELETE …/job-positions/{jobPositionId}/equipment/{entryId}`           | Verified user with a membership       | `204`                                                                                                                     |
 | `PATCH …/job-positions/{jobPositionId}/protective-equipment`           | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                        |
 | `GET /equipment-suggestions`                                           | Verified user with a membership       | `{ "items": [ … ] }`, risks or items typed before; `?field=risk                                                           | item&query=` |
-| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, the library by group and title; `?archived=true` lists the archived ones instead                    |
+| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, by domain, group and title; `?archived=true` lists the archived ones instead; `?domain=`            |
 | `POST /instruction-modules`                                            | Verified user with a membership       | `201 { "module": { … } }`, started from the skeleton                                                                      |
-| `POST /instruction-modules/upload`                                     | Verified user with a membership       | `201 { "module": { … } }` from the `.docx` in the body; `?title=&group=`                                                  |
+| `POST /instruction-modules/upload`                                     | Verified user with a membership       | `201 { "module": { … } }` from the `.docx` in the body; `?title=&group=&domain=`                                          |
 | `GET /instruction-modules/{moduleId}`                                  | Verified user with a membership       | `{ "module": { … } }`                                                                                                     |
-| `PATCH /instruction-modules/{moduleId}`                                | Verified user with a membership       | `{ "module": { … } }` after renaming, regrouping, archiving or restoring                                                  |
+| `PATCH /instruction-modules/{moduleId}`                                | Verified user with a membership       | `{ "module": { … } }` after renaming, regrouping, moving domain, archiving or restoring                                   |
 | `GET /instruction-modules/{moduleId}/file-link`                        | Verified user with a membership       | `{ "url", "fileName", "expiresAt" }`, a one-minute link to the current file                                               |
 | `PUT /instruction-modules/{moduleId}/file`                             | Verified user with a membership       | `{ "module": { … } }` with the body stored as the next version                                                            |
-| `GET …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | `{ "items": [ … ], "needsInstructions" }`, the modules the position applies and its decision                              |
-| `PUT …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | The same, after replacing the set with `moduleIds`                                                                        |
-| `POST …/job-positions/{jobPositionId}/instructions/copy`               | Verified user with a membership       | The same, after adding another position's modules                                                                         |
-| `PATCH …/job-positions/{jobPositionId}/instructions-decision`          | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                        |
+| `GET …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | `{ "domain", "items": [ … ], "needsInstructions" }`, one domain's modules and decision; `?domain=`                        |
+| `PUT …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | The same, after replacing the set of `domain` with `moduleIds`                                                            |
+| `POST …/job-positions/{jobPositionId}/instructions/copy`               | Verified user with a membership       | The same, after adding another position's modules of `domain`                                                             |
+| `PATCH …/job-positions/{jobPositionId}/instructions-decision`          | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none of `domain` (`false`) or taking back (`null`)                 |
 | `GET /clients/{clientId}/risk-evaluations`                             | Verified user with a membership       | `{ "items": [ … ] }`, the client's evaluations without factors, with counts and global levels                             |
 | `POST /clients/{clientId}/risk-evaluations`                            | Verified user with a membership       | `201 { "evaluation": { … } }` for a position, the sensitive groups or another named one                                   |
 | `GET …/risk-evaluations/{evaluationId}`                                | Verified user with a membership       | `{ "evaluation": { … } }` with its factors, measures, levels and global level                                             |
@@ -234,8 +246,9 @@ of the set has a revision, `issued` when every document that applies has an issu
 `documentationProgress` in `modules/documents/context.ts`, counted over what the set's tab
 lists: the built-in documents that apply, plus any other document the set holds. In the
 occupational safety set, decision 1.5 applies from 10 current employees or once it has a
-revision, and training themes waiting for generated own instructions count as not done; every
-fire-safety document applies. `clientSince` is when the company became a client: its promotion
+revision, and training themes waiting for generated own instructions count as not done; in the
+fire-safety set, decisions 8 and 9 and the installation register apply the same way (ADR 020),
+every other document always. `clientSince` is when the company became a client: its promotion
 for a former lead, otherwise its creation. A lead carries null for all three.
 `sort=documentation` and `sort=fireSafetyDocumentation` order by the set's issued count, with
 the name next; `sort=clientSince` by `clientSince`.
@@ -370,34 +383,44 @@ recently used first, at most twenty; it filters in the Worker, so a typed `%` or
 character, not a PostgREST operator.
 
 The instruction library ([ADR 012](architecture/adr-012-own-instructions.md)) is the
-organization's own instructions, one Word file each, kept as their author made them. `GET
-/instruction-modules` lists the modules in use by group and title, each with its current
-version (`number`, `sha256`, `sizeBytes`, `articleCount`, the top-level items of the file's
-most used numbered list) and `appliedCount`, how many current positions across the
-organization's clients apply it; `?archived=true` lists the archived ones instead. `POST
+organization's own instructions, one Word file each, kept as their author made them. Each
+module has a `domain`, `ssm` or `psi` (ADR 012's amendment of 2026-10-11): which set's own
+instructions annex it, 3.2 or 2.1. `GET /instruction-modules` lists the modules in use by
+domain, group and title, each with its current version (`number`, `sha256`, `sizeBytes`,
+`articleCount`, the top-level items of the file's most used numbered list) and
+`appliedCount`, how many current positions across the organization's clients apply it;
+`?archived=true` lists the archived ones instead, and `?domain=` one domain's only. `POST
 /instruction-modules` starts a module from the skeleton the app ships, in the house style
 with the Labour Inspection's headings; `POST /instruction-modules/upload` takes the bytes of
 a `.docx` as the body, one file per request, sweeps its fonts to the house font and nothing
 else, and titles it after `?title=` or the first line of the file, in `?group=` or a work
-activity. A title the library already has answers `409` with the reason
+activity; both take a `domain`, `ssm` when left out. A title the library already has, of
+either domain, answers `409` with the reason
 `instruction_module_title_taken`. `PUT …/file` stores the body as the next version, which is
 what the editor saves; versions are never replaced, so documents generated before keep
-citing the one they annexed. `PATCH` renames, regroups, archives (`archived: true`) or
-restores; archiving a module a current position applies answers `409` with the reason
-`instruction_module_applied`, and a file for an archived module answers `409` with
+citing the one they annexed. `PATCH` renames, regroups, moves to the other domain, archives
+(`archived: true`) or restores; archiving a module a current position applies answers `409`
+with the reason `instruction_module_applied`, moving one to the other domain `409` with
+`instruction_module_domain_applied` (the position applied it as part of its decision for the
+other set), and a file for an archived module answers `409` with
 `instruction_module_archived`. `GET …/file-link` signs a one-minute link to the current file,
 named after the module.
 
-A job position applies modules through `GET`/`PUT …/instructions`: `PUT` takes `moduleIds`
-and replaces the set, adding first so a swap never passes through "undecided"; the first
-module applied decides "needs instructions" by itself, an empty set leaves the position
-undecided again, an archived module answers `409` with `instruction_module_archived`, and a
-module not in the library `400` on `moduleIds`. `POST …/instructions/copy` adds another
-position's modules, with `400` on `fromJobPositionId` for the position itself or one of
-another client. `PATCH …/instructions-decision` takes `needsInstructions: false` or `null`;
-`true` answers `400` with the reason `instructions_decided_by_modules`, and `false` while
-modules are applied `409` with `instructions_applied`. Job positions carry
-`needsInstructions` and `instructionCount` in every response.
+A job position decides about each domain apart, and every route below takes the `domain` it
+is about, `ssm` when left out (`?domain=` on `GET`, in the body otherwise); the other domain's
+modules and decision are never touched. A position applies modules through `GET`/`PUT
+…/instructions`: `PUT` takes `moduleIds` and replaces the domain's set, adding first so a swap
+never passes through "undecided"; the first module applied decides "needs instructions" for
+the domain by itself, an empty set leaves the position undecided again, an archived module
+answers `409` with `instruction_module_archived`, a module of the other domain `400` with
+`instruction_module_other_domain`, naming it, and a module not in the library `400` on
+`moduleIds`. `POST …/instructions/copy` adds another position's modules of the domain, with
+`400` on `fromJobPositionId` for the position itself or one of another client. `PATCH
+…/instructions-decision` takes `needsInstructions: false` or `null`; `true` answers `400` with
+the reason `instructions_decided_by_modules`, and `false` while modules of the domain are
+applied `409` with `instructions_applied`. Job positions carry `needsInstructions` and
+`instructionCount` for the occupational safety modules and `needsFireInstructions` and
+`fireInstructionCount` for the fire-safety ones in every response.
 
 Risk evaluations ([ADR 015](architecture/adr-015-risk-assessment.md)) belong to the client.
 `POST …/risk-evaluations` takes a `kind`: `job_position` with a `jobPositionId` (a current
@@ -619,7 +642,10 @@ an active workplace of the client is `400` with the issue on `workplaceId`. A wo
 carries the fire-safety facts of [ADR 018](architecture/adr-018-fire-safety-means.md), all
 optional: `activity`, `floorAreaM2`, `extinguisherNorm`, `assemblyPoint`,
 `combustibleMaterials`, `ignitionSources`, `fireRiskEquipment` and `specificMeasures`; the
-`PUT` clears those left out, as it does the address.
+`PUT` clears those left out, as it does the address. Its `kind` is `fixed_space`, the default
+when left out, or `mobile_site`, and `extinguisherNorm` may be `none` beside the five rows of
+annex 6. A mobile site keeps an area and a norm it is sent, which the fire-safety set neither
+asks for nor prints.
 
 The `fire-safety` module holds the rest of the fire-safety set's client data (ADR 018).
 `GET …/fire-safety` answers with every field null, `wasteKinds` empty and `exists` false until
@@ -637,7 +663,26 @@ unit, each on a workplace in `workplaceId`, which must be an active workplace of
 (`400` with the issue on `workplaceId`); `PUT` may move one to another. An extinguisher needs
 `agent` and `capacity` and is the only kind that may be `wheeled`, and an installation of the
 kind `other` needs a `description`, all `400` before the database is asked. `DELETE` removes the
-row. Under an archived client or a lead, every write is `409` with the reason `client_archived`
+row. The dangerous substances (ADR 018, amended 2026-10-11) belong to no workplace: a name, a
+CLP classification and a quantity, required, and eight optional texts copied from the safety data
+sheet, which a `PUT` clears when left out. `GET …/fire-substances` answers `state` `undecided`
+while the client has not said, or has no fire-safety row. `PUT …/fire-substances/state` saves it,
+creating the row when there is none without counting as the card's first save; `none` while the
+client has entries is `409` with the reason `substances_listed`, and a new entry under any state
+but `listed` is `409` with `substances_not_listed`. Entries keep the order they were added in.
+The free rows of the maintenance and check schedules (`fire-maintenance-items`, ADR 018, amended
+2026-10-11) sit on a workplace like the units, with the same `workplaceId` checks, and carry three
+required texts: `subject` (2 to 160), `intervalLabel` (2 to 60, printed as typed) and `checkedBy`
+(2 to 160). They are optional: no readiness code asks for them.
+The building of a fixed-space workplace (`fire-buildings`, ADR 020) is keyed by the workplace in
+the path: `PUT` replaces every fact, a fact left out or null is cleared, and creates the row the
+first time; a workplace that is not an active one of the client is `404`, a mobile site `409`
+with no reason. Every fact is optional (`yearBuilt` 1800 to the current year, `builtAreaM2` above
+0, `levels`, `classification` of `civil`, `production`, `storage`, `mixed`, `structure`,
+`heatingFuel`, `gasUse`, `electricalMaintainer`, `electricalLastCheckOn`, `waterReserveM3` 0 or
+more, `notes`), and no readiness code asks for any. The list leaves out a building kept from
+when its workplace was a fixed space.
+Under an archived client or a lead, every write is `409` with the reason `client_archived`
 or `client_is_lead`.
 
 `PATCH /me/profile` also takes `professionalTitle`: left out it stays, `null` clears it.
@@ -685,28 +730,66 @@ the set makes the own instructions first. `POST …/documents/generate` takes `i
 The fire-safety set asks only what its documents print: `provider.legalName`,
 `provider.fireSafetyTechnician` (the organization's fire-safety technician, by name, the same
 code a service contract covering fire safety uses), `provider.fireSafetyTechnicianCertificate`
-(the technician's certificate, which decision 6 prints; ADR 019), `client.representativeName`,
+(the technician's certificate, which decision 5 prints; ADR 019), `client.representativeName`,
 `client.representativeRole`, and the client data of its second and third stages (ADR 018,
 ADR 019): `fire.trainingSchedule` (the duration, both intervals, the first month and both days
 of the "Instruire PSI" card), `fire.smokingPolicy` (a smoking rule chosen; the place never),
 `fire.waste` (at least one kind), `responsible.workplace_manager`,
 `responsible.fire_safety_coordinator`, `responsible.fire_intervention_leader`,
-`positions.any`, `fire.workplaces` (an active workplace at least, each with its activity,
-area, norm, assembly point and the three texts of the posted sheet) and `fire.equipment` (an
-extinguisher in every active workplace). Any of them refuses the whole set. Its readiness lists
-nothing else, and its `undecidedJobPositions`, `incompleteRiskEvaluations` and
-`workersRepresentativeClash` are empty. Its generation requires `firstDecisionNumber`, at most
+`positions.any`, `fire.instructions` (a current position undecided about the fire-safety
+instruction modules, ADR 012's amendment of 2026-10-11; the occupational safety set's
+`positions.instructions` is about the other domain and never blocks this set),
+`fire.workplaces` (an active workplace at least, each with its activity,
+assembly point and the three texts of the posted sheet, and a fixed space with its area and
+its norm, which may be `none`), `fire.equipment` (an
+extinguisher in every active workplace) and `fire.substances` (the substances state `none`, or
+`listed` with an entry; ADR 018, amended). Any of them refuses the whole set. Its readiness lists
+nothing else; its `undecidedJobPositions` names the positions behind `fire.instructions`, each
+with `undecided: ['fire_instructions']`, and its `incompleteRiskEvaluations` and
+`workersRepresentativeClash` are empty. Generating the fire-safety themes 3.1 again also needs
+an IPSU revision whose annexes they cite, `documents.fire_own_instructions`, which readiness
+never lists, as generating the set makes the IPSU before the themes (ADR 012, amendment of
+2026-10-11). Its generation requires `firstDecisionNumber`, at most
 9991 so that the binder's ninth decision still fits in four digits, and is `400`
 (`validation_error`, the issue on `firstDecisionNumber`) without it. Each fire-safety decision
-keeps its place in the provider's binder (`fireDecisionOrdinals`, 1 to 9, each decision's
+keeps its place in the binder (`fireDecisionOrdinals`, 1 to 9, each decision's
 number printed in `fire` before its template exists) and is numbered the first number plus that
 ordinal minus one; its `decisionNumber` says so, and a
-decision generated again keeps it. Its templates are merged with a context of their own,
+decision generated again keeps it. The two decisions required only from ten employees come last
+(ADR 020): 1 organization, 2 training, 3 open fire, 4 smoking, 5 technician, 6 instructions, 7
+waste, 8 seasons, 9 control. Under 10 current employees (`currentEmployeeCount`, the same count
+as decision 1.5's) `fire_decision_seasons`, `fire_decision_control`,
+`fire_maintenance_schedules`, `fire_installation_register`, `fire_site_sheet` and
+`fire_annual_report` (`fireSafetyTypeKeysFromTenEmployees`) are not generated and the
+list names them under `notApplicable`; one that exists stays in the list and in the set, and
+generating it again works as for any document. No readiness code belongs to them alone, so the
+readiness is the same either side of ten. Its templates are merged with a context of their own,
 `client`, `provider`, `fireSafetyTechnician` (`name`, `certificate`, `authorization`),
-`issueDate`, `branding` and `fire`, and
-never with the occupational safety set's names, so an edit to positions or equipment never
-marks a fire-safety draft; renaming a post, which decision 2 prints in `fire.staff`, does. Its
-list has no `notApplicable` document.
+`issueDate`, `branding`, `fire`, and `seasonsDecision`, `controlDecision` and
+`installationRegister`, whether the set holds each of those three (from ten employees, or once
+it exists): covers 1.0 and 6.0 list only what the set holds, and decision 6 cites decision 9
+only then. `annexes` and `noAnnexes` are what the own instructions 2.1 annex: the `psi` modules
+the current positions apply, each once, by group, title and id, numbered from 1, as the other
+set's `annexes` holds its `ssm` ones; only 2.1 prints them, so an edit in the library marks
+only its draft. Issuing 2.1 merges, like 3.2, an annex title page before each annexed module
+version into one PDF, the fire-safety page naming the technician in its box. It is
+never merged with the occupational safety set's names, so an edit to positions or equipment never
+marks a fire-safety draft; renaming a post, which decision 2 prints in `fire.staff`, does.
+
+**Dated types** ([ADR 020](architecture/adr-020-fire-safety-from-ten-employees.md)). A type in
+`datedDocumentTypeKeys`, today only `fire_annual_report`, is held once per client and
+**period**, a year, instead of once per client; every document carries `period`, the year for
+a dated one and null for the rest. The generation's optional `period` (2000 to 2100) is the
+year its dated types are made for, the current year in Romania when left out: a dated type
+with no document of that year gets one, beside the documents of other years, and one of that
+year is left alone and listed under `skipped`, like any document that exists. The other types
+ignore it. A dated document is merged after the rest of the run, from the facts read again,
+because it reports on the set: the annual report states every document of the set with its
+revisions. Its data is the set's context with `fire.annualReport` for its year; every other
+document's `fire` has no `annualReport`, so issuing a document marks only the report's draft as
+changed, not the whole set's. Generating a dated document again keeps its period. The list
+returns a dated type once per period, the newest first; the upload takes `?period=` to name
+the year's document, the newest when left out; a download's file name carries the year.
 
 Generating creates every document type the client does not have yet as revision 1, in draft:
 the row first, then the file at `<organization>/<client>/<document>/1.docx` in the private
@@ -769,7 +852,8 @@ document has no draft; an issued file cannot be written by anyone.
 the same checks. `typeKey` is a built-in type of either set, `documentTypeKeys` or
 `fireSafetyDocumentTypeKeys`, and the document is looked for in that type's set. The file replaces the draft, or starts the next draft beside the issued revision,
 keeping the generation and so the date. An uploaded revision has no template and no data
-snapshot, so it never reports `dataChanged`. A document that does not exist yet answers `409`
+snapshot, so it never reports `dataChanged`. For a dated type, `?period=` names the year's
+document, the newest when left out. A document that does not exist yet answers `409`
 with the reason `not_generated_yet`: its number and date come from a generation. Issuing, deleting the draft,
 downloading and the editor work on an uploaded document as on any other.
 
@@ -783,7 +867,8 @@ than a `legal` or `correction` version of the same template
 ([ADR 017](architecture/adr-017-legislation-monitoring.md)). A `layout` version alone prompts
 nothing, an uploaded file is never behind, and a hand edit changes nothing about it. Only
 active clients count (not archived, not leads), and the service contract never does: its data
-comes from its own page. The database view `documents_behind` decides it, under the caller's
+comes from its own page. Of a dated type only the client's newest period counts (ADR 020): an
+earlier year's report is what was written for that year. The database view `documents_behind` decides it, under the caller's
 policies.
 
 `GET /documents/behind` lists the organization's documents behind by type, in the pack's

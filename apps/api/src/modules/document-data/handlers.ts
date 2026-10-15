@@ -269,7 +269,7 @@ export const updateClientDocumentDetails: RouteHandler<
 };
 
 const workplaceColumns =
-  'id, client_id, name, is_registered_office, county_code, locality, address_line, activity, floor_area_m2, extinguisher_norm, assembly_point, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures, created_at, updated_at';
+  'id, client_id, name, is_registered_office, county_code, locality, address_line, activity, kind, floor_area_m2, extinguisher_norm, assembly_point, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures, created_at, updated_at';
 
 type WorkplaceRow = Pick<
   Tables['client_workplaces']['Row'],
@@ -281,6 +281,7 @@ type WorkplaceRow = Pick<
   | 'locality'
   | 'address_line'
   | 'activity'
+  | 'kind'
   | 'floor_area_m2'
   | 'extinguisher_norm'
   | 'assembly_point'
@@ -302,6 +303,7 @@ function toWorkplace(row: WorkplaceRow): Workplace {
     locality: row.locality,
     addressLine: row.address_line,
     activity: row.activity,
+    kind: row.kind,
     floorAreaM2: row.floor_area_m2,
     extinguisherNorm: row.extinguisher_norm,
     assemblyPoint: row.assembly_point,
@@ -321,6 +323,7 @@ const workplaceFields = (body: WorkplaceRequest) => ({
   locality: body.locality ?? null,
   address_line: body.addressLine ?? null,
   activity: body.activity ?? null,
+  kind: body.kind,
   floor_area_m2: body.floorAreaM2 ?? null,
   extinguisher_norm: body.extinguisherNorm ?? null,
   assembly_point: body.assemblyPoint ?? null,

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { instructionModuleGroups } from '@ssm-usor/contracts';
+import { instructionDomains, instructionModuleGroups } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -26,12 +26,15 @@ import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 
 import {
+  domainHints,
+  domainLabels,
   groupHints,
   groupLabels,
   type InstructionModule,
   invalidateLibrary,
   moduleFormSchema,
   type ModuleFormValues,
+  positionCountLabel,
 } from './instruction-schema';
 
 // `null` is closed, 'new' starts a module from the skeleton, and a module renames it.
@@ -76,18 +79,28 @@ function ModuleForm({
   const form = useForm<ModuleFormValues>({
     resolver: zodResolver(moduleFormSchema),
     defaultValues: module
-      ? { title: module.title, group: module.group }
-      : { title: '', group: 'work_activity' },
+      ? { title: module.title, group: module.group, domain: module.domain }
+      : { title: '', group: 'work_activity', domain: 'ssm' },
   });
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
   const group = useWatch({ control: form.control, name: 'group' });
+  const domain = useWatch({ control: form.control, name: 'domain' });
+  // The API refuses moving a module a current position applies (409); the field says so first.
+  const domainLocked = module !== null && module.appliedCount > 0;
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       const saved = module
-        ? await update.mutateAsync({ moduleId: module.id, data: values })
+        ? await update.mutateAsync({
+            moduleId: module.id,
+            data: {
+              title: values.title,
+              group: values.group,
+              ...(values.domain === module.domain ? {} : { domain: values.domain }),
+            },
+          })
         : await create.mutateAsync({ data: values });
       await invalidateLibrary(queryClient);
       toast.success(module ? 'Instrucțiunea a fost salvată.' : 'Instrucțiunea a fost creată.');
@@ -99,6 +112,13 @@ function ModuleForm({
         form.setError('title', {
           message:
             'Biblioteca are deja o instrucțiune cu acest titlu. Deosebește-le prin nume: „Scări metalice – șantier”.',
+        });
+        return;
+      }
+      if (body?.reason === 'instruction_module_domain_applied') {
+        form.setError('domain', {
+          message:
+            'Un post de lucru aplică instrucțiunea ca parte a deciziei lui pentru acest domeniu. Scoate-o de la posturile care o aplică, apoi mut-o în celălalt domeniu.',
         });
         return;
       }
@@ -120,7 +140,7 @@ function ModuleForm({
           <DialogTitle>{module ? 'Modifică instrucțiunea' : 'Scrie o instrucțiune'}</DialogTitle>
           <DialogDescription>
             {module
-              ? 'Titlul și grupul apar în bibliotecă și în documentele care o anexează; textul se modifică din editor.'
+              ? 'Titlul, grupul și domeniul apar în bibliotecă și în documentele care o anexează; textul se modifică din editor.'
               : 'Instrucțiunea pornește de la un schelet cu capitolele cerute de Inspecția Muncii și se scrie în editor.'}
           </DialogDescription>
         </DialogHeader>
@@ -156,6 +176,46 @@ function ModuleForm({
                 </NativeSelectOption>
               ))}
             </NativeSelect>
+          </Field>
+          <Field
+            id="instruction-module-domain"
+            label="Domeniu"
+            mark="required"
+            error={errors.domain}
+            hint={
+              domainLocked
+                ? `Aplicată la ${positionCountLabel(module.appliedCount).toLowerCase()} ca instrucțiune ${domainLabels[module.domain]}; se mută în celălalt domeniu după ce o scoți de acolo.`
+                : domainHints[domain]
+            }
+          >
+            {domainLocked ? (
+              <Input
+                id="instruction-module-domain"
+                data-testid="instruction-module-domain"
+                readOnly
+                value={domainLabels[module.domain]}
+                aria-describedby="instruction-module-domain-hint"
+              />
+            ) : (
+              <NativeSelect
+                id="instruction-module-domain"
+                data-testid="instruction-module-domain"
+                disabled={busy}
+                aria-invalid={Boolean(errors.domain)}
+                aria-describedby={
+                  errors.domain
+                    ? 'instruction-module-domain-error'
+                    : 'instruction-module-domain-hint'
+                }
+                {...form.register('domain')}
+              >
+                {instructionDomains.map((each) => (
+                  <NativeSelectOption key={each} value={each}>
+                    {domainLabels[each]}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            )}
           </Field>
           {errors.root?.server && (
             <Notice variant="destructive" data-testid="instruction-module-error">

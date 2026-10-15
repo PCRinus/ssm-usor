@@ -4,7 +4,8 @@ import { useAuth } from '@/features/auth/auth-context';
 import { FireSafetyMeansPage } from '@/features/fire-safety-means/fire-safety-means-page';
 import { fireSafetyMeansFocus, focusSearch } from '@/features/missing-data/focus';
 
-// A client's fire-fighting equipment and installations, per workplace (ADR 018).
+// A client's fire-fighting equipment and installations, per workplace, and its dangerous
+// substances (ADR 018).
 export const Route = createFileRoute('/_authenticated/clients/$clientId/fire-safety-means')({
   staticData: { title: 'Mijloace PSI' },
   validateSearch: focusSearch(fireSafetyMeansFocus),
@@ -25,7 +26,7 @@ function FireSafetyMeansRoute() {
       clientId={client.id}
       userId={session.user.id}
       readOnly={client.archivedAt !== null}
-      focus={focus === 'fire-equipment'}
+      focus={focus}
     />
   );
 }

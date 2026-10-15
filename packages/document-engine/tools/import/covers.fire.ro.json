@@ -8,15 +8,21 @@
       "title": "DECIZIILE INTERNE",
       "subtitle": "la nivelul unității, în domeniul situațiilor de urgență, pentru",
       "items": [
-        "Modul de organizare și responsabilitățile privind apărarea împotriva incendiilor;",
-        "Măsurile obligatorii privind instruirea salariaților în domeniul situațiilor de urgență;",
-        "Modul de reglementare a lucrărilor cu foc deschis;",
-        "Modul de reglementare a fumatului;",
-        "Modul de reglementare a lucrărilor în timpul sezonului rece și în perioadele caniculare și secetoase;",
-        "Numirea cadrului tehnic cu atribuții în domeniul apărării împotriva incendiilor;",
-        "Instrucțiunile de apărare împotriva incendiilor și atribuțiile salariaților la locurile de muncă;",
-        "Modul de colectare a deșeurilor, reziduurilor și ambalajelor combustibile, precum și de distrugere a acestora;",
-        "Controlul propriu al respectării normelor, dispozițiilor și măsurilor de apărare împotriva incendiilor."
+        "Modul de organizare și responsabilitățile privind apărarea împotriva incendiilor.",
+        "Măsurile obligatorii privind instruirea salariaților în domeniul situațiilor de urgență.",
+        "Modul de reglementare a lucrărilor cu foc deschis.",
+        "Modul de reglementare a fumatului.",
+        "Numirea cadrului tehnic cu atribuții în domeniul apărării împotriva incendiilor.",
+        "Instrucțiunile de apărare împotriva incendiilor și atribuțiile salariaților la locurile de muncă.",
+        "Modul de colectare a deșeurilor, reziduurilor și ambalajelor combustibile, precum și de distrugere a acestora.",
+        {
+          "text": "Modul de reglementare a lucrărilor în timpul sezonului rece și în perioadele caniculare și secetoase.",
+          "when": "seasonsDecision"
+        },
+        {
+          "text": "Controlul propriu al respectării normelor, dispozițiilor și măsurilor de apărare împotriva incendiilor.",
+          "when": "controlDecision"
+        }
       ]
     },
     {
@@ -64,7 +70,10 @@
         "Evidența controalelor interne sau externe în domeniul situațiilor de urgență;",
         "Evidența permiselor de lucru cu foc;",
         "Permis de lucru cu foc;",
-        "Registru de control pentru instalațiile de detectare, semnalizare, alarmare, alertare, limitare și stingere a incendiilor;",
+        {
+          "text": "Registru de control pentru instalațiile de detectare, semnalizare, alarmare, alertare, limitare și stingere a incendiilor;",
+          "when": "installationRegister"
+        },
         "Registru de evidență a situației constatate la stingătoarele de incendiu în urma controlului."
       ]
     }

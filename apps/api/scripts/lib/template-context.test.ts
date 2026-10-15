@@ -4,6 +4,7 @@ import {
   documentTypeKeys,
   fireSafetyDocumentTypeKeys,
   fireSafetyMissingDocumentData,
+  isDatedDocumentType,
 } from '@ssm-usor/contracts';
 import {
   annexTitlePage,
@@ -314,7 +315,7 @@ describe('the annex title pages', () => {
       'own_instructions'
     );
     const pages = annexTitlePagesData(snapshot as Json).map((data) =>
-      documentText(renderDocument(annexTitlePage(), data))
+      documentText(renderDocument(annexTitlePage('ssm'), data))
     );
     expect(pages).toHaveLength(2);
     expect(pages[0]).toContain('ANEXA 1');
@@ -325,6 +326,23 @@ describe('the annex title pages', () => {
       expect(text).toContain('PIPETECH');
       expect(text).toMatch(/versiunea din \d{2}\.\d{2}\.\d{4}/);
     }
+  }, 30_000);
+
+  it('merge from what the fire-safety own instructions snapshot, its modules only', () => {
+    const { snapshot } = merge(
+      readFileSync(new URL('fire/2.1_fire_own_instructions.docx', templatesUrl)),
+      { ...buildFireSafetyContext(facts) },
+      'fire_own_instructions'
+    );
+    const pages = annexTitlePagesData(snapshot as Json).map((data) =>
+      documentText(renderDocument(annexTitlePage('psi'), data))
+    );
+    expect(pages).toHaveLength(1);
+    expect(pages[0]).toContain('ANEXA 1');
+    expect(pages[0]).toContain('la Instrucțiunile proprii în domeniul situațiilor de urgență');
+    expect(pages[0]).toContain('I.P.S.U. Lucrul cu foc deschis');
+    expect(pages[0]).toContain('versiunea din 11.10.2026');
+    expect(pages[0]).not.toContain('{{');
   }, 30_000);
 });
 
@@ -792,7 +810,17 @@ describe('the fire-safety templates', () => {
   const fewest: DocumentFacts = {
     ...facts,
     branding: false,
-    organization: { ...facts.organization, fireSafetyAuthorization: null },
+    organization: { ...facts.organization, fireSafetyAuthorization: null, phone: null },
+    client: {
+      ...facts.client,
+      tradeRegisterNumber: null,
+      countyCode: null,
+      locality: null,
+      addressLine: null,
+      contactName: null,
+      contactPhone: null,
+      contactEmail: null,
+    },
     workplaces: facts.workplaces.map((workplace) => ({ ...workplace, specificMeasures: null })),
     responsiblePersons: facts.responsiblePersons.map((person) => ({
       ...person,
@@ -808,8 +836,18 @@ describe('the fire-safety templates', () => {
       },
       equipment: facts.fireSafety.equipment.filter((unit) => unit.kind === 'extinguisher'),
       installations: [],
+      maintenanceItems: [],
+      buildings: [],
+      generatedFromTenEmployees: [],
+      documents: [],
+      substances: { state: 'none', entries: [] },
     },
   };
+
+  const datedFor = (typeKey: string, variant: DocumentFacts): DocumentFacts => ({
+    ...variant,
+    period: isDatedDocumentType(typeKey) ? 2026 : null,
+  });
 
   it.each(
     fireManifest.templates.flatMap((entry) => [
@@ -818,8 +856,8 @@ describe('the fire-safety templates', () => {
     ])
   )(
     '%s renders from %s with nothing missing',
-    (_typeKey, _, file, variant) => {
-      const data = { ...buildFireSafetyContext(variant) };
+    (typeKey, _, file, variant) => {
+      const data = { ...buildFireSafetyContext(datedFor(typeKey, variant)) };
       const text = documentText(renderDocument(readFileSync(new URL(file, fireUrl)), data));
       expect(text).not.toContain('{{');
       expect(text).toContain('PIPETECH');
@@ -833,7 +871,7 @@ describe('the fire-safety templates', () => {
     for (const entry of fireManifest.templates) {
       const { snapshot } = merge(
         readFileSync(new URL(entry.file, fireUrl)),
-        { ...buildFireSafetyContext(facts) },
+        { ...buildFireSafetyContext(datedFor(entry.typeKey, facts)) },
         entry.typeKey
       );
       expect(names).toEqual(expect.arrayContaining(Object.keys(snapshot as object)));
@@ -846,10 +884,10 @@ describe('the fire-safety templates', () => {
       fire_decision_training: '6 PSI',
       fire_decision_open_fire: '7 PSI',
       fire_decision_smoking: '8 PSI',
-      fire_decision_seasons: '9 PSI',
-      fire_decision_technician: '10 PSI',
-      fire_decision_instructions: '11 PSI',
-      fire_decision_waste: '12 PSI',
+      fire_decision_technician: '9 PSI',
+      fire_decision_instructions: '10 PSI',
+      fire_decision_waste: '11 PSI',
+      fire_decision_seasons: '12 PSI',
       fire_decision_control: '13 PSI',
     };
     for (const [typeKey, number] of Object.entries(numbers)) {
@@ -861,6 +899,35 @@ describe('the fire-safety templates', () => {
       );
       expect(text).toContain(`Nr. ${number} din 19.01.2026`);
     }
+  });
+
+  it('list decisions 8 and 9 and the installation register, and cite decision 9, only from ten employees', () => {
+    const file = (typeKey: string) =>
+      readFileSync(
+        new URL(fireManifest.templates.find((each) => each.typeKey === typeKey)!.file, fireUrl)
+      );
+    const printed = (currentEmployeeCount: number) => {
+      const data = { ...buildFireSafetyContext({ ...facts, currentEmployeeCount }) };
+      return {
+        decisions: documentText(renderDocument(file('fire_cover_decisions'), data)).match(
+          /^\d\. /gm
+        ),
+        registers: documentText(renderDocument(file('fire_cover_registers'), data)).match(
+          /^\d\. /gm
+        ),
+        instructions: documentText(renderDocument(file('fire_decision_instructions'), data)),
+      };
+    };
+    const small = printed(9);
+    expect(small.decisions).toHaveLength(7);
+    expect(small.registers).toHaveLength(5);
+    expect(small.instructions).toContain('a) executarea controalelor interne;');
+    const large = printed(10);
+    expect(large.decisions).toHaveLength(9);
+    expect(large.registers).toHaveLength(6);
+    expect(large.instructions).toContain(
+      'a) executarea controalelor interne conform planificării, Decizia nr. 13 PSI;'
+    );
   });
 
   it('print the workplaces, their means and their people', () => {
@@ -883,6 +950,74 @@ describe('the fire-safety templates', () => {
     expect(training).toContain(
       'personalul administrativ (Contabil) va fi instruit la 6 luni, respectiv în lunile februarie și august, între zilele 2 și 7 ale lunii;'
     );
+  });
+
+  it('print the dangerous substances with their gaps, or the declaration that there are none', () => {
+    const file = readFileSync(
+      new URL(
+        fireManifest.templates.find((each) => each.typeKey === 'fire_substances_list')!.file,
+        fireUrl
+      )
+    );
+    const listed = documentText(renderDocument(file, { ...buildFireSafetyContext(facts) }));
+    expect(listed).toContain('Substanța 1');
+    expect(listed).toContain('Propan');
+    expect(listed).toContain('Diluant pentru vopsele');
+    expect(listed).toContain('Pulbere, CO₂; răcirea buteliilor cu apă pulverizată');
+    expect(listed.match(/DE COMPLETAT/g)).toHaveLength(6);
+    const none = documentText(renderDocument(file, { ...buildFireSafetyContext(fewest) }));
+    expect(none).toContain('declară că în activitatea sa nu utilizează substanțe periculoase.');
+    expect(none).not.toContain('Substanța 1');
+  });
+
+  it('fill the site sheet from the client, its buildings, the inventory and the decisions, and mark the rest to fill in', () => {
+    const file = readFileSync(
+      new URL(
+        fireManifest.templates.find((each) => each.typeKey === 'fire_site_sheet')!.file,
+        fireUrl
+      )
+    );
+    const text = documentText(
+      renderDocument(file, { ...buildFireSafetyContext({ ...facts, currentEmployeeCount: 12 }) })
+    );
+    expect(text).toContain('FIȘA OBIECTIVULUI');
+    expect(text).toContain(
+      'Număr de înregistrare din registrul comerțului\nJ35/1234/2008, CUI 14399840'
+    );
+    expect(text).toContain(
+      '1.2.1. Clădirea 1: Atelier Ghiroda, Ghiroda, județul Timiș, Str. Industriilor 4'
+    );
+    expect(text).toContain(
+      '1.2.2. Clădirea 2: Sediul social, București, Sector 1, Calea Victoriei 122A'
+    );
+    expect(text).toContain(
+      'Stabilitatea la foc\nDE COMPLETAT(din proiect sau din alte documente tehnice'
+    );
+    expect(text).toContain('Substanța 2: Diluant pentru vopsele');
+    expect(text).toContain('Serviciu privat pentru situații de urgență\nnu există; nu este cazul');
+    expect(text).not.toContain('Operatorul nu are clădiri proprii');
+    const fewer = documentText(renderDocument(file, { ...buildFireSafetyContext(fewest) }));
+    expect(fewer).toContain('declară că în activitatea sa nu utilizează substanțe periculoase');
+    expect(fewer).toContain('Coordonatele operatorului economic/instituției – adresa\nBucurești');
+  });
+
+  it('schedule the checks of every workplace from its extinguishers, installations and free rows', () => {
+    const file = readFileSync(
+      new URL(
+        fireManifest.templates.find((each) => each.typeKey === 'fire_maintenance_schedules')!.file,
+        fireUrl
+      )
+    );
+    const text = documentText(renderDocument(file, { ...buildFireSafetyContext(facts) }));
+    expect(text).toContain('Atelier Ghiroda (Atelier de sudură)');
+    expect(text).toContain('Sediul social (Birouri)');
+    expect(text).toContain('Verificarea prin cântărire a stingătoarelor cu CO₂ sau agent curat');
+    expect(text).toContain('următorul service: 15.01.2027 și 12.03.2027');
+    expect(text).toContain('următoarea verificare: 12.09.2026');
+    expect(text).toContain('Instalația de utilizare a gazelor naturale');
+    const fewer = documentText(renderDocument(file, { ...buildFireSafetyContext(fewest) }));
+    expect(fewer).toContain('conform instrucțiunilor producătorului');
+    expect(fewer).not.toContain('Instalația de utilizare a gazelor naturale');
   });
 
   it('print the smoking rule, the technician appointed and the controls of the client', () => {
@@ -946,7 +1081,7 @@ describe('the fire-safety templates', () => {
     expect(text).toContain('Locul de muncă: Atelier Ghiroda (atelier de sudură)');
     expect(text).toContain('Stingător tip P50 – Pulbere, 50\u00a0kg, carosabil: 1 buc.;');
     expect(text).toContain('Ladă cu nisip: 1 buc.;');
-    expect(text).toContain('redate în Decizia nr. 10 PSI.');
+    expect(text).toContain('redate în Decizia nr. 9 PSI.');
     expect(text).toContain('conform Deciziei nr. 8 PSI:');
     expect(text.match(/^Conduita salvatorului cuprinde, în această ordine:$/gm)).toHaveLength(
       facts.workplaces.length
@@ -967,6 +1102,9 @@ describe('the fire-safety templates', () => {
       'CINE EFECTUEAZĂ INSTRUIREA: Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă sau, după caz, S.C. SERVICIU EXTERN DEMO S.R.L. – Radu STAN (cadru tehnic PSI)'
     );
     expect(text).toMatch(/^NOIEMBRIE\nIPSU art\.\u00a0236–257; .+; testare\.\n120 min$/m);
+    expect(text).toMatch(
+      /^FEBRUARIE\nIPSU art\.\u00a01–76; I\.P\.S\.U\. Lucrul cu foc deschis, art\.\u00a01–7; instrucțiunile afișate/m
+    );
   });
 
   const fireGaps: [string, DocumentFacts][] = [
@@ -977,7 +1115,16 @@ describe('the fire-safety templates', () => {
         responsiblePersons: [],
         jobPositions: [],
         workplaces: facts.workplaces.map((workplace) => ({ ...workplace, activity: null })),
-        fireSafety: { card: null, equipment: [], installations: [] },
+        fireSafety: {
+          card: null,
+          equipment: [],
+          installations: [],
+          maintenanceItems: [],
+          buildings: [],
+          generatedFromTenEmployees: [],
+          documents: [],
+          substances: { state: 'undecided', entries: [] },
+        },
       },
     ],
     [
@@ -993,12 +1140,24 @@ describe('the fire-safety templates', () => {
         client: { ...facts.client, representativeName: null, representativeRole: null },
       },
     ],
+    [
+      'a position deciding about the fire-safety modules',
+      {
+        ...facts,
+        jobPositions: facts.jobPositions.map((position, index) =>
+          index === 0 ? { ...position, needsFireInstructions: null } : position
+        ),
+      },
+    ],
+    ['a generated IPSU', { ...facts, fireOwnInstructions: null }],
   ];
 
   it('cover every gap of the fire-safety set', () => {
-    expect(fireGaps.flatMap(([, variant]) => missingFireSafetyData(variant)).sort()).toEqual(
-      [...fireSafetyMissingDocumentData].sort()
-    );
+    expect(
+      fireGaps
+        .flatMap(([, variant]) => missingFireSafetyData(variant, 'fire_training_themes'))
+        .sort()
+    ).toEqual([...fireSafetyMissingDocumentData].sort());
   });
 
   // As for the occupational safety set: the names a template printed from the whole context are
@@ -1011,18 +1170,42 @@ describe('the fire-safety templates', () => {
     '%s is generated again or refused for exactly the gaps it prints, lacking %s',
     (typeKey, _, file, variant) => {
       const template = readFileSync(new URL(file, fireUrl));
-      const { usedNames } = renderTemplate(template, { ...buildFireSafetyContext(facts) });
-      const missing = missingFireSafetyData(variant);
+      const { usedNames } = renderTemplate(template, {
+        ...buildFireSafetyContext(datedFor(typeKey, facts)),
+      });
+      const missing = missingFireSafetyData(variant, typeKey);
       expect(
         refusedFor(() =>
-          merge(template, { ...buildPartialFireSafetyContext(variant) }, typeKey, (absentNames) =>
-            missing.filter((code) => fireSafetyGapConcerns(code, absentNames))
+          merge(
+            template,
+            { ...buildPartialFireSafetyContext(datedFor(typeKey, variant), typeKey) },
+            typeKey,
+            (absentNames) => missing.filter((code) => fireSafetyGapConcerns(code, absentNames))
           )
         )
       ).toEqual(missing.filter((code) => fireSafetyGapConcerns(code, usedNames)));
     },
     30_000
   );
+
+  it('report on the year asked from the set and the inventory, the rest left to fill in', () => {
+    const report = fireManifest.templates.find((entry) => entry.typeKey === 'fire_annual_report')!;
+    const text = documentText(
+      renderDocument(readFileSync(new URL(report.file, fireUrl)), {
+        ...buildFireSafetyContext({ ...facts, currentEmployeeCount: 12, period: 2025 }),
+      })
+    );
+    expect(text).toContain('pe anul 2025');
+    expect(text).toContain(
+      '– Decizia privind organizarea apărării împotriva incendiilor, nr.\u00a05\u00a0PSI din 19.01.2026;'
+    );
+    expect(text).toContain('2.1. Atelier Ghiroda, Ghiroda, județul Timiș, Str. Industriilor 4');
+    expect(text).toContain(
+      'Lista mijloacelor de apărare împotriva incendiilor\nciornă, rev.\u00a01'
+    );
+    expect(text).toContain('7. Concluzii și măsuri propuse pentru anul 2026');
+    expect(text.match(/DE COMPLETAT/g)).toHaveLength(11);
+  }, 30_000);
 
   it('leave the registers cover to be generated again without the second stage data', () => {
     const [, lacking] = fireGaps[0]!;

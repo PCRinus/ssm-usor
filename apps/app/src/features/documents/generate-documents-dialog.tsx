@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { DocumentSet } from '@ssm-usor/contracts';
+import { type DocumentSet, documentSetTypeKeys, isDatedDocumentType } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -38,7 +38,12 @@ import {
 import { startWayBack } from '@/features/missing-data/way-back';
 import { dateToIso } from '@/lib/dates';
 
-import { workersRepresentativesRule } from './document-labels';
+import {
+  appliesAt,
+  fireSafetyHeadcountRule,
+  periodHint,
+  workersRepresentativesRule,
+} from './document-labels';
 import { documentSetCopy, setParams } from './document-sets';
 import {
   generateDocumentsFormSchema,
@@ -57,7 +62,7 @@ export function GenerateDocumentsDialog({
   userId,
   open,
   lastGeneration,
-  workersRepresentativeDecisionGenerated,
+  generatedTypeKeys,
   onClose,
 }: {
   set: DocumentSet;
@@ -65,7 +70,7 @@ export function GenerateDocumentsDialog({
   userId: string;
   open: boolean;
   lastGeneration: ClientDocumentListResponse['lastGeneration'];
-  workersRepresentativeDecisionGenerated: boolean;
+  generatedTypeKeys: readonly string[];
   onClose: () => void;
 }) {
   return (
@@ -76,7 +81,7 @@ export function GenerateDocumentsDialog({
           clientId={clientId}
           userId={userId}
           lastGeneration={lastGeneration}
-          workersRepresentativeDecisionGenerated={workersRepresentativeDecisionGenerated}
+          generatedTypeKeys={generatedTypeKeys}
           onClose={onClose}
         />
       )}
@@ -89,14 +94,14 @@ function GenerateDocumentsForm({
   clientId,
   userId,
   lastGeneration,
-  workersRepresentativeDecisionGenerated,
+  generatedTypeKeys,
   onClose,
 }: {
   set: DocumentSet;
   clientId: string;
   userId: string;
   lastGeneration: ClientDocumentListResponse['lastGeneration'];
-  workersRepresentativeDecisionGenerated: boolean;
+  generatedTypeKeys: readonly string[];
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -118,6 +123,7 @@ function GenerateDocumentsForm({
     defaultValues: {
       issueDate: lastGeneration?.issueDate ?? dateToIso(new Date()),
       firstDecisionNumber: String(lastGeneration?.firstDecisionNumber ?? 1),
+      period: String(new Date().getFullYear()),
     },
   });
   const formRef = useRevealErrors(form);
@@ -137,12 +143,18 @@ function GenerateDocumentsForm({
   // The cached answer predates what was filled in since, so it waits for the one asked above.
   const checking = readiness.isPending || (readiness.isFetching && !readiness.isFetchedAfterMount);
   const ready = !checking && readiness.data?.ready === true;
+  const datedTypeKeys = readiness.data
+    ? documentSetTypeKeys[set]
+        .filter(isDatedDocumentType)
+        .filter((typeKey) => appliesAt(typeKey, readiness.data.currentEmployeeCount))
+    : [];
+  const asksPeriod = datedTypeKeys.length > 0;
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       const result = await generate.mutateAsync({
         clientId,
-        data: toGenerateDocumentsRequest(values),
+        data: toGenerateDocumentsRequest(values, asksPeriod),
         params: setParams(set),
       });
       await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
@@ -202,14 +214,14 @@ function GenerateDocumentsForm({
               Nu am putut verifica datele clientului.
             </Notice>
           ) : (
-            occupationalSafety && (
-              <Notice variant="info" data-testid="generate-headcount">
-                {workersRepresentativesRule(
-                  readiness.data.currentEmployeeCount,
-                  workersRepresentativeDecisionGenerated
-                )}
-              </Notice>
-            )
+            <Notice variant="info" data-testid="generate-headcount">
+              {occupationalSafety
+                ? workersRepresentativesRule(
+                    readiness.data.currentEmployeeCount,
+                    generatedTypeKeys.includes('decision_workers_representative')
+                  )
+                : fireSafetyHeadcountRule(readiness.data.currentEmployeeCount, generatedTypeKeys)}
+            </Notice>
           )}
           {checking || !readiness.data ? null : !ready ? (
             <div data-testid="generate-missing" className="grid gap-4">
@@ -288,6 +300,28 @@ function GenerateDocumentsForm({
                   {...form.register('firstDecisionNumber')}
                 />
               </Field>
+              {asksPeriod && (
+                <Field
+                  id="generate-period"
+                  label="Anul de referință"
+                  mark="required"
+                  hint={periodHint(datedTypeKeys)}
+                  error={errors.period}
+                >
+                  <Input
+                    id="generate-period"
+                    data-testid="generate-period"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    disabled={busy}
+                    aria-invalid={Boolean(errors.period)}
+                    aria-describedby={
+                      errors.period ? 'generate-period-error' : 'generate-period-hint'
+                    }
+                    {...form.register('period')}
+                  />
+                </Field>
+              )}
             </div>
           )}
           {errors.root?.server && (

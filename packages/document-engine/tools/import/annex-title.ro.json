@@ -1,16 +1,32 @@
 {
-  "header": {
-    "code": "IPSSM",
-    "title": "Instrucțiuni proprii în domeniul securității și sănătății în muncă",
-    "annex": "Anexa {{number}}"
-  },
-  "lines": [
-    { "text": "ANEXA {{number}}", "bold": true, "size": 12, "above": 140, "below": 6 },
-    {
-      "text": "la Instrucțiunile proprii în domeniul securității și sănătății în muncă",
-      "below": 36
+  "ssm": {
+    "header": {
+      "code": "IPSSM",
+      "title": "Instrucțiuni proprii în domeniul securității și sănătății în muncă",
+      "annex": "Anexa {{number}}"
     },
-    { "text": "I.P.S.S.M. {{title}}", "bold": true, "size": 12, "below": 6 },
-    { "text": "versiunea din {{versionDate}}", "below": 0 }
-  ]
+    "lines": [
+      { "text": "ANEXA {{number}}", "bold": true, "size": 12, "above": 140, "below": 6 },
+      {
+        "text": "la Instrucțiunile proprii în domeniul securității și sănătății în muncă",
+        "below": 36
+      },
+      { "text": "I.P.S.S.M. {{title}}", "bold": true, "size": 12, "below": 6 },
+      { "text": "versiunea din {{versionDate}}", "below": 0 }
+    ]
+  },
+  "psi": {
+    "header": {
+      "code": "IPSU",
+      "title": "Instrucțiuni proprii în domeniul situațiilor de urgență",
+      "preparedBy": "fireSafetyTechnician",
+      "annex": "Anexa {{number}}"
+    },
+    "lines": [
+      { "text": "ANEXA {{number}}", "bold": true, "size": 12, "above": 140, "below": 6 },
+      { "text": "la Instrucțiunile proprii în domeniul situațiilor de urgență", "below": 36 },
+      { "text": "I.P.S.U. {{title}}", "bold": true, "size": 12, "below": 6 },
+      { "text": "versiunea din {{versionDate}}", "below": 0 }
+    ]
+  }
 }

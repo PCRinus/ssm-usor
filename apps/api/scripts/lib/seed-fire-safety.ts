@@ -7,8 +7,12 @@ type Tables = Database['public']['Tables'];
 type FireSafetyInsert = Tables['client_fire_safety']['Insert'];
 type SmokingRule = Pick<FireSafetyInsert, 'smoking_policy' | 'smoking_place'>;
 type WorkplaceUpdate = Tables['client_workplaces']['Update'];
+type WorkplaceInsert = Tables['client_workplaces']['Insert'];
 type EquipmentInsert = Tables['fire_equipment']['Insert'];
 type InstallationInsert = Tables['fire_installations']['Insert'];
+type SubstanceInsert = Tables['fire_substances']['Insert'];
+type MaintenanceItemInsert = Tables['fire_maintenance_items']['Insert'];
+type BuildingInsert = Tables['fire_buildings']['Insert'];
 
 interface ClientCalendar {
   id: string;
@@ -61,6 +65,29 @@ export const workplaceFireFacts = {
   fire_risk_equipment: 'Calculatoare, imprimante, aparate de climatizare',
 } satisfies WorkplaceUpdate;
 
+export const mobileSiteName = 'Șantier Dumbrăvița';
+
+// The construction firm's case of ADR 018's amendment, so the previews print a workplace with no
+// area and no norm.
+export function mobileSiteFor(clientId: string, createdBy: string): WorkplaceInsert {
+  return {
+    organization_id: seedOrganizationId,
+    client_id: clientId,
+    name: mobileSiteName,
+    county_code: 'TM',
+    locality: 'Dumbrăvița',
+    address_line: 'Str. Petőfi Sándor 50',
+    kind: 'mobile_site',
+    activity: 'Lucrări de construcții și instalații',
+    extinguisher_norm: 'none',
+    assembly_point: 'Zona de acces în șantier, lângă containerul de birou',
+    combustible_materials: 'Cofraje și schele din lemn, ambalaje, carburanți pentru utilaje',
+    ignition_sources: 'Lucrări de sudură și tăiere, instalația electrică provizorie',
+    fire_risk_equipment: 'Grup electrogen, aparat de sudură, polizor unghiular',
+    created_by: createdBy,
+  };
+}
+
 // The sample pack's workplace: two P6 and one G3, and an alarm system.
 export function fireMeansFor(
   workplace: { id: string; client_id: string },
@@ -99,6 +126,124 @@ export function fireMeansFor(
     ],
     installations: [{ ...base, kind: 'detection_alarm', maintainer: 'Alarm Service Demo S.R.L.' }],
   };
+}
+
+// What the inventory does not hold, so the schedules 5.4 print free rows below the derived ones.
+export function maintenanceItemsFor(
+  workplace: { id: string; client_id: string },
+  createdBy: string
+): MaintenanceItemInsert[] {
+  const base = {
+    organization_id: seedOrganizationId,
+    client_id: workplace.client_id,
+    workplace_id: workplace.id,
+    created_by: createdBy,
+  };
+  return [
+    {
+      ...base,
+      subject: 'Instalația de utilizare a gazelor naturale',
+      interval_label: 'anual',
+      checked_by: 'Operatorul de distribuție a gazelor naturale',
+      sort_order: 0,
+    },
+    {
+      ...base,
+      subject: 'Coșul de fum al centralei termice',
+      interval_label: 'anual, înainte de sezonul rece',
+      checked_by: 'Firmă autorizată de coșerit',
+      sort_order: 1,
+    },
+    {
+      ...base,
+      subject: 'Testarea funcționării iluminatului de siguranță',
+      interval_label: 'la 6 luni',
+      checked_by: 'Electricianul autorizat al unității',
+      sort_order: 2,
+    },
+  ];
+}
+
+// A complete building and one with half its facts, so the site sheet 7.1 shows both data and gaps.
+export function buildingFor(
+  workplace: { id: string; client_id: string },
+  createdBy: string,
+  complete: boolean
+): BuildingInsert {
+  const base = {
+    organization_id: seedOrganizationId,
+    client_id: workplace.client_id,
+    workplace_id: workplace.id,
+    created_by: createdBy,
+    year_built: 1987,
+    built_area_m2: 412.5,
+    levels: 'P+1E',
+    classification: 'mixed' as const,
+  };
+  return complete
+    ? {
+        ...base,
+        structure: 'Cadre din beton armat, închideri din zidărie de cărămidă',
+        heating_fuel: 'gaze naturale',
+        gas_use: 'încălzire și prepararea hranei',
+        electrical_maintainer: 'Electro Serv Demo S.R.L.',
+        electrical_last_check_on: '2026-03-12',
+        water_reserve_m3: 0,
+        notes: 'Clădirea are o singură scară de evacuare, spre curtea interioară.',
+      }
+    : base;
+}
+
+// A cleaning agent, a gas cylinder and a solvent, each with some texts of its data sheet left
+// out, so the list 5.3 prints its gaps (ADR 018).
+export function substancesFor(clientId: string, createdBy: string): SubstanceInsert[] {
+  const base = { organization_id: seedOrganizationId, client_id: clientId, created_by: createdBy };
+  return [
+    {
+      ...base,
+      sort_order: 0,
+      name: 'Detergent dezinfectant pe bază de hipoclorit de sodiu',
+      classification: 'Skin Corr. 1B, H314; Aquatic Acute 1, H400; EUH031',
+      quantity: '4 flacoane de 1 l',
+      identification_codes: 'Hipoclorit de sodiu, CAS 7681-52-9',
+      health_environment_risks:
+        'Provoacă arsuri grave ale pielii și lezarea ochilor; foarte toxic pentru mediul acvatic; în contact cu acizii degajă un gaz toxic',
+      protection_means: 'Mănuși de protecție, ochelari de protecție',
+      intervention_measures:
+        'Ochii și pielea se clătesc cu multă apă câteva minute; la înghițire se clătește gura, fără a provoca voma, și se cheamă medicul',
+      extinguishing_agents:
+        'Produsul nu este inflamabil; se folosesc mijloacele potrivite incendiului din jur',
+      storage_place: 'Magazia materialelor de curățenie, separat de produsele acide',
+      handling: 'Nu se amestecă cu alte produse de curățenie, mai ales cu cele acide',
+    },
+    {
+      ...base,
+      sort_order: 1,
+      name: 'Gaz petrolier lichefiat (propan) în butelii',
+      classification: 'Flam. Gas 1, H220; Press. Gas (Liquefied gas), H280',
+      quantity: '2 butelii de 11 kg',
+      physical_chemical_properties: 'Gaz incolor, mai greu decât aerul, extrem de inflamabil',
+      identification_codes: 'Propan, CAS 74-98-6, nr. ONU 1965',
+      extinguishing_agents: 'Pulbere, CO₂; buteliile se răcesc cu apă pulverizată',
+      storage_place: 'Cușca metalică ventilată din curte, departe de surse de căldură',
+      handling:
+        'Butelia se transportă și se folosește în poziție verticală, cu robinetul închis când nu este folosită',
+    },
+    {
+      ...base,
+      sort_order: 2,
+      name: 'Diluant pentru vopsele (white spirit)',
+      classification: 'Flam. Liq. 3, H226; Asp. Tox. 1, H304; STOT RE 1, H372',
+      quantity: '2 bidoane de 5 l',
+      physical_chemical_properties:
+        'Lichid incolor, cu miros caracteristic, punct de inflamabilitate 38 °C',
+      health_environment_risks:
+        'Poate fi mortal în caz de înghițire și de pătrundere în căile respiratorii; afectează sistemul nervos central la expunere prelungită',
+      protection_means: 'Mănuși din nitril, ochelari de protecție, ventilarea încăperii',
+      extinguishing_agents: 'Spumă, pulbere, CO₂; nu se folosește jet de apă',
+      storage_place: 'Dulapul metalic pentru substanțe inflamabile din atelier',
+    },
+  ];
 }
 
 export const fireSafetyTechnician = {
@@ -160,9 +305,14 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
     facts: 0,
     smoking: 0,
     workplaces: 0,
+    sites: 0,
     persons: 0,
     equipment: 0,
     installations: 0,
+    maintenanceItems: 0,
+    buildings: 0,
+    substancesDeclared: 0,
+    substances: 0,
   };
   if (clientIds.length === 0) return counts;
 
@@ -203,6 +353,25 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
   if (filled.error) throw new Error(`Could not seed workplace facts: ${filled.error.message}`);
   counts.workplaces = filled.data.length;
 
+  // Every third client from the second, so most clients keep the one workplace they have.
+  const siteClientIds = clientIds.filter((_, index) => index % 3 === 1);
+  if (siteClientIds.length > 0) {
+    const existing = await db
+      .from('client_workplaces')
+      .select('client_id')
+      .in('client_id', siteClientIds)
+      .eq('name', mobileSiteName);
+    if (existing.error) throw new Error(`Could not read workplaces: ${existing.error.message}`);
+    const sites = siteClientIds
+      .filter((clientId) => !existing.data.some((row) => row.client_id === clientId))
+      .map((clientId) => mobileSiteFor(clientId, createdBy));
+    if (sites.length > 0) {
+      const { error } = await db.from('client_workplaces').insert(sites);
+      if (error) throw new Error(`Could not seed a mobile site: ${error.message}`);
+    }
+    counts.sites = sites.length;
+  }
+
   const persons = await db
     .from('client_responsible_persons')
     .select('id, client_id, roles')
@@ -227,16 +396,38 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
 
   const workplaces = await db
     .from('client_workplaces')
-    .select('id, client_id, fire_equipment(count), fire_installations(count)')
+    .select(
+      'id, client_id, kind, fire_equipment(count), fire_installations(count), fire_maintenance_items(count), fire_buildings(count)'
+    )
     .in('client_id', clientIds)
     .is('archived_at', null);
   if (workplaces.error) throw new Error(`Could not read workplaces: ${workplaces.error.message}`);
   const equipment: EquipmentInsert[] = [];
   const installations: InstallationInsert[] = [];
+  const maintenanceItems: MaintenanceItemInsert[] = [];
+  const buildings: BuildingInsert[] = [];
+  const buildingKinds = new Map([
+    [clientIds[0], true],
+    [clientIds[1], false],
+    [clientIds[2], true],
+  ]);
   for (const workplace of workplaces.data) {
     const means = fireMeansFor(workplace, createdBy);
     if (workplace.fire_equipment[0]?.count === 0) equipment.push(...means.equipment);
-    if (workplace.fire_installations[0]?.count === 0) installations.push(...means.installations);
+    if (workplace.kind === 'fixed_space' && workplace.fire_installations[0]?.count === 0) {
+      installations.push(...means.installations);
+    }
+    if (workplace.kind === 'fixed_space' && workplace.fire_maintenance_items[0]?.count === 0) {
+      maintenanceItems.push(...maintenanceItemsFor(workplace, createdBy));
+    }
+    const complete = buildingKinds.get(workplace.client_id);
+    if (
+      complete !== undefined &&
+      workplace.kind === 'fixed_space' &&
+      workplace.fire_buildings[0]?.count === 0
+    ) {
+      buildings.push(buildingFor(workplace, createdBy, complete));
+    }
   }
   if (equipment.length > 0) {
     const { error } = await db.from('fire_equipment').insert(equipment);
@@ -246,7 +437,53 @@ export async function seedFireSafety(db: SeedClient, clientIds: string[], create
     const { error } = await db.from('fire_installations').insert(installations);
     if (error) throw new Error(`Could not seed fire installations: ${error.message}`);
   }
+  if (maintenanceItems.length > 0) {
+    const { error } = await db.from('fire_maintenance_items').insert(maintenanceItems);
+    if (error) throw new Error(`Could not seed the free rows of the schedules: ${error.message}`);
+  }
   counts.equipment = equipment.length;
   counts.installations = installations.length;
+  if (buildings.length > 0) {
+    const { error } = await db.from('fire_buildings').insert(buildings);
+    if (error) throw new Error(`Could not seed buildings: ${error.message}`);
+  }
+  counts.maintenanceItems = maintenanceItems.length;
+  counts.buildings = buildings.length;
+
+  // Every other client declares none and the rest list theirs, so both forms of 5.3 are seen.
+  for (const [state, ids] of [
+    ['none', clientIds.filter((_, index) => index % 2 === 0)],
+    ['listed', clientIds.filter((_, index) => index % 2 === 1)],
+  ] as const) {
+    if (ids.length === 0) continue;
+    const decided = await db
+      .from('client_fire_safety')
+      .update({ substances_state: state })
+      .in('client_id', ids)
+      .eq('substances_state', 'undecided')
+      .select('client_id');
+    if (decided.error) {
+      throw new Error(`Could not seed the substances state: ${decided.error.message}`);
+    }
+    counts.substancesDeclared += decided.data.length;
+  }
+  const [listing, listed] = await Promise.all([
+    db
+      .from('client_fire_safety')
+      .select('client_id')
+      .in('client_id', clientIds)
+      .eq('substances_state', 'listed'),
+    db.from('fire_substances').select('client_id').in('client_id', clientIds),
+  ]);
+  if (listing.error) throw new Error(`Could not read substances: ${listing.error.message}`);
+  if (listed.error) throw new Error(`Could not read substances: ${listed.error.message}`);
+  const substances = listing.data
+    .filter((row) => !listed.data.some((entry) => entry.client_id === row.client_id))
+    .flatMap((row) => substancesFor(row.client_id, createdBy));
+  if (substances.length > 0) {
+    const { error } = await db.from('fire_substances').insert(substances);
+    if (error) throw new Error(`Could not seed dangerous substances: ${error.message}`);
+  }
+  counts.substances = substances.length;
   return counts;
 }

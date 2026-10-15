@@ -2,16 +2,25 @@
   {
     "file": "metal-ladders.docx",
     "title": "Scări metalice",
-    "group": "work_equipment"
+    "group": "work_equipment",
+    "domain": "ssm"
   },
   {
     "file": "office-work.docx",
     "title": "Activități de birou",
-    "group": "work_activity"
+    "group": "work_activity",
+    "domain": "ssm"
   },
   {
     "file": "cleaning.docx",
     "title": "Activități de curățenie",
-    "group": "work_activity"
+    "group": "work_activity",
+    "domain": "ssm"
+  },
+  {
+    "file": "hot-work.docx",
+    "title": "Lucrul cu foc deschis",
+    "group": "work_activity",
+    "domain": "psi"
   }
 ]

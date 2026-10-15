@@ -3,11 +3,17 @@ import { describe, expect, it } from 'vitest';
 import { responsiblePersonRequestSchema, workplaceRequestSchema } from './document-data';
 import {
   extinguisherCode,
+  fireAnnexNorms,
+  fireBuildingRequestSchema,
   fireEquipmentRequestSchema,
-  fireExtinguisherNorms,
   fireInstallationRequestSchema,
+  fireMaintenanceItemRequestSchema,
+  fireSubstanceDetailLabels,
+  fireSubstanceDetails,
+  fireSubstanceRequestSchema,
   minimumExtinguishers,
   updateClientFireSafetyRequestSchema,
+  updateFireSubstancesStateRequestSchema,
 } from './fire-safety';
 
 const workplaceId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
@@ -33,7 +39,7 @@ describe('minimumExtinguishers', () => {
   });
 
   it('asks for one at least, and has no area figure for dwellings', () => {
-    for (const norm of fireExtinguisherNorms.filter((norm) => norm !== 'residential_level')) {
+    for (const norm of fireAnnexNorms.filter((norm) => norm !== 'residential_level')) {
       expect(minimumExtinguishers(1, norm)).toBe(1);
     }
     expect(minimumExtinguishers(400, 'residential_level')).toBeNull();
@@ -194,5 +200,127 @@ describe('the fire-safety fields elsewhere', () => {
       workplaceRequestSchema.safeParse({ name: 'Gelaterie', extinguisherNorm: 'commercial_250' })
         .success
     ).toBe(false);
+  });
+
+  it('makes a workplace a fixed space unless it says it is a mobile site, and allows no norm', () => {
+    expect(workplaceRequestSchema.parse({ name: 'Gelaterie' }).kind).toBe('fixed_space');
+    expect(
+      workplaceRequestSchema.parse({
+        name: 'Șantier',
+        kind: 'mobile_site',
+        extinguisherNorm: 'none',
+      })
+    ).toMatchObject({ kind: 'mobile_site', extinguisherNorm: 'none' });
+    expect(workplaceRequestSchema.safeParse({ name: 'Șantier', kind: 'vehicle' }).success).toBe(
+      false
+    );
+  });
+});
+
+describe('a dangerous substance', () => {
+  const propane = {
+    name: 'Propan',
+    classification: 'Flam. Gas 1, H220; Press. Gas, H280',
+    quantity: '2 butelii de 11 kg',
+  };
+
+  it('needs its name, classification and quantity, and nothing of its data sheet', () => {
+    expect(fireSubstanceRequestSchema.parse(propane)).toEqual(propane);
+    for (const field of ['name', 'classification', 'quantity'] as const) {
+      expect(fireSubstanceRequestSchema.safeParse({ ...propane, [field]: ' ' }).success).toBe(
+        false
+      );
+    }
+  });
+
+  it('trims a text of the data sheet, refuses a single character and takes null for none', () => {
+    expect(
+      fireSubstanceRequestSchema.parse({ ...propane, storagePlace: '  Cușca din curte  ' })
+        .storagePlace
+    ).toBe('Cușca din curte');
+    expect(fireSubstanceRequestSchema.safeParse({ ...propane, handling: 'x' }).success).toBe(false);
+    expect(fireSubstanceRequestSchema.parse({ ...propane, handling: null }).handling).toBeNull();
+  });
+
+  it('names the section of the safety data sheet for each of its eight texts', () => {
+    expect(fireSubstanceDetails).toHaveLength(8);
+    expect(fireSubstanceDetailLabels.extinguishingAgents.dataSheet).toMatch(/secțiunea 5$/);
+    expect(fireSubstanceDetailLabels.interventionMeasures.dataSheet).toMatch(/4, 5 și 6$/);
+  });
+
+  it('is part of a state that starts undecided and is none or listed', () => {
+    for (const state of ['undecided', 'none', 'listed']) {
+      expect(updateFireSubstancesStateRequestSchema.safeParse({ state }).success).toBe(true);
+    }
+    expect(updateFireSubstancesStateRequestSchema.safeParse({ state: 'empty' }).success).toBe(
+      false
+    );
+  });
+});
+
+describe('a free row of the maintenance schedules', () => {
+  const chimney = {
+    workplaceId,
+    subject: 'Coșul de fum al centralei termice',
+    intervalLabel: 'anual',
+    checkedBy: 'Firmă autorizată de coșerit',
+  };
+
+  it('needs what is checked, how often and who checks it, trimmed', () => {
+    expect(
+      fireMaintenanceItemRequestSchema.parse({ ...chimney, intervalLabel: ' la 6 luni ' })
+    ).toEqual({ ...chimney, intervalLabel: 'la 6 luni' });
+    for (const field of ['subject', 'intervalLabel', 'checkedBy'] as const) {
+      expect(fireMaintenanceItemRequestSchema.safeParse({ ...chimney, [field]: 'x' }).success).toBe(
+        false
+      );
+    }
+  });
+
+  it('keeps the interval a short label', () => {
+    expect(
+      fireMaintenanceItemRequestSchema.safeParse({ ...chimney, intervalLabel: 'a'.repeat(61) })
+        .success
+    ).toBe(false);
+  });
+});
+
+describe('the building of a workplace', () => {
+  it('takes every fact as optional, trimmed, and an empty building too', () => {
+    expect(fireBuildingRequestSchema.parse({})).toEqual({});
+    expect(
+      fireBuildingRequestSchema.parse({
+        yearBuilt: 1987,
+        builtAreaM2: 412.5,
+        levels: ' P+1E ',
+        classification: 'mixed',
+        waterReserveM3: 0,
+        electricalLastCheckOn: '2026-03-12',
+        notes: null,
+      })
+    ).toEqual({
+      yearBuilt: 1987,
+      builtAreaM2: 412.5,
+      levels: 'P+1E',
+      classification: 'mixed',
+      waterReserveM3: 0,
+      electricalLastCheckOn: '2026-03-12',
+      notes: null,
+    });
+  });
+
+  it('refuses a year before 1800 or after this one, and an area of nothing', () => {
+    const next = new Date().getFullYear() + 1;
+    for (const building of [
+      { yearBuilt: 1799 },
+      { yearBuilt: next },
+      { yearBuilt: 1987.5 },
+      { builtAreaM2: 0 },
+      { waterReserveM3: -1 },
+      { levels: 'P' },
+      { classification: 'industrial' },
+    ]) {
+      expect(fireBuildingRequestSchema.safeParse(building).success).toBe(false);
+    }
   });
 });

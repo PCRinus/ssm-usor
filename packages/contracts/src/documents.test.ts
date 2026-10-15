@@ -1,16 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  datedDocumentTypeKeys,
   documentSetGroups,
   documentSetOf,
   documentSetQuerySchema,
   documentSets,
   documentSetTypeKeys,
+  documentUploadQuerySchema,
   fireDecisionNumber,
   fireDecisionOrdinals,
   fireDecisionTypeKeys,
   fireSafetyDocumentTypeKeys,
+  fireSafetyTypeKeysFromTenEmployees,
   generateDocumentsRequestSchema,
+  isDatedDocumentType,
   maxFirstFireDecisionNumber,
 } from './documents';
 
@@ -55,12 +59,36 @@ describe('generateDocumentsRequestSchema', () => {
   });
 });
 
+describe('the dated document types', () => {
+  it('are built-in types of a set, the annual report first', () => {
+    const builtIn: readonly string[] = [
+      ...documentSetTypeKeys.occupational_safety,
+      ...documentSetTypeKeys.fire_safety,
+    ];
+    expect(datedDocumentTypeKeys.filter((typeKey) => !builtIn.includes(typeKey))).toEqual([]);
+    expect(isDatedDocumentType('fire_annual_report')).toBe(true);
+    expect(isDatedDocumentType('fire_site_sheet')).toBe(false);
+  });
+
+  it('take a year from 2000 to 2100 as their period, at generation and at upload', () => {
+    expect(generateDocumentsRequestSchema.parse({ issueDate: '2026-10-06', period: 2025 })).toEqual(
+      { issueDate: '2026-10-06', period: 2025 }
+    );
+    expect(
+      generateDocumentsRequestSchema.safeParse({ issueDate: '2026-10-06', period: 1999 }).success
+    ).toBe(false);
+    expect(documentUploadQuerySchema.parse({ period: '2025' })).toEqual({ period: 2025 });
+    expect(documentUploadQuerySchema.parse({})).toEqual({});
+    expect(documentUploadQuerySchema.safeParse({ period: '25' }).success).toBe(false);
+  });
+});
+
 describe('the fire-safety decisions', () => {
   it('keep their places in the binder, whatever is built between them', () => {
     expect(
       Object.values(fireDecisionTypeKeys).map((typeKey) => fireDecisionNumber(typeKey, 1))
     ).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    expect(fireDecisionNumber('fire_decision_waste', 11)).toBe(18);
+    expect(fireDecisionNumber('fire_decision_waste', 11)).toBe(17);
     expect(fireDecisionNumber('fire_means_list', 11)).toBeNull();
     expect(fireDecisionNumber('decision_training', 11)).toBeNull();
   });
@@ -75,6 +103,24 @@ describe('the fire-safety decisions', () => {
 
   it('fill the nine places of the binder, each once', () => {
     expect(Object.values(fireDecisionOrdinals).sort((a, b) => a - b)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9,
+    ]);
+  });
+
+  it('end with the ones required from ten employees, so a smaller client has no gap', () => {
+    const fromTen: readonly string[] = fireSafetyTypeKeysFromTenEmployees;
+    expect(
+      Object.values(fireDecisionTypeKeys)
+        .filter((typeKey) => fromTen.includes(typeKey))
+        .map((typeKey) => fireDecisionNumber(typeKey, 1))
+    ).toEqual([8, 9]);
+  });
+
+  it('are listed in the set in the order of their numbers', () => {
+    const decisions = fireSafetyDocumentTypeKeys.filter((typeKey) =>
+      (Object.values(fireDecisionTypeKeys) as string[]).includes(typeKey)
+    );
+    expect(decisions.map((typeKey) => fireDecisionNumber(typeKey, 1))).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9,
     ]);
   });

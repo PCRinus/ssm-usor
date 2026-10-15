@@ -177,7 +177,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/legislatie/modificari.tsx`                                          | `/legislatie/modificari`                                    | "Modificări": the legal changes, newest first.                                                                                                                                                              |
 | `routes/_authenticated/legislatie/acte.tsx`                                                | `/legislatie/acte`                                          | "Acte urmărite": the watched acts, sortable, the sort in the search params.                                                                                                                                 |
 | `routes/_authenticated/clients/$clientId/employees/$employeeId_.edit.tsx`                  | `/clients/:id/employees/:employeeId/edit`                   | Corrects what was entered about an employee, in the form that adds one (`src/features/employees/employee-form.tsx`). Full page; returns to the employee page with a toast.                                  |
-| `routes/_authenticated/clients/$clientId/fire-safety-means.tsx`                            | `/clients/:id/fire-safety-means`                            | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace.                                                                                                           |
+| `routes/_authenticated/clients/$clientId/fire-safety-means.tsx`                            | `/clients/:id/fire-safety-means`                            | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace, their other periodic checks, the building of each fixed space, and the dangerous substances.              |
 | `routes/_authenticated/clients/$clientId/training.tsx`                                     | `/clients/:id/training`                                     | "Instruire și responsabili": the two training schedules and the responsible persons the generated documents print.                                                                                          |
 | `routes/_authenticated/clients/$clientId/documents/index.tsx`                              | `/clients/:id/documents`                                    | "Documente SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                                  |
 | `routes/_authenticated/clients/$clientId/documents/$documentId.tsx`                        | `/clients/:id/documents/:documentId`                        | One document in the in-app Word editor; a full page.                                                                                                                                                        |
@@ -521,7 +521,7 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   optional "Locul pentru fumat" (ADR 019; picking another rule hides it and the save sends it
   as null, so the API clears it), the kinds of waste as chips (Enter adds one, a text left in
   the field is added on save), the firm that collects them and the optional "Cine colectează
-  deșeurile", empty for the workers on duty, which decision 8 then names, and the checkbox "În
+  deșeurile", empty for the workers on duty, which decision 7 then names, and the checkbox "În
   spațiile clientului lucrează și alte firme (chiriași, prestatori)", which adds their quarterly
   control to decision 9. While the API says no row
   exists the card reads "Necompletat", and its form opens on two hours, three months for both
@@ -545,7 +545,21 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   dwellings, once the workplace has an area and a norm; it is a hint and never blocks
   anything. A client without a workplace gets a link to add one in "Detalii".
   `?focus=fire-equipment` opens the equipment dialog of the first workplace without an
-  extinguisher.
+  extinguisher. Each card ends with "Alte verificări periodice" (ADR 018, amended 2026-10-11):
+  the workplace's free rows of the schedules 5.4, what is checked, how often and who checks it,
+  each added, edited and deleted through a dialog of three required texts; optional, and the
+  empty state says the schedules are required from ten employees. A fixed space's card ends
+  with "Clădirea" (ADR 020): the facts of its building that are filled in, or an empty state
+  saying they are optional and printed in the site sheet 7.1, required from ten employees; its
+  dialog groups the facts under "Construcția", "Utilități", "Apa pentru stingere" and
+  "Observații", every field optional, the area and the water reserve with the decimal comma, and
+  saving every field empty clears the building. A mobile site's card has no such section. Below the workplaces, also for a client without one, the card "Substanțe
+  periculoase" (ADR 018, amended 2026-10-11) asks whether the client uses dangerous substances,
+  "Nu se utilizează substanțe periculoase" or "Se utilizează, lista de mai jos", saved on choice;
+  with the second, a table of the substances, each added, edited and deleted through a dialog
+  whose eight optional texts name the section of the safety data sheet they come from. The
+  first choice is disabled while the list has entries. `?focus=fire-substances` points at the
+  choice while undecided, and opens the add dialog when the list is chosen but empty.
 - `/clients/:clientId/documents`: the "Documente SSM" section of a client (ADR 005), in
   `src/features/documents/`. The card lists `GET /clients/{clientId}/documents` in the order of the
   pack: title, the decision's number, badges for the issued revision and the draft, the
@@ -557,7 +571,9 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   `GET …/documents/readiness` every time it opens: while data is missing it shows no form but
   what is missing, grouped by the page it is filled in on with a link to each (the
   organization, the profile, the client's document data, the client's job positions, whose
-  entry names every position still undecided about its equipment, and "Evaluarea riscurilor",
+  entry names every position still undecided about its equipment or its instructions, each
+  row to that card of the position's page, the PSI set's rows to the "Instrucțiuni specifice
+  PSI" card (`#fire-instructions`) of every position undecided for `psi`, and "Evaluarea riscurilor",
   a row per evaluation and per thing it lacks, to the factors of its page, or to the
   positions page's client-level evaluations while the sensitive groups are not started; a
   specialist is told that the owner fills in the organization's details). When ready it asks for the date and the first
@@ -582,7 +598,9 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   Generating one document again refused with `missing_document_data` names the codes under
   `missing`; the card shows them as the generation form's rows (`DocumentMissingRows`, which
   asks the readiness for the positions and evaluations behind a code, so a refused code gets
-  the same rows as in the form and the rest of the readiness list none). Following a row starts
+  the same rows as in the form and the rest of the readiness list none; regenerating the PSI
+  themes 3.1 without a generated IPSU names `documents.fire_own_instructions`, a row under
+  "Documentația PSI" to the IPSU's section of the PSI tab). Following a row starts
   the way back with `to: 'document'` and the type key, and the toast of the save offers
   "Înapoi la document", which opens that document's row, pointed at.
   The open section is the `section` search param. `focus` takes `generate` (open the dialog)
@@ -633,15 +651,31 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
   same `DocumentsCard`, editor page and generation dialog, given the set: `document-sets.ts`
   holds each set's copy and routes, and `setParams` leaves the occupational safety set's
   requests and query keys as they were (`?set=fire_safety` for the other). It lists the whole
-  pack at all times, with no empty state: the six sections of the provider's binder under their
+  pack at all times, with no empty state: the seven sections of the provider's binder under their
   numbers (`fireSafetyDocumentSections`, whose ids are the route's `?section=`), each holding
   its type keys in the binder's order, and "Alte documente PSI" for a type this build does not
   know. A document the client does not have yet is a muted "Negenerat" row named from
   `notGeneratedTitles` (held to the fire-safety manifest by a test), with no link or menu. Every
   document of the binder is built since ADR 019, so the tab plans nothing and the "În
-  pregătire" rows it showed until then are gone. Until something is generated, a hint under the heading
-  replaces the empty state. Its dialog has no headcount notice and asks the date and "Numărul
-  primei decizii PSI" (1 to 9991, the other decisions numbered by their places in the binder);
+  pregătire" rows it showed until then are gone. Section 7, "Documente pentru inspectorat", holds
+  the site sheet 7.1 and the annual report 7.2, with no cover. The report is a dated type (ADR
+  020): its newest year is the row, titled "Raport anual de evaluare 2026" from `datedTitle`
+  with the year from the document (the editor's breadcrumb names it the same way), and the earlier years fold under a "Anii anteriori (n)" row,
+  closed until clicked, each year a row of its own with its own menu; an upload from a year's
+  row sends that year as `?period=`. The section's summary counts the newest year only. Under
+  10 current employees decisions 8 and 9, the schedules 5.4, the installation register, the
+  site sheet and the annual report, which the API names under `notApplicable`
+  ([ADR 020](architecture/adr-020-fire-safety-from-ten-employees.md)), are "Nu se aplică" rows
+  with "Sub 10 angajați", titled from `notApplicableTitles`, the badge's tooltip saying the rule
+  (`fireSafetyHeadcountRule`). Until something is generated, a hint under the heading
+  replaces the empty state. Its dialog states the headcount and what it means for those six
+  documents (`fireSafetyHeadcountRule`: generated from ten, the report for every year asked,
+  not generated under ten, kept once they exist), as the SSM dialog does for decision 1.5, and
+  asks the date, "Numărul primei decizii PSI" (1 to 9991, the other decisions numbered by their
+  places in the binder) and, while the client has ten employees or more (`appliesAt`), "Anul de
+  referință", the year the report is made for, the current year proposed and sent as `period`.
+  Once nothing else is missing the card keeps a "Generează pentru alt an" button while a dated
+  type applies, since another year is always one more document;
   every missing code leads to its field as in the SSM dialog, and the toast of a save leads back
   to this tab's form. A `503` says that
   the PSI templates are not available yet. The archive dialog counts the drafts of both sets;
@@ -766,28 +800,40 @@ keeps the parent highlighted. "Legislație" is the one entry with children, from
 - `/instructions`: the organization's instruction library
   ([ADR 012](architecture/adr-012-own-instructions.md)), in `src/features/instructions/`, an entry of
   the sidebar for owners and specialists alike. The list shows `GET /instruction-modules` by
-  group and title, each module with its version and how many articles the file numbers, and
-  how many current positions apply it; "Arată arhiva" lists the archived ones instead. "Încarcă
-  fișiere" takes several `.docx` files and posts each to `POST /instruction-modules/upload`,
-  which titles it after its first line, or the file name when it has none, and puts it in the
-  work activities group; a notice then says to correct titles and groups from the row menu,
-  which also archives and restores. "Scrie o instrucțiune" asks for a title and a group,
-  starts the module from the skeleton and opens it. A title the library already has is
-  reported on the field. Archiving a module a position applies is refused with the positions
-  counted.
+  domain, group and title, each module with its domain ("SSM" or "PSI", amendment of
+  2026-10-11), its version and how many articles the file numbers, and how many current
+  positions apply it; the "Domeniu" select lists one domain (`?domain=`), and "Arată arhiva"
+  lists the archived ones instead. "Încarcă fișiere" asks which domain, "Instrucțiuni SSM" or
+  "Instrucțiuni PSI", then takes several `.docx` files and posts each to
+  `POST /instruction-modules/upload` with that `domain`, which titles it after its first line,
+  or the file name when it has none, and puts it in the work activities group; a notice then
+  says to correct titles, groups and domains from the row menu, which also archives and
+  restores. "Scrie o instrucțiune" asks for a title, a group and a domain, `SSM` by default,
+  starts the module from the skeleton and opens it. "Titlu, grup și domeniu" changes them; the
+  domain of a module a current position applies is shown read-only with how many positions
+  apply it, and a `409` with `instruction_module_domain_applied` (a position applied it in the
+  meantime) goes on the field with the reason. A title the library already has is reported on
+  the field. Archiving a module a position applies is refused with the positions counted.
 - `/instructions/:moduleId`: the module in the same editor as a document, loaded through
   `GET …/file-link`. Saving sends the bytes to `PUT …/file` as the next version and keeps
   what the editor shows, so nothing is fetched again; the badge names the version. An archived
-  module opens in view mode. A file the editor cannot lay out is offered for download, to be
-  fixed in Word and uploaded again.
-- On a job position's page, the card "Instrucțiuni specifice" beside the equipment card:
-  `GET …/instructions` with the same three states as equipment ("Nedecis", "Nu necesită",
-  the count), "Alege instrucțiunile" opens the library as a checklist by group with a search
-  box and a "Vezi" link per module, and saves the set through `PUT …/instructions`; a row's
+  module opens in view mode. The header names the domain beside the group. A file the editor
+  cannot lay out is offered for download, to be fixed in Word and uploaded again.
+- On a job position's page, after the equipment card, two cards that differ only in their
+  title, their domain and their wording: "Instrucțiuni specifice SSM" (`#instructions`) and
+  "Instrucțiuni specifice PSI" (`#fire-instructions`), the second deciding the fire-safety
+  modules apart (ADR 012, amendment of 2026-10-11). Each reads `GET …/instructions?domain=`
+  with the same three states as equipment ("De stabilit", "Nu necesită", the count);
+  "Alege instrucțiunile" opens the library's modules of its domain
+  (`GET /instruction-modules?domain=`) as a checklist by group with a search box and a "Vezi"
+  link per module, and saves the set through `PUT …/instructions` with the `domain`; a row's
   cross removes one module the same way; "Copiază de la alt post" adds another position's
-  modules; "Postul nu necesită instrucțiuni specifice" and "Reia decizia" go through
-  `PATCH …/instructions-decision`. The positions table has an "Instrucțiuni" column with the
-  state, amber while undecided.
+  modules of the domain; "Postul nu necesită instrucțiuni specifice" and "Reia decizia" go
+  through `PATCH …/instructions-decision` with the `domain`. The SSM card keeps the
+  `instructions-*` test ids and the PSI card uses `fire-instructions-*`. The positions table's
+  "Instrucțiuni" column shows both states, "SSM" and "PSI" each before its badge, amber while
+  undecided, each linking to its card; the row menu has both cards, and the notice above the
+  table names the positions undecided for each.
 - Risk evaluations ([ADR 015](architecture/adr-015-risk-assessment.md)), in
   `src/features/risk-evaluations/`. The position page's last card, "Evaluare de risc", reads
   `GET …/job-positions/{id}/risk-evaluation`: without an evaluation it says that generating

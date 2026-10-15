@@ -1,5 +1,7 @@
 import {
   type EquipmentAllocation,
+  fireSafetyDocumentTypeKeys,
+  fireSafetyTypeKeysFromTenEmployees,
   type ResponsiblePersonRole,
   type StaffCategory,
 } from '@ssm-usor/contracts';
@@ -13,7 +15,10 @@ import { snapshotAnnexes } from './snapshot';
 // Row-level security scopes every query to the caller's organization. With the secret key
 // nothing does but the ids: the client's must already be known to be the preparer's.
 
-export type StoredDocumentFacts = Omit<DocumentFacts, 'issueDate' | 'firstDecisionNumber'> & {
+export type StoredDocumentFacts = Omit<
+  DocumentFacts,
+  'issueDate' | 'firstDecisionNumber' | 'period'
+> & {
   clientArchived: boolean;
 };
 
@@ -39,27 +44,31 @@ export async function loadDocumentFacts(
     profile,
     persons,
     headcount,
-    generatedDecision,
+    conditionalDocuments,
     positions,
     ownInstructions,
+    fireOwnInstructions,
     workplaces,
     riskEvaluations,
     fireSafety,
     fireEquipment,
     fireInstallations,
+    fireSubstances,
+    fireMaintenanceItems,
+    fireBuildings,
     ...employeeCounts
   ] = await Promise.all([
     db
       .from('clients')
       .select(
-        'legal_name, legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, caen_code, archived_at'
+        'legal_name, legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, caen_code, cui, trade_register_number, county_code, locality, address_line, contact_name, contact_phone, contact_email, archived_at'
       )
       .eq('id', clientId)
       .maybeSingle(),
     db
       .from('organizations')
       .select(
-        'legal_name, legal_representative_name, legal_representative_role, fire_safety_technician_name, fire_safety_technician_certificate, fire_safety_authorization'
+        'legal_name, legal_representative_name, legal_representative_role, fire_safety_technician_name, fire_safety_technician_certificate, fire_safety_authorization, phone'
       )
       .eq('id', preparer.organizationId)
       .single(),
@@ -88,17 +97,20 @@ export async function loadDocumentFacts(
       .eq('client_id', clientId)
       .eq('status', 'active')
       .is('archived_at', null),
-    // A document row without a revision is a failed generation, not a generated document.
+    // A document row without a revision is a failed generation, not a generated document. The
+    // fire-safety set's whole, which its annual report lists (ADR 020).
     db
       .from('client_documents')
-      .select('id, document_revisions!inner(id)', { count: 'exact', head: true })
+      .select(
+        'type_key, title, decision_number, period, document_revisions!inner(revision, status, document_generations(issue_date))'
+      )
       .eq('client_id', clientId)
-      .eq('type_key', 'decision_workers_representative'),
+      .in('type_key', ['decision_workers_representative', ...fireSafetyDocumentTypeKeys]),
     // In the order of the positions table, with the entries in the order they were added.
     db
       .from('job_positions')
       .select(
-        'id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, employees(id), job_position_equipment(risk, item, quantity, duration_months, allocation, created_at, id), job_position_instructions(module_id, instruction_modules(title, module_group, instruction_module_versions(id, number, created_at)))'
+        'id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, needs_fire_instructions, employees(id), job_position_equipment(risk, item, quantity, duration_months, allocation, created_at, id), job_position_instructions(module_id, domain, instruction_modules(title, module_group, instruction_module_versions(id, number, created_at)))'
       )
       .eq('client_id', clientId)
       .is('archived_at', null)
@@ -113,10 +125,11 @@ export async function loadDocumentFacts(
       .order('number', { referencedTable: moduleVersionsPath, ascending: false })
       .limit(1, { referencedTable: moduleVersionsPath }),
     loadOwnInstructions(db, clientId),
+    loadOwnInstructions(db, clientId, 'fire_own_instructions'),
     db
       .from('client_workplaces')
       .select(
-        'id, name, is_registered_office, county_code, locality, address_line, activity, floor_area_m2, extinguisher_norm, assembly_point, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures'
+        'id, name, is_registered_office, county_code, locality, address_line, activity, kind, floor_area_m2, extinguisher_norm, assembly_point, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures'
       )
       .eq('client_id', clientId)
       .is('archived_at', null)
@@ -126,22 +139,44 @@ export async function loadDocumentFacts(
     db
       .from('client_fire_safety')
       .select(
-        'periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, smoking_policy, smoking_place, waste_kinds, waste_contractor, waste_collectors, has_third_parties'
+        'periodic_training_hours, administrative_training_interval_months, worker_training_interval_months, training_first_month, training_day_from, training_day_to, smoking_policy, smoking_place, waste_kinds, waste_contractor, waste_collectors, has_third_parties, substances_state'
       )
       .eq('client_id', clientId)
       .maybeSingle(),
     db
       .from('fire_equipment')
-      .select('workplace_id, kind, agent, capacity, wheeled')
+      .select('workplace_id, kind, agent, capacity, wheeled, next_service_on, maintainer')
       .eq('client_id', clientId)
       .order('created_at')
       .order('id'),
     db
       .from('fire_installations')
-      .select('workplace_id, kind, description')
+      .select('workplace_id, kind, description, maintainer, last_check_on, next_check_on')
       .eq('client_id', clientId)
       .order('created_at')
       .order('id'),
+    db
+      .from('fire_substances')
+      .select(
+        'name, classification, quantity, physical_chemical_properties, identification_codes, health_environment_risks, protection_means, intervention_measures, extinguishing_agents, storage_place, handling'
+      )
+      .eq('client_id', clientId)
+      .order('sort_order')
+      .order('created_at')
+      .order('id'),
+    db
+      .from('fire_maintenance_items')
+      .select('workplace_id, subject, interval_label, checked_by')
+      .eq('client_id', clientId)
+      .order('sort_order')
+      .order('created_at')
+      .order('id'),
+    db
+      .from('fire_buildings')
+      .select(
+        'workplace_id, year_built, built_area_m2, levels, classification, structure, heating_fuel, gas_use, electrical_maintainer, electrical_last_check_on, water_reserve_m3, notes'
+      )
+      .eq('client_id', clientId),
     ...categories.map((category) =>
       db
         .from('employees')
@@ -162,9 +197,10 @@ export async function loadDocumentFacts(
   if (profile.error) throw fromDatabaseError(profile.error, 'document facts: profile');
   if (persons.error) throw fromDatabaseError(persons.error, 'document facts: responsible persons');
   if (headcount.error) throw fromDatabaseError(headcount.error, 'document facts: employee count');
-  if (generatedDecision.error) {
-    throw fromDatabaseError(generatedDecision.error, 'document facts: generated decision 1.5');
+  if (conditionalDocuments.error) {
+    throw fromDatabaseError(conditionalDocuments.error, 'document facts: conditional documents');
   }
+  const generated = new Set(conditionalDocuments.data.map((document) => document.type_key));
   if (positions.error) throw fromDatabaseError(positions.error, 'document facts: job positions');
   if (workplaces.error) throw fromDatabaseError(workplaces.error, 'document facts: workplaces');
   if (fireSafety.error) throw fromDatabaseError(fireSafety.error, 'document facts: fire safety');
@@ -173,6 +209,15 @@ export async function loadDocumentFacts(
   }
   if (fireInstallations.error) {
     throw fromDatabaseError(fireInstallations.error, 'document facts: fire installations');
+  }
+  if (fireSubstances.error) {
+    throw fromDatabaseError(fireSubstances.error, 'document facts: fire substances');
+  }
+  if (fireMaintenanceItems.error) {
+    throw fromDatabaseError(fireMaintenanceItems.error, 'document facts: fire maintenance items');
+  }
+  if (fireBuildings.error) {
+    throw fromDatabaseError(fireBuildings.error, 'document facts: fire buildings');
   }
   for (const count of employeeCounts) {
     if (count.error) throw fromDatabaseError(count.error, 'document facts: employee categories');
@@ -189,6 +234,7 @@ export async function loadDocumentFacts(
       fireSafetyTechnicianName: organization.data.fire_safety_technician_name,
       fireSafetyTechnicianCertificate: organization.data.fire_safety_technician_certificate,
       fireSafetyAuthorization: organization.data.fire_safety_authorization,
+      phone: organization.data.phone,
     },
     specialist: membership.data
       ? {
@@ -209,6 +255,14 @@ export async function loadDocumentFacts(
       trainingDayFrom: client.data.training_day_from,
       trainingDayTo: client.data.training_day_to,
       caenCode: client.data.caen_code,
+      cui: client.data.cui,
+      tradeRegisterNumber: client.data.trade_register_number,
+      countyCode: client.data.county_code,
+      locality: client.data.locality,
+      addressLine: client.data.address_line,
+      contactName: client.data.contact_name,
+      contactPhone: client.data.contact_phone,
+      contactEmail: client.data.contact_email,
     },
     workplaces: workplaces.data.map((workplace) => ({
       id: workplace.id,
@@ -218,6 +272,7 @@ export async function loadDocumentFacts(
       locality: workplace.locality,
       addressLine: workplace.address_line,
       activity: workplace.activity,
+      kind: workplace.kind,
       floorAreaM2: workplace.floor_area_m2,
       extinguisherNorm: workplace.extinguisher_norm,
       assemblyPoint: workplace.assembly_point,
@@ -248,12 +303,77 @@ export async function loadDocumentFacts(
         agent: unit.agent,
         capacity: unit.capacity,
         wheeled: unit.wheeled,
+        nextServiceOn: unit.next_service_on,
+        maintainer: unit.maintainer,
       })),
       installations: fireInstallations.data.map((installation) => ({
         workplaceId: installation.workplace_id,
         kind: installation.kind,
         description: installation.description,
+        maintainer: installation.maintainer,
+        lastCheckOn: installation.last_check_on,
+        nextCheckOn: installation.next_check_on,
       })),
+      maintenanceItems: fireMaintenanceItems.data.map((item) => ({
+        workplaceId: item.workplace_id,
+        subject: item.subject,
+        intervalLabel: item.interval_label,
+        checkedBy: item.checked_by,
+      })),
+      buildings: fireBuildings.data.map((building) => ({
+        workplaceId: building.workplace_id,
+        yearBuilt: building.year_built,
+        builtAreaM2: building.built_area_m2,
+        levels: building.levels,
+        classification: building.classification,
+        structure: building.structure,
+        heatingFuel: building.heating_fuel,
+        gasUse: building.gas_use,
+        electricalMaintainer: building.electrical_maintainer,
+        electricalLastCheckOn: building.electrical_last_check_on,
+        waterReserveM3: building.water_reserve_m3,
+        notes: building.notes,
+      })),
+      generatedFromTenEmployees: fireSafetyTypeKeysFromTenEmployees.filter((typeKey) =>
+        generated.has(typeKey)
+      ),
+      documents: conditionalDocuments.data
+        .filter((document) => document.type_key.startsWith('fire_'))
+        .map((document) => {
+          const current = (status: 'draft' | 'issued') => {
+            const revision = document.document_revisions.find((each) => each.status === status);
+            return revision
+              ? {
+                  revision: revision.revision,
+                  issueDate: revision.document_generations?.issue_date ?? null,
+                }
+              : null;
+          };
+          return {
+            typeKey: document.type_key,
+            title: document.title,
+            decisionNumber: document.decision_number,
+            period: document.period,
+            draft: current('draft'),
+            issued: current('issued'),
+          };
+        }),
+      substances: {
+        state: fireSafety.data?.substances_state ?? 'undecided',
+        entries: fireSubstances.data.map((substance) => ({
+          name: substance.name,
+          classification: substance.classification,
+          quantity: substance.quantity,
+          physicalChemicalProperties: substance.physical_chemical_properties,
+          identificationCodes: substance.identification_codes,
+          healthEnvironmentRisks: substance.health_environment_risks,
+          protectionMeans: substance.protection_means,
+          interventionMeasures: substance.intervention_measures,
+          extinguishingAgents: substance.extinguishing_agents,
+          storagePlace: substance.storage_place,
+          handling: substance.handling,
+        })),
+      },
     },
     responsiblePersons: persons.data.map((person) => ({
       fullName: person.full_name,
@@ -273,6 +393,7 @@ export async function loadDocumentFacts(
       trainingIntervalMonths: position.training_interval_months,
       needsProtectiveEquipment: position.needs_protective_equipment,
       needsInstructions: position.needs_instructions,
+      needsFireInstructions: position.needs_fire_instructions,
       instructions: position.job_position_instructions.flatMap((applied) => {
         const version = applied.instruction_modules.instruction_module_versions[0];
         // A module row is written before its first version; one caught in between annexes nothing.
@@ -280,6 +401,7 @@ export async function loadDocumentFacts(
         return [
           {
             moduleId: applied.module_id,
+            domain: applied.domain,
             title: applied.instruction_modules.title,
             group: applied.instruction_modules.module_group,
             version: { id: version.id, number: version.number, createdAt: version.created_at },
@@ -296,8 +418,9 @@ export async function loadDocumentFacts(
     })),
     staffCategoriesInUse: categories.filter((_, index) => (employeeCounts[index]?.count ?? 0) > 0),
     currentEmployeeCount: headcount.count ?? 0,
-    workersRepresentativeDecisionGenerated: (generatedDecision.count ?? 0) > 0,
+    workersRepresentativeDecisionGenerated: generated.has('decision_workers_representative'),
     ownInstructions,
+    fireOwnInstructions,
     riskEvaluations,
   };
 }
@@ -347,19 +470,20 @@ export async function loadRiskEvaluations(
 }
 
 /**
- * The client's newest own instructions revision, draft or issued, with the modules it annexes
- * at the versions it annexed them (ADR 014). Null while there is none, or when the newest is
- * an uploaded file, which annexes nothing the themes could cite.
+ * The client's newest own instructions revision of either set, draft or issued, with the modules
+ * it annexes at the versions it annexed them (ADR 014). Null while there is none, or when the
+ * newest is an uploaded file, which annexes nothing the themes could cite.
  */
 export async function loadOwnInstructions(
   db: DataClient,
-  clientId: string
+  clientId: string,
+  typeKey: 'own_instructions' | 'fire_own_instructions' = 'own_instructions'
 ): Promise<DocumentFacts['ownInstructions']> {
   const revision = await db
     .from('document_revisions')
     .select('id, revision, data_snapshot, client_documents!inner(client_id, type_key)')
     .eq('client_documents.client_id', clientId)
-    .eq('client_documents.type_key', 'own_instructions')
+    .eq('client_documents.type_key', typeKey)
     .order('revision', { ascending: false })
     .limit(1)
     .maybeSingle();

@@ -16,33 +16,43 @@ import { MapPin } from 'lucide-react';
 import { useState } from 'react';
 
 import {
+  getListFireBuildingsQueryKey,
   getListFireEquipmentQueryKey,
   getListFireInstallationsQueryKey,
+  getListFireMaintenanceItemsQueryKey,
   getListWorkplacesQueryKey,
   useDeleteFireEquipment,
   useDeleteFireInstallation,
+  useDeleteFireMaintenanceItem,
+  useListFireBuildings,
   useListFireEquipment,
   useListFireInstallations,
+  useListFireMaintenanceItems,
   useListWorkplaces,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
-import { useFocusRequest } from '@/features/missing-data/focus';
+import { type FireSafetyMeansFocus, useFocusRequest } from '@/features/missing-data/focus';
 
+import { BuildingDialog, type BuildingEditing } from './building-dialog';
 import { EquipmentDialog, type EquipmentEditing } from './equipment-dialog';
 import {
   equipmentAddId,
   type FireEquipment,
   type FireInstallation,
+  type FireMaintenanceItem,
   unitTitle,
 } from './fire-means-schema';
 import { InstallationDialog, type InstallationEditing } from './installation-dialog';
+import { MaintenanceItemDialog, type MaintenanceItemEditing } from './maintenance-item-dialog';
+import { SubstancesCard } from './substances-card';
 import { WorkplaceMeansCard } from './workplace-means-card';
 
 type Deleting =
   | { what: 'equipment'; unit: FireEquipment }
   | { what: 'installation'; installation: FireInstallation }
+  | { what: 'maintenance'; item: FireMaintenanceItem }
   | null;
 
 export function FireSafetyMeansPage({
@@ -54,7 +64,7 @@ export function FireSafetyMeansPage({
   clientId: string;
   userId: string;
   readOnly: boolean;
-  focus: boolean;
+  focus?: FireSafetyMeansFocus;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const workplaces = useListWorkplaces(clientId, {
@@ -69,14 +79,30 @@ export function FireSafetyMeansPage({
     request: apiRequest,
     query: { queryKey: [...getListFireInstallationsQueryKey(clientId), userId] },
   });
+  const maintenanceItems = useListFireMaintenanceItems(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getListFireMaintenanceItemsQueryKey(clientId), userId] },
+  });
+  const buildings = useListFireBuildings(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getListFireBuildingsQueryKey(clientId), userId] },
+  });
   const deleteEquipment = useDeleteFireEquipment({ request: apiRequest });
   const deleteInstallation = useDeleteFireInstallation({ request: apiRequest });
+  const deleteMaintenanceItem = useDeleteFireMaintenanceItem({ request: apiRequest });
   const [equipmentEditing, setEquipmentEditing] = useState<EquipmentEditing>(null);
   const [installationEditing, setInstallationEditing] = useState<InstallationEditing>(null);
+  const [maintenanceEditing, setMaintenanceEditing] = useState<MaintenanceItemEditing>(null);
+  const [buildingEditing, setBuildingEditing] = useState<BuildingEditing>(null);
   const [deleting, setDeleting] = useState<Deleting>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loaded = workplaces.data && equipment.data && installations.data;
+  const loaded =
+    workplaces.data &&
+    equipment.data &&
+    installations.data &&
+    maintenanceItems.data &&
+    buildings.data;
   const withoutExtinguisher = loaded
     ? workplaces.data.items.find(
         (workplace) =>
@@ -85,7 +111,7 @@ export function FireSafetyMeansPage({
           )
       )
     : undefined;
-  useFocusRequest(focus, {
+  useFocusRequest(focus === 'fire-equipment', {
     ready: Boolean(loaded),
     anchor: () =>
       withoutExtinguisher ? document.getElementById(equipmentAddId(withoutExtinguisher.id)) : null,
@@ -96,7 +122,8 @@ export function FireSafetyMeansPage({
     field: readOnly || !withoutExtinguisher ? undefined : 'fire-equipment-agent',
   });
 
-  const busyDeleting = deleteEquipment.isPending || deleteInstallation.isPending;
+  const busyDeleting =
+    deleteEquipment.isPending || deleteInstallation.isPending || deleteMaintenanceItem.isPending;
 
   async function confirmDelete(target: NonNullable<Deleting>) {
     setError(null);
@@ -104,12 +131,15 @@ export function FireSafetyMeansPage({
       if (target.what === 'equipment') {
         await deleteEquipment.mutateAsync({ clientId, equipmentId: target.unit.id });
         toast.success('Echipamentul a fost șters.');
-      } else {
+      } else if (target.what === 'installation') {
         await deleteInstallation.mutateAsync({
           clientId,
           installationId: target.installation.id,
         });
         toast.success('Instalația a fost ștearsă.');
+      } else {
+        await deleteMaintenanceItem.mutateAsync({ clientId, itemId: target.item.id });
+        toast.success('Verificarea a fost ștearsă.');
       }
     } catch (cause) {
       const status = cause instanceof ApiHttpError ? cause.status : null;
@@ -127,11 +157,19 @@ export function FireSafetyMeansPage({
       queryKey:
         target.what === 'equipment'
           ? getListFireEquipmentQueryKey(clientId)
-          : getListFireInstallationsQueryKey(clientId),
+          : target.what === 'installation'
+            ? getListFireInstallationsQueryKey(clientId)
+            : getListFireMaintenanceItemsQueryKey(clientId),
     });
   }
 
-  if (workplaces.isPending || equipment.isPending || installations.isPending) {
+  if (
+    workplaces.isPending ||
+    equipment.isPending ||
+    installations.isPending ||
+    maintenanceItems.isPending ||
+    buildings.isPending
+  ) {
     return (
       <div data-testid="fire-means-page" className="grid gap-6">
         <Skeleton className="h-64 w-full rounded-xl" />
@@ -139,7 +177,13 @@ export function FireSafetyMeansPage({
     );
   }
 
-  if (workplaces.isError || equipment.isError || installations.isError) {
+  if (
+    workplaces.isError ||
+    equipment.isError ||
+    installations.isError ||
+    maintenanceItems.isError ||
+    buildings.isError
+  ) {
     return (
       <Card data-testid="fire-means-page">
         <CardContent>
@@ -152,6 +196,8 @@ export function FireSafetyMeansPage({
                   void workplaces.refetch();
                   void equipment.refetch();
                   void installations.refetch();
+                  void maintenanceItems.refetch();
+                  void buildings.refetch();
                 }}
               >
                 Încearcă din nou
@@ -165,33 +211,45 @@ export function FireSafetyMeansPage({
     );
   }
 
+  const substances = (
+    <SubstancesCard
+      clientId={clientId}
+      userId={userId}
+      readOnly={readOnly}
+      focus={focus === 'fire-substances'}
+    />
+  );
+
   const activeWorkplaces = workplaces.data.items;
   if (activeWorkplaces.length === 0) {
     return (
-      <Card data-testid="fire-means-page">
-        <CardContent>
-          <EmptyState
-            data-testid="fire-means-no-workplace"
-            icon={MapPin}
-            actions={
-              !readOnly && (
-                <Button asChild variant="tonal">
-                  <Link
-                    to="/clients/$clientId/details"
-                    params={{ clientId }}
-                    search={{ focus: 'add-workplace' }}
-                  >
-                    Adaugă un loc de muncă
-                  </Link>
-                </Button>
-              )
-            }
-          >
-            Stingătoarele și instalațiile se trec pe locuri de muncă. Clientul nu are încă niciun
-            loc de muncă; îl adaugi în Detalii, la Sediu și puncte de lucru.
-          </EmptyState>
-        </CardContent>
-      </Card>
+      <div data-testid="fire-means-page" className="grid gap-6">
+        <Card>
+          <CardContent>
+            <EmptyState
+              data-testid="fire-means-no-workplace"
+              icon={MapPin}
+              actions={
+                !readOnly && (
+                  <Button asChild variant="tonal">
+                    <Link
+                      to="/clients/$clientId/details"
+                      params={{ clientId }}
+                      search={{ focus: 'add-workplace' }}
+                    >
+                      Adaugă un loc de muncă
+                    </Link>
+                  </Button>
+                )
+              }
+            >
+              Stingătoarele și instalațiile se trec pe locuri de muncă. Clientul nu are încă niciun
+              loc de muncă; îl adaugi în Detalii, la Sediu și puncte de lucru.
+            </EmptyState>
+          </CardContent>
+        </Card>
+        {substances}
+      </div>
     );
   }
 
@@ -206,7 +264,9 @@ export function FireSafetyMeansPage({
       ? ''
       : deleting.what === 'equipment'
         ? unitTitle(deleting.unit)
-        : fireInstallationKindLabels[deleting.installation.kind];
+        : deleting.what === 'installation'
+          ? fireInstallationKindLabels[deleting.installation.kind]
+          : deleting.item.subject;
   const deletingWorkplace = activeWorkplaces.find(
     (workplace) =>
       workplace.id ===
@@ -214,8 +274,15 @@ export function FireSafetyMeansPage({
         ? deleting.unit.workplaceId
         : deleting?.what === 'installation'
           ? deleting.installation.workplaceId
-          : null)
+          : deleting?.what === 'maintenance'
+            ? deleting.item.workplaceId
+            : null)
   );
+  const deletingTitles = {
+    equipment: 'Ștergi echipamentul?',
+    installation: 'Ștergi instalația?',
+    maintenance: 'Ștergi verificarea?',
+  } as const;
 
   return (
     <div data-testid="fire-means-page" className="grid gap-6">
@@ -232,6 +299,12 @@ export function FireSafetyMeansPage({
           installations={installations.data.items.filter(
             (installation) => installation.workplaceId === workplace.id
           )}
+          maintenanceItems={maintenanceItems.data.items.filter(
+            (item) => item.workplaceId === workplace.id
+          )}
+          building={
+            buildings.data.items.find((building) => building.workplaceId === workplace.id) ?? null
+          }
           readOnly={readOnly}
           onAddEquipment={() => setEquipmentEditing({ workplaceId: workplace.id, unit: null })}
           onEditEquipment={(unit) => setEquipmentEditing({ workplaceId: workplace.id, unit })}
@@ -245,8 +318,24 @@ export function FireSafetyMeansPage({
           onDeleteInstallation={(installation) =>
             setDeleting({ what: 'installation', installation })
           }
+          onAddMaintenanceItem={() =>
+            setMaintenanceEditing({ workplaceId: workplace.id, item: null })
+          }
+          onEditMaintenanceItem={(item) =>
+            setMaintenanceEditing({ workplaceId: workplace.id, item })
+          }
+          onDeleteMaintenanceItem={(item) => setDeleting({ what: 'maintenance', item })}
+          onEditBuilding={() =>
+            setBuildingEditing({
+              workplace,
+              building:
+                buildings.data.items.find((building) => building.workplaceId === workplace.id) ??
+                null,
+            })
+          }
         />
       ))}
+      {substances}
       <EquipmentDialog
         clientId={clientId}
         workplaces={activeWorkplaces}
@@ -259,6 +348,17 @@ export function FireSafetyMeansPage({
         editing={installationEditing}
         onClose={() => setInstallationEditing(null)}
       />
+      <MaintenanceItemDialog
+        clientId={clientId}
+        workplaces={activeWorkplaces}
+        editing={maintenanceEditing}
+        onClose={() => setMaintenanceEditing(null)}
+      />
+      <BuildingDialog
+        clientId={clientId}
+        editing={buildingEditing}
+        onClose={() => setBuildingEditing(null)}
+      />
       <Dialog
         open={deleting !== null}
         onOpenChange={(open) => !open && !busyDeleting && setDeleting(null)}
@@ -266,9 +366,7 @@ export function FireSafetyMeansPage({
         {deleting && (
           <DialogContent data-testid="fire-means-delete-dialog" className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>
-                {deleting.what === 'equipment' ? 'Ștergi echipamentul?' : 'Ștergi instalația?'}
-              </DialogTitle>
+              <DialogTitle>{deletingTitles[deleting.what]}</DialogTitle>
               <DialogDescription>
                 <span className="font-medium text-foreground">{deletingName}</span>
                 {deletingWorkplace && ` de la ${deletingWorkplace.name}`} nu va mai apărea în

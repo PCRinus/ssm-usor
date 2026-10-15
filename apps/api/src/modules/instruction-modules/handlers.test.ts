@@ -39,6 +39,7 @@ const fitterId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const laddersId = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
 const officesId = '2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e';
 const weldingId = '3c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f';
+const hotWorkId = '6f7a8b9c-0d1e-4f2a-8b3c-4d5e6f7a8b9c';
 
 const version = {
   id: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d',
@@ -53,6 +54,7 @@ const ladders = {
   id: laddersId,
   title: 'Scări metalice',
   module_group: 'work_equipment',
+  domain: 'ssm',
   archived_at: null as string | null,
   created_at: '2026-09-26T09:00:00+00:00',
   updated_at: '2026-09-26T10:00:00+00:00',
@@ -66,6 +68,14 @@ const offices = {
   instruction_module_versions: [{ ...version, number: 1 }],
 };
 const welding = { ...ladders, id: weldingId, title: 'Sudură oxiacetilenică' };
+const hotWork = {
+  ...ladders,
+  id: hotWorkId,
+  title: 'Lucrul cu foc deschis',
+  module_group: 'work_activity',
+  domain: 'psi',
+};
+const library = [ladders, offices, welding, hotWork];
 
 const welder = {
   id: welderId,
@@ -77,6 +87,7 @@ const welder = {
   training_interval_months: null,
   needs_protective_equipment: true,
   needs_instructions: true,
+  needs_fire_instructions: null as boolean | null,
   created_at: '2026-09-20T10:00:00+00:00',
   updated_at: '2026-09-20T10:00:00+00:00',
 };
@@ -114,7 +125,12 @@ function mockUpstream(
       if (custom) return custom;
       if (init?.method === 'POST') return Response.json({ id: weldingId }, { status: 201 });
       if (init?.method === 'PATCH') return Response.json([{ id: laddersId }]);
-      return Response.json(url.searchParams.get('id') ? [ladders] : [offices, ladders]);
+      const ids = url.searchParams.get('id');
+      if (ids?.startsWith('in.(')) {
+        const wanted = ids.slice(4, -1).split(',');
+        return Response.json(library.filter((module) => wanted.includes(module.id)));
+      }
+      return Response.json(ids ? [ladders] : [offices, ladders]);
     }
     if (url.pathname === '/rest/v1/instruction_module_versions') {
       const custom = handlers.versions?.(init, url);
@@ -142,14 +158,22 @@ function mockUpstream(
             id: welderId,
             employees: [{ count: 3 }],
             job_position_equipment: [{ count: 2 }],
-            job_position_instructions: [{ count: 1 }],
+            instructions: [{ count: 1 }],
+            fire_instructions: [{ count: 0 }],
           },
         ]);
       }
       if (init?.method === 'PATCH') return Response.json(welder);
-      if (select === 'needs_instructions') return Response.json({ needs_instructions: true });
+      if (select === 'needs_instructions,needs_fire_instructions') {
+        return Response.json({ needs_instructions: true, needs_fire_instructions: null });
+      }
       return Response.json([
-        { id: welderId, needs_protective_equipment: true, needs_instructions: true },
+        {
+          id: welderId,
+          needs_protective_equipment: true,
+          needs_instructions: true,
+          needs_fire_instructions: null,
+        },
       ]);
     }
     if (url.pathname.startsWith('/storage/v1/object/sign/instruction-modules/')) {
@@ -252,6 +276,32 @@ describe('GET /instruction-modules', () => {
     const listed = calls('/rest/v1/instruction_modules', 'GET')[0]![0];
     expect(new URL(String(listed)).searchParams.get('archived_at')).toBe('not.is.null');
   });
+
+  it('lists the modules of one domain when asked, and both, occupational safety first, otherwise', async () => {
+    mockUpstream({
+      modules: (init, url) =>
+        isGet(init) && !url.searchParams.get('id') ? Response.json([hotWork, ladders]) : undefined,
+    });
+    const both = instructionModuleListResponseSchema.parse(
+      await (await request('/instruction-modules')).json()
+    );
+    expect(both.items.map((item) => [item.title, item.domain])).toEqual([
+      ['Scări metalice', 'ssm'],
+      ['Lucrul cu foc deschis', 'psi'],
+    ]);
+    expect(
+      new URL(String(calls('/rest/v1/instruction_modules', 'GET')[0]![0])).searchParams.get(
+        'domain'
+      )
+    ).toBeNull();
+    await request('/instruction-modules?domain=psi');
+    expect(
+      new URL(String(calls('/rest/v1/instruction_modules', 'GET')[1]![0])).searchParams.get(
+        'domain'
+      )
+    ).toBe('eq.psi');
+    expect((await request('/instruction-modules?domain=other')).status).toBe(400);
+  });
 });
 
 describe('POST /instruction-modules', () => {
@@ -272,6 +322,7 @@ describe('POST /instruction-modules', () => {
       organization_id: organizationId,
       title: 'Sudură oxiacetilenică',
       module_group: 'work_equipment',
+      domain: 'ssm',
       created_by: user.id,
     });
     const versionRow = sent('/rest/v1/instruction_module_versions', 'POST');
@@ -285,6 +336,22 @@ describe('POST /instruction-modules', () => {
     expect(
       calls(`/storage/v1/object/instruction-modules/${organizationId}/${weldingId}/1.docx`, 'POST')
     ).toHaveLength(1);
+  });
+
+  it('starts a fire-safety module when asked', async () => {
+    mockUpstream({
+      modules: (init, url) =>
+        isGet(init) && url.searchParams.get('id') ? Response.json([hotWork]) : undefined,
+      versions: (init) => (isGet(init) ? Response.json([]) : undefined),
+    });
+    const response = await request('/instruction-modules', 'POST', {
+      title: 'Lucrul cu foc deschis',
+      group: 'work_activity',
+      domain: 'psi',
+    });
+    expect(response.status).toBe(201);
+    expect(instructionModuleResponseSchema.parse(await response.json()).module.domain).toBe('psi');
+    expect(sent('/rest/v1/instruction_modules', 'POST')).toMatchObject({ domain: 'psi' });
   });
 
   it('refuses a title the library already has', async () => {
@@ -348,6 +415,24 @@ describe('POST /instruction-modules/upload', () => {
     expect(sent('/rest/v1/instruction_modules', 'POST')).toMatchObject({
       title: 'Sudură',
       module_group: 'work_activity',
+      domain: 'ssm',
+    });
+  });
+
+  it('takes the domain of an uploaded file from the query', async () => {
+    mockUpstream({
+      modules: (init, url) =>
+        isGet(init) && url.searchParams.get('id') ? Response.json([hotWork]) : undefined,
+      versions: (init) => (isGet(init) ? Response.json([]) : undefined),
+    });
+    await sendFile(
+      '/instruction-modules/upload?domain=psi',
+      'POST',
+      docxWith(['Lucrul cu foc deschis', 'Art'])
+    );
+    expect(sent('/rest/v1/instruction_modules', 'POST')).toMatchObject({
+      title: 'Lucrul cu foc deschis',
+      domain: 'psi',
     });
   });
 
@@ -387,6 +472,31 @@ describe('PATCH /instruction-modules/{moduleId}', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
       'instruction_module_applied'
     );
+  });
+
+  it('moves a module nobody applies to the other domain', async () => {
+    mockUpstream();
+    const response = await request(`/instruction-modules/${laddersId}`, 'PATCH', {
+      domain: 'psi',
+    });
+    expect(response.status).toBe(200);
+    expect(sent('/rest/v1/instruction_modules', 'PATCH')).toEqual({ domain: 'psi' });
+  });
+
+  it('refuses to move a module a position applies to the other domain, and says why', async () => {
+    mockUpstream({
+      modules: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json({ code: 'INS07', message: 'applied' }, { status: 409 })
+          : undefined,
+    });
+    const response = await request(`/instruction-modules/${laddersId}`, 'PATCH', {
+      domain: 'psi',
+    });
+    expect(response.status).toBe(409);
+    const error = apiErrorResponseSchema.parse(await response.json());
+    expect(error.reason).toBe('instruction_module_domain_applied');
+    expect(error.message).toMatch(/applies this module/);
   });
 
   it('answers 404 for a module of another organization', async () => {
@@ -486,8 +596,20 @@ describe('GET …/instructions', () => {
     const response = await request(instructionsPath);
     expect(response.status).toBe(200);
     const body = positionInstructionsResponseSchema.parse(await response.json());
+    expect(body.domain).toBe('ssm');
     expect(body.items.map((item) => item.title)).toEqual(['Scări metalice']);
     expect(body.needsInstructions).toBe(true);
+    const listed = calls('/rest/v1/job_position_instructions', 'GET')[0]![0];
+    expect(new URL(String(listed)).searchParams.get('domain')).toBe('eq.ssm');
+  });
+
+  it("lists the fire-safety modules with the position's fire-safety decision", async () => {
+    mockUpstream({ applied: (init) => (isGet(init) ? Response.json([]) : undefined) });
+    const response = await request(`${instructionsPath}?domain=psi`);
+    const body = positionInstructionsResponseSchema.parse(await response.json());
+    expect([body.domain, body.items, body.needsInstructions]).toEqual(['psi', [], null]);
+    const listed = calls('/rest/v1/job_position_instructions', 'GET')[0]![0];
+    expect(new URL(String(listed)).searchParams.get('domain')).toBe('eq.psi');
   });
 
   it('answers 404 for a position of another client', async () => {
@@ -509,11 +631,57 @@ describe('PUT …/instructions', () => {
         client_id: clientId,
         job_position_id: welderId,
         module_id: officesId,
+        domain: 'ssm',
         created_by: user.id,
       },
     ]);
-    const removed = calls('/rest/v1/job_position_instructions', 'DELETE')[0]![0];
-    expect(new URL(String(removed)).searchParams.get('module_id')).toBe(`in.(${laddersId})`);
+    const removed = new URL(String(calls('/rest/v1/job_position_instructions', 'DELETE')[0]![0]));
+    expect(removed.searchParams.get('module_id')).toBe(`in.(${laddersId})`);
+    expect(removed.searchParams.get('domain')).toBe('eq.ssm');
+  });
+
+  it('applies fire-safety modules as the fire-safety decision, leaving the other alone', async () => {
+    mockUpstream({
+      applied: (init) => (isGet(init) ? Response.json([]) : undefined),
+      positions: (init, url) =>
+        url.searchParams.get('select') === 'needs_instructions,needs_fire_instructions'
+          ? Response.json({ needs_instructions: true, needs_fire_instructions: true })
+          : undefined,
+    });
+    const response = await request(instructionsPath, 'PUT', {
+      domain: 'psi',
+      moduleIds: [hotWorkId],
+    });
+    expect(response.status).toBe(200);
+    const body = positionInstructionsResponseSchema.parse(await response.json());
+    expect([body.domain, body.needsInstructions]).toEqual(['psi', true]);
+    expect(sent('/rest/v1/job_position_instructions', 'POST')).toEqual([
+      expect.objectContaining({ module_id: hotWorkId, domain: 'psi' }),
+    ]);
+    expect(calls('/rest/v1/job_position_instructions', 'DELETE')).toHaveLength(0);
+  });
+
+  it('refuses a module of the other domain by its title', async () => {
+    mockUpstream({ applied: (init) => (isGet(init) ? Response.json([]) : undefined) });
+    const response = await request(instructionsPath, 'PUT', {
+      domain: 'psi',
+      moduleIds: [hotWorkId, laddersId],
+    });
+    expect(response.status).toBe(400);
+    const error = apiErrorResponseSchema.parse(await response.json());
+    expect(error.reason).toBe('instruction_module_other_domain');
+    expect(error.message).toContain('"Scări metalice"');
+    expect(error.message).not.toContain('Lucrul cu foc deschis');
+    expect(calls('/rest/v1/job_position_instructions', 'POST')).toHaveLength(0);
+  });
+
+  it('refuses a module that is not in the library', async () => {
+    mockUpstream();
+    const response = await request(instructionsPath, 'PUT', {
+      moduleIds: ['0e0e0e0e-0000-4000-8000-000000000001'],
+    });
+    expect(response.status).toBe(400);
+    expect(calls('/rest/v1/job_position_instructions', 'POST')).toHaveLength(0);
   });
 
   it('refuses an archived module', async () => {
@@ -574,6 +742,27 @@ describe('PATCH …/instructions-decision', () => {
     const { jobPosition } = jobPositionResponseSchema.parse(await response.json());
     expect([jobPosition.needsInstructions, jobPosition.instructionCount]).toEqual([false, 1]);
     expect(sent('/rest/v1/job_positions', 'PATCH')).toEqual({ needs_instructions: false });
+  });
+
+  it('marks the position as needing no fire-safety module apart', async () => {
+    mockUpstream({
+      positions: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json({ ...welder, needs_fire_instructions: false })
+          : undefined,
+    });
+    const response = await request(
+      `/clients/${clientId}/job-positions/${welderId}/instructions-decision`,
+      'PATCH',
+      { domain: 'psi', needsInstructions: false }
+    );
+    expect(response.status).toBe(200);
+    const { jobPosition } = jobPositionResponseSchema.parse(await response.json());
+    expect([jobPosition.needsInstructions, jobPosition.needsFireInstructions]).toEqual([
+      true,
+      false,
+    ]);
+    expect(sent('/rest/v1/job_positions', 'PATCH')).toEqual({ needs_fire_instructions: false });
   });
 
   it('refuses "needs instructions" in words', async () => {

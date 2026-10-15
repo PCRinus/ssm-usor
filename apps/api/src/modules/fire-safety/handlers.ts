@@ -1,6 +1,8 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type ClientFireSafety,
+  type FireBuilding,
+  type FireBuildingRequest,
   type FireEquipment,
   fireEquipmentKinds,
   type FireEquipmentRequest,
@@ -8,6 +10,11 @@ import {
   type FireInstallation,
   fireInstallationKinds,
   type FireInstallationRequest,
+  type FireMaintenanceItem,
+  type FireMaintenanceItemRequest,
+  type FireSubstance,
+  type FireSubstanceRequest,
+  type FireSubstancesState,
   type UpdateClientFireSafetyRequest,
 } from '@ssm-usor/contracts';
 
@@ -19,14 +26,26 @@ import { refuseWorkplaceOfAnotherClient, workplaceNotOfClient } from '../documen
 import type {
   createFireEquipmentRoute,
   createFireInstallationRoute,
+  createFireMaintenanceItemRoute,
+  createFireSubstanceRoute,
+  deleteFireBuildingRoute,
   deleteFireEquipmentRoute,
   deleteFireInstallationRoute,
+  deleteFireMaintenanceItemRoute,
+  deleteFireSubstanceRoute,
   getClientFireSafetyRoute,
+  listFireBuildingsRoute,
   listFireEquipmentRoute,
   listFireInstallationsRoute,
+  listFireMaintenanceItemsRoute,
+  listFireSubstancesRoute,
   updateClientFireSafetyRoute,
+  updateFireBuildingRoute,
   updateFireEquipmentRoute,
   updateFireInstallationRoute,
+  updateFireMaintenanceItemRoute,
+  updateFireSubstanceRoute,
+  updateFireSubstancesStateRoute,
 } from './routes';
 
 type Tables = Database['public']['Tables'];
@@ -123,6 +142,23 @@ const fireSafetyFields = (body: UpdateClientFireSafetyRequest) => ({
   has_third_parties: body.hasThirdParties,
 });
 
+// Saving the substances state alone creates the row too; the card still opens on its starting
+// values then, so a row counts as the card's only once it holds something of the card.
+const holdsCardFacts = (row: FireSafetyRow) =>
+  [
+    row.periodic_training_hours,
+    row.administrative_training_interval_months,
+    row.worker_training_interval_months,
+    row.training_first_month,
+    row.training_day_from,
+    row.training_day_to,
+    row.smoking_policy,
+    row.waste_contractor,
+    row.waste_collectors,
+  ].some((value) => value !== null) ||
+  row.waste_kinds.length > 0 ||
+  row.has_third_parties;
+
 export const getClientFireSafety: RouteHandler<typeof getClientFireSafetyRoute, ApiEnv> = async (
   c
 ) => {
@@ -135,10 +171,8 @@ export const getClientFireSafety: RouteHandler<typeof getClientFireSafetyRoute, 
     .eq('client_id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'client fire safety');
-  return c.json(
-    { fireSafety: data ? toFireSafety(data) : noFireSafety, exists: data !== null },
-    200
-  );
+  const saved = data !== null && holdsCardFacts(data);
+  return c.json({ fireSafety: saved ? toFireSafety(data) : noFireSafety, exists: saved }, 200);
 };
 
 // Not an upsert: PostgREST's would also set the keys, which members may not update.
@@ -450,5 +484,493 @@ export const deleteFireInstallation: RouteHandler<
     .select('id');
   if (error) throw fromDatabaseError(error, 'delete fire installation');
   if (data.length === 0) throw noSuchInstallation();
+  return c.body(null, 204);
+};
+
+const maintenanceItemColumns =
+  'id, client_id, workplace_id, subject, interval_label, checked_by, sort_order, created_at, updated_at';
+
+type MaintenanceItemRow = Pick<
+  Tables['fire_maintenance_items']['Row'],
+  | 'id'
+  | 'client_id'
+  | 'workplace_id'
+  | 'subject'
+  | 'interval_label'
+  | 'checked_by'
+  | 'sort_order'
+  | 'created_at'
+  | 'updated_at'
+>;
+
+const toMaintenanceItem = (row: MaintenanceItemRow): FireMaintenanceItem => ({
+  id: row.id,
+  clientId: row.client_id,
+  workplaceId: row.workplace_id,
+  subject: row.subject,
+  intervalLabel: row.interval_label,
+  checkedBy: row.checked_by,
+  createdAt: new Date(row.created_at).toISOString(),
+  updatedAt: new Date(row.updated_at).toISOString(),
+});
+
+const maintenanceItemFields = (body: FireMaintenanceItemRequest) => ({
+  workplace_id: body.workplaceId,
+  subject: body.subject,
+  interval_label: body.intervalLabel,
+  checked_by: body.checkedBy,
+});
+
+const noSuchMaintenanceItem = () =>
+  new ApiError('not_found', 'This row of the schedules does not exist under this client.');
+
+export const listFireMaintenanceItems: RouteHandler<
+  typeof listFireMaintenanceItemsRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const workplaces = await activeWorkplaceOrder(db, clientId);
+  const { data, error } = await db
+    .from('fire_maintenance_items')
+    .select(maintenanceItemColumns)
+    .eq('client_id', clientId);
+  if (error) throw fromDatabaseError(error, 'list fire maintenance items');
+  const items = data
+    .filter((row) => workplaces.has(row.workplace_id))
+    .sort(
+      (first, second) =>
+        workplaces.get(first.workplace_id)! - workplaces.get(second.workplace_id)! ||
+        first.sort_order - second.sort_order ||
+        first.created_at.localeCompare(second.created_at) ||
+        first.id.localeCompare(second.id)
+    )
+    .map(toMaintenanceItem);
+  return c.json({ items }, 200);
+};
+
+export const createFireMaintenanceItem: RouteHandler<
+  typeof createFireMaintenanceItemRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  const last = await db
+    .from('fire_maintenance_items')
+    .select('sort_order')
+    .eq('client_id', clientId)
+    .eq('workplace_id', body.workplaceId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (last.error) throw fromDatabaseError(last.error, 'last fire maintenance item');
+  const { data, error } = await db
+    .from('fire_maintenance_items')
+    .insert({
+      ...maintenanceItemFields(body),
+      sort_order: (last.data?.sort_order ?? -1) + 1,
+      organization_id: c.get('membership').organizationId,
+      client_id: clientId,
+      created_by: c.get('user').id,
+    })
+    .select(maintenanceItemColumns)
+    .single();
+  if (error) throw fireSafetyError(error, 'create fire maintenance item');
+  return c.json({ item: toMaintenanceItem(data) }, 201);
+};
+
+export const updateFireMaintenanceItem: RouteHandler<
+  typeof updateFireMaintenanceItemRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId, itemId } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  const { data, error } = await db
+    .from('fire_maintenance_items')
+    .update(maintenanceItemFields(body))
+    .eq('id', itemId)
+    .eq('client_id', clientId)
+    .select(maintenanceItemColumns)
+    .maybeSingle();
+  if (error) throw fireSafetyError(error, 'update fire maintenance item');
+  if (!data) throw noSuchMaintenanceItem();
+  return c.json({ item: toMaintenanceItem(data) }, 200);
+};
+
+export const deleteFireMaintenanceItem: RouteHandler<
+  typeof deleteFireMaintenanceItemRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId, itemId } = c.req.valid('param');
+  const { data, error } = await createDataClient(c)
+    .from('fire_maintenance_items')
+    .delete()
+    .eq('id', itemId)
+    .eq('client_id', clientId)
+    .select('id');
+  if (error) throw fromDatabaseError(error, 'delete fire maintenance item');
+  if (data.length === 0) throw noSuchMaintenanceItem();
+  return c.body(null, 204);
+};
+
+const buildingColumns =
+  'client_id, workplace_id, year_built, built_area_m2, levels, classification, structure, heating_fuel, gas_use, electrical_maintainer, electrical_last_check_on, water_reserve_m3, notes, created_at, updated_at';
+
+type BuildingRow = Pick<
+  Tables['fire_buildings']['Row'],
+  | 'client_id'
+  | 'workplace_id'
+  | 'year_built'
+  | 'built_area_m2'
+  | 'levels'
+  | 'classification'
+  | 'structure'
+  | 'heating_fuel'
+  | 'gas_use'
+  | 'electrical_maintainer'
+  | 'electrical_last_check_on'
+  | 'water_reserve_m3'
+  | 'notes'
+  | 'created_at'
+  | 'updated_at'
+>;
+
+const toBuilding = (row: BuildingRow): FireBuilding => ({
+  clientId: row.client_id,
+  workplaceId: row.workplace_id,
+  yearBuilt: row.year_built,
+  builtAreaM2: row.built_area_m2,
+  levels: row.levels,
+  classification: row.classification,
+  structure: row.structure,
+  heatingFuel: row.heating_fuel,
+  gasUse: row.gas_use,
+  electricalMaintainer: row.electrical_maintainer,
+  electricalLastCheckOn: row.electrical_last_check_on,
+  waterReserveM3: row.water_reserve_m3,
+  notes: row.notes,
+  createdAt: new Date(row.created_at).toISOString(),
+  updatedAt: new Date(row.updated_at).toISOString(),
+});
+
+const buildingFields = (body: FireBuildingRequest) => ({
+  year_built: body.yearBuilt ?? null,
+  built_area_m2: body.builtAreaM2 ?? null,
+  levels: body.levels ?? null,
+  classification: body.classification ?? null,
+  structure: body.structure ?? null,
+  heating_fuel: body.heatingFuel ?? null,
+  gas_use: body.gasUse ?? null,
+  electrical_maintainer: body.electricalMaintainer ?? null,
+  electrical_last_check_on: body.electricalLastCheckOn ?? null,
+  water_reserve_m3: body.waterReserveM3 ?? null,
+  notes: body.notes ?? null,
+});
+
+export const listFireBuildings: RouteHandler<typeof listFireBuildingsRoute, ApiEnv> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const { data: workplaces, error: workplacesError } = await db
+    .from('client_workplaces')
+    .select('id')
+    .eq('client_id', clientId)
+    .eq('kind', 'fixed_space')
+    .is('archived_at', null)
+    .order('is_registered_office', { ascending: false })
+    .order('name')
+    .order('id');
+  if (workplacesError) throw fromDatabaseError(workplacesError, 'list workplaces');
+  const { data, error } = await db
+    .from('fire_buildings')
+    .select(buildingColumns)
+    .eq('client_id', clientId);
+  if (error) throw fromDatabaseError(error, 'list fire buildings');
+  const items = workplaces.flatMap((workplace) => {
+    const row = data.find((building) => building.workplace_id === workplace.id);
+    return row ? [toBuilding(row)] : [];
+  });
+  return c.json({ items }, 200);
+};
+
+// Not an upsert: PostgREST's would also set the keys, which members may not update.
+export const updateFireBuilding: RouteHandler<typeof updateFireBuildingRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId, workplaceId } = c.req.valid('param');
+  const fields = buildingFields(c.req.valid('json'));
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const workplace = await db
+    .from('client_workplaces')
+    .select('kind')
+    .eq('id', workplaceId)
+    .eq('client_id', clientId)
+    .is('archived_at', null)
+    .maybeSingle();
+  if (workplace.error) throw fromDatabaseError(workplace.error, 'find workplace');
+  if (!workplace.data) {
+    throw new ApiError('not_found', 'This workplace is not an active workplace of this client.');
+  }
+  if (workplace.data.kind !== 'fixed_space') {
+    throw new ApiError('conflict', 'A temporary or mobile site has no building.');
+  }
+  const update = () =>
+    db
+      .from('fire_buildings')
+      .update(fields)
+      .eq('client_id', clientId)
+      .eq('workplace_id', workplaceId)
+      .select(buildingColumns)
+      .maybeSingle();
+  const updated = await update();
+  if (updated.error) throw fromDatabaseError(updated.error, 'update fire building');
+  if (updated.data) return c.json({ building: toBuilding(updated.data) }, 200);
+  const inserted = await db
+    .from('fire_buildings')
+    .insert({
+      ...fields,
+      client_id: clientId,
+      workplace_id: workplaceId,
+      organization_id: c.get('membership').organizationId,
+      created_by: c.get('user').id,
+    })
+    .select(buildingColumns)
+    .single();
+  if (inserted.error?.code === '23505') {
+    // Another first save got there in between.
+    const again = await update();
+    if (again.error) throw fromDatabaseError(again.error, 'update fire building');
+    if (again.data) return c.json({ building: toBuilding(again.data) }, 200);
+  }
+  if (inserted.error) throw fromDatabaseError(inserted.error, 'create fire building');
+  return c.json({ building: toBuilding(inserted.data) }, 200);
+};
+
+export const deleteFireBuilding: RouteHandler<typeof deleteFireBuildingRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId, workplaceId } = c.req.valid('param');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const { error } = await db
+    .from('fire_buildings')
+    .delete()
+    .eq('client_id', clientId)
+    .eq('workplace_id', workplaceId);
+  if (error) throw fromDatabaseError(error, 'delete fire building');
+  return c.body(null, 204);
+};
+
+const substanceColumns =
+  'id, client_id, name, classification, quantity, physical_chemical_properties, identification_codes, health_environment_risks, protection_means, intervention_measures, extinguishing_agents, storage_place, handling, created_at, updated_at';
+
+type SubstanceRow = Pick<
+  Tables['fire_substances']['Row'],
+  | 'id'
+  | 'client_id'
+  | 'name'
+  | 'classification'
+  | 'quantity'
+  | 'physical_chemical_properties'
+  | 'identification_codes'
+  | 'health_environment_risks'
+  | 'protection_means'
+  | 'intervention_measures'
+  | 'extinguishing_agents'
+  | 'storage_place'
+  | 'handling'
+  | 'created_at'
+  | 'updated_at'
+>;
+
+const toSubstance = (row: SubstanceRow): FireSubstance => ({
+  id: row.id,
+  clientId: row.client_id,
+  name: row.name,
+  classification: row.classification,
+  quantity: row.quantity,
+  physicalChemicalProperties: row.physical_chemical_properties,
+  identificationCodes: row.identification_codes,
+  healthEnvironmentRisks: row.health_environment_risks,
+  protectionMeans: row.protection_means,
+  interventionMeasures: row.intervention_measures,
+  extinguishingAgents: row.extinguishing_agents,
+  storagePlace: row.storage_place,
+  handling: row.handling,
+  createdAt: new Date(row.created_at).toISOString(),
+  updatedAt: new Date(row.updated_at).toISOString(),
+});
+
+const substanceFields = (body: FireSubstanceRequest) => ({
+  name: body.name,
+  classification: body.classification,
+  quantity: body.quantity,
+  physical_chemical_properties: body.physicalChemicalProperties ?? null,
+  identification_codes: body.identificationCodes ?? null,
+  health_environment_risks: body.healthEnvironmentRisks ?? null,
+  protection_means: body.protectionMeans ?? null,
+  intervention_measures: body.interventionMeasures ?? null,
+  extinguishing_agents: body.extinguishingAgents ?? null,
+  storage_place: body.storagePlace ?? null,
+  handling: body.handling ?? null,
+});
+
+const noSuchSubstance = () =>
+  new ApiError('not_found', 'This substance does not exist under this client.');
+
+async function substancesStateOf(db: DataClient, clientId: string) {
+  const { data, error } = await db
+    .from('client_fire_safety')
+    .select('substances_state')
+    .eq('client_id', clientId)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'fire substances state');
+  return data?.substances_state ?? 'undecided';
+}
+
+export const listFireSubstances: RouteHandler<typeof listFireSubstancesRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId } = c.req.valid('param');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const [state, entries] = await Promise.all([
+    substancesStateOf(db, clientId),
+    db
+      .from('fire_substances')
+      .select(substanceColumns)
+      .eq('client_id', clientId)
+      .order('sort_order')
+      .order('created_at')
+      .order('id'),
+  ]);
+  if (entries.error) throw fromDatabaseError(entries.error, 'list fire substances');
+  return c.json({ state, items: entries.data.map(toSubstance) }, 200);
+};
+
+// Not an upsert, as the card's save: PostgREST's would also set the keys.
+export const updateFireSubstancesState: RouteHandler<
+  typeof updateFireSubstancesStateRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const { state } = c.req.valid('json');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const refusal = (error: { code: string }) =>
+    error.code === 'SUB01'
+      ? new ApiError(
+          'conflict',
+          'The client has dangerous substances listed; delete them before saying it uses none.',
+          undefined,
+          'substances_listed'
+        )
+      : fromDatabaseError(error, 'update fire substances state');
+  const update = () =>
+    db
+      .from('client_fire_safety')
+      .update({ substances_state: state })
+      .eq('client_id', clientId)
+      .select('substances_state')
+      .maybeSingle();
+  const respond = (saved: FireSubstancesState) => c.json({ state: saved }, 200);
+  const updated = await update();
+  if (updated.error) throw refusal(updated.error);
+  if (updated.data) return respond(updated.data.substances_state);
+  const inserted = await db
+    .from('client_fire_safety')
+    .insert({
+      client_id: clientId,
+      organization_id: c.get('membership').organizationId,
+      substances_state: state,
+      created_by: c.get('user').id,
+    })
+    .select('substances_state')
+    .single();
+  if (inserted.error?.code === '23505') {
+    const again = await update();
+    if (again.error) throw refusal(again.error);
+    if (again.data) return respond(again.data.substances_state);
+  }
+  if (inserted.error) throw refusal(inserted.error);
+  return respond(inserted.data.substances_state);
+};
+
+export const createFireSubstance: RouteHandler<typeof createFireSubstanceRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const last = await db
+    .from('fire_substances')
+    .select('sort_order')
+    .eq('client_id', clientId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (last.error) throw fromDatabaseError(last.error, 'last fire substance');
+  const { data, error } = await db
+    .from('fire_substances')
+    .insert({
+      ...substanceFields(body),
+      sort_order: (last.data?.sort_order ?? -1) + 1,
+      organization_id: c.get('membership').organizationId,
+      client_id: clientId,
+      created_by: c.get('user').id,
+    })
+    .select(substanceColumns)
+    .single();
+  if (error?.code === 'SUB02') {
+    throw new ApiError(
+      'conflict',
+      'The client does not list its dangerous substances; say it uses some first.',
+      undefined,
+      'substances_not_listed'
+    );
+  }
+  if (error) throw fromDatabaseError(error, 'create fire substance');
+  return c.json({ substance: toSubstance(data) }, 201);
+};
+
+export const updateFireSubstance: RouteHandler<typeof updateFireSubstanceRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId, substanceId } = c.req.valid('param');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const { data, error } = await db
+    .from('fire_substances')
+    .update(substanceFields(c.req.valid('json')))
+    .eq('id', substanceId)
+    .eq('client_id', clientId)
+    .select(substanceColumns)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'update fire substance');
+  if (!data) throw noSuchSubstance();
+  return c.json({ substance: toSubstance(data) }, 200);
+};
+
+export const deleteFireSubstance: RouteHandler<typeof deleteFireSubstanceRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId, substanceId } = c.req.valid('param');
+  const { data, error } = await createDataClient(c)
+    .from('fire_substances')
+    .delete()
+    .eq('id', substanceId)
+    .eq('client_id', clientId)
+    .select('id');
+  if (error) throw fromDatabaseError(error, 'delete fire substance');
+  if (data.length === 0) throw noSuchSubstance();
   return c.body(null, 204);
 };

@@ -127,7 +127,7 @@ try {
       user.id
     );
     console.log(
-      `Added fire-safety facts to ${fire.facts} clients, a smoking rule to ${fire.smoking} and facts to ${fire.workplaces} workplaces, fire-safety roles to ${fire.persons} people, ${fire.equipment} extinguishers and ${fire.installations} installations, where missing.`
+      `Added fire-safety facts to ${fire.facts} clients, a smoking rule to ${fire.smoking} and facts to ${fire.workplaces} workplaces, ${fire.sites} mobile sites, fire-safety roles to ${fire.persons} people, ${fire.equipment} extinguishers, ${fire.installations} installations, ${fire.maintenanceItems} free rows of the schedules, ${fire.buildings} buildings, a substances state to ${fire.substancesDeclared} clients and ${fire.substances} dangerous substances, where missing.`
     );
     const provider = await seedFireSafetyProvider(client);
     console.log(
@@ -139,7 +139,7 @@ try {
     );
     const instructions = await seedInstructionModules(client, organization.id, user.id);
     console.log(
-      `Added ${instructions.modules} instruction modules to the library, applied ${instructions.applied} to posts and decided ${instructions.decided} need none, where undecided.`
+      `Added ${instructions.modules} instruction modules to the library, applied ${instructions.applied} to posts and decided ${instructions.decided} need none, and for fire safety applied ${instructions.fireApplied} and decided ${instructions.fireDecided} need none, where undecided.`
     );
     const evaluations = await seedRiskEvaluations(client, organization.id, user.id);
     console.log(

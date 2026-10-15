@@ -38,9 +38,9 @@ export const setRules: Record<DocumentSet, SetRules> = {
       documentData(buildPartialDocumentContext(facts, typeKey), typeKey, decisionNumber),
   },
   fire_safety: {
-    missing: (facts) => missingFireSafetyData(facts),
+    missing: missingFireSafetyData,
     concerns: fireSafetyGapConcerns,
-    data: (facts) => ({ ...buildPartialFireSafetyContext(facts) }),
+    data: (facts, typeKey) => ({ ...buildPartialFireSafetyContext(facts, typeKey) }),
   },
 };
 

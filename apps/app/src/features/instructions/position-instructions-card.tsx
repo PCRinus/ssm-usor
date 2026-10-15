@@ -1,3 +1,4 @@
+import type { InstructionDomain } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
@@ -49,10 +50,48 @@ import { useSavedToast } from '@/features/missing-data/saved-toast';
 import {
   type AppliedInstruction,
   byGroup,
+  domainDecision,
   groupLabels,
   instructionStateLabel,
   moduleCountLabel,
 } from './instruction-schema';
+
+const domainCopy = {
+  ssm: {
+    title: 'Instrucțiuni specifice SSM',
+    testId: 'instructions',
+    specific: 'instrucțiuni specifice',
+    none: 'Postul nu necesită instrucțiuni specifice dincolo de partea comună. Instrucțiunile proprii nu anexează nimic pentru el.',
+    undecided:
+      'Instrucțiunile proprii nu se pot genera până nu alegi ce instrucțiuni din bibliotecă privesc postul, sau spui că nu necesită.',
+    pickTitle: (name: string) => `Instrucțiunile postului „${name}”`,
+    pickDescription:
+      'Bifează instrucțiunile din bibliotecă care privesc postul. Instrucțiunile proprii ale clientului le anexează, iar tematica de instruire le citează.',
+    libraryEmpty:
+      'Biblioteca este goală. Încarcă sau scrie instrucțiunile organizației, apoi alege-le aici.',
+    copyTitle: 'Copiază instrucțiunile de la alt post',
+    copyDescription:
+      'Instrucțiunile celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.',
+    copyEmpty: 'Niciun alt post al clientului nu aplică instrucțiuni încă.',
+  },
+  psi: {
+    title: 'Instrucțiuni specifice PSI',
+    testId: 'fire-instructions',
+    specific: 'instrucțiuni specifice PSI',
+    none: 'Postul nu necesită instrucțiuni specifice PSI dincolo de partea comună. Instrucțiunile proprii PSI nu anexează nimic pentru el.',
+    undecided:
+      'Documentele PSI nu se pot genera până nu alegi ce instrucțiuni PSI din bibliotecă privesc postul, sau spui că nu necesită.',
+    pickTitle: (name: string) => `Instrucțiunile PSI ale postului „${name}”`,
+    pickDescription:
+      'Bifează instrucțiunile PSI din bibliotecă care privesc postul. Instrucțiunile proprii PSI ale clientului le anexează, iar tematica de instruire PSI le citează.',
+    libraryEmpty:
+      'Biblioteca nu are instrucțiuni PSI. Încarcă sau scrie instrucțiunile PSI ale organizației, apoi alege-le aici.',
+    copyTitle: 'Copiază instrucțiunile PSI de la alt post',
+    copyDescription:
+      'Instrucțiunile PSI ale celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.',
+    copyEmpty: 'Niciun alt post al clientului nu aplică instrucțiuni PSI încă.',
+  },
+} satisfies Record<InstructionDomain, unknown>;
 
 const failureMessage = (cause: unknown, fallback: string) => {
   const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
@@ -61,6 +100,9 @@ const failureMessage = (cause: unknown, fallback: string) => {
   }
   if (body?.reason === 'instruction_module_archived') {
     return 'O instrucțiune aleasă a fost arhivată între timp. Alege din nou.';
+  }
+  if (body?.reason === 'instruction_module_other_domain') {
+    return 'O instrucțiune aleasă a fost mutată în celălalt domeniu între timp. Alege din nou.';
   }
   if (cause instanceof ApiHttpError && cause.status === 409) {
     return 'Clientul este arhivat; instrucțiunile lui nu se mai schimbă.';
@@ -71,15 +113,18 @@ const failureMessage = (cause: unknown, fallback: string) => {
   return fallback;
 };
 
-// The instruction modules one job position applies (ADR 012). `readOnly` is an archived client.
+// The instruction modules of one domain one job position applies (ADR 012). `readOnly` is an
+// archived client.
 export function PositionInstructionsCard({
   id,
+  domain,
   clientId,
   position,
   userId,
   readOnly,
 }: {
   id: string;
+  domain: InstructionDomain;
   clientId: string;
   position: JobPosition;
   userId: string;
@@ -87,10 +132,13 @@ export function PositionInstructionsCard({
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const savedToast = useSavedToast();
-  const instructions = useListPositionInstructions(clientId, position.id, {
+  const words = domainCopy[domain];
+  const testId = (suffix: string) => `${words.testId}-${suffix}`;
+  const params = { domain };
+  const instructions = useListPositionInstructions(clientId, position.id, params, {
     request: apiRequest,
     query: {
-      queryKey: [...getListPositionInstructionsQueryKey(clientId, position.id), userId],
+      queryKey: [...getListPositionInstructionsQueryKey(clientId, position.id, params), userId],
     },
   });
   const decide = useDecidePositionInstructions({ request: apiRequest });
@@ -116,11 +164,11 @@ export function PositionInstructionsCard({
       await decide.mutateAsync({
         clientId,
         jobPositionId: position.id,
-        data: { needsInstructions },
+        data: { domain, needsInstructions },
       });
       savedToast(
         needsInstructions === false
-          ? 'Am notat că postul nu necesită instrucțiuni specifice.'
+          ? `Am notat că postul nu necesită ${words.specific}.`
           : 'Decizia a fost reluată.'
       );
     } catch (cause) {
@@ -137,7 +185,11 @@ export function PositionInstructionsCard({
       .filter((other) => other.moduleId !== item.moduleId)
       .map((other) => other.moduleId);
     try {
-      await apply.mutateAsync({ clientId, jobPositionId: position.id, data: { moduleIds } });
+      await apply.mutateAsync({
+        clientId,
+        jobPositionId: position.id,
+        data: { domain, moduleIds },
+      });
       toast.success(`„${item.title}” nu se mai aplică postului.`);
     } catch (cause) {
       setError(
@@ -150,16 +202,12 @@ export function PositionInstructionsCard({
     await refresh();
   }
 
-  const decision = instructions.data?.needsInstructions ?? position.needsInstructions;
+  const decision =
+    instructions.data?.needsInstructions ?? domainDecision(position, domain).needsInstructions;
   const items = instructions.data?.items ?? [];
 
   const pickAction = !readOnly && decision !== false && (
-    <Button
-      variant="tonal"
-      size="sm"
-      data-testid="instructions-pick"
-      onClick={() => setPicking(true)}
-    >
+    <Button variant="tonal" size="sm" data-testid={testId('pick')} onClick={() => setPicking(true)}>
       <ListChecks aria-hidden="true" />
       Alege instrucțiunile
     </Button>
@@ -169,7 +217,7 @@ export function PositionInstructionsCard({
     <Button
       variant="outline"
       size="sm"
-      data-testid="instructions-copy"
+      data-testid={testId('copy')}
       onClick={() => setCopying(true)}
     >
       <Copy aria-hidden="true" />
@@ -181,12 +229,12 @@ export function PositionInstructionsCard({
     <SectionCard
       id={id}
       headingLevel={3}
-      data-testid="instructions-card"
+      data-testid={testId('card')}
       title={
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          Instrucțiuni
+          {words.title}
           {instructions.data && (
-            <DecisionBadge decision={decision} data-testid="instructions-state">
+            <DecisionBadge decision={decision} data-testid={testId('state')}>
               {instructionStateLabel({
                 needsInstructions: decision,
                 instructionCount: items.length,
@@ -198,7 +246,7 @@ export function PositionInstructionsCard({
       action={items.length > 0 && pickAction}
     >
       {error && (
-        <Notice variant="destructive" data-testid="instructions-error">
+        <Notice variant="destructive" data-testid={testId('error')}>
           {error}
         </Notice>
       )}
@@ -222,13 +270,13 @@ export function PositionInstructionsCard({
       ) : decision === false ? (
         <Notice
           variant="info"
-          data-testid="instructions-none"
+          data-testid={testId('none')}
           action={
             !readOnly && (
               <Button
                 variant="outline"
                 size="sm"
-                data-testid="instructions-undecide"
+                data-testid={testId('undecide')}
                 disabled={decide.isPending}
                 onClick={() => void decideNone(null)}
               >
@@ -237,12 +285,11 @@ export function PositionInstructionsCard({
             )
           }
         >
-          Postul nu necesită instrucțiuni specifice dincolo de partea comună. Instrucțiunile proprii
-          nu anexează nimic pentru el.
+          {words.none}
         </Notice>
       ) : items.length === 0 ? (
         <EmptyState
-          data-testid="instructions-empty"
+          data-testid={testId('empty')}
           icon={BookOpenText}
           actions={
             !readOnly && (
@@ -251,7 +298,7 @@ export function PositionInstructionsCard({
                 <Button
                   variant="outline"
                   size="sm"
-                  data-testid="instructions-decide-none"
+                  data-testid={testId('decide-none')}
                   disabled={decide.isPending}
                   onClick={() => void decideNone(false)}
                 >
@@ -264,7 +311,7 @@ export function PositionInstructionsCard({
         >
           {readOnly
             ? 'Nu s-a stabilit ce instrucțiuni privesc postul. Clientul este arhivat, așa că instrucțiunile lui nu se mai completează.'
-            : 'Instrucțiunile proprii nu se pot genera până nu alegi ce instrucțiuni din bibliotecă privesc postul, sau spui că nu necesită.'}
+            : words.undecided}
         </EmptyState>
       ) : (
         <>
@@ -284,7 +331,7 @@ export function PositionInstructionsCard({
               {items.map((item) => (
                 <TableRow
                   key={item.moduleId}
-                  data-testid="instructions-row"
+                  data-testid={testId('row')}
                   className="max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-3 max-sm:gap-y-1 max-sm:py-3"
                 >
                   <TableCell className="font-medium whitespace-normal max-sm:col-start-1 max-sm:row-start-1 max-sm:p-0">
@@ -292,7 +339,7 @@ export function PositionInstructionsCard({
                       to="/instructions/$moduleId"
                       params={{ moduleId: item.moduleId }}
                       className="hover:underline"
-                      data-testid="instructions-open"
+                      data-testid={testId('open')}
                     >
                       {item.title}
                     </Link>
@@ -310,7 +357,7 @@ export function PositionInstructionsCard({
                       <Button
                         variant="ghost"
                         size="icon"
-                        data-testid="instructions-remove"
+                        data-testid={testId('remove')}
                         aria-label={`Scoate ${item.title}`}
                         disabled={apply.isPending}
                         onClick={() => void remove(item)}
@@ -327,6 +374,7 @@ export function PositionInstructionsCard({
         </>
       )}
       <PickInstructionsDialog
+        domain={domain}
         clientId={clientId}
         position={position}
         userId={userId}
@@ -336,6 +384,7 @@ export function PositionInstructionsCard({
         onApplied={refresh}
       />
       <CopyInstructionsDialog
+        domain={domain}
         clientId={clientId}
         position={position}
         userId={userId}
@@ -348,6 +397,7 @@ export function PositionInstructionsCard({
 }
 
 function PickInstructionsDialog({
+  domain,
   clientId,
   position,
   userId,
@@ -356,6 +406,7 @@ function PickInstructionsDialog({
   onClose,
   onApplied,
 }: {
+  domain: InstructionDomain;
   clientId: string;
   position: JobPosition;
   userId: string;
@@ -366,7 +417,9 @@ function PickInstructionsDialog({
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const savedToast = useSavedToast();
-  const params = { archived: 'false' as const };
+  const words = domainCopy[domain];
+  const testId = (suffix: string) => `${words.testId}-${suffix}`;
+  const params = { archived: 'false' as const, domain };
   const modules = useListInstructionModules(params, {
     request: apiRequest,
     query: { queryKey: [...getListInstructionModulesQueryKey(params), userId], enabled: open },
@@ -402,7 +455,7 @@ function PickInstructionsDialog({
       const result = await apply.mutateAsync({
         clientId,
         jobPositionId: position.id,
-        data: { moduleIds: [...selected] },
+        data: { domain, moduleIds: [...selected] },
       });
       await onApplied();
       savedToast(
@@ -423,17 +476,14 @@ function PickInstructionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && !apply.isPending && close()}>
-      <DialogContent data-testid="instructions-pick-dialog" className="sm:max-w-xl">
+      <DialogContent data-testid={testId('pick-dialog')} className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Instrucțiunile postului „{position.name}”</DialogTitle>
-          <DialogDescription>
-            Bifează instrucțiunile din bibliotecă care privesc postul. Instrucțiunile proprii ale
-            clientului le anexează, iar tematica de instruire le citează.
-          </DialogDescription>
+          <DialogTitle>{words.pickTitle(position.name)}</DialogTitle>
+          <DialogDescription>{words.pickDescription}</DialogDescription>
         </DialogHeader>
         <div className="mt-4 grid gap-4">
           {error && (
-            <Notice variant="destructive" data-testid="instructions-pick-error">
+            <Notice variant="destructive" data-testid={testId('pick-error')}>
               {error}
             </Notice>
           )}
@@ -444,20 +494,19 @@ function PickInstructionsDialog({
           ) : (modules.data?.items.length ?? 0) === 0 ? (
             <Notice
               variant="info"
-              data-testid="instructions-pick-empty"
+              data-testid={testId('pick-empty')}
               action={
                 <Button asChild variant="outline">
                   <Link to="/instructions">Deschide biblioteca</Link>
                 </Button>
               }
             >
-              Biblioteca este goală. Încarcă sau scrie instrucțiunile organizației, apoi alege-le
-              aici.
+              {words.libraryEmpty}
             </Notice>
           ) : (
             <>
               <Input
-                data-testid="instructions-pick-search"
+                data-testid={testId('pick-search')}
                 placeholder="Caută după titlu…"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -475,7 +524,7 @@ function PickInstructionsDialog({
                         className="flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-sm hover:bg-muted/50"
                       >
                         <Checkbox
-                          data-testid="instructions-pick-option"
+                          data-testid={testId('pick-option')}
                           checked={selected.has(module.id)}
                           onCheckedChange={(checked) => toggle(module.id, checked === true)}
                           disabled={apply.isPending}
@@ -509,7 +558,7 @@ function PickInstructionsDialog({
             Renunță
           </Button>
           <Button
-            data-testid="instructions-pick-save"
+            data-testid={testId('pick-save')}
             disabled={apply.isPending || modules.isPending}
             onClick={() => void save()}
           >
@@ -522,6 +571,7 @@ function PickInstructionsDialog({
 }
 
 function CopyInstructionsDialog({
+  domain,
   clientId,
   position,
   userId,
@@ -529,6 +579,7 @@ function CopyInstructionsDialog({
   onClose,
   onCopied,
 }: {
+  domain: InstructionDomain;
   clientId: string;
   position: JobPosition;
   userId: string;
@@ -538,6 +589,9 @@ function CopyInstructionsDialog({
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const savedToast = useSavedToast();
+  const words = domainCopy[domain];
+  const testId = (suffix: string) => `${words.testId}-${suffix}`;
+  const countOf = (candidate: JobPosition) => domainDecision(candidate, domain).instructionCount;
   const positions = useListJobPositions(clientId, {
     request: apiRequest,
     query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId], enabled: open },
@@ -546,7 +600,7 @@ function CopyInstructionsDialog({
   const [source, setSource] = useState('');
   const [error, setError] = useState<string | null>(null);
   const sources = (positions.data?.items ?? []).filter(
-    (candidate) => candidate.id !== position.id && candidate.instructionCount > 0
+    (candidate) => candidate.id !== position.id && countOf(candidate) > 0
   );
 
   async function copyModules() {
@@ -555,7 +609,7 @@ function CopyInstructionsDialog({
       const result = await copy.mutateAsync({
         clientId,
         jobPositionId: position.id,
-        data: { fromJobPositionId: source },
+        data: { domain, fromJobPositionId: source },
       });
       await onCopied();
       savedToast(`Postul aplică acum ${moduleCountLabel(result.items.length).toLowerCase()}.`);
@@ -572,24 +626,22 @@ function CopyInstructionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && !copy.isPending && onClose()}>
-      <DialogContent data-testid="instructions-copy-dialog" className="sm:max-w-md">
+      <DialogContent data-testid={testId('copy-dialog')} className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Copiază instrucțiunile de la alt post</DialogTitle>
-          <DialogDescription>
-            Instrucțiunile celuilalt post se adaugă la ale acestuia; cele deja aplicate rămân.
-          </DialogDescription>
+          <DialogTitle>{words.copyTitle}</DialogTitle>
+          <DialogDescription>{words.copyDescription}</DialogDescription>
         </DialogHeader>
         <div className="mt-4 grid gap-4">
           {error && <Notice variant="destructive">{error}</Notice>}
           {positions.isSuccess && sources.length === 0 ? (
-            <Notice variant="info" data-testid="instructions-copy-empty">
-              Niciun alt post al clientului nu aplică instrucțiuni încă.
+            <Notice variant="info" data-testid={testId('copy-empty')}>
+              {words.copyEmpty}
             </Notice>
           ) : (
-            <Field id="instructions-copy-source" label="Postul de la care copiezi" mark="required">
+            <Field id={testId('copy-source')} label="Postul de la care copiezi" mark="required">
               <NativeSelect
-                id="instructions-copy-source"
-                data-testid="instructions-copy-source"
+                id={testId('copy-source')}
+                data-testid={testId('copy-source')}
                 value={source}
                 disabled={copy.isPending || positions.isPending}
                 onChange={(event) => setSource(event.target.value)}
@@ -597,7 +649,7 @@ function CopyInstructionsDialog({
                 <NativeSelectOption value="">Alege un post…</NativeSelectOption>
                 {sources.map((candidate) => (
                   <NativeSelectOption key={candidate.id} value={candidate.id}>
-                    {`${candidate.name} (${moduleCountLabel(candidate.instructionCount).toLowerCase()})`}
+                    {`${candidate.name} (${moduleCountLabel(countOf(candidate)).toLowerCase()})`}
                   </NativeSelectOption>
                 ))}
               </NativeSelect>
@@ -609,7 +661,7 @@ function CopyInstructionsDialog({
             Renunță
           </Button>
           <Button
-            data-testid="instructions-copy-confirm"
+            data-testid={testId('copy-confirm')}
             disabled={!source || copy.isPending}
             onClick={() => void copyModules()}
           >

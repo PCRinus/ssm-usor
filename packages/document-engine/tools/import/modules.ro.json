@@ -147,6 +147,37 @@
           ]
         }
       ]
+    },
+    {
+      "key": "hot-work",
+      "title": "Lucrul cu foc deschis",
+      "group": "work_activity",
+      "domain": "psi",
+      "sections": [
+        {
+          "heading": "Domeniul de aplicare",
+          "paragraphs": [
+            "Prezenta instrucțiune se aplică lucrătorilor care execută lucrări cu foc deschis sau care produc scântei: sudură, tăiere, lipire, polizare, încălzire cu flacără."
+          ]
+        },
+        {
+          "heading": "Înainte de începerea lucrului",
+          "articles": [
+            "Lucrul cu foc deschis în afara locurilor amenajate în acest scop se face numai pe baza permisului de lucru cu foc, completat și semnat înainte de începerea lucrării.",
+            "Se îndepărtează materialele combustibile din zona de lucru sau se protejează cu materiale incombustibile.",
+            "Se verifică dacă în zonă nu există vapori, gaze sau prafuri inflamabile.",
+            "La locul de muncă se asigură cel puțin un stingător potrivit materialelor din zonă, pregătit pentru utilizare."
+          ]
+        },
+        {
+          "heading": "În timpul și după terminarea lucrului",
+          "articles": [
+            "Lucrarea se oprește la apariția oricărui pericol de incendiu și se anunță conducătorul locului de muncă.",
+            "Aparatele și buteliile se folosesc numai în stare tehnică bună, ferite de lovituri și de surse de căldură.",
+            "După terminarea lucrului, zona se verifică pentru a descoperi și a stinge eventualele focare, iar verificarea se repetă în orele următoare, după cum prevede permisul."
+          ]
+        }
+      ]
     }
   ]
 }

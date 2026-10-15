@@ -1,18 +1,26 @@
 import {
   extinguisherCode,
+  fireBuildingRequestSchema,
   fireEquipmentRequestSchema,
   fireInstallationRequestSchema,
+  fireMaintenanceItemRequestSchema,
+  fireSubstanceRequestSchema,
   updateClientFireSafetyRequestSchema,
   updateOrganizationAuthorizationsRequestSchema,
+  workplaceRequestSchema,
 } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildingFor,
   fireMeansFor,
   fireRolesToAdd,
   fireSafetyAuthorization,
   fireSafetyFor,
   fireSafetyTechnician,
+  maintenanceItemsFor,
+  mobileSiteFor,
+  substancesFor,
 } from './seed-fire-safety';
 
 const userId = '0f7c8d96-479c-47b3-b49e-01f4555a0221';
@@ -55,7 +63,7 @@ describe('fireSafetyFor', () => {
     ]);
   });
 
-  it('names who collects the waste at every other client, so decision 8 reads both ways', () => {
+  it('names who collects the waste at every other client, so decision 7 reads both ways', () => {
     const client = {
       id: clientId,
       training_first_month: null,
@@ -133,6 +141,78 @@ describe('fireMeansFor', () => {
   });
 });
 
+describe('maintenanceItemsFor', () => {
+  it('gives a workplace the gas installation, the chimney and the emergency lighting, in order, as the API accepts them', () => {
+    const items = maintenanceItemsFor({ id: workplaceId, client_id: clientId }, userId);
+    expect(items.map((item) => item.subject)).toEqual([
+      'Instalația de utilizare a gazelor naturale',
+      'Coșul de fum al centralei termice',
+      'Testarea funcționării iluminatului de siguranță',
+    ]);
+    expect(items.map((item) => item.sort_order)).toEqual([0, 1, 2]);
+    for (const item of items) {
+      expect(
+        fireMaintenanceItemRequestSchema.safeParse({
+          workplaceId: item.workplace_id,
+          subject: item.subject,
+          intervalLabel: item.interval_label,
+          checkedBy: item.checked_by,
+        }).success
+      ).toBe(true);
+    }
+  });
+});
+
+describe('buildingFor', () => {
+  it('fills every fact of a complete building and half of the other, as the API accepts them', () => {
+    const toRequest = (building: ReturnType<typeof buildingFor>) => ({
+      yearBuilt: building.year_built,
+      builtAreaM2: building.built_area_m2,
+      levels: building.levels,
+      classification: building.classification,
+      structure: building.structure,
+      heatingFuel: building.heating_fuel,
+      gasUse: building.gas_use,
+      electricalMaintainer: building.electrical_maintainer,
+      electricalLastCheckOn: building.electrical_last_check_on,
+      waterReserveM3: building.water_reserve_m3,
+      notes: building.notes,
+    });
+    const complete = buildingFor({ id: workplaceId, client_id: clientId }, userId, true);
+    const half = buildingFor({ id: workplaceId, client_id: clientId }, userId, false);
+    expect(Object.values(toRequest(complete)).every((value) => value != null)).toBe(true);
+    expect(half.structure).toBeUndefined();
+    expect(half.year_built).toBe(1987);
+    for (const building of [complete, half]) {
+      expect(fireBuildingRequestSchema.safeParse(toRequest(building)).success).toBe(true);
+      expect(building.workplace_id).toBe(workplaceId);
+    }
+  });
+});
+
+describe('mobileSiteFor', () => {
+  it('is a mobile site with no area and no norm from annex 6, which the workplace dialog accepts', () => {
+    const site = mobileSiteFor(clientId, userId);
+    expect(site).toMatchObject({ kind: 'mobile_site', extinguisher_norm: 'none' });
+    expect(site.floor_area_m2).toBeUndefined();
+    expect(
+      workplaceRequestSchema.safeParse({
+        name: site.name,
+        countyCode: site.county_code,
+        locality: site.locality,
+        addressLine: site.address_line,
+        kind: site.kind,
+        activity: site.activity,
+        extinguisherNorm: site.extinguisher_norm,
+        assemblyPoint: site.assembly_point,
+        combustibleMaterials: site.combustible_materials,
+        ignitionSources: site.ignition_sources,
+        fireRiskEquipment: site.fire_risk_equipment,
+      }).success
+    ).toBe(true);
+  });
+});
+
 describe('fireRolesToAdd', () => {
   it('adds only the fire-safety roles nobody holds', () => {
     expect(fireRolesToAdd([{ roles: ['workplace_manager', 'first_aid'] }])).toEqual([
@@ -145,5 +225,40 @@ describe('fireRolesToAdd', () => {
         { roles: ['imminent_danger', 'fire_intervention_leader'] },
       ])
     ).toEqual(['fire_safety_coordinator']);
+  });
+});
+
+describe('substancesFor', () => {
+  it('lists a cleaning agent, a gas cylinder and a solvent the API would accept, in order', () => {
+    const rows = substancesFor(clientId, userId);
+    expect(rows.map((row) => row.sort_order)).toEqual([0, 1, 2]);
+    expect(rows.map((row) => row.name)).toEqual([
+      'Detergent dezinfectant pe bază de hipoclorit de sodiu',
+      'Gaz petrolier lichefiat (propan) în butelii',
+      'Diluant pentru vopsele (white spirit)',
+    ]);
+    for (const row of rows) {
+      expect(
+        fireSubstanceRequestSchema.safeParse({
+          name: row.name,
+          classification: row.classification,
+          quantity: row.quantity,
+          physicalChemicalProperties: row.physical_chemical_properties,
+          identificationCodes: row.identification_codes,
+          healthEnvironmentRisks: row.health_environment_risks,
+          protectionMeans: row.protection_means,
+          interventionMeasures: row.intervention_measures,
+          extinguishingAgents: row.extinguishing_agents,
+          storagePlace: row.storage_place,
+          handling: row.handling,
+        }).success
+      ).toBe(true);
+    }
+  });
+
+  it('leaves some texts of the data sheet out, so the list prints its gaps', () => {
+    const [, propane] = substancesFor(clientId, userId);
+    expect(propane!.health_environment_risks).toBeUndefined();
+    expect(propane!.intervention_measures).toBeUndefined();
   });
 });

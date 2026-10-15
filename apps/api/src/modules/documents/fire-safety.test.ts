@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type DocumentFacts, missingDocumentData } from './context';
+import { buildDocumentContext, type DocumentFacts, missingDocumentData } from './context';
 import { facts, officeId, workshopId } from './context.fixture';
 import {
   buildFireSafetyContext,
@@ -12,6 +12,15 @@ import { setOfGroup, setRules } from './sets';
 import { dealChapters, fireOwnInstructionsChapters } from './themes';
 
 const card = facts.fireSafety.card!;
+const withSubstances = (
+  substances: Partial<(typeof facts)['fireSafety']['substances']>
+): DocumentFacts => ({
+  ...facts,
+  fireSafety: {
+    ...facts.fireSafety,
+    substances: { ...facts.fireSafety.substances, ...substances },
+  },
+});
 const withCard = (changes: Partial<typeof card> | null): DocumentFacts => ({
   ...facts,
   fireSafety: { ...facts.fireSafety, card: changes && { ...card, ...changes } },
@@ -32,6 +41,7 @@ describe('what the fire-safety set is missing', () => {
         fireSafetyTechnicianName: null,
         fireSafetyTechnicianCertificate: ' ',
         fireSafetyAuthorization: null,
+        phone: null,
       },
       specialist: null,
       client: { ...facts.client, representativeName: null, representativeRole: '', caenCode: null },
@@ -39,7 +49,16 @@ describe('what the fire-safety set is missing', () => {
       jobPositions: [],
       riskEvaluations: [],
       workplaces: [],
-      fireSafety: { card: null, equipment: [], installations: [] },
+      fireSafety: {
+        card: null,
+        equipment: [],
+        installations: [],
+        maintenanceItems: [],
+        buildings: [],
+        generatedFromTenEmployees: [],
+        documents: [],
+        substances: { state: 'undecided', entries: [] },
+      },
     };
     expect(missingFireSafetyData(lacking)).toEqual([
       'provider.legalName',
@@ -55,6 +74,7 @@ describe('what the fire-safety set is missing', () => {
       'responsible.fire_intervention_leader',
       'positions.any',
       'fire.workplaces',
+      'fire.substances',
     ]);
   });
 
@@ -122,6 +142,19 @@ describe('what the fire-safety set is missing', () => {
     }
   });
 
+  it('asks a mobile site for neither an area nor a norm, and a fixed space for a norm that may be none', () => {
+    const lacking = (changes: Partial<DocumentFacts['workplaces'][number]>) =>
+      missingFireSafetyData({
+        ...facts,
+        workplaces: [facts.workplaces[0]!, { ...facts.workplaces[1]!, ...changes }],
+      });
+    expect(lacking({ kind: 'mobile_site', floorAreaM2: null, extinguisherNorm: null })).toEqual([]);
+    expect(lacking({ kind: 'mobile_site', extinguisherNorm: 'none' })).toEqual([]);
+    expect(lacking({ kind: 'mobile_site', assemblyPoint: null })).toEqual(['fire.workplaces']);
+    expect(lacking({ extinguisherNorm: 'none' })).toEqual([]);
+    expect(lacking({ extinguisherNorm: 'none', floorAreaM2: null })).toEqual(['fire.workplaces']);
+  });
+
   it('asks every active workplace for an extinguisher, which no other unit stands for', () => {
     const equipment = facts.fireSafety.equipment.filter(
       (unit) => unit.workplaceId !== officeId || unit.kind !== 'extinguisher'
@@ -136,6 +169,16 @@ describe('what the fire-safety set is missing', () => {
         fireSafety: { ...facts.fireSafety, equipment },
       })
     ).toEqual([]);
+  });
+
+  it('asks whether the client uses dangerous substances, and one entry when it lists them', () => {
+    expect(missingFireSafetyData(withSubstances({ state: 'undecided' }))).toEqual([
+      'fire.substances',
+    ]);
+    expect(missingFireSafetyData(withSubstances({ state: 'listed', entries: [] }))).toEqual([
+      'fire.substances',
+    ]);
+    expect(missingFireSafetyData(withSubstances({ state: 'none', entries: [] }))).toEqual([]);
   });
 
   it('never holds back the occupational safety set, nor is held back by it', () => {
@@ -228,10 +271,10 @@ describe('the fire-safety context', () => {
       training: '6 PSI',
       openFire: '7 PSI',
       smoking: '8 PSI',
-      seasons: '9 PSI',
-      technician: '10 PSI',
-      instructions: '11 PSI',
-      waste: '12 PSI',
+      technician: '9 PSI',
+      instructions: '10 PSI',
+      waste: '11 PSI',
+      seasons: '12 PSI',
       control: '13 PSI',
     });
     expect(
@@ -241,11 +284,36 @@ describe('the fire-safety context', () => {
       training: '2 PSI',
       openFire: '3 PSI',
       smoking: '4 PSI',
-      seasons: '5 PSI',
-      technician: '6 PSI',
-      instructions: '7 PSI',
-      waste: '8 PSI',
+      technician: '5 PSI',
+      instructions: '6 PSI',
+      waste: '7 PSI',
+      seasons: '8 PSI',
       control: '9 PSI',
+    });
+  });
+
+  it('holds the documents required from ten employees only from ten, or once they exist', () => {
+    const held = (currentEmployeeCount: number, generatedFromTenEmployees: string[] = []) => {
+      const context = buildFireSafetyContext({
+        ...facts,
+        currentEmployeeCount,
+        fireSafety: {
+          ...facts.fireSafety,
+          generatedFromTenEmployees: generatedFromTenEmployees as never[],
+        },
+      });
+      return {
+        seasons: context.seasonsDecision,
+        control: context.controlDecision,
+        register: context.installationRegister,
+      };
+    };
+    expect(held(9)).toEqual({ seasons: false, control: false, register: false });
+    expect(held(10)).toEqual({ seasons: true, control: true, register: true });
+    expect(held(4, ['fire_decision_control'])).toEqual({
+      seasons: false,
+      control: true,
+      register: false,
     });
   });
 
@@ -372,7 +440,7 @@ describe('the fire-safety context', () => {
       activity: 'Atelier de sudură',
       activityRunOn: 'atelier de sudură',
       address: 'Ghiroda, județul Timiș, Str. Industriilor 4',
-      floorAreaM2: 420,
+      areaLabel: '420\u00a0m²',
       normLabel: 'Alte amenajări (1 buc./150 m²)',
       assemblyPoint: 'Parcarea din fața atelierului',
       specificMeasures: 'Sudura numai cu permis de lucru cu foc.',
@@ -418,6 +486,60 @@ describe('the fire-safety context', () => {
     });
   });
 
+  it('prints a dash for the area and the norm of a mobile site, whatever it kept, and counts its means', () => {
+    const fire = buildFireSafetyContext({
+      ...facts,
+      workplaces: [
+        {
+          ...facts.workplaces[0]!,
+          kind: 'mobile_site',
+          activity: 'Lucrări de construcții',
+          floorAreaM2: 420,
+          extinguisherNorm: 'other_150',
+        },
+        { ...facts.workplaces[1]!, extinguisherNorm: 'none' },
+      ],
+    }).fire;
+    const [site, office] = fire.workplaces;
+    expect(site).toMatchObject({
+      activity: 'Lucrări de construcții',
+      activityRunOn: 'lucrări de construcții',
+      areaLabel: '—',
+      normLabel: '—',
+    });
+    expect(site!.extinguisherCount).toBeGreaterThan(0);
+    expect(office).toMatchObject({ areaLabel: '180\u00a0m²', normLabel: '—' });
+  });
+
+  it('prints each listed substance with its texts trimmed and the empty ones as the mark to fill in', () => {
+    const { substances } = buildFireSafetyContext(facts).fire;
+    expect(substances).toMatchObject({ state: 'listed', listed: true, none: false });
+    expect(substances.entries).toHaveLength(2);
+    expect(substances.entries[0]).toEqual({
+      name: 'Propan',
+      classification: 'Flam. Gas 1, H220; Press. Gas, H280',
+      quantity: '2 butelii de 11 kg',
+      physicalChemicalProperties: 'DE COMPLETAT',
+      identificationCodes: 'CAS 74-98-6, UN 1978',
+      healthEnvironmentRisks: 'DE COMPLETAT',
+      protectionMeans: 'DE COMPLETAT',
+      interventionMeasures: 'DE COMPLETAT',
+      extinguishingAgents: 'Pulbere, CO₂; răcirea buteliilor cu apă pulverizată',
+      storagePlace: 'Cușca metalică ventilată din curte',
+      handling: 'DE COMPLETAT',
+    });
+    expect(substances.entries[1]!.name).toBe('Diluant pentru vopsele');
+  });
+
+  it('prints the declaration alone for a client that uses no dangerous substances', () => {
+    expect(buildFireSafetyContext(withSubstances({ state: 'none' })).fire.substances).toEqual({
+      state: 'none',
+      none: true,
+      listed: false,
+      entries: [],
+    });
+  });
+
   it('says whether other firms work on the premises, for decision 9 to control them', () => {
     expect(buildFireSafetyContext(facts).fire.hasThirdParties).toBe(true);
     expect(buildFireSafetyContext(withCard({ hasThirdParties: false })).fire.hasThirdParties).toBe(
@@ -425,7 +547,7 @@ describe('the fire-safety context', () => {
     );
   });
 
-  it('leaves who collects the waste null when it is blank, for decision 8 to name the workers on duty', () => {
+  it('leaves who collects the waste null when it is blank, for decision 7 to name the workers on duty', () => {
     expect(buildFireSafetyContext(withCard({ wasteCollectors: '  ' })).fire.waste.collectors).toBe(
       null
     );
@@ -458,7 +580,13 @@ describe('the fire-safety context', () => {
     const withEquipment = (equipment: DocumentFacts['fireSafety']['equipment']) =>
       buildFireSafetyContext({ ...facts, fireSafety: { ...facts.fireSafety, equipment } }).fire
         .hasGasExtinguishers;
-    const unit = { workplaceId: officeId, capacity: 6, wheeled: false };
+    const unit = {
+      workplaceId: officeId,
+      capacity: 6,
+      wheeled: false,
+      nextServiceOn: null,
+      maintainer: null,
+    };
     expect(buildFireSafetyContext(facts).fire.hasGasExtinguishers).toBe(true);
     expect(
       withEquipment([
@@ -481,17 +609,125 @@ describe('the fire-safety context', () => {
     ).toBe(false);
   });
 
+  it('schedules the checks of each workplace: its extinguishers, its installations, then its free rows', () => {
+    const [workshop, office] = buildFireSafetyContext(facts).fire.schedules;
+    const coordinator =
+      'Florin Cristian TALOȘ, coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz';
+    expect(workshop).toEqual({
+      name: 'Atelier Ghiroda',
+      activity: 'Atelier de sudură',
+      hasRows: true,
+      empty: false,
+      rows: [
+        {
+          what: 'Controlul fiecărui stingător de incendiu (P6 – 2\u00a0buc., P50 carosabil – 1\u00a0buc., G5 – 1\u00a0buc.)',
+          interval: 'lunar',
+          who: coordinator,
+          basis:
+            'OMAI 135/2023 – art. 8; rezultatele se înscriu în registrul de evidență a controlului stingătoarelor',
+        },
+        {
+          what: 'Verificarea prin cântărire a stingătoarelor cu CO₂ sau agent curat (G5 – 1\u00a0buc.)',
+          interval: 'la cel mult 6 luni, în iunie și decembrie',
+          who: coordinator,
+          basis: 'OMAI 135/2023 – art. 8 alin. (3)',
+        },
+        {
+          what: 'Verificarea stingătoarelor de către o firmă atestată (P6 – 2\u00a0buc.)',
+          interval: 'anual',
+          who: 'S.C. FOC STOP S.R.L.',
+          basis: 'OMAI 135/2023 – art. 9; următorul service: 15.01.2027 și 12.03.2027',
+        },
+        {
+          what: 'Verificarea stingătoarelor de către o firmă atestată (P50 carosabil – 1\u00a0buc.)',
+          interval: 'anual',
+          who: 'S.C. Foc Stop S.R.L.',
+          basis: 'OMAI 135/2023 – art. 9; conform instrucțiunilor producătorului',
+        },
+        {
+          what: 'Verificarea stingătoarelor de către o firmă atestată (G5 – 1\u00a0buc.)',
+          interval: 'anual',
+          who: 'firmă atestată',
+          basis: 'OMAI 135/2023 – art. 9; conform instrucțiunilor producătorului',
+        },
+        {
+          what: 'Reîncărcarea stingătoarelor (P6 – 2\u00a0buc., P50 carosabil – 1\u00a0buc., G5 – 1\u00a0buc.)',
+          interval: 'la termenul producătorului',
+          who: 'S.C. FOC STOP S.R.L.',
+          basis: 'OMAI 135/2023 – art. 12',
+        },
+        {
+          what: 'Hidranți exteriori – Doi hidranți în curte',
+          interval: 'conform instrucțiunilor producătorului',
+          who: 'firmă atestată',
+          basis: '—',
+        },
+      ],
+    });
+    expect(office!.rows.slice(-3)).toEqual([
+      {
+        what: 'Instalație de detectare, semnalizare și avertizare la incendiu',
+        interval: 'la 6 luni',
+        who: 'S.C. ALARM SERVICE S.R.L.',
+        basis: 'următoarea verificare: 12.09.2026',
+      },
+      {
+        what: 'Hidranți interiori – Câte unul pe nivel',
+        interval: 'conform instrucțiunilor producătorului',
+        who: 'firmă atestată',
+        basis: 'următoarea verificare: 12.03.2027',
+      },
+      {
+        what: 'Instalația de utilizare a gazelor naturale',
+        interval: 'anual',
+        who: 'Operatorul de distribuție',
+        basis: '—',
+      },
+    ]);
+    expect(office!.rows.map((row) => row.what)).not.toContainEqual(
+      expect.stringContaining('cântărire')
+    );
+  });
+
+  it('derives an installation interval from its last and next check, and invents none', () => {
+    const intervalOf = (lastCheckOn: string | null, nextCheckOn: string | null) =>
+      buildFireSafetyContext({
+        ...facts,
+        fireSafety: {
+          ...facts.fireSafety,
+          installations: [
+            {
+              workplaceId: officeId,
+              kind: 'other',
+              description: 'Instalație de stingere cu gaz inert',
+              maintainer: null,
+              lastCheckOn,
+              nextCheckOn,
+            },
+          ],
+        },
+      }).fire.schedules[1]!.rows.find((row) => row.what === 'Instalație de stingere cu gaz inert')!
+        .interval;
+    expect(intervalOf('2026-03-12', '2027-03-10')).toBe('anual');
+    expect(intervalOf('2026-01-01', '2026-02-01')).toBe('lunar');
+    expect(intervalOf('2026-01-01', '2026-04-01')).toBe('la 3 luni');
+    expect(intervalOf('2026-01-01', '2028-01-01')).toBe('la 2 ani');
+    expect(intervalOf('2026-01-01', '2026-01-05')).toBe('conform instrucțiunilor producătorului');
+    expect(intervalOf(null, '2027-01-01')).toBe('conform instrucțiunilor producătorului');
+  });
+
   it('gives the training themes a block per staff category with posts, and a session per month of its schedule', () => {
     const ipsu = (sessions: number) =>
       dealChapters(fireOwnInstructionsChapters, sessions).map(
         ({ from, to }) => `IPSU art.\u00a0${from}–${to}`
       );
     const posted =
-      'instrucțiunile afișate la locul de muncă (Decizia nr.\u00a011 PSI); organizarea apărării împotriva incendiilor la locul de muncă';
+      'instrucțiunile afișate la locul de muncă (Decizia nr.\u00a010 PSI); organizarea apărării împotriva incendiilor la locul de muncă';
     const managers = 'Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă';
     const administrative = ipsu(2);
     const execution = ipsu(4);
-    expect(buildFireSafetyContext(facts).fire.themes).toEqual([
+    const hotWork = 'I.P.S.U. Lucrul cu foc deschis, art.\u00a01–7';
+    expect(buildFireSafetyContext(facts).fireThemes!.categories).toEqual([
       {
         staffCategory: 'technical_administrative',
         label: 'Personal administrativ',
@@ -519,7 +755,7 @@ describe('the fire-safety context', () => {
         intervalLabel: '3 LUNI',
         sessions: ['FEBRUARIE', 'MAI', 'AUGUST', 'NOIEMBRIE'].map((month, index) => ({
           month,
-          content: `${execution[index]}; ${posted}${index === 3 ? '; testare.' : ''}`,
+          content: `${execution[index]}; ${hotWork}; ${posted}${index === 3 ? '; testare.' : ''}`,
           duration: '120 min',
         })),
       },
@@ -543,7 +779,7 @@ describe('the fire-safety context', () => {
           workplaceId: null,
         },
       ],
-    }).fire.themes;
+    }).fireThemes!.categories;
     expect(themes.map((block) => block.staffCategory)).toEqual(['execution']);
     expect(themes[0]).toMatchObject({
       posts: ['Contabil', 'Sudor'],
@@ -559,6 +795,101 @@ describe('the fire-safety context', () => {
     expect(themes[0]!.sessions.filter((session) => session.content.endsWith('testare.'))).toEqual([
       themes[0]!.sessions[11],
     ]);
+  });
+
+  it('cites the fire-safety modules a category applies as the newest IPSU annexes them, each once', () => {
+    const [accountant, welder] = facts.jobPositions;
+    const storage = {
+      moduleId: 'a0a0a0a0-0000-4000-8000-000000000004',
+      domain: 'psi' as const,
+      title: 'Depozitare',
+      group: 'work_activity' as const,
+      version: {
+        id: 'b0b0b0b0-0000-4000-8000-000000000004',
+        number: 1,
+        createdAt: '2026-10-12T08:00:00+00:00',
+      },
+    };
+    const context = buildFireSafetyContext({
+      ...facts,
+      jobPositions: [
+        {
+          ...accountant!,
+          staffCategory: 'execution',
+          instructions: [...welder!.instructions, storage],
+        },
+        welder!,
+      ],
+      fireOwnInstructions: {
+        ...facts.fireOwnInstructions!,
+        annexes: [
+          ...facts.fireOwnInstructions!.annexes,
+          {
+            moduleId: 'a0a0a0a0-0000-4000-8000-000000000005',
+            versionId: 'b0b0b0b0-0000-4000-8000-000000000005',
+            title: 'Butelii de gaz',
+            articleCount: 4,
+          },
+        ],
+      },
+    }).fireThemes!;
+    expect(context.ownInstructionsRevision).toEqual({
+      id: 'd0d0d0d0-0000-4000-8000-000000000002',
+      number: 1,
+      versionIds: ['b0b0b0b0-0000-4000-8000-000000000003', 'b0b0b0b0-0000-4000-8000-000000000005'],
+    });
+    const [execution] = context.categories;
+    expect(execution!.posts).toEqual(['Contabil', 'Sudor']);
+    expect(execution!.sessions[0]!.content.split('; ').slice(1, 3)).toEqual([
+      'I.P.S.U. Lucrul cu foc deschis, art.\u00a01–7',
+      'instrucțiunile afișate la locul de muncă (Decizia nr.\u00a010 PSI)',
+    ]);
+  });
+
+  it('cites a module without numbered articles by its title alone', () => {
+    const sessions = buildFireSafetyContext({
+      ...facts,
+      fireOwnInstructions: {
+        ...facts.fireOwnInstructions!,
+        annexes: [
+          {
+            ...facts.fireOwnInstructions!.annexes[0]!,
+            title: ' Lucrul cu foc deschis ',
+            articleCount: 0,
+          },
+        ],
+      },
+    }).fireThemes!.categories[1]!.sessions;
+    expect(sessions[0]!.content).toContain('; I.P.S.U. Lucrul cu foc deschis; ');
+  });
+
+  it('leaves the themes out without a generated IPSU, which only generating them again asks for', () => {
+    const withoutIpsu = { ...facts, fireOwnInstructions: null };
+    expect(buildFireSafetyContext(withoutIpsu)).not.toHaveProperty('fireThemes');
+    expect(missingFireSafetyData(withoutIpsu)).toEqual([]);
+    expect(missingFireSafetyData(withoutIpsu, 'fire_decision_training')).toEqual([]);
+    expect(missingFireSafetyData(withoutIpsu, 'fire_training_themes')).toEqual([
+      'documents.fire_own_instructions',
+    ]);
+    expect(setRules.fire_safety.missing(withoutIpsu, 'fire_training_themes')).toEqual([
+      'documents.fire_own_instructions',
+    ]);
+    expect(fireSafetyGapConcerns('documents.fire_own_instructions', ['fire', 'fireThemes'])).toBe(
+      true
+    );
+    expect(fireSafetyGapConcerns('documents.fire_own_instructions', ['fire', 'annexes'])).toBe(
+      false
+    );
+  });
+
+  it('keeps the themes apart from `fire`, so a new IPSU dates no other document', () => {
+    const context = buildFireSafetyContext(facts);
+    const regenerated = buildFireSafetyContext({
+      ...facts,
+      fireOwnInstructions: { ...facts.fireOwnInstructions!, revisionNumber: 2 },
+    });
+    expect(regenerated.fire).toEqual(context.fire);
+    expect(regenerated.fireThemes).not.toEqual(context.fireThemes);
   });
 
   it('leaves a workplace without a manager of its own to the template', () => {
@@ -596,7 +927,16 @@ describe('a fire-safety document generated again', () => {
     responsiblePersons: [],
     jobPositions: [],
     workplaces: facts.workplaces.map((workplace) => ({ ...workplace, assemblyPoint: null })),
-    fireSafety: { card: null, equipment: [], installations: [] },
+    fireSafety: {
+      card: null,
+      equipment: [],
+      installations: [],
+      maintenanceItems: [],
+      buildings: [],
+      generatedFromTenEmployees: [],
+      documents: [],
+      substances: { state: 'undecided', entries: [] },
+    },
   };
 
   it('is built without the fire object while any of its data is missing, and with the rest', () => {
@@ -610,16 +950,27 @@ describe('a fire-safety document generated again', () => {
       'positions.any',
       'fire.workplaces',
       'fire.equipment',
+      'fire.substances',
     ]);
     const context = buildPartialFireSafetyContext(stageTwoGaps);
     expect(Object.keys(context).sort()).toEqual([
+      'annexes',
       'branding',
       'client',
+      'controlDecision',
       'fireSafetyTechnician',
+      'installationRegister',
       'issueDate',
+      'noAnnexes',
       'provider',
+      'seasonsDecision',
     ]);
-    expect(buildFireSafetyContext(facts)).toMatchObject(context);
+    expect(context).toMatchObject({ annexes: [], noAnnexes: true });
+    expect(buildFireSafetyContext(facts)).toMatchObject({
+      ...context,
+      annexes: expect.any(Array),
+      noAnnexes: false,
+    });
   });
 
   it('leaves out the name of the provider, the technician or the client that a gap is in', () => {
@@ -628,7 +979,18 @@ describe('a fire-safety document generated again', () => {
       organization: { ...facts.organization, fireSafetyTechnicianCertificate: ' ' },
       client: { ...facts.client, representativeRole: null },
     });
-    expect(Object.keys(context).sort()).toEqual(['branding', 'fire', 'issueDate', 'provider']);
+    expect(Object.keys(context).sort()).toEqual([
+      'annexes',
+      'branding',
+      'controlDecision',
+      'fire',
+      'fireThemes',
+      'installationRegister',
+      'issueDate',
+      'noAnnexes',
+      'provider',
+      'seasonsDecision',
+    ]);
   });
 
   it('keeps the fire object without the provider or its technician, which the template names as trainers', () => {
@@ -636,7 +998,38 @@ describe('a fire-safety document generated again', () => {
       ...facts,
       organization: { ...facts.organization, legalName: null, fireSafetyTechnicianName: ' ' },
     });
-    expect(Object.keys(context).sort()).toEqual(['branding', 'client', 'fire', 'issueDate']);
+    expect(Object.keys(context).sort()).toEqual([
+      'annexes',
+      'branding',
+      'client',
+      'controlDecision',
+      'fire',
+      'fireThemes',
+      'installationRegister',
+      'issueDate',
+      'noAnnexes',
+      'seasonsDecision',
+    ]);
+  });
+
+  it('leaves out the annexes while a position has not decided about the fire-safety modules', () => {
+    const undecided = {
+      ...facts,
+      jobPositions: facts.jobPositions.map((position) => ({
+        ...position,
+        needsFireInstructions: position.instructions.some((module) => module.domain === 'psi')
+          ? true
+          : null,
+      })),
+    };
+    expect(missingFireSafetyData(undecided)).toEqual(['fire.instructions']);
+    const context = buildPartialFireSafetyContext(undecided);
+    expect(context).not.toHaveProperty('annexes');
+    expect(context).not.toHaveProperty('noAnnexes');
+    expect(context).not.toHaveProperty('fireThemes');
+    expect(context).toHaveProperty('fire');
+    expect(fireSafetyGapConcerns('fire.instructions', ['annexes'])).toBe(true);
+    expect(fireSafetyGapConcerns('fire.instructions', ['fire', 'client'])).toBe(false);
   });
 
   it('is equal to the whole context when nothing is missing', () => {
@@ -686,5 +1079,62 @@ describe('setOfGroup', () => {
     expect(setOfGroup('documentation_set')).toBe('occupational_safety');
     expect(setOfGroup('fire_safety_set')).toBe('fire_safety');
     expect(setOfGroup('other')).toBeNull();
+  });
+});
+
+describe('the annexes of the fire-safety own instructions', () => {
+  const psi = (moduleId: string, title: string, group: 'work_activity' | 'work_equipment') => ({
+    moduleId,
+    domain: 'psi' as const,
+    title,
+    group,
+    version: { id: `${moduleId.slice(0, -1)}9`, number: 1, createdAt: '2026-10-01T08:00:00+00:00' },
+  });
+  const cylinders = psi('a0a0a0a0-0000-4000-8000-000000000005', 'Butelii de gaz', 'work_equipment');
+  const storage = psi('a0a0a0a0-0000-4000-8000-000000000004', 'Depozitare', 'work_activity');
+
+  it('are the fire-safety modules the positions apply, each once, by group and title', () => {
+    const [accountant, welder] = facts.jobPositions;
+    const context = buildFireSafetyContext({
+      ...facts,
+      jobPositions: [
+        { ...accountant!, instructions: [...accountant!.instructions, cylinders, storage] },
+        { ...welder!, instructions: [cylinders, ...welder!.instructions] },
+      ],
+    });
+    expect(context.annexes.map((annex) => [annex.number, annex.title, annex.versionDate])).toEqual([
+      [1, 'Depozitare', '01.10.2026'],
+      [2, 'Lucrul cu foc deschis', '11.10.2026'],
+      [3, 'Butelii de gaz', '01.10.2026'],
+    ]);
+    expect(context.noAnnexes).toBe(false);
+  });
+
+  it('leave the occupational safety modules to the other set, which leaves these to this one', () => {
+    expect(buildFireSafetyContext(facts).annexes).toEqual([
+      {
+        number: 1,
+        title: 'Lucrul cu foc deschis',
+        versionId: 'b0b0b0b0-0000-4000-8000-000000000003',
+        versionDate: '11.10.2026',
+      },
+    ]);
+    expect(buildDocumentContext(facts).annexes.map((annex) => annex.title)).toEqual([
+      'Activități de birou',
+      'Sudură oxiacetilenică',
+    ]);
+  });
+
+  it('say there are none when no position applies a fire-safety module', () => {
+    const context = buildFireSafetyContext({
+      ...facts,
+      jobPositions: facts.jobPositions.map((position) => ({
+        ...position,
+        needsFireInstructions: false,
+        instructions: position.instructions.filter((module) => module.domain === 'ssm'),
+      })),
+    });
+    expect(context.annexes).toEqual([]);
+    expect(context.noAnnexes).toBe(true);
   });
 });

@@ -12,7 +12,7 @@ import {
 
 test.afterAll(cleanUp);
 
-test("a specialist records a client's fire-safety training, smoking rule, workplace data and means, and the owner the technician's authorization", async ({
+test("a specialist records a client's fire-safety training, smoking rule, workplace data, means, other periodic checks and building, and the owner the technician's authorization", async ({
   page,
 }) => {
   const owner = await createAccount('fire-means-owner', 'Petra Stingător');
@@ -88,6 +88,47 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(page.getByText('Instalația a fost adăugată.')).toBeVisible();
   await expect(means.getByTestId('fire-installation-row')).toContainText('Centrală la intrare');
 
+  await expect(means.getByTestId('fire-maintenance-empty')).toBeVisible();
+  await means.getByTestId('fire-maintenance-add').click();
+  const maintenance = page.getByTestId('fire-maintenance-dialog');
+  await maintenance.getByTestId('fire-maintenance-subject').fill('Coșul de fum al centralei');
+  await maintenance.getByTestId('fire-maintenance-interval').fill('anual');
+  await maintenance.getByTestId('fire-maintenance-checked-by').fill('Firmă autorizată de coșerit');
+  await maintenance.getByTestId('fire-maintenance-save').click();
+  await expect(page.getByText('Verificarea a fost adăugată.')).toBeVisible();
+  await expect(means.getByTestId('fire-maintenance-row')).toContainText(
+    'Coșul de fum al centraleianual'
+  );
+
+  await expect(means.getByTestId('fire-building-empty')).toBeVisible();
+  await means.getByTestId('fire-building-edit').click();
+  const building = page.getByTestId('fire-building-dialog');
+  await building.getByTestId('fire-building-year').fill('1987');
+  await building.getByTestId('fire-building-area').fill('412,5');
+  await building.getByTestId('fire-building-levels').fill('P+1E');
+  await building.getByTestId('fire-building-classification').selectOption('civil');
+  await building.getByTestId('fire-building-save').click();
+  await expect(page.getByText('Datele clădirii au fost salvate.')).toBeVisible();
+  await expect(means.getByTestId('fire-building-facts')).toContainText('412,5 m²');
+  await expect(means.getByTestId('fire-building-edit')).toHaveText('Modifică');
+
+  const substances = page.getByTestId('fire-substances-card');
+  await expect(substances.getByTestId('fire-substances-state')).toHaveText('Nedecis');
+  await substances.getByTestId('fire-substances-choice-listed').click();
+  await expect(
+    page.getByText('Am notat că clientul utilizează substanțe periculoase.')
+  ).toBeVisible();
+  await substances.getByTestId('fire-substance-add').click();
+  const substance = page.getByTestId('fire-substance-dialog');
+  await substance.getByTestId('fire-substance-name').fill('Propan');
+  await substance.getByTestId('fire-substance-classification').fill('Flam. Gas 1, H220');
+  await substance.getByTestId('fire-substance-quantity').fill('2 butelii de 11 kg');
+  await substance.getByTestId('fire-substance-storage').fill('Cușca metalică din curte');
+  await substance.getByTestId('fire-substance-save').click();
+  await expect(page.getByText('Substanța a fost adăugată.')).toBeVisible();
+  await expect(substances.getByTestId('fire-substance-row')).toContainText('Propan');
+  await expect(substances.getByTestId('fire-substances-state')).toHaveText('1 substanță');
+
   await page.getByTestId('client-section').filter({ hasText: 'Detalii' }).click();
   const row = page.getByTestId('workplace-row');
   await expect(row.getByTestId('workplace-fire-incomplete')).toBeVisible();
@@ -109,10 +150,28 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(means.getByTestId('fire-equipment-hint')).toHaveText(
     '1 stingător · minim orientativ 3 (anexa 6)'
   );
+  await page.reload();
+  await expect(means.getByTestId('fire-building-facts')).toContainText('P+1E');
+
+  await page.getByTestId('client-section').filter({ hasText: 'Detalii' }).click();
+  await row.click();
+  await workplace.getByTestId('workplace-kind').selectOption('mobile_site');
+  await expect(workplace.getByTestId('workplace-floor-area')).toHaveCount(0);
+  await expect(workplace.getByTestId('workplace-norm')).toHaveCount(0);
+  await workplace.getByTestId('workplace-save').click();
+  await expect(workplace).toHaveCount(0);
+  await expect(row.getByTestId('workplace-fire-incomplete')).toHaveCount(0);
+  await page.getByTestId('client-section').filter({ hasText: 'Mijloace PSI' }).click();
+  await expect(means.getByTestId('fire-equipment-hint')).toHaveText(
+    '1 stingător · fără normă din anexa 6'
+  );
 
   await page.reload();
   await expect(means.getByTestId('fire-equipment-row')).toHaveCount(1);
   await expect(means.getByTestId('fire-installation-row')).toHaveCount(1);
+  await expect(means.getByTestId('fire-maintenance-row')).toHaveCount(1);
+  await expect(means.getByTestId('fire-building-edit')).toHaveCount(0);
+  await expect(page.getByTestId('fire-substance-row')).toHaveCount(1);
   await page.goto(`/clients/${clientId}/training`);
   await expect(card.getByTestId('fire-smoking-place')).toHaveText(
     'În curtea interioară, lângă poarta de acces auto'

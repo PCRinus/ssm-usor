@@ -11,6 +11,7 @@ import {
   documentSetTypeKeys,
   fireDecisionNumber,
   type GenerateDocumentsRequest,
+  isDatedDocumentType,
   type IssueDocumentRequest,
   maxFirstFireDecisionNumber,
   type MissingDocumentData,
@@ -43,7 +44,7 @@ import {
 import { loadDocumentFacts, loadOwnInstructions, type StoredDocumentFacts } from './facts';
 import { buildFireSafetyContext } from './fire-safety';
 import { setOfGroup, setRules } from './sets';
-import { annexedVersionIds, annexTitlePagesData, snapshotAnnexes } from './snapshot';
+import { annexDomainOf, annexedVersionIds, annexTitlePagesData, snapshotAnnexes } from './snapshot';
 
 type Tables = Database['public']['Tables'];
 type RevisionRow = Pick<
@@ -74,11 +75,11 @@ type RevisionRow = Pick<
 };
 type DocumentRow = Pick<
   Tables['client_documents']['Row'],
-  'id' | 'client_id' | 'type_key' | 'title' | 'decision_number' | 'document_group'
+  'id' | 'client_id' | 'type_key' | 'title' | 'decision_number' | 'period' | 'document_group'
 > & { document_revisions: RevisionRow[] };
 
 const documentColumns =
-  'id, client_id, type_key, title, decision_number, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date, first_decision_number), document_template_versions(version, kind, note), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
+  'id, client_id, type_key, title, decision_number, period, document_group, document_revisions(id, revision, status, docx_path, pdf_path, generation_id, data_snapshot, edited_at, issued_at, created_at, document_generations(issue_date, first_decision_number), document_template_versions(version, kind, note), document_signed_copies(revision_id, source, confirmed_at, uploaded_at))';
 
 const typeOrders = Object.fromEntries(
   Object.entries(documentSetTypeKeys).map(([set, typeKeys]) => [
@@ -113,6 +114,7 @@ function dataChanged(
   const input = {
     ...facts,
     issueDate: revision.document_generations.issue_date,
+    period: document.period,
     firstDecisionNumber:
       set === 'fire_safety'
         ? (fireFirstDecisionNumber(document, revision.document_generations.first_decision_number) ??
@@ -153,9 +155,13 @@ type AnnexLookup = { annexed: Map<string, ModuleVersion>; current: Map<string, M
 async function annexLookup(db: DataClient, documents: DocumentRow[]): Promise<AnnexLookup> {
   const versionIds = [
     ...new Set(
-      documents.flatMap((document) =>
-        document.document_revisions.flatMap((revision) => annexedVersionIds(revision.data_snapshot))
-      )
+      documents
+        .filter((document) => annexDomainOf(document.type_key))
+        .flatMap((document) =>
+          document.document_revisions.flatMap((revision) =>
+            annexedVersionIds(revision.data_snapshot)
+          )
+        )
     ),
   ];
   const lookup: AnnexLookup = { annexed: new Map(), current: new Map() };
@@ -178,7 +184,12 @@ async function annexLookup(db: DataClient, documents: DocumentRow[]): Promise<An
   return lookup;
 }
 
-function toAnnexes(revision: RevisionRow, lookup: AnnexLookup): DocumentAnnex[] {
+function toAnnexes(
+  document: DocumentRow,
+  revision: RevisionRow,
+  lookup: AnnexLookup
+): DocumentAnnex[] {
+  if (!annexDomainOf(document.type_key)) return [];
   return (snapshotAnnexes(revision.data_snapshot) ?? []).flatMap((annex) => {
     const version = lookup.annexed.get(annex.versionId);
     // Out of reach only for a snapshot naming another organization's module.
@@ -224,7 +235,7 @@ function toRevision(
       kind: revision.document_template_versions.kind as TemplateVersionKind,
       note: revision.document_template_versions.note,
     },
-    annexes: toAnnexes(revision, lookup),
+    annexes: toAnnexes(document, revision, lookup),
     createdAt: revision.created_at,
   };
 }
@@ -245,6 +256,7 @@ function toDocument(
     typeKey: document.type_key,
     title: document.title,
     decisionNumber: document.decision_number,
+    period: document.period,
     draft: current('draft'),
     issued: current('issued'),
   };
@@ -268,13 +280,24 @@ async function presentDocument(
   return presented!;
 }
 
-// The pack's own order first, then anything a provider added, by title.
+// The pack's own order first, then anything a provider added, by title; a dated type's newest
+// period first.
 const inSetOrder = (set: DocumentSet) => {
   const typeOrder = typeOrders[set];
   return (a: ClientDocument, b: ClientDocument) =>
     (typeOrder.get(a.typeKey) ?? Infinity) - (typeOrder.get(b.typeKey) ?? Infinity) ||
-    a.title.localeCompare(b.title, 'ro');
+    a.title.localeCompare(b.title, 'ro') ||
+    (b.period ?? 0) - (a.period ?? 0);
 };
+
+/** The year it is in Romania, which the documents are dated by. */
+function currentYear() {
+  return Number(
+    new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Europe/Bucharest' }).format(
+      new Date()
+    )
+  );
+}
 
 // The service contract has routes of its own (ADR 007).
 async function readDocuments(db: DataClient, clientId: string, set: DocumentSet) {
@@ -339,14 +362,11 @@ export async function listClientDocuments(
   if (generation.error) throw fromDatabaseError(generation.error, 'last document generation');
   return {
     items: (await presentDocuments(db, documents, facts)).sort(inSetOrder(set)),
-    notApplicable:
-      set === 'occupational_safety'
-        ? documentSetTypeKeys.occupational_safety.filter(
-            (typeKey) =>
-              !documentApplies(facts, typeKey) &&
-              !documents.some((document) => document.type_key === typeKey)
-          )
-        : [],
+    notApplicable: documentSetTypeKeys[set].filter(
+      (typeKey) =>
+        !documentApplies(facts, typeKey) &&
+        !documents.some((document) => document.type_key === typeKey)
+    ),
     currentEmployeeCount: facts.currentEmployeeCount,
     lastGeneration: generation.data
       ? {
@@ -457,7 +477,9 @@ export async function generateClientDocuments(
     issueDate: request.issueDate,
     firstDecisionNumber: request.firstDecisionNumber ?? 1,
   };
-  const input = { ...facts, ...asked };
+  const period = request.period ?? currentYear();
+  const periodOf = (typeKey: string) => (isDatedDocumentType(typeKey) ? period : null);
+  const input = { ...facts, ...asked, period: null };
   const missing = setRules[set].missing(input);
   if (missing.length > 0) throw missingDocumentDataError(missing);
 
@@ -469,14 +491,16 @@ export async function generateClientDocuments(
     console.error('No built-in templates are registered: run pnpm templates:register.');
     throw new ApiError('service_unavailable', 'The document templates are not available yet.');
   }
-  // A document without a revision is what a failed generation leaves behind: finish it.
+  // A document without a revision is what a failed generation leaves behind: finish it. A dated
+  // type's documents of other periods are neither complete nor in the way.
+  const ofAskedPeriod = (document: DocumentRow) => document.period === periodOf(document.type_key);
   const complete = new Set(
-    existing.filter((document) => document.document_revisions.length > 0).map((d) => d.type_key)
+    existing
+      .filter((document) => ofAskedPeriod(document) && document.document_revisions.length > 0)
+      .map((d) => d.type_key)
   );
   const wanted = templates.filter(
-    (template) =>
-      !complete.has(template.typeKey) &&
-      (set !== 'occupational_safety' || documentApplies(facts, template.typeKey))
+    (template) => !complete.has(template.typeKey) && documentApplies(facts, template.typeKey)
   );
   if (wanted.length === 0) return { created: [], skipped: [...complete] };
 
@@ -496,21 +520,53 @@ export async function generateClientDocuments(
 
   const create = (template: Template, merged: Merged) =>
     createDocument(db, files, actor, clientId, generation.data.id, template, merged, {
-      existingId: existing.find((document) => document.type_key === template.typeKey)?.id,
+      existingId: existing.find(
+        (document) => document.type_key === template.typeKey && ofAskedPeriod(document)
+      )?.id,
+      period: periodOf(template.typeKey),
       set,
     });
   const createdIds: string[] = [];
   let current = facts;
   if (fire) {
-    const data = { ...buildFireSafetyContext(input) };
+    const fireMerged = (data: Record<string, unknown>) => (template: Template) =>
+      create(template, {
+        data,
+        decisionNumber: fireDecisionNumber(template.typeKey, asked.firstDecisionNumber),
+      });
+    const dated = wanted.filter((template) => isDatedDocumentType(template.typeKey));
+    // The themes cite the IPSU revision this same run makes, so they come after it.
+    const themes = wanted.find((template) => template.typeKey === 'fire_training_themes');
     createdIds.push(
-      ...(await inBatches(wanted, (template) =>
-        create(template, {
-          data,
-          decisionNumber: fireDecisionNumber(template.typeKey, asked.firstDecisionNumber),
-        })
+      ...(await inBatches(
+        wanted.filter((template) => !dated.includes(template) && template !== themes),
+        fireMerged({ ...buildFireSafetyContext(input) })
       ))
     );
+    if (themes) {
+      current = {
+        ...facts,
+        fireOwnInstructions: await loadOwnInstructions(db, clientId, 'fire_own_instructions'),
+      };
+      // Nothing to cite only when the IPSU is an uploaded file: the themes wait for it.
+      if (current.fireOwnInstructions) {
+        createdIds.push(
+          await fireMerged({ ...buildFireSafetyContext({ ...current, ...asked, period: null }) })(
+            themes
+          )
+        );
+      }
+    }
+    // A dated document reports on the set, so it is merged with what this run has just made.
+    if (dated.length > 0) {
+      current = await loadDocumentFacts(db, clientId, actor);
+      createdIds.push(
+        ...(await inBatches(
+          dated,
+          fireMerged({ ...buildFireSafetyContext({ ...current, ...asked, period }) })
+        ))
+      );
+    }
   } else {
     const context = buildDocumentContext(input);
     const fromContext = (built: typeof context, typeKey: string): Merged => {
@@ -530,7 +586,7 @@ export async function generateClientDocuments(
       // Nothing to cite only when the own instructions are an uploaded file: the themes wait
       // for them to be generated.
       if (current.ownInstructions) {
-        const themesContext = buildDocumentContext({ ...current, ...asked });
+        const themesContext = buildDocumentContext({ ...current, ...asked, period: null });
         createdIds.push(await create(themes, fromContext(themesContext, themes.typeKey)));
       }
     }
@@ -568,7 +624,7 @@ async function createDocument(
   generationId: string,
   template: Template,
   { data, decisionNumber }: Merged,
-  options: { existingId?: string; set: DocumentSet }
+  options: { existingId?: string; period: number | null; set: DocumentSet }
 ) {
   const { bytes, snapshot } = merge(
     await files.readTemplate(template.storagePath),
@@ -586,6 +642,7 @@ async function createDocument(
         type_key: template.typeKey,
         title: template.title,
         decision_number: decisionNumber,
+        period: options.period,
         document_group: documentSetGroups[options.set],
         created_by: actor.createdBy,
       })
@@ -806,7 +863,12 @@ export async function regenerateDocument(
             previous.data?.first_decision_number
         )
       : null;
-  const input = { ...facts, issueDate, firstDecisionNumber: fireFirstNumber ?? 1 };
+  const input = {
+    ...facts,
+    issueDate,
+    period: document.period,
+    firstDecisionNumber: fireFirstNumber ?? 1,
+  };
   const missing = rules.missing(input, document.type_key);
   const [template] = await builtInTemplates(db, [document.type_key]);
   if (!template) {
@@ -894,7 +956,7 @@ export async function issueDocument(
   // second try.
   let pdfFile: { path: string; hash: string } | null = null;
   if (pdf) {
-    const annexes = await readAnnexes(db, files, draft.data_snapshot);
+    const annexes = await readAnnexes(db, files, document.type_key, draft.data_snapshot);
     const converted = await pdf.convertDocuments([bytes, ...annexes]);
     const path = pdfPathOf(draft.docx_path);
     await files.writeDocument(path, converted, { replace: true });
@@ -929,7 +991,7 @@ export async function printDocument(
   // The draft's annexes, or the issued revision's when there is no draft: what the binder
   // holds, printed with the file as shown.
   const revision = newest(document);
-  const annexes = await readAnnexes(db, files, revision?.data_snapshot ?? null);
+  const annexes = await readAnnexes(db, files, document.type_key, revision?.data_snapshot ?? null);
   return pdf.convertDocuments([bytes, ...annexes]);
 }
 
@@ -937,11 +999,17 @@ export async function printDocument(
  * A module's own file is never written to (ADR 012), so a title page before it is what names
  * it "Anexa N".
  */
-async function readAnnexes(db: DataClient, files: FileStore, snapshot: Json | null) {
-  const versionIds = annexedVersionIds(snapshot);
-  if (versionIds.length === 0) return [];
+async function readAnnexes(
+  db: DataClient,
+  files: FileStore,
+  typeKey: string,
+  snapshot: Json | null
+) {
+  const domain = annexDomainOf(typeKey);
+  const versionIds = domain ? annexedVersionIds(snapshot) : [];
+  if (!domain || versionIds.length === 0) return [];
   const titlePages = annexTitlePagesData(snapshot).map(
-    (data) => merge(annexTitlePage(), data, 'annex_title_page').bytes
+    (data) => merge(annexTitlePage(domain), data, `annex_title_page_${domain}`).bytes
   );
   const { data, error } = await db
     .from('instruction_module_versions')
@@ -998,16 +1066,21 @@ export async function uploadDocumentFile(
   actor: Actor,
   clientId: string,
   typeKey: BuiltInDocumentTypeKey,
-  bytes: Uint8Array
+  bytes: Uint8Array,
+  period?: number
 ) {
   requireDocx(bytes);
   const facts = await loadDocumentFacts(db, clientId, actor);
   if (facts.clientArchived) {
     throw new ApiError('conflict', 'Documents are only uploaded for an active client.');
   }
-  const existing = (await readDocuments(db, clientId, documentSetOf(typeKey))).find(
-    (document) => document.type_key === typeKey
-  );
+  // Without a period, a dated type's newest one.
+  const existing = (await readDocuments(db, clientId, documentSetOf(typeKey)))
+    .filter(
+      (document) =>
+        document.type_key === typeKey && (period === undefined || document.period === period)
+    )
+    .sort((a, b) => (b.period ?? 0) - (a.period ?? 0))[0];
   if (existing?.document_revisions.some((revision) => revision.status === 'draft')) {
     return saveDraftFile(db, files, actor, existing.id, bytes);
   }
@@ -1235,7 +1308,7 @@ export async function documentDownloadLink(
   const { data, error } = await db
     .from('document_revisions')
     .select(
-      'docx_path, pdf_path, revision, client_documents(title), document_signed_copies(storage_path)'
+      'docx_path, pdf_path, revision, client_documents(title, period), document_signed_copies(storage_path)'
     )
     .eq('id', revisionId)
     .eq('document_id', documentId)
@@ -1255,11 +1328,15 @@ export async function documentDownloadLink(
     );
   }
   const expiresInSeconds = 60;
+  // A dated document's year tells its files apart from the other years'.
+  const name = fileNameOf(
+    [data.client_documents.title, data.client_documents.period].filter(Boolean).join(' ')
+  );
   // No parentheses: Storage percent-encodes them and browsers save the name as it comes.
   const fileName =
     format === 'signed'
-      ? `${fileNameOf(data.client_documents.title)} - rev. ${data.revision} - semnat.pdf`
-      : `${fileNameOf(data.client_documents.title)} - rev. ${data.revision}.${format}`;
+      ? `${name} - rev. ${data.revision} - semnat.pdf`
+      : `${name} - rev. ${data.revision}.${format}`;
   return {
     url: await files.documentLink(path, expiresInSeconds),
     fileName,

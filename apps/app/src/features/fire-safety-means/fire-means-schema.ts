@@ -1,5 +1,7 @@
 import {
   extinguisherCode,
+  type FireBuildingClassification,
+  fireBuildingClassifications,
   type FireEquipmentKind,
   fireEquipmentKindLabels,
   fireEquipmentKinds,
@@ -10,18 +12,26 @@ import {
   type FireInstallationKind,
   fireInstallationKinds,
   minimumExtinguishers,
+  workplaceHasAreaAndNorm,
+  type WorkplaceKind,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type {
+  FireBuildingListResponse,
+  FireBuildingRequest,
   FireEquipmentListResponse,
   FireEquipmentRequest,
   FireInstallationListResponse,
   FireInstallationRequest,
+  FireMaintenanceItemListResponse,
+  FireMaintenanceItemRequest,
 } from '@/api/generated/api';
 
 export type FireEquipment = FireEquipmentListResponse['items'][number];
 export type FireInstallation = FireInstallationListResponse['items'][number];
+export type FireMaintenanceItem = FireMaintenanceItemListResponse['items'][number];
+export type FireBuilding = FireBuildingListResponse['items'][number];
 
 export const equipmentAddId = (workplaceId: string) => `fire-equipment-add-${workplaceId}`;
 
@@ -56,9 +66,16 @@ export function extinguisherCountLabel(count: number) {
 // Annex 6 is orientative, so this is a hint beside the count and never a warning.
 export function extinguisherHint(
   count: number,
-  workplace: { floorAreaM2: number | null; extinguisherNorm: FireExtinguisherNorm | null }
+  workplace: {
+    kind: WorkplaceKind;
+    floorAreaM2: number | null;
+    extinguisherNorm: FireExtinguisherNorm | null;
+  }
 ) {
-  const { floorAreaM2, extinguisherNorm } = workplace;
+  const { kind, floorAreaM2, extinguisherNorm } = workplace;
+  if (!workplaceHasAreaAndNorm(kind) || extinguisherNorm === 'none') {
+    return `${extinguisherCountLabel(count)} · fără normă din anexa 6`;
+  }
   if (floorAreaM2 === null || extinguisherNorm === null) return null;
   const minimum = minimumExtinguishers(floorAreaM2, extinguisherNorm);
   return minimum === null
@@ -245,3 +262,127 @@ export function toInstallationRequest(values: InstallationFormValues): FireInsta
     nextCheckOn: values.nextCheckOn || null,
   };
 }
+
+const requiredText = (min: number, max: number, empty: string, what: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, empty)
+    .min(min, `${what} are cel puțin ${min} caractere.`)
+    .max(max, `${what} are cel mult ${max} de caractere.`);
+
+export const maintenanceItemFormSchema = z.object({
+  workplaceId: z.string().min(1, 'Alege locul de muncă.'),
+  subject: requiredText(2, 160, 'Scrie ce se verifică.', 'Descrierea'),
+  intervalLabel: requiredText(2, 60, 'Scrie cât de des se verifică.', 'Periodicitatea'),
+  checkedBy: requiredText(2, 160, 'Scrie cine efectuează verificarea.', 'Numele'),
+});
+
+export type MaintenanceItemFormValues = z.infer<typeof maintenanceItemFormSchema>;
+
+export function newMaintenanceItemForm(workplaceId: string): MaintenanceItemFormValues {
+  return { workplaceId, subject: '', intervalLabel: '', checkedBy: '' };
+}
+
+export function toMaintenanceItemForm(item: FireMaintenanceItem): MaintenanceItemFormValues {
+  return {
+    workplaceId: item.workplaceId,
+    subject: item.subject,
+    intervalLabel: item.intervalLabel,
+    checkedBy: item.checkedBy,
+  };
+}
+
+export function toMaintenanceItemRequest(
+  values: MaintenanceItemFormValues
+): FireMaintenanceItemRequest {
+  return {
+    workplaceId: values.workplaceId,
+    subject: values.subject,
+    intervalLabel: values.intervalLabel,
+    checkedBy: values.checkedBy,
+  };
+}
+
+// Romanian writes the decimal comma; "412,5" and "412.5" are the same area.
+const decimalText = /^[0-9]{1,8}([.,][0-9]{1,2})?$/;
+const parsedDecimal = (value: string) => Number(value.replace(',', '.'));
+
+export const buildingFormSchema = z.object({
+  yearBuilt: z
+    .string()
+    .trim()
+    .refine(
+      (value) =>
+        value === '' ||
+        (/^[0-9]{4}$/.test(value) &&
+          Number(value) >= 1800 &&
+          Number(value) <= new Date().getFullYear()),
+      `Introdu un an între 1800 și ${new Date().getFullYear()}.`
+    ),
+  builtAreaM2: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === '' || (decimalText.test(value) && parsedDecimal(value) > 0),
+      'Introdu suprafața în m², de exemplu 412,5.'
+    ),
+  levels: optionalText(2, 40, 'Regimul de înălțime'),
+  classification: z.string(),
+  structure: optionalText(2, 120, 'Structura'),
+  heatingFuel: optionalText(2, 80, 'Combustibilul'),
+  gasUse: optionalText(2, 120, 'Utilizarea gazelor'),
+  electricalMaintainer: optionalText(2, 160, 'Denumirea firmei'),
+  electricalLastCheckOn: isoDate,
+  waterReserveM3: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === '' || decimalText.test(value),
+      'Introdu rezerva în m³, de exemplu 54 sau 0.'
+    ),
+  notes: optionalText(2, 1000, 'Observațiile'),
+});
+
+export type BuildingFormValues = z.infer<typeof buildingFormSchema>;
+
+export function toBuildingForm(building: FireBuilding | null): BuildingFormValues {
+  const decimal = (value: number | null | undefined) =>
+    value == null ? '' : String(value).replace('.', ',');
+  return {
+    yearBuilt: building?.yearBuilt?.toString() ?? '',
+    builtAreaM2: decimal(building?.builtAreaM2),
+    levels: building?.levels ?? '',
+    classification: building?.classification ?? '',
+    structure: building?.structure ?? '',
+    heatingFuel: building?.heatingFuel ?? '',
+    gasUse: building?.gasUse ?? '',
+    electricalMaintainer: building?.electricalMaintainer ?? '',
+    electricalLastCheckOn: building?.electricalLastCheckOn ?? '',
+    waterReserveM3: decimal(building?.waterReserveM3),
+    notes: building?.notes ?? '',
+  };
+}
+
+export function toBuildingRequest(values: BuildingFormValues): FireBuildingRequest {
+  return {
+    yearBuilt: values.yearBuilt ? Number(values.yearBuilt) : null,
+    builtAreaM2: values.builtAreaM2 ? parsedDecimal(values.builtAreaM2) : null,
+    levels: values.levels || null,
+    classification: (fireBuildingClassifications as readonly string[]).includes(
+      values.classification
+    )
+      ? (values.classification as FireBuildingClassification)
+      : null,
+    structure: values.structure || null,
+    heatingFuel: values.heatingFuel || null,
+    gasUse: values.gasUse || null,
+    electricalMaintainer: values.electricalMaintainer || null,
+    electricalLastCheckOn: values.electricalLastCheckOn || null,
+    waterReserveM3: values.waterReserveM3 ? parsedDecimal(values.waterReserveM3) : null,
+    notes: values.notes || null,
+  };
+}
+
+export const buildingIsEmpty = (building: FireBuildingRequest) =>
+  Object.values(building).every((value) => value === null || value === undefined);

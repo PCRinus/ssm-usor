@@ -10,8 +10,11 @@ import {
 } from '@ssm-usor/contracts';
 import { linkOptions } from '@tanstack/react-router';
 
-import type { DocumentSectionId } from '@/features/documents/document-sections';
-import { positionSections } from '@/features/job-positions/position-sections';
+import type {
+  DocumentSectionId,
+  FireSafetyDocumentSectionId,
+} from '@/features/documents/document-sections';
+import { type PositionSection, positionSections } from '@/features/job-positions/position-sections';
 import {
   clientEvaluationsSection,
   evaluationSections,
@@ -23,6 +26,7 @@ import type {
   ClientDetailsFocus,
   CompanyFocus,
   ContractFocus,
+  FireSafetyMeansFocus,
   OrganizationCompanyFocus,
   ProfileFocus,
   TrainingFocus,
@@ -33,11 +37,11 @@ const to = {
     linkOptions({ to: '/clients/$clientId/details', params: { clientId }, search: { focus } }),
   training: (clientId: string, focus: TrainingFocus) =>
     linkOptions({ to: '/clients/$clientId/training', params: { clientId }, search: { focus } }),
-  fireSafetyMeans: (clientId: string) =>
+  fireSafetyMeans: (clientId: string, focus: FireSafetyMeansFocus) =>
     linkOptions({
       to: '/clients/$clientId/fire-safety-means',
       params: { clientId },
-      search: { focus: 'fire-equipment' as const },
+      search: { focus },
     }),
   clientEvaluations: (clientId: string) =>
     linkOptions({
@@ -61,11 +65,17 @@ const to = {
     linkOptions({ to: '/clients/$clientId/job-positions', params: { clientId } }),
   documentSection: (clientId: string, section: DocumentSectionId) =>
     linkOptions({ to: '/clients/$clientId/documents', params: { clientId }, search: { section } }),
-  position: (clientId: string, jobPositionId: string, decision: JobPositionDecision) =>
+  fireSafetyDocumentSection: (clientId: string, section: FireSafetyDocumentSectionId) =>
+    linkOptions({
+      to: '/clients/$clientId/fire-safety-documents',
+      params: { clientId },
+      search: { section },
+    }),
+  position: (clientId: string, jobPositionId: string, section: PositionSection) =>
     linkOptions({
       to: '/clients/$clientId/job-positions/$jobPositionId',
       params: { clientId, jobPositionId },
-      hash: positionSections[decision],
+      hash: section,
     }),
   // Before the position is evaluated, the page offers to start.
   positionEvaluation: (clientId: string, jobPositionId: string) =>
@@ -135,6 +145,7 @@ export const documentPlaces = {
   jobPositions: 'Posturile de lucru',
   riskEvaluations: 'Evaluarea riscurilor',
   documents: 'Documentația SSM',
+  fireSafetyDocuments: 'Documentația PSI',
 } as const;
 
 type DocumentPlace = keyof typeof documentPlaces;
@@ -331,30 +342,58 @@ export const documentMissingData: Record<
     place: 'clientDetails',
     label: 'Datele PSI ale locurilor de muncă',
     detail:
-      'Activitatea, suprafața, norma de dotare, punctul de adunare și textele fișei de la locul de muncă.',
+      'Activitatea, punctul de adunare și textele fișei de la locul de muncă, iar la un spațiu fix și suprafața și norma de dotare.',
     target: ({ clientId }) => to.clientDetails(clientId, 'workplace-fire-data'),
   },
   'fire.equipment': {
     place: 'fireSafetyMeans',
     label: 'Stingătoarele locurilor de muncă',
     detail: 'Fiecare loc de muncă activ are nevoie de cel puțin un stingător.',
-    target: ({ clientId }) => to.fireSafetyMeans(clientId),
+    target: ({ clientId }) => to.fireSafetyMeans(clientId, 'fire-equipment'),
+  },
+  'fire.instructions': {
+    place: 'jobPositions',
+    label: 'Instrucțiunile specifice PSI ale posturilor',
+    detail: 'Fiecare post aplică instrucțiuni specifice PSI sau nu are nevoie de ele.',
+    target: ({ clientId }) => to.positions(clientId),
+  },
+  'documents.fire_own_instructions': {
+    place: 'fireSafetyDocuments',
+    label: 'Instrucțiunile proprii PSI, generate înaintea tematicii',
+    detail:
+      'Tematica PSI citează instrucțiunile specifice pe care le anexează instrucțiunile proprii PSI.',
+    target: ({ clientId }) => to.fireSafetyDocumentSection(clientId, 'own-instructions'),
+  },
+  'fire.substances': {
+    place: 'fireSafetyMeans',
+    label: 'Substanțele periculoase',
+    detail:
+      'Dacă clientul utilizează substanțe periculoase, cu cel puțin una în listă, sau că nu utilizează niciuna.',
+    target: ({ clientId }) => to.fireSafetyMeans(clientId, 'fire-substances'),
   },
 };
 
 const decisionRows: Record<
   JobPositionDecision,
-  { code: MissingDocumentData; section: string; detail: string }
+  { code: MissingDocumentData; section: string; detail: string; hash: PositionSection }
 > = {
   equipment: {
     code: 'positions.equipment',
     section: 'echipament de protecție',
     detail: 'Articolele postului, sau că nu are nevoie de echipament.',
+    hash: positionSections.equipment,
   },
   instructions: {
     code: 'positions.instructions',
     section: 'instrucțiuni',
     detail: 'Instrucțiunile specifice ale postului, sau că nu are nevoie de ele.',
+    hash: positionSections.instructions,
+  },
+  fire_instructions: {
+    code: 'fire.instructions',
+    section: 'instrucțiuni PSI',
+    detail: 'Instrucțiunile specifice PSI ale postului, sau că nu are nevoie de ele.',
+    hash: positionSections.fireInstructions,
   },
 };
 
@@ -428,7 +467,7 @@ export function documentMissingGroups({
         key: `${position.id}:${decision}`,
         label: `${position.name} · ${decisionRows[decision].section}`,
         detail: decisionRows[decision].detail,
-        target: to.position(clientId, position.id, decision),
+        target: to.position(clientId, position.id, decisionRows[decision].hash),
       }))
   );
   const evaluationRows = incompleteRiskEvaluations.flatMap((evaluation) =>

@@ -28,15 +28,18 @@ const fonts = packagedFonts({
 
 const templatesUrl = new URL('../templates/', import.meta.url);
 const annexTitle = 'annex title page';
+const fireAnnexTitle = 'fire annex title page';
 const docxIn = (folder: string) =>
   readdirSync(fileURLToPath(new URL(folder, templatesUrl)))
     .filter((name) => name.endsWith('.docx'))
     .map((name) => `${folder}${name}`);
-const files = [...docxIn(''), ...docxIn('fire/'), ...docxIn('other/'), annexTitle];
+const files = [...docxIn(''), ...docxIn('fire/'), ...docxIn('other/'), annexTitle, fireAnnexTitle];
 const read = (name: string) =>
   name === annexTitle
-    ? annexTitlePage()
-    : new Uint8Array(readFileSync(new URL(name, templatesUrl)));
+    ? annexTitlePage('ssm')
+    : name === fireAnnexTitle
+      ? annexTitlePage('psi')
+      : new Uint8Array(readFileSync(new URL(name, templatesUrl)));
 
 const words = (text: string) =>
   text

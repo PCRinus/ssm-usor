@@ -13,6 +13,7 @@ export type Database = {
           id: string;
           organization_id: string;
           owners_only: boolean;
+          period: number | null;
           title: string;
           type_key: string;
         };
@@ -25,6 +26,7 @@ export type Database = {
           id?: string;
           organization_id: string;
           owners_only?: boolean;
+          period?: number | null;
           title: string;
           type_key: string;
         };
@@ -37,6 +39,7 @@ export type Database = {
           id?: string;
           organization_id?: string;
           owners_only?: boolean;
+          period?: number | null;
           title?: string;
           type_key?: string;
         };
@@ -148,6 +151,7 @@ export type Database = {
           periodic_training_hours: number | null;
           smoking_place: string | null;
           smoking_policy: Database['public']['Enums']['fire_smoking_policy'] | null;
+          substances_state: Database['public']['Enums']['fire_substances_state'];
           training_day_from: number | null;
           training_day_to: number | null;
           training_first_month: number | null;
@@ -167,6 +171,7 @@ export type Database = {
           periodic_training_hours?: number | null;
           smoking_place?: string | null;
           smoking_policy?: Database['public']['Enums']['fire_smoking_policy'] | null;
+          substances_state?: Database['public']['Enums']['fire_substances_state'];
           training_day_from?: number | null;
           training_day_to?: number | null;
           training_first_month?: number | null;
@@ -186,6 +191,7 @@ export type Database = {
           periodic_training_hours?: number | null;
           smoking_place?: string | null;
           smoking_policy?: Database['public']['Enums']['fire_smoking_policy'] | null;
+          substances_state?: Database['public']['Enums']['fire_substances_state'];
           training_day_from?: number | null;
           training_day_to?: number | null;
           training_first_month?: number | null;
@@ -359,6 +365,7 @@ export type Database = {
           id: string;
           ignition_sources: string | null;
           is_registered_office: boolean;
+          kind: Database['public']['Enums']['workplace_kind'];
           locality: string | null;
           name: string;
           organization_id: string;
@@ -381,6 +388,7 @@ export type Database = {
           id?: string;
           ignition_sources?: string | null;
           is_registered_office?: boolean;
+          kind?: Database['public']['Enums']['workplace_kind'];
           locality?: string | null;
           name: string;
           organization_id: string;
@@ -403,6 +411,7 @@ export type Database = {
           id?: string;
           ignition_sources?: string | null;
           is_registered_office?: boolean;
+          kind?: Database['public']['Enums']['workplace_kind'];
           locality?: string | null;
           name?: string;
           organization_id?: string;
@@ -1144,6 +1153,105 @@ export type Database = {
           },
         ];
       };
+      fire_buildings: {
+        Row: {
+          built_area_m2: number | null;
+          classification: Database['public']['Enums']['fire_building_classification'] | null;
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          electrical_last_check_on: string | null;
+          electrical_maintainer: string | null;
+          gas_use: string | null;
+          heating_fuel: string | null;
+          id: string;
+          levels: string | null;
+          notes: string | null;
+          organization_id: string;
+          structure: string | null;
+          updated_at: string;
+          water_reserve_m3: number | null;
+          workplace_id: string;
+          year_built: number | null;
+        };
+        Insert: {
+          built_area_m2?: number | null;
+          classification?: Database['public']['Enums']['fire_building_classification'] | null;
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          electrical_last_check_on?: string | null;
+          electrical_maintainer?: string | null;
+          gas_use?: string | null;
+          heating_fuel?: string | null;
+          id?: string;
+          levels?: string | null;
+          notes?: string | null;
+          organization_id: string;
+          structure?: string | null;
+          updated_at?: string;
+          water_reserve_m3?: number | null;
+          workplace_id: string;
+          year_built?: number | null;
+        };
+        Update: {
+          built_area_m2?: number | null;
+          classification?: Database['public']['Enums']['fire_building_classification'] | null;
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          electrical_last_check_on?: string | null;
+          electrical_maintainer?: string | null;
+          gas_use?: string | null;
+          heating_fuel?: string | null;
+          id?: string;
+          levels?: string | null;
+          notes?: string | null;
+          organization_id?: string;
+          structure?: string | null;
+          updated_at?: string;
+          water_reserve_m3?: number | null;
+          workplace_id?: string;
+          year_built?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'fire_buildings_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_buildings_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_buildings_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_buildings_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_buildings_workplace_of_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_workplaces';
+            referencedColumns: ['id', 'client_id'];
+          },
+        ];
+      };
       fire_equipment: {
         Row: {
           agent: Database['public']['Enums']['fire_extinguishing_agent'] | null;
@@ -1321,6 +1429,176 @@ export type Database = {
           },
         ];
       };
+      fire_maintenance_items: {
+        Row: {
+          checked_by: string;
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          interval_label: string;
+          organization_id: string;
+          sort_order: number;
+          subject: string;
+          updated_at: string;
+          workplace_id: string;
+        };
+        Insert: {
+          checked_by: string;
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          interval_label: string;
+          organization_id: string;
+          sort_order?: number;
+          subject: string;
+          updated_at?: string;
+          workplace_id: string;
+        };
+        Update: {
+          checked_by?: string;
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          interval_label?: string;
+          organization_id?: string;
+          sort_order?: number;
+          subject?: string;
+          updated_at?: string;
+          workplace_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'fire_maintenance_items_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_maintenance_items_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_maintenance_items_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_maintenance_items_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_maintenance_items_workplace_of_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_workplaces';
+            referencedColumns: ['id', 'client_id'];
+          },
+        ];
+      };
+      fire_substances: {
+        Row: {
+          classification: string;
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          extinguishing_agents: string | null;
+          handling: string | null;
+          health_environment_risks: string | null;
+          id: string;
+          identification_codes: string | null;
+          intervention_measures: string | null;
+          name: string;
+          organization_id: string;
+          physical_chemical_properties: string | null;
+          protection_means: string | null;
+          quantity: string;
+          sort_order: number;
+          storage_place: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          classification: string;
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          extinguishing_agents?: string | null;
+          handling?: string | null;
+          health_environment_risks?: string | null;
+          id?: string;
+          identification_codes?: string | null;
+          intervention_measures?: string | null;
+          name: string;
+          organization_id: string;
+          physical_chemical_properties?: string | null;
+          protection_means?: string | null;
+          quantity: string;
+          sort_order?: number;
+          storage_place?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          classification?: string;
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          extinguishing_agents?: string | null;
+          handling?: string | null;
+          health_environment_risks?: string | null;
+          id?: string;
+          identification_codes?: string | null;
+          intervention_measures?: string | null;
+          name?: string;
+          organization_id?: string;
+          physical_chemical_properties?: string | null;
+          protection_means?: string | null;
+          quantity?: string;
+          sort_order?: number;
+          storage_place?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'fire_substances_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_substances_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_substances_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_substances_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       impersonations: {
         Row: {
           admin_user_id: string;
@@ -1410,6 +1688,7 @@ export type Database = {
           archived_at: string | null;
           created_at: string;
           created_by: string | null;
+          domain: Database['public']['Enums']['instruction_domain'];
           id: string;
           module_group: Database['public']['Enums']['instruction_module_group'];
           organization_id: string;
@@ -1420,6 +1699,7 @@ export type Database = {
           archived_at?: string | null;
           created_at?: string;
           created_by?: string | null;
+          domain?: Database['public']['Enums']['instruction_domain'];
           id?: string;
           module_group: Database['public']['Enums']['instruction_module_group'];
           organization_id: string;
@@ -1430,6 +1710,7 @@ export type Database = {
           archived_at?: string | null;
           created_at?: string;
           created_by?: string | null;
+          domain?: Database['public']['Enums']['instruction_domain'];
           id?: string;
           module_group?: Database['public']['Enums']['instruction_module_group'];
           organization_id?: string;
@@ -1532,6 +1813,7 @@ export type Database = {
           client_id: string;
           created_at: string;
           created_by: string | null;
+          domain: Database['public']['Enums']['instruction_domain'];
           id: string;
           job_position_id: string;
           module_id: string;
@@ -1541,6 +1823,7 @@ export type Database = {
           client_id: string;
           created_at?: string;
           created_by?: string | null;
+          domain?: Database['public']['Enums']['instruction_domain'];
           id?: string;
           job_position_id: string;
           module_id: string;
@@ -1550,6 +1833,7 @@ export type Database = {
           client_id?: string;
           created_at?: string;
           created_by?: string | null;
+          domain?: Database['public']['Enums']['instruction_domain'];
           id?: string;
           job_position_id?: string;
           module_id?: string;
@@ -1609,6 +1893,7 @@ export type Database = {
           created_by: string | null;
           id: string;
           name: string;
+          needs_fire_instructions: boolean | null;
           needs_instructions: boolean | null;
           needs_protective_equipment: boolean | null;
           organization_id: string;
@@ -1625,6 +1910,7 @@ export type Database = {
           created_by?: string | null;
           id?: string;
           name: string;
+          needs_fire_instructions?: boolean | null;
           needs_instructions?: boolean | null;
           needs_protective_equipment?: boolean | null;
           organization_id: string;
@@ -1641,6 +1927,7 @@ export type Database = {
           created_by?: string | null;
           id?: string;
           name?: string;
+          needs_fire_instructions?: boolean | null;
           needs_instructions?: boolean | null;
           needs_protective_equipment?: boolean | null;
           organization_id?: string;
@@ -2856,9 +3143,15 @@ export type Database = {
       document_revision_status: 'draft' | 'issued' | 'superseded';
       employee_status: 'active' | 'terminated';
       equipment_allocation: 'personal_inventory' | 'section_inventory' | 'consumable';
+      fire_building_classification: 'civil' | 'production' | 'storage' | 'mixed';
       fire_equipment_kind: 'extinguisher' | 'sand_box' | 'fire_post' | 'fire_blanket' | 'other';
       fire_extinguisher_norm:
-        'administrative_300' | 'commercial_200' | 'residential_level' | 'mixed_300' | 'other_150';
+        | 'administrative_300'
+        | 'commercial_200'
+        | 'residential_level'
+        | 'mixed_300'
+        | 'other_150'
+        | 'none';
       fire_extinguishing_agent: 'powder' | 'co2' | 'foam' | 'water' | 'clean_agent';
       fire_installation_kind:
         | 'detection_alarm'
@@ -2871,6 +3164,8 @@ export type Database = {
         | 'gas_detection'
         | 'other';
       fire_smoking_policy: 'forbidden_everywhere' | 'designated_places';
+      fire_substances_state: 'undecided' | 'none' | 'listed';
+      instruction_domain: 'ssm' | 'psi';
       instruction_module_group: 'work_activity' | 'work_equipment' | 'protective_equipment';
       organization_role: 'owner' | 'specialist';
       prevention_measure_kind: 'technical' | 'organizational' | 'hygienic_sanitary' | 'other';
@@ -2885,6 +3180,7 @@ export type Database = {
       risk_evaluation_kind: 'job_position' | 'sensitive_groups' | 'other';
       staff_category: 'technical_administrative' | 'execution';
       work_system_component: 'executant' | 'work_task' | 'means_of_production' | 'work_environment';
+      workplace_kind: 'fixed_space' | 'mobile_site';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -3011,6 +3307,7 @@ export const Constants = {
       document_revision_status: ['draft', 'issued', 'superseded'],
       employee_status: ['active', 'terminated'],
       equipment_allocation: ['personal_inventory', 'section_inventory', 'consumable'],
+      fire_building_classification: ['civil', 'production', 'storage', 'mixed'],
       fire_equipment_kind: ['extinguisher', 'sand_box', 'fire_post', 'fire_blanket', 'other'],
       fire_extinguisher_norm: [
         'administrative_300',
@@ -3018,6 +3315,7 @@ export const Constants = {
         'residential_level',
         'mixed_300',
         'other_150',
+        'none',
       ],
       fire_extinguishing_agent: ['powder', 'co2', 'foam', 'water', 'clean_agent'],
       fire_installation_kind: [
@@ -3032,6 +3330,8 @@ export const Constants = {
         'other',
       ],
       fire_smoking_policy: ['forbidden_everywhere', 'designated_places'],
+      fire_substances_state: ['undecided', 'none', 'listed'],
+      instruction_domain: ['ssm', 'psi'],
       instruction_module_group: ['work_activity', 'work_equipment', 'protective_equipment'],
       organization_role: ['owner', 'specialist'],
       prevention_measure_kind: ['technical', 'organizational', 'hygienic_sanitary', 'other'],
@@ -3047,6 +3347,7 @@ export const Constants = {
       risk_evaluation_kind: ['job_position', 'sensitive_groups', 'other'],
       staff_category: ['technical_administrative', 'execution'],
       work_system_component: ['executant', 'work_task', 'means_of_production', 'work_environment'],
+      workplace_kind: ['fixed_space', 'mobile_site'],
     },
   },
 } as const;

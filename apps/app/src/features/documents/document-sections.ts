@@ -98,10 +98,10 @@ export const fireSafetyDocumentSections = [
       'fire_decision_training',
       'fire_decision_open_fire',
       'fire_decision_smoking',
-      'fire_decision_seasons',
       'fire_decision_technician',
       'fire_decision_instructions',
       'fire_decision_waste',
+      'fire_decision_seasons',
       'fire_decision_control',
     ],
   },
@@ -127,7 +127,12 @@ export const fireSafetyDocumentSections = [
     id: 'means',
     number: '5',
     title: 'Mijloace de apărare și organizarea la locul de muncă',
-    typeKeys: ['fire_means_list', 'fire_workplace_organization'],
+    typeKeys: [
+      'fire_means_list',
+      'fire_workplace_organization',
+      'fire_substances_list',
+      'fire_maintenance_schedules',
+    ],
   },
   {
     id: 'registers',
@@ -140,6 +145,12 @@ export const fireSafetyDocumentSections = [
       'fire_installation_register',
       'fire_extinguisher_register',
     ],
+  },
+  {
+    id: 'inspectorate',
+    number: '7',
+    title: 'Documente pentru inspectorat',
+    typeKeys: ['fire_site_sheet', 'fire_annual_report'],
   },
 ] as const satisfies readonly {
   id: string;
@@ -207,7 +218,14 @@ const counted = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
 export type SectionRow =
-  | { kind: 'document'; key: string; title: string; document: ClientDocument }
+  | {
+      kind: 'document';
+      key: string;
+      title: string;
+      document: ClientDocument;
+      // A dated type's earlier years, newest first (ADR 020).
+      earlier?: ClientDocument[];
+    }
   | {
       kind: 'notApplicable' | 'notGenerated';
       key: string;

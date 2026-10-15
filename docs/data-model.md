@@ -82,6 +82,8 @@ sort of `sort=documentation`), `documentation_last_generated_at` (the newest
 (`fire_safety_generated_type_keys`, `fire_safety_issued_count`, the sort of
 `sort=fireSafetyDocumentation`, and `fire_safety_last_generated_at`), and `client_since`
 (`coalesce(promoted_at, created_at)`). The contract is `other`, so it counts in neither set.
+A dated document counts only for the current calendar year in Romania (ADR 020): a report of
+an earlier year neither stands for this year's nor counts as issued.
 The view is `security_invoker`, so each table inside answers to the caller's policies, and
 only `authenticated` selects from it. These were computed fields of `clients` at first, one
 query per client per column, which made the list slow; `current_employee_count(clients)`
@@ -195,7 +197,7 @@ columns a member may write, which still leaves out `name` and the accepted terms
 authorization of the provider to act as fire-safety technician under contract, Legea 307/2006
 art. 12^2, as the provider writes it: "nr. 12 din 15.09.2026, ISU Cluj". One text, not a number,
 a date and an issuer, while the form of the document the authorization methodology will issue is
-unknown. Decision 6 of the fire-safety set prints it when set, and no readiness asks for it
+unknown. Decision 5 of the fire-safety set prints it when set, and no readiness asks for it
 ([ADR 019](architecture/adr-019-fire-safety-stage-three.md)). It joins the columns a member may
 write, under the same owners' update policy.
 
@@ -208,7 +210,11 @@ Decided by [ADR 018](architecture/adr-018-fire-safety-means.md) and created by t
 `20261011090000_fire_safety_waste_kinds_length` lengthens a kind of waste and
 `20261011090100_fire_safety_waste_collectors` adds who collects the waste, both amending ADR 018;
 `20261011090200_fire_safety_third_parties` adds whether other firms work on the premises, amending
-ADR 019.
+ADR 019. `20261012090000_workplace_kind` and `20261012100000_fire_substances` add the workplace
+kind and the substances list of ADR 018's amendment of 2026-10-11,
+`20261012110000_fire_maintenance_items` the free rows of its schedules, and
+`20261012120000_fire_buildings` the building of a fixed-space workplace of
+[ADR 020](architecture/adr-020-fire-safety-from-ten-employees.md).
 The documents of the fire-safety set's second and third stages print these facts; the
 occupational safety set reads none of them.
 
@@ -230,6 +236,7 @@ but the keys and `waste_kinds` is nullable, so a card filled in halfway saves:
 | `waste_contractor`                        | The firm that collects the waste, 2 to 160 characters.                                                  |
 | `waste_collectors`                        | Who collects the waste at the client, 2 to 160 characters; null for the workers on duty.                |
 | `has_third_parties`                       | Other firms work on the client's premises; `false` by default. Decision 9 then controls them.           |
+| `substances_state`                        | `fire_substances_state`: `undecided`, the default, `none` or `listed`. See the substances list below.   |
 
 The smoking place is optional even with `designated_places`: without it decision 4 says the
 places are those marked "LOC PENTRU FUMAT". The API clears it whenever the card is saved with the
@@ -244,13 +251,18 @@ state: 2 hours, 3 months for both categories, and `clients.training_first_month`
 interval allows up to 12 months where OMAI 712/2005 allows 6. No fire-safety document reads the
 columns of `clients`.
 
-**Workplaces.** `client_workplaces` gains eight nullable columns. `activity` ("Gelaterie",
-"Birouri", 2 to 160 characters) is printed by decision 5, the list of means and the posted
+**Workplaces.** `client_workplaces` gains eight nullable columns, and from the amendment of
+2026-10-11 a `kind`, `workplace_kind`: `fixed_space`, the default, or `mobile_site`, a
+temporary or mobile site with no floor area and no annex 6 norm. A mobile site keeps an area
+or a norm saved before it became one, and the fire-safety set neither asks for them nor prints
+them; no check forbids them, so turning it back into a fixed space restores them. `activity` ("Gelaterie",
+"Birouri", 2 to 160 characters) is printed by decision 8, the list of means and the posted
 sheet. `floor_area_m2` (1 to 1,000,000) is the list's "Aria utilă". `extinguisher_norm` is
 the row of OMAI 163/2007 annex 6 that applies, the list's "Norma de dotare", as
 `fire_extinguisher_norm`: `administrative_300`, `commercial_200`, `residential_level`,
-`mixed_300` or `other_150`. `assembly_point` (2 to 240) is printed by the posted sheet and
-decision 5. `combustible_materials`, `ignition_sources` and `fire_risk_equipment` (2 to 600
+`mixed_300` or `other_150`, or `none` for a space the annex has no row for, such as a
+workshop, which the list prints as "—". `assembly_point` (2 to 240) is printed by the posted sheet and
+decision 8. `combustible_materials`, `ignition_sources` and `fire_risk_equipment` (2 to 600
 each) are points I.1, I.2 and I.3 of the posted sheet, and `specific_measures` (2 to 600) is
 its point I.5, printed empty when null. Point I.4, the general measures, is template text, the
 same at every workplace, and is not stored. A unique index on `(id, client_id)` lets the
@@ -259,8 +271,9 @@ The fire risk level is not stored: no document prints it.
 
 From the area and the norm the app shows the orientative minimum of extinguishers,
 `ceil(floor_area_m2 / divisor)` with 300, 200, 300 or 150 as the divisor and at least one; a
-`residential_level` workplace has no divisor and the hint reads "cel puțin unul pe nivel". It is
-never stored, never printed and never a reason to refuse generation.
+`residential_level` workplace has no divisor and the hint reads "cel puțin unul pe nivel". A
+workplace with the norm `none` and a mobile site get no minimum, and the hint reads "fără normă
+din anexa 6". It is never stored, never printed and never a reason to refuse generation.
 
 **Responsible persons.** `responsible_person_role` gains `fire_safety_coordinator` and
 `fire_intervention_leader`, seven roles in all, and the check on `roles` follows the list: from
@@ -310,6 +323,76 @@ another workplace of the same one. The API also refuses to tie a unit or a perso
 archived workplace, which the foreign key alone would take, and leaves units of an archived
 workplace out of its lists.
 
+**Dangerous substances.** `fire_substances` holds one row per substance a client uses, with
+`id`, `organization_id` and `client_id` and the composite foreign key to `clients`, and no
+workplace. Rows are deleted, not archived.
+
+| Column                         | Notes                                                                                     |
+| ------------------------------ | ----------------------------------------------------------------------------------------- |
+| `name`                         | Required, 2 to 160 characters.                                                            |
+| `classification`               | Required, 2 to 600: the CLP hazard classes and H statements, "Flam. Gas 1, H220".         |
+| `quantity`                     | Required, 1 to 160, free text: "2 butelii de 11 kg".                                      |
+| `physical_chemical_properties` | Optional, 2 to 1000; from section 9 of the safety data sheet.                             |
+| `identification_codes`         | Optional, 2 to 600; sections 1 and 3.                                                     |
+| `health_environment_risks`     | Optional, 2 to 1000; sections 2, 11 and 12.                                               |
+| `protection_means`             | Optional, 2 to 1000; section 8.                                                           |
+| `intervention_measures`        | Optional, 2 to 1000: intervention and first aid; sections 4, 5 and 6.                     |
+| `extinguishing_agents`         | Optional, 2 to 600: agents for extinguishing, neutralizing or decontaminating; section 5. |
+| `storage_place`                | Optional, 2 to 600; section 7.                                                            |
+| `handling`                     | Optional, 2 to 1000; section 7.                                                           |
+| `sort_order`                   | The order of the list; the API appends a new entry after the last.                        |
+
+The client's `client_fire_safety.substances_state` says whether it uses any: `undecided` until a
+member says, `none`, a declaration that it uses none, or `listed`. Two triggers keep the two in
+step: a substance is inserted only under a client whose state is `listed` (`SUB02`), and the state
+leaves `listed` only while the client has no substance (`SUB01`). Saving the state creates the
+`client_fire_safety` row when there is none; the API still reports the card as unsaved while the
+row holds nothing of the card, so the card opens on its starting values. Both are guarded as the
+other fire-safety tables are, and the list is asked of every client, under ten employees too.
+
+**Maintenance items.** `fire_maintenance_items` holds the free rows of a workplace's
+maintenance and check schedules (ADR 018, amended 2026-10-11): what the inventory does not hold,
+such as the yearly check of the gas installation or the chimney. It has `id`, `organization_id`,
+`client_id` and `workplace_id` with the composite foreign keys of `fire_installations`, so a row
+never sits on another client's workplace, and may move to another workplace of the same client.
+
+| Column           | Notes                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| `subject`        | What is checked, required, 2 to 160 characters.                                          |
+| `interval_label` | How often, as printed: "anual", "la 6 luni"; required, 2 to 60. No interval is computed. |
+| `checked_by`     | Who checks it, required, 2 to 160.                                                       |
+| `sort_order`     | The order on the workplace; the API appends a new row after the workplace's last.        |
+
+Rows are deleted, not archived, and guarded as the other fire-safety tables are. They are
+optional: no readiness code asks for them, and the schedules 5.4 print them below the rows they
+derive from the equipment and the installations.
+
+**Buildings.** `fire_buildings` holds the building of a fixed-space workplace (ADR 020), one row
+at most per workplace (`unique (workplace_id)`), for the site sheet 7.1. It has `id`,
+`organization_id`, `client_id` and `workplace_id` with the composite foreign keys of
+`fire_installations`; neither key is granted for update, so a building never moves. Every fact
+is nullable:
+
+| Column                     | Notes                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------- |
+| `year_built`               | `smallint`, 1800 to 2100 in the database; the API refuses a year after the current one. |
+| `built_area_m2`            | `numeric(10, 2)`, above 0.                                                              |
+| `levels`                   | The height regime as written, "P+1E"; 2 to 40.                                          |
+| `classification`           | `fire_building_classification`: `civil`, `production`, `storage` or `mixed`.            |
+| `structure`                | The load-bearing structure, 2 to 120.                                                   |
+| `heating_fuel`             | 2 to 80.                                                                                |
+| `gas_use`                  | What natural gas or LPG is used for, or that none is; 2 to 120.                         |
+| `electrical_maintainer`    | The firm that maintains the electrical installation, 2 to 160.                          |
+| `electrical_last_check_on` | Its last check.                                                                         |
+| `water_reserve_m3`         | `numeric(10, 2)`, 0 or more; 0 says there is no reserve of its own.                     |
+| `notes`                    | Anything else the sheet should carry under the building, 2 to 1000.                     |
+
+The detection and alarm, the safety lighting, the hydrants and the lightning protection are not
+stored here: the sheet reads them from `fire_installations` by kind. A row is kept, and not
+printed, when its workplace becomes a mobile site; the API refuses to save one for a mobile site.
+Rows are deleted, not archived, and guarded as the other fire-safety tables are. No readiness code
+asks for any of it: an empty building is a sheet with more gaps.
+
 **Readiness.** The fire-safety set adds these codes to `missingDocumentData` and
 `fireSafetyMissingDocumentData`: `fire.trainingSchedule` (the hours, both intervals, the first
 month and both days set), `fire.waste` (at least one kind), `fire.workplaces` (the seven
@@ -318,7 +401,8 @@ columns above other than `specific_measures` set on every active workplace), `fi
 `responsible.fire_intervention_leader` (an active person in each role). It also asks the existing `responsible.workplace_manager` and
 `positions.any`. Any of them refuses the whole set's generation. ADR 019 adds `fire.smokingPolicy` (a policy
 chosen) and `provider.fireSafetyTechnicianCertificate`; neither the smoking place nor the
-authorization is ever asked for.
+authorization is ever asked for. The amendment of 2026-10-11 adds `fire.substances`: the
+substances state `none`, or `listed` with at least one substance.
 
 **What the templates read.** Fire-safety templates read these facts from one merge object,
 `fire`, and nothing else about the client beyond `client`, `provider`, `fireSafetyTechnician`,
@@ -327,9 +411,20 @@ category and nothing else of them. The data snapshot keeps the whole `fire` valu
 of any fact above marks the set's drafts "Date modificate" and leaves the occupational safety
 ones alone. Fire-safety decisions print the generation's `first_decision_number` plus their
 fixed ordinal in the binder (1 to 9) minus one, and the fire-safety generation asks for
-that number. A fire-safety decision stores its printed number in `decision_number`, and a
-document of the set is compared with its snapshot, and generated again, with the first number
-it was made with.
+that number. The two decisions required only from ten employees take the last ordinals, 8 the
+seasons and 9 the own control (ADR 020). A fire-safety decision stores its printed number in
+`decision_number`, and a document of the set is compared with its snapshot, and generated
+again, with the first number it was made with.
+
+**Documents from ten employees.** Decisions 8 and 9, the schedules (`fire_maintenance_schedules`),
+the installation register (`fire_installation_register`), the site sheet (`fire_site_sheet`)
+and the annual report (`fire_annual_report`) are part of a client's fire-safety set from 10
+current employees,
+the same `current_employee_count(clients)` that decides decision 1.5 (ADR 010, ADR 020), or once
+the client has a revision of them, whatever the count is then. Nothing is stored for it: the
+facts read which of the six have a revision, and the merge data carries `seasonsDecision`,
+`controlDecision` and `installationRegister` beside `fire`, so a draft of a cover is marked
+"Date modificate" when the client crosses ten, not when any other fact changes.
 
 ## Employees
 
@@ -439,7 +534,11 @@ another position.
 ([ADR 012](architecture/adr-012-own-instructions.md)): one row per own instruction for a work
 activity, a piece of work equipment or a category of protective equipment, with a `title`,
 unique within the organization among the modules in use ignoring case, a `module_group`
-(`work_activity`, `work_equipment`, `protective_equipment`) and `archived_at`. The file is
+(`work_activity`, `work_equipment`, `protective_equipment`), a `domain` and `archived_at`. The
+**domain** (`instruction_domain`, ADR 012's amendment of 2026-10-11) says whose own instructions
+annex the module: `ssm`, the default and every module made before it, for the occupational
+safety set's 3.2, or `psi` for the fire-safety set's 2.1. There is one library and one title
+space for both. The file is
 the module, kept as its author made it: `instruction_module_versions` holds one row per save
 or upload, numbered from 1 per module, with the `sha256`, `size_bytes` and `article_count` of
 the file (the top-level items of its most used numbered list, which the training themes
@@ -451,17 +550,22 @@ only at a path a version of the caller's organization names.
 
 `job_position_instructions` says which modules a job position applies, one row per pair,
 with the same composite foreign keys as the equipment entries and a third one tying the
-module to the same organization. `job_positions.needs_instructions` is the position's
-decision, kept in step by triggers exactly like the equipment decision: null until decided,
-which blocks generating the own instructions; false when the post needs none beyond the
-common part; true while it applies modules (`INS01` for false with modules applied, `INS02`
-for true without). Applying an archived module is refused (`INS03`), archiving a module a
-current position applies is refused (`INS04`), and an archived module takes no new version
-(`INS05`).
+module to the same organization, and the `domain` the module was applied in (`ssm` when not
+given). A position decides about each domain apart: `job_positions.needs_instructions` is the
+occupational safety decision and `needs_fire_instructions` the fire-safety one, each kept in
+step by triggers with the rows of its own domain exactly like the equipment decision: null
+until decided, which blocks generating that set's own instructions (and the whole fire-safety
+set); false when the post needs none beyond the common part; true while it applies modules of
+the domain (`INS01` for false with modules applied, `INS02` for true without). A row whose
+domain is not its module's is refused (`INS06`), and so is changing the domain of a module a
+current position applies (`INS07`); an archived position's rows keep the domain they were
+applied in, since an archived position is never restored. Applying an archived module is
+refused (`INS03`), archiving a module a current position applies is refused (`INS04`), and an
+archived module takes no new version (`INS05`).
 
 Members read, create and update their organization's modules, add versions, and apply and
-remove modules for positions of active clients; updates are granted on the title, the group
-and `archived_at` only.
+remove modules for positions of active clients; updates are granted on the title, the group,
+the domain and `archived_at` only.
 
 ## Risk evaluations
 
@@ -572,9 +676,18 @@ already is, with the kind and note it was first registered with, and a new hash 
 next version. Members read templates and have no write policy.
 
 **Documents.** Each client has two documentation sets, the occupational safety set and the
-fire-safety set (ADR 016). `client_documents` holds a document type once per client (a
-unique constraint), with its title, its set in `document_group`, and, for decisions, the
-`decision_number`, which stays the same across revisions. `document_generations` records
+fire-safety set (ADR 016). `client_documents` holds a document type once per client and
+`period`, with its title, its set in `document_group`, and, for decisions, the
+`decision_number`, which stays the same across revisions. `period` is the year a **dated**
+type reports on ([ADR 020](architecture/adr-020-fire-safety-from-ten-employees.md)), a
+`smallint` from 2000 to 2100, and null for every other type; the check
+`client_documents_period_only_dated` sets it exactly for the dated types, today
+`fire_annual_report`, mirroring `datedDocumentTypeKeys` in the contracts. The unique
+constraint `client_documents_type_key` is on `(client_id, type_key, period)` with nulls not
+distinct, so an undated type appears once per client and a dated one once per year, each year
+a document with revisions of its own. A year rather than text because the API and the app
+count with it and it sorts as a number; the half-yearly report ADR 020 defers can add its half
+beside it. `document_generations` records
 what was asked when generating: the set in `document_group` (`documentation_set`, the
 default, or `fire_safety_set`, never `other`), the `issue_date` and the
 `first_decision_number`, which the occupational safety set always has and the fire-safety set
@@ -623,7 +736,9 @@ It carries the document, the client's name, the version the revision came from
 (`revision_version`), the template's newest version with its kind and note, and
 `edited_draft`, set when that revision is a draft saved by hand since it was generated. An
 uploaded revision has no template version and is never in it; neither is the service
-contract (group `other`), which is regenerated from its own page.
+contract (group `other`), which is regenerated from its own page, nor a dated document of an
+earlier period than the client's newest of that type (ADR 020): an earlier year's report is
+what was written for that year.
 
 `regeneration_jobs` holds one document type regenerated for every client behind it: the
 organization, `type_key`, `requested_by` (the member the documents name as their specialist),

@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
+import { fireSafetyHeadcountRule } from './document-labels';
+
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const sampleClient = {
   id: clientId,
@@ -39,15 +41,34 @@ const revision = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-const fireDocument = (id: string, typeKey: string, title: string) => ({
+const fireDocument = (
+  id: string,
+  typeKey: string,
+  title: string,
+  period: number | null = null
+) => ({
   id,
   clientId,
   typeKey,
   title,
   decisionNumber: null,
+  period,
   draft: revision({ id: id.replace(/^./, 'f') }),
   issued: null,
 });
+
+const reportTitle = 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor';
+const report2026 = fireDocument(
+  'de8f9a0e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+  'fire_annual_report',
+  reportTitle,
+  2026
+);
+const report2025 = {
+  ...fireDocument('ef9a0b1e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', 'fire_annual_report', reportTitle, 2025),
+  draft: null,
+  issued: revision({ id: '0a1b2c3d-2a6b-4c3d-8e7f-1a2b3c4d5e6f', status: 'issued' }),
+};
 
 const registersId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
 const permit = fireDocument(
@@ -94,6 +115,8 @@ function mockApi({
   fireItems = [] as unknown[],
   ssmItems = [] as unknown[],
   readiness = { ready: true, missing: [] as string[] },
+  notApplicable = [] as string[],
+  currentEmployeeCount = 12,
   generate = (() =>
     Response.json({ created: [cover, registers], skipped: [] }, { status: 201 })) as Route,
   behind = [] as unknown[],
@@ -118,7 +141,7 @@ function mockApi({
     if (pathname === `/clients/${clientId}/documents`) {
       return Response.json(
         fireSafety
-          ? { items: fireItems, lastGeneration: null, notApplicable: [], currentEmployeeCount: 6 }
+          ? { items: fireItems, lastGeneration: null, notApplicable, currentEmployeeCount }
           : {
               items: ssmItems,
               lastGeneration: null,
@@ -129,7 +152,7 @@ function mockApi({
     }
     if (pathname === `/clients/${clientId}/documents/readiness`) {
       return Response.json({
-        currentEmployeeCount: 6,
+        currentEmployeeCount,
         workersRepresentativeClash: null,
         undecidedJobPositions: [],
         incompleteRiskEvaluations: [],
@@ -185,13 +208,13 @@ const allBuilt = [
       ['fire_decision_training', 'Decizia privind instruirea în domeniul situațiilor de urgență'],
       ['fire_decision_open_fire', 'Decizia privind lucrul cu foc deschis'],
       ['fire_decision_smoking', 'Decizia privind fumatul'],
-      ['fire_decision_seasons', 'Decizia privind perioadele caniculare și sezonul rece'],
       ['fire_decision_technician', 'Decizia privind cadrul tehnic PSI'],
       [
         'fire_decision_instructions',
         'Decizia privind instrucțiunile de apărare împotriva incendiilor',
       ],
       ['fire_decision_waste', 'Decizia privind colectarea deșeurilor'],
+      ['fire_decision_seasons', 'Decizia privind perioadele caniculare și sezonul rece'],
       ['fire_decision_control', 'Decizia privind controlul propriu'],
       [
         'fire_cover_own_instructions',
@@ -211,6 +234,8 @@ const allBuilt = [
         'fire_workplace_organization',
         'Organizarea apărării împotriva incendiilor la locul de muncă',
       ],
+      ['fire_substances_list', 'Lista substanțelor periculoase'],
+      ['fire_maintenance_schedules', 'Graficele de întreținere și verificare'],
     ] as const
   ).map(([typeKey, title], index) =>
     fireDocument(`${index}0e1f2a3-2a6b-4c3d-8e7f-1a2b3c4d5e6f`, typeKey, title)
@@ -228,6 +253,7 @@ const allBuilt = [
     'fire_extinguisher_register',
     'Registru de evidență a controlului stingătoarelor de incendiu'
   ),
+  fireDocument('ce7f8a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', 'fire_site_sheet', 'Fișa obiectivului'),
 ];
 
 beforeEach(() => {
@@ -298,9 +324,10 @@ describe('client fire-safety documents', () => {
       '4. Teste de verificare a cunoștințelornegenerat',
       '5. Mijloace de apărare și organizarea la locul de muncănegenerat',
       '6. Registre și formulare PSInegenerat',
+      '7. Documente pentru inspectoratnegenerat',
     ]);
     expect(sections.map((section) => section.getAttribute('data-state'))).toEqual(
-      Array(6).fill('closed')
+      Array(7).fill('closed')
     );
     expect(screen.queryByTestId('document-row')).toBeNull();
   });
@@ -349,10 +376,10 @@ describe('client fire-safety documents', () => {
       ['document-not-generated', 'Decizia privind instruirea în domeniul situațiilor de urgență'],
       ['document-not-generated', 'Decizia privind lucrul cu foc deschis'],
       ['document-not-generated', 'Decizia privind fumatul'],
-      ['document-not-generated', 'Decizia privind perioadele caniculare și sezonul rece'],
       ['document-not-generated', 'Decizia privind cadrul tehnic PSI'],
       ['document-not-generated', 'Decizia privind instrucțiunile de apărare împotriva incendiilor'],
       ['document-not-generated', 'Decizia privind colectarea deșeurilor'],
+      ['document-not-generated', 'Decizia privind perioadele caniculare și sezonul rece'],
       ['document-not-generated', 'Decizia privind controlul propriu'],
     ]);
 
@@ -386,6 +413,110 @@ describe('client fire-safety documents', () => {
     );
   });
 
+  it('shows the documents required from ten employees as not applying to a smaller client', async () => {
+    mockApi({
+      fireItems: [registers],
+      currentEmployeeCount: 6,
+      notApplicable: [
+        'fire_decision_seasons',
+        'fire_decision_control',
+        'fire_maintenance_schedules',
+        'fire_installation_register',
+        'fire_site_sheet',
+        'fire_annual_report',
+      ],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await openSection(user, '1');
+    const decisions = within(sectionOf('1')).getAllByRole('row').slice(1);
+    expect(decisions.map((row) => row.getAttribute('data-testid'))).toEqual([
+      ...Array(8).fill('document-not-generated'),
+      'document-not-applicable',
+      'document-not-applicable',
+    ]);
+    const [seasons, control] = within(sectionOf('1')).getAllByTestId('document-not-applicable');
+    expect(seasons!.textContent).toBe(
+      'Decizia privind perioadele caniculare și sezonul receNu se aplicăSub 10 angajați'
+    );
+    expect(control!.textContent).toContain('Decizia privind controlul propriu');
+    expect(within(seasons!).getByText('Nu se aplică').getAttribute('title')).toBe(
+      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 angajați.'
+    );
+
+    await openSection(user, '5');
+    expect(
+      within(sectionOf('5'))
+        .getAllByRole('row')
+        .slice(1)
+        .map((row) => row.getAttribute('data-testid'))
+    ).toEqual([
+      'document-not-generated',
+      'document-not-generated',
+      'document-not-generated',
+      'document-not-applicable',
+    ]);
+    expect(within(sectionOf('5')).getByTestId('document-not-applicable').textContent).toBe(
+      'Graficele de întreținere și verificareNu se aplicăSub 10 angajați'
+    );
+
+    await openSection(user, '6');
+    expect(
+      within(sectionOf('6'))
+        .getAllByRole('row')
+        .slice(1)
+        .map((row) => row.getAttribute('data-testid'))
+    ).toEqual([
+      'document-not-generated',
+      'document-row',
+      'document-not-generated',
+      'document-not-applicable',
+      'document-not-generated',
+    ]);
+
+    await openSection(user, '7');
+    expect(
+      within(sectionOf('7'))
+        .getAllByTestId('document-not-applicable')
+        .map((row) => row.textContent)
+    ).toEqual([
+      'Fișa obiectivuluiNu se aplicăSub 10 angajați',
+      `${reportTitle}Nu se aplicăSub 10 angajați`,
+    ]);
+
+    await user.click(screen.getByTestId('documents-generate'));
+    expect((await screen.findByTestId('generate-headcount')).textContent).toBe(
+      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 angajați.'
+    );
+  });
+
+  it('says that the documents required from ten employees stay once they exist', async () => {
+    const control = fireDocument(
+      'bd6e7f9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+      'fire_decision_control',
+      'Decizia privind controlul propriu'
+    );
+    mockApi({
+      fireItems: [registers, control],
+      currentEmployeeCount: 9,
+      notApplicable: [
+        'fire_decision_seasons',
+        'fire_maintenance_schedules',
+        'fire_installation_register',
+        'fire_site_sheet',
+        'fire_annual_report',
+      ],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-generate'));
+    expect((await screen.findByTestId('generate-headcount')).textContent).toBe(
+      '9 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 angajați. Decizia privind controlul propriu există deja și rămâne în documentație, deși se cere doar de la 10 angajați.'
+    );
+  });
+
   it('opens the section named in the address alone', async () => {
     mockApi();
     mount(`${firePath}?section=tests`);
@@ -396,6 +527,7 @@ describe('client fire-safety documents', () => {
       'closed',
       'closed',
       'open',
+      'closed',
       'closed',
       'closed',
     ]);
@@ -410,22 +542,22 @@ describe('client fire-safety documents', () => {
     ]);
   });
 
-  it('has nothing to generate once every built document exists', async () => {
-    mockApi({ fireItems: allBuilt });
+  it('offers only another year of the dated documents once every built document exists', async () => {
+    mockApi({ fireItems: [...allBuilt, report2026] });
     mount();
     const user = userEvent.setup();
 
     await openSection(user, '6');
     expect(await screen.findAllByTestId('document-row')).toHaveLength(5);
     expect(screen.queryByTestId('document-not-generated')).toBeNull();
-    expect(screen.queryByTestId('documents-generate')).toBeNull();
+    expect(screen.getByTestId('documents-generate').textContent).toBe('Generează pentru alt an');
     expect(screen.queryByTestId('documents-hint')).toBeNull();
     expect(
       sectionOf('6').querySelector('[data-testid="document-section-summary"]')!.textContent
     ).toBe('5 ciorne');
     expect(
       sectionOf('5').querySelector('[data-testid="document-section-summary"]')!.textContent
-    ).toBe('2 ciorne');
+    ).toBe('4 ciorne');
     expect(
       sectionOf('1').querySelector('[data-testid="document-section-summary"]')!.textContent
     ).toBe('10 ciorne');
@@ -453,6 +585,7 @@ describe('client fire-safety documents', () => {
     const sections = await screen.findAllByTestId('document-section-trigger');
     expect(sections.map((section) => section.textContent).slice(5)).toEqual([
       '6. Registre și formulare PSI3 ciorne · 2 negenerate',
+      '7. Documente pentru inspectoratnegenerat',
       'Alte documente PSI1 ciornă',
     ]);
     await user.click(sections[5]!);
@@ -514,7 +647,6 @@ describe('client fire-safety documents', () => {
         `/clients/${clientId}/details?focus=legal-representative-role`,
       ],
     ]);
-    expect(screen.queryByTestId('generate-headcount')).toBeNull();
     expect(screen.queryByTestId('generate-submit')).toBeNull();
     const [asked] = requests('/documents/readiness');
     expect(asked!.url.searchParams.get('set')).toBe('fire_safety');
@@ -552,7 +684,11 @@ describe('client fire-safety documents', () => {
     const number = screen.getByTestId<HTMLInputElement>('generate-first-number');
     expect(number.value).toBe('1');
     expect(screen.getByText('Numărul primei decizii PSI')).toBeTruthy();
-    expect(screen.queryByTestId('generate-headcount')).toBeNull();
+    const period = screen.getByTestId<HTMLInputElement>('generate-period');
+    expect(period.value).toBe(String(new Date().getFullYear()));
+    expect(screen.getByTestId('generate-headcount').textContent).toBe(
+      '12 angajați în lista clientului, așa că se generează și decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare.'
+    );
 
     await user.clear(number);
     await user.type(number, '9992');
@@ -564,11 +700,22 @@ describe('client fire-safety documents', () => {
 
     await user.clear(number);
     await user.type(number, '4');
+    await user.clear(period);
+    await user.type(period, '1999');
+    await user.click(screen.getByTestId('generate-submit'));
+    expect((await screen.findByTestId('generate-period-error')).textContent).toContain(
+      'Introdu un an între 2000 și 2100.'
+    );
+    await user.clear(period);
+    await user.type(period, '2025');
     await user.click(screen.getByTestId('generate-submit'));
     expect(await screen.findByText('Au fost generate 2 documente.')).toBeTruthy();
     const [call] = requests('/documents/generate', 'POST');
     expect(call!.url.searchParams.get('set')).toBe('fire_safety');
-    expect(JSON.parse(String(call!.init?.body))).toMatchObject({ firstDecisionNumber: 4 });
+    expect(JSON.parse(String(call!.init?.body))).toMatchObject({
+      firstDecisionNumber: 4,
+      period: 2025,
+    });
   });
 
   it('leads each gap in the client data of the set to the field that fills it', async () => {
@@ -585,6 +732,7 @@ describe('client fire-safety documents', () => {
           'positions.any',
           'fire.workplaces',
           'fire.equipment',
+          'fire.substances',
         ],
       },
     });
@@ -593,7 +741,7 @@ describe('client fire-safety documents', () => {
 
     await user.click(await screen.findByTestId('documents-generate'));
     expect((await screen.findByTestId('generate-missing-count')).textContent).toBe(
-      '9 date de completat'
+      '10 date de completat'
     );
     const rows = screen.getAllByTestId('generate-missing-row');
     expect(rows.at(-1)!.textContent).toBe(
@@ -603,6 +751,7 @@ describe('client fire-safety documents', () => {
     expect(rows.map((row) => row.getAttribute('href'))).toEqual([
       `${client}/details?focus=workplace-fire-data`,
       `${client}/fire-safety-means?focus=fire-equipment`,
+      `${client}/fire-safety-means?focus=fire-substances`,
       `${client}/training?focus=fire-training-schedule`,
       `${client}/training?focus=fire-smoking`,
       `${client}/training?focus=fire-waste`,
@@ -670,6 +819,32 @@ describe('client fire-safety documents', () => {
     expect(runtime.router.history.location.search).toBe('?section=registers');
   });
 
+  it('lists the newest year of a dated document, the earlier ones folded under it', async () => {
+    mockApi({ fireItems: [report2026, report2025] });
+    mount();
+    const user = userEvent.setup();
+
+    await openSection(user, '7');
+    const rows = () => within(sectionOf('7')).getAllByTestId('document-row');
+    expect(rows().map((row) => within(row).getByTestId('document-title').textContent)).toEqual([
+      'Raport anual de evaluare 2026',
+    ]);
+    const toggle = within(sectionOf('7')).getByTestId('document-earlier-toggle');
+    expect(toggle.textContent).toBe('Anii anteriori (1)');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+
+    await user.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    const [, earlier] = rows();
+    expect(within(earlier!).getByTestId('document-title').textContent).toBe(
+      'Raport anual de evaluare 2025'
+    );
+    expect(within(earlier!).getByTestId('document-issued').textContent).toBe('Emis · rev. 1');
+    await user.click(within(earlier!).getByTestId('document-actions'));
+    expect(await screen.findByTestId('document-download-issued')).toBeTruthy();
+    expect(screen.queryByTestId('document-download-draft')).toBeNull();
+  });
+
   it('generates nothing for an archived client', async () => {
     mockApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
     mount();
@@ -677,8 +852,16 @@ describe('client fire-safety documents', () => {
     expect((await screen.findByTestId('documents-hint')).textContent).toBe(
       'Clientul este arhivat, așa că nu i se mai generează documente.'
     );
-    expect(await screen.findAllByTestId('document-section')).toHaveLength(6);
+    expect(await screen.findAllByTestId('document-section')).toHaveLength(7);
     expect(screen.queryByTestId('documents-empty')).toBeNull();
     expect(screen.queryByTestId('documents-generate')).toBeNull();
+  });
+});
+
+describe('fireSafetyHeadcountRule', () => {
+  it('speaks of the schedules in the plural, even when they are the only document kept', () => {
+    expect(fireSafetyHeadcountRule(4, ['fire_maintenance_schedules'])).toBe(
+      '4 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 angajați. Graficele de întreținere și verificare există deja și rămân în documentație, deși se cer doar de la 10 angajați.'
+    );
   });
 });

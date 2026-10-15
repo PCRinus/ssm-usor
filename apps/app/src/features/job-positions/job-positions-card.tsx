@@ -43,6 +43,8 @@ import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import {
+  domainDecision,
+  domainLabels,
   instructionStateLabel,
   positionCountLabel,
 } from '@/features/instructions/instruction-schema';
@@ -273,14 +275,31 @@ export function JobPositionsCard({
                 </TableCell>
                 <TableCell className="max-sm:col-span-2 max-sm:col-start-2 max-sm:row-start-4 max-sm:grid max-sm:justify-items-start max-sm:gap-1 max-sm:p-0">
                   <span className="text-xs text-muted-foreground sm:hidden">Instrucțiuni</span>
-                  <StateLink
-                    clientId={clientId}
-                    position={position}
-                    section={positionSections.instructions}
-                    decision={position.needsInstructions}
-                    label={instructionStateLabel(position)}
-                    testId="job-position-instructions"
-                  />
+                  <span className="grid grid-cols-[auto_auto] items-center justify-start gap-x-1.5 gap-y-1">
+                    {(['ssm', 'psi'] as const).map((domain) => (
+                      <Fragment key={domain}>
+                        <span className="text-xs text-muted-foreground">
+                          {domainLabels[domain]}
+                        </span>
+                        <StateLink
+                          clientId={clientId}
+                          position={position}
+                          section={
+                            domain === 'ssm'
+                              ? positionSections.instructions
+                              : positionSections.fireInstructions
+                          }
+                          decision={domainDecision(position, domain).needsInstructions}
+                          label={instructionStateLabel(domainDecision(position, domain))}
+                          testId={
+                            domain === 'ssm'
+                              ? 'job-position-instructions'
+                              : 'job-position-fire-instructions'
+                          }
+                        />
+                      </Fragment>
+                    ))}
+                  </span>
                 </TableCell>
                 <TableCell className="max-sm:col-span-3 max-sm:col-start-1 max-sm:row-start-5 max-sm:grid max-sm:justify-items-start max-sm:gap-1 max-sm:p-0">
                   <span className="text-xs text-muted-foreground sm:hidden">Evaluare de risc</span>
@@ -322,7 +341,16 @@ export function JobPositionsCard({
                           params={{ clientId, jobPositionId: position.id }}
                           hash={positionSections.instructions}
                         >
-                          Instrucțiuni
+                          Instrucțiuni SSM
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild data-testid="job-position-menu-fire-instructions">
+                        <Link
+                          to="/clients/$clientId/job-positions/$jobPositionId"
+                          params={{ clientId, jobPositionId: position.id }}
+                          hash={positionSections.fireInstructions}
+                        >
+                          Instrucțiuni PSI
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild data-testid="job-position-menu-risk">
@@ -454,7 +482,10 @@ const namesShown = 5;
 function UndecidedNotice({ clientId, positions }: { clientId: string; positions: JobPosition[] }) {
   const equipment = positions.filter((position) => position.needsProtectiveEquipment === null);
   const instructions = positions.filter((position) => position.needsInstructions === null);
-  if (equipment.length === 0 && instructions.length === 0) return null;
+  const fireInstructions = positions.filter((position) => position.needsFireInstructions === null);
+  if (equipment.length === 0 && instructions.length === 0 && fireInstructions.length === 0) {
+    return null;
+  }
   return (
     <Notice variant="warning" data-testid="job-positions-undecided">
       <ul className="grid gap-1">
@@ -470,11 +501,21 @@ function UndecidedNotice({ clientId, positions }: { clientId: string; positions:
         )}
         {instructions.length > 0 && (
           <li data-testid="job-positions-undecided-instructions">
-            {undecidedSentence(instructions.length, 'instrucțiunile stabilite')}{' '}
+            {undecidedSentence(instructions.length, 'instrucțiunile SSM stabilite')}{' '}
             <PositionNames
               clientId={clientId}
               positions={instructions}
               section={positionSections.instructions}
+            />
+          </li>
+        )}
+        {fireInstructions.length > 0 && (
+          <li data-testid="job-positions-undecided-fire-instructions">
+            {undecidedSentence(fireInstructions.length, 'instrucțiunile PSI stabilite')}{' '}
+            <PositionNames
+              clientId={clientId}
+              positions={fireInstructions}
+              section={positionSections.fireInstructions}
             />
           </li>
         )}

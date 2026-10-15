@@ -4,6 +4,7 @@ export const positionSections = {
   details: 'details',
   equipment: 'protective-equipment',
   instructions: 'instructions',
+  fireInstructions: 'fire-instructions',
   riskEvaluation: 'risk-evaluation',
 } as const;
 

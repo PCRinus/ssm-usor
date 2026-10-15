@@ -45,7 +45,7 @@ export const trainingFocus = [
   ...responsiblePersonFocus,
 ] as const;
 
-export const fireSafetyMeansFocus = ['fire-equipment'] as const;
+export const fireSafetyMeansFocus = ['fire-equipment', 'fire-substances'] as const;
 
 export const jobPositionsFocus = ['add-position'] as const;
 
@@ -81,6 +81,7 @@ export type ClientDetailsFocus = (typeof clientDetailsFocus)[number];
 export type WorkplacesFocus = (typeof workplacesFocus)[number];
 export type TrainingFocus = (typeof trainingFocus)[number];
 export type FireTrainingFocus = (typeof fireTrainingFocus)[number];
+export type FireSafetyMeansFocus = (typeof fireSafetyMeansFocus)[number];
 export type ResponsiblePersonFocus = (typeof responsiblePersonFocus)[number];
 export type OrganizationCompanyFocus = (typeof organizationCompanyFocus)[number];
 export type AuthorizationsFocus = (typeof authorizationsFocus)[number];
