@@ -27,6 +27,19 @@ function apiUrl(baseUrl: string | undefined, path: string) {
   return url;
 }
 
+const fileTypes = ['application/pdf', 'application/zip'];
+
+// `filename*` (RFC 8187) is the name with its diacritics; the API sends it beside the ASCII one.
+function fileNameOf(disposition: string | null) {
+  const encoded = disposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  if (!encoded) return null;
+  try {
+    return decodeURIComponent(encoded);
+  } catch {
+    return null;
+  }
+}
+
 export async function apiFetch<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const { baseUrl, getAccessToken, ...request } = options;
   const url = apiUrl(baseUrl, path);
@@ -60,8 +73,11 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
       cf_ray: response.headers.get('cf-ray'),
     });
   }
-  if (response.ok && response.headers.get('Content-Type')?.startsWith('application/pdf')) {
-    return (await response.blob()) as T;
+  const type = response.headers.get('Content-Type') ?? '';
+  if (response.ok && fileTypes.some((fileType) => type.startsWith(fileType))) {
+    const file = await response.blob();
+    const name = fileNameOf(response.headers.get('Content-Disposition'));
+    return (name ? new File([file], name, { type: file.type }) : file) as T;
   }
   const text = await response.text();
   let body: unknown;

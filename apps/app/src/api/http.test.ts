@@ -1,7 +1,12 @@
 import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getGetMeQueryOptions, getMe, printDocument } from '@/api/generated/api';
+import {
+  getDocumentArchive,
+  getGetMeQueryOptions,
+  getMe,
+  printDocument,
+} from '@/api/generated/api';
 
 import { apiFetch, ApiHttpError, apiUpload } from './http';
 
@@ -51,6 +56,22 @@ describe('generated client HTTP adapter', () => {
     const printed = await printDocument('test-document', new Blob(['docx']), { baseUrl });
     expect(printed).toBeInstanceOf(Blob);
     expect(await printed.text()).toBe(pdf);
+  });
+
+  it('returns a zip as a file under the name the API gives it', async () => {
+    const name = 'S.C. PIPETECH S.R.L. - documentația SSM - Word.zip';
+    fetchMock.mockResolvedValue(
+      new Response('PK', {
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': `attachment; filename="S.C. PIPETECH S.R.L. - documentatia SSM - Word.zip"; filename*=UTF-8''${encodeURIComponent(name)}`,
+        },
+      })
+    );
+    const archive = await getDocumentArchive('test-client', { format: 'docx' }, { baseUrl });
+    expect(archive).toBeInstanceOf(File);
+    expect((archive as File).name).toBe(name);
+    expect(await archive.text()).toBe('PK');
   });
 
   it('preserves the status of non-JSON proxy errors', async () => {

@@ -55,7 +55,7 @@ export function createApp() {
       // The waitlist form is the only thing the marketing site may call.
       origin: c.req.path === '/waitlist' ? [marketingOrigin(c.env)] : allowedOrigins(c.env),
       allowHeaders: ['Authorization', 'Content-Type'],
-      exposeHeaders: ['cf-ray'],
+      exposeHeaders: ['cf-ray', 'Content-Disposition'],
       allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       maxAge: 600,
     })(c, next)

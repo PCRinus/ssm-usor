@@ -835,6 +835,15 @@ into, so a draft corrected in the editor or elsewhere is judged as it stands. `D
 row, and is `409` when there is no draft, so an issued revision is never touched. Both roles
 can do all three, as the ADR decided.
 
+`GET /clients/{clientId}/documents/archive?set=&format=docx|pdf` answers one set as a zip,
+built in the Worker from Storage with `fflate` (stored, not deflated: Word files and PDFs are
+compressed already; names carry the UTF-8 flag, so diacritics survive Windows and macOS). Each
+document is a file numbered in the set's order. `docx` takes the issued revision, or the draft
+while nothing is issued (named "ciornă"), plus the own instructions' annexed module versions as
+files of their own; `pdf` takes only the PDFs made at issuing, which already hold the annexes.
+`409` with the reason `nothing_to_archive` when no document qualifies. The archive's name is in
+`Content-Disposition`, which CORS exposes so the SPA can save it under that name.
+
 `POST /documents/{documentId}/draft` is the correction that keeps what was written by hand:
 the next revision starts as a draft whose file is a copy of the issued one, with the same
 template version, generation, data snapshot and `edited_at`, so the draft says about itself

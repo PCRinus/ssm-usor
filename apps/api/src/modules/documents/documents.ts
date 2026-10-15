@@ -47,7 +47,7 @@ import { setOfGroup, setRules } from './sets';
 import { annexDomainOf, annexedVersionIds, annexTitlePagesData, snapshotAnnexes } from './snapshot';
 
 type Tables = Database['public']['Tables'];
-type RevisionRow = Pick<
+export type RevisionRow = Pick<
   Tables['document_revisions']['Row'],
   | 'id'
   | 'revision'
@@ -73,7 +73,7 @@ type RevisionRow = Pick<
     uploaded_at: string;
   } | null;
 };
-type DocumentRow = Pick<
+export type DocumentRow = Pick<
   Tables['client_documents']['Row'],
   'id' | 'client_id' | 'type_key' | 'title' | 'decision_number' | 'period' | 'document_group'
 > & { document_revisions: RevisionRow[] };
@@ -282,9 +282,12 @@ async function presentDocument(
 
 // The pack's own order first, then anything a provider added, by title; a dated type's newest
 // period first.
-const inSetOrder = (set: DocumentSet) => {
+export const inSetOrder = (set: DocumentSet) => {
   const typeOrder = typeOrders[set];
-  return (a: ClientDocument, b: ClientDocument) =>
+  return (
+    a: Pick<ClientDocument, 'typeKey' | 'title' | 'period'>,
+    b: Pick<ClientDocument, 'typeKey' | 'title' | 'period'>
+  ) =>
     (typeOrder.get(a.typeKey) ?? Infinity) - (typeOrder.get(b.typeKey) ?? Infinity) ||
     a.title.localeCompare(b.title, 'ro') ||
     (b.period ?? 0) - (a.period ?? 0);
@@ -300,7 +303,7 @@ function currentYear() {
 }
 
 // The service contract has routes of its own (ADR 007).
-async function readDocuments(db: DataClient, clientId: string, set: DocumentSet) {
+export async function readDocuments(db: DataClient, clientId: string, set: DocumentSet) {
   const { data, error } = await db
     .from('client_documents')
     .select(documentColumns)
@@ -1328,10 +1331,7 @@ export async function documentDownloadLink(
     );
   }
   const expiresInSeconds = 60;
-  // A dated document's year tells its files apart from the other years'.
-  const name = fileNameOf(
-    [data.client_documents.title, data.client_documents.period].filter(Boolean).join(' ')
-  );
+  const name = documentFileName(data.client_documents);
   // No parentheses: Storage percent-encodes them and browsers save the name as it comes.
   const fileName =
     format === 'signed'
@@ -1344,8 +1344,12 @@ export async function documentDownloadLink(
   };
 }
 
+// A dated document's year tells its files apart from the other years'.
+export const documentFileName = (document: { title: string; period: number | null }) =>
+  fileNameOf([document.title, document.period].filter(Boolean).join(' '));
+
 // What a file system accepts; the dash of a cover's title becomes a plain hyphen.
-const fileNameOf = (title: string) =>
+export const fileNameOf = (title: string) =>
   title
     .replace(/[–—]/g, '-')
     .replace(/[\\/:*?"<>|]/g, '')

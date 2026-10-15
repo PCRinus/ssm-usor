@@ -96,6 +96,13 @@ function mockApi({
     Response.json({ created: [firstAid, report], skipped: [] }, { status: 201 })) as Route,
   action = (() => Response.json({ document: firstAid })) as Route,
   upload = (() => Response.json({ document: firstAid })) as Route,
+  archive = (() =>
+    new Response('PK', {
+      headers: {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="VELOCE CAFE SRL - documentatia SSM.zip"; filename*=UTF-8''${encodeURIComponent('VELOCE CAFE SRL - documentația SSM - Word.zip')}`,
+      },
+    })) as Route,
   behind = [] as unknown[],
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
@@ -132,6 +139,7 @@ function mockApi({
       return Response.json({ items: [] });
     if (pathname === `/clients/${clientId}/job-positions`) return Response.json({ items: [] });
     if (pathname === `/clients/${clientId}/documents/generate`) return generate(init);
+    if (pathname === `/clients/${clientId}/documents/archive`) return archive(init);
     if (pathname.endsWith('/upload')) return upload(init);
     if (pathname.endsWith('/download')) {
       return Response.json({
@@ -809,6 +817,60 @@ describe('client documents', () => {
     expect(anchor.target).toBe('');
     expect(requests(`/revisions/${firstAid.draft!.id}/download`, 'GET')).toHaveLength(1);
     expect(requests('/signed', 'GET')).toHaveLength(0);
+  });
+
+  it('downloads the whole set as one archive, of Word files or of the PDFs made at issuing', async () => {
+    const issued = revision({ status: 'issued', issuedAt: '2026-09-19T11:00:00+00:00' });
+    mockApi({ items: [firstAid, { ...report, draft: null, issued: { ...issued, hasPdf: true } }] });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} })
+    );
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-archive'));
+    expect((await screen.findByTestId('documents-archive-pdf')).textContent).toContain('1 din 2');
+    await user.click(screen.getByTestId('documents-archive-docx'));
+
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+    expect((click.mock.contexts[0] as HTMLAnchorElement).download).toBe(
+      'VELOCE CAFE SRL - documentația SSM - Word.zip'
+    );
+    const [[url]] = requests('/documents/archive', 'GET') as [[string]];
+    expect(Object.fromEntries(new URL(String(url)).searchParams)).toEqual({
+      set: 'occupational_safety',
+      format: 'docx',
+    });
+
+    await user.click(await screen.findByTestId('documents-archive'));
+    await user.click(await screen.findByTestId('documents-archive-pdf'));
+    await waitFor(() => expect(requests('/documents/archive', 'GET')).toHaveLength(2));
+    const [, [pdfUrl]] = requests('/documents/archive', 'GET') as [unknown, [string]];
+    expect(new URL(String(pdfUrl)).searchParams.get('format')).toBe('pdf');
+  });
+
+  it('offers no PDF archive before anything is issued, and says when there is nothing to archive', async () => {
+    mockApi({
+      items: [firstAid],
+      archive: () =>
+        Response.json(
+          { error: 'conflict', message: 'Nothing.', reason: 'nothing_to_archive' },
+          { status: 409 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-archive'));
+    expect((await screen.findByTestId('documents-archive-pdf')).getAttribute('aria-disabled')).toBe(
+      'true'
+    );
+    await user.click(screen.getByTestId('documents-archive-docx'));
+    expect((await screen.findByTestId('documents-error')).textContent).toBe(
+      'Niciun document nu este generat încă.'
+    );
   });
 
   it('offers the PDF of an issued revision that has one, and asks the API for that format', async () => {

@@ -4,6 +4,7 @@ import {
   confirmDocumentSignedCopy,
   deleteDocumentDraft,
   generateClientDocuments,
+  getDocumentArchive,
   getDocumentDownload,
   getDocumentReadiness,
   getRegenerationJob,
@@ -23,6 +24,7 @@ import {
   confirmDocumentSignedCopyRoute,
   deleteDocumentDraftRoute,
   generateClientDocumentsRoute,
+  getDocumentArchiveRoute,
   getDocumentDownloadRoute,
   getDocumentReadinessRoute,
   getRegenerationJobRoute,
@@ -47,6 +49,7 @@ export const documentsRouter = createRouter()
   .openapi(getDocumentReadinessRoute, getDocumentReadiness)
   .openapi(listClientDocumentsRoute, listClientDocuments)
   .openapi(generateClientDocumentsRoute, generateClientDocuments)
+  .openapi(getDocumentArchiveRoute, getDocumentArchive)
   .openapi(getDocumentDownloadRoute, getDocumentDownload)
   .openapi(regenerateDocumentRoute, regenerateDocument)
   .openapi(issueDocumentRoute, issueDocument)

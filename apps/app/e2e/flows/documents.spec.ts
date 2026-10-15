@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
+import { unzipSync } from 'fflate';
 
 import {
   cleanUp,
@@ -21,6 +22,19 @@ async function act(page: Page, row: Locator, action: string, menu = 'document-ac
   await expect(page.getByRole('menu')).toHaveCount(0);
   await row.getByTestId(menu).click();
   await page.getByTestId(action).click();
+}
+
+async function downloadArchive(page: Page, format: string) {
+  await expect(page.getByRole('menu')).toHaveCount(0);
+  const download = page.waitForEvent('download');
+  await page.getByTestId('documents-archive').click();
+  await page.getByTestId(format).click();
+  const archive = await download;
+  const { readFile } = await import('node:fs/promises');
+  return {
+    name: archive.suggestedFilename(),
+    files: unzipSync(new Uint8Array(await readFile(await archive.path()))),
+  };
 }
 
 // Generating a client's documentation (ADR 005), against the real templates registered in the
@@ -267,6 +281,27 @@ test('the own instructions are issued with their annex, which opens in the edito
   await instructions.getByTestId('document-actions').click();
   await expect(page.getByTestId('document-download-pdf')).toBeVisible();
   await page.keyboard.press('Escape');
+
+  const wordArchive = await downloadArchive(page, 'documents-archive-docx');
+  expect(wordArchive.name).toMatch(/ - documentația SSM - Word\.zip$/);
+  const wordFiles = Object.keys(wordArchive.files);
+  expect(wordFiles).toContain('01 Copertă - Deciziile interne - rev. 1 - ciornă.docx');
+  expect(wordFiles.filter((name) => /^\d+ Instrucțiuni proprii de securitate/.test(name))).toEqual([
+    expect.stringMatching(/ - rev\. 1\.docx$/),
+    expect.stringMatching(/ - rev\. 1 - Anexa 1 - I\.P\.S\.S\.M\. .*\.docx$/),
+  ]);
+  for (const bytes of Object.values(wordArchive.files)) {
+    expect(Buffer.from(bytes.subarray(0, 2)).toString()).toBe('PK');
+  }
+  // Only the issued document has a PDF, which holds its annex already.
+  if (process.env.GOTENBERG_URL) {
+    const pdfArchive = await downloadArchive(page, 'documents-archive-pdf');
+    expect(pdfArchive.name).toMatch(/ - documentația SSM - PDF\.zip$/);
+    const [pdf, ...others] = Object.entries(pdfArchive.files);
+    expect(others).toEqual([]);
+    expect(pdf![0]).toMatch(/^01 Instrucțiuni proprii de securitate.* - rev\. 1\.pdf$/);
+    expect(Buffer.from(pdf![1].subarray(0, 5)).toString()).toBe('%PDF-');
+  }
 
   const annex = page.getByTestId('document-annex');
   await expect(annex).toHaveCount(1);

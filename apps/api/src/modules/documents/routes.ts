@@ -3,6 +3,7 @@ import {
   builtInDocumentTypeKeySchema,
   clientDocumentListResponseSchema,
   clientDocumentResponseSchema,
+  documentArchiveQuerySchema,
   documentDownloadQuerySchema,
   documentDownloadResponseSchema,
   documentReadinessResponseSchema,
@@ -144,6 +145,30 @@ export const getDocumentDownloadRoute = createRoute({
       description: 'The revision does not exist in the organization, or has no PDF',
       content: errorContent,
     },
+    ...membershipErrors,
+  },
+});
+
+export const getDocumentArchiveRoute = createRoute({
+  method: 'get',
+  path: '/clients/{clientId}/documents/archive',
+  operationId: 'getDocumentArchive',
+  summary: "Download one of a client's documentation sets as a zip archive",
+  description:
+    "Every document of the set named by `set`, numbered in the set's order. `format=docx` takes each document's issued Word file, or its draft while nothing is issued, with the own instructions' annexes as files of their own. `format=pdf` takes the PDFs made at issuing, which hold the annexes, and leaves out documents that have none. `409` with the reason `nothing_to_archive` when no document qualifies.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: clientParams, query: documentArchiveQuerySchema },
+  responses: {
+    200: {
+      description: 'The archive, named in `Content-Disposition`',
+      content: {
+        'application/zip': { schema: z.string().openapi({ type: 'string', format: 'binary' }) },
+      },
+    },
+    400: { description: 'Invalid path, set or format', content: errorContent },
+    404: noSuchClient,
+    409: { description: 'No document has a file in this format', content: errorContent },
     ...membershipErrors,
   },
 });
