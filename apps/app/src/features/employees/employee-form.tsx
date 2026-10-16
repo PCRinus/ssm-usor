@@ -260,6 +260,33 @@ export function EmployeeForm({
             title="Fișa de instruire"
             description="Aceste date sunt opționale și apar pe fișa de instruire."
           >
+            <Field
+              id="workplaceId"
+              label="Punct de lucru"
+              mark="optional"
+              hint="Unde lucrează angajatul. Dacă clientul are un singur punct de lucru, acesta e ales automat."
+              error={errors.workplaceId}
+              className="sm:col-span-2"
+            >
+              <Controller
+                control={formControl}
+                name="workplaceId"
+                render={({ field }) => (
+                  <EmployeeWorkplaceCombobox
+                    id="workplaceId"
+                    testId="employee-workplace"
+                    workplaces={workplaces}
+                    current={employee?.workplace ?? null}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    disabled={isSaving}
+                    invalid={Boolean(errors.workplaceId)}
+                    describedBy={describedBy('workplaceId', errors.workplaceId, true)}
+                  />
+                )}
+              />
+            </Field>
             <Field id="birthDate" label="Data nașterii" mark="optional" error={errors.birthDate}>
               <Controller
                 control={formControl}
@@ -332,56 +359,6 @@ export function EmployeeForm({
                   </NativeSelectOption>
                 ))}
               </NativeSelect>
-            </Field>
-            <Field
-              id="notes"
-              label="Observații"
-              mark="optional"
-              error={errors.notes}
-              className="sm:col-span-2"
-            >
-              <Textarea
-                id="notes"
-                data-testid="employee-notes"
-                rows={3}
-                {...register('notes')}
-                disabled={isSaving}
-                aria-invalid={Boolean(errors.notes)}
-                aria-describedby={describedBy('notes', errors.notes)}
-              />
-            </Field>
-          </FormSection>
-
-          <FormSection
-            title="Pentru fișa de instruire"
-            description="Apar pe fișele individuale de instruire SSM și PSI. Le poți completa și mai târziu."
-          >
-            <Field
-              id="workplaceId"
-              label="Punct de lucru"
-              mark="optional"
-              hint="Unde lucrează angajatul. Dacă clientul are un singur punct de lucru, acesta e ales automat."
-              error={errors.workplaceId}
-              className="sm:col-span-2"
-            >
-              <Controller
-                control={formControl}
-                name="workplaceId"
-                render={({ field }) => (
-                  <EmployeeWorkplaceCombobox
-                    id="workplaceId"
-                    testId="employee-workplace"
-                    workplaces={workplaces}
-                    current={employee?.workplace ?? null}
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    disabled={isSaving}
-                    invalid={Boolean(errors.workplaceId)}
-                    describedBy={describedBy('workplaceId', errors.workplaceId, true)}
-                  />
-                )}
-              />
             </Field>
             <Field
               id="qualification"
@@ -461,6 +438,23 @@ export function EmployeeForm({
                 {...register('commuteMinutes')}
                 autoComplete="off"
                 {...control('commuteMinutes')}
+              />
+            </Field>
+            <Field
+              id="notes"
+              label="Observații"
+              mark="optional"
+              error={errors.notes}
+              className="sm:col-span-2"
+            >
+              <Textarea
+                id="notes"
+                data-testid="employee-notes"
+                rows={3}
+                {...register('notes')}
+                disabled={isSaving}
+                aria-invalid={Boolean(errors.notes)}
+                aria-describedby={describedBy('notes', errors.notes)}
               />
             </Field>
           </FormSection>

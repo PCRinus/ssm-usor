@@ -711,8 +711,22 @@ describe('training sheet fields on employees (ADR 021)', () => {
   it('shows the sheet fields on the employee page', async () => {
     mockApi({ detail: () => Response.json({ employee: withSheet }) });
     mountApp(authFixture(makeSession()).client, detailPath);
-    const section = (await screen.findByRole('heading', { name: 'Pentru fișa de instruire' }))
+    const section = (await screen.findByRole('heading', { name: 'Fișa de instruire' }))
       .parentElement!;
+    const labels = [...section.querySelectorAll('dt')].map((term) => term.textContent);
+    expect(labels).toEqual([
+      'Punct de lucru',
+      'Data nașterii',
+      'Locul nașterii',
+      'Domiciliu',
+      'Grupa sanguină',
+      'Calificarea',
+      'Studiile',
+      'Autorizații',
+      'Traseul de deplasare',
+      'Durata deplasării (minute)',
+      'Observații',
+    ]);
     expect(within(section).getByText('Atelier Str. Fabricii 3')).toBeTruthy();
     expect(within(section).getByText('Sudor autorizat')).toBeTruthy();
     expect(within(section).getByText('Școala profesională')).toBeTruthy();
@@ -726,9 +740,20 @@ describe('training sheet fields on employees (ADR 021)', () => {
   it('prints a dash for each empty sheet field', async () => {
     mockApi({ detail: () => Response.json({ employee: createdEmployee }) });
     mountApp(authFixture(makeSession()).client, detailPath);
-    const empty = (await screen.findByRole('heading', { name: 'Pentru fișa de instruire' }))
+    const section = (await screen.findByRole('heading', { name: 'Fișa de instruire' }))
       .parentElement!;
-    expect(within(empty).getAllByText('—')).toHaveLength(6);
+    const value = (label: string) =>
+      within(section).getByText(label, { selector: 'dt' }).nextElementSibling?.textContent;
+    for (const label of [
+      'Punct de lucru',
+      'Calificarea',
+      'Studiile',
+      'Autorizații',
+      'Traseul de deplasare',
+      'Durata deplasării (minute)',
+    ]) {
+      expect(value(label)).toBe('—');
+    }
   });
 
   it('keeps an unchanged workplace out of the edit, even an archived one, and sends a new one', async () => {

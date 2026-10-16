@@ -489,13 +489,15 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   position opens a dialog that moves the person and sends the contract title only when it was
   changed. Creating, moving, marking a leaver and reactivating all refresh the positions list,
   whose counts they change.
-- Employees and what the training sheets print (ADR 021): the employee form ends with the group
-  "Pentru fișa de instruire", all optional: "Punct de lucru", a picker of the client's active
+- Employees and what the training sheets print (ADR 021): the employee form's group "Fișa de
+  instruire", all optional, starts with "Punct de lucru", a picker of the client's active
   workplaces from `GET …/workplaces` (`src/features/employees/employee-workplace-combobox.tsx`),
-  chosen already on a new employee when the client has exactly one; "Calificarea", "Studiile",
-  "Autorizații", "Traseul de deplasare" and "Durata deplasării (minute)". Editing sends the
+  chosen already on a new employee when the client has exactly one; after the birth date and
+  place, the home address and the blood group come "Calificarea", "Studiile", "Autorizații",
+  "Traseul de deplasare" and "Durata deplasării (minute)", then the notes. Editing sends the
   workplace only when it was changed, so a workplace archived since stays on the person and is
-  listed as "Arhivat". The employee page shows the same facts in a section of the same name.
+  listed as "Arhivat". The employee page shows the same facts in the same order, in its section
+  "Fișa de instruire".
 - `/clients/:clientId/training`: the "Instruire și responsabili" section of a client, what its
   generated documentation prints beyond the registration data (ADR 005), with the
   responsible persons below. The first card holds the periodic training schedule: duration, interval for administrative staff and for workers, first month, and the

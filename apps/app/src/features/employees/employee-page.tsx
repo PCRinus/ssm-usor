@@ -176,6 +176,9 @@ export function EmployeePage() {
         </Section>
 
         <Section title="Fișa de instruire">
+          <Fact label="Punct de lucru" wide>
+            {employee.workplace?.name}
+          </Fact>
           <Fact label="Data nașterii">
             {employee.birthDate ? formatDate(employee.birthDate) : null}
           </Fact>
@@ -184,15 +187,6 @@ export function EmployeePage() {
             {employee.homeAddress}
           </Fact>
           <Fact label="Grupa sanguină">{blood}</Fact>
-          <Fact label="Observații" wide>
-            {employee.notes}
-          </Fact>
-        </Section>
-
-        <Section title="Pentru fișa de instruire">
-          <Fact label="Punct de lucru" wide>
-            {employee.workplace?.name}
-          </Fact>
           <Fact label="Calificarea">{employee.qualification}</Fact>
           <Fact label="Studiile">{employee.education}</Fact>
           <Fact label="Autorizații" wide>
@@ -202,6 +196,9 @@ export function EmployeePage() {
             {employee.commuteRoute}
           </Fact>
           <Fact label="Durata deplasării (minute)">{employee.commuteMinutes}</Fact>
+          <Fact label="Observații" wide>
+            {employee.notes}
+          </Fact>
         </Section>
       </div>
       <EmployeeStatusDialog clientId={clientId} change={change} onClose={() => setChange(null)} />
