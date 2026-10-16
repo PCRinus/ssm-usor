@@ -927,12 +927,21 @@ deleting the first.
 | `size_bytes`, `sha256` | 1 byte to 20 MiB, and the SHA-256 of the content in hex.                                    |
 | `storage_path`         | Generated as `<organization>/<client>/<id>.<extension>` from the type; unique.              |
 | `uploaded_by`          | The signed-in user, the platform admin during an impersonation; null once the account goes. |
+| `employee_id`          | Optional: the employee of the same client the file is about (ADR 021); set at upload only.  |
 
 Members read their organization's files, except that a file for owners only is an owner's
 alone. A member inserts a row as its uploader, for an active client of their organization, or
 for a lead when they are an owner, and only an owner inserts one for owners only. The uploader
 and any owner update and delete the files they can see; column grants limit an update to
 `name`, `note` and `owners_only`.
+
+A file can belong to one of the client's employees ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)),
+such as the photograph of a paper training sheet: `employee_id` with `client_id` references
+`employees (id, client_id)`, so the employee is always the file's client's, and `on delete
+restrict` since employees are never deleted. The column grants leave it out of an update, so
+a file stays with the employee it was uploaded for. `client_files_employee_id_idx` on
+`(employee_id, created_at desc)` serves an employee's list. The policies do not change: who
+sees a file does not depend on whose it is.
 
 The archived-client trigger applies (`CLA01`). `protect_client_file_visibility` runs before
 every insert and update: a lead's file is for owners only (`CFL01`) until the lead is
