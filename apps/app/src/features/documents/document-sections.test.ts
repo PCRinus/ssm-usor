@@ -64,7 +64,9 @@ describe('document sections', () => {
   it('name a fire-safety document not generated yet by its template title', () => {
     expect(notGeneratedTitles).toEqual(
       Object.fromEntries(
-        fireManifest.templates.map((template) => [template.typeKey, template.title])
+        fireManifest.templates
+          .filter((template) => !('perEmployee' in template))
+          .map((template) => [template.typeKey, template.title])
       )
     );
   });

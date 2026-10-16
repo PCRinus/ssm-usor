@@ -261,6 +261,8 @@ across runs, and leaves an ellipsis alone.
 `templates/manifest.json` lists all 24 originals under their own numbers, with the stage each
 belongs to: the 23 of the provider's pack, and decision 1.5 on the workers' representatives,
 which came later from another client's pack (ADR 010). A template is named `<number>_<type_key>.docx`.
+Beside them the manifest lists the occupational safety [sheet](#sheets), an entry with
+`"perEmployee": true` and no number.
 
 All 23 are templates: the own instructions (3.2), the training themes (4.2) and the
 protective equipment list (6), stage 2, are generated from the positions (ADR 011, ADR 012,
@@ -524,10 +526,81 @@ page was added on 2026-10-11 while Docker was down, by copying the `ssm` page an
 texts for the ones its definition names; the builder makes both from the definitions the next
 time it runs.
 
+## Sheets
+
+A sheet ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)) is what
+the app generates about one employee: built from the employee and their training records when
+it is opened, merged and converted to PDF in one request by
+`GET /clients/{clientId}/employees/{employeeId}/training-sheet` ([API](api.md)), and never
+stored. Its template is a built-in template like the others, registered in versions so that a
+change in the legal form is tracked (ADR 017), but it belongs to no documentation set: its
+manifest entry carries `"perEmployee": true` and no `number`, and nothing that walks a set
+reads it. The documents tabs, the covers, the readiness and generation of a set, the contracts'
+type-key lists of the sets (`documentTypeKeys`, `fireSafetyDocumentTypeKeys`), the zip of a set
+and the documents behind their template never meet it, since it has no row in
+`client_documents`; `apps/api/scripts/lib/template-context.test.ts` fails when a per-employee
+type key turns up in a set.
+
+| `type_key`           | Template                                  | Form                                                                                                                                                                                                                                                                                                                         |
+| -------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `training_sheet_ssm` | `templates/fisa_instruire_ssm.docx`       | Annex 11 of the norms of H.G. 1425/2006: the unit, the identification block, the introductory general and the workplace training each with three signatures, "Admis la lucru", the periodic and the supplementary periodic tables, then empty the test results, accidents, sanctions, medical checks and psychological tests |
+| `training_sheet_psi` | `templates/fire/fisa_instructaj_psi.docx` | The annex of the general dispositions of OMAI 712/2005: the cover with the name, number and address, the "ATENȚIE!" box on its back, the personal data, the two hiring trainings with two signatures each, "Admis la lucru", and the periodic table                                                                          |
+
+Both are portrait A4, drawn as plain OOXML by `tools/import/build_sheets.py` (`pnpm --filter
+@ssm-usor/document-engine build-sheets`) on the package of the annual report (7.2), without
+its box of document details, since a sheet carries no issue date. A change to a sheet is made
+to the script and the file built again; the build gives the same bytes every time. A blank is
+a cell with a line under it; the workplace training starts a page of its own so that neither
+hiring training is cut in two; each periodic table opens a page, its column heads repeated on
+every page. The fire-safety periodic table has a "Data" column, which the annex as published on
+the Portal Legislativ does not show, since a row without a date says nothing.
+
+The merge data is built by `buildTrainingSheetData` in `apps/api/src/modules/trainings/sheet.ts`,
+pure and tested with a fixture, through the same gap rules as the sets. Every value is text, and
+a line the form leaves blank is an empty text, never a missing name:
+
+| Name            | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `branding`      | The footer line, as on every template                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `client`        | `legalName`                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `employee`      | `name` ("POPESCU Ion", the surname in capitals), `employeeNumber`, `bloodGroup` ("A(II) Rh+"), `homeAddress`, `birth` ("14.03.1988, Lugoj"), `qualification`, `education`, `contractTitle`, `authorizations`, `commute` (the route and "(25 de minute)"), and `workplace`: the employee's workplace, else the client's only active one, with the position's work zone, "Punct de lucru Str. Fabricii 3 – Atelier", or whichever of the two exists |
+| `hiring`        | `introductory` and `workplace`, each `{ heldOn, hours, trainer, trainerJobTitle, material, occupation, place }` from the latest record of that phase, every value empty before one is recorded; `place` is the employee's `workplace` on the workplace training                                                                                                                                                                                   |
+| `admission`     | `{ admittedOn, name, jobTitle }` of the workplace training record, empty without one                                                                                                                                                                                                                                                                                                                                                              |
+| `periodic`      | A row per periodic record, oldest first, `{ heldOn, hours, occupation, material, trainer, verifier }`; on the fire-safety sheet the supplementary records too                                                                                                                                                                                                                                                                                     |
+| `supplementary` | The occupational safety sheet's supplementary records, the reason after the material ("… (motivul: reluarea activității după un accident de muncă)"); empty on the fire-safety sheet, whose rows carry the reason the same way                                                                                                                                                                                                                    |
+| `blankRows`     | `{ periodic, supplementary }`, lists of empty items, one per blank row the table prints after its recorded rows                                                                                                                                                                                                                                                                                                                                   |
+| `signers`       | `{ introductory, workplace }`, each `{ trainer, verifier }`: the names printed small under the hiring trainings' signature lines; on the fire-safety sheet `verifier` is the record's verifier or, without one, its trainer, who signs as the person who verified                                                                                                                                                                                 |
+
+Dates print as `dd.mm.yyyy`. A duration prints in hours, a whole number as "2" and any other
+with one decimal and a comma, "1,5". Under a signature the name of the person a record names is
+printed small; the trainee's never, since the signature says who.
+
+While the signatures are collected on paper, the printed sheet is the signed original, and each
+periodic table runs on in blank rows to the foot of its page: `paperSignatureRows` in
+`sheet.ts` is `true`, and with `false` no blank row is printed, which is the switch for the
+electronic signature. The count is reckoned, not measured: a page holds 17 rows of the minimum
+height on the occupational safety tables, 17 on the fire-safety table's first page and 18 after
+it, as LibreOffice lays them out, and a recorded row whose material or occupation runs over more
+lines than that height holds counts as taller, by a word-wrap estimate of the column's width. A
+planned session is never printed in advance: a row on the sheet is a training that happened.
+
+The sheet asks for two facts only, as codes: `employee.commute_route` on the occupational
+safety sheet, and `employee.workplace` on both when the client has more than one active
+workplace and the employee has none. Everything else prints empty when it is empty, and a
+leaver's sheets are drawn up too.
+
+`src/templates.test.ts` holds both templates to `tools/training-sheet-samples.ts`, the sample
+merge data in this shape: every placeholder has a value, every loop closes, every blank row
+item prints one row, and the rubrics of each form are there; the typesetting checks of every
+template apply to them as well. `apps/api/src/modules/trainings/sheet-handlers.test.ts` merges
+the real files with the data the API builds. `pnpm --filter @ssm-usor/document-engine preview`
+renders each sheet for an employee with every training recorded and for a new hire with none.
+
 ## Registering the templates
 
 Three manifests are registered: the pack's, `templates/other/manifest.json`, and the
-fire-safety set's, `templates/fire/manifest.json`.
+fire-safety set's, `templates/fire/manifest.json`. A per-employee entry is registered like
+any other.
 
 The API does not read the repository: it takes a template from Storage, by the version the
 registry gives it. One script brings the two in line with `templates/`:

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
+import { trainingSheetSamples } from '../tools/training-sheet-samples';
 import { annexTitlePage } from './annex-title';
 import { renderDocument, templatePlaceholders } from './render';
 import { documentText } from './text';
@@ -34,6 +35,22 @@ const originals =
   /VELOCITA|PIPETECH|PROFLEX|SAFETY CORE|POPA|LUCA|CASAPU|TALO[SȘ]|GIURGEA|D-na|D-l |\b\d{2}\.\d{2}\.202\d\b/;
 
 // What only the decisions have: a signature block, an acknowledgement table, its wording.
+type ManifestEntry = { perEmployee?: true; typeKey: string; title: string; file: string };
+const manifestOf = (folder: string) =>
+  JSON.parse(readFileSync(new URL(`${folder}manifest.json`, templatesUrl), 'utf8')) as {
+    templates: ManifestEntry[];
+  };
+// The individual training sheets (ADR 021) sit beside a set's templates and belong to no set.
+const setManifest = <Entry>(folder: string) => ({
+  templates: manifestOf(folder).templates.filter((entry) => !entry.perEmployee) as Entry[],
+});
+const sheetEntries = ['', 'fire/'].flatMap((folder) =>
+  manifestOf(folder)
+    .templates.filter((entry) => entry.perEmployee)
+    .map((entry) => ({ ...entry, path: `${folder}${entry.file}` }))
+);
+const sheetFiles = sheetEntries.map((entry) => entry.path);
+
 const decisionFiles = allTemplateFiles.filter((name) => name.includes('_decision_'));
 const templateFiles = allTemplateFiles;
 const typesetFiles = [...templateFiles, ...fireFiles, annexTitle, fireAnnexTitle];
@@ -86,10 +103,13 @@ describe('templates outside the pack', () => {
 // and, from stage 2 (ADR 018), the `fire` object only. A name of the occupational safety set
 // would mark these drafts as changed when it does.
 describe('fire-safety set', () => {
-  const fireUrl = new URL('fire/', templatesUrl);
-  const manifest = JSON.parse(readFileSync(new URL('manifest.json', fireUrl), 'utf8')) as {
-    templates: { number: string; typeKey: string; title: string; file: string; stage: number }[];
-  };
+  const manifest = setManifest<{
+    number: string;
+    typeKey: string;
+    title: string;
+    file: string;
+    stage: number;
+  }>('fire/');
   const stageOne = manifest.templates
     .filter((entry) => entry.stage === 1)
     .map((entry) => `fire/${entry.file}`);
@@ -573,7 +593,7 @@ describe('fire-safety set', () => {
 
   it('are the files of their manifest, named after their numbers and their types', () => {
     expect(manifest.templates.map((entry) => `fire/${entry.file}`).sort()).toEqual(
-      [...fireFiles].sort()
+      fireFiles.filter((name) => !sheetFiles.includes(name)).sort()
     );
     for (const entry of manifest.templates) {
       expect(entry.file).toBe(`${entry.number}_${entry.typeKey}.docx`);
@@ -1424,16 +1444,14 @@ describe('fire-safety set', () => {
 // Every original of the provider's pack is listed, ported or not, under its own number, so
 // the folder shows at a glance what is still to do. Decision 1.5 came later, from a third pack.
 describe('manifest', () => {
-  const manifest = JSON.parse(readFileSync(new URL('manifest.json', templatesUrl), 'utf8')) as {
-    templates: {
-      number: string;
-      original: string;
-      stage: number;
-      typeKey: string | null;
-      title: string | null;
-      file: string | null;
-    }[];
-  };
+  const manifest = setManifest<{
+    number: string;
+    original: string;
+    stage: number;
+    typeKey: string | null;
+    title: string | null;
+    file: string | null;
+  }>('');
   const ported = manifest.templates.filter((entry) => entry.file);
 
   it('lists all 24 originals once', () => {
@@ -1451,7 +1469,9 @@ describe('manifest', () => {
   });
 
   it('matches the files in the folder exactly', () => {
-    expect(ported.map((entry) => entry.file).sort()).toEqual([...templateFiles].sort());
+    expect(ported.map((entry) => entry.file).sort()).toEqual(
+      templateFiles.filter((name) => !sheetFiles.includes(name)).sort()
+    );
   });
 });
 
@@ -2561,6 +2581,121 @@ describe('prevention_plan', () => {
       'Observații',
     ]) {
       expect(text).toContain(column);
+    }
+  });
+});
+
+describe('the individual training sheets', () => {
+  it('are the per-employee entries of their manifests, with no number, named after their form', () => {
+    expect(sheetEntries.map(({ typeKey, path }) => [typeKey, path])).toEqual([
+      ['training_sheet_ssm', 'fisa_instruire_ssm.docx'],
+      ['training_sheet_psi', 'fire/fisa_instructaj_psi.docx'],
+    ]);
+    for (const entry of sheetEntries) {
+      expect(entry).not.toHaveProperty('number');
+      expect(entry.title).toMatch(/^Fișa individuală de (instruire SSM|instructaj PSI)$/);
+    }
+  });
+
+  const dotted = (data: object, prefix = ''): string[] =>
+    Object.entries(data).flatMap(([key, value]) =>
+      value !== null && typeof value === 'object' && !Array.isArray(value)
+        ? dotted(value as object, `${prefix}${key}.`)
+        : [`${prefix}${key}`]
+    );
+  const rowNames = ['heldOn', 'hours', 'occupation', 'material', 'trainer', 'verifier', '$index'];
+
+  describe.each([
+    ['ssm', 'fisa_instruire_ssm.docx'],
+    ['psi', 'fire/fisa_instructaj_psi.docx'],
+  ] as const)('%s', (domain, name) => {
+    const [recorded, empty] = trainingSheetSamples(domain) as [
+      ReturnType<typeof trainingSheetSamples>[number],
+      ReturnType<typeof trainingSheetSamples>[number],
+    ];
+
+    it('asks only for what the merge data has', () => {
+      const known = new Set([...dotted(recorded.data), ...rowNames]);
+      expect(templatePlaceholders(read(name)).filter((each) => !known.has(each))).toEqual([]);
+    });
+
+    it.each([recorded, empty])('merges the $label sample with every loop closed', ({ data }) => {
+      const text = documentText(renderDocument(read(name), data));
+      expect(text).not.toContain('{{');
+      expect(text).toContain(data.client.legalName);
+    });
+
+    it('prints every recorded row and who trained, and the trainee only once, as the name', () => {
+      const { data } = recorded;
+      const text = documentText(renderDocument(read(name), data));
+      for (const row of [...data.periodic, ...data.supplementary]) {
+        expect(text).toContain(row.material);
+        expect(text).toContain(row.heldOn);
+        expect(text).toContain(row.trainer);
+      }
+      expect(text).toContain(data.hiring.workplace.place);
+      expect(text).toContain(data.admission.name);
+      expect(text.split(data.employee.name)).toHaveLength(2);
+    });
+
+    it('prints a row per item of its blank rows, and none without them', () => {
+      const rows = (data: Record<string, unknown>) =>
+        (
+          new PizZip(renderDocument(read(name), data))
+            .file('word/document.xml')!
+            .asText()
+            .match(/<w:tr>/g) ?? []
+        ).length;
+      const { data } = empty;
+      expect(rows(data) - rows({ ...data, blankRows: { periodic: [], supplementary: [] } })).toBe(
+        data.blankRows.periodic.length + data.blankRows.supplementary.length
+      );
+    });
+  });
+
+  it('follows the rubrics of annex 11 to the norms of H.G. 1425/2006', () => {
+    const text = documentText(read('fisa_instruire_ssm.docx'));
+    for (const rubric of [
+      'Întreprinderea/unitatea',
+      'FIȘĂ DE INSTRUIRE INDIVIDUALĂ',
+      'Legitimația, marca',
+      'Grupa sanguină',
+      'Autorizații (ISCIR ș.a.)',
+      'Traseul de deplasare la/de la serviciu',
+      'Instruirea la angajare',
+      'Semnătura celui care a verificat însușirea cunoștințelor',
+      'Loc de muncă/post de lucru',
+      'Admis la lucru',
+      'Funcția (șef secție, atelier, șantier etc.)',
+      'Instruirea periodică suplimentară',
+      'Data efectuării',
+      'Rezultatele testărilor',
+      'Accidente de muncă sau îmbolnăviri profesionale suferite',
+      'Nr. zile ITM',
+      'Sancțiuni aplicate pentru nerespectarea reglementărilor de securitate și sănătate în muncă',
+      'Control medical periodic',
+      'Testarea psihologică periodică',
+    ]) {
+      expect(text).toContain(rubric);
+    }
+  });
+
+  it('follows the rubrics of the annex to the general dispositions of OMAI 712/2005', () => {
+    const text = documentText(read('fire/fisa_instructaj_psi.docx'));
+    for (const rubric of [
+      'FIȘĂ INDIVIDUALĂ',
+      'de instructaj în domeniul situațiilor de urgență',
+      'ATENȚIE!',
+      'Nicio persoană nu va fi admisă la lucru fără efectuarea instructajului introductiv general și a instructajului la locul de muncă.',
+      'Date personale',
+      'Calificarea (specialitatea, meseria)',
+      'Semnătura salariatului (persoanei care a verificat însușirea cunoștințelor)',
+      'Semnătura persoanei instruite',
+      'Specialitatea (meseria)',
+      'Instructaj periodic',
+      'Semnătura celui care a instruit',
+    ]) {
+      expect(text).toContain(rubric);
     }
   });
 });

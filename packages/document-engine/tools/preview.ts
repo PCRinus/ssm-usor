@@ -2,7 +2,8 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { renderDocument } from '../src/render';
+import { renderDocument, TemplateError } from '../src/render';
+import { type SheetDomain, trainingSheetSamples } from './training-sheet-samples';
 
 // The PDFs land in `originals/preview/`, which git ignores. Two sample clients: one person in
 // every role and short names, then three people and names long enough to test the layout. Only
@@ -279,6 +280,7 @@ function fireSample(people: ReturnType<typeof person>[], long: boolean) {
       ...each,
       workplaceName: index === 0 ? null : workplaces[0]!.name,
     })),
+    manyWorkplaceManagers: people.length > 1,
     designated: people,
     workplaces,
     hasExteriorHydrants: long,
@@ -452,6 +454,7 @@ function fireThemesSample(people: ReturnType<typeof person>[], long: boolean) {
     : '';
   return {
     ownInstructionsRevision: { id: 'r-2', number: 1, versionIds: long ? ['v-2', 'v-3'] : [] },
+    workplaceNames: long ? 'Sediu social, Depozit Str. Fabricii 3' : 'Sediu social',
     categories: [
       ...(long
         ? []
@@ -1465,13 +1468,33 @@ const files = [templates, `${templates}fire/`]
       .filter((file) => file.endsWith('.docx'))
       .map((name) => ({ folder, name }))
   );
+// The sheets are merged with an employee's data, not a client's.
+const sheetDomains = new Map<string, SheetDomain>(
+  [templates, `${templates}fire/`]
+    .filter((folder) => existsSync(`${folder}manifest.json`))
+    .flatMap((folder) =>
+      (
+        JSON.parse(readFileSync(`${folder}manifest.json`, 'utf8')) as {
+          templates: { perEmployee?: true; typeKey: string; file: string }[];
+        }
+      ).templates
+        .filter((entry) => entry.perEmployee)
+        .map((entry) => [`${folder}${entry.file}`, entry.typeKey.endsWith('_psi') ? 'psi' : 'ssm'])
+    )
+);
 for (const { folder, name } of files) {
   const template = new Uint8Array(readFileSync(`${folder}${name}`));
-  for (const { label, data } of samples) {
-    writeFileSync(
-      `${output}${name.replace(/\.docx$/, '')}.${label}.docx`,
-      renderDocument(template, data)
-    );
+  const domain = sheetDomains.get(`${folder}${name}`);
+  for (const { label, data } of domain ? trainingSheetSamples(domain) : samples) {
+    try {
+      writeFileSync(
+        `${output}${name.replace(/\.docx$/, '')}.${label}.docx`,
+        renderDocument(template, data)
+      );
+    } catch (error) {
+      if (!(error instanceof TemplateError)) throw error;
+      console.warn(`${name} (${label}) skipped: ${error.message}`);
+    }
   }
 }
 

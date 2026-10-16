@@ -341,6 +341,16 @@
         "kind": "correction",
         "note": "Raportul se numește „Raportul anual de evaluare a capacității de apărare împotriva incendiilor”, ca în Legea 307/2006 art. 27 alin. (1) lit. j), ultima decizie din listă se încheie cu punct, starea documentelor se încheie cu o frază care ține seama de stările lor, iar indicațiile de completare folosesc denumirile instructajelor și „conducătorii locurilor de muncă”."
       }
+    },
+    {
+      "perEmployee": true,
+      "typeKey": "training_sheet_psi",
+      "title": "Fișa individuală de instructaj PSI",
+      "file": "fisa_instructaj_psi.docx",
+      "change": {
+        "kind": "layout",
+        "note": "Fișa individuală de instructaj în domeniul situațiilor de urgență a fiecărui angajat, după modelul din anexa la dispozițiile generale aprobate prin OMAI 712/2005."
+      }
     }
   ]
 }
