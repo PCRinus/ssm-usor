@@ -39,7 +39,7 @@ function mockApi({
           'attachment; filename="Fisa-SSM-Popescu-Ion.pdf"; filename*=UTF-8\'\'Fisa-SSM-Popescu-Ion.pdf',
       },
     }),
-}: { ssm?: Readiness; psi?: Readiness; sheet?: () => Response } = {}) {
+}: { ssm?: Readiness; psi?: Readiness; sheet?: () => Response | Promise<Response> } = {}) {
   fetchMock.mockImplementation(async (input) => {
     const url = new URL(String(input));
     if (url.pathname === `${employeePath}/training-sheets`) return Response.json({ ssm, psi });
@@ -154,5 +154,123 @@ describe('TrainingSheetDownload', () => {
     ).toBeTruthy();
     expect(saved).toHaveLength(0);
     await waitFor(() => expect(button).toHaveProperty('disabled', false));
+  });
+});
+
+describe('TrainingSheetDownload preview', () => {
+  function fakeTab() {
+    return {
+      document: { write: vi.fn(), close: vi.fn(), title: '' },
+      location: { replace: vi.fn() },
+      close: vi.fn(),
+    };
+  }
+
+  async function readyPreviewButton() {
+    const button = await screen.findByTestId('training-sheet-ssm-preview');
+    await waitFor(() => expect(button).toHaveProperty('disabled', false));
+    return button;
+  }
+
+  it('opens a tab before the PDF arrives, then points it at the PDF without saving it', async () => {
+    let answer!: (response: Response) => void;
+    mockApi({
+      sheet: () =>
+        new Promise<Response>((resolve) => {
+          answer = resolve;
+        }),
+    });
+    const tab = fakeTab();
+    const open = vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
+    mount('ssm');
+    await userEvent.click(await readyPreviewButton());
+
+    expect(open).toHaveBeenCalledWith('', '_blank');
+    expect(tab.document.write).toHaveBeenCalledWith(expect.stringContaining('Se pregătește fișa…'));
+    expect(tab.document.title).toBe('Fișa SSM');
+    await waitFor(() => expect(answer).toBeDefined());
+    expect(tab.location.replace).not.toHaveBeenCalled();
+
+    answer(
+      new Response(new Uint8Array([37, 80, 68, 70]), {
+        headers: { 'Content-Type': 'application/pdf' },
+      })
+    );
+    await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith('blob:sheet'));
+    expect(tab.close).not.toHaveBeenCalled();
+    expect(saved).toHaveLength(0);
+  });
+
+  it('keeps the download saving the file beside the preview', async () => {
+    mockApi();
+    const open = vi.spyOn(window, 'open');
+    mount('ssm');
+    await readyPreviewButton();
+    await userEvent.click(screen.getByRole('button', { name: 'Descarcă fișa SSM' }));
+
+    await waitFor(() => expect(saved).toHaveLength(1));
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it('asks for new windows to be allowed when the browser blocks the tab', async () => {
+    mockApi();
+    vi.spyOn(window, 'open').mockReturnValue(null);
+    mount('ssm');
+    const button = await readyPreviewButton();
+    await userEvent.click(button);
+
+    expect(
+      await screen.findByText(
+        'Browserul a blocat fereastra nouă. Permite ferestrele noi pentru această pagină.'
+      )
+    ).toBeTruthy();
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/training-sheet?'))
+    ).toHaveLength(0);
+    await waitFor(() => expect(button).toHaveProperty('disabled', false));
+  });
+
+  it('closes the tab and says why when the PDF cannot be made', async () => {
+    mockApi({
+      sheet: () =>
+        Response.json(
+          { error: 'service_unavailable', message: 'x', reason: 'pdf_unavailable' },
+          { status: 503 }
+        ),
+    });
+    const tab = fakeTab();
+    vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
+    mount('ssm');
+    await userEvent.click(await readyPreviewButton());
+
+    expect(
+      await screen.findByText(
+        'Convertorul PDF nu este disponibil. Încearcă din nou peste câteva minute.'
+      )
+    ).toBeTruthy();
+    expect(tab.close).toHaveBeenCalled();
+    expect(tab.location.replace).not.toHaveBeenCalled();
+  });
+
+  it('reloads the readiness when the sheet turns out not to be ready', async () => {
+    mockApi({
+      sheet: () =>
+        Response.json(
+          { error: 'conflict', message: 'x', reason: 'missing_sheet_data' },
+          { status: 409 }
+        ),
+    });
+    vi.spyOn(window, 'open').mockReturnValue(fakeTab() as unknown as Window);
+    mount('ssm');
+    await userEvent.click(await readyPreviewButton());
+
+    expect(
+      await screen.findByText('Fișa nu se poate întocmi încă: lipsesc date ale angajatului.')
+    ).toBeTruthy();
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/training-sheets'))
+      ).toHaveLength(2)
+    );
   });
 });

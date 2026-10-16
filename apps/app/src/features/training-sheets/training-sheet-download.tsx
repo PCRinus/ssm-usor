@@ -6,12 +6,12 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
-import { FileDown, LoaderCircle } from 'lucide-react';
+import { Eye, FileDown, LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
 
 import { getGetTrainingSheetsQueryKey, getTrainingSheet } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { saveFile } from '@/lib/save-file';
+import { openPreview, PreviewBlockedError, saveFile } from '@/lib/save-file';
 
 import { useTrainingSheets } from './use-training-sheets';
 
@@ -22,6 +22,9 @@ type TrainingSheetDownloadProps = {
 };
 
 const failureOf = (cause: unknown) => {
+  if (cause instanceof PreviewBlockedError) {
+    return 'Browserul a blocat fereastra nouă. Permite ferestrele noi pentru această pagină.';
+  }
   const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
   if (body?.reason === 'pdf_unavailable') {
     return 'Convertorul PDF nu este disponibil. Încearcă din nou peste câteva minute.';
@@ -39,15 +42,17 @@ export function TrainingSheetDownload({
 }: TrainingSheetDownloadProps) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const readiness = useTrainingSheets(clientId, employeeId);
-  const [downloading, setDownloading] = useState(false);
+  const [busy, setBusy] = useState<'download' | 'preview' | null>(null);
   const sheet = readiness.data?.[domain];
-  const label = `Descarcă fișa ${trainingDomainLabels[domain]}`;
+  const domainLabel = trainingDomainLabels[domain];
+  const disabled = !sheet?.ready || busy !== null;
 
-  async function download() {
-    setDownloading(true);
+  const loadSheet = () => getTrainingSheet(clientId, employeeId, { domain }, apiRequest);
+
+  async function run(kind: 'download' | 'preview', action: () => Promise<void>) {
+    setBusy(kind);
     try {
-      const file = await getTrainingSheet(clientId, employeeId, { domain }, apiRequest);
-      saveFile(file, file instanceof File ? file.name : `Fisa-${trainingDomainLabels[domain]}.pdf`);
+      await action();
     } catch (cause) {
       toast.error(failureOf(cause));
       if (cause instanceof ApiHttpError && cause.status === 409) {
@@ -56,23 +61,47 @@ export function TrainingSheetDownload({
         });
       }
     } finally {
-      setDownloading(false);
+      setBusy(null);
     }
   }
 
+  const download = () =>
+    run('download', async () => {
+      const file = await loadSheet();
+      saveFile(file, file instanceof File ? file.name : `Fisa-${domainLabel}.pdf`);
+    });
+
+  const preview = () => run('preview', () => openPreview(loadSheet, `Fișa ${domainLabel}`));
+
   return (
-    <Button
-      data-testid={`training-sheet-${domain}`}
-      variant="outline"
-      disabled={!sheet?.ready || downloading}
-      onClick={() => void download()}
-    >
-      {downloading ? (
-        <LoaderCircle aria-hidden="true" className="animate-spin" />
-      ) : (
-        <FileDown aria-hidden="true" />
-      )}
-      {label}
-    </Button>
+    <>
+      <Button
+        data-testid={`training-sheet-${domain}`}
+        variant="outline"
+        disabled={disabled}
+        onClick={() => void download()}
+      >
+        {busy === 'download' ? (
+          <LoaderCircle aria-hidden="true" className="animate-spin" />
+        ) : (
+          <FileDown aria-hidden="true" />
+        )}
+        {`Descarcă fișa ${domainLabel}`}
+      </Button>
+      <Button
+        data-testid={`training-sheet-${domain}-preview`}
+        variant="outline"
+        aria-label={`Previzualizează fișa ${domainLabel}`}
+        disabled={disabled}
+        onClick={() => void preview()}
+      >
+        {busy === 'preview' ? (
+          <LoaderCircle aria-hidden="true" className="animate-spin" />
+        ) : (
+          <Eye aria-hidden="true" />
+        )}
+        Previzualizează
+      </Button>
+    </>
   );
 }

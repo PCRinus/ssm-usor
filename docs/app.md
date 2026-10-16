@@ -570,10 +570,15 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   "Descarcă fișa PSI": it reads both sheets' readiness from
   `GET …/employees/{employeeId}/training-sheets` (`useTrainingSheets`, one cache entry for both
   components), fetches the PDF from `GET …/training-sheet?domain=` and saves it under the name
-  the API gives. While data is missing the button is disabled; a failed download is a toast,
-  "Convertorul PDF nu este disponibil" when there is no converter, and a 409 reloads the
-  readiness. Each training view of the employee page holds one in its `training-tab-actions`
-  container, beside "Înregistrează o instruire".
+  the API gives. Beside it, "Previzualizează" (`training-sheet-{domain}-preview`) shows the same
+  PDF in a new browser tab, in the browser's own viewer, without saving it: `openPreview` in
+  `src/lib/save-file.ts` opens the tab inside the click, before the fetch, so pop-up blockers let
+  it through, writes a "Se pregătește fișa…" line into it, then replaces it with a blob URL of
+  the PDF, revoked ten minutes later; a failure closes the tab, and a blocked tab is the toast
+  "Browserul a blocat fereastra nouă". While data is missing both buttons are disabled; a
+  failed download or preview is a toast, "Convertorul PDF nu este disponibil" when there is no
+  converter, and a 409 reloads the readiness. Each training view of the employee page holds the
+  pair in its `training-tab-actions` container, beside "Înregistrează o instruire".
 - `TrainingSheetReadiness` (`src/features/training-sheets/training-sheet-readiness.tsx`) is the
   row under that header: nothing while the sheet can be drawn up, otherwise a warning "Fișa SSM
   nu se poate întocmi încă: 1 dată de completat." with "Vezi ce lipsește", a dialog with the
