@@ -17,6 +17,8 @@ import {
   listTrainingsRoute,
   updateTrainingRoute,
 } from './routes';
+import { getTrainingSheet, getTrainingSheets } from './sheet-handlers';
+import { getTrainingSheetRoute, getTrainingSheetsRoute } from './sheet-routes';
 
 // The proposal before the training's own path, which would otherwise take "proposal" for an id.
 export const trainingsRouter = createRouter()
@@ -26,4 +28,6 @@ export const trainingsRouter = createRouter()
   .openapi(getTrainingRoute, getTraining)
   .openapi(updateTrainingRoute, updateTraining)
   .openapi(deleteTrainingRoute, deleteTraining)
-  .openapi(listEmployeeTrainingRecordsRoute, listEmployeeTrainingRecords);
+  .openapi(listEmployeeTrainingRecordsRoute, listEmployeeTrainingRecords)
+  .openapi(getTrainingSheetsRoute, getTrainingSheets)
+  .openapi(getTrainingSheetRoute, getTrainingSheet);

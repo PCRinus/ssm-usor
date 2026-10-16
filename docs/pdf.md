@@ -70,6 +70,12 @@ is sent as Word bytes to `POST /documents/{documentId}/print`, which converts th
 way, the annexes of the newest revision included, and stores nothing. The app opens the result in a hidden frame and calls the browser's
 print dialog on it; a browser without a PDF viewer gets the file as a download instead.
 
+The individual training sheets ([document engine](document-engine.md#sheets)) are the one PDF
+made outside the documents: `GET /clients/{clientId}/employees/{employeeId}/training-sheet`
+merges the sheet's template, converts it with the same converter and answers the PDF, storing
+nothing. Without a converter it answers `503 pdf_unavailable`, so opening a sheet locally needs
+`pnpm dev:pdf` and `GOTENBERG_URL`.
+
 ## The container
 
 | Setting         | Value                        | Why                                                                                    |

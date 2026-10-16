@@ -29,7 +29,7 @@ import type {
 type TrainingRow = Database['public']['Tables']['trainings']['Row'];
 type RecordRow = Database['public']['Tables']['training_records']['Row'];
 
-const trainingColumns =
+export const trainingColumns =
   'id, client_id, domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, verifier_name, verifier_job_title, supplementary_reason, source, themes_revision_id, notes, created_at, updated_at';
 
 const recordColumns =
@@ -40,7 +40,7 @@ const themesTypeKeys: Record<TrainingDomain, string> = {
   psi: 'fire_training_themes',
 };
 
-function toTraining(row: Omit<TrainingRow, 'organization_id' | 'created_by'>): Training {
+export function toTraining(row: Omit<TrainingRow, 'organization_id' | 'created_by'>): Training {
   return {
     id: row.id,
     clientId: row.client_id,
@@ -63,7 +63,7 @@ function toTraining(row: Omit<TrainingRow, 'organization_id' | 'created_by'>): T
   };
 }
 
-function toAdmission(
+export function toAdmission(
   row: Pick<RecordRow, 'admitted_on' | 'admitted_by_name' | 'admitted_by_job_title'>
 ): TrainingAdmission | null {
   if (row.admitted_on === null || row.admitted_by_name === null) return null;
