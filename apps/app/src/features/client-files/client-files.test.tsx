@@ -621,19 +621,19 @@ describe('changing a client file', () => {
 });
 
 describe('the files of an employee', () => {
-  it('names the employee under a file in the client tab, linking to their page', async () => {
-    mockApi({ items: [trainingSheet, certificate] });
+  it("leaves them out of the client tab, which asks for the client's own files", async () => {
+    mockApi({ items: [certificate] });
     mount();
 
-    const [sheetRow, certificateRow] = await screen.findAllByTestId('client-file-row');
-    const link = within(sheetRow!).getByTestId('client-file-employee');
-    expect(link.textContent).toBe('Popescu Ion');
-    expect(link.getAttribute('href')).toBe(employeePath);
-    expect(within(certificateRow!).queryByTestId('client-file-employee')).toBeNull();
-    expect(new URL(String(requests(filesPath, 'GET')[0]![0])).search).toBe('');
+    await screen.findAllByTestId('client-file-row');
+    expect(
+      requests(filesPath, 'GET').map(([input]) =>
+        new URL(String(input)).searchParams.has('employeeId')
+      )
+    ).toEqual([false]);
   });
 
-  it('lists only their files on the employee page, without repeating their name', async () => {
+  it('lists only their files on the employee page', async () => {
     mockApi({ items: [trainingSheet] });
     mount(employeePath);
 
@@ -641,7 +641,6 @@ describe('the files of an employee', () => {
     expect(within(card).getByRole('heading', { level: 2, name: 'Fișiere' })).toBeTruthy();
     const [row] = await within(card).findAllByTestId('client-file-row');
     expect(within(row!).getByTestId('client-file-open').textContent).toBe('Fișă de instruire 2019');
-    expect(within(row!).queryByTestId('client-file-employee')).toBeNull();
     expect(within(row!).getByTestId('client-file-actions')).toBeTruthy();
     expect(
       requests(filesPath, 'GET').map(([input]) =>
@@ -658,7 +657,7 @@ describe('the files of an employee', () => {
     const card = await screen.findByTestId('employee-files-card');
     expect(await within(card).findByTestId('client-files-empty')).toBeTruthy();
     const dialog = await openUploadDialog(user);
-    expect(within(dialog).getByTestId('client-files-upload-employee').textContent).toContain(
+    expect(within(dialog).getByTestId('client-files-upload-employee').textContent).toBe(
       'Pentru angajatul Popescu Ion.'
     );
     await user.upload(within(dialog).getByTestId('client-files-input'), pdf('fisa 2019.pdf'));

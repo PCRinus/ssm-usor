@@ -75,7 +75,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/service-contract/send`                       | Owner                                 | The same, after emailing the issued PDF to `to`                                                                           |
 | `GET /clients/{clientId}/owner-notes`                                  | Owner                                 | `{ "notes": { "body", "updatedAt" } }`; an empty body when none were written                                              |
 | `PUT /clients/{clientId}/owner-notes`                                  | Owner                                 | The notes after replacing them                                                                                            |
-| `GET /clients/{clientId}/files`                                        | Verified user with a membership       | `{ "items": [ … ] }`, the files the caller can see, newest first; not paginated; `?employeeId=` for one employee's        |
+| `GET /clients/{clientId}/files`                                        | Verified user with a membership       | `{ "items": [ … ] }`, the client's own files, newest first; not paginated; `?employeeId=` for one employee's instead      |
 | `POST /clients/{clientId}/files`                                       | Verified user with a membership       | `201 { "file": { … } }` from the bytes in the body; `?fileName=&name=&note=&ownersOnly=&employeeId=`                      |
 | `PATCH /clients/{clientId}/files/{fileId}`                             | Uploader or owner                     | `{ "file": { … } }` after renaming or annotating it                                                                       |
 | `PUT /clients/{clientId}/files/{fileId}/owners-only`                   | Owner                                 | `{ "file": { … } }` after keeping it for owners or opening it to the team                                                 |
@@ -573,12 +573,12 @@ outside the library answers `400` on `profileId`, an archived client `409` with
 
 A client's files ([ADR 013](architecture/adr-013-client-files.md)) are what the organization
 keeps about a client or a lead without the app writing or reading them; a lead uses the same
-routes. `GET /clients/{clientId}/files` lists the files the caller can see: a specialist is
-not told that files for owners only exist. Each carries `name`, `note`, `ownersOnly`,
-`employee` (`{ id, lastName, firstName }` for a file that belongs to one of the client's
+routes. `GET /clients/{clientId}/files` lists the client's own files the caller can see,
+those of no employee: a specialist is not told that files for owners only exist. Each
+carries `name`, `note`, `ownersOnly`, `employee` (`{ id, lastName, firstName }` for a file that belongs to one of the client's
 employees, otherwise null), `originalFileName`, `mimeType`, `sizeBytes`, `sha256`,
 `uploadedBy` (`{ id, fullName }`, null once the account is gone) and `canChange`, true for its
-uploader and for an owner. `?employeeId=` keeps only that employee's files ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)); a
+uploader and for an owner. `?employeeId=` lists that employee's files instead ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)); a
 value that is not an id answers `400`, and the id of an employee the client does not have gives
 an empty list.
 

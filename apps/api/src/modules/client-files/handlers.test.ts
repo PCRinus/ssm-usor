@@ -191,7 +191,7 @@ afterEach(() => {
 });
 
 describe('GET /clients/{clientId}/files', () => {
-  it('lists what the caller sees, newest first, with who uploaded each and who may change it', async () => {
+  it("lists the client's own files the caller sees, newest first, with who uploaded each and who may change it", async () => {
     mockUpstream();
     const response = await request(`/clients/${clientId}/files`);
     expect(response.status).toBe(200);
@@ -203,7 +203,7 @@ describe('GET /clients/{clientId}/files', () => {
     const listed = new URL(String(calls('/rest/v1/client_files', 'GET')[0]![0]));
     expect(listed.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(listed.searchParams.get('order')).toBe('created_at.desc,id.asc');
-    expect(listed.searchParams.has('employee_id')).toBe(false);
+    expect(listed.searchParams.get('employee_id')).toBe('is.null');
     expect(items.every((item) => item.employee === null)).toBe(true);
   });
 

@@ -1,4 +1,3 @@
-import { formatEmployeeName } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -19,17 +18,8 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useRouteContext } from '@tanstack/react-router';
-import {
-  Download,
-  FileUp,
-  Lock,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  Upload,
-  UserRound,
-} from 'lucide-react';
+import { useRouteContext } from '@tanstack/react-router';
+import { Download, FileUp, Lock, MoreHorizontal, Pencil, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import {
@@ -162,7 +152,7 @@ export function ClientFilesCard({
         description={
           <>
             {employee
-              ? 'Fișele de instruire completate pe hârtie, fotografiate sau scanate, și alte fișiere despre angajat. Apar și în Alte documente ale clientului.'
+              ? 'Fișele de instruire completate pe hârtie, fotografiate sau scanate, și alte fișiere despre angajat.'
               : 'Certificatul de înregistrare, procese-verbale ITM, fișe de aptitudine și alte fișiere despre client.'}
             {lead && (
               <span data-testid="client-files-lead-hint">
@@ -246,9 +236,7 @@ export function ClientFilesCard({
               {items.map((file) => (
                 <FileRow
                   key={file.id}
-                  clientId={client.id}
                   file={file}
-                  showEmployee={!employee}
                   changeable={file.canChange && !readOnly}
                   showOwnersOnly={!lead}
                   canSwitch={isOwner && !lead && !readOnly}
@@ -302,9 +290,7 @@ export function ClientFilesCard({
 }
 
 function FileRow({
-  clientId,
   file,
-  showEmployee,
   changeable,
   showOwnersOnly,
   canSwitch,
@@ -315,9 +301,7 @@ function FileRow({
   onDelete,
   onOwnersOnly,
 }: {
-  clientId: string;
   file: ClientFile;
-  showEmployee: boolean;
   changeable: boolean;
   showOwnersOnly: boolean;
   canSwitch: boolean;
@@ -351,17 +335,6 @@ function FileRow({
             >
               {file.name}
             </button>
-            {showEmployee && file.employee && (
-              <Link
-                to="/clients/$clientId/employees/$employeeId"
-                params={{ clientId, employeeId: file.employee.id }}
-                data-testid="client-file-employee"
-                className="flex w-fit items-center gap-1 rounded-sm text-xs text-muted-foreground underline-offset-4 outline-none hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              >
-                <UserRound className="size-3.5 shrink-0" aria-hidden="true" />
-                {formatEmployeeName(file.employee)}
-              </Link>
-            )}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
               <span data-testid="client-file-kind">{kind.label}</span>
               <span className="sm:hidden">· {size}</span>

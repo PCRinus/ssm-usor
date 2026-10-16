@@ -182,9 +182,12 @@ export const listClientFiles: RouteHandler<typeof listClientFilesRoute, ApiEnv> 
   const { employeeId } = c.req.valid('query');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  let files = db.from('client_files').select(fileColumns).eq('client_id', clientId);
-  if (employeeId) files = files.eq('employee_id', employeeId);
-  const { data, error } = await files.order('created_at', { ascending: false }).order('id');
+  const files = db.from('client_files').select(fileColumns).eq('client_id', clientId);
+  const { data, error } = await (
+    employeeId ? files.eq('employee_id', employeeId) : files.is('employee_id', null)
+  )
+    .order('created_at', { ascending: false })
+    .order('id');
   if (error) throw fromDatabaseError(error, 'list client files');
   const names = await uploaderNames(db, data);
   return c.json({ items: data.map((row) => toClientFile(c, row, names)) }, 200);

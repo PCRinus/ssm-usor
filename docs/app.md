@@ -841,15 +841,14 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   dropped files already in its list; while the card is on screen a file dropped anywhere else
   is refused rather than opened by the browser in place of the app. An archived client gets
   the list and the downloads only: no dialog, no drop. The same card is on a lead's page,
-  where it says that the files stay the owners' until promotion and has no switch. A file that
-  belongs to an employee shows the employee's name as a small line under its name, a link to
-  the employee page.
+  where it says that the files stay the owners' until promotion and has no switch. The card
+  lists the client's own files only: an employee's files stay on the employee page.
 - The employee page ends with "Fișiere", the same card for that employee's files
   (`EmployeeFilesCard` in `src/features/client-files/`, [ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)):
-  it lists `GET /clients/{clientId}/files?employeeId=`, leaves out the employee line, and its
-  upload dialog names the employee and sends every file with `employeeId`; there is no way to
-  choose another employee. Renaming, the owners' switch, deleting and an archived client's
-  read-only list work as on the tab, and both lists refresh after any change.
+  it lists `GET /clients/{clientId}/files?employeeId=`, and its upload dialog names the
+  employee and sends every file with `employeeId`; there is no way to choose another
+  employee. Renaming, the owners' switch, deleting and an archived client's read-only list
+  work as on the tab.
 - The upload dialog (`src/features/client-files/client-file-upload-dialog.tsx`) has a drop zone with
   "Alege fișiere" and the accepted types and the 20 MB limit under it, the list of chosen
   files (name, kind, size, a button to take each out), an owner's "Doar pentru

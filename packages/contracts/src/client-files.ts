@@ -55,7 +55,10 @@ export const clientFileSchema = z.object({
 export type ClientFile = z.infer<typeof clientFileSchema>;
 
 export const listClientFilesQuerySchema = z.object({
-  employeeId: z.uuid().optional(),
+  employeeId: z.uuid().optional().meta({
+    description:
+      "One of the client's employees, whose files the list holds; without it, the list holds the client's own files only.",
+  }),
 });
 
 export type ListClientFilesQuery = z.infer<typeof listClientFilesQuerySchema>;
