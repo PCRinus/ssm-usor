@@ -235,7 +235,7 @@ afterEach(() => {
 });
 
 describe("an employee's training tabs", () => {
-  it('splits the page into Date, Instruire SSM and Instruire PSI, in the tabs and the sidebar', async () => {
+  it('splits the page into Date, Instruire SSM and Instruire PSI, in the tabs and not in the sidebar', async () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, employeePath);
     const user = userEvent.setup();
@@ -245,12 +245,7 @@ describe("an employee's training tabs", () => {
     const tabs = screen.getAllByTestId('employee-section');
     expect(tabs.map((tab) => tab.textContent)).toEqual(['Date', 'Instruire SSM', 'Instruire PSI']);
     expect(tabs[0]!.getAttribute('aria-current')).toBe('page');
-    const group = screen.getByTestId('nav-employee-group');
-    expect(
-      within(group)
-        .getAllByTestId('nav-sub-entry')
-        .map((entry) => entry.textContent)
-    ).toEqual(['Date', 'Instruire SSM', 'Instruire PSI']);
+    expect(screen.queryByTestId('nav-employee-group')).toBeNull();
 
     await user.click(tabs[1]!);
     await screen.findByTestId('employee-training-tab');

@@ -452,8 +452,8 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   name in the list and rendered without the client summary and tabs
   (`src/features/employees/employee-layout.tsx`). A header carries the name, the post, the
   client and the status, with "Modifică" and the status action, above three tabs: **Date**,
-  **Instruire SSM** and **Instruire PSI**; while an employee is open, the sidebar folds the same
-  three out under "Clienți", headed by the name. The **Date** tab holds the record: sections mirror
+  **Instruire SSM** and **Instruire PSI**; the sidebar folds no group open for an employee, the
+  tabs live on the page alone. The **Date** tab holds the record: sections mirror
   the form: identity, employment (with the computed tenure and the leave date), contact
   (`mailto:` and `tel:` links), and the training-sheet fields; missing values show a dash. The
   CNP stays masked to its last four digits until **Arată** is pressed and is masked again on
