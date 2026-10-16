@@ -720,6 +720,14 @@ The API builds the data once per generation and merges every template with it
   257 articles, the 46 of 3.2's first aid among them; its chapter XXIV is the list of annexes,
   with no article, like 3.2's chapter XIII.
 
+  The proposal of a training held ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md),
+  `apps/api/src/modules/trainings/proposal.ts`) reads the newest themes revision's snapshot: a
+  position's `name`, `sessions` (`month`, `content`, `duration`) and `modules[].citation` here,
+  a category's `staffCategory` and `sessions` in `fireThemes.categories`, and
+  `fire.decisionNumbers.instructions`; renaming any of them changes what is proposed. The two
+  hiring plans' content lines and totals are copied there from 4.2 and 3.1 and held to the
+  templates by `apps/api/scripts/lib/training-plans.test.ts`.
+
 - `fire` is what the fire-safety set's templates of stages 2 and 3 print
   ([ADR 018](architecture/adr-018-fire-safety-means.md),
   [ADR 019](architecture/adr-019-fire-safety-stage-three.md)), built by

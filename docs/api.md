@@ -138,12 +138,19 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                                             |
 | `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                               |
 | `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                                              |
-| `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=`                                |
+| `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=&trainingState=`                 |
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                                               |
 | `GET /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                                               |
 | `PUT /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }` after replacing what was entered about them                                                       |
 | `PATCH /clients/{clientId}/employees/{employeeId}/status`              | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating                                      |
 | `PATCH /clients/{clientId}/employees/{employeeId}/job-position`        | Verified user with a membership       | `{ "employee": { … } }` in the new job position                                                                           |
+| `GET /clients/{clientId}/employees/{employeeId}/training-records`      | Verified user with a membership       | `{ "items": [ … ] }`, each record with its `training`, newest first; `?domain=`                                           |
+| `GET /clients/{clientId}/trainings`                                    | Verified user with a membership       | `{ "items": [ … ] }`, newest first, each with `attendeeCount`; `?domain=&phase=`                                          |
+| `GET /clients/{clientId}/trainings/proposal`                           | Verified user with a membership       | `{ durationMinutes, material, trainer, … }`; `?domain=&phase=&heldOn=&jobPositionId=`                                     |
+| `POST /clients/{clientId}/trainings`                                   | Verified user with a membership       | `201 { "training": { …, "records": [ … ] } }`                                                                             |
+| `GET /clients/{clientId}/trainings/{trainingId}`                       | Verified user with a membership       | `{ "training": { …, "records": [ … ] } }`                                                                                 |
+| `PUT /clients/{clientId}/trainings/{trainingId}`                       | Verified user with a membership       | `{ "training": { … } }` after replacing its facts and attendees                                                           |
+| `DELETE /clients/{clientId}/trainings/{trainingId}`                    | Verified user with a membership       | `204`, the records deleted with it                                                                                        |
 | `GET /clients/{clientId}/job-positions`                                | Verified user with a membership       | `{ "items": [ … ] }`, by name, each with `employeeCount`                                                                  |
 | `POST /clients/{clientId}/job-positions`                               | Verified user with a membership       | `201 { "jobPosition": { … } }`                                                                                            |
 | `PUT /clients/{clientId}/job-positions/{jobPositionId}`                | Verified user with a membership       | `{ "jobPosition": { … } }` after the change                                                                               |
@@ -376,6 +383,50 @@ client lacks it. Employees carry `jobPosition: { id, name }` in the list and the
 the list sorts by `jobPosition` as well. `PATCH …/employees/{employeeId}/job-position` moves
 a person to another position; the contract title changes only when `jobTitle` is sent with
 it, since a post can change without a new contract.
+
+Training records ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md))
+hang off the client. A training held is recorded once with its attendees: `POST …/trainings`
+takes `domain`, `phase`, `heldOn`, `durationMinutes` (1 to 600), `material`, `trainer` and an
+optional `verifier` as `{ name, jobTitle }`, `supplementaryReason` (required for, and only
+for, a supplementary training), `source` (`app` by default, `paper` for history typed from a
+sheet), an optional `themesRevisionId` and `notes`, `employeeIds` and an optional
+`admission: { admittedOn, name, jobTitle }`. The admission, "admis la lucru", is one for every
+attendee and allowed on a workplace training only; a body that breaks a rule answers `400`. A
+day after today in Romania is `400` on `heldOn`; an attendee who is not an employee of the
+client, or one archived as a mistake, `400` on `employeeIds` (a leaver is fine: paper history
+may belong to one); a revision that is not one of the client's training themes of the domain,
+`400` on `themesRevisionId`. Each attendee's record takes the name of their job position as
+its `occupation`. `PUT` replaces the facts and the attendees: an attendee who stays keeps their
+record and its occupation, one left out loses it. The list is not paginated. The detail lists
+the records by name, each with `employee: { id, lastName, firstName }`, `occupation` and
+`admission` or null; `GET …/employees/{employeeId}/training-records` lists one person's
+records with their training's facts, newest first. An archived client or a lead answers `409`
+as elsewhere.
+
+`GET …/trainings/proposal` proposes what the flow pre-fills, every value the specialist may
+change and null where nothing can be proposed. A periodic training takes the content line and
+duration of the session of `heldOn`'s month, else the last session before it, from the client's
+newest training themes revision of the domain, draft or issued: by the position for
+occupational safety, by the position's staff category for fire safety, with
+`themesRevisionId` naming the revision; without one, or for a position the themes do not hold,
+the material is null and the duration the schedule's. A hiring training proposes 240 minutes
+(occupational safety) or 480 (fire safety) and the content line of the 4.2 or 3.1 plan, the
+occupational safety workplace plan citing the position's modules from the themes and the
+fire-safety one the instructions decision. A supplementary training proposes 60 minutes and no
+material. The people follow "Who signs what": the specialist is the caller, by their profile's
+name and professional title; the workplace manager is the first one the client designated,
+else the legal representative; the fire-safety technician is the organization's, as `Cadru
+tehnic PSI`. The introductory general training is the specialist's (the technician's in fire
+safety); the workplace, periodic and supplementary trainings are the workplace manager's for
+execution staff and the specialist's (the technician's) for technical-administrative staff,
+as the themes have it; the specialist verifies every occupational safety training and nobody
+a fire-safety one; the trainer of a workplace training admits to work. A `jobPositionId` of
+another client is `400`.
+
+Employees carry `training: { ssm, psi }`, each `{ state, dueOn, lastPeriodicOn }`, in the list
+and the detail: `state` is `untrained`, `current`, `due` or `overdue`, null for a leaver, and
+`dueOn` null while the interval is undecided. `GET …/employees?trainingState=` takes
+`untrained`, `due` or `overdue` and keeps the employees in that state in either domain.
 
 Protective equipment ([ADR 011](architecture/adr-011-protective-equipment.md)) hangs off the
 job position: `GET …/equipment` lists its entries in the order they were added, with
