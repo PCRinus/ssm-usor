@@ -37,6 +37,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, Outlet, useLocation, useMatches, useNavigate } from '@tanstack/react-router';
 import {
   BookOpenText,
+  Briefcase,
   Building2,
   ChevronsUpDown,
   Handshake,
@@ -46,7 +47,6 @@ import {
   Scale,
   ShieldAlert,
   UserRound,
-  Users,
   UsersRound,
 } from 'lucide-react';
 import { type ComponentProps, Fragment, type ReactNode, useEffect, useState } from 'react';
@@ -67,7 +67,7 @@ import { readSidebarOpen, saveSidebarOpen } from './sidebar-open';
 const navigation = [
   { to: '/dashboard', label: 'Prezentare generală', icon: LayoutDashboard, ownerOnly: false },
   { to: '/leads', label: 'Clienți potențiali', icon: Handshake, ownerOnly: true },
-  { to: '/clients', label: 'Clienți', icon: Users, ownerOnly: false },
+  { to: '/clients', label: 'Clienți', icon: Briefcase, ownerOnly: false },
   { to: '/employees', label: 'Angajați', icon: UsersRound, ownerOnly: false },
   {
     to: '/instructions',
