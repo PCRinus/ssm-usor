@@ -1,4 +1,4 @@
-import { builtInDocumentTypeKeySchema } from '@ssm-usor/contracts';
+import { builtInDocumentTypeKeySchema, trainingDomainSchema } from '@ssm-usor/contracts';
 import { useEffect, useSyncExternalStore } from 'react';
 import { z } from 'zod';
 
@@ -10,7 +10,8 @@ const storageKey = 'ssm-usor:way-back';
 // Nothing dismisses it by hand, so an old trip must not offer a way back to a form long closed.
 export const wayBackLifetime = 60 * 60 * 1000;
 
-// `document` goes back to one document of the client, the one generating again was refused for.
+// `document` goes back to one document of the client, the one generating again was refused for;
+// `training-sheet` to the training tab of one employee, whose sheet could not be drawn up.
 const wayBackSchema = z
   .object({
     userId: z.string(),
@@ -21,11 +22,19 @@ const wayBackSchema = z
       'document',
       'client-contract',
       'lead-contract',
+      'training-sheet',
     ]),
     typeKey: builtInDocumentTypeKeySchema.optional(),
+    employeeId: z.uuid().optional(),
+    domain: trainingDomainSchema.optional(),
     startedAt: z.number(),
   })
-  .refine((wayBack) => wayBack.to !== 'document' || wayBack.typeKey !== undefined);
+  .refine((wayBack) => wayBack.to !== 'document' || wayBack.typeKey !== undefined)
+  .refine(
+    (wayBack) =>
+      wayBack.to !== 'training-sheet' ||
+      (wayBack.employeeId !== undefined && wayBack.domain !== undefined)
+  );
 
 export type WayBack = z.infer<typeof wayBackSchema>;
 

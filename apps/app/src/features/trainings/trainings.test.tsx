@@ -305,6 +305,23 @@ describe("an employee's training tabs", () => {
     expect(within(empty).getByTestId('training-record')).toBeTruthy();
   });
 
+  it('keeps the header to its buttons and says what the sheet lacks on a row of its own', async () => {
+    mockApi({
+      [`GET ${employeePath}/training-sheets`]: () =>
+        Response.json({
+          ssm: { ready: false, missing: ['employee.commute_route'] },
+          psi: { ready: true, missing: [] },
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    const notice = await screen.findByTestId('training-sheet-ssm-missing');
+    const tab = screen.getByTestId('employee-training-tab');
+    expect(notice.parentElement).toBe(tab);
+    expect(tab.children[1]).toBe(notice);
+    expect(notice.nextElementSibling).toBe(screen.getByTestId('training-status'));
+    expect(screen.getByTestId('training-sheet-ssm')).toHaveProperty('disabled', true);
+  });
+
   it('records a training for this employee alone, filled from the proposal', async () => {
     mockApi({
       [`GET ${employeePath}/training-records`]: () => Response.json({ items: [workplaceRecord] }),

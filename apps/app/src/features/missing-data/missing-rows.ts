@@ -3,6 +3,7 @@ import {
   type JobPositionDecision,
   type MissingDocumentData,
   type MissingServiceContractData,
+  type MissingSheetData,
   requiredWorkersRepresentatives,
   type ResponsiblePersonRole,
   type RiskEvaluationGap,
@@ -26,6 +27,7 @@ import type {
   ClientDetailsFocus,
   CompanyFocus,
   ContractFocus,
+  EmployeeFocus,
   FireSafetyMeansFocus,
   OrganizationCompanyFocus,
   ProfileFocus,
@@ -106,6 +108,12 @@ const to = {
   authorizations: (focus: AuthorizationsFocus) =>
     linkOptions({ to: '/organization/authorizations', search: { focus } }),
   profile: (focus: ProfileFocus) => linkOptions({ to: '/profile', search: { focus } }),
+  employeeEdit: (clientId: string, employeeId: string, focus: EmployeeFocus) =>
+    linkOptions({
+      to: '/clients/$clientId/employees/$employeeId/edit',
+      params: { clientId, employeeId },
+      search: { focus },
+    }),
 };
 
 export type MissingTarget = ReturnType<(typeof to)[keyof typeof to]>;
@@ -644,4 +652,44 @@ export function contractMissingGroups(
         })),
     }))
     .filter((group) => group.rows.length > 0);
+}
+
+export const trainingSheetMissingData: Record<
+  MissingSheetData,
+  { label: string; detail: string; focus: EmployeeFocus }
+> = {
+  'employee.commute_route': {
+    label: 'Traseul de deplasare',
+    detail: 'Drumul angajatului între domiciliu și locul de muncă, cerut de fișa SSM.',
+    focus: 'commute-route',
+  },
+  'employee.workplace': {
+    label: 'Punctul de lucru',
+    detail: 'Clientul are mai multe puncte de lucru active; alege-l pe cel al angajatului.',
+    focus: 'workplace',
+  },
+};
+
+export function trainingSheetMissingGroups({
+  missing,
+  clientId,
+  employeeId,
+}: {
+  missing: readonly MissingSheetData[];
+  clientId: string;
+  employeeId: string;
+}): MissingGroup[] {
+  if (missing.length === 0) return [];
+  return [
+    {
+      place: 'employee',
+      heading: 'Datele angajatului',
+      rows: missing.map((code) => ({
+        key: code,
+        label: trainingSheetMissingData[code].label,
+        detail: trainingSheetMissingData[code].detail,
+        target: to.employeeEdit(clientId, employeeId, trainingSheetMissingData[code].focus),
+      })),
+    },
+  ];
 }

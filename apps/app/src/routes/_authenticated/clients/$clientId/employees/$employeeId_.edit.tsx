@@ -9,6 +9,7 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { useAuth } from '@/features/auth/auth-context';
 import { EmployeeForm } from '@/features/employees/employee-form';
+import { employeeFocus, focusSearch } from '@/features/missing-data/focus';
 
 // Correcting what was entered about an employee. The trailing underscore keeps this page out of
 // the employee page's own layout; the loader warms the same query that page reads.
@@ -17,6 +18,7 @@ export const Route = createFileRoute(
 )({
   staticData: { title: 'Modifică angajatul', fullPage: true },
   params: { parse: (params) => ({ employeeId: z.uuid().parse(params.employeeId) }) },
+  validateSearch: focusSearch(employeeFocus),
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
     const userId = auth.getSnapshot().session?.user.id;
     try {
@@ -40,6 +42,7 @@ const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
 function EditEmployeePage() {
   const { clientId, employeeId } = Route.useParams();
+  const { focus } = Route.useSearch();
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });
@@ -59,6 +62,7 @@ function EditEmployeePage() {
       clientId={clientId}
       clientName={client.legalName}
       employee={employee}
+      focus={focus}
     />
   );
 }

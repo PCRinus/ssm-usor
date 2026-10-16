@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { startWayBack } from '@/features/missing-data/way-back';
 import { formatRoDate } from '@/lib/dates';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
@@ -194,6 +195,15 @@ function mockApi(
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}` && method === 'GET') {
       return routes.detail?.(init, url) ?? Response.json({ employee: createdEmployee });
+    }
+    if (url.pathname === `${employeesPath}/${sampleEmployee.id}/training-records`) {
+      return Response.json({ items: [] });
+    }
+    if (url.pathname === `${employeesPath}/${sampleEmployee.id}/training-sheets`) {
+      return Response.json({
+        ssm: { ready: true, missing: [] },
+        psi: { ready: true, missing: [] },
+      });
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/status` && method === 'PATCH') {
       return (
@@ -797,6 +807,48 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(JSON.parse(String(requests(detailPath, 'PUT')[1]![1]?.body))).toMatchObject({
       workplaceId: registeredOffice.id,
     });
+  });
+
+  it('focuses the route a training sheet asked for, and drops the request from the address', async () => {
+    mockApi({ detail: () => Response.json({ employee: createdEmployee }) });
+    const runtime = mountApp(authFixture(makeSession()).client, `${editPath}?focus=commute-route`);
+    const route = await screen.findByTestId('employee-commute-route');
+    await waitFor(() => expect(document.activeElement).toBe(route));
+    expect(route.hasAttribute('data-pointed')).toBe(true);
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it('focuses the workplace picker once the workplaces are in', async () => {
+    mockApi({
+      detail: () => Response.json({ employee: createdEmployee }),
+      workplaces: () => Response.json({ items: [registeredOffice, workshop] }),
+    });
+    mountApp(authFixture(makeSession()).client, `${editPath}?focus=workplace`);
+    const picker = await screen.findByTestId<HTMLButtonElement>('employee-workplace');
+    await waitFor(() => expect(document.activeElement).toBe(picker));
+    expect(picker.disabled).toBe(false);
+  });
+
+  it('offers the way back to the training tab after a save made for its sheet', async () => {
+    startWayBack({
+      userId: 'user-one',
+      clientId,
+      to: 'training-sheet',
+      employeeId: sampleEmployee.id,
+      domain: 'psi',
+    });
+    mockApi({ detail: () => Response.json({ employee: createdEmployee }) });
+    const runtime = mountApp(authFixture(makeSession()).client, `${editPath}?focus=commute-route`);
+    const user = userEvent.setup();
+    const route = await screen.findByTestId('employee-commute-route');
+    await waitFor(() => expect(document.activeElement).toBe(route));
+    await user.type(route, 'Str. Lungă 5 – Str. Fabricii 3, pe jos');
+    await user.click(screen.getByTestId('employee-submit'));
+
+    expect(await screen.findByText('Datele angajatului au fost salvate.')).toBeTruthy();
+    await user.click(await screen.findByRole('button', { name: 'Înapoi la fișă' }));
+    await screen.findByTestId('employee-training-tab');
+    expect(runtime.router.state.location.pathname).toBe(`${detailPath}/training/psi`);
   });
 
   it('puts a workplace the API refuses on its field', async () => {

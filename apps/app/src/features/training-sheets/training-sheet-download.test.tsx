@@ -48,7 +48,7 @@ function mockApi({
   });
 }
 
-function mount(domain: TrainingDomain) {
+function mount(...domains: TrainingDomain[]) {
   const queryClient = createQueryClient();
   const context = {
     auth: {} as RouterContext['auth'],
@@ -59,17 +59,18 @@ function mount(domain: TrainingDomain) {
   const employee = createRoute({
     getParentRoute: () => root,
     path: '/clients/$clientId/employees/$employeeId',
-    component: () => (
-      <TrainingSheetDownload clientId={clientId} employeeId={employeeId} domain={domain} />
-    ),
-  });
-  const edit = createRoute({
-    getParentRoute: () => root,
-    path: '/clients/$clientId/employees/$employeeId/edit',
-    component: () => <h1>Modifică angajatul</h1>,
+    component: () =>
+      domains.map((domain) => (
+        <TrainingSheetDownload
+          key={domain}
+          clientId={clientId}
+          employeeId={employeeId}
+          domain={domain}
+        />
+      )),
   });
   const router = createRouter({
-    routeTree: root.addChildren([employee, edit]),
+    routeTree: root.addChildren([employee]),
     context,
     history: createMemoryHistory({ initialEntries: [employeePath] }),
   });
@@ -118,29 +119,19 @@ describe('TrainingSheetDownload', () => {
     expect(screen.queryByRole('status')).toBeNull();
   });
 
-  it('is disabled while data is missing, and says what to fill in with a link to the form', async () => {
+  it('is disabled while data is missing', async () => {
     mockApi({ psi: { ready: false, missing: ['employee.workplace'] } });
-    mount('psi');
-    expect(
-      await screen.findByText('Fișa nu se poate întocmi până nu completezi: punctul de lucru.')
-    ).toBeTruthy();
+    mount('ssm', 'psi');
+    const ready = await screen.findByRole('button', { name: 'Descarcă fișa SSM' });
+    await waitFor(() => expect(ready).toHaveProperty('disabled', false));
     expect(screen.getByRole('button', { name: 'Descarcă fișa PSI' })).toHaveProperty(
       'disabled',
       true
     );
-    expect(screen.getByRole('link', { name: 'Completează datele' }).getAttribute('href')).toBe(
-      `${employeePath}/edit`
-    );
-  });
-
-  it('lists every missing piece of the occupational safety sheet', async () => {
-    mockApi({ ssm: { ready: false, missing: ['employee.commute_route', 'employee.workplace'] } });
-    mount('ssm');
+    expect(screen.queryByRole('status')).toBeNull();
     expect(
-      await screen.findByText(
-        'Fișa nu se poate întocmi până nu completezi: traseul de deplasare, punctul de lucru.'
-      )
-    ).toBeTruthy();
+      fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/training-sheets'))
+    ).toHaveLength(1);
   });
 
   it('says so in a toast when no converter is available', async () => {
