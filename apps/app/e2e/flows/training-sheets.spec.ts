@@ -8,13 +8,20 @@ import {
   createJobPosition,
   createOrganization,
   createWorkplace,
+  signIn,
 } from './support';
 
 test.afterAll(cleanUp);
 
+// The default headless shell saves a PDF as a download; the full Chromium shows it in the tab.
+test.use({ channel: 'chromium' });
+
 const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest' }).format(new Date());
 
-test('an employee with a route and a recorded training gets a training sheet as a PDF', async () => {
+test('an employee with a route and a recorded training gets a training sheet as a PDF', async ({
+  page,
+  context,
+}) => {
   const owner = await createAccount('training-sheets', 'Dan MARIN');
   const organizationId = await createOrganization('Fișe E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. CLIENT FIȘE E2E S.R.L.');
@@ -82,4 +89,13 @@ test('an employee with a route and a recorded training gets a training sheet as 
   const bytes = new Uint8Array(await sheet.arrayBuffer());
   expect(bytes.length).toBeGreaterThan(1000);
   expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-');
+
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto(`/clients/${clientId}/employees/${employee.id}/training/ssm`);
+  const preview = page.getByTestId('training-sheet-ssm-preview');
+  await expect(preview).toBeEnabled();
+  const [tab] = await Promise.all([context.waitForEvent('page'), preview.click()]);
+  await expect.poll(() => tab.url()).toMatch(/^blob:/);
+  await expect(preview).toBeEnabled();
 });
