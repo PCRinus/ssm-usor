@@ -20,7 +20,7 @@ const searchSchema = z.object({
   q: z.string().max(100).optional().catch(undefined),
 });
 
-export const Route = createFileRoute('/_authenticated/clients/$clientId/employees/_views/')({
+export const Route = createFileRoute('/_authenticated/clients/$clientId/employees/')({
   validateSearch: searchSchema,
   component: EmployeesPage,
 });

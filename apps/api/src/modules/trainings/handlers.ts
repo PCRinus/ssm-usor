@@ -212,7 +212,7 @@ export const listTrainings: RouteHandler<typeof listTrainingsRoute, ApiEnv> = as
   await findClient(db, clientId);
   let query = db
     .from('trainings')
-    .select(`${trainingColumns}, training_records(count)`)
+    .select(`${trainingColumns}, training_records(employees(id, last_name, first_name))`)
     .eq('client_id', clientId);
   if (domain) query = query.eq('domain', domain);
   if (phase) query = query.eq('phase', phase);
@@ -225,7 +225,17 @@ export const listTrainings: RouteHandler<typeof listTrainingsRoute, ApiEnv> = as
     {
       items: data.map(({ training_records: records, ...training }) => ({
         ...toTraining(training),
-        attendeeCount: records[0]?.count ?? 0,
+        attendeeCount: records.length,
+        attendees: records
+          .map(({ employees: employee }) => ({
+            employeeId: employee.id,
+            lastName: employee.last_name,
+            firstName: employee.first_name,
+          }))
+          .sort(
+            (a, b) =>
+              collator.compare(a.lastName, b.lastName) || collator.compare(a.firstName, b.firstName)
+          ),
       })),
     },
     200

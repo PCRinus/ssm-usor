@@ -2009,6 +2009,25 @@
                 "attendeeCount": {
                   "type": "integer",
                   "minimum": 0
+                },
+                "attendees": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "employeeId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "lastName": {
+                        "type": "string"
+                      },
+                      "firstName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["employeeId", "lastName", "firstName"]
+                  }
                 }
               },
               "required": [
@@ -2027,7 +2046,8 @@
                 "notes",
                 "createdAt",
                 "updatedAt",
-                "attendeeCount"
+                "attendeeCount",
+                "attendees"
               ]
             }
           }

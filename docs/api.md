@@ -148,7 +148,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /clients/{clientId}/employees/{employeeId}/training-records`      | Verified user with a membership       | `{ "items": [ … ] }`, each record with its `training`, newest first; `?domain=`                                           |
 | `GET /clients/{clientId}/employees/{employeeId}/training-sheets`       | Verified user with a membership       | `{ "ssm": { ready, missing }, "psi": { ready, missing } }`: whether each individual training sheet can be drawn up        |
 | `GET /clients/{clientId}/employees/{employeeId}/training-sheet`        | Verified user with a membership       | `200 application/pdf`, the sheet built on the spot; `?domain=ssm\|psi`; `409 missing_sheet_data`, `503 pdf_unavailable`   |
-| `GET /clients/{clientId}/trainings`                                    | Verified user with a membership       | `{ "items": [ … ] }`, newest first, each with `attendeeCount`; `?domain=&phase=`                                          |
+| `GET /clients/{clientId}/trainings`                                    | Verified user with a membership       | `{ "items": [ … ] }`, newest first, each with `attendeeCount` and `attendees`; `?domain=&phase=`                          |
 | `GET /clients/{clientId}/trainings/proposal`                           | Verified user with a membership       | `{ durationMinutes, material, trainer, … }`; `?domain=&phase=&heldOn=&jobPositionId=`                                     |
 | `POST /clients/{clientId}/trainings`                                   | Verified user with a membership       | `201 { "training": { …, "records": [ … ] } }`                                                                             |
 | `GET /clients/{clientId}/trainings/{trainingId}`                       | Verified user with a membership       | `{ "training": { …, "records": [ … ] } }`                                                                                 |
@@ -413,9 +413,10 @@ client, or one archived as a mistake, `400` on `employeeIds` (a leaver is fine: 
 may belong to one); a revision that is not one of the client's training themes of the domain,
 `400` on `themesRevisionId`. Each attendee's record takes the name of their job position as
 its `occupation`. `PUT` replaces the facts and the attendees: an attendee who stays keeps their
-record and its occupation, one left out loses it. The list is not paginated. The detail lists
-the records by name, each with `employee: { id, lastName, firstName }`, `occupation` and
-`admission` or null; `GET …/employees/{employeeId}/training-records` lists one person's
+record and its occupation, one left out loses it. The list is not paginated; each item
+carries its attendees ordered by name, `attendees: [{ employeeId, lastName, firstName }]`,
+read in the same query as `attendeeCount`. The detail lists the records by name, each with
+`employee: { id, lastName, firstName }`, `occupation` and `admission` or null; `GET …/employees/{employeeId}/training-records` lists one person's
 records with their training's facts, newest first. An archived client or a lead answers `409`
 as elsewhere.
 

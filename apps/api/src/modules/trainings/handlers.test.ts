@@ -221,18 +221,33 @@ afterEach(() => {
 });
 
 describe('GET /clients/{clientId}/trainings', () => {
-  it('lists the trainings held, newest first, with their attendee counts', async () => {
+  it('lists the trainings held, newest first, with their attendees by name', async () => {
     mockUpstream({
-      trainings: () => Response.json([{ ...trainingRow, training_records: [{ count: 2 }] }]),
+      trainings: () =>
+        Response.json([
+          {
+            ...trainingRow,
+            training_records: recordRows.map(({ employees }) => ({ employees })),
+          },
+        ]),
     });
     const response = await request(trainingsPath);
     expect(response.status).toBe(200);
     expect(trainingListResponseSchema.parse(await response.json())).toEqual({
-      items: [{ ...training, attendeeCount: 2 }],
+      items: [
+        {
+          ...training,
+          attendeeCount: 2,
+          attendees: [
+            { employeeId, lastName: 'Popescu', firstName: 'Ion' },
+            { employeeId: otherEmployeeId, lastName: 'Ștefan', firstName: 'Ana' },
+          ],
+        },
+      ],
     });
     const query = searchOf('/rest/v1/trainings');
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
-    expect(query.get('select')).toContain('training_records(count)');
+    expect(query.get('select')).toContain('training_records(employees(id,last_name,first_name))');
     expect(query.get('order')).toBe('held_on.desc,created_at.desc,id.asc');
     expect(query.get('domain')).toBeNull();
   });

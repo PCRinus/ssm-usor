@@ -1,4 +1,5 @@
 import {
+  formatEmployeeName,
   type TrainingDomain,
   trainingDomainLabels,
   trainingDomains,
@@ -28,7 +29,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData } from '@tanstack/react-query';
 import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
 import { ClipboardCheck, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 
 import {
   getListTrainingsQueryKey,
@@ -45,8 +46,13 @@ import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
 import { attendeeCountLabel, formatDuration, formatPerson } from './training-format';
 import { TrainingMaterial } from './training-material';
 
-const route = getRouteApi('/_authenticated/clients/$clientId/employees/_views/trainings');
+const route = getRouteApi('/_authenticated/clients/$clientId/trainings');
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+
+const employeeTrainingTabs = {
+  ssm: '/clients/$clientId/employees/$employeeId/training/ssm',
+  psi: '/clients/$clientId/employees/$employeeId/training/psi',
+} as const satisfies Record<TrainingDomain, string>;
 
 const domainFilters: { domain: TrainingDomain | undefined; label: string }[] = [
   { domain: undefined, label: 'Toate' },
@@ -92,7 +98,7 @@ export function ClientTrainingsPage() {
   return (
     <div data-testid="client-trainings-page" className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Instruiri efectuate</h2>
+        <h2 className="text-lg font-semibold">Instruiri ținute</h2>
         {!readOnly && (
           <Button data-testid="trainings-record" onClick={record}>
             <Plus aria-hidden="true" />
@@ -108,7 +114,7 @@ export function ClientTrainingsPage() {
               return (
                 <Link
                   key={filter.label}
-                  to="/clients/$clientId/employees/trainings"
+                  to="/clients/$clientId/trainings"
                   params={{ clientId }}
                   search={{ ...(filter.domain ? { domain: filter.domain } : {}), phase }}
                   data-testid="trainings-filter-domain"
@@ -199,7 +205,7 @@ export function ClientTrainingsPage() {
         ) : (
           <Table
             data-testid="trainings-table"
-            aria-label="Instruirile efectuate"
+            aria-label="Instruirile ținute"
             className={cn(trainings.isPlaceholderData && 'opacity-60')}
           >
             <TableHeader>
@@ -280,8 +286,25 @@ function TrainingRow({
         {formatDuration(training.durationMinutes)}
       </TableCell>
       <TableCell className="max-w-48 whitespace-normal">{formatPerson(training.trainer)}</TableCell>
-      <TableCell className="whitespace-nowrap" data-testid="trainings-attendees">
-        {attendeeCountLabel(training.attendeeCount)}
+      <TableCell className="min-w-48 max-w-80 whitespace-normal" data-testid="trainings-attendees">
+        <span className="block text-muted-foreground" data-testid="trainings-attendee-count">
+          {attendeeCountLabel(training.attendeeCount)}
+        </span>
+        <span className="mt-1 block">
+          {training.attendees.map((attendee, index) => (
+            <Fragment key={attendee.employeeId}>
+              {index > 0 && ', '}
+              <Link
+                to={employeeTrainingTabs[training.domain]}
+                params={{ clientId: training.clientId, employeeId: attendee.employeeId }}
+                data-testid="trainings-attendee"
+                className="font-medium hover:underline"
+              >
+                {formatEmployeeName(attendee)}
+              </Link>
+            </Fragment>
+          ))}
+        </span>
       </TableCell>
       <TableCell className="max-w-96 whitespace-normal">
         <TrainingMaterial text={training.material} />
