@@ -853,6 +853,14 @@ export const EmployeeListResponseItemsItemStatus = {
   terminated: 'terminated',
 } as const;
 
+/**
+ * @nullable
+ */
+export type EmployeeListResponseItemsItemWorkplace = {
+  id: string;
+  name: string;
+} | null;
+
 export type EmployeeListResponseItemsItem = {
   id: string;
   clientId: string;
@@ -870,6 +878,8 @@ export type EmployeeListResponseItemsItem = {
   status: EmployeeListResponseItemsItemStatus;
   /** @nullable */
   terminatedAt: string | null;
+  /** @nullable */
+  workplace: EmployeeListResponseItemsItemWorkplace;
   createdAt: string;
   updatedAt: string;
 };
@@ -925,6 +935,14 @@ export const EmployeeResponseEmployeeRhFactor = {
   '-': '-',
 } as const;
 
+/**
+ * @nullable
+ */
+export type EmployeeResponseEmployeeWorkplace = {
+  id: string;
+  name: string;
+} | null;
+
 export type EmployeeResponseEmployee = {
   id: string;
   clientId: string;
@@ -956,6 +974,18 @@ export type EmployeeResponseEmployee = {
   rhFactor: EmployeeResponseEmployeeRhFactor;
   /** @nullable */
   notes: string | null;
+  /** @nullable */
+  workplace: EmployeeResponseEmployeeWorkplace;
+  /** @nullable */
+  qualification: string | null;
+  /** @nullable */
+  education: string | null;
+  /** @nullable */
+  authorizations: string | null;
+  /** @nullable */
+  commuteRoute: string | null;
+  /** @nullable */
+  commuteMinutes: number | null;
   createdAt: string;
   updatedAt: string;
   /** @nullable */
@@ -1055,6 +1085,38 @@ export interface CreateEmployeeRequest {
    * @nullable
    */
   notes?: string | null;
+  /** @nullable */
+  workplaceId?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   * @nullable
+   */
+  qualification?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   * @nullable
+   */
+  education?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 500
+   * @nullable
+   */
+  authorizations?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 1000
+   * @nullable
+   */
+  commuteRoute?: string | null;
+  /**
+   * @minimum 1
+   * @maximum 600
+   * @nullable
+   */
+  commuteMinutes?: number | null;
 }
 
 /**
@@ -1146,6 +1208,38 @@ export interface UpdateEmployeeRequest {
    * @nullable
    */
   notes?: string | null;
+  /** @nullable */
+  workplaceId?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   * @nullable
+   */
+  qualification?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   * @nullable
+   */
+  education?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 500
+   * @nullable
+   */
+  authorizations?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 1000
+   * @nullable
+   */
+  commuteRoute?: string | null;
+  /**
+   * @minimum 1
+   * @maximum 600
+   * @nullable
+   */
+  commuteMinutes?: number | null;
 }
 
 export type UpdateEmployeeStatusRequest =

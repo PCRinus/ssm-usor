@@ -35,6 +35,7 @@ const membership = {
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const activeClient = { id: clientId, archived_at: null };
 const positionId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
+const workplaceId = 'c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f';
 
 const employeeRow = {
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
@@ -59,6 +60,13 @@ const employeeRow = {
   created_at: '2026-09-17T10:00:00+00:00',
   updated_at: '2026-09-17T10:00:00+00:00',
   archived_at: null,
+  workplace_id: null,
+  client_workplaces: null,
+  qualification: null,
+  education: null,
+  authorizations: null,
+  commute_route: null,
+  commute_minutes: null,
 };
 
 const employeeListRow = Object.fromEntries(
@@ -73,6 +81,11 @@ const employeeListRow = Object.fromEntries(
         'rh_factor',
         'notes',
         'archived_at',
+        'qualification',
+        'education',
+        'authorizations',
+        'commute_route',
+        'commute_minutes',
       ].includes(key)
   )
 );
@@ -82,7 +95,9 @@ type Handler = (init?: RequestInit, url?: URL) => Response | Promise<Response>;
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockUpstream(
-  handlers: Partial<Record<'auth' | 'membership' | 'clients' | 'employees' | 'positions', Handler>>
+  handlers: Partial<
+    Record<'auth' | 'membership' | 'clients' | 'employees' | 'positions' | 'workplaces', Handler>
+  >
 ) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
@@ -95,6 +110,9 @@ function mockUpstream(
     }
     if (url.pathname === '/rest/v1/job_positions') {
       return handlers.positions?.(init, url) ?? Response.json({ id: positionId });
+    }
+    if (url.pathname === '/rest/v1/client_workplaces') {
+      return handlers.workplaces?.(init, url) ?? Response.json([]);
     }
     if (url.pathname === '/rest/v1/employees') {
       return (
@@ -163,6 +181,7 @@ describe('GET /clients/{clientId}/employees', () => {
           hiredAt: '2020-03-01',
           status: 'active',
           terminatedAt: null,
+          workplace: null,
           createdAt: employeeRow.created_at,
           updatedAt: employeeRow.updated_at,
         },
@@ -338,6 +357,12 @@ describe('POST /clients/{clientId}/employees', () => {
       blood_group: 'A(II)',
       rh_factor: '+',
       notes: null,
+      workplace_id: null,
+      qualification: null,
+      education: null,
+      authorizations: null,
+      commute_route: null,
+      commute_minutes: null,
       created_by: user.id,
     });
     expect(new Headers(init?.headers).get('Prefer')).toContain('return=representation');
@@ -603,6 +628,11 @@ describe('PUT /clients/{clientId}/employees/{employeeId}', () => {
       blood_group: null,
       rh_factor: null,
       notes: null,
+      qualification: null,
+      education: null,
+      authorizations: null,
+      commute_route: null,
+      commute_minutes: null,
     });
     // Status, leave date and archive are not this route's to touch.
     expect(Object.keys(patched())).not.toContain('status');
@@ -717,6 +747,160 @@ describe('job positions on employees (ADR 006)', () => {
     mockUpstream({ positions: () => Response.json(null) });
     expect((await move({ jobPositionId: positionId })).status).toBe(400);
     expect((await move({})).status).toBe(400);
+  });
+});
+
+describe('training sheet fields on employees (ADR 021)', () => {
+  const employeePath = `${employeesPath}/${employeeRow.id}`;
+  const body = { lastName: 'Popescu', firstName: 'Ion', jobTitle: 'Sudor', hiredAt: '2020-03-01' };
+  const sheetBody = {
+    ...body,
+    workplaceId,
+    qualification: ' Sudor autorizat ',
+    education: 'Școala profesională',
+    authorizations: 'ISCIR',
+    commuteRoute: 'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24',
+    commuteMinutes: 35,
+  };
+  const sent = (method: 'POST' | 'PATCH') =>
+    JSON.parse(
+      String(
+        calls('/rest/v1/employees')
+          .filter(([, init]) => init?.method === method)
+          .at(-1)![1]?.body
+      )
+    ) as Record<string, unknown>;
+  const put = (payload: unknown) =>
+    request(employeePath, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+  it('stores the sheet fields and returns them with the workplace', async () => {
+    const row = {
+      ...employeeRow,
+      workplace_id: workplaceId,
+      client_workplaces: { id: workplaceId, name: 'Punct de lucru Str. Fabricii 3' },
+      qualification: 'Sudor autorizat',
+      education: 'Școala profesională',
+      authorizations: 'ISCIR',
+      commute_route: 'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24',
+      commute_minutes: 35,
+    };
+    mockUpstream({
+      employees: () => Response.json(row, { status: 201 }),
+      workplaces: () => Response.json({ id: workplaceId }),
+    });
+    const response = await postEmployee(sheetBody);
+    expect(response.status).toBe(201);
+    expect(sent('POST')).toMatchObject({
+      workplace_id: workplaceId,
+      qualification: 'Sudor autorizat',
+      education: 'Școala profesională',
+      authorizations: 'ISCIR',
+      commute_route: 'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24',
+      commute_minutes: 35,
+    });
+    const lookup = new URL(String(calls('/rest/v1/client_workplaces')[0]![0])).searchParams;
+    expect([lookup.get('id'), lookup.get('client_id'), lookup.get('archived_at')]).toEqual([
+      `eq.${workplaceId}`,
+      `eq.${clientId}`,
+      'is.null',
+    ]);
+    expect(employeeResponseSchema.parse(await response.json()).employee).toMatchObject({
+      workplace: { id: workplaceId, name: 'Punct de lucru Str. Fabricii 3' },
+      qualification: 'Sudor autorizat',
+      commuteRoute: 'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24',
+      commuteMinutes: 35,
+    });
+  });
+
+  it('refuses a workplace that is archived or of another client, as it refuses a position', async () => {
+    mockUpstream({ workplaces: () => Response.json(null) });
+    const created = await postEmployee(sheetBody);
+    expect(created.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await created.json()).issues?.[0]?.path).toBe(
+      'workplaceId'
+    );
+    expect(calls('/rest/v1/employees')).toHaveLength(0);
+
+    mockUpstream({
+      employees: () => Response.json(employeeRow),
+      workplaces: () => Response.json(null),
+    });
+    const updated = await put(sheetBody);
+    expect(updated.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await updated.json()).issues?.[0]?.path).toBe(
+      'workplaceId'
+    );
+    expect(calls('/rest/v1/employees').some(([, init]) => init?.method === 'PATCH')).toBe(false);
+  });
+
+  it('puts a new employee at the only active workplace of the client', async () => {
+    mockUpstream({
+      employees: () => Response.json(employeeRow, { status: 201 }),
+      workplaces: () => Response.json([{ id: workplaceId }]),
+    });
+    expect((await postEmployee(body)).status).toBe(201);
+    expect(sent('POST').workplace_id).toBe(workplaceId);
+    const lookup = new URL(String(calls('/rest/v1/client_workplaces')[0]![0])).searchParams;
+    expect([lookup.get('client_id'), lookup.get('archived_at'), lookup.get('limit')]).toEqual([
+      `eq.${clientId}`,
+      'is.null',
+      '2',
+    ]);
+  });
+
+  it('leaves the workplace empty when the client has several or none', async () => {
+    mockUpstream({
+      employees: () => Response.json(employeeRow, { status: 201 }),
+      workplaces: () => Response.json([{ id: workplaceId }, { id: positionId }]),
+    });
+    expect((await postEmployee(body)).status).toBe(201);
+    expect(sent('POST').workplace_id).toBeNull();
+
+    mockUpstream({ employees: () => Response.json(employeeRow, { status: 201 }) });
+    expect((await postEmployee(body)).status).toBe(201);
+    expect(sent('POST').workplace_id).toBeNull();
+  });
+
+  it('keeps the stored workplace when an edit leaves it out, and clears it when told', async () => {
+    mockUpstream({ employees: () => Response.json(employeeRow) });
+    expect((await put(body)).status).toBe(200);
+    expect(sent('PATCH')).not.toHaveProperty('workplace_id');
+    expect(calls('/rest/v1/client_workplaces')).toHaveLength(0);
+
+    mockUpstream({ employees: () => Response.json(employeeRow) });
+    expect((await put({ ...body, workplaceId: null })).status).toBe(200);
+    expect(sent('PATCH').workplace_id).toBeNull();
+
+    mockUpstream({
+      employees: () => Response.json(employeeRow),
+      workplaces: () => Response.json({ id: workplaceId }),
+    });
+    expect((await put(sheetBody)).status).toBe(200);
+    expect(sent('PATCH')).toMatchObject({ workplace_id: workplaceId, commute_minutes: 35 });
+  });
+
+  it.each([
+    [{ ...body, workplaceId: 'nope' }, 'workplaceId'],
+    [{ ...body, qualification: 'x'.repeat(161) }, 'qualification'],
+    [{ ...body, education: 'x'.repeat(161) }, 'education'],
+    [{ ...body, authorizations: 'x'.repeat(501) }, 'authorizations'],
+    [{ ...body, commuteRoute: 'x'.repeat(1001) }, 'commuteRoute'],
+    [{ ...body, commuteRoute: '   ' }, 'commuteRoute'],
+    [{ ...body, commuteMinutes: 0 }, 'commuteMinutes'],
+    [{ ...body, commuteMinutes: 601 }, 'commuteMinutes'],
+    [{ ...body, commuteMinutes: 12.5 }, 'commuteMinutes'],
+  ])('rejects an invalid sheet field before touching the database: %j', async (payload, path) => {
+    mockUpstream({});
+    const response = await postEmployee(payload);
+    expect(response.status).toBe(400);
+    expect(
+      apiErrorResponseSchema.parse(await response.json()).issues?.map((i) => i.path)
+    ).toContain(path);
+    expect(calls('/rest/v1/employees')).toHaveLength(0);
   });
 });
 

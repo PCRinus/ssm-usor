@@ -884,13 +884,17 @@ export type Database = {
       employees: {
         Row: {
           archived_at: string | null;
+          authorizations: string | null;
           birth_date: string | null;
           birth_place: string | null;
           blood_group: string | null;
           client_id: string;
           cnp: string | null;
+          commute_minutes: number | null;
+          commute_route: string | null;
           created_at: string;
           created_by: string | null;
+          education: string | null;
           email: string | null;
           employee_number: string | null;
           first_name: string;
@@ -903,20 +907,26 @@ export type Database = {
           notes: string | null;
           organization_id: string;
           phone: string | null;
+          qualification: string | null;
           rh_factor: string | null;
           status: Database['public']['Enums']['employee_status'];
           terminated_at: string | null;
           updated_at: string;
+          workplace_id: string | null;
         };
         Insert: {
           archived_at?: string | null;
+          authorizations?: string | null;
           birth_date?: string | null;
           birth_place?: string | null;
           blood_group?: string | null;
           client_id: string;
           cnp?: string | null;
+          commute_minutes?: number | null;
+          commute_route?: string | null;
           created_at?: string;
           created_by?: string | null;
+          education?: string | null;
           email?: string | null;
           employee_number?: string | null;
           first_name: string;
@@ -929,20 +939,26 @@ export type Database = {
           notes?: string | null;
           organization_id: string;
           phone?: string | null;
+          qualification?: string | null;
           rh_factor?: string | null;
           status?: Database['public']['Enums']['employee_status'];
           terminated_at?: string | null;
           updated_at?: string;
+          workplace_id?: string | null;
         };
         Update: {
           archived_at?: string | null;
+          authorizations?: string | null;
           birth_date?: string | null;
           birth_place?: string | null;
           blood_group?: string | null;
           client_id?: string;
           cnp?: string | null;
+          commute_minutes?: number | null;
+          commute_route?: string | null;
           created_at?: string;
           created_by?: string | null;
+          education?: string | null;
           email?: string | null;
           employee_number?: string | null;
           first_name?: string;
@@ -955,10 +971,12 @@ export type Database = {
           notes?: string | null;
           organization_id?: string;
           phone?: string | null;
+          qualification?: string | null;
           rh_factor?: string | null;
           status?: Database['public']['Enums']['employee_status'];
           terminated_at?: string | null;
           updated_at?: string;
+          workplace_id?: string | null;
         };
         Relationships: [
           {
@@ -995,6 +1013,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employees_workplace_in_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_workplaces';
+            referencedColumns: ['id', 'client_id'];
           },
         ];
       };

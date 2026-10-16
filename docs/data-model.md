@@ -434,19 +434,23 @@ and a denormalized `organization_id`, and a composite foreign key on `(client_id
 organization_id)` guarantees the client belongs to the same organization, so the policies
 stay a one-line comparison like on `clients`.
 
-| Column                                      | Notes                                                                                      |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `last_name`, `first_name`                   | Required, separate columns: forms print "Numele și prenumele" and lists sort by last name. |
-| `cnp`                                       | Optional, thirteen digits; checksum and date validated by the API. Unique per client.      |
-| `employee_number`                           | The client's own identifier (marca); import and dedupe key. Unique per client.             |
-| `email`, `phone`                            | Optional, for invitations and remote signing.                                              |
-| `job_title`                                 | Required free text (funcția). A COR code column will join it once the list exists.         |
-| `hired_at`                                  | Required; drives the introductory training deadline. Tenure is computed, never stored.     |
-| `status`, `terminated_at`                   | `active` or `terminated`; the date is required exactly when terminated.                    |
-| `birth_date`, `birth_place`, `home_address` | Optional fields of the individual training sheet. The birth date must agree with the CNP.  |
-| `blood_group`, `rh_factor`                  | Optional, constrained to `0(I)`, `A(II)`, `B(III)`, `AB(IV)` and `+`, `-`.                 |
-| `notes`                                     | Free text, up to 2000 characters.                                                          |
-| `archived_at`                               | Soft delete for rows entered by mistake; a leaver is a status change, not an archive.      |
+| Column                                      | Notes                                                                                                                                                   |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `last_name`, `first_name`                   | Required, separate columns: forms print "Numele și prenumele" and lists sort by last name.                                                              |
+| `cnp`                                       | Optional, thirteen digits; checksum and date validated by the API. Unique per client.                                                                   |
+| `employee_number`                           | The client's own identifier (marca); import and dedupe key. Unique per client.                                                                          |
+| `email`, `phone`                            | Optional, for invitations and remote signing.                                                                                                           |
+| `job_title`                                 | Required free text (funcția). A COR code column will join it once the list exists.                                                                      |
+| `hired_at`                                  | Required; drives the introductory training deadline. Tenure is computed, never stored.                                                                  |
+| `status`, `terminated_at`                   | `active` or `terminated`; the date is required exactly when terminated.                                                                                 |
+| `birth_date`, `birth_place`, `home_address` | Optional fields of the individual training sheet. The birth date must agree with the CNP.                                                               |
+| `blood_group`, `rh_factor`                  | Optional, constrained to `0(I)`, `A(II)`, `B(III)`, `AB(IV)` and `+`, `-`.                                                                              |
+| `notes`                                     | Free text, up to 2000 characters.                                                                                                                       |
+| `workplace_id`                              | Optional: the workplace the person works at, by a composite foreign key on `(workplace_id, client_id)` to `client_workplaces (id, client_id)`. ADR 021. |
+| `qualification`, `education`                | Optional free text the individual training sheets print (calificarea, studiile), up to 160 characters each.                                             |
+| `authorizations`                            | Optional free text (autorizații: "ISCIR" and the like), up to 500 characters.                                                                           |
+| `commute_route`, `commute_minutes`          | Optional: the commute (traseul de deplasare) as free text up to 1000 characters, and its duration, 1 to 600 minutes.                                    |
+| `archived_at`                               | Soft delete for rows entered by mistake; a leaver is a status change, not an archive.                                                                   |
 
 Both unique indexes are partial on `archived_at is null`, so archiving a mistaken row releases
 its CNP and employee number. The insert policy additionally requires the client to be active
@@ -465,9 +469,16 @@ the training records, from which "currently absent" is derived.
 Not on the employee row, on purpose: training completion, signatures, and medical fitness.
 Those are evidence records with dates and actors (a `training_records` table follows), because a
 flag would be wrong the day after the periodic training expires. The post a person fills is
-a job position, below. Departments are a future entity; no free-text stand-in was added. Workplaces exist as
-`client_workplaces`, and an employee does not point at one yet. Contract type, working
+a job position, below. Departments are a future entity; no free-text stand-in was added. Contract type, working
 hours, and salary are HR data the product avoids.
+
+The workplace and the commute are optional on the row and on the form: the occupational safety
+sheet is what requires the commute route, and both sheets the workplace at a client with
+several ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)). Adding an
+employee without a workplace gives them the client's only active one when it has exactly one;
+the API does that, not a trigger, and refuses a workplace that is archived or belongs to another
+client, which the foreign key alone would take. The foreign key restricts deleting a workplace an
+employee points at; archiving one leaves the employees on it.
 
 The CAEN Rev. 3 class list (651 four-digit codes with Romanian names) also lives in
 `packages/contracts` and feeds the form's combobox and the seed. The county list is a Zod enum in `packages/contracts`. It flows into the OpenAPI document and

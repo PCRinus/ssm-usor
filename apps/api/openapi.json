@@ -1113,6 +1113,20 @@
                   "nullable": true,
                   "format": "date"
                 },
+                "workplace": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"]
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -1135,6 +1149,7 @@
                 "hiredAt",
                 "status",
                 "terminatedAt",
+                "workplace",
                 "createdAt",
                 "updatedAt"
               ]
@@ -1248,6 +1263,40 @@
                 "type": "string",
                 "nullable": true
               },
+              "workplace": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"]
+              },
+              "qualification": {
+                "type": "string",
+                "nullable": true
+              },
+              "education": {
+                "type": "string",
+                "nullable": true
+              },
+              "authorizations": {
+                "type": "string",
+                "nullable": true
+              },
+              "commuteRoute": {
+                "type": "string",
+                "nullable": true
+              },
+              "commuteMinutes": {
+                "type": "integer",
+                "nullable": true
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
@@ -1282,6 +1331,12 @@
               "bloodGroup",
               "rhFactor",
               "notes",
+              "workplace",
+              "qualification",
+              "education",
+              "authorizations",
+              "commuteRoute",
+              "commuteMinutes",
               "createdAt",
               "updatedAt",
               "archivedAt"
@@ -1372,6 +1427,41 @@
             "nullable": true,
             "minLength": 1,
             "maxLength": 2000
+          },
+          "workplaceId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "qualification": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "education": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "authorizations": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "commuteRoute": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "commuteMinutes": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 600
           }
         },
         "required": ["lastName", "firstName", "jobTitle", "hiredAt"]
@@ -1458,6 +1548,41 @@
             "nullable": true,
             "minLength": 1,
             "maxLength": 2000
+          },
+          "workplaceId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "qualification": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "education": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "authorizations": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "commuteRoute": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "commuteMinutes": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 600
           }
         },
         "required": ["lastName", "firstName", "jobTitle", "hiredAt"]

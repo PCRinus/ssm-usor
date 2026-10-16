@@ -52,6 +52,14 @@ export const createEmployeeRequestSchema = z
     bloodGroup: bloodGroupSchema.nullish(),
     rhFactor: rhFactorSchema.nullish(),
     notes: optionalText(1, 2000),
+    // Left out when adding someone, the client's only active workplace if it has exactly one;
+    // left out when editing, the stored one stays (ADR 021).
+    workplaceId: z.uuid().nullish(),
+    qualification: optionalText(1, 160),
+    education: optionalText(1, 160),
+    authorizations: optionalText(1, 500),
+    commuteRoute: optionalText(1, 1000),
+    commuteMinutes: z.number().int().min(1).max(600).nullish(),
   })
   .superRefine((body, ctx) => {
     if (body.birthDate && body.birthDate >= body.hiredAt) {
@@ -125,6 +133,12 @@ export const employeeSchema = z.object({
   bloodGroup: bloodGroupSchema.nullable(),
   rhFactor: rhFactorSchema.nullable(),
   notes: z.string().nullable(),
+  workplace: z.object({ id: z.uuid(), name: z.string() }).nullable(),
+  qualification: z.string().nullable(),
+  education: z.string().nullable(),
+  authorizations: z.string().nullable(),
+  commuteRoute: z.string().nullable(),
+  commuteMinutes: z.number().int().nullable(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
   archivedAt: z.iso.datetime({ offset: true }).nullable(),
@@ -145,6 +159,7 @@ export const employeeListItemSchema = employeeSchema.pick({
   hiredAt: true,
   status: true,
   terminatedAt: true,
+  workplace: true,
   createdAt: true,
   updatedAt: true,
 });

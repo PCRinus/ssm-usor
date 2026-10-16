@@ -1,5 +1,6 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
+  type CreateEmployeeRequest,
   type Employee,
   type EmployeeListItem,
   type EmployeeSortKey,
@@ -11,6 +12,7 @@ import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { refuseWorkplaceOfAnotherClient } from '../document-data/handlers';
 import type {
   createEmployeeRoute,
   getEmployeeRoute,
@@ -24,10 +26,10 @@ type EmployeeRow = Database['public']['Tables']['employees']['Row'];
 
 // The job position rides along by its foreign key: every employee has exactly one.
 export const employeeListColumns =
-  'id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name)';
+  'id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name), workplace_id, client_workplaces!employees_workplace_in_client(id, name)';
 
 // The CNP and the training-sheet details are read only for one employee at a time.
-export const employeeColumns = `${employeeListColumns}, cnp, birth_date, birth_place, home_address, blood_group, rh_factor, notes, archived_at`;
+export const employeeColumns = `${employeeListColumns}, cnp, birth_date, birth_place, home_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_minutes`;
 
 type EmployeeListRow = Pick<
   EmployeeRow,
@@ -44,7 +46,11 @@ type EmployeeListRow = Pick<
   | 'terminated_at'
   | 'created_at'
   | 'updated_at'
-> & { job_positions: { id: string; name: string } };
+  | 'workplace_id'
+> & {
+  job_positions: { id: string; name: string };
+  client_workplaces: { id: string; name: string } | null;
+};
 
 export function toEmployeeListItem(row: EmployeeListRow): EmployeeListItem {
   return {
@@ -62,12 +68,13 @@ export function toEmployeeListItem(row: EmployeeListRow): EmployeeListItem {
     terminatedAt: row.terminated_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    workplace: row.client_workplaces,
   };
 }
 
 export function toEmployee(
   row: Omit<EmployeeRow, 'organization_id' | 'created_by' | 'job_position_id'> &
-    Pick<EmployeeListRow, 'job_positions'>
+    Pick<EmployeeListRow, 'job_positions' | 'client_workplaces'>
 ): Employee {
   return {
     ...toEmployeeListItem(row),
@@ -80,6 +87,11 @@ export function toEmployee(
     rhFactor: row.rh_factor as Employee['rhFactor'],
     notes: row.notes,
     archivedAt: row.archived_at,
+    qualification: row.qualification,
+    education: row.education,
+    authorizations: row.authorizations,
+    commuteRoute: row.commute_route,
+    commuteMinutes: row.commute_minutes,
   };
 }
 
@@ -111,6 +123,27 @@ async function requireJobPosition(db: DataClient, clientId: string, jobPositionI
       { path: 'jobPositionId', message: 'This job position does not exist under this client.' },
     ]);
   }
+}
+
+async function onlyActiveWorkplace(db: DataClient, clientId: string) {
+  const { data, error } = await db
+    .from('client_workplaces')
+    .select('id')
+    .eq('client_id', clientId)
+    .is('archived_at', null)
+    .limit(2);
+  if (error) throw fromDatabaseError(error, 'find workplaces');
+  return data.length === 1 ? data[0]!.id : null;
+}
+
+function sheetFields(body: CreateEmployeeRequest) {
+  return {
+    qualification: body.qualification ?? null,
+    education: body.education ?? null,
+    authorizations: body.authorizations ?? null,
+    commute_route: body.commuteRoute ?? null,
+    commute_minutes: body.commuteMinutes ?? null,
+  };
 }
 
 function conflictMessage(detail: string | undefined) {
@@ -166,6 +199,8 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
     throw new ApiError('conflict', 'This client is archived; employees cannot be added.');
   }
   if (body.jobPositionId) await requireJobPosition(db, clientId, body.jobPositionId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
+  const workplaceId = body.workplaceId ?? (await onlyActiveWorkplace(db, clientId));
   const { data, error } = await db
     .from('employees')
     .insert({
@@ -186,6 +221,8 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
       blood_group: body.bloodGroup ?? null,
       rh_factor: body.rhFactor ?? null,
       notes: body.notes ?? null,
+      workplace_id: workplaceId,
+      ...sheetFields(body),
       created_by: c.get('user').id,
       // Left out, the database assigns the job position named like the contract title,
       // creating it if the client lacks it (ADR 006). The generated types cannot know that.
@@ -297,6 +334,7 @@ export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = 
     ]);
   }
   if (body.jobPositionId) await requireJobPosition(db, clientId, body.jobPositionId);
+  await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
   const { data, error } = await db
     .from('employees')
     .update({
@@ -315,6 +353,8 @@ export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = 
       blood_group: body.bloodGroup ?? null,
       rh_factor: body.rhFactor ?? null,
       notes: body.notes ?? null,
+      ...(body.workplaceId === undefined ? {} : { workplace_id: body.workplaceId }),
+      ...sheetFields(body),
     })
     .eq('id', employeeId)
     .eq('client_id', clientId)

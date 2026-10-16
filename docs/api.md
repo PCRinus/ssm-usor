@@ -350,6 +350,17 @@ replaces what was entered about a person with the same body and rules as `POST`;
 `jobPositionId` keeps their position, a hire date after the leave date answers `400` on
 `hiredAt`, and status, leave date and archive are not its to touch.
 
+The facts the individual training sheets print
+([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)) ride on the same
+bodies, all optional: `workplaceId`, `qualification` and `education` (up to 160 characters),
+`authorizations` (up to 500), `commuteRoute` (up to 1000) and `commuteMinutes` (an integer from 1
+to 600). A `workplaceId` that is archived or belongs to another client answers `400` with an issue
+on `workplaceId`, as for a job position. `POST` without one gives the employee the client's only
+active workplace when it has exactly one, and none otherwise; `PUT` without the key keeps the
+stored workplace, and `workplaceId: null` clears it. The detail returns the five facts and both
+the list and the detail carry `workplace: { id, name } | null`, the name read even once the
+workplace is archived.
+
 Job positions ([ADR 006](architecture/adr-006-job-positions.md)) are the posts a client
 employs people in. The list is not paginated, since a client has a handful, leaves archived
 positions out, and counts the current employees of each in the database. A name the client
