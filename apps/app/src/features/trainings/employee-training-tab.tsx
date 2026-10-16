@@ -23,6 +23,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { formatDate } from '@/features/employees/employee-format';
 import { EmployeePending } from '@/features/employees/employee-pending';
 import { useEmployee } from '@/features/employees/use-employee';
+import { TrainingSheetDownload } from '@/features/training-sheets/training-sheet-download';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
 import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
@@ -86,7 +87,9 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <h2 className="text-lg font-semibold">Instruire {label}</h2>
         <div className="flex flex-wrap gap-2">
-          <div data-testid="training-tab-actions" className="flex flex-wrap gap-2" />
+          <div data-testid="training-tab-actions" className="flex flex-wrap gap-2">
+            <TrainingSheetDownload clientId={clientId} employeeId={employeeId} domain={domain} />
+          </div>
           {recordButton}
         </div>
       </div>
