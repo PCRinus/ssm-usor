@@ -4,11 +4,12 @@ import {
   trainingDomainLabels,
   type TrainingPhase,
   trainingPhaseLabels,
+  type TrainingStatus,
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { getRouteApi, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
 import { ClipboardCheck, Pencil, Plus, Trash2 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
@@ -23,6 +24,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { formatDate } from '@/features/employees/employee-format';
 import { EmployeePending } from '@/features/employees/employee-pending';
 import { useEmployee } from '@/features/employees/use-employee';
+import { intervalLabel } from '@/features/job-positions/job-position-schema';
 import { TrainingSheetDownload } from '@/features/training-sheets/training-sheet-download';
 import { TrainingSheetReadiness } from '@/features/training-sheets/training-sheet-readiness';
 
@@ -51,6 +53,78 @@ function StatusFact({ label, children }: { label: string; children: ReactNode })
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="text-sm font-medium">{children}</dd>
     </div>
+  );
+}
+
+const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+const sourceLinkClass = 'underline underline-offset-4 hover:text-foreground';
+
+const programmeFocus = {
+  ssm: 'training-schedule',
+  psi: 'fire-training-schedule',
+} as const satisfies Record<TrainingDomain, string>;
+
+function IntervalFact({
+  clientId,
+  domain,
+  status,
+  jobPosition,
+  readOnly,
+}: {
+  clientId: string;
+  domain: TrainingDomain;
+  status: TrainingStatus;
+  jobPosition: { id: string; name: string };
+  readOnly: boolean;
+}) {
+  const programme = { to: '/clients/$clientId/training', params: { clientId } } as const;
+  const search = { focus: programmeFocus[domain] };
+  if (status.intervalMonths === null) {
+    return (
+      <span data-testid="training-interval" className="grid gap-0.5">
+        <span className="font-normal text-muted-foreground">Nestabilit</span>
+        {!readOnly && (
+          <Link
+            {...programme}
+            search={search}
+            data-testid="training-interval-set"
+            title={domain === 'ssm' ? 'Postul își poate avea și propriul interval' : undefined}
+            className={`text-xs font-normal text-muted-foreground ${sourceLinkClass}`}
+          >
+            Stabilește intervalul
+          </Link>
+        )}
+      </span>
+    );
+  }
+  return (
+    <span data-testid="training-interval" className="grid gap-0.5">
+      <span>{capitalized(intervalLabel(status.intervalMonths))}</span>
+      <span className="text-xs font-normal text-muted-foreground">
+        {status.intervalSource === 'position' ? (
+          <Link
+            to="/clients/$clientId/job-positions/$jobPositionId"
+            params={{ clientId, jobPositionId: jobPosition.id }}
+            data-testid="training-interval-source"
+            className={sourceLinkClass}
+          >
+            din postul {jobPosition.name}
+          </Link>
+        ) : (
+          <Link
+            {...programme}
+            search={search}
+            data-testid="training-interval-source"
+            className={sourceLinkClass}
+          >
+            {domain === 'ssm'
+              ? 'din programul de instruire al clientului'
+              : 'din datele de instruire PSI ale clientului'}
+          </Link>
+        )}
+      </span>
+    </span>
   );
 }
 
@@ -98,7 +172,7 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
 
       <dl
         data-testid="training-status"
-        className="grid gap-4 rounded-lg border bg-card px-5 py-4 sm:grid-cols-3"
+        className="grid gap-4 rounded-lg border bg-card px-5 py-4 sm:grid-cols-2 lg:grid-cols-4"
       >
         <StatusFact label="Starea instruirii">
           {status.state ? (
@@ -115,10 +189,23 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
               formatDate(status.dueOn)
             ) : (
               <span className="font-normal text-muted-foreground">
-                {status.state ? 'Intervalul de instruire nu este stabilit' : '—'}
+                {status.state === 'untrained'
+                  ? 'După instruirea la angajare'
+                  : status.state
+                    ? 'Intervalul de instruire nu este stabilit'
+                    : '—'}
               </span>
             )}
           </span>
+        </StatusFact>
+        <StatusFact label="Intervalul de instruire">
+          <IntervalFact
+            clientId={clientId}
+            domain={domain}
+            status={status}
+            jobPosition={employee.jobPosition}
+            readOnly={readOnly}
+          />
         </StatusFact>
         <StatusFact label="Ultima instruire periodică">
           <span data-testid="training-last-periodic">

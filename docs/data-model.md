@@ -584,14 +584,17 @@ table comes with the electronic signature.
 
 `employee_training_status` is a view, security invoker, with one row per employee and, for
 each domain, `<domain>_last_periodic_on`, `<domain>_workplace_trained_on`,
-`<domain>_has_hiring_training`, `<domain>_due_on` and `<domain>_state`. Nothing of it is stored.
+`<domain>_has_hiring_training`, `<domain>_due_on` and `<domain>_state`, then, last,
+`<domain>_interval_months` and `<domain>_interval_source` (`position`, `client` or null; never
+`position` for `psi`). Nothing of it is stored.
 
 - The interval runs from the day of the last periodic record, else of the latest workplace
   record, else the hire date. A supplementary record never moves it.
 - The interval is, for `ssm`, the position's `training_interval_months`, else the client's
   interval for the position's staff category; for `psi`, the `client_fire_safety` interval for
   the category, which a position cannot override. An undecided interval, or a category the
-  client does not train, leaves `due_on` null.
+  client does not train, leaves `due_on` null, and so does the lack of a hiring record: an
+  `untrained` employee has no due date.
 - The state (`training_state`) is `untrained` without an introductory general or a workplace
   record in the domain; otherwise `overdue` once `due_on` has passed, `due` when it falls
   within the next thirty days, else `current`, as it is without a due date. A terminated
