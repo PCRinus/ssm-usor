@@ -10,7 +10,6 @@ import {
   fireSafetyDocumentTypeKeys,
   type FireSafetyTypeKeyFromTenEmployees,
   isDatedDocumentType,
-  type StaffCategory,
   trainingMonths,
 } from '@ssm-usor/contracts';
 
@@ -18,7 +17,12 @@ import { printedAddress } from '../../lib/address';
 import { countOf, definiteRole, listed, runOn } from '../../lib/romanian';
 import { documentApplies, printedDate } from './context';
 import { extinguisherGroups } from './equipment';
-import type { FireNamedPeople, FireSafetyClientFacts, FireSafetySetFacts } from './fire-safety';
+import type {
+  FireNamedPeople,
+  FireSafetyClientFacts,
+  FireSafetySetFacts,
+  FireStaffCategory,
+} from './fire-safety';
 import { descriptionNamesKind, installationText } from './installations';
 import { monthNames } from './themes';
 
@@ -65,17 +69,15 @@ export type AnnualReportInput = {
   year: number;
   people: FireNamedPeople;
   representativeRole: string;
+  staffCategories: readonly FireStaffCategory[];
+  periodicLabel: string;
+  hasGasExtinguishers: boolean;
   inSet: (typeKey: FireSafetyTypeKeyFromTenEmployees) => boolean;
 };
 
 type Unit = FireSafetyClientFacts['equipment'][number];
 type Installation = FireSafetyClientFacts['installations'][number];
 type StoredDocument = FireSafetyClientFacts['documents'][number];
-
-const staffLabels: Record<StaffCategory, string> = {
-  technical_administrative: 'Personal administrativ',
-  execution: 'Personal de execuție',
-};
 
 const datesOf = (dates: readonly (string | null)[]) => {
   const unique = [...new Set(dates.filter((date): date is string => date !== null))].sort();
@@ -156,6 +158,9 @@ export function buildAnnualReport({
   year,
   people,
   representativeRole,
+  staffCategories,
+  periodicLabel,
+  hasGasExtinguishers,
   inSet,
 }: AnnualReportInput): AnnualReportContext {
   const card = facts.fireSafety.card!;
@@ -183,15 +188,6 @@ export function buildAnnualReport({
       },
     ];
   });
-
-  const categories = (['technical_administrative', 'execution'] as const).flatMap((category) => {
-    const positions = facts.jobPositions.filter((position) => position.staffCategory === category);
-    return positions.length > 0 ? [{ category, positions }] : [];
-  });
-  const intervalOf: Record<StaffCategory, number> = {
-    technical_administrative: card.administrativeTrainingIntervalMonths!,
-    execution: card.workerTrainingIntervalMonths!,
-  };
 
   const workplaces = facts.workplaces.map((workplace) => {
     const units = facts.fireSafety.equipment.filter((unit) => unit.workplaceId === workplace.id);
@@ -231,12 +227,7 @@ export function buildAnnualReport({
           interval: 'lunar',
           scope: 'fiecare stingător de incendiu',
         },
-        ...(facts.fireSafety.equipment.some(
-          (unit) =>
-            facts.workplaces.some((workplace) => workplace.id === unit.workplaceId) &&
-            unit.kind === 'extinguisher' &&
-            (unit.agent === 'co2' || unit.agent === 'clean_agent')
-        )
+        ...(hasGasExtinguishers
           ? [
               {
                 who: 'Coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz',
@@ -297,9 +288,9 @@ export function buildAnnualReport({
     coordinator: `${people.coordinator.name}, ${people.coordinator.jobTitle}`,
     interventionLeader: `${people.interventionLeader.name}, ${people.interventionLeader.jobTitle}`,
     workplaceManagers: listed(people.managerNames),
-    staff: categories.map(({ category, positions }) => ({
-      label: staffLabels[category],
-      posts: positions.map((position) => position.name.trim()).join(', '),
+    staff: staffCategories.map(({ label, posts, positions }) => ({
+      label,
+      posts: posts.join(', '),
       headcount: countOf(
         positions.reduce((total, position) => total + position.currentEmployeeCount, 0),
         'angajat',
@@ -308,12 +299,12 @@ export function buildAnnualReport({
     })),
     headcount: countOf(facts.currentEmployeeCount, 'angajat', 'angajați'),
     workplaces,
-    periodicLabel: countOf(card.periodicTrainingHours!, 'oră', 'ore').replace(' ', '\u00a0'),
-    training: categories.map(({ category, positions }) => ({
-      label: staffLabels[category],
-      posts: positions.map((position) => position.name.trim()).join(', '),
-      interval: `la ${countOf(intervalOf[category], 'lună', 'luni')}`,
-      months: trainingMonths(card.trainingFirstMonth!, intervalOf[category])
+    periodicLabel,
+    training: staffCategories.map(({ label, posts, intervalMonths }) => ({
+      label,
+      posts: posts.join(', '),
+      interval: `la ${countOf(intervalMonths, 'lună', 'luni')}`,
+      months: trainingMonths(card.trainingFirstMonth!, intervalMonths)
         .map((month) => monthNames[month - 1]!)
         .join(', '),
     })),

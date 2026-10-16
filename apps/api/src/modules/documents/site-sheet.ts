@@ -45,6 +45,8 @@ export type SiteSheetContext = {
 
 export type SiteSheetInput = {
   facts: FireSafetySetFacts;
+  /** The active workplaces, the registered office first, then by name. */
+  workplaces: FireSafetySetFacts['workplaces'];
   decisionNumbers: Record<FireDecision, string>;
   people: FireNamedPeople;
   inSet: (typeKey: FireSafetyTypeKeyFromTenEmployees) => boolean;
@@ -89,8 +91,6 @@ const isFromTenEmployees = (
 ): typeKey is FireSafetyTypeKeyFromTenEmployees =>
   (fireSafetyTypeKeysFromTenEmployees as readonly string[]).includes(typeKey);
 
-const collator = new Intl.Collator('ro');
-
 function extinguisherLine(units: readonly Unit[]) {
   const groups = extinguisherGroups(units);
   if (groups.length === 0) return 'nu există';
@@ -131,6 +131,7 @@ function both(
 
 export function buildSiteSheet({
   facts,
+  workplaces,
   decisionNumbers,
   people,
   inSet,
@@ -139,10 +140,6 @@ export function buildSiteSheet({
   const card = fireSafety.card;
   const coordinatorName = people.coordinator.name;
   const workplaceManagerNames = people.managerNames;
-  const workplaces = [...facts.workplaces].sort(
-    (a, b) =>
-      Number(b.registeredOffice) - Number(a.registeredOffice) || collator.compare(a.name, b.name)
-  );
   const active = new Set(workplaces.map((workplace) => workplace.id));
   const equipment = fireSafety.equipment.filter((unit) => active.has(unit.workplaceId));
   const installations = fireSafety.installations.filter((each) => active.has(each.workplaceId));

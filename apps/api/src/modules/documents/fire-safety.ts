@@ -591,6 +591,53 @@ function firePeople({
 
 type FirePeople = ReturnType<typeof firePeople>;
 
+const fireDecisionNumbers = (firstDecisionNumber: number) =>
+  Object.fromEntries(
+    (Object.keys(fireDecisionOrdinals) as FireDecision[]).map((decision) => [
+      decision,
+      `${firstDecisionNumber + fireDecisionOrdinals[decision] - 1} PSI`,
+    ])
+  ) as Record<FireDecision, string>;
+
+const registeredOfficeFirst = <Workplace extends { registeredOffice: boolean; name: string }>(
+  workplaces: readonly Workplace[]
+) =>
+  [...workplaces].sort(
+    (a, b) =>
+      Number(b.registeredOffice) - Number(a.registeredOffice) || collator.compare(a.name, b.name)
+  );
+
+const staffCategoryLabels: Record<StaffCategory, string> = {
+  technical_administrative: 'Personal administrativ',
+  execution: 'Personal de execuție',
+};
+
+function fireStaffCategories({
+  jobPositions,
+  fireSafety,
+}: Pick<FireSafetySetFacts, 'jobPositions' | 'fireSafety'>) {
+  const card = fireSafety.card!;
+  const intervalMonths: Record<StaffCategory, number> = {
+    technical_administrative: card.administrativeTrainingIntervalMonths!,
+    execution: card.workerTrainingIntervalMonths!,
+  };
+  return (['technical_administrative', 'execution'] as const).flatMap((category) => {
+    const positions = jobPositions.filter((position) => position.staffCategory === category);
+    if (positions.length === 0) return [];
+    return [
+      {
+        category,
+        label: staffCategoryLabels[category],
+        positions,
+        posts: positions.map((position) => position.name.trim()),
+        intervalMonths: intervalMonths[category],
+      },
+    ];
+  });
+}
+
+export type FireStaffCategory = ReturnType<typeof fireStaffCategories>[number];
+
 function fireContext(
   facts: FireSafetySetFacts,
   people: FirePeople,
@@ -608,26 +655,31 @@ function fireContext(
     interventionLeader,
     managerNames: people.managerNames,
   };
-  const staffOf = (category: 'technical_administrative' | 'execution') =>
-    facts.jobPositions
-      .filter((position) => position.staffCategory === category)
-      .map((position) => position.name.trim());
-  const administrative = staffOf('technical_administrative');
-  const execution = staffOf('execution');
-  const decisionNumbers = Object.fromEntries(
-    (Object.keys(fireDecisionOrdinals) as FireDecision[]).map((decision) => [
-      decision,
-      `${facts.firstDecisionNumber + fireDecisionOrdinals[decision] - 1} PSI`,
-    ])
-  ) as Record<FireDecision, string>;
+  const staffCategories = fireStaffCategories(facts);
+  const postsOf = (category: StaffCategory) =>
+    staffCategories.find((each) => each.category === category)?.posts ?? [];
+  const administrative = postsOf('technical_administrative');
+  const execution = postsOf('execution');
+  const decisionNumbers = fireDecisionNumbers(facts.firstDecisionNumber);
+  const representativeRole = facts.client.representativeRole?.trim() ?? '';
+  const periodicLabel = countOf(card.periodicTrainingHours!, 'oră', 'ore').replace(' ', '\u00a0');
 
   const activeWorkplaceIds = new Set(facts.workplaces.map((workplace) => workplace.id));
+  const hasGasExtinguishers = facts.fireSafety.equipment.some(
+    (unit) =>
+      activeWorkplaceIds.has(unit.workplaceId) &&
+      unit.kind === 'extinguisher' &&
+      isGasAgent(unit.agent)
+  );
+  const meansAt = (workplaceId: string) => ({
+    units: facts.fireSafety.equipment.filter((unit) => unit.workplaceId === workplaceId),
+    installations: facts.fireSafety.installations.filter(
+      (installation) => installation.workplaceId === workplaceId
+    ),
+  });
 
   const workplaces = facts.workplaces.map((workplace, index): FireWorkplaceContext => {
-    const units = facts.fireSafety.equipment.filter((unit) => unit.workplaceId === workplace.id);
-    const installations = facts.fireSafety.installations.filter(
-      (installation) => installation.workplaceId === workplace.id
-    );
+    const { units, installations } = meansAt(workplace.id);
     const manager = managers
       .filter(servesAt(workplace.id))
       .map(asRunOnPerson)
@@ -717,10 +769,10 @@ function fireContext(
 
   return {
     decisionNumbers,
-    representativeRoleRunOn: runOn(facts.client.representativeRole?.trim() ?? ''),
+    representativeRoleRunOn: runOn(representativeRole),
     schedule: {
       periodicHours: card.periodicTrainingHours!,
-      periodicLabel: countOf(card.periodicTrainingHours!, 'oră', 'ore').replace(' ', '\u00a0'),
+      periodicLabel,
       administrativeIntervalMonths: card.administrativeTrainingIntervalMonths!,
       administrativeIntervalLabel: countOf(
         card.administrativeTrainingIntervalMonths!,
@@ -752,12 +804,7 @@ function fireContext(
     designated: people.designated,
     workplaces,
     hasExteriorHydrants: workplaces.some((workplace) => workplace.hasExteriorHydrants),
-    hasGasExtinguishers: facts.fireSafety.equipment.some(
-      (unit) =>
-        activeWorkplaceIds.has(unit.workplaceId) &&
-        unit.kind === 'extinguisher' &&
-        isGasAgent(unit.agent)
-    ),
+    hasGasExtinguishers,
     hasThirdParties: card.hasThirdParties,
     smoking: {
       policy: card.smokingPolicy!,
@@ -778,12 +825,16 @@ function fireContext(
             facts,
             year: facts.period,
             people: namedPeople,
-            representativeRole: facts.client.representativeRole?.trim() ?? '',
+            representativeRole,
+            staffCategories,
+            periodicLabel,
+            hasGasExtinguishers,
             inSet,
           }),
         }),
     siteSheet: buildSiteSheet({
       facts,
+      workplaces: registeredOfficeFirst(facts.workplaces),
       decisionNumbers,
       people: namedPeople,
       inSet,
@@ -792,10 +843,7 @@ function fireContext(
       fireSchedule({
         name: workplace.name.trim(),
         activity: workplace.activity!.trim(),
-        units: facts.fireSafety.equipment.filter((unit) => unit.workplaceId === workplace.id),
-        installations: facts.fireSafety.installations.filter(
-          (installation) => installation.workplaceId === workplace.id
-        ),
+        ...meansAt(workplace.id),
         items: facts.fireSafety.maintenanceItems.filter(
           (item) => item.workplaceId === workplace.id
         ),
@@ -950,11 +998,6 @@ function fireSchedule({
   };
 }
 
-const staffCategoryLabels: Record<StaffCategory, string> = {
-  technical_administrative: 'Personal administrativ',
-  execution: 'Personal de execuție',
-};
-
 // A file without a numbered list counts no articles, and "art. 1–0" would cite nothing.
 const fireModuleCitation = ({ title, articleCount }: { title: string; articleCount: number }) =>
   articleCount > 0 ? `I.P.S.U. ${title}, art.\u00a01–${articleCount}` : `I.P.S.U. ${title}`;
@@ -972,13 +1015,9 @@ function fireThemes(
   const ipsu = facts.fireOwnInstructions;
   if (!ipsu) return undefined;
   const card = facts.fireSafety.card!;
-  const intervalMonths: Record<StaffCategory, number> = {
-    technical_administrative: card.administrativeTrainingIntervalMonths!,
-    execution: card.workerTrainingIntervalMonths!,
-  };
   const firstMonth = card.trainingFirstMonth!;
   const periodicMinutes = card.periodicTrainingHours! * 60;
-  const instructionsDecision = `${facts.firstDecisionNumber + fireDecisionOrdinals.instructions - 1} PSI`;
+  const instructionsDecision = fireDecisionNumbers(facts.firstDecisionNumber).instructions;
   // The line runs on after the title ("… sau, după caz, …"), where glued words only break it early.
   const managers = workplaceManagersTrainer(people.managerNames, ' ');
   return {
@@ -988,43 +1027,33 @@ function fireThemes(
       // A draft generated again keeps its id; new module versions still date the themes.
       versionIds: ipsu.annexes.map((annex) => annex.versionId),
     },
-    workplaceNames: [...facts.workplaces]
-      .sort(
-        (a, b) =>
-          Number(b.registeredOffice) - Number(a.registeredOffice) ||
-          collator.compare(a.name, b.name)
-      )
+    workplaceNames: registeredOfficeFirst(facts.workplaces)
       .map((workplace) => workplace.name.trim())
       .join(', '),
-    categories: (['technical_administrative', 'execution'] as const).flatMap((category) => {
-      const positions = facts.jobPositions.filter(
-        (position) => position.staffCategory === category
-      );
-      if (positions.length === 0) return [];
-      const posts = positions.map((position) => position.name.trim());
-      const applying = (moduleId: string) =>
-        positions.filter((position) =>
-          position.instructions.some(
-            (module) => module.domain === 'psi' && module.moduleId === moduleId
-          )
-        );
-      const modules = ipsu.annexes.flatMap((annex) => {
-        const appliedBy = applying(annex.moduleId);
-        if (appliedBy.length === 0) return [];
-        const citation = fireModuleCitation({ ...annex, title: annex.title.trim() });
-        return [
-          appliedBy.length === positions.length
-            ? citation
-            : `${citation} (${appliedBy.map((position) => position.name.trim()).join(', ')})`,
-        ];
-      });
-      const execution = category === 'execution';
-      const sessionMonths = trainingMonths(firstMonth, intervalMonths[category]);
-      const ranges = dealChapters(fireOwnInstructionsChapters, sessionMonths.length);
-      return [
-        {
+    categories: fireStaffCategories(facts).map(
+      ({ category, label, positions, posts, intervalMonths }) => {
+        const applying = (moduleId: string) =>
+          positions.filter((position) =>
+            position.instructions.some(
+              (module) => module.domain === 'psi' && module.moduleId === moduleId
+            )
+          );
+        const modules = ipsu.annexes.flatMap((annex) => {
+          const appliedBy = applying(annex.moduleId);
+          if (appliedBy.length === 0) return [];
+          const citation = fireModuleCitation({ ...annex, title: annex.title.trim() });
+          return [
+            appliedBy.length === positions.length
+              ? citation
+              : `${citation} (${appliedBy.map((position) => position.name.trim()).join(', ')})`,
+          ];
+        });
+        const execution = category === 'execution';
+        const sessionMonths = trainingMonths(firstMonth, intervalMonths);
+        const ranges = dealChapters(fireOwnInstructionsChapters, sessionMonths.length);
+        return {
           staffCategory: category,
-          label: staffCategoryLabels[category],
+          label,
           posts,
           postsText: posts.join(', '),
           workplaceTrainers: {
@@ -1034,7 +1063,7 @@ function fireThemes(
           // Decision 2 has the heads of the workplaces give the periodic training "și, după caz",
           // the technician, who alone trains the heads themselves.
           periodicTrainers: { workplaceManagers: execution ? managers : null, technician: true },
-          intervalLabel: themeIntervalLabel(intervalMonths[category]),
+          intervalLabel: themeIntervalLabel(intervalMonths),
           sessions: sessionMonths.map((month, index) => {
             const range = ranges[index]!;
             return {
@@ -1049,8 +1078,8 @@ function fireThemes(
               duration: `${periodicMinutes} min`,
             };
           }),
-        },
-      ];
-    }),
+        };
+      }
+    ),
   };
 }
