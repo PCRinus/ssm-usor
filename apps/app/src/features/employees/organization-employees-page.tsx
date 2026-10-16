@@ -14,6 +14,7 @@ import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
+import { TrainingStateFilter } from '@/features/trainings/training-state-filter';
 
 import { ClientFilter } from './client-filter';
 import { employeeStatusLabels } from './employee-format';
@@ -49,6 +50,7 @@ export function OrganizationEmployeesPage() {
   const {
     status,
     clientId,
+    trainingState,
     q,
     page = 1,
     sort = defaultSort.sort,
@@ -60,6 +62,7 @@ export function OrganizationEmployeesPage() {
   const params = {
     ...(status ? { status } : {}),
     ...(clientId ? { clientId } : {}),
+    ...(trainingState ? { trainingState } : {}),
     ...(q ? { q } : {}),
     page,
     pageSize: defaultPageSize,
@@ -88,7 +91,12 @@ export function OrganizationEmployeesPage() {
                 <Link
                   key={filter.label}
                   to="/employees"
-                  search={{ ...(filter.status ? { status: filter.status } : {}), clientId, q }}
+                  search={{
+                    ...(filter.status ? { status: filter.status } : {}),
+                    clientId,
+                    trainingState,
+                    q,
+                  }}
                   data-testid={filter.testId}
                   aria-current={active ? 'page' : undefined}
                   replace
@@ -129,6 +137,18 @@ export function OrganizationEmployeesPage() {
             testId="organization-employees-search"
             className="w-full sm:w-72"
           />
+          {status !== 'terminated' && (
+            <TrainingStateFilter
+              value={trainingState}
+              testId="organization-employees-training-filter"
+              onChange={(next) =>
+                void navigate({
+                  replace: true,
+                  search: (prev) => ({ ...prev, trainingState: next, page: undefined }),
+                })
+              }
+            />
+          )}
           {employees.isSuccess && (
             <span
               className="ml-auto text-sm text-muted-foreground"
@@ -205,6 +225,20 @@ export function OrganizationEmployeesPage() {
                   void navigate({
                     replace: true,
                     search: (prev) => ({ ...prev, q: undefined, page: undefined }),
+                  })
+                }
+              />
+            ) : trainingState ? (
+              <EmployeesNoMatch
+                title="Niciun angajat în această stare a instruirii"
+                hint="Ceilalți angajați sunt în altă stare. Arată-i pe toți pentru a-i vedea."
+                testId="organization-employees-empty"
+                clearLabel="Arată toți angajații"
+                clearTestId="organization-employees-empty-clear-training-state"
+                onClear={() =>
+                  void navigate({
+                    replace: true,
+                    search: (prev) => ({ ...prev, trainingState: undefined, page: undefined }),
                   })
                 }
               />

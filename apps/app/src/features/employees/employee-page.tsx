@@ -1,28 +1,18 @@
-import { formatEmployeeName, maskCnp } from '@ssm-usor/contracts';
-import { Badge } from '@ssm-usor/ui/components/badge';
+import { maskCnp } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  type ErrorComponentProps,
-  getRouteApi,
-  Link,
-  useRouteContext,
-  useRouter,
-} from '@tanstack/react-router';
-import { Eye, EyeOff, Pencil, RotateCcw, UserRoundMinus } from 'lucide-react';
+import { getRouteApi } from '@tanstack/react-router';
+import { Eye, EyeOff } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
-import { getGetEmployeeQueryKey, useGetEmployee } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
 import { useAuth } from '@/features/auth/auth-context';
 import { EmployeeFilesCard } from '@/features/client-files/employee-files-card';
 
 import { formatDate, formatTenure, todayIso } from './employee-format';
 import { EmployeeJobPositionDialog } from './employee-job-position-dialog';
 import { EmployeePending } from './employee-pending';
-import { type EmployeeStatusChange, EmployeeStatusDialog } from './employee-status-dialog';
+import { useEmployee } from './use-employee';
 
 const employeeRoute = getRouteApi('/_authenticated/clients/$clientId/employees/$employeeId');
-const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -70,17 +60,8 @@ function Cnp({ value }: { value: string }) {
 
 export function EmployeePage() {
   const { clientId, employeeId } = employeeRoute.useParams();
-  const readOnly = clientRoute.useLoaderData().client.archivedAt !== null;
   const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const query = useGetEmployee(clientId, employeeId, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getGetEmployeeQueryKey(clientId, employeeId), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
-    },
-  });
-  const [change, setChange] = useState<EmployeeStatusChange | null>(null);
+  const query = useEmployee(clientId, employeeId);
   const [moving, setMoving] = useState(false);
   const employee = query.data?.employee;
   if (!employee) return <EmployeePending />;
@@ -90,40 +71,7 @@ export function EmployeePage() {
     .join(' ');
 
   return (
-    <div data-testid="employee-page" className="space-y-7">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-semibold tracking-tight">{formatEmployeeName(employee)}</h1>
-          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-            <span>{employee.jobPosition.name}</span>
-            <Badge variant={former ? 'outline' : 'secondary'} data-testid="employee-status">
-              {former ? 'Fost angajat' : 'Angajat actual'}
-            </Badge>
-          </p>
-        </div>
-        {!readOnly && (
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" data-testid="employee-edit">
-              <Link
-                to="/clients/$clientId/employees/$employeeId/edit"
-                params={{ clientId, employeeId }}
-              >
-                <Pencil aria-hidden="true" />
-                Modifică
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              data-testid="employee-status-action"
-              onClick={() => setChange({ employee, action: former ? 'reactivate' : 'terminate' })}
-            >
-              {former ? <RotateCcw aria-hidden="true" /> : <UserRoundMinus aria-hidden="true" />}
-              {former ? 'Reactivează…' : 'Marchează plecarea…'}
-            </Button>
-          </div>
-        )}
-      </div>
-
+    <div data-testid="employee-page">
       <div className="grid gap-6">
         <Section title="Identificare">
           <Fact label="Nume">{employee.lastName}</Fact>
@@ -204,54 +152,12 @@ export function EmployeePage() {
 
         <EmployeeFilesCard employee={employee} />
       </div>
-      <EmployeeStatusDialog clientId={clientId} change={change} onClose={() => setChange(null)} />
       <EmployeeJobPositionDialog
         clientId={clientId}
         userId={session?.user.id ?? ''}
         employee={moving ? employee : null}
         onClose={() => setMoving(false)}
       />
-    </div>
-  );
-}
-
-export function EmployeeNotFound() {
-  const { clientId } = employeeRoute.useParams();
-  return (
-    <div data-testid="employee-not-found" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Angajatul nu a fost găsit</h1>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Nu există niciun angajat cu acest identificator la acest client.
-      </p>
-      <Button asChild className="w-fit">
-        <Link to="/clients/$clientId/employees" params={{ clientId }}>
-          Înapoi la angajați
-        </Link>
-      </Button>
-    </div>
-  );
-}
-
-export function EmployeeError({ error }: ErrorComponentProps) {
-  const router = useRouter();
-  const message =
-    error instanceof ApiHttpError && error.status === 401
-      ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-      : error instanceof ApiHttpError && error.status === 403
-        ? 'Contul tău nu face parte dintr-o organizație. Contactează administratorul.'
-        : 'Nu am putut încărca datele angajatului. Încearcă din nou.';
-  return (
-    <div data-testid="employee-error" role="alert" className="mx-auto grid max-w-lg gap-5 py-14">
-      <h1 className="text-2xl font-semibold">Angajatul nu a putut fi încărcat</h1>
-      <p className="text-sm leading-relaxed text-muted-foreground">{message}</p>
-      <Button
-        data-testid="employee-retry"
-        variant="outline"
-        className="w-fit"
-        onClick={() => void router.invalidate()}
-      >
-        Încearcă din nou
-      </Button>
     </div>
   );
 }

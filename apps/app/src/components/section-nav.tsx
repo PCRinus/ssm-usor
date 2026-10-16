@@ -1,8 +1,18 @@
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { useLocation } from '@tanstack/react-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
-export function SectionNav({ label, children }: { label: string; children: ReactNode }) {
+// Nested under another one, it stays in the flow: two sticky navs would cover each other.
+export function SectionNav({
+  label,
+  nested = false,
+  children,
+}: {
+  label: string;
+  nested?: boolean;
+  children: ReactNode;
+}) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const viewportRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -60,7 +70,10 @@ export function SectionNav({ label, children }: { label: string; children: React
   }
 
   return (
-    <nav aria-label={label} className="sticky top-16 z-20 min-w-0 border-b bg-background">
+    <nav
+      aria-label={label}
+      className={cn('min-w-0 border-b bg-background', !nested && 'sticky top-16 z-20')}
+    >
       <div className="relative min-w-0 overflow-hidden">
         <div
           ref={viewportRef}

@@ -12,6 +12,7 @@ import { MoreHorizontal, Pencil, RotateCcw, UserRoundMinus } from 'lucide-react'
 
 import type { EmployeeListResponse } from '@/api/generated/api';
 import { createDataTableColumns } from '@/components/data-table/columns';
+import { TrainingStatusBadges } from '@/features/trainings/training-state-badge';
 
 import { formatDate } from './employee-format';
 import type { EmployeeStatusChange } from './employee-status-dialog';
@@ -57,6 +58,12 @@ export function employeeColumns(onStatusChange?: (change: EmployeeStatusChange) 
       header: 'Post de lucru',
       enableSorting: true,
       meta: { skeletonClassName: 'w-28' },
+    }),
+    helper.display({
+      id: 'training',
+      header: 'Instruire',
+      meta: { skeletonClassName: 'w-20' },
+      cell: ({ row }) => <TrainingStatusBadges training={row.original.training} />,
     }),
     helper.display({
       id: 'contact',
