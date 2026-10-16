@@ -564,6 +564,15 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   workplace only when it was changed, so a workplace archived since stays on the person and is
   listed as "Arhivat". The employee page shows the same facts in the same order, in its section
   "Fișa de instruire".
+- `TrainingSheetDownload` (`src/features/training-sheets/training-sheet-download.tsx`, ADR 021)
+  takes the client, the employee and a domain and renders "Descarcă fișa SSM" or "Descarcă fișa
+  PSI": it reads both sheets' readiness from `GET …/employees/{employeeId}/training-sheets`,
+  fetches the PDF from `GET …/training-sheet?domain=` and saves it under the name the API
+  gives. While data is missing the button is disabled and a warning lists what to fill in,
+  "Fișa nu se poate întocmi până nu completezi: traseul de deplasare, punctul de lucru", with
+  "Completează datele" opening the employee's edit form; a failed download is a toast, "Convertorul
+  PDF nu este disponibil" when there is no converter. Each training view of the employee page
+  holds one, in its `training-tab-actions` container.
 - `/clients/:clientId/training`: the "Instruire și responsabili" section of a client, what its
   generated documentation prints beyond the registration data (ADR 005), with the
   responsible persons below. The first card holds the periodic training schedule: duration, interval for administrative staff and for workers, first month, and the
