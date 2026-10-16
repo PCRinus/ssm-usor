@@ -1155,9 +1155,25 @@
                           "type": "string",
                           "nullable": true,
                           "format": "date"
+                        },
+                        "intervalMonths": {
+                          "type": "integer",
+                          "nullable": true,
+                          "minimum": 1
+                        },
+                        "intervalSource": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["position", "client", null]
                         }
                       },
-                      "required": ["state", "dueOn", "lastPeriodicOn"]
+                      "required": [
+                        "state",
+                        "dueOn",
+                        "lastPeriodicOn",
+                        "intervalMonths",
+                        "intervalSource"
+                      ]
                     },
                     "psi": {
                       "type": "object",
@@ -1176,9 +1192,25 @@
                           "type": "string",
                           "nullable": true,
                           "format": "date"
+                        },
+                        "intervalMonths": {
+                          "type": "integer",
+                          "nullable": true,
+                          "minimum": 1
+                        },
+                        "intervalSource": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["position", "client", null]
                         }
                       },
-                      "required": ["state", "dueOn", "lastPeriodicOn"]
+                      "required": [
+                        "state",
+                        "dueOn",
+                        "lastPeriodicOn",
+                        "intervalMonths",
+                        "intervalSource"
+                      ]
                     }
                   },
                   "required": ["ssm", "psi"]
@@ -1379,9 +1411,25 @@
                         "type": "string",
                         "nullable": true,
                         "format": "date"
+                      },
+                      "intervalMonths": {
+                        "type": "integer",
+                        "nullable": true,
+                        "minimum": 1
+                      },
+                      "intervalSource": {
+                        "type": "string",
+                        "nullable": true,
+                        "enum": ["position", "client", null]
                       }
                     },
-                    "required": ["state", "dueOn", "lastPeriodicOn"]
+                    "required": [
+                      "state",
+                      "dueOn",
+                      "lastPeriodicOn",
+                      "intervalMonths",
+                      "intervalSource"
+                    ]
                   },
                   "psi": {
                     "type": "object",
@@ -1400,9 +1448,25 @@
                         "type": "string",
                         "nullable": true,
                         "format": "date"
+                      },
+                      "intervalMonths": {
+                        "type": "integer",
+                        "nullable": true,
+                        "minimum": 1
+                      },
+                      "intervalSource": {
+                        "type": "string",
+                        "nullable": true,
+                        "enum": ["position", "client", null]
                       }
                     },
-                    "required": ["state", "dueOn", "lastPeriodicOn"]
+                    "required": [
+                      "state",
+                      "dueOn",
+                      "lastPeriodicOn",
+                      "intervalMonths",
+                      "intervalSource"
+                    ]
                   }
                 },
                 "required": ["ssm", "psi"]
@@ -1833,9 +1897,25 @@
                           "type": "string",
                           "nullable": true,
                           "format": "date"
+                        },
+                        "intervalMonths": {
+                          "type": "integer",
+                          "nullable": true,
+                          "minimum": 1
+                        },
+                        "intervalSource": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["position", "client", null]
                         }
                       },
-                      "required": ["state", "dueOn", "lastPeriodicOn"]
+                      "required": [
+                        "state",
+                        "dueOn",
+                        "lastPeriodicOn",
+                        "intervalMonths",
+                        "intervalSource"
+                      ]
                     },
                     "psi": {
                       "type": "object",
@@ -1854,9 +1934,25 @@
                           "type": "string",
                           "nullable": true,
                           "format": "date"
+                        },
+                        "intervalMonths": {
+                          "type": "integer",
+                          "nullable": true,
+                          "minimum": 1
+                        },
+                        "intervalSource": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["position", "client", null]
                         }
                       },
-                      "required": ["state", "dueOn", "lastPeriodicOn"]
+                      "required": [
+                        "state",
+                        "dueOn",
+                        "lastPeriodicOn",
+                        "intervalMonths",
+                        "intervalSource"
+                      ]
                     }
                   },
                   "required": ["ssm", "psi"]

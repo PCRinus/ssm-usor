@@ -1,5 +1,5 @@
 begin;
-select plan(45);
+select plan(49);
 
 -- Dates are counted back from the Romanian day the view uses, so the states hold on any day.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -190,8 +190,8 @@ select is(
 
 select is(
   (select row(s.ssm_has_hiring_training, s.ssm_due_on, s.ssm_state)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000004') s),
-  (select row(false, (today - 20 + interval '3 months')::date, 'untrained')::text from day),
-  'without a hiring training the employee is untrained, and the hire date starts the interval'
+  row(false, null::date, 'untrained')::text,
+  'without a hiring training the employee is untrained and has no due date'
 );
 
 select is(
@@ -222,6 +222,30 @@ select is(
   (select row(s.psi_due_on, s.psi_state)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000006') s),
   row(null::date, 'untrained')::text,
   'a client without a fire-safety schedule has no fire-safety due date'
+);
+
+select is(
+  (select row(s.ssm_interval_months, s.ssm_interval_source, s.psi_interval_months, s.psi_interval_source)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000001') s),
+  row(3, 'client', 2, 'client')::text,
+  'an execution position without its own interval takes the client''s, in both domains'
+);
+
+select is(
+  (select row(s.ssm_interval_months, s.ssm_interval_source, s.psi_interval_months, s.psi_interval_source)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000002') s),
+  row(6, 'client', 6, 'client')::text,
+  'a technical-administrative position takes the client''s interval for its category'
+);
+
+select is(
+  (select row(s.ssm_interval_months, s.ssm_interval_source, s.psi_interval_months, s.psi_interval_source)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000003') s),
+  row(1, 'position', 2, 'client')::text,
+  'the position''s own interval is answered as the position''s, and fire safety stays the client''s'
+);
+
+select is(
+  (select row(s.ssm_interval_months, s.ssm_interval_source, s.psi_interval_months, s.psi_interval_source)::text from pg_temp.status('e1e1e1e1-0000-4000-8000-000000000006') s),
+  row(null::integer, null::text, null::integer, null::text)::text,
+  'an undecided interval has no source'
 );
 
 select is(

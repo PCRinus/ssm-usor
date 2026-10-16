@@ -875,6 +875,18 @@ export const EmployeeListResponseItemsItemTrainingSsmState = {
   overdue: 'overdue',
 } as const;
 
+/**
+ * @nullable
+ */
+export type EmployeeListResponseItemsItemTrainingSsmIntervalSource =
+  | (typeof EmployeeListResponseItemsItemTrainingSsmIntervalSource)[keyof typeof EmployeeListResponseItemsItemTrainingSsmIntervalSource]
+  | null;
+
+export const EmployeeListResponseItemsItemTrainingSsmIntervalSource = {
+  position: 'position',
+  client: 'client',
+} as const;
+
 export type EmployeeListResponseItemsItemTrainingSsm = {
   /** @nullable */
   state: EmployeeListResponseItemsItemTrainingSsmState;
@@ -882,6 +894,13 @@ export type EmployeeListResponseItemsItemTrainingSsm = {
   dueOn: string | null;
   /** @nullable */
   lastPeriodicOn: string | null;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  intervalMonths: number | null;
+  /** @nullable */
+  intervalSource: EmployeeListResponseItemsItemTrainingSsmIntervalSource;
 };
 
 /**
@@ -898,6 +917,18 @@ export const EmployeeListResponseItemsItemTrainingPsiState = {
   overdue: 'overdue',
 } as const;
 
+/**
+ * @nullable
+ */
+export type EmployeeListResponseItemsItemTrainingPsiIntervalSource =
+  | (typeof EmployeeListResponseItemsItemTrainingPsiIntervalSource)[keyof typeof EmployeeListResponseItemsItemTrainingPsiIntervalSource]
+  | null;
+
+export const EmployeeListResponseItemsItemTrainingPsiIntervalSource = {
+  position: 'position',
+  client: 'client',
+} as const;
+
 export type EmployeeListResponseItemsItemTrainingPsi = {
   /** @nullable */
   state: EmployeeListResponseItemsItemTrainingPsiState;
@@ -905,6 +936,13 @@ export type EmployeeListResponseItemsItemTrainingPsi = {
   dueOn: string | null;
   /** @nullable */
   lastPeriodicOn: string | null;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  intervalMonths: number | null;
+  /** @nullable */
+  intervalSource: EmployeeListResponseItemsItemTrainingPsiIntervalSource;
 };
 
 export type EmployeeListResponseItemsItemTraining = {
@@ -1009,6 +1047,18 @@ export const EmployeeResponseEmployeeTrainingSsmState = {
   overdue: 'overdue',
 } as const;
 
+/**
+ * @nullable
+ */
+export type EmployeeResponseEmployeeTrainingSsmIntervalSource =
+  | (typeof EmployeeResponseEmployeeTrainingSsmIntervalSource)[keyof typeof EmployeeResponseEmployeeTrainingSsmIntervalSource]
+  | null;
+
+export const EmployeeResponseEmployeeTrainingSsmIntervalSource = {
+  position: 'position',
+  client: 'client',
+} as const;
+
 export type EmployeeResponseEmployeeTrainingSsm = {
   /** @nullable */
   state: EmployeeResponseEmployeeTrainingSsmState;
@@ -1016,6 +1066,13 @@ export type EmployeeResponseEmployeeTrainingSsm = {
   dueOn: string | null;
   /** @nullable */
   lastPeriodicOn: string | null;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  intervalMonths: number | null;
+  /** @nullable */
+  intervalSource: EmployeeResponseEmployeeTrainingSsmIntervalSource;
 };
 
 /**
@@ -1032,6 +1089,18 @@ export const EmployeeResponseEmployeeTrainingPsiState = {
   overdue: 'overdue',
 } as const;
 
+/**
+ * @nullable
+ */
+export type EmployeeResponseEmployeeTrainingPsiIntervalSource =
+  | (typeof EmployeeResponseEmployeeTrainingPsiIntervalSource)[keyof typeof EmployeeResponseEmployeeTrainingPsiIntervalSource]
+  | null;
+
+export const EmployeeResponseEmployeeTrainingPsiIntervalSource = {
+  position: 'position',
+  client: 'client',
+} as const;
+
 export type EmployeeResponseEmployeeTrainingPsi = {
   /** @nullable */
   state: EmployeeResponseEmployeeTrainingPsiState;
@@ -1039,6 +1108,13 @@ export type EmployeeResponseEmployeeTrainingPsi = {
   dueOn: string | null;
   /** @nullable */
   lastPeriodicOn: string | null;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  intervalMonths: number | null;
+  /** @nullable */
+  intervalSource: EmployeeResponseEmployeeTrainingPsiIntervalSource;
 };
 
 export type EmployeeResponseEmployeeTraining = {
@@ -1399,6 +1475,18 @@ export const OrganizationEmployeeListResponseItemsItemTrainingSsmState = {
   overdue: 'overdue',
 } as const;
 
+/**
+ * @nullable
+ */
+export type OrganizationEmployeeListResponseItemsItemTrainingSsmIntervalSource =
+  | (typeof OrganizationEmployeeListResponseItemsItemTrainingSsmIntervalSource)[keyof typeof OrganizationEmployeeListResponseItemsItemTrainingSsmIntervalSource]
+  | null;
+
+export const OrganizationEmployeeListResponseItemsItemTrainingSsmIntervalSource = {
+  position: 'position',
+  client: 'client',
+} as const;
+
 export type OrganizationEmployeeListResponseItemsItemTrainingSsm = {
   /** @nullable */
   state: OrganizationEmployeeListResponseItemsItemTrainingSsmState;
@@ -1406,6 +1494,13 @@ export type OrganizationEmployeeListResponseItemsItemTrainingSsm = {
   dueOn: string | null;
   /** @nullable */
   lastPeriodicOn: string | null;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  intervalMonths: number | null;
+  /** @nullable */
+  intervalSource: OrganizationEmployeeListResponseItemsItemTrainingSsmIntervalSource;
 };
 
 /**
@@ -1422,6 +1517,18 @@ export const OrganizationEmployeeListResponseItemsItemTrainingPsiState = {
   overdue: 'overdue',
 } as const;
 
+/**
+ * @nullable
+ */
+export type OrganizationEmployeeListResponseItemsItemTrainingPsiIntervalSource =
+  | (typeof OrganizationEmployeeListResponseItemsItemTrainingPsiIntervalSource)[keyof typeof OrganizationEmployeeListResponseItemsItemTrainingPsiIntervalSource]
+  | null;
+
+export const OrganizationEmployeeListResponseItemsItemTrainingPsiIntervalSource = {
+  position: 'position',
+  client: 'client',
+} as const;
+
 export type OrganizationEmployeeListResponseItemsItemTrainingPsi = {
   /** @nullable */
   state: OrganizationEmployeeListResponseItemsItemTrainingPsiState;
@@ -1429,6 +1536,13 @@ export type OrganizationEmployeeListResponseItemsItemTrainingPsi = {
   dueOn: string | null;
   /** @nullable */
   lastPeriodicOn: string | null;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  intervalMonths: number | null;
+  /** @nullable */
+  intervalSource: OrganizationEmployeeListResponseItemsItemTrainingPsiIntervalSource;
 };
 
 export type OrganizationEmployeeListResponseItemsItemTraining = {

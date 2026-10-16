@@ -70,10 +70,17 @@ const employee = (
   updatedAt: '2026-09-17T10:00:00+00:00',
 });
 
-const popescu = employee('7c9e6679-7425-40de-944b-e07fc1f90ae7', 'Popescu', 'Ion', undefined, {
-  ssm: trainingStatus('current', '2027-03-01', '2026-09-01'),
-  psi: trainingStatus('untrained'),
-});
+const popescuTraining = {
+  ssm: trainingStatus('current', '2027-03-01', '2026-09-01', 6, 'client'),
+  psi: trainingStatus('untrained', null, null, 6, 'client'),
+};
+const popescu = employee(
+  '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+  'Popescu',
+  'Ion',
+  undefined,
+  popescuTraining
+);
 const taranu = employee('8d0f7780-8536-41ef-a55c-f18fd2fa1bf8', 'Țăranu', 'Ștefan');
 const ionescu = employee('9e1a8891-9647-42f0-b66c-a29ae3b2c0d9', 'Ionescu', 'Ana', {
   id: clerkId,
@@ -280,6 +287,13 @@ describe("an employee's training tabs", () => {
     expect(screen.getByTestId('training-state').textContent).toBe('La zi');
     expect(screen.getByTestId('training-due-on').textContent).toBe('1 mar. 2027');
     expect(screen.getByTestId('training-last-periodic').textContent).toBe('1 sept. 2026');
+    const interval = screen.getByTestId('training-interval');
+    expect(interval.textContent).toContain('La 6 luni');
+    const source = within(interval).getByTestId('training-interval-source');
+    expect(source.textContent).toBe('din programul de instruire al clientului');
+    expect(source.getAttribute('href')).toBe(
+      `/clients/${clientId}/training?focus=training-schedule`
+    );
     expect(
       within(screen.getByTestId('training-tab-actions')).getByTestId('training-sheet-ssm')
     ).toBeTruthy();
@@ -313,6 +327,62 @@ describe("an employee's training tabs", () => {
     expect(empty.textContent).toContain('Nicio instruire înregistrată încă');
     expect(screen.getByTestId('training-state').textContent).toBe('Neinstruit');
     expect(within(empty).getByTestId('training-record')).toBeTruthy();
+  });
+
+  it('gives an untrained employee no due date, and says the fire-safety interval comes from the client', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    await screen.findByTestId('training-records-empty');
+    expect(screen.getByTestId('training-due-on').textContent).toBe('După instruirea la angajare');
+    const source = screen.getByTestId('training-interval-source');
+    expect(source.textContent).toBe('din datele de instruire PSI ale clientului');
+    expect(source.getAttribute('href')).toBe(
+      `/clients/${clientId}/training?focus=fire-training-schedule`
+    );
+  });
+
+  it("names the position when the interval is the position's own", async () => {
+    mockApi({
+      [`GET ${employeePath}`]: () =>
+        Response.json({
+          employee: {
+            ...employeeDetail,
+            training: {
+              ...popescuTraining,
+              ssm: trainingStatus('current', '2026-10-01', '2026-09-01', 1, 'position'),
+            },
+          },
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    const interval = await screen.findByTestId('training-interval');
+    expect(interval.textContent).toContain('Lunar');
+    const source = within(interval).getByTestId('training-interval-source');
+    expect(source.textContent).toBe('din postul Sudor');
+    expect(source.getAttribute('href')).toBe(`/clients/${clientId}/job-positions/${welderId}`);
+  });
+
+  it('says an undecided interval is not set and links to where it is set', async () => {
+    mockApi({
+      [`GET ${employeePath}`]: () =>
+        Response.json({
+          employee: {
+            ...employeeDetail,
+            training: { ...popescuTraining, ssm: trainingStatus('current', null, '2026-09-01') },
+          },
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    const interval = await screen.findByTestId('training-interval');
+    expect(screen.getByTestId('training-due-on').textContent).toBe(
+      'Intervalul de instruire nu este stabilit'
+    );
+    expect(interval.textContent).toContain('Nestabilit');
+    expect(within(interval).queryByTestId('training-interval-source')).toBeNull();
+    const set = within(interval).getByTestId('training-interval-set');
+    expect(set.textContent).toBe('Stabilește intervalul');
+    expect(set.getAttribute('title')).toBe('Postul își poate avea și propriul interval');
+    expect(set.getAttribute('href')).toBe(`/clients/${clientId}/training?focus=training-schedule`);
   });
 
   it('keeps the header to its buttons and says what the sheet lacks on a row of its own', async () => {

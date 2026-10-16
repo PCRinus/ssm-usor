@@ -461,7 +461,12 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   screen.
 - Training records (ADR 021, `src/features/trainings/`): each training tab of an employee
   shows the domain's state as a badge ("Neinstruit", "La zi", "Scadentă", "Depășită"; none for a
-  leaver), the next training due and the last periodic training, from the employee's `training`
+  leaver), the next training due ("După instruirea la angajare" while untrained, "Intervalul de
+  instruire nu este stabilit" without an interval, a dash for a leaver), the interval ("La 6
+  luni", with its source under it as a link: "din postul …" to the position's page, or "din
+  programul de instruire al clientului" / "din datele de instruire PSI ale clientului" to the
+  client's training page opening that card; "Nestabilit" with "Stabilește intervalul" to the
+  same card when undecided) and the last periodic training, from the employee's `training`
   field, then the records from `GET …/employees/{employeeId}/training-records?domain=`, newest
   first: phase, day, duration ("120 min (2 h)"), the occupation, the material clamped to two
   lines behind "mai mult", who trained and verified with their functions, the supplementary

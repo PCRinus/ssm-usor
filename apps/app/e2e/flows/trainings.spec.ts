@@ -47,7 +47,13 @@ test('a training held gives its attendee a record and ends their untrained state
   expect(untrained.status).toBe(200);
   expect(untrained.body.items).toHaveLength(1);
   const employee = untrained.body.items[0];
-  expect(employee.training.ssm).toMatchObject({ state: 'untrained', lastPeriodicOn: null });
+  expect(employee.training.ssm).toEqual({
+    state: 'untrained',
+    dueOn: null,
+    lastPeriodicOn: null,
+    intervalMonths: 3,
+    intervalSource: 'client',
+  });
   expect(employee.training.psi.state).toBe('untrained');
 
   const proposal = await api(

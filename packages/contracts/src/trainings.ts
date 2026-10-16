@@ -70,13 +70,22 @@ export const trainingStateFilters = ['untrained', 'due', 'overdue'] as const;
 export const trainingStateFilterSchema = z.enum(trainingStateFilters);
 export type TrainingStateFilter = z.infer<typeof trainingStateFilterSchema>;
 
+export const trainingIntervalSources = ['position', 'client'] as const;
+export const trainingIntervalSourceSchema = z.enum(trainingIntervalSources);
+export type TrainingIntervalSource = z.infer<typeof trainingIntervalSourceSchema>;
+
 /** One domain's standing, computed from the records and never stored (ADR 021). */
 export const trainingStatusSchema = z.object({
   // Null for a leaver.
   state: trainingStateSchema.nullable(),
-  // Null while the interval is undecided or the category is not trained.
+  // Null while the interval is undecided or the category is not trained, and before a hiring
+  // training is recorded.
   dueOn: z.iso.date().nullable(),
   lastPeriodicOn: z.iso.date().nullable(),
+  // Null while undecided.
+  intervalMonths: z.int().min(1).nullable(),
+  // A position overrides the client's programme for SSM only; never for PSI (#371).
+  intervalSource: trainingIntervalSourceSchema.nullable(),
 });
 
 export type TrainingStatus = z.infer<typeof trainingStatusSchema>;

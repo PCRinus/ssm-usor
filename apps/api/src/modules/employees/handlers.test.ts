@@ -71,15 +71,31 @@ const employeeRow = {
     ssm_state: 'due',
     ssm_due_on: '2026-11-01',
     ssm_last_periodic_on: '2026-08-01',
+    ssm_interval_months: 3,
+    ssm_interval_source: 'position',
     psi_state: 'untrained',
     psi_due_on: null,
     psi_last_periodic_on: null,
+    psi_interval_months: 6,
+    psi_interval_source: 'client',
   },
 };
 
 const training = {
-  ssm: { state: 'due', dueOn: '2026-11-01', lastPeriodicOn: '2026-08-01' },
-  psi: { state: 'untrained', dueOn: null, lastPeriodicOn: null },
+  ssm: {
+    state: 'due',
+    dueOn: '2026-11-01',
+    lastPeriodicOn: '2026-08-01',
+    intervalMonths: 3,
+    intervalSource: 'position',
+  },
+  psi: {
+    state: 'untrained',
+    dueOn: null,
+    lastPeriodicOn: null,
+    intervalMonths: 6,
+    intervalSource: 'client',
+  },
 };
 
 const employeeListRow = Object.fromEntries(

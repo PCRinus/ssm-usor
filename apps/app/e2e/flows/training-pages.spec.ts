@@ -124,6 +124,11 @@ test('a specialist records trainings held and follows each employee’s state', 
   await page.getByTestId('employees-open').filter({ hasText: 'Lăcătușu Vasile' }).click();
   await page.getByTestId('employee-section').filter({ hasText: 'Instruire SSM' }).click();
   await expect(page.getByTestId('training-state')).toHaveText('Neinstruit');
+  await expect(page.getByTestId('training-due-on')).toHaveText('După instruirea la angajare');
+  await expect(page.getByTestId('training-interval')).toContainText('La 3 luni');
+  await expect(page.getByTestId('training-interval-source')).toHaveText(
+    'din programul de instruire al clientului'
+  );
   await page.getByTestId('training-record').first().click();
   await expect(dialog.getByTestId('training-fixed-attendee')).toHaveText('Lăcătușu Vasile');
   await expect(dialog.getByTestId('training-phase')).toHaveValue('introductory_general');

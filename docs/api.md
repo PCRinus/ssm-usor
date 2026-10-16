@@ -457,9 +457,13 @@ and the codes under `missing`, before anything is merged; no converter, `503` wi
 `pdf_unavailable`, as printing does; a template not registered yet, `503` with the reason
 `template_missing`. An employee who is not the client's is `404`.
 
-Employees carry `training: { ssm, psi }`, each `{ state, dueOn, lastPeriodicOn }`, in the list
-and the detail: `state` is `untrained`, `current`, `due` or `overdue`, null for a leaver, and
-`dueOn` null while the interval is undecided. `GET …/employees?trainingState=` takes
+Employees carry `training: { ssm, psi }`, each
+`{ state, dueOn, lastPeriodicOn, intervalMonths, intervalSource }`, in the list and the detail:
+`state` is `untrained`, `current`, `due` or `overdue`, null for a leaver; `dueOn` is null while
+the interval is undecided and while the employee is `untrained`; `intervalMonths` is the
+interval the due date counts, null while undecided, and `intervalSource` says where it comes
+from, `position` when the job position carries its own (SSM only), `client` when the client's
+training programme or fire-safety schedule sets it, null with no interval. `GET …/employees?trainingState=` takes
 `untrained`, `due` or `overdue` and keeps the employees in that state in either domain.
 
 Protective equipment ([ADR 011](architecture/adr-011-protective-equipment.md)) hangs off the

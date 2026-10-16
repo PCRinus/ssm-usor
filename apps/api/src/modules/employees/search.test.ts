@@ -167,8 +167,20 @@ describe('GET /employees', () => {
           terminatedAt: null,
           workplace: null,
           training: {
-            ssm: { state: null, dueOn: null, lastPeriodicOn: null },
-            psi: { state: null, dueOn: null, lastPeriodicOn: null },
+            ssm: {
+              state: null,
+              dueOn: null,
+              lastPeriodicOn: null,
+              intervalMonths: null,
+              intervalSource: null,
+            },
+            psi: {
+              state: null,
+              dueOn: null,
+              lastPeriodicOn: null,
+              intervalMonths: null,
+              intervalSource: null,
+            },
           },
           createdAt: employeeListRow.created_at,
           updatedAt: employeeListRow.updated_at,
