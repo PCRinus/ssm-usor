@@ -1,5 +1,4 @@
 import {
-  extinguisherCode,
   type FireBuildingClassification,
   type FireDecision,
   fireDecisionOrdinals,
@@ -10,7 +9,6 @@ import {
   fireExtinguisherNormLabels,
   type FireExtinguishingAgent,
   fireExtinguishingAgentLabels,
-  fireExtinguishingAgents,
   type FireInstallationKind,
   fireSafetyMissingDocumentData,
   type FireSafetyTypeKeyFromTenEmployees,
@@ -38,6 +36,7 @@ import {
   months,
   printedDate,
 } from './context';
+import { extinguisherGroups, firmsOf, isGasAgent } from './equipment';
 import { type ContextParts, gapRules } from './gaps';
 import { installationParts, installationText } from './installations';
 import {
@@ -504,46 +503,7 @@ const roleLabels: Partial<Record<ResponsiblePersonRole, string>> = {
   fire_safety_coordinator: 'coordonator privind apărarea împotriva incendiilor',
 };
 
-// Litres for the agents sold by volume, kilograms for the rest, as the labels on the units read.
-const capacityUnits: Record<FireExtinguishingAgent, string> = {
-  powder: 'kg',
-  co2: 'kg',
-  foam: 'l',
-  water: 'l',
-  clean_agent: 'kg',
-};
-
 const alarmKinds = new Set<FireInstallationKind>(['detection_alarm', 'gas_detection']);
-
-function extinguisherGroups(units: FireSafetyClientFacts['equipment']) {
-  const extinguishers = units.flatMap((unit) =>
-    unit.kind === 'extinguisher' && unit.agent !== null && unit.capacity !== null
-      ? [{ agent: unit.agent, capacity: unit.capacity, wheeled: unit.wheeled }]
-      : []
-  );
-  const groups = new Map<string, FireWorkplaceContext['extinguishers'][number]>();
-  for (const unit of extinguishers.sort(
-    (a, b) =>
-      fireExtinguishingAgents.indexOf(a.agent) - fireExtinguishingAgents.indexOf(b.agent) ||
-      Number(a.wheeled) - Number(b.wheeled) ||
-      a.capacity - b.capacity
-  )) {
-    const key = `${unit.agent}|${unit.capacity}|${unit.wheeled}`;
-    const group = groups.get(key);
-    if (group) {
-      group.count += 1;
-      continue;
-    }
-    groups.set(key, {
-      code: extinguisherCode(unit.agent, unit.capacity),
-      agentLabel: fireExtinguishingAgentLabels[unit.agent],
-      capacityLabel: `${unit.capacity}\u00a0${capacityUnits[unit.agent]}`,
-      wheeled: unit.wheeled,
-      count: 1,
-    });
-  }
-  return [...groups.values()];
-}
 
 function otherEquipmentGroups(units: FireSafetyClientFacts['equipment']) {
   return fireEquipmentKinds
@@ -668,7 +628,13 @@ function fireContext(
       : (manager?.name ?? interventionLeader.name);
     const hasAreaAndNorm = workplaceHasAreaAndNorm(workplace.kind);
     const norm = hasAreaAndNorm ? fireExtinguisherNormLabels[workplace.extinguisherNorm!] : null;
-    const extinguishers = extinguisherGroups(units);
+    const extinguishers = extinguisherGroups(units).map((group) => ({
+      code: group.code,
+      agentLabel: fireExtinguishingAgentLabels[group.agent],
+      capacityLabel: group.capacityLabel,
+      wheeled: group.wheeled,
+      count: group.units.length,
+    }));
     return {
       first: index === 0,
       name: workplace.name.trim(),
@@ -757,7 +723,7 @@ function fireContext(
       (unit) =>
         activeWorkplaceIds.has(unit.workplaceId) &&
         unit.kind === 'extinguisher' &&
-        (unit.agent === 'co2' || unit.agent === 'clean_agent')
+        isGasAgent(unit.agent)
     ),
     hasThirdParties: card.hasThirdParties,
     smoking: {
@@ -797,7 +763,7 @@ function fireContext(
       fireSchedule({
         name: workplace.name.trim(),
         activity: workplace.activity!.trim(),
-        equipment: facts.fireSafety.equipment.filter((unit) => unit.workplaceId === workplace.id),
+        units: facts.fireSafety.equipment.filter((unit) => unit.workplaceId === workplace.id),
         installations: facts.fireSafety.installations.filter(
           (installation) => installation.workplaceId === workplace.id
         ),
@@ -849,63 +815,27 @@ function checkInterval(lastOn: string, nextOn: string) {
     : `la ${countOf(months, 'lună', 'luni')}`;
 }
 
-const firmsOf = (names: readonly (string | null)[]) => {
-  const firms: string[] = [];
-  for (const name of names) {
-    const firm = name?.trim();
-    if (
-      firm &&
-      !firms.some((each) => each.toLocaleLowerCase('ro') === firm.toLocaleLowerCase('ro'))
-    ) {
-      firms.push(firm);
-    }
-  }
+const maintainedBy = (names: readonly (string | null)[]) => {
+  const firms = firmsOf(names);
   return firms.length > 0 ? listed(firms) : attestedFirm;
 };
-
-// Grouped as the list of means groups them, keeping each unit's service facts.
-function scheduledExtinguishers(units: FireSafetyClientFacts['equipment']) {
-  const groups = new Map<
-    string,
-    { label: string; gas: boolean; units: FireSafetyClientFacts['equipment'] }
-  >();
-  const extinguishers = units
-    .filter((unit) => unit.kind === 'extinguisher' && unit.agent !== null && unit.capacity !== null)
-    .sort(
-      (a, b) =>
-        fireExtinguishingAgents.indexOf(a.agent!) - fireExtinguishingAgents.indexOf(b.agent!) ||
-        Number(a.wheeled) - Number(b.wheeled) ||
-        a.capacity! - b.capacity!
-    );
-  for (const unit of extinguishers) {
-    const key = `${unit.agent}|${unit.capacity}|${unit.wheeled}`;
-    const group = groups.get(key) ?? {
-      label: `${extinguisherCode(unit.agent!, unit.capacity!)}${unit.wheeled ? ' carosabil' : ''}`,
-      gas: unit.agent === 'co2' || unit.agent === 'clean_agent',
-      units: [],
-    };
-    group.units.push(unit);
-    groups.set(key, group);
-  }
-  return [...groups.values()];
-}
 
 function fireSchedule({
   name,
   activity,
-  equipment,
+  units,
   installations,
   items,
   coordinatorName,
 }: {
   name: string;
   activity: string;
-  equipment: FireSafetyClientFacts['equipment'];
+  units: FireSafetyClientFacts['equipment'];
   installations: FireSafetyClientFacts['installations'];
   items: FireSafetyClientFacts['maintenanceItems'];
   coordinatorName: string;
 }): FireScheduleContext {
-  const groups = scheduledExtinguishers(equipment);
+  const groups = extinguisherGroups(units);
   const counted = (list: typeof groups) =>
     list.map((group) => `${group.label} – ${group.units.length}\u00a0buc.`).join(', ');
   // Decision 9 has the coordinator check every extinguisher and weigh the gas ones (OMAI 135/2023 art. 8).
@@ -943,7 +873,7 @@ function fireSchedule({
             return {
               what: `Verificarea stingătoarelor de către o firmă atestată (${counted([group])})`,
               interval: 'anual',
-              who: firmsOf(group.units.map((unit) => unit.maintainer)),
+              who: maintainedBy(group.units.map((unit) => unit.maintainer)),
               basis: `OMAI 135/2023 – art. 9; ${dates.length > 0 ? `următorul service: ${listed(dates)}` : producerTerms}`,
             };
           }),
@@ -951,7 +881,9 @@ function fireSchedule({
             what: `Reîncărcarea stingătoarelor (${counted(groups)})`,
             interval:
               'după fiecare utilizare și la cel mult 3 ani sau la termenul producătorului, dacă este mai scurt',
-            who: firmsOf(groups.flatMap((group) => group.units.map((unit) => unit.maintainer))),
+            who: maintainedBy(
+              groups.flatMap((group) => group.units.map((unit) => unit.maintainer))
+            ),
             basis: 'OMAI 135/2023 – art. 12',
           },
         ];
@@ -963,7 +895,7 @@ function fireSchedule({
     return {
       what: installationText(installation.kind, installation.description),
       interval: interval ?? producerTerms,
-      who: firmsOf([installation.maintainer]),
+      who: maintainedBy([installation.maintainer]),
       basis: installation.nextCheckOn
         ? `următoarea verificare: ${printedDate(installation.nextCheckOn)}`
         : '—',

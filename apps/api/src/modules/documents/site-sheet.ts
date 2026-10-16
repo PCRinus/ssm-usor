@@ -1,9 +1,7 @@
 import {
-  extinguisherCode,
   fireBuildingClassificationLabels,
   type FireDecision,
   fireDecisionTypeKeys,
-  fireExtinguishingAgents,
   type FireInstallationKind,
   fireInstallationKindLabels,
   fireSafetyDocumentTitles,
@@ -17,6 +15,7 @@ import {
 import { printedAddress } from '../../lib/address';
 import { countOf, listed, runOn } from '../../lib/romanian';
 import { printedDate } from './context';
+import { extinguisherGroups, firmsOf } from './equipment';
 import type { FireSafetyClientFacts, FireSafetySetFacts } from './fire-safety';
 
 /**
@@ -94,44 +93,13 @@ const isFromTenEmployees = (
 
 const collator = new Intl.Collator('ro');
 
-function firmsOf(names: readonly (string | null)[]) {
-  const firms: string[] = [];
-  for (const name of names) {
-    const firm = trimmed(name);
-    if (
-      firm &&
-      !firms.some((each) => each.toLocaleLowerCase('ro') === firm.toLocaleLowerCase('ro'))
-    ) {
-      firms.push(firm);
-    }
-  }
-  return firms;
-}
-
 function extinguisherLine(units: readonly Unit[]) {
-  const groups = new Map<string, { label: string; count: number }>();
-  const extinguishers = units
-    .filter((unit) => unit.kind === 'extinguisher' && unit.agent !== null && unit.capacity !== null)
-    .sort(
-      (a, b) =>
-        fireExtinguishingAgents.indexOf(a.agent!) - fireExtinguishingAgents.indexOf(b.agent!) ||
-        Number(a.wheeled) - Number(b.wheeled) ||
-        a.capacity! - b.capacity!
-    );
-  if (extinguishers.length === 0) return 'nu există';
-  for (const unit of extinguishers) {
-    const key = `${unit.agent}|${unit.capacity}|${unit.wheeled}`;
-    const group = groups.get(key) ?? {
-      label: `${extinguisherCode(unit.agent!, unit.capacity!)}${unit.wheeled ? ' carosabil' : ''}`,
-      count: 0,
-    };
-    group.count += 1;
-    groups.set(key, group);
-  }
-  const counted = [...groups.values()]
-    .map((group) => `${group.label} – ${group.count}\u00a0buc.`)
+  const groups = extinguisherGroups(units);
+  if (groups.length === 0) return 'nu există';
+  const counted = groups
+    .map((group) => `${group.label} – ${group.units.length}\u00a0buc.`)
     .join(', ');
-  const firms = firmsOf(extinguishers.map((unit) => unit.maintainer));
+  const firms = firmsOf(groups.flatMap((group) => group.units.map((unit) => unit.maintainer)));
   return firms.length > 0
     ? `${counted}; verificate de ${listed(firms)}`
     : `${counted}; firma atestată care le verifică: ${unfilledMark}`;

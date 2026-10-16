@@ -1,12 +1,9 @@
 import {
-  extinguisherCode,
   type FireDecision,
   fireDecisionTypeKeys,
   fireEquipmentKindLabels,
   fireEquipmentKinds,
-  type FireExtinguishingAgent,
   fireExtinguishingAgentLabels,
-  fireExtinguishingAgents,
   fireInstallationKindLabels,
   fireInstallationKinds,
   fireSafetyDocumentTitles,
@@ -20,6 +17,7 @@ import {
 import { printedAddress } from '../../lib/address';
 import { countOf, definiteRole, listed, runOn } from '../../lib/romanian';
 import { documentApplies, printedDate } from './context';
+import { extinguisherGroups } from './equipment';
 import type { FireSafetyClientFacts, FireSafetySetFacts } from './fire-safety';
 import { descriptionNamesKind, installationText } from './installations';
 import { monthNames } from './themes';
@@ -76,14 +74,6 @@ type Unit = FireSafetyClientFacts['equipment'][number];
 type Installation = FireSafetyClientFacts['installations'][number];
 type StoredDocument = FireSafetyClientFacts['documents'][number];
 
-const capacityUnits: Record<FireExtinguishingAgent, string> = {
-  powder: 'kg',
-  co2: 'kg',
-  foam: 'l',
-  water: 'l',
-  clean_agent: 'kg',
-};
-
 const staffLabels: Record<StaffCategory, string> = {
   technical_administrative: 'Personal administrativ',
   execution: 'Personal de execuție',
@@ -95,26 +85,8 @@ const datesOf = (dates: readonly (string | null)[]) => {
 };
 
 function extinguisherRows(units: readonly Unit[]): MeansRow[] {
-  const groups = new Map<string, { what: string; units: Unit[] }>();
-  const extinguishers = units
-    .filter((unit) => unit.kind === 'extinguisher' && unit.agent !== null && unit.capacity !== null)
-    .sort(
-      (a, b) =>
-        fireExtinguishingAgents.indexOf(a.agent!) - fireExtinguishingAgents.indexOf(b.agent!) ||
-        Number(a.wheeled) - Number(b.wheeled) ||
-        a.capacity! - b.capacity!
-    );
-  for (const unit of extinguishers) {
-    const key = `${unit.agent}|${unit.capacity}|${unit.wheeled}`;
-    const group = groups.get(key) ?? {
-      what: `Stingător ${extinguisherCode(unit.agent!, unit.capacity!)}${unit.wheeled ? ' carosabil' : ''} – ${runOn(fireExtinguishingAgentLabels[unit.agent!])}, ${unit.capacity}\u00a0${capacityUnits[unit.agent!]}`,
-      units: [],
-    };
-    group.units.push(unit);
-    groups.set(key, group);
-  }
-  return [...groups.values()].map((group) => ({
-    what: group.what,
+  return extinguisherGroups(units).map((group) => ({
+    what: `Stingător ${group.label} – ${runOn(fireExtinguishingAgentLabels[group.agent])}, ${group.capacityLabel}`,
     quantity: `${group.units.length}\u00a0buc.`,
     next: datesOf(group.units.map((unit) => unit.nextServiceOn)),
   }));
