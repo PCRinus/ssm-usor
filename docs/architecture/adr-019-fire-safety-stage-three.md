@@ -154,7 +154,7 @@ Once all eleven exist, the set gets the pass ADR 016 planned and the first set h
 ## What is left out
 
 - A workplace test, the monthly sessions of the first-intervention team and the half-yearly evacuation exercise in the themes. Decision 2 already says the team is updated monthly; the exercises are a living record.
-- The individual training sheet (OMAI 712/2005 annex), one per employee: a document that exists many times per client (ADR 005), and the training records of #183 come first.
+- The individual training sheet (OMAI 712/2005 annex), one per employee: a document that exists many times per client (ADR 005), and the training records of #183 come first. (Built by [ADR 021](adr-021-training-records-and-individual-sheets.md), 2026-10-16.)
 - The half-yearly evaluation report, the list of dangerous substances, fire-safety duties in job descriptions (OMAI 163/2007 art. 9) and the evacuation plan. (2026-10-11: the substances list is the amendment to [ADR 018](adr-018-fire-safety-means.md); the annual report and the plans are in [ADR 020](adr-020-fire-safety-from-ten-employees.md), the plans still left out.)
 - The registration of each contract on the inspectorate's platform, and any check that the provider is authorized.
 - A client bound to employ a technician under OMAI 106/2007: decision 6 is written for a contracted provider.
