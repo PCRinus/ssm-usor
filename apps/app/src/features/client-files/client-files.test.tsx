@@ -301,7 +301,9 @@ describe('the other documents of a client', () => {
       })
     );
     expect(
-      await screen.findByText('„Certificat de înregistrare” este acum doar pentru administratori.')
+      await screen.findByText(
+        '„Certificat de înregistrare” este acum vizibil doar pentru administratori.'
+      )
     ).toBeTruthy();
   });
 

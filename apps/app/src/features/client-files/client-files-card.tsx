@@ -130,7 +130,7 @@ export function ClientFilesCard({
       await setClientFileOwnersOnly(client.id, file.id, { ownersOnly }, apiRequest);
       toast.success(
         ownersOnly
-          ? `„${file.name}” este acum doar pentru administratori.`
+          ? `„${file.name}” este acum vizibil doar pentru administratori.`
           : `„${file.name}” este acum vizibil pentru toată echipa.`
       );
     } catch {
