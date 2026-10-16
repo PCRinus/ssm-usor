@@ -5725,6 +5725,15 @@ export interface IssueDocumentRequest {
   acceptUnfilled?: boolean;
 }
 
+/**
+ * @nullable
+ */
+export type ClientFileListResponseItemsItemEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
+} | null;
+
 export type ClientFileListResponseItemsItemMimeType =
   (typeof ClientFileListResponseItemsItemMimeType)[keyof typeof ClientFileListResponseItemsItemMimeType];
 
@@ -5755,6 +5764,8 @@ export type ClientFileListResponseItemsItem = {
   /** @nullable */
   note: string | null;
   ownersOnly: boolean;
+  /** @nullable */
+  employee: ClientFileListResponseItemsItemEmployee;
   originalFileName: string;
   mimeType: ClientFileListResponseItemsItemMimeType;
   /** @minimum 1 */
@@ -5771,6 +5782,15 @@ export type ClientFileListResponseItemsItem = {
 export interface ClientFileListResponse {
   items: ClientFileListResponseItemsItem[];
 }
+
+/**
+ * @nullable
+ */
+export type ClientFileResponseFileEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
+} | null;
 
 export type ClientFileResponseFileMimeType =
   (typeof ClientFileResponseFileMimeType)[keyof typeof ClientFileResponseFileMimeType];
@@ -5802,6 +5822,8 @@ export type ClientFileResponseFile = {
   /** @nullable */
   note: string | null;
   ownersOnly: boolean;
+  /** @nullable */
+  employee: ClientFileResponseFileEmployee;
   originalFileName: string;
   mimeType: ClientFileResponseFileMimeType;
   /** @minimum 1 */
@@ -6931,6 +6953,10 @@ export type UploadClientDocumentParams = {
   period?: number;
 };
 
+export type ListClientFilesParams = {
+  employeeId?: string;
+};
+
 export type UploadClientFileParams = {
   /**
    * @minLength 1
@@ -6947,6 +6973,7 @@ export type UploadClientFileParams = {
    */
   note?: string;
   ownersOnly?: UploadClientFileOwnersOnly;
+  employeeId?: string;
 };
 
 export type UploadClientFileOwnersOnly =
@@ -22190,26 +22217,39 @@ export const useUploadClientDocument = <TError = ErrorType<ApiErrorResponse>, TC
   return useMutation(getUploadClientDocumentMutationOptions(options), queryClient);
 };
 
-export const getListClientFilesUrl = (clientId: string) => {
-  return `/clients/${clientId}/files`;
+export const getListClientFilesUrl = (clientId: string, params?: ListClientFilesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/files?${stringifiedParams}`
+    : `/clients/${clientId}/files`;
 };
 
 /**
- * The files the caller can see, newest first (ADR 013). A specialist does not see the files for owners only, so a count shown to them counts only theirs.
+ * The files the caller can see, newest first (ADR 013). A specialist does not see the files for owners only, so a count shown to them counts only theirs. Each names the employee it belongs to, if any; `employeeId` keeps only that employee's files (ADR 021).
  * @summary List a client's files
  */
 export const listClientFiles = async (
   clientId: string,
+  params?: ListClientFilesParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<ClientFileListResponse> => {
-  return apiFetch<ClientFileListResponse>(getListClientFilesUrl(clientId), {
+  return apiFetch<ClientFileListResponse>(getListClientFilesUrl(clientId, params), {
     ...options,
     method: 'GET',
   });
 };
 
-export const getListClientFilesQueryKey = (clientId: string) => {
-  return [`/clients/${clientId}/files`] as const;
+export const getListClientFilesQueryKey = (clientId: string, params?: ListClientFilesParams) => {
+  return [`/clients/${clientId}/files`, ...(params ? [params] : [])] as const;
 };
 
 export const getListClientFilesQueryOptions = <
@@ -22217,6 +22257,7 @@ export const getListClientFilesQueryOptions = <
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params?: ListClientFilesParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClientFiles>>, TError, TData>>;
     request?: SecondParameter<typeof apiFetch>;
@@ -22224,10 +22265,10 @@ export const getListClientFilesQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListClientFilesQueryKey(clientId);
+  const queryKey = queryOptions?.queryKey ?? getListClientFilesQueryKey(clientId, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listClientFiles>>> = ({ signal }) =>
-    listClientFiles(clientId, { signal, ...requestOptions });
+    listClientFiles(clientId, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -22247,6 +22288,7 @@ export function useListClientFiles<
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params: undefined | ListClientFilesParams,
   options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClientFiles>>, TError, TData>> &
       Pick<
@@ -22266,6 +22308,7 @@ export function useListClientFiles<
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params?: ListClientFilesParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClientFiles>>, TError, TData>> &
       Pick<
@@ -22285,6 +22328,7 @@ export function useListClientFiles<
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params?: ListClientFilesParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClientFiles>>, TError, TData>>;
     request?: SecondParameter<typeof apiFetch>;
@@ -22300,13 +22344,14 @@ export function useListClientFiles<
   TError = ErrorType<ApiErrorResponse>,
 >(
   clientId: string,
+  params?: ListClientFilesParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listClientFiles>>, TError, TData>>;
     request?: SecondParameter<typeof apiFetch>;
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListClientFilesQueryOptions(clientId, options);
+  const queryOptions = getListClientFilesQueryOptions(clientId, params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -22332,7 +22377,7 @@ export const getUploadClientFileUrl = (clientId: string, params: UploadClientFil
 };
 
 /**
- * Takes the bytes of the file, up to 20 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only.
+ * Takes the bytes of the file, up to 20 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.
  * @summary Upload one file about a client
  */
 export const uploadClientFile = async (

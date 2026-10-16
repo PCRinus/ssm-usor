@@ -78,6 +78,7 @@ export type Database = {
         Row: {
           client_id: string;
           created_at: string;
+          employee_id: string | null;
           id: string;
           mime_type: string;
           name: string;
@@ -94,6 +95,7 @@ export type Database = {
         Insert: {
           client_id: string;
           created_at?: string;
+          employee_id?: string | null;
           id?: string;
           mime_type: string;
           name: string;
@@ -110,6 +112,7 @@ export type Database = {
         Update: {
           client_id?: string;
           created_at?: string;
+          employee_id?: string | null;
           id?: string;
           mime_type?: string;
           name?: string;
@@ -130,6 +133,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_files_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
           },
           {
             foreignKeyName: 'client_files_organization_id_fkey';

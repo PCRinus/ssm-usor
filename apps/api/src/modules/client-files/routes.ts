@@ -3,6 +3,7 @@ import {
   clientFileDownloadResponseSchema,
   clientFileListResponseSchema,
   clientFileResponseSchema,
+  listClientFilesQuerySchema,
   setClientFileOwnersOnlyRequestSchema,
   updateClientFileRequestSchema,
   uploadClientFileQuerySchema,
@@ -41,10 +42,10 @@ export const listClientFilesRoute = createRoute({
   operationId: 'listClientFiles',
   summary: "List a client's files",
   description:
-    'The files the caller can see, newest first (ADR 013). A specialist does not see the files for owners only, so a count shown to them counts only theirs.',
+    "The files the caller can see, newest first (ADR 013). A specialist does not see the files for owners only, so a count shown to them counts only theirs. Each names the employee it belongs to, if any; `employeeId` keeps only that employee's files (ADR 021).",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: clientParams },
+  request: { params: clientParams, query: listClientFilesQuerySchema },
   responses: {
     200: {
       description: 'The files',
@@ -54,7 +55,7 @@ export const listClientFilesRoute = createRoute({
         },
       },
     },
-    400: { description: 'Invalid path', content: errorContent },
+    400: { description: 'Invalid path or query', content: errorContent },
     404: noSuchClient,
     ...membershipErrors,
   },
@@ -66,7 +67,7 @@ export const uploadClientFileRoute = createRoute({
   operationId: 'uploadClientFile',
   summary: 'Upload one file about a client',
   description:
-    "Takes the bytes of the file, up to 20 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only.",
+    "Takes the bytes of the file, up to 20 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -84,7 +85,8 @@ export const uploadClientFileRoute = createRoute({
   responses: {
     201: { description: 'The file', content: fileContent },
     400: {
-      description: 'Invalid path or query, or the file is empty, too large or of a refused type',
+      description:
+        'Invalid path or query, the file is empty, too large or of a refused type, or the employee is not one of the client',
       content: errorContent,
     },
     404: noSuchClient,
