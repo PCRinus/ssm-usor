@@ -200,7 +200,8 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
   }
   if (body.jobPositionId) await requireJobPosition(db, clientId, body.jobPositionId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId);
-  const workplaceId = body.workplaceId ?? (await onlyActiveWorkplace(db, clientId));
+  const workplaceId =
+    body.workplaceId === undefined ? await onlyActiveWorkplace(db, clientId) : body.workplaceId;
   const { data, error } = await db
     .from('employees')
     .insert({

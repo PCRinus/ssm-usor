@@ -852,6 +852,16 @@ describe('training sheet fields on employees (ADR 021)', () => {
     ]);
   });
 
+  it('leaves a new employee without a workplace when the body clears it, even at a client with one', async () => {
+    mockUpstream({
+      employees: () => Response.json(employeeRow, { status: 201 }),
+      workplaces: () => Response.json([{ id: workplaceId }]),
+    });
+    expect((await postEmployee({ ...body, workplaceId: null })).status).toBe(201);
+    expect(sent('POST').workplace_id).toBeNull();
+    expect(calls('/rest/v1/client_workplaces')).toHaveLength(0);
+  });
+
   it('leaves the workplace empty when the client has several or none', async () => {
     mockUpstream({
       employees: () => Response.json(employeeRow, { status: 201 }),
