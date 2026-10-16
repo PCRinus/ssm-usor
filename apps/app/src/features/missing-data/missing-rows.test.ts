@@ -3,6 +3,7 @@ import {
   missingDocumentData,
   type MissingServiceContractData,
   missingServiceContractData,
+  missingSheetData,
 } from '@ssm-usor/contracts';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { describe, expect, it } from 'vitest';
@@ -14,6 +15,7 @@ import {
   documentMissingGroups,
   missingCountLabel,
   type MissingGroup,
+  trainingSheetMissingGroups,
 } from './missing-rows';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
@@ -382,6 +384,27 @@ describe("the rows of the contract's missing data", () => {
       'Abilitările organizației',
       'VELOCITA URBANA SRL',
     ]);
+  });
+});
+
+describe("the rows of a training sheet's missing data", () => {
+  const employeeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+  const edit = `/clients/${clientId}/employees/${employeeId}/edit?focus=`;
+
+  it('lead each code to its field on the edit form, under the employee', () => {
+    const groups = trainingSheetMissingGroups({ missing: missingSheetData, clientId, employeeId });
+    expect(groups.map((group) => [group.place, group.heading])).toEqual([
+      ['employee', 'Datele angajatului'],
+    ]);
+    expect(groups[0]!.rows.map((row) => row.label)).toEqual([
+      'Traseul de deplasare',
+      'Punctul de lucru',
+    ]);
+    expect(hrefs(groups)).toEqual([`${edit}commute-route`, `${edit}workplace`]);
+  });
+
+  it('are none for a sheet that can be drawn up', () => {
+    expect(trainingSheetMissingGroups({ missing: [], clientId, employeeId })).toEqual([]);
   });
 });
 

@@ -21,11 +21,13 @@ function clientSection({ to, typeKey }: WayBack) {
 
 // A same-page fix on the lead page needs no way back: the contract is right there.
 const fixedHere = (pathname: string, wayBack: WayBack) =>
-  pathname.startsWith('/organization') ||
-  pathname.startsWith('/profile') ||
-  (wayBack.to !== 'lead-contract' &&
-    pathname.startsWith(`/clients/${wayBack.clientId}/`) &&
-    !pathname.startsWith(`/clients/${wayBack.clientId}/${clientSection(wayBack)}`));
+  wayBack.to === 'training-sheet'
+    ? pathname === `/clients/${wayBack.clientId}/employees/${wayBack.employeeId}/edit`
+    : pathname.startsWith('/organization') ||
+      pathname.startsWith('/profile') ||
+      (wayBack.to !== 'lead-contract' &&
+        pathname.startsWith(`/clients/${wayBack.clientId}/`) &&
+        !pathname.startsWith(`/clients/${wayBack.clientId}/${clientSection(wayBack)}`));
 
 const backLabels = {
   documents: 'Înapoi la generare',
@@ -33,7 +35,13 @@ const backLabels = {
   document: 'Înapoi la document',
   'client-contract': 'Înapoi la contract',
   'lead-contract': 'Înapoi la contract',
+  'training-sheet': 'Înapoi la fișă',
 } as const satisfies Record<WayBack['to'], string>;
+
+const trainingTabs = {
+  ssm: '/clients/$clientId/employees/$employeeId/training/ssm',
+  psi: '/clients/$clientId/employees/$employeeId/training/psi',
+} as const;
 
 type ToastPosition = NonNullable<NonNullable<Parameters<typeof toast.success>[1]>['position']>;
 
@@ -56,6 +64,11 @@ export function useSavedToast() {
         void navigate({
           to: '/clients/$clientId/contract',
           params: { clientId: wayBack.clientId },
+        });
+      } else if (wayBack.to === 'training-sheet' && wayBack.employeeId && wayBack.domain) {
+        void navigate({
+          to: trainingTabs[wayBack.domain],
+          params: { clientId: wayBack.clientId, employeeId: wayBack.employeeId },
         });
       } else if (wayBack.to === 'document' && wayBack.typeKey) {
         void navigate(documentRowLink(wayBack.clientId, wayBack.typeKey));

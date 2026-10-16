@@ -1,23 +1,19 @@
 import {
   type ApiErrorResponse,
-  missingSheetDataLabels,
   type TrainingDomain,
   trainingDomainLabels,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { useRouteContext } from '@tanstack/react-router';
 import { FileDown, LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
 
-import {
-  getGetTrainingSheetsQueryKey,
-  getTrainingSheet,
-  useGetTrainingSheets,
-} from '@/api/generated/api';
+import { getGetTrainingSheetsQueryKey, getTrainingSheet } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { Notice } from '@/components/notice';
 import { saveFile } from '@/lib/save-file';
+
+import { useTrainingSheets } from './use-training-sheets';
 
 type TrainingSheetDownloadProps = {
   clientId: string;
@@ -42,7 +38,7 @@ export function TrainingSheetDownload({
   domain,
 }: TrainingSheetDownloadProps) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const readiness = useGetTrainingSheets(clientId, employeeId, { request: apiRequest });
+  const readiness = useTrainingSheets(clientId, employeeId);
   const [downloading, setDownloading] = useState(false);
   const sheet = readiness.data?.[domain];
   const label = `Descarcă fișa ${trainingDomainLabels[domain]}`;
@@ -65,43 +61,18 @@ export function TrainingSheetDownload({
   }
 
   return (
-    <div className="grid gap-3" data-testid={`training-sheet-${domain}`}>
-      <Button
-        className="w-fit"
-        variant="outline"
-        disabled={!sheet?.ready || downloading}
-        onClick={() => void download()}
-      >
-        {downloading ? (
-          <LoaderCircle aria-hidden="true" className="animate-spin" />
-        ) : (
-          <FileDown aria-hidden="true" />
-        )}
-        {label}
-      </Button>
-      {sheet && !sheet.ready && (
-        <Notice
-          variant="warning"
-          action={
-            <Button asChild size="sm" variant="outline" className="w-fit">
-              <Link
-                to="/clients/$clientId/employees/$employeeId/edit"
-                params={{ clientId, employeeId }}
-              >
-                Completează datele
-              </Link>
-            </Button>
-          }
-        >
-          Fișa nu se poate întocmi până nu completezi:{' '}
-          {sheet.missing.map((code) => missingSheetDataLabels[code]).join(', ')}.
-        </Notice>
+    <Button
+      data-testid={`training-sheet-${domain}`}
+      variant="outline"
+      disabled={!sheet?.ready || downloading}
+      onClick={() => void download()}
+    >
+      {downloading ? (
+        <LoaderCircle aria-hidden="true" className="animate-spin" />
+      ) : (
+        <FileDown aria-hidden="true" />
       )}
-      {readiness.isError && (
-        <Notice variant="destructive">
-          Nu am putut verifica dacă fișa se poate întocmi. Reîncarcă pagina.
-        </Notice>
-      )}
-    </div>
+      {label}
+    </Button>
   );
 }

@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import {
   type ApiErrorResponse,
   getGetEmployeeQueryKey,
+  getGetTrainingSheetsQueryKey,
   getListEmployeesQueryKey,
   getListJobPositionsQueryKey,
   getListWorkplacesQueryKey,
@@ -16,6 +17,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { useAuth } from '@/features/auth/auth-context';
+import { useSavedToast } from '@/features/missing-data/saved-toast';
 
 import {
   birthDateFromCnp,
@@ -38,6 +40,7 @@ function isFormField(path: string): path is keyof EmployeeFormValues {
 export function useEmployeeForm(clientId: string, employee?: Employee) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
+  const savedToast = useSavedToast();
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: employee ? toEmployeeForm(employee) : emptyEmployeeForm,
@@ -89,6 +92,9 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
         await queryClient.invalidateQueries({
           queryKey: getGetEmployeeQueryKey(clientId, employee.id),
         });
+        await queryClient.invalidateQueries({
+          queryKey: getGetTrainingSheetsQueryKey(clientId, employee.id),
+        });
       } else {
         await create.mutateAsync({ clientId, data: toCreateEmployeeRequest(values) });
       }
@@ -97,7 +103,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
       // The position just gained a person, whether it was new or not.
       await queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) });
       if (employee) {
-        toast.success('Datele angajatului au fost salvate.');
+        savedToast('Datele angajatului au fost salvate.');
         await navigate({
           to: '/clients/$clientId/employees/$employeeId',
           params: { clientId, employeeId: employee.id },

@@ -74,6 +74,8 @@ export const authorizationsFocus = ['certificate', 'fire-safety-technician'] as 
 
 export const profileFocus = ['full-name', 'professional-title'] as const;
 
+export const employeeFocus = ['commute-route', 'workplace'] as const;
+
 export type LegalRepresentativeFocus = (typeof legalRepresentativeFocus)[number];
 export type CompanyFocus = (typeof companyFocus)[number];
 export type ContractFocus = (typeof contractFocus)[number];
@@ -86,6 +88,7 @@ export type ResponsiblePersonFocus = (typeof responsiblePersonFocus)[number];
 export type OrganizationCompanyFocus = (typeof organizationCompanyFocus)[number];
 export type AuthorizationsFocus = (typeof authorizationsFocus)[number];
 export type ProfileFocus = (typeof profileFocus)[number];
+export type EmployeeFocus = (typeof employeeFocus)[number];
 
 // A stale or hand-edited key still opens the page.
 export function focusSearch<const Keys extends readonly [string, ...string[]]>(keys: Keys) {

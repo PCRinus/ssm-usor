@@ -14,6 +14,7 @@ import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useAuth } from '@/features/auth/auth-context';
 import { JobPositionCombobox } from '@/features/job-positions/job-position-combobox';
+import { type EmployeeFocus, useFocusRequest } from '@/features/missing-data/focus';
 
 import type { Employee, EmployeeFormValues } from './employee-form-schema';
 import { todayIso } from './employee-format';
@@ -29,11 +30,13 @@ export function EmployeeForm({
   clientId,
   clientName,
   employee,
+  focus,
 }: {
   clientId: string;
   clientName: string;
   /** The person being corrected; left out, a new one is added. */
   employee?: Employee;
+  focus?: EmployeeFocus;
 }) {
   const { session } = useAuth();
   // The shell renders this only for a signed-in user.
@@ -41,6 +44,11 @@ export function EmployeeForm({
   const { form, onSubmit, prefillBirthDate, choosePosition, workplaces, isSaving } =
     useEmployeeForm(clientId, employee);
   const formRef = useRevealErrors(form);
+  // The workplace picker stays disabled, and so cannot take the focus, until its list loads.
+  useFocusRequest(focus !== undefined, {
+    ready: focus !== 'workplace' || workplaces !== undefined,
+    field: focus === 'workplace' ? 'workplaceId' : 'commuteRoute',
+  });
   const {
     register,
     control: formControl,

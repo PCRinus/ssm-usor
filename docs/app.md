@@ -182,7 +182,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/legislatie/documente.tsx`                                           | `/legislatie/documente`                                     | "Documente de actualizat": the documents behind, under SSM and PSI, with bulk regeneration.                                                                                                                 |
 | `routes/_authenticated/legislatie/modificari.tsx`                                          | `/legislatie/modificari`                                    | "Modificări": the legal changes, newest first.                                                                                                                                                              |
 | `routes/_authenticated/legislatie/acte.tsx`                                                | `/legislatie/acte`                                          | "Acte urmărite": the watched acts, sortable, the sort in the search params.                                                                                                                                 |
-| `routes/_authenticated/clients/$clientId/employees/$employeeId_.edit.tsx`                  | `/clients/:id/employees/:employeeId/edit`                   | Corrects what was entered about an employee, in the form that adds one (`src/features/employees/employee-form.tsx`). Full page; returns to the employee page with a toast.                                  |
+| `routes/_authenticated/clients/$clientId/employees/$employeeId_.edit.tsx`                  | `/clients/:id/employees/:employeeId/edit`                   | Corrects an employee in the form that adds one (`employee-form.tsx`). Full page; returns to the employee page. `?focus=commute-route` or `workplace` points at that field.                                  |
 | `routes/_authenticated/clients/$clientId/fire-safety-means.tsx`                            | `/clients/:id/fire-safety-means`                            | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace, their other periodic checks, the building of each fixed space, and the dangerous substances.              |
 | `routes/_authenticated/clients/$clientId/training.tsx`                                     | `/clients/:id/training`                                     | "Instruire și responsabili": the two training schedules and the responsible persons the generated documents print.                                                                                          |
 | `routes/_authenticated/clients/$clientId/documents/index.tsx`                              | `/clients/:id/documents`                                    | "Documente SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                                  |
@@ -565,14 +565,24 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   listed as "Arhivat". The employee page shows the same facts in the same order, in its section
   "Fișa de instruire".
 - `TrainingSheetDownload` (`src/features/training-sheets/training-sheet-download.tsx`, ADR 021)
-  takes the client, the employee and a domain and renders "Descarcă fișa SSM" or "Descarcă fișa
-  PSI": it reads both sheets' readiness from `GET …/employees/{employeeId}/training-sheets`,
-  fetches the PDF from `GET …/training-sheet?domain=` and saves it under the name the API
-  gives. While data is missing the button is disabled and a warning lists what to fill in,
-  "Fișa nu se poate întocmi până nu completezi: traseul de deplasare, punctul de lucru", with
-  "Completează datele" opening the employee's edit form; a failed download is a toast, "Convertorul
-  PDF nu este disponibil" when there is no converter. Each training view of the employee page
-  holds one, in its `training-tab-actions` container.
+  takes the client, the employee and a domain and renders the button "Descarcă fișa SSM" or
+  "Descarcă fișa PSI": it reads both sheets' readiness from
+  `GET …/employees/{employeeId}/training-sheets` (`useTrainingSheets`, one cache entry for both
+  components), fetches the PDF from `GET …/training-sheet?domain=` and saves it under the name
+  the API gives. While data is missing the button is disabled; a failed download is a toast,
+  "Convertorul PDF nu este disponibil" when there is no converter, and a 409 reloads the
+  readiness. Each training view of the employee page holds one in its `training-tab-actions`
+  container, beside "Înregistrează o instruire".
+- `TrainingSheetReadiness` (`src/features/training-sheets/training-sheet-readiness.tsx`) is the
+  row under that header: nothing while the sheet can be drawn up, otherwise a warning "Fișa SSM
+  nu se poate întocmi încă: 1 dată de completat." with "Vezi ce lipsește", a dialog with the
+  house missing-data list (`trainingSheetMissingGroups` in `missing-rows.ts`): "Traseul de
+  deplasare" and "Punctul de lucru" under "Datele angajatului", each leading to the employee's
+  edit form with `?focus=commute-route` or `?focus=workplace`, where the form focuses and points
+  at the field (the workplace picker once its list has loaded). Following a row starts the way
+  back with `to: 'training-sheet'`, the employee and the domain; the save's toast on the edit
+  form then offers "Înapoi la fișă", which opens that training tab. Saving the employee also
+  reloads the sheets' readiness.
 - `/clients/:clientId/training`: the "Instruire și responsabili" section of a client, what its
   generated documentation prints beyond the registration data (ADR 005), with the
   responsible persons below. The first card holds the periodic training schedule: duration, interval for administrative staff and for workers, first month, and the

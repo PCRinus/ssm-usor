@@ -24,6 +24,7 @@ import { formatDate } from '@/features/employees/employee-format';
 import { EmployeePending } from '@/features/employees/employee-pending';
 import { useEmployee } from '@/features/employees/use-employee';
 import { TrainingSheetDownload } from '@/features/training-sheets/training-sheet-download';
+import { TrainingSheetReadiness } from '@/features/training-sheets/training-sheet-readiness';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
 import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
@@ -84,7 +85,7 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
 
   return (
     <div data-testid="employee-training-tab" data-domain={domain} className="grid gap-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-lg font-semibold">Instruire {label}</h2>
         <div className="flex flex-wrap gap-2">
           <div data-testid="training-tab-actions" className="flex flex-wrap gap-2">
@@ -93,6 +94,7 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
           {recordButton}
         </div>
       </div>
+      <TrainingSheetReadiness clientId={clientId} employeeId={employeeId} domain={domain} />
 
       <dl
         data-testid="training-status"
