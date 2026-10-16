@@ -442,8 +442,8 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   position and the hire date. Above it, the current/former filter, a client combobox over the
   first hundred active clients (`?clientId=`), and the search box "Caută după nume, marcă sau
   client"; filters, sort and search reset to page one. Without any employee it says how
-  employees are added, from a client's page. The training-state column and filter are those of
-  a client's list, described below.
+  employees are added, from a client's page. The training-state columns and filter are those
+  of a client's list, described below.
 - Date fields use `src/components/date-picker.tsx`: a text input for typed Romanian dates
   (`dd.mm.yyyy`, also with slashes or dashes) next to a button that opens the shadcn calendar
   (react-day-picker, Romanian locale, month and year dropdowns, optional bounds). The form
@@ -494,10 +494,11 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   generated yet. The proposal's `themesRevisionId` goes with the material. Editing starts from
   what was saved and asks for no proposal. A `400` lands on its field; saving invalidates the
   trainings, the employees' records and pages, and both employee lists.
-- Training state in the lists: the client's employees and the root "Angajați" page have a
-  column "Instruire" with a small "SSM" and "PSI" badge, muted for "La zi", amber for
-  "Scadentă", red for "Depășită", outlined for "Neinstruit", none for a leaver, the state and
-  due date in the tooltip and read out; chips "Toate / Scadente / Depășite / Neinstruiți" set
+- Training state in the lists: the client's employees and the root "Angajați" page have two
+  columns, "Instruire SSM" and "Instruire PSI", each with the domain's state as a badge in
+  words, muted for "La zi", amber for "Scadentă", red for "Depășită", outlined for
+  "Neinstruit", and under it the next training due, "până la {date}" or, when overdue,
+  "din {date}"; a leaver shows a dash. Chips "Toate / Scadente / Depășite / Neinstruiți" set
   `?trainingState=` with a replaced history entry and back to page one, and are hidden on the
   former employees.
 - `/clients/:id/employees/new`: the creation form, rendered without the client summary and

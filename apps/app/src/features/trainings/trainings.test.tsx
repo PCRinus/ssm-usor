@@ -589,20 +589,29 @@ describe('training state in the employee lists', () => {
     psi: trainingStatus('due', '2026-10-30'),
   });
 
-  it("colours each domain by its state on the client's list and filters by state", async () => {
+  it("says each domain's state and due date in its own column on the client's list and filters by state", async () => {
     mockApi({ [`GET ${employeesPath}`]: () => Response.json(page([popescu, overdue])) });
     const runtime = mountApp(authFixture(makeSession()).client, `${employeesPath}?page=2`);
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('employees-row');
+    expect(
+      screen
+        .getAllByRole('columnheader')
+        .map((header) => header.textContent)
+        .filter((text) => text?.startsWith('Instruire'))
+    ).toEqual(['Instruire SSM', 'Instruire PSI']);
     const first = within(rows[0]!);
     expect(first.getByTestId('training-status-ssm').dataset.state).toBe('current');
-    expect(first.getByTestId('training-status-psi').dataset.state).toBe('untrained');
+    expect(first.getByTestId('training-status-ssm').textContent).toBe('La zi');
+    expect(first.getByTestId('training-due-ssm').textContent).toBe('până la 1 mar. 2027');
+    expect(first.getByTestId('training-status-psi').textContent).toBe('Neinstruit');
+    expect(first.queryByTestId('training-due-psi')).toBeNull();
     const second = within(rows[1]!);
     expect(second.getByTestId('training-status-ssm').dataset.state).toBe('overdue');
-    expect(second.getByTestId('training-status-psi').getAttribute('title')).toBe(
-      'PSI: scadentă, termen 30 oct. 2026'
-    );
-    expect(second.getByText('SSM: depășită, termen 1 iun. 2026')).toBeTruthy();
+    expect(second.getByTestId('training-status-ssm').textContent).toBe('Depășită');
+    expect(second.getByTestId('training-due-ssm').textContent).toBe('din 1 iun. 2026');
+    expect(second.getByTestId('training-status-psi').textContent).toBe('Scadentă');
+    expect(second.getByTestId('training-due-psi').textContent).toBe('până la 30 oct. 2026');
 
     const historyLength = runtime.router.history.length;
     await user.click(screen.getByTestId('employees-training-filter-overdue'));
@@ -638,7 +647,7 @@ describe('training state in the employee lists', () => {
     expect(await screen.findAllByTestId('employees-row')).toHaveLength(1);
   });
 
-  it('shows no badge for a leaver', async () => {
+  it('shows a dash instead of a badge for a leaver', async () => {
     const leaver = {
       ...employee(ionescu.id, 'Ionescu', 'Ana', undefined, {
         ssm: trainingStatus(null),
@@ -651,6 +660,11 @@ describe('training state in the employee lists', () => {
     mountApp(authFixture(makeSession()).client, `${employeesPath}?status=terminated`);
     const [row] = await screen.findAllByTestId('employees-row');
     expect(within(row!).queryByTestId('training-status-ssm')).toBeNull();
+    expect(within(row!).queryByTestId('training-status-psi')).toBeNull();
+    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+    const cells = within(row!).getAllByRole('cell');
+    expect(cells[headers.indexOf('Instruire SSM')]!.textContent).toBe('—');
+    expect(cells[headers.indexOf('Instruire PSI')]!.textContent).toBe('—');
     expect(screen.queryByTestId('employees-training-filter')).toBeNull();
   });
 
@@ -663,7 +677,8 @@ describe('training state in the employee lists', () => {
     const runtime = mountApp(authFixture(makeSession()).client, '/employees');
     const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('organization-employees-row');
-    expect(within(row!).getByTestId('training-status-ssm').dataset.state).toBe('overdue');
+    expect(within(row!).getByTestId('training-status-ssm').textContent).toBe('Depășită');
+    expect(within(row!).getByTestId('training-due-psi').textContent).toBe('până la 30 oct. 2026');
     await user.click(screen.getByTestId('organization-employees-training-filter-untrained'));
     await waitFor(() =>
       expect(runtime.router.state.location.search).toEqual({ trainingState: 'untrained' })
