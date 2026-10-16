@@ -522,6 +522,15 @@ export async function putBehindItsTemplate(clientId: string, typeKey: string) {
   return generatedFrom.data.version;
 }
 
+export async function accessTokenOf(email: string, withPassword = password) {
+  const client = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await client.auth.signInWithPassword({ email, password: withPassword });
+  if (error) throw error;
+  return data.session.access_token;
+}
+
 // What the recovery email would carry, without sending one.
 export async function recoveryTokenHash(email: string) {
   const { data, error } = await admin.auth.admin.generateLink({ type: 'recovery', email });
@@ -582,6 +591,8 @@ export async function cleanUp() {
     await admin.from('fire_buildings').delete().eq('organization_id', id);
     await admin.from('fire_substances').delete().eq('organization_id', id);
     await admin.from('client_fire_safety').delete().eq('organization_id', id);
+    // Their records go with them, and the records restrict the deletion of the employees.
+    await admin.from('trainings').delete().eq('organization_id', id);
     await admin.from('employees').delete().eq('organization_id', id);
     // After the employees, who point at them.
     await admin.from('client_workplaces').delete().eq('organization_id', id);
