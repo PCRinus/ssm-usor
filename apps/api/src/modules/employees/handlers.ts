@@ -5,7 +5,10 @@ import {
   type EmployeeListItem,
   type EmployeeSortKey,
   normalizeCnp,
+  type OrganizationEmployeeListItem,
+  type OrganizationEmployeeSortKey,
   pageRange,
+  searchTerms,
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
@@ -18,6 +21,7 @@ import type {
   createEmployeeRoute,
   getEmployeeRoute,
   listEmployeesRoute,
+  listOrganizationEmployeesRoute,
   updateEmployeeJobPositionRoute,
   updateEmployeeRoute,
   updateEmployeeStatusRoute,
@@ -82,7 +86,15 @@ export function toEmployeeListItem(row: EmployeeListRow): EmployeeListItem {
 }
 
 export function toEmployee(
-  row: Omit<EmployeeRow, 'organization_id' | 'created_by' | 'job_position_id' | 'training_status'> &
+  row: Omit<
+    EmployeeRow,
+    | 'organization_id'
+    | 'created_by'
+    | 'job_position_id'
+    | 'training_status'
+    | 'employee_search_name'
+    | 'employee_client_search_name'
+  > &
     Pick<EmployeeListRow, 'job_positions' | 'client_workplaces' | 'training_status'>
 ): Employee {
   return {
@@ -173,9 +185,25 @@ const sortColumns: Record<EmployeeSortKey, string[]> = {
   hiredAt: ['hired_at', 'last_name', 'first_name'],
 };
 
+// The computed fields hold the name lowercase and without diacritics, as `searchTerms` leaves
+// the terms.
+const employeeSearchFields = ['employee_search_name', 'employee_number'];
+const organizationEmployeeSearchFields = [...employeeSearchFields, 'employee_client_search_name'];
+
+function matchingEveryTerm<Query extends { or: (filters: string) => Query }>(
+  query: Query,
+  q: string | undefined,
+  fields: readonly string[]
+) {
+  return searchTerms(q).reduce(
+    (matching, term) => matching.or(fields.map((field) => `${field}.ilike.*${term}*`).join(',')),
+    query
+  );
+}
+
 export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
-  const { status, trainingState, page, pageSize, sort, order } = c.req.valid('query');
+  const { status, trainingState, q, page, pageSize, sort, order } = c.req.valid('query');
   const db = createDataClient(c);
   await findClient(db, clientId);
   const filtered = () => {
@@ -190,7 +218,8 @@ export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = as
         })
       : base;
     const scoped = trained.eq('client_id', clientId).is('archived_at', null);
-    return status ? scoped.eq('status', status) : scoped.neq('status', 'terminated');
+    const current = status ? scoped.eq('status', status) : scoped.neq('status', 'terminated');
+    return matchingEveryTerm(current, q, employeeSearchFields);
   };
   let query = filtered();
   for (const column of sortColumns[sort])
@@ -386,4 +415,60 @@ export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = 
   }
   if (!data) throw new ApiError('not_found', 'This employee does not exist under this client.');
   return c.json({ employee: toEmployee(data) }, 200);
+};
+
+// Two foreign keys lead to clients, the plain one and the one that pins the organization.
+const organizationEmployeeListColumns = `${employeeListColumns}, client:clients!employees_client_id_fkey!inner(id, legal_name)`;
+
+type OrganizationEmployeeListRow = EmployeeListRow & { client: { id: string; legal_name: string } };
+
+function toOrganizationEmployeeListItem(
+  row: OrganizationEmployeeListRow
+): OrganizationEmployeeListItem {
+  return { ...toEmployeeListItem(row), client: { id: row.client.id, name: row.client.legal_name } };
+}
+
+const organizationSortColumns: Record<OrganizationEmployeeSortKey, string[]> = {
+  name: ['last_name', 'first_name'],
+  client: ['client(legal_name)', 'last_name', 'first_name'],
+  jobPosition: ['job_positions(name)', 'last_name', 'first_name'],
+  hiredAt: ['hired_at', 'last_name', 'first_name'],
+};
+
+export const listOrganizationEmployees: RouteHandler<
+  typeof listOrganizationEmployeesRoute,
+  ApiEnv
+> = async (c) => {
+  const { status, clientId, q, includeArchivedClients, page, pageSize, sort, order } =
+    c.req.valid('query');
+  const db = createDataClient(c);
+  const filtered = () => {
+    let query = db
+      .from('employees')
+      .select(organizationEmployeeListColumns, { count: 'exact' })
+      .is('archived_at', null)
+      // Only an owner reads leads, and the list should not change with the role.
+      .eq('client.stage', 'client');
+    if (includeArchivedClients === 'false') query = query.is('client.archived_at', null);
+    if (clientId) query = query.eq('client_id', clientId);
+    query = status ? query.eq('status', status) : query.neq('status', 'terminated');
+    return matchingEveryTerm(query, q, organizationEmployeeSearchFields).returns<
+      OrganizationEmployeeListRow[]
+    >();
+  };
+  let query = filtered();
+  for (const column of organizationSortColumns[sort])
+    query = query.order(column, { ascending: order === 'asc' });
+  const { from, to } = pageRange(page, pageSize);
+  const { data, error, count } = await query.order('id').range(from, to);
+  if (error?.code === 'PGRST103') {
+    const recount = await filtered().range(0, 0);
+    if (recount.error) throw fromDatabaseError(recount.error, 'count employees');
+    return c.json({ items: [], page, pageSize, total: recount.count ?? 0 }, 200);
+  }
+  if (error) throw fromDatabaseError(error, 'list organization employees');
+  return c.json(
+    { items: data.map(toOrganizationEmployeeListItem), page, pageSize, total: count ?? 0 },
+    200
+  );
 };

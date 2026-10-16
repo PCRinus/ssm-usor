@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { listQuerySchema, pageBounds, pageCount, pageRange } from './list';
+import { listQuerySchema, pageBounds, pageCount, pageRange, searchTerms } from './list';
 
 const schema = listQuerySchema(['name', 'hiredAt'], 'name');
 
@@ -34,5 +34,20 @@ describe('page arithmetic', () => {
     expect(pageCount({ page: 1, pageSize: 25, total: 26 })).toBe(2);
     expect(pageBounds({ page: 1, pageSize: 25, total: 0 })).toEqual({ first: 0, last: 0 });
     expect(pageBounds({ page: 2, pageSize: 25, total: 30 })).toEqual({ first: 26, last: 30 });
+  });
+});
+
+describe('search terms', () => {
+  it('lowercases, drops diacritics and splits on anything but letters and digits', () => {
+    expect(searchTerms('  Ștefan   ȚĂRANU ')).toEqual(['stefan', 'taranu']);
+    expect(searchTerms('Șantierul Naval, S.A.')).toEqual(['santierul', 'naval', 's', 'a']);
+    expect(searchTerms('A-17')).toEqual(['a', '17']);
+    expect(searchTerms('ş ţ î â ă')).toEqual(['s', 't', 'i', 'a', 'a']);
+  });
+
+  it('gives nothing to match for an empty or punctuation-only query', () => {
+    expect(searchTerms(undefined)).toEqual([]);
+    expect(searchTerms('   ')).toEqual([]);
+    expect(searchTerms('*,()".:')).toEqual([]);
   });
 });

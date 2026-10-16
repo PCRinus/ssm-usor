@@ -138,7 +138,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                                             |
 | `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                               |
 | `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                                              |
-| `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=&trainingState=`                 |
+| `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=&trainingState=&q=`              |
+| `GET /employees`                                                       | Verified user with a membership       | The organization's employees across its clients, each with `client`; `?clientId=&status=&q=&includeArchivedClients=`      |
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                                               |
 | `GET /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                                               |
 | `PUT /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }` after replacing what was entered about them                                                       |
@@ -344,7 +345,8 @@ so does a CNP or employee number already used by an active employee of that clie
 omits the CNP and, without `?status=`, returns current employees; archived rows
 are never listed. Lists are paginated with page numbers (`page` from 1, `pageSize` up to 100,
 25 by default) and sorted by one whitelisted key at a time (employees:
-`sort=name|jobTitle|hiredAt`; clients:
+`sort=name|jobTitle|jobPosition|hiredAt`; the organization's employees:
+`sort=name|client|jobPosition|hiredAt`; clients:
 `sort=legalName|cui|currentEmployeeCount|jobPositionCount|documentation|clientSince`;
 `order=asc|desc`), always with the id as a tiebreaker; the shared query and envelope schemas
 live in `packages/contracts/src/list.ts`. A page past the end answers an empty page with the
@@ -367,6 +369,20 @@ active workplace when it has exactly one, and none otherwise; `PUT` without the 
 stored workplace, and `workplaceId: null` clears it. The detail returns the five facts and both
 the list and the detail carry `workplace: { id, name } | null`, the name read even once the
 workplace is archived.
+
+Both employee lists take `?q=`, up to 100 characters, and keep the employees that match every
+term of it: the text is lowercased, stripped of diacritics and split on anything that is not a
+letter or a digit, and each term must appear somewhere in the name (`last_name first_name`) or
+the employee number, so `stefan tar` finds "Țăranu Ștefan" and `a-17` finds "A-17". A blank `q`
+filters nothing. See the [data model](data-model.md#employees) for how the database matches.
+`GET /employees` ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)) is
+the organization's list: the same row as a client's list plus `client: { id, name }`, the same
+envelope, current employees by default and `?status=terminated` for the leavers, `?clientId=`
+for one client, and `q` matching the client's name as well. Only employees of active clients
+are listed; `?includeArchivedClients=true` adds those of archived ones. Leads are never
+included, so an owner and a specialist see the same list. It sorts by `name` (the default),
+`client`, `jobPosition` or `hiredAt`. A filter by training state comes with the training
+records (ADR 021, step 3), with the state on each row.
 
 Job positions ([ADR 006](architecture/adr-006-job-positions.md)) are the posts a client
 employs people in. The list is not paginated, since a client has a handful, leaves archived

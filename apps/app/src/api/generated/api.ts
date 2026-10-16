@@ -1364,6 +1364,121 @@ export interface UpdateEmployeeJobPositionRequest {
   jobTitle?: string;
 }
 
+export type OrganizationEmployeeListResponseItemsItemJobPosition = {
+  id: string;
+  name: string;
+};
+
+export type OrganizationEmployeeListResponseItemsItemStatus =
+  (typeof OrganizationEmployeeListResponseItemsItemStatus)[keyof typeof OrganizationEmployeeListResponseItemsItemStatus];
+
+export const OrganizationEmployeeListResponseItemsItemStatus = {
+  active: 'active',
+  terminated: 'terminated',
+} as const;
+
+/**
+ * @nullable
+ */
+export type OrganizationEmployeeListResponseItemsItemWorkplace = {
+  id: string;
+  name: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type OrganizationEmployeeListResponseItemsItemTrainingSsmState =
+  | (typeof OrganizationEmployeeListResponseItemsItemTrainingSsmState)[keyof typeof OrganizationEmployeeListResponseItemsItemTrainingSsmState]
+  | null;
+
+export const OrganizationEmployeeListResponseItemsItemTrainingSsmState = {
+  untrained: 'untrained',
+  current: 'current',
+  due: 'due',
+  overdue: 'overdue',
+} as const;
+
+export type OrganizationEmployeeListResponseItemsItemTrainingSsm = {
+  /** @nullable */
+  state: OrganizationEmployeeListResponseItemsItemTrainingSsmState;
+  /** @nullable */
+  dueOn: string | null;
+  /** @nullable */
+  lastPeriodicOn: string | null;
+};
+
+/**
+ * @nullable
+ */
+export type OrganizationEmployeeListResponseItemsItemTrainingPsiState =
+  | (typeof OrganizationEmployeeListResponseItemsItemTrainingPsiState)[keyof typeof OrganizationEmployeeListResponseItemsItemTrainingPsiState]
+  | null;
+
+export const OrganizationEmployeeListResponseItemsItemTrainingPsiState = {
+  untrained: 'untrained',
+  current: 'current',
+  due: 'due',
+  overdue: 'overdue',
+} as const;
+
+export type OrganizationEmployeeListResponseItemsItemTrainingPsi = {
+  /** @nullable */
+  state: OrganizationEmployeeListResponseItemsItemTrainingPsiState;
+  /** @nullable */
+  dueOn: string | null;
+  /** @nullable */
+  lastPeriodicOn: string | null;
+};
+
+export type OrganizationEmployeeListResponseItemsItemTraining = {
+  ssm: OrganizationEmployeeListResponseItemsItemTrainingSsm;
+  psi: OrganizationEmployeeListResponseItemsItemTrainingPsi;
+};
+
+export type OrganizationEmployeeListResponseItemsItemClient = {
+  id: string;
+  name: string;
+};
+
+export type OrganizationEmployeeListResponseItemsItem = {
+  id: string;
+  clientId: string;
+  lastName: string;
+  firstName: string;
+  /** @nullable */
+  employeeNumber: string | null;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  phone: string | null;
+  jobTitle: string;
+  jobPosition: OrganizationEmployeeListResponseItemsItemJobPosition;
+  hiredAt: string;
+  status: OrganizationEmployeeListResponseItemsItemStatus;
+  /** @nullable */
+  terminatedAt: string | null;
+  /** @nullable */
+  workplace: OrganizationEmployeeListResponseItemsItemWorkplace;
+  createdAt: string;
+  updatedAt: string;
+  training: OrganizationEmployeeListResponseItemsItemTraining;
+  client: OrganizationEmployeeListResponseItemsItemClient;
+};
+
+export interface OrganizationEmployeeListResponse {
+  items: OrganizationEmployeeListResponseItemsItem[];
+  /** @minimum 1 */
+  page: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize: number;
+  /** @minimum 0 */
+  total: number;
+}
+
 export type TrainingListResponseItemsItemDomain =
   (typeof TrainingListResponseItemsItemDomain)[keyof typeof TrainingListResponseItemsItemDomain];
 
@@ -6688,6 +6803,10 @@ export type ListEmployeesParams = {
   order?: ListEmployeesOrder;
   status?: ListEmployeesStatus;
   trainingState?: ListEmployeesTrainingState;
+  /**
+   * @maxLength 100
+   */
+  q?: string;
 };
 
 export type ListEmployeesSort = (typeof ListEmployeesSort)[keyof typeof ListEmployeesSort];
@@ -6720,6 +6839,61 @@ export const ListEmployeesTrainingState = {
   untrained: 'untrained',
   due: 'due',
   overdue: 'overdue',
+} as const;
+
+export type ListOrganizationEmployeesParams = {
+  /**
+   * @minimum 1
+   */
+  page?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize?: number;
+  sort?: ListOrganizationEmployeesSort;
+  order?: ListOrganizationEmployeesOrder;
+  status?: ListOrganizationEmployeesStatus;
+  clientId?: string;
+  /**
+   * @maxLength 100
+   */
+  q?: string;
+  includeArchivedClients?: ListOrganizationEmployeesIncludeArchivedClients;
+};
+
+export type ListOrganizationEmployeesSort =
+  (typeof ListOrganizationEmployeesSort)[keyof typeof ListOrganizationEmployeesSort];
+
+export const ListOrganizationEmployeesSort = {
+  name: 'name',
+  client: 'client',
+  jobPosition: 'jobPosition',
+  hiredAt: 'hiredAt',
+} as const;
+
+export type ListOrganizationEmployeesOrder =
+  (typeof ListOrganizationEmployeesOrder)[keyof typeof ListOrganizationEmployeesOrder];
+
+export const ListOrganizationEmployeesOrder = {
+  asc: 'asc',
+  desc: 'desc',
+} as const;
+
+export type ListOrganizationEmployeesStatus =
+  (typeof ListOrganizationEmployeesStatus)[keyof typeof ListOrganizationEmployeesStatus];
+
+export const ListOrganizationEmployeesStatus = {
+  active: 'active',
+  terminated: 'terminated',
+} as const;
+
+export type ListOrganizationEmployeesIncludeArchivedClients =
+  (typeof ListOrganizationEmployeesIncludeArchivedClients)[keyof typeof ListOrganizationEmployeesIncludeArchivedClients];
+
+export const ListOrganizationEmployeesIncludeArchivedClients = {
+  true: 'true',
+  false: 'false',
 } as const;
 
 export type ListTrainingsParams = {
@@ -8709,7 +8883,7 @@ export const getListEmployeesUrl = (clientId: string, params?: ListEmployeesPara
 };
 
 /**
- * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name. The CNP is only returned by the detail route.
+ * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics. The CNP is only returned by the detail route.
  * @summary List a client's employees
  */
 export const listEmployees = async (
@@ -9413,6 +9587,151 @@ export const useUpdateEmployeeJobPosition = <
 > => {
   return useMutation(getUpdateEmployeeJobPositionMutationOptions(options), queryClient);
 };
+
+export const getListOrganizationEmployeesUrl = (params?: ListOrganizationEmployeesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/employees?${stringifiedParams}` : `/employees`;
+};
+
+/**
+ * Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are left out unless `includeArchivedClients=true`. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics.
+ * @summary List the organization's employees across its clients
+ */
+export const listOrganizationEmployees = async (
+  params?: ListOrganizationEmployeesParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<OrganizationEmployeeListResponse> => {
+  return apiFetch<OrganizationEmployeeListResponse>(getListOrganizationEmployeesUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListOrganizationEmployeesQueryKey = (params?: ListOrganizationEmployeesParams) => {
+  return [`/employees`, ...(params ? [params] : [])] as const;
+};
+
+export const getListOrganizationEmployeesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listOrganizationEmployees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListOrganizationEmployeesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationEmployees>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListOrganizationEmployeesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationEmployees>>> = ({
+    signal,
+  }) => listOrganizationEmployees(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listOrganizationEmployees>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListOrganizationEmployeesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listOrganizationEmployees>>
+>;
+export type ListOrganizationEmployeesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListOrganizationEmployees<
+  TData = Awaited<ReturnType<typeof listOrganizationEmployees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: undefined | ListOrganizationEmployeesParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationEmployees>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listOrganizationEmployees>>,
+          TError,
+          Awaited<ReturnType<typeof listOrganizationEmployees>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListOrganizationEmployees<
+  TData = Awaited<ReturnType<typeof listOrganizationEmployees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListOrganizationEmployeesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationEmployees>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listOrganizationEmployees>>,
+          TError,
+          Awaited<ReturnType<typeof listOrganizationEmployees>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListOrganizationEmployees<
+  TData = Awaited<ReturnType<typeof listOrganizationEmployees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListOrganizationEmployeesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationEmployees>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the organization's employees across its clients
+ */
+
+export function useListOrganizationEmployees<
+  TData = Awaited<ReturnType<typeof listOrganizationEmployees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListOrganizationEmployeesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationEmployees>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListOrganizationEmployeesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getListTrainingsUrl = (clientId: string, params?: ListTrainingsParams) => {
   const normalizedParams = new URLSearchParams();

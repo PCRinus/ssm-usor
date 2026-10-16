@@ -4,6 +4,8 @@ import {
   employeeListResponseSchema,
   employeeResponseSchema,
   listEmployeesQuerySchema,
+  listOrganizationEmployeesQuerySchema,
+  organizationEmployeeListResponseSchema,
   updateEmployeeJobPositionRequestSchema,
   updateEmployeeRequestSchema,
   updateEmployeeStatusRequestSchema,
@@ -22,7 +24,7 @@ export const listEmployeesRoute = createRoute({
   operationId: 'listEmployees',
   summary: "List a client's employees",
   description:
-    'Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name. The CNP is only returned by the detail route.',
+    'Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics. The CNP is only returned by the detail route.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams, query: listEmployeesQuerySchema },
@@ -210,6 +212,32 @@ export const updateEmployeeRoute = createRoute({
       description: 'Another employee of the client has this CNP or number',
       content: errorContent,
     },
+    ...membershipErrors,
+  },
+});
+
+export const listOrganizationEmployeesRoute = createRoute({
+  method: 'get',
+  path: '/employees',
+  operationId: 'listOrganizationEmployees',
+  summary: "List the organization's employees across its clients",
+  description:
+    "Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are left out unless `includeArchivedClients=true`. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { query: listOrganizationEmployeesQuerySchema },
+  responses: {
+    200: {
+      description: 'One page of employees with the total count',
+      content: {
+        'application/json': {
+          schema: organizationEmployeeListResponseSchema.meta({
+            id: 'OrganizationEmployeeListResponse',
+          }),
+        },
+      },
+    },
+    400: { description: 'Invalid query', content: errorContent },
     ...membershipErrors,
   },
 });

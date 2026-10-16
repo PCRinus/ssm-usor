@@ -937,6 +937,8 @@ export type Database = {
           terminated_at: string | null;
           updated_at: string;
           workplace_id: string | null;
+          employee_client_search_name: string | null;
+          employee_search_name: string | null;
           training_status: {
             client_id: string | null;
             employee_id: string | null;
@@ -3284,6 +3286,18 @@ export type Database = {
       };
       current_organization_id: { Args: never; Returns: string };
       effective_user_id: { Args: never; Returns: string };
+      employee_client_search_name: {
+        Args: { '': Database['public']['Tables']['employees']['Row'] };
+        Returns: {
+          error: true;
+        } & 'the function public.employee_client_search_name with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
+      };
+      employee_search_name: {
+        Args: { '': Database['public']['Tables']['employees']['Row'] };
+        Returns: {
+          error: true;
+        } & 'the function public.employee_search_name with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
+      };
       employee_training_due: {
         Args: {
           p_domain: Database['public']['Enums']['training_domain'];
@@ -3513,6 +3527,7 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      unaccent_immutable: { Args: { '': string }; Returns: string };
     };
     Enums: {
       client_stage: 'lead' | 'client';

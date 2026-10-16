@@ -22,6 +22,7 @@ export * from './job-positions';
 export * from './legislation';
 export * from './list';
 export * from './mail';
+export * from './organization-employees';
 export * from './organizations';
 export * from './pdf';
 export * from './profile';

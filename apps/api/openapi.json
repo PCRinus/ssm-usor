@@ -1728,6 +1728,190 @@
         },
         "required": ["jobPositionId"]
       },
+      "OrganizationEmployeeListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "lastName": {
+                  "type": "string"
+                },
+                "firstName": {
+                  "type": "string"
+                },
+                "employeeNumber": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "email": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "phone": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "jobTitle": {
+                  "type": "string"
+                },
+                "jobPosition": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"]
+                },
+                "hiredAt": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["active", "terminated"]
+                },
+                "terminatedAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date"
+                },
+                "workplace": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"]
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "training": {
+                  "type": "object",
+                  "properties": {
+                    "ssm": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["untrained", "current", "due", "overdue", null]
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "lastPeriodicOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        }
+                      },
+                      "required": ["state", "dueOn", "lastPeriodicOn"]
+                    },
+                    "psi": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["untrained", "current", "due", "overdue", null]
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "lastPeriodicOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        }
+                      },
+                      "required": ["state", "dueOn", "lastPeriodicOn"]
+                    }
+                  },
+                  "required": ["ssm", "psi"]
+                },
+                "client": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"]
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "lastName",
+                "firstName",
+                "employeeNumber",
+                "email",
+                "phone",
+                "jobTitle",
+                "jobPosition",
+                "hiredAt",
+                "status",
+                "terminatedAt",
+                "workplace",
+                "createdAt",
+                "updatedAt",
+                "training",
+                "client"
+              ]
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["items", "page", "pageSize", "total"]
+      },
       "TrainingListResponse": {
         "type": "object",
         "properties": {
@@ -10965,7 +11149,7 @@
       "get": {
         "operationId": "listEmployees",
         "summary": "List a client's employees",
-        "description": "Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; \"name\" orders by last name then first name. The CNP is only returned by the detail route.",
+        "description": "Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; \"name\" orders by last name then first name. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics. The CNP is only returned by the detail route.",
         "security": [
           {
             "bearerAuth": []
@@ -11038,6 +11222,15 @@
             },
             "required": false,
             "name": "trainingState",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
             "in": "query"
           }
         ],
@@ -11649,6 +11842,160 @@
           },
           "404": {
             "description": "The employee does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/employees": {
+      "get": {
+        "operationId": "listOrganizationEmployees",
+        "summary": "List the organization's employees across its clients",
+        "description": "Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are left out unless `includeArchivedClients=true`. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["name", "client", "jobPosition", "hiredAt"],
+              "default": "name"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"],
+              "default": "asc"
+            },
+            "required": false,
+            "name": "order",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["active", "terminated"]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "clientId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"],
+              "default": "false"
+            },
+            "required": false,
+            "name": "includeArchivedClients",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of employees with the total count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationEmployeeListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
             "content": {
               "application/json": {
                 "schema": {

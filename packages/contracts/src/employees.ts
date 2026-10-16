@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { decodeCnp, isValidCnpInput, normalizeCnp } from './cnp';
-import { listQuerySchema, pageSchema } from './list';
+import { listQuerySchema, listSearchSchema, pageSchema } from './list';
 import { employeeTrainingSchema, trainingStateFilterSchema } from './trainings';
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
@@ -109,6 +109,7 @@ export const listEmployeesQuerySchema = listQuerySchema(employeeSortKeys, 'name'
   status: employeeStatusSchema.optional(),
   // Matched in either domain.
   trainingState: trainingStateFilterSchema.optional(),
+  q: listSearchSchema.optional(),
 });
 
 export type ListEmployeesQuery = z.infer<typeof listEmployeesQuerySchema>;
