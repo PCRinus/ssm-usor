@@ -1,26 +1,26 @@
 import {
-  extinguisherCode,
   type FireDecision,
   fireDecisionTypeKeys,
-  fireEquipmentKindLabels,
-  fireEquipmentKinds,
-  type FireExtinguishingAgent,
   fireExtinguishingAgentLabels,
-  fireExtinguishingAgents,
   fireInstallationKindLabels,
   fireInstallationKinds,
   fireSafetyDocumentTitles,
   fireSafetyDocumentTypeKeys,
   type FireSafetyTypeKeyFromTenEmployees,
   isDatedDocumentType,
-  type StaffCategory,
   trainingMonths,
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
 import { countOf, definiteRole, listed, runOn } from '../../lib/romanian';
 import { documentApplies, printedDate } from './context';
-import type { FireSafetyClientFacts, FireSafetySetFacts } from './fire-safety';
+import { extinguisherGroups, otherEquipmentGroups } from './equipment';
+import type {
+  FireNamedPeople,
+  FireSafetyClientFacts,
+  FireSafetySetFacts,
+  FireStaffCategory,
+} from './fire-safety';
 import { descriptionNamesKind, installationText } from './installations';
 import { monthNames } from './themes';
 
@@ -65,10 +65,11 @@ export type AnnualReportContext = {
 export type AnnualReportInput = {
   facts: FireSafetySetFacts;
   year: number;
-  coordinator: { name: string; jobTitle: string };
-  interventionLeader: { name: string; jobTitle: string };
-  workplaceManagerNames: readonly string[];
+  people: FireNamedPeople;
   representativeRole: string;
+  staffCategories: readonly FireStaffCategory[];
+  periodicLabel: string;
+  hasGasExtinguishers: boolean;
   inSet: (typeKey: FireSafetyTypeKeyFromTenEmployees) => boolean;
 };
 
@@ -76,65 +77,25 @@ type Unit = FireSafetyClientFacts['equipment'][number];
 type Installation = FireSafetyClientFacts['installations'][number];
 type StoredDocument = FireSafetyClientFacts['documents'][number];
 
-const capacityUnits: Record<FireExtinguishingAgent, string> = {
-  powder: 'kg',
-  co2: 'kg',
-  foam: 'l',
-  water: 'l',
-  clean_agent: 'kg',
-};
-
-const staffLabels: Record<StaffCategory, string> = {
-  technical_administrative: 'Personal administrativ',
-  execution: 'Personal de execuție',
-};
-
 const datesOf = (dates: readonly (string | null)[]) => {
   const unique = [...new Set(dates.filter((date): date is string => date !== null))].sort();
   return unique.length > 0 ? unique.map(printedDate).join(', ') : '—';
 };
 
 function extinguisherRows(units: readonly Unit[]): MeansRow[] {
-  const groups = new Map<string, { what: string; units: Unit[] }>();
-  const extinguishers = units
-    .filter((unit) => unit.kind === 'extinguisher' && unit.agent !== null && unit.capacity !== null)
-    .sort(
-      (a, b) =>
-        fireExtinguishingAgents.indexOf(a.agent!) - fireExtinguishingAgents.indexOf(b.agent!) ||
-        Number(a.wheeled) - Number(b.wheeled) ||
-        a.capacity! - b.capacity!
-    );
-  for (const unit of extinguishers) {
-    const key = `${unit.agent}|${unit.capacity}|${unit.wheeled}`;
-    const group = groups.get(key) ?? {
-      what: `Stingător ${extinguisherCode(unit.agent!, unit.capacity!)}${unit.wheeled ? ' carosabil' : ''} – ${runOn(fireExtinguishingAgentLabels[unit.agent!])}, ${unit.capacity}\u00a0${capacityUnits[unit.agent!]}`,
-      units: [],
-    };
-    group.units.push(unit);
-    groups.set(key, group);
-  }
-  return [...groups.values()].map((group) => ({
-    what: group.what,
+  return extinguisherGroups(units).map((group) => ({
+    what: `Stingător ${group.label} – ${runOn(fireExtinguishingAgentLabels[group.agent])}, ${group.capacityLabel}`,
     quantity: `${group.units.length}\u00a0buc.`,
     next: datesOf(group.units.map((unit) => unit.nextServiceOn)),
   }));
 }
 
 function otherEquipmentRows(units: readonly Unit[]): MeansRow[] {
-  return fireEquipmentKinds
-    .filter((kind) => kind !== 'extinguisher')
-    .flatMap((kind) => {
-      const found = units.filter((unit) => unit.kind === kind);
-      return found.length > 0
-        ? [
-            {
-              what: fireEquipmentKindLabels[kind],
-              quantity: `${found.length}\u00a0buc.`,
-              next: datesOf(found.map((unit) => unit.nextServiceOn)),
-            },
-          ]
-        : [];
-    });
+  return otherEquipmentGroups(units).map((group) => ({
+    what: group.label,
+    quantity: `${group.units.length}\u00a0buc.`,
+    next: datesOf(group.units.map((unit) => unit.nextServiceOn)),
+  }));
 }
 
 function installationRows(installations: readonly Installation[]): MeansRow[] {
@@ -184,10 +145,11 @@ const decisionOrder = Object.entries(fireDecisionTypeKeys) as [FireDecision, str
 export function buildAnnualReport({
   facts,
   year,
-  coordinator,
-  interventionLeader,
-  workplaceManagerNames,
+  people,
   representativeRole,
+  staffCategories,
+  periodicLabel,
+  hasGasExtinguishers,
   inSet,
 }: AnnualReportInput): AnnualReportContext {
   const card = facts.fireSafety.card!;
@@ -215,15 +177,6 @@ export function buildAnnualReport({
       },
     ];
   });
-
-  const categories = (['technical_administrative', 'execution'] as const).flatMap((category) => {
-    const positions = facts.jobPositions.filter((position) => position.staffCategory === category);
-    return positions.length > 0 ? [{ category, positions }] : [];
-  });
-  const intervalOf: Record<StaffCategory, number> = {
-    technical_administrative: card.administrativeTrainingIntervalMonths!,
-    execution: card.workerTrainingIntervalMonths!,
-  };
 
   const workplaces = facts.workplaces.map((workplace) => {
     const units = facts.fireSafety.equipment.filter((unit) => unit.workplaceId === workplace.id);
@@ -263,12 +216,7 @@ export function buildAnnualReport({
           interval: 'lunar',
           scope: 'fiecare stingător de incendiu',
         },
-        ...(facts.fireSafety.equipment.some(
-          (unit) =>
-            facts.workplaces.some((workplace) => workplace.id === unit.workplaceId) &&
-            unit.kind === 'extinguisher' &&
-            (unit.agent === 'co2' || unit.agent === 'clean_agent')
-        )
+        ...(hasGasExtinguishers
           ? [
               {
                 who: 'Coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz',
@@ -326,12 +274,12 @@ export function buildAnnualReport({
     year,
     nextYear: year + 1,
     decisions,
-    coordinator: `${coordinator.name}, ${coordinator.jobTitle}`,
-    interventionLeader: `${interventionLeader.name}, ${interventionLeader.jobTitle}`,
-    workplaceManagers: listed(workplaceManagerNames),
-    staff: categories.map(({ category, positions }) => ({
-      label: staffLabels[category],
-      posts: positions.map((position) => position.name.trim()).join(', '),
+    coordinator: `${people.coordinator.name}, ${people.coordinator.jobTitle}`,
+    interventionLeader: `${people.interventionLeader.name}, ${people.interventionLeader.jobTitle}`,
+    workplaceManagers: listed(people.managerNames),
+    staff: staffCategories.map(({ label, posts, positions }) => ({
+      label,
+      posts: posts.join(', '),
       headcount: countOf(
         positions.reduce((total, position) => total + position.currentEmployeeCount, 0),
         'angajat',
@@ -340,12 +288,12 @@ export function buildAnnualReport({
     })),
     headcount: countOf(facts.currentEmployeeCount, 'angajat', 'angajați'),
     workplaces,
-    periodicLabel: countOf(card.periodicTrainingHours!, 'oră', 'ore').replace(' ', '\u00a0'),
-    training: categories.map(({ category, positions }) => ({
-      label: staffLabels[category],
-      posts: positions.map((position) => position.name.trim()).join(', '),
-      interval: `la ${countOf(intervalOf[category], 'lună', 'luni')}`,
-      months: trainingMonths(card.trainingFirstMonth!, intervalOf[category])
+    periodicLabel,
+    training: staffCategories.map(({ label, posts, intervalMonths }) => ({
+      label,
+      posts: posts.join(', '),
+      interval: `la ${countOf(intervalMonths, 'lună', 'luni')}`,
+      months: trainingMonths(card.trainingFirstMonth!, intervalMonths)
         .map((month) => monthNames[month - 1]!)
         .join(', '),
     })),

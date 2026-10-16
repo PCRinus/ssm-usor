@@ -609,13 +609,16 @@ The API builds the data once per generation and merges every template with it
   measures (`risk_evaluations.plan`); readiness names the evaluations behind those codes as
   `incompleteRiskEvaluations`.
   `GET /clients/{clientId}/documents/readiness` returns the list; generating is refused until
-  it is empty, because a data field is never left blank. The training schedule requires a
+  it is empty, because a data field is never left blank. Generating one document again leaves
+  out instead the names each gap fills (ADR 005, amended 2026-10-10), through the `gapRules`
+  chain both sets share in `apps/api/src/modules/documents/gaps.ts`. The training schedule requires a
   decision for both staff categories, at least one interval, and an interval for every category
   held by a current employee. An explicit “Nu se aplică” excludes a category with no current
   employees; an undecided blank does not count as an exclusion.
 - `buildDocumentContext(facts)` turns the stored facts into the names of the table below:
   dates as `19.01.2026`, people under the roles they hold in the order they were designated,
-  the training schedule in words (`TRIMESTRIAL`, `februarie, mai, august, noiembrie`, `2 ore`,
+  each person once with the first job title even when named for several workplaces (compared
+  as `samePersonName` compares, as the fire-safety set does), the training schedule in words (`TRIMESTRIAL`, `februarie, mai, august, noiembrie`, `2 ore`,
   its number and unit joined by no-break spaces so a line cannot end between them), and
   `branding`. Where a sentence names everyone who holds a role, one text names them all and
   reads for one person or several: `workplaceManagersText` and `imminentDangerText`

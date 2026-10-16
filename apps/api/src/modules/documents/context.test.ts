@@ -14,7 +14,7 @@ import {
   undecidedJobPositions,
   workersRepresentativeClash,
 } from './context';
-import { facts } from './context.fixture';
+import { facts, officeId, workshopId } from './context.fixture';
 
 describe('what is missing', () => {
   it('is nothing for complete facts', () => {
@@ -770,6 +770,85 @@ describe('decision 1.5', () => {
       buildDocumentContext({ ...facts, workersRepresentativeDecisionGenerated: true })
         .workersRepresentativeDecision
     ).toBe(true);
+  });
+});
+
+describe('a person named for two workplaces', () => {
+  type ResponsiblePerson = DocumentFacts['responsiblePersons'][number];
+  const [administrator, teamLeader] = facts.responsiblePersons as [
+    ResponsiblePerson,
+    ResponsiblePerson,
+  ];
+  const twice = (second: Partial<ResponsiblePerson>) =>
+    buildDocumentContext({
+      ...facts,
+      responsiblePersons: [
+        { ...administrator, workplaceId: workshopId },
+        teamLeader,
+        { ...administrator, workplaceId: officeId, ...second },
+      ],
+    });
+  const once = buildDocumentContext(facts);
+  const sameName = twice({});
+  const otherSpelling = twice({ fullName: '  florin  cristian   TALOS ', jobTitle: 'Director' });
+
+  it.each([
+    ['under the same name', sameName],
+    ['under a spelling that differs only in case, spaces and diacritics', otherSpelling],
+  ])('is printed once among the workplace managers %s, with the first job title', (_, context) => {
+    expect(context.workplaceManagers).toEqual(once.workplaceManagers);
+    expect(context.workplaceManagersText).toBe(once.workplaceManagersText);
+    expect(context.workplaceManagersList).toBe(
+      'Florin Cristian TALOȘ, Administrator; Ioana PETRE, Șef de echipă'
+    );
+    expect(context.evaluationTeam).toEqual(once.evaluationTeam);
+    expect(context.imminentDangerText).toBe(once.imminentDangerText);
+  });
+
+  it('is a first aider once', () => {
+    expect(otherSpelling.firstAiders).toEqual([
+      { name: 'Florin Cristian TALOȘ', jobTitle: 'Administrator' },
+      { name: 'Ioana PETRE', jobTitle: 'Șef de echipă' },
+    ]);
+    expect(otherSpelling.firstAiderNames).toBe('Florin Cristian TALOȘ și Ioana PETRE');
+  });
+
+  it('trains the workers once', () => {
+    expect(otherSpelling.themes!.positions.map((position) => position.trainer)).toEqual(
+      once.themes!.positions.map((position) => position.trainer)
+    );
+  });
+
+  it('words imminent danger as one row of that person does', () => {
+    const wordingOf = (context: ReturnType<typeof buildDocumentContext>) => ({
+      assume: context.workplaceManagersAssumeImminentDanger,
+      assumeAndDesignate: context.workplaceManagersAssumeAndDesignateImminentDanger,
+      designateAlongside: context.workplaceManagersDesignateAlongsideImminentDanger,
+      assign: context.workplaceManagersAssignImminentDanger,
+      designate: context.workplaceManagersDesignateImminentDanger,
+      others: context.imminentDangerOthersText,
+      managerNames: context.imminentDangerManagerNames,
+    });
+    const managerOnly = { ...teamLeader, roles: ['workplace_manager' as const] };
+    const notManager = { roles: ['imminent_danger' as const, 'first_aid' as const] };
+    const people = (...rows: ResponsiblePerson[]) =>
+      wordingOf(buildDocumentContext({ ...facts, responsiblePersons: rows }));
+
+    expect(wordingOf(sameName)).toEqual(wordingOf(once));
+    expect(people(administrator, administrator, managerOnly)).toEqual(
+      people(administrator, managerOnly)
+    );
+    expect(people(administrator, managerOnly)).toMatchObject({
+      assign: true,
+      managerNames: 'Florin Cristian TALOȘ',
+    });
+    expect(
+      people(administrator, { ...teamLeader, ...notManager }, { ...teamLeader, ...notManager })
+    ).toEqual(people(administrator, { ...teamLeader, ...notManager }));
+    expect(people(administrator, { ...teamLeader, ...notManager })).toMatchObject({
+      assumeAndDesignate: true,
+      others: 'Ioana PETRE, având funcția de Șef de echipă',
+    });
   });
 });
 

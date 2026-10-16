@@ -19,8 +19,11 @@ import {
   trainingMonths,
 } from '@ssm-usor/contracts';
 
-import { countOf, listed } from '../../lib/romanian';
+import { collator, countOf, listed } from '../../lib/romanian';
+import { filled } from '../../lib/text';
 import type { FireSafetyClientFacts, FireWorkplaceFacts } from './fire-safety';
+import { type ContextParts, gapRules } from './gaps';
+import { asPerson, distinctHolders, distinctRowsByName, type Person, withRole } from './people';
 import {
   incompleteRiskEvaluations,
   riskAssessment,
@@ -138,8 +141,6 @@ export type DocumentFacts = {
   riskEvaluations: RiskEvaluationFacts[];
   fireSafety: FireSafetyClientFacts;
 };
-
-type Person = { name: string; jobTitle: string };
 
 type PositionContext = {
   name: string;
@@ -312,9 +313,6 @@ export function undecidedJobPositions(
     .filter((position) => position.undecided.length > 0);
 }
 
-const filled = (value: string | null | undefined): value is string =>
-  typeof value === 'string' && value.trim().length > 0;
-
 /**
  * What is in the way of generating, in the order the form lists it. Empty when ready. With a
  * `typeKey`, what generating that one document again needs.
@@ -465,11 +463,6 @@ const printedAs = {
   'documents.fire_own_instructions': [],
 } satisfies Record<MissingDocumentData, readonly (keyof DocumentContext)[]>;
 
-/** Whether a gap is in a name a document prints: one its snapshot keeps or its template asks for. */
-export function documentGapConcerns(code: MissingDocumentData, printedNames: readonly string[]) {
-  return printedAs[code].some((name) => printedNames.includes(name));
-}
-
 // A representative whose employee has left no longer speaks for the workers.
 const currentWorkersRepresentatives = (facts: Pick<DocumentFacts, 'responsiblePersons'>) =>
   facts.responsiblePersons.filter(
@@ -506,17 +499,15 @@ export const months = (firstMonth: number, intervalMonths: number) => {
   return `${names.length === 1 ? 'luna' : 'lunile'} ${listed(names)}`;
 };
 
-const asPerson = (person: DocumentFacts['responsiblePersons'][number]): Person => ({
-  name: person.fullName.trim(),
-  jobTitle: person.jobTitle.trim(),
-});
-
 function imminentDangerWordingOf(people: DocumentFacts['responsiblePersons']) {
-  const managers = people.filter((person) => person.roles.includes('workplace_manager'));
-  const designatedManagers = managers.filter((person) => person.roles.includes('imminent_danger'));
-  const others = people.filter(
-    (person) =>
-      person.roles.includes('imminent_danger') && !person.roles.includes('workplace_manager')
+  const managerRows = withRole(people, 'workplace_manager');
+  const managers = distinctRowsByName(managerRows);
+  const designatedManagers = distinctHolders(managerRows, 'imminent_danger');
+  const others = distinctRowsByName(
+    people.filter(
+      (person) =>
+        person.roles.includes('imminent_danger') && !person.roles.includes('workplace_manager')
+    )
   );
   if (designatedManagers.length === 0) return { wording: 'designate', designatedManagers, others };
   const wording =
@@ -550,19 +541,19 @@ export function romanianDay(timestamp: string) {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
-type ContextParts = { [Name in keyof DocumentContext]-?: () => DocumentContext[Name] };
-
 // A part is only called when no gap leaves it out, which is what makes its `!` safe.
-function contextParts(facts: DocumentFacts): ContextParts {
+function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
   const { organization, client } = facts;
   const year = Number(facts.issueDate.slice(0, 4));
-  const withRole = (role: ResponsiblePersonRole): Person[] =>
-    facts.responsiblePersons.filter((person) => person.roles.includes(role)).map(asPerson);
-  const workplaceManagers = withRole('workplace_manager');
-  const firstAiders = withRole('first_aid');
-  const imminentDanger = withRole('imminent_danger');
+  const holding = (role: ResponsiblePersonRole) =>
+    distinctHolders(facts.responsiblePersons, role).map(asPerson);
+  const workplaceManagers = holding('workplace_manager');
+  const firstAiders = holding('first_aid');
+  const imminentDanger = holding('imminent_danger');
   const imminentDangerWording = imminentDangerWordingOf(facts.responsiblePersons);
-  const workersRepresentatives = currentWorkersRepresentatives(facts).map(asPerson);
+  const workersRepresentatives = distinctRowsByName(currentWorkersRepresentatives(facts)).map(
+    asPerson
+  );
   const intervalOf = (position: DocumentFacts['jobPositions'][number]) =>
     position.trainingIntervalMonths ??
     (position.staffCategory === 'execution'
@@ -612,7 +603,7 @@ function contextParts(facts: DocumentFacts): ContextParts {
       workplaceManagers.map((person) => `${person.name}, ${person.jobTitle}`).join('; '),
     firstAiders: () => firstAiders,
     firstAiderNames: () => listed(firstAiders.map((person) => person.name)),
-    evaluationTeam: () => withRole('risk_evaluation_team'),
+    evaluationTeam: () => holding('risk_evaluation_team'),
     imminentDanger: () => imminentDanger,
     imminentDangerText: () => described(imminentDanger),
     workplaceManagersAssumeImminentDanger: () => imminentDangerWording.wording === 'assume',
@@ -727,45 +718,39 @@ function contextParts(facts: DocumentFacts): ContextParts {
   };
 }
 
-function contextWithout(facts: DocumentFacts, gaps: readonly MissingDocumentData[]) {
-  const leftOut = new Set<string>(gaps.flatMap((code) => printedAs[code]));
-  return Object.fromEntries(
-    Object.entries(contextParts(facts)).flatMap(([name, part]) => {
-      if (leftOut.has(name)) return [];
-      const value = part();
-      return value === undefined ? [] : [[name, value]];
-    })
-  );
-}
+const documentGaps = gapRules<DocumentFacts, MissingDocumentData, DocumentContext>({
+  missing: missingDocumentData,
+  printedAs,
+  parts: contextParts,
+});
+
+/** Whether a gap is in a name a document prints: one its snapshot keeps or its template asks for. */
+export const documentGapConcerns: (
+  code: MissingDocumentData,
+  printedNames: readonly string[]
+) => boolean = documentGaps.concerns;
 
 /**
  * The data every template is merged with. Call `missingDocumentData` first: this throws when
  * something is missing, because a data field is never left blank in a document.
  */
-export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
-  const missing = missingDocumentData(facts);
-  if (missing.length > 0) throw new Error(`Missing document data: ${missing.join(', ')}`);
-  return contextWithout(facts, []) as DocumentContext;
-}
+export const buildDocumentContext: (facts: DocumentFacts) => DocumentContext = documentGaps.build;
 
 /**
  * The data one document is merged with when it is generated again: what the gaps of
  * `missingDocumentData(facts, typeKey)` cover is left out rather than left blank, so a template
  * that prints any of it has no value for it.
  */
-export function buildPartialDocumentContext(
+export const buildPartialDocumentContext = documentGaps.buildPartial as (
   facts: DocumentFacts,
   typeKey: string
-): PartialDocumentContext {
-  return contextWithout(facts, missingDocumentData(facts, typeKey)) as PartialDocumentContext;
-}
+) => PartialDocumentContext;
 
 const groupOrder: Record<InstructionModuleGroup, number> = {
   work_activity: 0,
   work_equipment: 1,
   protective_equipment: 2,
 };
-const collator = new Intl.Collator('ro');
 
 /**
  * The modules of one domain the current positions apply, each once, numbered in group and title

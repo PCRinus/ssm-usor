@@ -1,0 +1,1192 @@
+{
+  "annexes": [
+    {
+      "number": 1,
+      "title": "Lucrul cu foc deschis",
+      "versionDate": "11.10.2026",
+      "versionId": "b0b0b0b0-0000-4000-8000-000000000003"
+    }
+  ],
+  "branding": true,
+  "client": {
+    "legalName": "S.C. PIPETECH S.R.L.",
+    "representativeName": "Florin Cristian TALOȘ",
+    "representativeRole": "Administrator"
+  },
+  "controlDecision": false,
+  "fire": {
+    "annualReport": {
+      "allGenerated": false,
+      "controls": [],
+      "coordinator": "Florin Cristian TALOȘ, Administrator",
+      "decisions": [
+        {
+          "reference": "nr. 5 PSI din 19.01.2026",
+          "title": "Decizia privind organizarea apărării împotriva incendiilor"
+        },
+        {
+          "reference": "nr. 6 PSI din 19.01.2026",
+          "title": "Decizia privind instruirea în domeniul situațiilor de urgență"
+        }
+      ],
+      "documents": [
+        {
+          "state": "emis, rev. 1 din 19.01.2026",
+          "title": "Decizia privind organizarea apărării împotriva incendiilor"
+        },
+        {
+          "state": "emis, rev. 1 din 19.01.2026; ciornă, rev. 2 din 02.06.2026",
+          "title": "Decizia privind instruirea în domeniul situațiilor de urgență"
+        },
+        {
+          "state": "negenerat",
+          "title": "Decizia privind lucrul cu foc deschis"
+        },
+        {
+          "state": "negenerat",
+          "title": "Decizia privind fumatul"
+        },
+        {
+          "state": "negenerat",
+          "title": "Decizia privind cadrul tehnic PSI"
+        },
+        {
+          "state": "negenerat",
+          "title": "Decizia privind instrucțiunile de apărare împotriva incendiilor"
+        },
+        {
+          "state": "negenerat",
+          "title": "Decizia privind colectarea deșeurilor"
+        },
+        {
+          "state": "negenerat",
+          "title": "Instrucțiuni proprii în domeniul situațiilor de urgență"
+        },
+        {
+          "state": "negenerat",
+          "title": "Tematica de instruire în domeniul situațiilor de urgență"
+        },
+        {
+          "state": "negenerat",
+          "title": "Test la angajare"
+        },
+        {
+          "state": "negenerat",
+          "title": "Test anual"
+        },
+        {
+          "state": "ciornă, rev. 1",
+          "title": "Lista mijloacelor de apărare împotriva incendiilor"
+        },
+        {
+          "state": "negenerat",
+          "title": "Organizarea apărării împotriva incendiilor la locul de muncă"
+        },
+        {
+          "state": "negenerat",
+          "title": "Lista substanțelor periculoase"
+        },
+        {
+          "state": "negenerat",
+          "title": "Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc"
+        },
+        {
+          "state": "negenerat",
+          "title": "Permis de lucru cu foc"
+        },
+        {
+          "state": "negenerat",
+          "title": "Registru de evidență a controlului stingătoarelor de incendiu"
+        }
+      ],
+      "documentsSummary": "Documente neîntocmite încă: 14.",
+      "hasControls": false,
+      "headcount": "6 angajați",
+      "interventionLeader": "Ioana PETRE, Șef de echipă",
+      "missingCount": 14,
+      "nextYear": 2027,
+      "noControls": true,
+      "periodicLabel": "2 ore",
+      "staff": [
+        {
+          "headcount": "1 angajat",
+          "label": "Personal administrativ",
+          "posts": "Contabil"
+        },
+        {
+          "headcount": "5 angajați",
+          "label": "Personal de execuție",
+          "posts": "Sudor"
+        }
+      ],
+      "training": [
+        {
+          "interval": "la 6 luni",
+          "label": "Personal administrativ",
+          "months": "februarie, august",
+          "posts": "Contabil"
+        },
+        {
+          "interval": "la 3 luni",
+          "label": "Personal de execuție",
+          "months": "februarie, mai, august, noiembrie",
+          "posts": "Sudor"
+        }
+      ],
+      "workplaceManagers": "Florin Cristian TALOȘ și Ioana PETRE",
+      "workplaces": [
+        {
+          "name": "Atelier Ghiroda",
+          "place": "Atelier Ghiroda, Ghiroda, județul Timiș, Str. Industriilor 4",
+          "rows": [
+            {
+              "next": "15.01.2027, 12.03.2027",
+              "quantity": "2 buc.",
+              "what": "Stingător P6 – pulbere, 6 kg"
+            },
+            {
+              "next": "—",
+              "quantity": "1 buc.",
+              "what": "Stingător P50 carosabil – pulbere, 50 kg"
+            },
+            {
+              "next": "—",
+              "quantity": "1 buc.",
+              "what": "Stingător G5 – dioxid de carbon (CO₂), 5 kg"
+            },
+            {
+              "next": "—",
+              "quantity": "1 buc.",
+              "what": "Ladă cu nisip"
+            },
+            {
+              "next": "—",
+              "quantity": "1 instalație",
+              "what": "Hidranți exteriori – Doi hidranți în curte"
+            }
+          ]
+        },
+        {
+          "name": "Sediul social",
+          "place": "Sediul social, București, Sector 1, Calea Victoriei 122A",
+          "rows": [
+            {
+              "next": "—",
+              "quantity": "1 buc.",
+              "what": "Stingător SM9 – spumă mecanică, 9 l"
+            },
+            {
+              "next": "—",
+              "quantity": "1 buc.",
+              "what": "Pătură antifoc"
+            },
+            {
+              "next": "12.09.2026",
+              "quantity": "1 instalație",
+              "what": "Instalație de detectare, semnalizare și avertizare la incendiu"
+            },
+            {
+              "next": "12.03.2027",
+              "quantity": "1 instalație",
+              "what": "Hidranți interiori – Câte unul pe nivel"
+            }
+          ]
+        }
+      ],
+      "year": 2026
+    },
+    "coordinator": {
+      "jobTitle": "Administrator",
+      "jobTitleRunOn": "administrator",
+      "name": "Florin Cristian TALOȘ"
+    },
+    "decisionNumbers": {
+      "control": "13 PSI",
+      "instructions": "10 PSI",
+      "openFire": "7 PSI",
+      "organization": "5 PSI",
+      "seasons": "12 PSI",
+      "smoking": "8 PSI",
+      "technician": "9 PSI",
+      "training": "6 PSI",
+      "waste": "11 PSI"
+    },
+    "designated": [
+      {
+        "jobTitle": "Administrator",
+        "name": "Florin Cristian TALOȘ"
+      },
+      {
+        "jobTitle": "Șef de echipă",
+        "name": "Ioana PETRE"
+      }
+    ],
+    "hasExteriorHydrants": true,
+    "hasGasExtinguishers": true,
+    "hasThirdParties": true,
+    "interventionLeader": {
+      "jobTitle": "Șef de echipă",
+      "jobTitleRunOn": "șef de echipă",
+      "name": "Ioana PETRE"
+    },
+    "manyWorkplaceManagers": true,
+    "representativeRoleRunOn": "administrator",
+    "schedule": {
+      "administrativeIntervalLabel": "6 luni",
+      "administrativeIntervalMonths": 6,
+      "administrativeMonths": "lunile februarie și august",
+      "dayFrom": 2,
+      "dayTo": 7,
+      "firstMonth": 2,
+      "firstMonthLabel": "februarie",
+      "periodicHours": 2,
+      "periodicLabel": "2 ore",
+      "workerIntervalLabel": "3 luni",
+      "workerIntervalMonths": 3,
+      "workerMonths": "lunile februarie, mai, august și noiembrie"
+    },
+    "schedules": [
+      {
+        "activity": "Atelier de sudură",
+        "activityRunOn": "atelier de sudură",
+        "empty": false,
+        "hasRows": true,
+        "name": "Atelier Ghiroda",
+        "rows": [
+          {
+            "basis": "OMAI 135/2023 – art. 8; rezultatele se înscriu în registrul de evidență a controlului stingătoarelor",
+            "interval": "lunar",
+            "what": "Controlul fiecărui stingător de incendiu (P6 – 2 buc., P50 carosabil – 1 buc., G5 – 1 buc.)",
+            "who": "Florin Cristian TALOȘ, coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz"
+          },
+          {
+            "basis": "OMAI 135/2023 – art. 8 alin. (3)",
+            "interval": "la cel mult 6 luni, în iunie și decembrie",
+            "what": "Verificarea prin cântărire a stingătoarelor cu CO₂ sau agent curat (G5 – 1 buc.)",
+            "who": "Florin Cristian TALOȘ, coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz"
+          },
+          {
+            "basis": "OMAI 135/2023 – art. 9; următorul service: 15.01.2027 și 12.03.2027",
+            "interval": "anual",
+            "what": "Verificarea stingătoarelor de către o firmă atestată (P6 – 2 buc.)",
+            "who": "S.C. FOC STOP S.R.L."
+          },
+          {
+            "basis": "OMAI 135/2023 – art. 9; conform instrucțiunilor producătorului",
+            "interval": "anual",
+            "what": "Verificarea stingătoarelor de către o firmă atestată (P50 carosabil – 1 buc.)",
+            "who": "S.C. Foc Stop S.R.L."
+          },
+          {
+            "basis": "OMAI 135/2023 – art. 9; conform instrucțiunilor producătorului",
+            "interval": "anual",
+            "what": "Verificarea stingătoarelor de către o firmă atestată (G5 – 1 buc.)",
+            "who": "firmă atestată"
+          },
+          {
+            "basis": "OMAI 135/2023 – art. 12",
+            "interval": "după fiecare utilizare și la cel mult 3 ani sau la termenul producătorului, dacă este mai scurt",
+            "what": "Reîncărcarea stingătoarelor (P6 – 2 buc., P50 carosabil – 1 buc., G5 – 1 buc.)",
+            "who": "S.C. FOC STOP S.R.L."
+          },
+          {
+            "basis": "—",
+            "interval": "conform instrucțiunilor producătorului",
+            "what": "Hidranți exteriori – Doi hidranți în curte",
+            "who": "firmă atestată"
+          }
+        ]
+      },
+      {
+        "activity": "Birouri",
+        "activityRunOn": "birouri",
+        "empty": false,
+        "hasRows": true,
+        "name": "Sediul social",
+        "rows": [
+          {
+            "basis": "OMAI 135/2023 – art. 8; rezultatele se înscriu în registrul de evidență a controlului stingătoarelor",
+            "interval": "lunar",
+            "what": "Controlul fiecărui stingător de incendiu (SM9 – 1 buc.)",
+            "who": "Florin Cristian TALOȘ, coordonatorul privind apărarea împotriva incendiilor, cu cadrul tehnic, după caz"
+          },
+          {
+            "basis": "OMAI 135/2023 – art. 9; conform instrucțiunilor producătorului",
+            "interval": "anual",
+            "what": "Verificarea stingătoarelor de către o firmă atestată (SM9 – 1 buc.)",
+            "who": "firmă atestată"
+          },
+          {
+            "basis": "OMAI 135/2023 – art. 12",
+            "interval": "după fiecare utilizare și la cel mult 3 ani sau la termenul producătorului, dacă este mai scurt",
+            "what": "Reîncărcarea stingătoarelor (SM9 – 1 buc.)",
+            "who": "firmă atestată"
+          },
+          {
+            "basis": "următoarea verificare: 12.09.2026",
+            "interval": "la 6 luni",
+            "what": "Instalație de detectare, semnalizare și avertizare la incendiu",
+            "who": "S.C. ALARM SERVICE S.R.L."
+          },
+          {
+            "basis": "următoarea verificare: 12.03.2027",
+            "interval": "conform instrucțiunilor producătorului",
+            "what": "Hidranți interiori – Câte unul pe nivel",
+            "who": "firmă atestată"
+          },
+          {
+            "basis": "—",
+            "interval": "anual",
+            "what": "Instalația de utilizare a gazelor naturale",
+            "who": "Operatorul de distribuție"
+          }
+        ]
+      }
+    ],
+    "siteSheet": {
+      "buildings": [
+        {
+          "constructive": [
+            {
+              "hint": "din proiect sau din alte documente tehnice; în lipsa lor se precizează că conducerea nu poate prezenta documente privind stabilitatea la foc",
+              "title": "Stabilitatea la foc",
+              "value": null
+            },
+            {
+              "hint": "numărul compartimentelor de incendiu, suprafața și înălțimea fiecăruia",
+              "title": "Compartimente de incendiu",
+              "value": null
+            },
+            {
+              "hint": "numărul, gabaritul, marcarea și semnalizarea lor",
+              "title": "Căi de acces, intervenție și evacuare",
+              "value": null
+            },
+            {
+              "hint": "numărul, gabaritul și alcătuirea constructivă",
+              "title": "Case de scări (închise/deschise)",
+              "value": null
+            },
+            {
+              "hint": "dacă există, potrivit reglementării",
+              "title": "Ascensoare de intervenție",
+              "value": null
+            }
+          ],
+          "name": "Sediul social",
+          "place": "Sediul social, București, Sector 1, Calea Victoriei 122A",
+          "technical": [
+            {
+              "hint": "dacă există; contractul de întreținere și reparare cu o firmă autorizată și ultima verificare, sau exploatarea prin personal propriu calificat",
+              "title": "Sisteme de ventilație/climatizare",
+              "value": null
+            },
+            {
+              "hint": "dacă există; tipul combustibilului; contractul de întreținere și reparare cu o firmă autorizată și ultima verificare, sau exploatarea prin personal propriu calificat",
+              "title": "Sisteme de încălzire",
+              "value": null
+            },
+            {
+              "hint": "contractul de întreținere și reparare cu o firmă autorizată și ultima verificare, sau exploatarea prin personal propriu calificat",
+              "title": "Instalații electrice",
+              "value": null
+            },
+            {
+              "hint": "dacă există; scopul utilizării (prepararea hranei, încălzire, uz industrial)",
+              "title": "Instalație de alimentare cu gaze naturale/G.P.L.",
+              "value": null
+            },
+            {
+              "hint": "dacă există; tipul de alimentare, categoria (continuarea lucrului, evacuare, intervenție) și spațiile protejate",
+              "title": "Iluminat de siguranță",
+              "value": "nu există"
+            },
+            {
+              "hint": "se enumeră sistemele și instalațiile tehnologice, dacă există",
+              "title": "Sisteme și instalații tehnologice",
+              "value": "Calculatoare, imprimante"
+            },
+            {
+              "hint": "dacă există; sistemul de acționare și spațiile protejate",
+              "title": "Sistem/dispozitiv de evacuare a fumului și gazelor fierbinți",
+              "value": "nu există"
+            },
+            {
+              "hint": "dacă există; tipul, spațiile protejate, firma atestată care o întreține și ultima verificare",
+              "title": "Sisteme de detectare a incendiilor",
+              "value": "există; firma de service: S.C. ALARM SERVICE S.R.L.; ultima verificare: 12.03.2026"
+            },
+            {
+              "hint": "dacă există; tipul: sonoră (bandă preînregistrată, megafon etc.) sau silențioasă",
+              "title": "Sisteme de alarmare/avertizare",
+              "value": "prin instalația de detectare, semnalizare și avertizare la incendiu; tipul avertizării: DE COMPLETAT"
+            },
+            {
+              "hint": "uși rezistente la foc, clapete antifoc, sisteme de obturare, oprirea automată a ventilării, protecții ale structurilor, cu compartimentul în care sunt prevăzute",
+              "title": "Sisteme de limitare a propagării incendiilor",
+              "value": null
+            },
+            {
+              "hint": "dacă există; spațiile protejate",
+              "title": "Sisteme de detectare a gazelor",
+              "value": "nu există"
+            },
+            {
+              "hint": "tipul (sprinklere, apă pulverizată etc.), zonele protejate, numărul capetelor de refulare",
+              "title": "Instalații speciale de stingere cu apă",
+              "value": "nu există"
+            },
+            {
+              "hint": "dacă există; tipul, zonele protejate, numărul capetelor de refulare",
+              "title": "Instalații de stingere cu gaze/aerosoli",
+              "value": null
+            },
+            {
+              "hint": "dacă există; tipul instalației, spațiile protejate și numărul de sectoare",
+              "title": "Alte instalații de stingere (pulbere, spumă etc.)",
+              "value": null
+            },
+            {
+              "hint": "dacă există; dacă este verificată de o firmă atestată",
+              "title": "Instalație de protecție împotriva trăsnetului",
+              "value": "nu există"
+            },
+            {
+              "hint": "pe tipodimensiuni; dacă sunt verificate de o firmă atestată",
+              "title": "Stingătoare",
+              "value": "SM9 – 1 buc.; firma atestată care le verifică: DE COMPLETAT"
+            },
+            {
+              "hint": "dacă există; alimentarea de la rețeaua orașului sau din rezerva de apă (m³)",
+              "title": "Hidranți interiori/coloane uscate",
+              "value": "există; câte unul pe nivel"
+            },
+            {
+              "hint": "dacă există; numărul, distanța față de clădire și pe ce laturi, alimentarea",
+              "title": "Hidranți exteriori",
+              "value": "nu există"
+            },
+            {
+              "hint": "rezerva de apă (m³); pompele (număr, m³/min)",
+              "title": "Alimentarea cu apă pentru stingerea incendiilor (rezerva de apă, pompe)",
+              "value": null
+            },
+            {
+              "hint": "utilajele și autospecialele serviciului privat, dacă există",
+              "title": "Utilaje și autospeciale de intervenție din dotarea serviciului privat pentru situații de urgență",
+              "value": "nu este cazul: operatorul nu are serviciu privat pentru situații de urgență"
+            },
+            {
+              "hint": "stocurile de produse de stingere și de neutralizatori, dacă există",
+              "title": "Stocuri de produse de stingere/neutralizatori",
+              "value": null
+            },
+            {
+              "hint": "echipamentul de protecție al echipei de primă intervenție, potrivit riscurilor",
+              "title": "Echipament de protecție al personalului de intervenție în funcție de riscurile existente și de efectele negative ale incendiilor specifice",
+              "value": null
+            }
+          ]
+        },
+        {
+          "constructive": [
+            {
+              "hint": "din proiect sau din alte documente tehnice; în lipsa lor se precizează că conducerea nu poate prezenta documente privind stabilitatea la foc",
+              "title": "Stabilitatea la foc",
+              "value": null
+            },
+            {
+              "hint": "numărul compartimentelor de incendiu, suprafața și înălțimea fiecăruia",
+              "title": "Compartimente de incendiu",
+              "value": null
+            },
+            {
+              "hint": "numărul, gabaritul, marcarea și semnalizarea lor",
+              "title": "Căi de acces, intervenție și evacuare",
+              "value": null
+            },
+            {
+              "hint": "numărul, gabaritul și alcătuirea constructivă",
+              "title": "Case de scări (închise/deschise)",
+              "value": null
+            },
+            {
+              "hint": "dacă există, potrivit reglementării",
+              "title": "Ascensoare de intervenție",
+              "value": null
+            }
+          ],
+          "name": "Atelier Ghiroda",
+          "place": "Atelier Ghiroda, Ghiroda, județul Timiș, Str. Industriilor 4",
+          "technical": [
+            {
+              "hint": "dacă există; contractul de întreținere și reparare cu o firmă autorizată și ultima verificare, sau exploatarea prin personal propriu calificat",
+              "title": "Sisteme de ventilație/climatizare",
+              "value": null
+            },
+            {
+              "hint": "dacă există; tipul combustibilului; contractul de întreținere și reparare cu o firmă autorizată și ultima verificare, sau exploatarea prin personal propriu calificat",
+              "title": "Sisteme de încălzire",
+              "value": "combustibil: gaze naturale; întreținerea și ultima verificare: DE COMPLETAT"
+            },
+            {
+              "hint": "contractul de întreținere și reparare cu o firmă autorizată și ultima verificare, sau exploatarea prin personal propriu calificat",
+              "title": "Instalații electrice",
+              "value": "întreținute de S.C. ELECTRO SERV S.R.L.; ultima verificare: 12.03.2026"
+            },
+            {
+              "hint": "dacă există; scopul utilizării (prepararea hranei, încălzire, uz industrial)",
+              "title": "Instalație de alimentare cu gaze naturale/G.P.L.",
+              "value": "există; utilizare: încălzire și apă caldă"
+            },
+            {
+              "hint": "dacă există; tipul de alimentare, categoria (continuarea lucrului, evacuare, intervenție) și spațiile protejate",
+              "title": "Iluminat de siguranță",
+              "value": "nu există"
+            },
+            {
+              "hint": "se enumeră sistemele și instalațiile tehnologice, dacă există",
+              "title": "Sisteme și instalații tehnologice",
+              "value": "Aparate de sudură, polizoare unghiulare"
+            },
+            {
+              "hint": "dacă există; sistemul de acționare și spațiile protejate",
+              "title": "Sistem/dispozitiv de evacuare a fumului și gazelor fierbinți",
+              "value": "nu există"
+            },
+            {
+              "hint": "dacă există; tipul, spațiile protejate, firma atestată care o întreține și ultima verificare",
+              "title": "Sisteme de detectare a incendiilor",
+              "value": "nu există"
+            },
+            {
+              "hint": "dacă există; tipul: sonoră (bandă preînregistrată, megafon etc.) sau silențioasă",
+              "title": "Sisteme de alarmare/avertizare",
+              "value": null
+            },
+            {
+              "hint": "uși rezistente la foc, clapete antifoc, sisteme de obturare, oprirea automată a ventilării, protecții ale structurilor, cu compartimentul în care sunt prevăzute",
+              "title": "Sisteme de limitare a propagării incendiilor",
+              "value": null
+            },
+            {
+              "hint": "dacă există; spațiile protejate",
+              "title": "Sisteme de detectare a gazelor",
+              "value": "nu există"
+            },
+            {
+              "hint": "tipul (sprinklere, apă pulverizată etc.), zonele protejate, numărul capetelor de refulare",
+              "title": "Instalații speciale de stingere cu apă",
+              "value": "nu există"
+            },
+            {
+              "hint": "dacă există; tipul, zonele protejate, numărul capetelor de refulare",
+              "title": "Instalații de stingere cu gaze/aerosoli",
+              "value": null
+            },
+            {
+              "hint": "dacă există; tipul instalației, spațiile protejate și numărul de sectoare",
+              "title": "Alte instalații de stingere (pulbere, spumă etc.)",
+              "value": null
+            },
+            {
+              "hint": "dacă există; dacă este verificată de o firmă atestată",
+              "title": "Instalație de protecție împotriva trăsnetului",
+              "value": "nu există"
+            },
+            {
+              "hint": "pe tipodimensiuni; dacă sunt verificate de o firmă atestată",
+              "title": "Stingătoare",
+              "value": "P6 – 2 buc., P50 carosabil – 1 buc., G5 – 1 buc.; verificate de S.C. FOC STOP S.R.L."
+            },
+            {
+              "hint": "dacă există; alimentarea de la rețeaua orașului sau din rezerva de apă (m³)",
+              "title": "Hidranți interiori/coloane uscate",
+              "value": "nu există"
+            },
+            {
+              "hint": "dacă există; numărul, distanța față de clădire și pe ce laturi, alimentarea",
+              "title": "Hidranți exteriori",
+              "value": "există; doi hidranți în curte"
+            },
+            {
+              "hint": "rezerva de apă (m³); pompele (număr, m³/min)",
+              "title": "Alimentarea cu apă pentru stingerea incendiilor (rezerva de apă, pompe)",
+              "value": "nu există o rezervă proprie de apă pentru stingerea incendiilor"
+            },
+            {
+              "hint": "utilajele și autospecialele serviciului privat, dacă există",
+              "title": "Utilaje și autospeciale de intervenție din dotarea serviciului privat pentru situații de urgență",
+              "value": "nu este cazul: operatorul nu are serviciu privat pentru situații de urgență"
+            },
+            {
+              "hint": "stocurile de produse de stingere și de neutralizatori, dacă există",
+              "title": "Stocuri de produse de stingere/neutralizatori",
+              "value": null
+            },
+            {
+              "hint": "echipamentul de protecție al echipei de primă intervenție, potrivit riscurilor",
+              "title": "Echipament de protecție al personalului de intervenție în funcție de riscurile existente și de efectele negative ale incendiilor specifice",
+              "value": null
+            },
+            {
+              "hint": "",
+              "title": "Alte precizări",
+              "value": "Hala are o singură ieșire spre curte."
+            }
+          ]
+        }
+      ],
+      "general": [
+        {
+          "hint": "se alege unul dintre domeniile modelului: administrativ; comercial; cult; cultură; educație; financiar-bancar; fond forestier; monumente istorice și de arhitectură; sănătate; sport; agrement; turism; transporturi; operatori economici cu risc mare și foarte mare de incendiu; alte domenii de activitate",
+          "title": "Domeniul de activitate",
+          "value": "Birouri; Atelier de sudură; cod CAEN 2562"
+        },
+        {
+          "hint": "anul punerii în funcțiune; modificările, modernizările sau extinderile, cu anul lor; numărul avizului sau al autorizației de securitate la incendiu, dacă există",
+          "title": "Anul de construire (punere în funcțiune)",
+          "value": "Clădirea 1 (Sediul social): DE COMPLETAT\nClădirea 2 (Atelier Ghiroda): 1987"
+        },
+        {
+          "hint": "în m², pentru fiecare construcție",
+          "title": "Suprafața construită/desfășurată",
+          "value": "Clădirea 1 (Sediul social): DE COMPLETAT\nClădirea 2 (Atelier Ghiroda): 412,5 m²"
+        },
+        {
+          "hint": "numărul de niveluri și înălțimea în m, pentru fiecare construcție",
+          "title": "Număr niveluri (regim de înălțime)",
+          "value": "Clădirea 1 (Sediul social): DE COMPLETAT\nClădirea 2 (Atelier Ghiroda): P+1E"
+        },
+        {
+          "hint": "civilă, de producție, de depozitare sau cu funcțiuni mixte",
+          "title": "Clasificare construcție (civilă, de producție, de depozitare, cu funcțiuni mixte)",
+          "value": "Clădirea 1 (Sediul social): DE COMPLETAT\nClădirea 2 (Atelier Ghiroda): de producție"
+        },
+        {
+          "hint": "structură metalică, beton armat, zidărie, lemn, mixtă etc.",
+          "title": "Structura de rezistență a construcției (structură metalică, beton armat, zidărie, lemn, mixtă etc.)",
+          "value": "Clădirea 1 (Sediul social): DE COMPLETAT\nClădirea 2 (Atelier Ghiroda): Cadre din beton armat, închideri din zidărie"
+        },
+        {
+          "hint": "număr estimativ, pentru fiecare clădire",
+          "title": "Personal angajat",
+          "value": "6 angajați în total; numărul estimativ pe fiecare clădire: DE COMPLETAT"
+        },
+        {
+          "hint": "prezența oamenilor în clădire, permanent sau temporar, în timpul și în afara programului de lucru, în week-end și de sărbători, cu numărul maxim de persoane prezente simultan; pericolele din vecinătăți",
+          "title": "Utilizarea clădirii",
+          "value": null
+        }
+      ],
+      "identity": [
+        {
+          "hint": "denumirea în clar",
+          "title": "Denumirea operatorului economic/instituției",
+          "value": "S.C. PIPETECH S.R.L."
+        },
+        {
+          "hint": "numele și prenumele, funcția",
+          "title": "Administrator/Conducător – date de identificare",
+          "value": "Florin Cristian TALOȘ, administrator"
+        },
+        {
+          "hint": "telefonul de serviciu și faxul administratorului",
+          "title": "Administrator/Conducător – telefon serviciu",
+          "value": "0722 111 222"
+        },
+        {
+          "hint": "telefonul de domiciliu, faxul și adresa de e-mail ale administratorului",
+          "title": "Administrator/Conducător – telefon domiciliu",
+          "value": null
+        },
+        {
+          "hint": "adresa sediului unde se află operatorul economic/instituția",
+          "title": "Coordonatele operatorului economic/instituției – adresa",
+          "value": "Timișoara, județul Timiș, Str. Gheorghe Lazăr 24"
+        },
+        {
+          "hint": "telefonul, faxul și adresa de e-mail ale operatorului",
+          "title": "Coordonatele operatorului economic/instituției – telefon, fax, e-mail",
+          "value": "telefon: 0722 111 222, e-mail: office@pipetech.ro"
+        },
+        {
+          "hint": "adresa, telefonul, faxul și adresa de e-mail ale fiecărui punct de lucru",
+          "title": "Coordonatele filialelor/sucursalelor/punctelor de lucru (dacă este cazul)",
+          "value": "– Atelier Ghiroda: Ghiroda, județul Timiș, Str. Industriilor 4\nTelefon, fax, e-mail pentru fiecare: DE COMPLETAT"
+        },
+        {
+          "hint": "numărul de ordine în registrul comerțului sau codul unic de înregistrare",
+          "title": "Număr de înregistrare din registrul comerțului",
+          "value": "J35/1234/2008, CUI 14399840"
+        },
+        {
+          "hint": "numele și prenumele cadrului tehnic",
+          "title": "Cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor/Inspector de protecție civilă – nume și prenume",
+          "value": "Radu STAN, reprezentant al S.C. SERVICIU EXTERN DEMO S.R.L."
+        },
+        {
+          "hint": "telefonul de serviciu al cadrului tehnic",
+          "title": "Cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor/Inspector de protecție civilă – telefon serviciu",
+          "value": "0256 123 456"
+        },
+        {
+          "hint": "telefonul de domiciliu al cadrului tehnic",
+          "title": "Cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor/Inspector de protecție civilă – telefon domiciliu",
+          "value": null
+        },
+        {
+          "hint": "numărul certificatului de competență și termenul lui de valabilitate",
+          "title": "Cadru tehnic cu atribuții în domeniul apărării împotriva incendiilor/Inspector de protecție civilă – certificat de competență, termen de valabilitate",
+          "value": "CT 1234/2024; termen de valabilitate: DE COMPLETAT"
+        }
+      ],
+      "noBuildings": false,
+      "organization": [
+        {
+          "hint": "dacă este organizată și pe baza căror documente",
+          "title": "Organizarea alarmării",
+          "value": "da, prin Decizia nr. 5 PSI privind organizarea apărării împotriva incendiilor: Florin Cristian TALOȘ asigură observarea și anunțarea incendiului pe plan intern și prin apel la 112, iar șeful echipei de primă intervenție, Ioana PETRE, anunță 112; fișa de organizare a apărării împotriva incendiilor este afișată la fiecare loc de muncă"
+        },
+        {
+          "hint": "dacă se face periodic (periodicitatea pe categorii de personal), de către cine, dacă este persoană atestată",
+          "title": "Instruirea personalului",
+          "value": "da, potrivit Deciziei nr. 6 PSI: personalul administrativ este instruit periodic la 6 luni, câte 2 ore, de cadrul tehnic PSI, Radu STAN, titular al certificatului CT 1234/2024; personalul de execuție este instruit periodic la 3 luni, câte 2 ore, de conducătorii locurilor de muncă (Florin Cristian TALOȘ și Ioana PETRE), cu cadrul tehnic, după caz"
+        },
+        {
+          "hint": "dacă se execută, la ce interval și de către cine",
+          "title": "Control intern de prevenire",
+          "value": "da, de persoanele desemnate prin Decizia nr. 5 PSI: șefii locurilor de muncă – zilnic sau pe schimb, la locul de muncă pe care îl conduc; coordonatorul privind apărarea împotriva incendiilor, Florin Cristian TALOȘ – lunar, controlul fiecărui stingător de incendiu"
+        },
+        {
+          "hint": "dacă există sau dacă este încheiat un contract: obiectul contractului, datele firmei",
+          "title": "Serviciu privat pentru situații de urgență",
+          "value": "nu este cazul"
+        },
+        {
+          "hint": "când s-a executat ultima oară exercițiul de evacuare și ce probleme deosebite au fost constatate",
+          "title": "Planuri/exerciții de evacuare din clădire",
+          "value": null
+        },
+        {
+          "hint": "dacă există",
+          "title": "Afișare instrucțiuni specifice",
+          "value": "da: instrucțiunile de apărare împotriva incendiilor aprobate prin Decizia nr. 10 PSI se afișează la fiecare loc de muncă"
+        },
+        {
+          "hint": "dacă există și ce documente sunt întocmite",
+          "title": "Obligațiile administratorului/conducerii",
+          "value": "da: stabilite prin Decizia nr. 5 PSI privind organizarea apărării împotriva incendiilor"
+        },
+        {
+          "hint": "dacă există și ce documente sunt întocmite pentru reglementarea lor",
+          "title": "Obligațiile cadrului tehnic/inspectorului/personalului din structura cu atribuții de apărare împotriva incendiilor/de protecție civilă",
+          "value": "da: Decizia nr. 9 PSI privind cadrul tehnic PSI, cu obligațiile din anexa ei, și Decizia nr. 5 PSI privind organizarea apărării împotriva incendiilor, pentru coordonator și echipa de primă intervenție"
+        },
+        {
+          "hint": "reglementările pentru lucrul cu foc deschis, fumat, deșeuri, sezonul rece și perioadele caniculare; căile de acces, de evacuare și de intervenție",
+          "title": "Ordinea interioară",
+          "value": "reglementată prin Decizia nr. 7 PSI privind lucrul cu foc deschis, Decizia nr. 8 PSI privind fumatul și Decizia nr. 11 PSI privind colectarea deșeurilor; asigurarea căilor de acces, de evacuare și de intervenție: DE COMPLETAT"
+        },
+        {
+          "hint": "potrivit reglementărilor în domeniu",
+          "title": "Documente specifice de apărare împotriva incendiilor",
+          "value": "– Decizia nr. 5 PSI privind organizarea apărării împotriva incendiilor\n– Decizia nr. 6 PSI privind instruirea în domeniul situațiilor de urgență\n– Decizia nr. 7 PSI privind lucrul cu foc deschis\n– Decizia nr. 8 PSI privind fumatul\n– Decizia nr. 9 PSI privind cadrul tehnic PSI\n– Decizia nr. 10 PSI privind instrucțiunile de apărare împotriva incendiilor\n– Decizia nr. 11 PSI privind colectarea deșeurilor\n– Instrucțiuni proprii în domeniul situațiilor de urgență\n– Tematica de instruire în domeniul situațiilor de urgență\n– Test la angajare\n– Test anual\n– Lista mijloacelor de apărare împotriva incendiilor\n– Organizarea apărării împotriva incendiilor la locul de muncă\n– Lista substanțelor periculoase\n– Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc\n– Permis de lucru cu foc\n– Registru de evidență a controlului stingătoarelor de incendiu"
+        },
+        {
+          "hint": "potrivit reglementărilor în domeniu",
+          "title": "Documente specifice de protecție civilă",
+          "value": null
+        },
+        {
+          "hint": "persoana juridică atestată care întreține, verifică și repară fiecare mijloc",
+          "title": "Reglementarea modului de întreținere, verificare, reparare a mijloacelor tehnice de apărare împotriva incendiilor",
+          "value": "– stingătoarele: S.C. FOC STOP S.R.L.\n– hidranți exteriori: DE COMPLETAT\n– instalație de detectare, semnalizare și avertizare la incendiu: S.C. ALARM SERVICE S.R.L.\n– hidranți interiori: DE COMPLETAT"
+        },
+        {
+          "hint": "incendiile produse, pe fiecare clădire, cu cauzele lor",
+          "title": "Evidența incendiilor de la punerea în funcțiune a operatorului economic/instituției (pe fiecare clădire în parte)",
+          "value": null
+        }
+      ],
+      "substances": {
+        "entries": [
+          {
+            "name": "Propan",
+            "rows": [
+              {
+                "hint": "în conformitate cu sistemul internațional de clasificare a substanțelor periculoase, frazele de risc asociate",
+                "title": "Denumirea substanțelor periculoase folosite, clasificare",
+                "value": "Propan – Flam. Gas 1, H220; Press. Gas, H280"
+              },
+              {
+                "hint": "pentru fiecare substanță",
+                "title": "Cantitatea existentă în unitate",
+                "value": "2 butelii de 11 kg"
+              },
+              {
+                "hint": "instalație, echipament de proces, sistem de stocare, sistem de compresie, conducte etc.",
+                "title": "Loc de depozitare",
+                "value": "Cușca metalică ventilată din curte"
+              },
+              {
+                "hint": "modul de manipulare și de utilizare",
+                "title": "Mod de operare",
+                "value": null
+              }
+            ]
+          },
+          {
+            "name": "Diluant pentru vopsele",
+            "rows": [
+              {
+                "hint": "în conformitate cu sistemul internațional de clasificare a substanțelor periculoase, frazele de risc asociate",
+                "title": "Denumirea substanțelor periculoase folosite, clasificare",
+                "value": "Diluant pentru vopsele – Flam. Liq. 2, H225; STOT SE 3, H336"
+              },
+              {
+                "hint": "pentru fiecare substanță",
+                "title": "Cantitatea existentă în unitate",
+                "value": "10 l"
+              },
+              {
+                "hint": "instalație, echipament de proces, sistem de stocare, sistem de compresie, conducte etc.",
+                "title": "Loc de depozitare",
+                "value": "Dulapul metalic din atelier"
+              },
+              {
+                "hint": "modul de manipulare și de utilizare",
+                "title": "Mod de operare",
+                "value": "Numai în spații ventilate, departe de surse de aprindere"
+              }
+            ]
+          }
+        ],
+        "listed": true,
+        "none": false
+      }
+    },
+    "smoking": {
+      "designatedPlaces": true,
+      "forbiddenEverywhere": false,
+      "place": "în curtea interioară, lângă poarta de acces auto",
+      "policy": "designated_places"
+    },
+    "staff": {
+      "administrative": [
+        "Contabil"
+      ],
+      "administrativeText": "Contabil",
+      "execution": [
+        "Sudor"
+      ],
+      "executionText": "Sudor"
+    },
+    "substances": {
+      "entries": [
+        {
+          "classification": "Flam. Gas 1, H220; Press. Gas, H280",
+          "extinguishingAgents": "Pulbere, CO₂; răcirea buteliilor cu apă pulverizată",
+          "handling": "DE COMPLETAT",
+          "healthEnvironmentRisks": "DE COMPLETAT",
+          "identificationCodes": "CAS 74-98-6, UN 1978",
+          "interventionMeasures": "DE COMPLETAT",
+          "name": "Propan",
+          "physicalChemicalProperties": "DE COMPLETAT",
+          "protectionMeans": "DE COMPLETAT",
+          "quantity": "2 butelii de 11 kg",
+          "storagePlace": "Cușca metalică ventilată din curte"
+        },
+        {
+          "classification": "Flam. Liq. 2, H225; STOT SE 3, H336",
+          "extinguishingAgents": "Spumă, pulbere, CO₂",
+          "handling": "Numai în spații ventilate, departe de surse de aprindere",
+          "healthEnvironmentRisks": "Poate provoca somnolență sau amețeală",
+          "identificationCodes": "DE COMPLETAT",
+          "interventionMeasures": "Aerisirea încăperii; scoaterea victimei la aer curat",
+          "name": "Diluant pentru vopsele",
+          "physicalChemicalProperties": "Lichid incolor, punct de inflamabilitate sub 23 °C",
+          "protectionMeans": "Mănuși din nitril, ochelari de protecție",
+          "quantity": "10 l",
+          "storagePlace": "Dulapul metalic din atelier"
+        }
+      ],
+      "listed": true,
+      "none": false,
+      "state": "listed"
+    },
+    "waste": {
+      "collectors": "muncitorii necalificați și șeful de șantier",
+      "contractor": "S.C. ECO COLECT S.R.L.",
+      "kinds": [
+        "deșeuri de carton, hârtie, plastic",
+        "deșeuri menajere"
+      ]
+    },
+    "workplaceManagers": [
+      {
+        "jobTitle": "Administrator",
+        "jobTitleRunOn": "administrator",
+        "name": "Florin Cristian TALOȘ",
+        "workplaceName": null
+      },
+      {
+        "jobTitle": "Șef de echipă",
+        "jobTitleRunOn": "șef de echipă",
+        "name": "Ioana PETRE",
+        "workplaceName": "Atelier Ghiroda"
+      }
+    ],
+    "workplaces": [
+      {
+        "activity": "Atelier de sudură",
+        "activityRunOn": "atelier de sudură",
+        "address": "Ghiroda, județul Timiș, Str. Industriilor 4",
+        "alarmInstallations": [],
+        "areaLabel": "420 m²",
+        "assemblyPoint": "Parcarea din fața atelierului",
+        "combustibleMaterials": "Lemn, cartoane, uleiuri de motor",
+        "extinguisherCount": 4,
+        "extinguishers": [
+          {
+            "agentLabel": "Pulbere",
+            "capacityLabel": "6 kg",
+            "code": "P6",
+            "count": 2,
+            "wheeled": false
+          },
+          {
+            "agentLabel": "Pulbere",
+            "capacityLabel": "50 kg",
+            "code": "P50",
+            "count": 1,
+            "wheeled": true
+          },
+          {
+            "agentLabel": "Dioxid de carbon (CO₂)",
+            "capacityLabel": "5 kg",
+            "code": "G5",
+            "count": 1,
+            "wheeled": false
+          }
+        ],
+        "extinguishingInstallations": [
+          {
+            "description": "Doi hidranți în curte",
+            "kindLabel": "Hidranți exteriori"
+          }
+        ],
+        "fireRiskEquipment": "Aparate de sudură, polizoare unghiulare",
+        "first": true,
+        "firstIntervention": [
+          {
+            "jobTitle": "Șef de echipă",
+            "jobTitleRunOn": "șef de echipă",
+            "name": "Ioana PETRE",
+            "roleLabel": "șef echipă de primă intervenție"
+          },
+          {
+            "jobTitle": "Administrator",
+            "jobTitleRunOn": "administrator",
+            "name": "Florin Cristian TALOȘ",
+            "roleLabel": "coordonator privind apărarea împotriva incendiilor"
+          }
+        ],
+        "firstInterventionNames": "Ioana PETRE și Florin Cristian TALOȘ",
+        "hasEmergencyLighting": false,
+        "hasExteriorHydrants": true,
+        "hasInstallations": true,
+        "hasInteriorHydrants": false,
+        "ignitionSources": "Arcul electric, scântei de la polizare",
+        "installations": [
+          {
+            "description": "Doi hidranți în curte",
+            "kindLabel": "Hidranți exteriori"
+          }
+        ],
+        "interventionLeaderName": "Ioana PETRE",
+        "manager": {
+          "jobTitle": "Administrator",
+          "jobTitleRunOn": "administrator",
+          "name": "Florin Cristian TALOȘ"
+        },
+        "name": "Atelier Ghiroda",
+        "normLabel": "Alte amenajări (1 buc./150 m²)",
+        "otherEquipment": [
+          {
+            "count": 1,
+            "kindLabel": "Ladă cu nisip"
+          }
+        ],
+        "specificMeasures": "Sudura numai cu permis de lucru cu foc.",
+        "specificMeasuresRunOn": "sudura numai cu permis de lucru cu foc."
+      },
+      {
+        "activity": "Birouri",
+        "activityRunOn": "birouri",
+        "address": "București, Sector 1, Calea Victoriei 122A",
+        "alarmInstallations": [
+          {
+            "description": "",
+            "kindLabel": "Instalație de detectare, semnalizare și avertizare la incendiu"
+          }
+        ],
+        "areaLabel": "180 m²",
+        "assemblyPoint": "Curtea interioară",
+        "combustibleMaterials": "Hârtie, mobilier",
+        "extinguisherCount": 1,
+        "extinguishers": [
+          {
+            "agentLabel": "Spumă mecanică",
+            "capacityLabel": "9 l",
+            "code": "SM9",
+            "count": 1,
+            "wheeled": false
+          }
+        ],
+        "extinguishingInstallations": [
+          {
+            "description": "Câte unul pe nivel",
+            "kindLabel": "Hidranți interiori"
+          }
+        ],
+        "fireRiskEquipment": "Calculatoare, imprimante",
+        "first": false,
+        "firstIntervention": [
+          {
+            "jobTitle": "Administrator",
+            "jobTitleRunOn": "administrator",
+            "name": "Florin Cristian TALOȘ",
+            "roleLabel": "coordonator privind apărarea împotriva incendiilor"
+          }
+        ],
+        "firstInterventionNames": "Florin Cristian TALOȘ",
+        "hasEmergencyLighting": false,
+        "hasExteriorHydrants": false,
+        "hasInstallations": true,
+        "hasInteriorHydrants": true,
+        "ignitionSources": "Instalația electrică",
+        "installations": [
+          {
+            "description": "",
+            "kindLabel": "Instalație de detectare, semnalizare și avertizare la incendiu"
+          },
+          {
+            "description": "Câte unul pe nivel",
+            "kindLabel": "Hidranți interiori"
+          }
+        ],
+        "interventionLeaderName": "Florin Cristian TALOȘ",
+        "manager": {
+          "jobTitle": "Administrator",
+          "jobTitleRunOn": "administrator",
+          "name": "Florin Cristian TALOȘ"
+        },
+        "name": "Sediul social",
+        "normLabel": "Clădiri administrative (1 buc./300 m²)",
+        "otherEquipment": [
+          {
+            "count": 1,
+            "kindLabel": "Pătură antifoc"
+          }
+        ],
+        "specificMeasures": "",
+        "specificMeasuresRunOn": ""
+      }
+    ]
+  },
+  "fireSafetyTechnician": {
+    "authorization": "nr. 12 din 15.09.2026, ISU Timiș",
+    "certificate": "CT 1234/2024",
+    "name": "Radu STAN"
+  },
+  "fireThemes": {
+    "categories": [
+      {
+        "intervalLabel": "6 LUNI",
+        "label": "Personal administrativ",
+        "periodicTrainers": {
+          "technician": true,
+          "workplaceManagers": null
+        },
+        "posts": [
+          "Contabil"
+        ],
+        "postsText": "Contabil",
+        "sessions": [
+          {
+            "content": "IPSU art. 1–130; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă",
+            "duration": "120 min",
+            "month": "FEBRUARIE"
+          },
+          {
+            "content": "IPSU art. 131–257; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă; testare.",
+            "duration": "120 min",
+            "month": "AUGUST"
+          }
+        ],
+        "staffCategory": "technical_administrative",
+        "workplaceTrainers": {
+          "technician": true,
+          "workplaceManagers": null
+        }
+      },
+      {
+        "intervalLabel": "3 LUNI",
+        "label": "Personal de execuție",
+        "periodicTrainers": {
+          "technician": true,
+          "workplaceManagers": "Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă"
+        },
+        "posts": [
+          "Sudor"
+        ],
+        "postsText": "Sudor",
+        "sessions": [
+          {
+            "content": "IPSU art. 1–76; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă",
+            "duration": "120 min",
+            "month": "FEBRUARIE"
+          },
+          {
+            "content": "IPSU art. 77–130; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă",
+            "duration": "120 min",
+            "month": "MAI"
+          },
+          {
+            "content": "IPSU art. 131–235; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă",
+            "duration": "120 min",
+            "month": "AUGUST"
+          },
+          {
+            "content": "IPSU art. 236–257; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă; testare.",
+            "duration": "120 min",
+            "month": "NOIEMBRIE"
+          }
+        ],
+        "staffCategory": "execution",
+        "workplaceTrainers": {
+          "technician": false,
+          "workplaceManagers": "Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă"
+        }
+      }
+    ],
+    "ownInstructionsRevision": {
+      "id": "d0d0d0d0-0000-4000-8000-000000000002",
+      "number": 1,
+      "versionIds": [
+        "b0b0b0b0-0000-4000-8000-000000000003"
+      ]
+    },
+    "workplaceNames": "Sediul social, Atelier Ghiroda"
+  },
+  "installationRegister": false,
+  "issueDate": "19.01.2026",
+  "noAnnexes": false,
+  "provider": {
+    "legalName": "S.C. SERVICIU EXTERN DEMO S.R.L.",
+    "representativeName": "Ana IONESCU",
+    "representativeRole": "Administrator"
+  },
+  "seasonsDecision": false
+}
