@@ -82,7 +82,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Training held** (_instruire efectuată_): one act of training at a client: in one domain, occupational safety or fire safety, of one phase, on a day, with a duration in minutes, the material taught as text, who trained and, where the form has that signature, who verified. Recorded once with the employees who attended; a hiring training has one attendee. ADR 021. Avoid: session, which is the planned one, event, and instructaj.
 
-**Training record** (_instruire_, on an employee's page under _Instruiri_): one employee's attendance at a training held, with the occupation printed for it, the name of their position at the time. What the individual training sheets print, one row each, and what the electronic signature will sign. The workplace training record also carries "admis la lucru". ADR 021. Avoid: attendance, training flag, completion.
+**Training record** (_instruire_, on an employee's page under _Instruire_): one employee's attendance at a training held, with the occupation printed for it, the name of their position at the time. What the individual training sheets print, one row each, and what the electronic signature will sign. The workplace training record also carries "admis la lucru". ADR 021. Avoid: attendance, training flag, completion.
 
 **Training phase** (_tipul instruirii_): which of the law's trainings a training held is: **introductory general** (_introductiv-generală_), **workplace** (_la locul de muncă_), **periodic** (_periodică_) or **supplementary** (_periodică suplimentară_), the last with its reason among the cases of HG 1425/2006 art. 98. The first two are the **hiring trainings**. ADR 021. Avoid: kind, level, instructaj introductiv.
 
