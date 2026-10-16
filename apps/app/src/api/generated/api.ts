@@ -861,6 +861,57 @@ export type EmployeeListResponseItemsItemWorkplace = {
   name: string;
 } | null;
 
+/**
+ * @nullable
+ */
+export type EmployeeListResponseItemsItemTrainingSsmState =
+  | (typeof EmployeeListResponseItemsItemTrainingSsmState)[keyof typeof EmployeeListResponseItemsItemTrainingSsmState]
+  | null;
+
+export const EmployeeListResponseItemsItemTrainingSsmState = {
+  untrained: 'untrained',
+  current: 'current',
+  due: 'due',
+  overdue: 'overdue',
+} as const;
+
+export type EmployeeListResponseItemsItemTrainingSsm = {
+  /** @nullable */
+  state: EmployeeListResponseItemsItemTrainingSsmState;
+  /** @nullable */
+  dueOn: string | null;
+  /** @nullable */
+  lastPeriodicOn: string | null;
+};
+
+/**
+ * @nullable
+ */
+export type EmployeeListResponseItemsItemTrainingPsiState =
+  | (typeof EmployeeListResponseItemsItemTrainingPsiState)[keyof typeof EmployeeListResponseItemsItemTrainingPsiState]
+  | null;
+
+export const EmployeeListResponseItemsItemTrainingPsiState = {
+  untrained: 'untrained',
+  current: 'current',
+  due: 'due',
+  overdue: 'overdue',
+} as const;
+
+export type EmployeeListResponseItemsItemTrainingPsi = {
+  /** @nullable */
+  state: EmployeeListResponseItemsItemTrainingPsiState;
+  /** @nullable */
+  dueOn: string | null;
+  /** @nullable */
+  lastPeriodicOn: string | null;
+};
+
+export type EmployeeListResponseItemsItemTraining = {
+  ssm: EmployeeListResponseItemsItemTrainingSsm;
+  psi: EmployeeListResponseItemsItemTrainingPsi;
+};
+
 export type EmployeeListResponseItemsItem = {
   id: string;
   clientId: string;
@@ -882,6 +933,7 @@ export type EmployeeListResponseItemsItem = {
   workplace: EmployeeListResponseItemsItemWorkplace;
   createdAt: string;
   updatedAt: string;
+  training: EmployeeListResponseItemsItemTraining;
 };
 
 export interface EmployeeListResponse {
@@ -943,6 +995,57 @@ export type EmployeeResponseEmployeeWorkplace = {
   name: string;
 } | null;
 
+/**
+ * @nullable
+ */
+export type EmployeeResponseEmployeeTrainingSsmState =
+  | (typeof EmployeeResponseEmployeeTrainingSsmState)[keyof typeof EmployeeResponseEmployeeTrainingSsmState]
+  | null;
+
+export const EmployeeResponseEmployeeTrainingSsmState = {
+  untrained: 'untrained',
+  current: 'current',
+  due: 'due',
+  overdue: 'overdue',
+} as const;
+
+export type EmployeeResponseEmployeeTrainingSsm = {
+  /** @nullable */
+  state: EmployeeResponseEmployeeTrainingSsmState;
+  /** @nullable */
+  dueOn: string | null;
+  /** @nullable */
+  lastPeriodicOn: string | null;
+};
+
+/**
+ * @nullable
+ */
+export type EmployeeResponseEmployeeTrainingPsiState =
+  | (typeof EmployeeResponseEmployeeTrainingPsiState)[keyof typeof EmployeeResponseEmployeeTrainingPsiState]
+  | null;
+
+export const EmployeeResponseEmployeeTrainingPsiState = {
+  untrained: 'untrained',
+  current: 'current',
+  due: 'due',
+  overdue: 'overdue',
+} as const;
+
+export type EmployeeResponseEmployeeTrainingPsi = {
+  /** @nullable */
+  state: EmployeeResponseEmployeeTrainingPsiState;
+  /** @nullable */
+  dueOn: string | null;
+  /** @nullable */
+  lastPeriodicOn: string | null;
+};
+
+export type EmployeeResponseEmployeeTraining = {
+  ssm: EmployeeResponseEmployeeTrainingSsm;
+  psi: EmployeeResponseEmployeeTrainingPsi;
+};
+
 export type EmployeeResponseEmployee = {
   id: string;
   clientId: string;
@@ -990,6 +1093,7 @@ export type EmployeeResponseEmployee = {
   updatedAt: string;
   /** @nullable */
   archivedAt: string | null;
+  training: EmployeeResponseEmployeeTraining;
 };
 
 export interface EmployeeResponse {
@@ -1258,6 +1362,462 @@ export interface UpdateEmployeeJobPositionRequest {
    * @maxLength 160
    */
   jobTitle?: string;
+}
+
+export type TrainingListResponseItemsItemDomain =
+  (typeof TrainingListResponseItemsItemDomain)[keyof typeof TrainingListResponseItemsItemDomain];
+
+export const TrainingListResponseItemsItemDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type TrainingListResponseItemsItemPhase =
+  (typeof TrainingListResponseItemsItemPhase)[keyof typeof TrainingListResponseItemsItemPhase];
+
+export const TrainingListResponseItemsItemPhase = {
+  introductory_general: 'introductory_general',
+  workplace: 'workplace',
+  periodic: 'periodic',
+  supplementary: 'supplementary',
+} as const;
+
+export type TrainingListResponseItemsItemTrainer = {
+  name: string;
+  jobTitle: string;
+};
+
+/**
+ * @nullable
+ */
+export type TrainingListResponseItemsItemVerifier = {
+  name: string;
+  jobTitle: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type TrainingListResponseItemsItemSupplementaryReason =
+  | (typeof TrainingListResponseItemsItemSupplementaryReason)[keyof typeof TrainingListResponseItemsItemSupplementaryReason]
+  | null;
+
+export const TrainingListResponseItemsItemSupplementaryReason = {
+  absence_over_thirty_days: 'absence_over_thirty_days',
+  rules_changed: 'rules_changed',
+  after_accident: 'after_accident',
+  special_works: 'special_works',
+  new_equipment: 'new_equipment',
+  changed_procedure: 'changed_procedure',
+  new_technology: 'new_technology',
+} as const;
+
+export type TrainingListResponseItemsItemSource =
+  (typeof TrainingListResponseItemsItemSource)[keyof typeof TrainingListResponseItemsItemSource];
+
+export const TrainingListResponseItemsItemSource = {
+  app: 'app',
+  paper: 'paper',
+} as const;
+
+export type TrainingListResponseItemsItem = {
+  id: string;
+  clientId: string;
+  domain: TrainingListResponseItemsItemDomain;
+  phase: TrainingListResponseItemsItemPhase;
+  heldOn: string;
+  durationMinutes: number;
+  material: string;
+  trainer: TrainingListResponseItemsItemTrainer;
+  /** @nullable */
+  verifier: TrainingListResponseItemsItemVerifier;
+  /** @nullable */
+  supplementaryReason: TrainingListResponseItemsItemSupplementaryReason;
+  source: TrainingListResponseItemsItemSource;
+  /** @nullable */
+  themesRevisionId: string | null;
+  /** @nullable */
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** @minimum 0 */
+  attendeeCount: number;
+};
+
+export interface TrainingListResponse {
+  items: TrainingListResponseItemsItem[];
+}
+
+/**
+ * @nullable
+ */
+export type TrainingProposalTrainer = {
+  name: string;
+  /** @nullable */
+  jobTitle: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type TrainingProposalVerifier = {
+  name: string;
+  /** @nullable */
+  jobTitle: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type TrainingProposalAdmittedBy = {
+  name: string;
+  /** @nullable */
+  jobTitle: string | null;
+} | null;
+
+export interface TrainingProposal {
+  /** @nullable */
+  durationMinutes: number | null;
+  /** @nullable */
+  material: string | null;
+  /** @nullable */
+  trainer: TrainingProposalTrainer;
+  /** @nullable */
+  verifier: TrainingProposalVerifier;
+  /** @nullable */
+  admittedBy: TrainingProposalAdmittedBy;
+  /** @nullable */
+  themesRevisionId: string | null;
+}
+
+export type TrainingResponseTrainingDomain =
+  (typeof TrainingResponseTrainingDomain)[keyof typeof TrainingResponseTrainingDomain];
+
+export const TrainingResponseTrainingDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type TrainingResponseTrainingPhase =
+  (typeof TrainingResponseTrainingPhase)[keyof typeof TrainingResponseTrainingPhase];
+
+export const TrainingResponseTrainingPhase = {
+  introductory_general: 'introductory_general',
+  workplace: 'workplace',
+  periodic: 'periodic',
+  supplementary: 'supplementary',
+} as const;
+
+export type TrainingResponseTrainingTrainer = {
+  name: string;
+  jobTitle: string;
+};
+
+/**
+ * @nullable
+ */
+export type TrainingResponseTrainingVerifier = {
+  name: string;
+  jobTitle: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type TrainingResponseTrainingSupplementaryReason =
+  | (typeof TrainingResponseTrainingSupplementaryReason)[keyof typeof TrainingResponseTrainingSupplementaryReason]
+  | null;
+
+export const TrainingResponseTrainingSupplementaryReason = {
+  absence_over_thirty_days: 'absence_over_thirty_days',
+  rules_changed: 'rules_changed',
+  after_accident: 'after_accident',
+  special_works: 'special_works',
+  new_equipment: 'new_equipment',
+  changed_procedure: 'changed_procedure',
+  new_technology: 'new_technology',
+} as const;
+
+export type TrainingResponseTrainingSource =
+  (typeof TrainingResponseTrainingSource)[keyof typeof TrainingResponseTrainingSource];
+
+export const TrainingResponseTrainingSource = {
+  app: 'app',
+  paper: 'paper',
+} as const;
+
+export type TrainingResponseTrainingRecordsItemEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
+};
+
+/**
+ * @nullable
+ */
+export type TrainingResponseTrainingRecordsItemAdmission = {
+  admittedOn: string;
+  name: string;
+  jobTitle: string;
+} | null;
+
+export type TrainingResponseTrainingRecordsItem = {
+  id: string;
+  employee: TrainingResponseTrainingRecordsItemEmployee;
+  occupation: string;
+  /** @nullable */
+  admission: TrainingResponseTrainingRecordsItemAdmission;
+};
+
+export type TrainingResponseTraining = {
+  id: string;
+  clientId: string;
+  domain: TrainingResponseTrainingDomain;
+  phase: TrainingResponseTrainingPhase;
+  heldOn: string;
+  durationMinutes: number;
+  material: string;
+  trainer: TrainingResponseTrainingTrainer;
+  /** @nullable */
+  verifier: TrainingResponseTrainingVerifier;
+  /** @nullable */
+  supplementaryReason: TrainingResponseTrainingSupplementaryReason;
+  source: TrainingResponseTrainingSource;
+  /** @nullable */
+  themesRevisionId: string | null;
+  /** @nullable */
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  records: TrainingResponseTrainingRecordsItem[];
+};
+
+export interface TrainingResponse {
+  training: TrainingResponseTraining;
+}
+
+export type TrainingRequestDomain =
+  (typeof TrainingRequestDomain)[keyof typeof TrainingRequestDomain];
+
+export const TrainingRequestDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type TrainingRequestPhase = (typeof TrainingRequestPhase)[keyof typeof TrainingRequestPhase];
+
+export const TrainingRequestPhase = {
+  introductory_general: 'introductory_general',
+  workplace: 'workplace',
+  periodic: 'periodic',
+  supplementary: 'supplementary',
+} as const;
+
+export type TrainingRequestTrainer = {
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  name: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  jobTitle: string;
+};
+
+/**
+ * @nullable
+ */
+export type TrainingRequestVerifier = {
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  name: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  jobTitle: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type TrainingRequestSupplementaryReason =
+  | (typeof TrainingRequestSupplementaryReason)[keyof typeof TrainingRequestSupplementaryReason]
+  | null;
+
+export const TrainingRequestSupplementaryReason = {
+  absence_over_thirty_days: 'absence_over_thirty_days',
+  rules_changed: 'rules_changed',
+  after_accident: 'after_accident',
+  special_works: 'special_works',
+  new_equipment: 'new_equipment',
+  changed_procedure: 'changed_procedure',
+  new_technology: 'new_technology',
+} as const;
+
+export type TrainingRequestSource =
+  (typeof TrainingRequestSource)[keyof typeof TrainingRequestSource];
+
+export const TrainingRequestSource = {
+  app: 'app',
+  paper: 'paper',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TrainingRequestAdmission = {
+  admittedOn: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  name: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  jobTitle: string;
+} | null;
+
+export interface TrainingRequest {
+  domain: TrainingRequestDomain;
+  phase: TrainingRequestPhase;
+  heldOn: string;
+  /**
+   * @minimum 1
+   * @maximum 600
+   */
+  durationMinutes: number;
+  /**
+   * @minLength 1
+   * @maxLength 4000
+   */
+  material: string;
+  trainer: TrainingRequestTrainer;
+  /** @nullable */
+  verifier?: TrainingRequestVerifier;
+  /** @nullable */
+  supplementaryReason?: TrainingRequestSupplementaryReason;
+  source?: TrainingRequestSource;
+  /** @nullable */
+  themesRevisionId?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   * @nullable
+   */
+  notes?: string | null;
+  /**
+   * @minItems 1
+   * @maxItems 500
+   */
+  employeeIds: string[];
+  /** @nullable */
+  admission?: TrainingRequestAdmission;
+}
+
+/**
+ * @nullable
+ */
+export type EmployeeTrainingRecordListResponseItemsItemAdmission = {
+  admittedOn: string;
+  name: string;
+  jobTitle: string;
+} | null;
+
+export type EmployeeTrainingRecordListResponseItemsItemTrainingDomain =
+  (typeof EmployeeTrainingRecordListResponseItemsItemTrainingDomain)[keyof typeof EmployeeTrainingRecordListResponseItemsItemTrainingDomain];
+
+export const EmployeeTrainingRecordListResponseItemsItemTrainingDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type EmployeeTrainingRecordListResponseItemsItemTrainingPhase =
+  (typeof EmployeeTrainingRecordListResponseItemsItemTrainingPhase)[keyof typeof EmployeeTrainingRecordListResponseItemsItemTrainingPhase];
+
+export const EmployeeTrainingRecordListResponseItemsItemTrainingPhase = {
+  introductory_general: 'introductory_general',
+  workplace: 'workplace',
+  periodic: 'periodic',
+  supplementary: 'supplementary',
+} as const;
+
+export type EmployeeTrainingRecordListResponseItemsItemTrainingTrainer = {
+  name: string;
+  jobTitle: string;
+};
+
+/**
+ * @nullable
+ */
+export type EmployeeTrainingRecordListResponseItemsItemTrainingVerifier = {
+  name: string;
+  jobTitle: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type EmployeeTrainingRecordListResponseItemsItemTrainingSupplementaryReason =
+  | (typeof EmployeeTrainingRecordListResponseItemsItemTrainingSupplementaryReason)[keyof typeof EmployeeTrainingRecordListResponseItemsItemTrainingSupplementaryReason]
+  | null;
+
+export const EmployeeTrainingRecordListResponseItemsItemTrainingSupplementaryReason = {
+  absence_over_thirty_days: 'absence_over_thirty_days',
+  rules_changed: 'rules_changed',
+  after_accident: 'after_accident',
+  special_works: 'special_works',
+  new_equipment: 'new_equipment',
+  changed_procedure: 'changed_procedure',
+  new_technology: 'new_technology',
+} as const;
+
+export type EmployeeTrainingRecordListResponseItemsItemTrainingSource =
+  (typeof EmployeeTrainingRecordListResponseItemsItemTrainingSource)[keyof typeof EmployeeTrainingRecordListResponseItemsItemTrainingSource];
+
+export const EmployeeTrainingRecordListResponseItemsItemTrainingSource = {
+  app: 'app',
+  paper: 'paper',
+} as const;
+
+export type EmployeeTrainingRecordListResponseItemsItemTraining = {
+  id: string;
+  clientId: string;
+  domain: EmployeeTrainingRecordListResponseItemsItemTrainingDomain;
+  phase: EmployeeTrainingRecordListResponseItemsItemTrainingPhase;
+  heldOn: string;
+  durationMinutes: number;
+  material: string;
+  trainer: EmployeeTrainingRecordListResponseItemsItemTrainingTrainer;
+  /** @nullable */
+  verifier: EmployeeTrainingRecordListResponseItemsItemTrainingVerifier;
+  /** @nullable */
+  supplementaryReason: EmployeeTrainingRecordListResponseItemsItemTrainingSupplementaryReason;
+  source: EmployeeTrainingRecordListResponseItemsItemTrainingSource;
+  /** @nullable */
+  themesRevisionId: string | null;
+  /** @nullable */
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type EmployeeTrainingRecordListResponseItemsItem = {
+  id: string;
+  occupation: string;
+  /** @nullable */
+  admission: EmployeeTrainingRecordListResponseItemsItemAdmission;
+  training: EmployeeTrainingRecordListResponseItemsItemTraining;
+};
+
+export interface EmployeeTrainingRecordListResponse {
+  items: EmployeeTrainingRecordListResponseItemsItem[];
 }
 
 export type JobPositionListResponseItemsItemStaffCategory =
@@ -6105,6 +6665,7 @@ export type ListEmployeesParams = {
   sort?: ListEmployeesSort;
   order?: ListEmployeesOrder;
   status?: ListEmployeesStatus;
+  trainingState?: ListEmployeesTrainingState;
 };
 
 export type ListEmployeesSort = (typeof ListEmployeesSort)[keyof typeof ListEmployeesSort];
@@ -6128,6 +6689,73 @@ export type ListEmployeesStatus = (typeof ListEmployeesStatus)[keyof typeof List
 export const ListEmployeesStatus = {
   active: 'active',
   terminated: 'terminated',
+} as const;
+
+export type ListEmployeesTrainingState =
+  (typeof ListEmployeesTrainingState)[keyof typeof ListEmployeesTrainingState];
+
+export const ListEmployeesTrainingState = {
+  untrained: 'untrained',
+  due: 'due',
+  overdue: 'overdue',
+} as const;
+
+export type ListTrainingsParams = {
+  domain?: ListTrainingsDomain;
+  phase?: ListTrainingsPhase;
+};
+
+export type ListTrainingsDomain = (typeof ListTrainingsDomain)[keyof typeof ListTrainingsDomain];
+
+export const ListTrainingsDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type ListTrainingsPhase = (typeof ListTrainingsPhase)[keyof typeof ListTrainingsPhase];
+
+export const ListTrainingsPhase = {
+  introductory_general: 'introductory_general',
+  workplace: 'workplace',
+  periodic: 'periodic',
+  supplementary: 'supplementary',
+} as const;
+
+export type GetTrainingProposalParams = {
+  domain: GetTrainingProposalDomain;
+  phase: GetTrainingProposalPhase;
+  heldOn: string;
+  jobPositionId?: string;
+};
+
+export type GetTrainingProposalDomain =
+  (typeof GetTrainingProposalDomain)[keyof typeof GetTrainingProposalDomain];
+
+export const GetTrainingProposalDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type GetTrainingProposalPhase =
+  (typeof GetTrainingProposalPhase)[keyof typeof GetTrainingProposalPhase];
+
+export const GetTrainingProposalPhase = {
+  introductory_general: 'introductory_general',
+  workplace: 'workplace',
+  periodic: 'periodic',
+  supplementary: 'supplementary',
+} as const;
+
+export type ListEmployeeTrainingRecordsParams = {
+  domain?: ListEmployeeTrainingRecordsDomain;
+};
+
+export type ListEmployeeTrainingRecordsDomain =
+  (typeof ListEmployeeTrainingRecordsDomain)[keyof typeof ListEmployeeTrainingRecordsDomain];
+
+export const ListEmployeeTrainingRecordsDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
 } as const;
 
 export type ListEquipmentSuggestionsParams = {
@@ -8758,6 +9386,929 @@ export const useUpdateEmployeeJobPosition = <
 > => {
   return useMutation(getUpdateEmployeeJobPositionMutationOptions(options), queryClient);
 };
+
+export const getListTrainingsUrl = (clientId: string, params?: ListTrainingsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/trainings?${stringifiedParams}`
+    : `/clients/${clientId}/trainings`;
+};
+
+/**
+ * Every training held at the client, newest first, each with its number of attendees; not paginated. Filtered by domain and phase when given (ADR 021).
+ * @summary List a client's trainings held
+ */
+export const listTrainings = async (
+  clientId: string,
+  params?: ListTrainingsParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TrainingListResponse> => {
+  return apiFetch<TrainingListResponse>(getListTrainingsUrl(clientId, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListTrainingsQueryKey = (clientId: string, params?: ListTrainingsParams) => {
+  return [`/clients/${clientId}/trainings`, ...(params ? [params] : [])] as const;
+};
+
+export const getListTrainingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTrainings>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: ListTrainingsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTrainings>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListTrainingsQueryKey(clientId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listTrainings>>> = ({ signal }) =>
+    listTrainings(clientId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listTrainings>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListTrainingsQueryResult = NonNullable<Awaited<ReturnType<typeof listTrainings>>>;
+export type ListTrainingsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListTrainings<
+  TData = Awaited<ReturnType<typeof listTrainings>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params: undefined | ListTrainingsParams,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTrainings>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listTrainings>>,
+          TError,
+          Awaited<ReturnType<typeof listTrainings>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListTrainings<
+  TData = Awaited<ReturnType<typeof listTrainings>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: ListTrainingsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTrainings>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listTrainings>>,
+          TError,
+          Awaited<ReturnType<typeof listTrainings>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListTrainings<
+  TData = Awaited<ReturnType<typeof listTrainings>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: ListTrainingsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTrainings>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List a client's trainings held
+ */
+
+export function useListTrainings<
+  TData = Awaited<ReturnType<typeof listTrainings>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: ListTrainingsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTrainings>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListTrainingsQueryOptions(clientId, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCreateTrainingUrl = (clientId: string) => {
+  return `/clients/${clientId}/trainings`;
+};
+
+/**
+ * Every attendee gets a training record carrying the name of their job position as the occupation. The attendees are employees of the client in any status, since a record typed from paper may belong to someone who has left. `admission`, "admis la lucru", is given to every attendee and only on a workplace training.
+ * @summary Record a training held with its attendees
+ */
+export const createTraining = async (
+  clientId: string,
+  trainingRequest: TrainingRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TrainingResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<TrainingResponse>(getCreateTrainingUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(trainingRequest),
+  });
+};
+
+export const getCreateTrainingMutationKey = () => ['createTraining'] as const;
+
+export const getCreateTrainingMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTraining>>,
+    TError,
+    CreateTrainingMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createTraining>>,
+  TError,
+  CreateTrainingMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateTrainingMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createTraining>>,
+    CreateTrainingMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return createTraining(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateTrainingMutationResult = NonNullable<Awaited<ReturnType<typeof createTraining>>>;
+export type CreateTrainingMutationBody = TrainingRequest;
+export type CreateTrainingMutationError = ErrorType<ApiErrorResponse>;
+export type CreateTrainingMutationVariables = { clientId: string; data: TrainingRequest };
+
+/**
+ * @summary Record a training held with its attendees
+ */
+export const useCreateTraining = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createTraining>>,
+      TError,
+      CreateTrainingMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createTraining>>,
+  TError,
+  CreateTrainingMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateTrainingMutationOptions(options), queryClient);
+};
+
+export const getGetTrainingProposalUrl = (clientId: string, params: GetTrainingProposalParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/trainings/proposal?${stringifiedParams}`
+    : `/clients/${clientId}/trainings/proposal`;
+};
+
+/**
+ * The duration, the material, the trainer, the verifier and who admits to work, as the plan proposes them for the domain, the phase, the day and the job position (ADR 021): a periodic training takes the session of that month, else the last one before it, from the client's newest training themes revision of the domain, by position for occupational safety and by the position's staff category for fire safety; a hiring training the templates' plan, 240 or 480 minutes; a supplementary training 60 minutes and no material. Each value is null where nothing can be proposed.
+ * @summary Propose the facts of a training held from the plan
+ */
+export const getTrainingProposal = async (
+  clientId: string,
+  params: GetTrainingProposalParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TrainingProposal> => {
+  return apiFetch<TrainingProposal>(getGetTrainingProposalUrl(clientId, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetTrainingProposalQueryKey = (
+  clientId: string,
+  params?: GetTrainingProposalParams
+) => {
+  return [`/clients/${clientId}/trainings/proposal`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetTrainingProposalQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTrainingProposal>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params: GetTrainingProposalParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getTrainingProposal>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTrainingProposalQueryKey(clientId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTrainingProposal>>> = ({ signal }) =>
+    getTrainingProposal(clientId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getTrainingProposal>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetTrainingProposalQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTrainingProposal>>
+>;
+export type GetTrainingProposalQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetTrainingProposal<
+  TData = Awaited<ReturnType<typeof getTrainingProposal>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params: GetTrainingProposalParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getTrainingProposal>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTrainingProposal>>,
+          TError,
+          Awaited<ReturnType<typeof getTrainingProposal>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTrainingProposal<
+  TData = Awaited<ReturnType<typeof getTrainingProposal>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params: GetTrainingProposalParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getTrainingProposal>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTrainingProposal>>,
+          TError,
+          Awaited<ReturnType<typeof getTrainingProposal>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTrainingProposal<
+  TData = Awaited<ReturnType<typeof getTrainingProposal>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params: GetTrainingProposalParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getTrainingProposal>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Propose the facts of a training held from the plan
+ */
+
+export function useGetTrainingProposal<
+  TData = Awaited<ReturnType<typeof getTrainingProposal>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params: GetTrainingProposalParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getTrainingProposal>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetTrainingProposalQueryOptions(clientId, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetTrainingUrl = (clientId: string, trainingId: string) => {
+  return `/clients/${clientId}/trainings/${trainingId}`;
+};
+
+/**
+ * The records by the attendee's name.
+ * @summary Read a training held with its records
+ */
+export const getTraining = async (
+  clientId: string,
+  trainingId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TrainingResponse> => {
+  return apiFetch<TrainingResponse>(getGetTrainingUrl(clientId, trainingId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetTrainingQueryKey = (clientId: string, trainingId: string) => {
+  return [`/clients/${clientId}/trainings/${trainingId}`] as const;
+};
+
+export const getGetTrainingQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTraining>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  trainingId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTraining>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTrainingQueryKey(clientId, trainingId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTraining>>> = ({ signal }) =>
+    getTraining(clientId, trainingId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      trainingId !== null &&
+      trainingId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getTraining>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetTrainingQueryResult = NonNullable<Awaited<ReturnType<typeof getTraining>>>;
+export type GetTrainingQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetTraining<
+  TData = Awaited<ReturnType<typeof getTraining>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  trainingId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTraining>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTraining>>,
+          TError,
+          Awaited<ReturnType<typeof getTraining>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTraining<
+  TData = Awaited<ReturnType<typeof getTraining>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  trainingId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTraining>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTraining>>,
+          TError,
+          Awaited<ReturnType<typeof getTraining>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTraining<
+  TData = Awaited<ReturnType<typeof getTraining>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  trainingId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTraining>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read a training held with its records
+ */
+
+export function useGetTraining<
+  TData = Awaited<ReturnType<typeof getTraining>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  trainingId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTraining>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetTrainingQueryOptions(clientId, trainingId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getUpdateTrainingUrl = (clientId: string, trainingId: string) => {
+  return `/clients/${clientId}/trainings/${trainingId}`;
+};
+
+/**
+ * An attendee who stays keeps their record and the occupation it printed; one who is left out loses theirs; a new one gets a record with the name of their current job position.
+ * @summary Replace a training's facts and attendees
+ */
+export const updateTraining = async (
+  clientId: string,
+  trainingId: string,
+  trainingRequest: TrainingRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TrainingResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<TrainingResponse>(getUpdateTrainingUrl(clientId, trainingId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(trainingRequest),
+  });
+};
+
+export const getUpdateTrainingMutationKey = () => ['updateTraining'] as const;
+
+export const getUpdateTrainingMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTraining>>,
+    TError,
+    UpdateTrainingMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateTraining>>,
+  TError,
+  UpdateTrainingMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateTrainingMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateTraining>>,
+    UpdateTrainingMutationVariables
+  > = (props) => {
+    const { clientId, trainingId, data } = props ?? {};
+
+    return updateTraining(clientId, trainingId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateTrainingMutationResult = NonNullable<Awaited<ReturnType<typeof updateTraining>>>;
+export type UpdateTrainingMutationBody = TrainingRequest;
+export type UpdateTrainingMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateTrainingMutationVariables = {
+  clientId: string;
+  trainingId: string;
+  data: TrainingRequest;
+};
+
+/**
+ * @summary Replace a training's facts and attendees
+ */
+export const useUpdateTraining = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateTraining>>,
+      TError,
+      UpdateTrainingMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateTraining>>,
+  TError,
+  UpdateTrainingMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateTrainingMutationOptions(options), queryClient);
+};
+
+export const getDeleteTrainingUrl = (clientId: string, trainingId: string) => {
+  return `/clients/${clientId}/trainings/${trainingId}`;
+};
+
+/**
+ * @summary Delete a training held and its records
+ */
+export const deleteTraining = async (
+  clientId: string,
+  trainingId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getDeleteTrainingUrl(clientId, trainingId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getDeleteTrainingMutationKey = () => ['deleteTraining'] as const;
+
+export const getDeleteTrainingMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTraining>>,
+    TError,
+    DeleteTrainingMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteTraining>>,
+  TError,
+  DeleteTrainingMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteTrainingMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteTraining>>,
+    DeleteTrainingMutationVariables
+  > = (props) => {
+    const { clientId, trainingId } = props ?? {};
+
+    return deleteTraining(clientId, trainingId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteTrainingMutationResult = NonNullable<Awaited<ReturnType<typeof deleteTraining>>>;
+
+export type DeleteTrainingMutationError = ErrorType<ApiErrorResponse>;
+export type DeleteTrainingMutationVariables = { clientId: string; trainingId: string };
+
+/**
+ * @summary Delete a training held and its records
+ */
+export const useDeleteTraining = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteTraining>>,
+      TError,
+      DeleteTrainingMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteTraining>>,
+  TError,
+  DeleteTrainingMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteTrainingMutationOptions(options), queryClient);
+};
+
+export const getListEmployeeTrainingRecordsUrl = (
+  clientId: string,
+  employeeId: string,
+  params?: ListEmployeeTrainingRecordsParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/employees/${employeeId}/training-records?${stringifiedParams}`
+    : `/clients/${clientId}/employees/${employeeId}/training-records`;
+};
+
+/**
+ * Each record with the facts of its training held, newest first, of one domain when given.
+ * @summary List an employee's training records
+ */
+export const listEmployeeTrainingRecords = async (
+  clientId: string,
+  employeeId: string,
+  params?: ListEmployeeTrainingRecordsParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EmployeeTrainingRecordListResponse> => {
+  return apiFetch<EmployeeTrainingRecordListResponse>(
+    getListEmployeeTrainingRecordsUrl(clientId, employeeId, params),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getListEmployeeTrainingRecordsQueryKey = (
+  clientId: string,
+  employeeId: string,
+  params?: ListEmployeeTrainingRecordsParams
+) => {
+  return [
+    `/clients/${clientId}/employees/${employeeId}/training-records`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListEmployeeTrainingRecordsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listEmployeeTrainingRecords>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  params?: ListEmployeeTrainingRecordsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEmployeeTrainingRecords>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListEmployeeTrainingRecordsQueryKey(clientId, employeeId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listEmployeeTrainingRecords>>> = ({
+    signal,
+  }) => listEmployeeTrainingRecords(clientId, employeeId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listEmployeeTrainingRecords>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListEmployeeTrainingRecordsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listEmployeeTrainingRecords>>
+>;
+export type ListEmployeeTrainingRecordsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListEmployeeTrainingRecords<
+  TData = Awaited<ReturnType<typeof listEmployeeTrainingRecords>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  params: undefined | ListEmployeeTrainingRecordsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEmployeeTrainingRecords>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listEmployeeTrainingRecords>>,
+          TError,
+          Awaited<ReturnType<typeof listEmployeeTrainingRecords>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListEmployeeTrainingRecords<
+  TData = Awaited<ReturnType<typeof listEmployeeTrainingRecords>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  params?: ListEmployeeTrainingRecordsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEmployeeTrainingRecords>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listEmployeeTrainingRecords>>,
+          TError,
+          Awaited<ReturnType<typeof listEmployeeTrainingRecords>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListEmployeeTrainingRecords<
+  TData = Awaited<ReturnType<typeof listEmployeeTrainingRecords>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  params?: ListEmployeeTrainingRecordsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEmployeeTrainingRecords>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List an employee's training records
+ */
+
+export function useListEmployeeTrainingRecords<
+  TData = Awaited<ReturnType<typeof listEmployeeTrainingRecords>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  params?: ListEmployeeTrainingRecordsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEmployeeTrainingRecords>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListEmployeeTrainingRecordsQueryOptions(
+    clientId,
+    employeeId,
+    params,
+    options
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getListJobPositionsUrl = (clientId: string) => {
   return `/clients/${clientId}/job-positions`;

@@ -67,6 +67,19 @@ const employeeRow = {
   authorizations: null,
   commute_route: null,
   commute_minutes: null,
+  training_status: {
+    ssm_state: 'due',
+    ssm_due_on: '2026-11-01',
+    ssm_last_periodic_on: '2026-08-01',
+    psi_state: 'untrained',
+    psi_due_on: null,
+    psi_last_periodic_on: null,
+  },
+};
+
+const training = {
+  ssm: { state: 'due', dueOn: '2026-11-01', lastPeriodicOn: '2026-08-01' },
+  psi: { state: 'untrained', dueOn: null, lastPeriodicOn: null },
 };
 
 const employeeListRow = Object.fromEntries(
@@ -184,6 +197,7 @@ describe('GET /clients/{clientId}/employees', () => {
           workplace: null,
           createdAt: employeeRow.created_at,
           updatedAt: employeeRow.updated_at,
+          training,
         },
       ],
     });
@@ -256,6 +270,33 @@ describe('GET /clients/{clientId}/employees', () => {
     expect(response.status).toBe(200);
     const [listUrl] = calls('/rest/v1/employees')[0]!;
     expect(new URL(String(listUrl)).searchParams.get('status')).toBe('eq.terminated');
+  });
+
+  it('filters by a training state in either domain, leaving out the employees it does not match', async () => {
+    mockUpstream({});
+    const response = await request(`${employeesPath}?trainingState=overdue`);
+    expect(response.status).toBe(200);
+    const [listUrl] = calls('/rest/v1/employees')[0]!;
+    const query = new URL(String(listUrl)).searchParams;
+    expect(query.get('select')).toContain('training_status!inner(');
+    expect(query.get('training_status.or')).toBe('(ssm_state.eq.overdue,psi_state.eq.overdue)');
+  });
+
+  it('reads the training status without filtering when no state is asked for', async () => {
+    mockUpstream({});
+    await request(employeesPath);
+    const [listUrl] = calls('/rest/v1/employees')[0]!;
+    const query = new URL(String(listUrl)).searchParams;
+    expect(query.get('select')).toContain('training_status(');
+    expect(query.get('select')).not.toContain('!inner');
+    expect(query.get('training_status.or')).toBeNull();
+  });
+
+  it('rejects a training state that is not a filter', async () => {
+    mockUpstream({});
+    const response = await request(`${employeesPath}?trainingState=current`);
+    expect(response.status).toBe(400);
+    expect(calls('/rest/v1/employees')).toHaveLength(0);
   });
 
   it('rejects an unknown status', async () => {

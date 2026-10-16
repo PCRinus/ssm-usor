@@ -29,6 +29,7 @@ export * from './protective-equipment';
 export * from './risk-evaluations';
 export * from './risk-levels';
 export * from './service-contracts';
+export * from './trainings';
 export * from './waitlist';
 
 export const leadApplicationSchema = z.object({

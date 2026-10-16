@@ -13,6 +13,7 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { refuseWorkplaceOfAnotherClient } from '../document-data/handlers';
+import { toEmployeeTraining, type TrainingStatusRow } from '../trainings/status';
 import type {
   createEmployeeRoute,
   getEmployeeRoute,
@@ -26,7 +27,13 @@ type EmployeeRow = Database['public']['Tables']['employees']['Row'];
 
 // The job position rides along by its foreign key: every employee has exactly one.
 export const employeeListColumns =
-  'id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name), workplace_id, client_workplaces!employees_workplace_in_client(id, name)';
+  'id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name), workplace_id, client_workplaces!employees_workplace_in_client(id, name), training_status(ssm_state, ssm_due_on, ssm_last_periodic_on, psi_state, psi_due_on, psi_last_periodic_on)';
+
+// Inner, so that a filter on the status drops the employees it leaves out.
+const employeeListColumnsFilteredByTraining = employeeListColumns.replace(
+  'training_status(',
+  'training_status!inner('
+) as typeof employeeListColumns;
 
 // The CNP and the training-sheet details are read only for one employee at a time.
 export const employeeColumns = `${employeeListColumns}, cnp, birth_date, birth_place, home_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_minutes`;
@@ -50,6 +57,7 @@ type EmployeeListRow = Pick<
 > & {
   job_positions: { id: string; name: string };
   client_workplaces: { id: string; name: string } | null;
+  training_status: TrainingStatusRow | null;
 };
 
 export function toEmployeeListItem(row: EmployeeListRow): EmployeeListItem {
@@ -69,12 +77,13 @@ export function toEmployeeListItem(row: EmployeeListRow): EmployeeListItem {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     workplace: row.client_workplaces,
+    training: toEmployeeTraining(row.training_status),
   };
 }
 
 export function toEmployee(
-  row: Omit<EmployeeRow, 'organization_id' | 'created_by' | 'job_position_id'> &
-    Pick<EmployeeListRow, 'job_positions' | 'client_workplaces'>
+  row: Omit<EmployeeRow, 'organization_id' | 'created_by' | 'job_position_id' | 'training_status'> &
+    Pick<EmployeeListRow, 'job_positions' | 'client_workplaces' | 'training_status'>
 ): Employee {
   return {
     ...toEmployeeListItem(row),
@@ -166,12 +175,21 @@ const sortColumns: Record<EmployeeSortKey, string[]> = {
 
 export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
-  const { status, page, pageSize, sort, order } = c.req.valid('query');
+  const { status, trainingState, page, pageSize, sort, order } = c.req.valid('query');
   const db = createDataClient(c);
   await findClient(db, clientId);
   const filtered = () => {
-    const base = db.from('employees').select(employeeListColumns, { count: 'exact' });
-    const scoped = base.eq('client_id', clientId).is('archived_at', null);
+    const base = db
+      .from('employees')
+      .select(trainingState ? employeeListColumnsFilteredByTraining : employeeListColumns, {
+        count: 'exact',
+      });
+    const trained = trainingState
+      ? base.or(`ssm_state.eq.${trainingState},psi_state.eq.${trainingState}`, {
+          referencedTable: 'training_status',
+        })
+      : base;
+    const scoped = trained.eq('client_id', clientId).is('archived_at', null);
     return status ? scoped.eq('status', status) : scoped.neq('status', 'terminated');
   };
   let query = filtered();
