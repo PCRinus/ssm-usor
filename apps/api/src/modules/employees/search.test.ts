@@ -203,6 +203,26 @@ describe('GET /employees', () => {
     expect(query.get('client.stage')).toBe('eq.client');
   });
 
+  it('filters by a training state in either domain, leaving out the employees it does not match', async () => {
+    mockUpstream();
+    const response = await request('/employees?trainingState=due');
+    expect(response.status).toBe(200);
+    const query = employeesQuery();
+    expect(query.get('select')).toContain('training_status!inner(');
+    expect(query.get('select')).toContain('client:clients!employees_client_id_fkey!inner(');
+    expect(query.get('training_status.or')).toBe('(ssm_state.eq.due,psi_state.eq.due)');
+    expect(query.get('client.archived_at')).toBe('is.null');
+  });
+
+  it('reads the training status without filtering when no state is asked for', async () => {
+    mockUpstream();
+    await request('/employees');
+    const query = employeesQuery();
+    expect(query.get('select')).toContain('training_status(');
+    expect(query.get('select')).not.toContain('training_status!inner');
+    expect(query.get('training_status.or')).toBeNull();
+  });
+
   it('searches the name, the employee number and the client name', async () => {
     mockUpstream();
     await request(`/employees?q=${encodeURIComponent('Ștefan șantier')}`);
@@ -229,14 +249,17 @@ describe('GET /employees', () => {
     expect(query.get('offset')).toBe('25');
   });
 
-  it.each(['sort=cnp', 'clientId=not-a-uuid', 'status=suspended'])('rejects %s', async (search) => {
-    mockUpstream();
-    const response = await request(`/employees?${search}`);
-    expect(response.status).toBe(400);
-    expect(
-      fetchMock.mock.calls.some(([input]) => String(input).includes('/rest/v1/employees'))
-    ).toBe(false);
-  });
+  it.each(['sort=cnp', 'clientId=not-a-uuid', 'status=suspended', 'trainingState=current'])(
+    'rejects %s',
+    async (search) => {
+      mockUpstream();
+      const response = await request(`/employees?${search}`);
+      expect(response.status).toBe(400);
+      expect(
+        fetchMock.mock.calls.some(([input]) => String(input).includes('/rest/v1/employees'))
+      ).toBe(false);
+    }
+  );
 
   it('answers a page past the end with an empty page and the real total', async () => {
     let call = 0;

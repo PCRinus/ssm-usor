@@ -55,6 +55,7 @@ import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
+import { employeeSections } from '@/features/employees/employee-sections';
 import { instructionSections } from '@/features/instructions/instruction-sections';
 import { legislationSections } from '@/features/legislation/legislation-sections';
 
@@ -117,6 +118,62 @@ function NavGroup({
   );
 }
 
+const employeeRouteId = '/_authenticated/clients/$clientId/employees/$employeeId';
+
+function useOpenEmployee() {
+  return useMatches({
+    select: (matches) => {
+      const match = matches.find((item) => item.routeId === employeeRouteId);
+      if (!match) return null;
+      const { clientId, employeeId } = match.params as { clientId: string; employeeId: string };
+      return { clientId, employeeId, name: loaderCrumb(match.loaderData) };
+    },
+  });
+}
+
+function EmployeeNavGroup({
+  employee,
+  pathname,
+  onNavigate,
+}: {
+  employee: { clientId: string; employeeId: string; name?: string };
+  pathname: string;
+  onNavigate: () => void;
+}) {
+  const base = `/clients/${employee.clientId}/employees/${employee.employeeId}`;
+  const paths = [base, `${base}/training/ssm`, `${base}/training/psi`];
+  return (
+    <NavGroup open>
+      <SidebarMenuSub data-testid="nav-employee-group">
+        {employee.name && (
+          <li className="truncate px-2 pt-1 text-xs text-sidebar-foreground/70">{employee.name}</li>
+        )}
+        {employeeSections.map((section, index) => {
+          const path = paths[index]!;
+          const active = section.exact
+            ? pathname === path
+            : pathname === path || pathname.startsWith(`${path}/`);
+          return (
+            <SidebarMenuSubItem key={section.to}>
+              <SidebarMenuSubButton asChild isActive={active}>
+                <Link
+                  to={section.to}
+                  params={{ clientId: employee.clientId, employeeId: employee.employeeId }}
+                  data-testid="nav-sub-entry"
+                  aria-current={active ? 'page' : undefined}
+                  onClick={onNavigate}
+                >
+                  <span>{section.label}</span>
+                </Link>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          );
+        })}
+      </SidebarMenuSub>
+    </NavGroup>
+  );
+}
+
 function initials(name: string | undefined, email: string) {
   const words = name?.split(/\s+/).filter(Boolean) ?? [];
   const letters = words.length > 1 ? `${words[0]![0]}${words.at(-1)![0]}` : (words[0] ?? email);
@@ -149,6 +206,7 @@ function AppNavigation({
     if (isMobile) setOpenMobile(false);
   };
   const within = (to: string) => pathname === to || pathname.startsWith(`${to}/`);
+  const openEmployee = useOpenEmployee();
   return (
     <Sidebar collapsible="icon" className="sticky top-16 bottom-auto h-[calc(100svh-4rem)]">
       <SidebarContent>
@@ -162,7 +220,8 @@ function AppNavigation({
                     const { to, label, icon: Icon } = entry;
                     const children = 'children' in entry ? entry.children : undefined;
                     const inside = within(to);
-                    const expanded = children !== undefined && inside;
+                    const employee = to === '/clients' ? openEmployee : null;
+                    const expanded = (children !== undefined && inside) || employee !== null;
                     return (
                       <SidebarMenuItem key={to}>
                         <SidebarMenuButton
@@ -205,6 +264,13 @@ function AppNavigation({
                               ))}
                             </SidebarMenuSub>
                           </NavGroup>
+                        )}
+                        {employee && (
+                          <EmployeeNavGroup
+                            employee={employee}
+                            pathname={pathname}
+                            onNavigate={closeOnMobile}
+                          />
                         )}
                       </SidebarMenuItem>
                     );

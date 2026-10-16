@@ -12,13 +12,14 @@ import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
+import { TrainingStateFilter } from '@/features/trainings/training-state-filter';
 
 import { employeeColumns, type EmployeeRow } from './employee-columns';
 import { employeeStatusLabels } from './employee-format';
 import { type EmployeeStatusChange, EmployeeStatusDialog } from './employee-status-dialog';
 import { EmployeesNoMatch } from './employees-no-match';
 
-const employeesRoute = getRouteApi('/_authenticated/clients/$clientId/employees/');
+const employeesRoute = getRouteApi('/_authenticated/clients/$clientId/employees/_views/');
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
 const defaultSort: DataTableSort & { sort: EmployeeSortKey } = { sort: 'name', order: 'asc' };
@@ -39,6 +40,7 @@ export function EmployeesPage() {
   const readOnly = clientRoute.useLoaderData().client.archivedAt !== null;
   const {
     status,
+    trainingState,
     page = 1,
     sort = defaultSort.sort,
     order = defaultSort.order,
@@ -49,6 +51,7 @@ export function EmployeesPage() {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const params = {
     ...(status ? { status } : {}),
+    ...(trainingState ? { trainingState } : {}),
     ...(q ? { q } : {}),
     page,
     pageSize: defaultPageSize,
@@ -94,7 +97,10 @@ export function EmployeesPage() {
                   key={filter.label}
                   to="/clients/$clientId/employees"
                   params={{ clientId }}
-                  search={{ ...(filter.status ? { status: filter.status } : {}), q }}
+                  search={{
+                    ...(filter.status ? { status: filter.status } : {}),
+                    q,
+                  }}
                   data-testid={filter.testId}
                   aria-current={active ? 'page' : undefined}
                   replace
@@ -122,6 +128,18 @@ export function EmployeesPage() {
             label="Caută angajați"
             testId="employees-search"
           />
+          {status !== 'terminated' && (
+            <TrainingStateFilter
+              value={trainingState}
+              testId="employees-training-filter"
+              onChange={(next) =>
+                void navigate({
+                  replace: true,
+                  search: (prev) => ({ ...prev, trainingState: next, page: undefined }),
+                })
+              }
+            />
+          )}
           {employees.isSuccess && (
             <span className="ml-auto text-sm text-muted-foreground" data-testid="employees-count">
               {meta.total === 1 ? '1 angajat' : `${meta.total} angajați`}
@@ -195,6 +213,20 @@ export function EmployeesPage() {
                   void navigate({
                     replace: true,
                     search: (prev) => ({ ...prev, q: undefined, page: undefined }),
+                  })
+                }
+              />
+            ) : trainingState ? (
+              <EmployeesNoMatch
+                title="Niciun angajat în această stare a instruirii"
+                hint="Ceilalți angajați sunt în altă stare. Arată-i pe toți pentru a-i vedea."
+                testId="employees-empty"
+                clearLabel="Arată toți angajații"
+                clearTestId="employees-empty-clear-training-state"
+                onClear={() =>
+                  void navigate({
+                    replace: true,
+                    search: (prev) => ({ ...prev, trainingState: undefined, page: undefined }),
                   })
                 }
               />

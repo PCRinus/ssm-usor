@@ -418,7 +418,10 @@ export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = 
 };
 
 // Two foreign keys lead to clients, the plain one and the one that pins the organization.
-const organizationEmployeeListColumns = `${employeeListColumns}, client:clients!employees_client_id_fkey!inner(id, legal_name)`;
+const clientColumns = 'client:clients!employees_client_id_fkey!inner(id, legal_name)';
+const organizationEmployeeListColumns = `${employeeListColumns}, ${clientColumns}` as const;
+const organizationEmployeeListColumnsFilteredByTraining =
+  `${employeeListColumnsFilteredByTraining}, ${clientColumns}` as typeof organizationEmployeeListColumns;
 
 type OrganizationEmployeeListRow = EmployeeListRow & { client: { id: string; legal_name: string } };
 
@@ -439,12 +442,24 @@ export const listOrganizationEmployees: RouteHandler<
   typeof listOrganizationEmployeesRoute,
   ApiEnv
 > = async (c) => {
-  const { status, clientId, q, page, pageSize, sort, order } = c.req.valid('query');
+  const { status, clientId, trainingState, q, page, pageSize, sort, order } = c.req.valid('query');
   const db = createDataClient(c);
   const filtered = () => {
-    let query = db
+    const base = db
       .from('employees')
-      .select(organizationEmployeeListColumns, { count: 'exact' })
+      .select(
+        trainingState
+          ? organizationEmployeeListColumnsFilteredByTraining
+          : organizationEmployeeListColumns,
+        { count: 'exact' }
+      );
+    let query = (
+      trainingState
+        ? base.or(`ssm_state.eq.${trainingState},psi_state.eq.${trainingState}`, {
+            referencedTable: 'training_status',
+          })
+        : base
+    )
       .is('archived_at', null)
       // Only an owner reads leads, and the list should not change with the role.
       .eq('client.stage', 'client')

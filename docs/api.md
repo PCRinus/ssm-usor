@@ -139,13 +139,15 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                               |
 | `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                                              |
 | `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=&trainingState=&q=`              |
-| `GET /employees`                                                       | Verified user with a membership       | The organization's employees across its active clients, each with `client`; `?clientId=&status=&q=`                       |
+| `GET /employees`                                                       | Verified user with a membership       | The organization's employees across its active clients, each with `client`; `?clientId=&status=&trainingState=&q=`        |
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                                               |
 | `GET /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                                               |
 | `PUT /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }` after replacing what was entered about them                                                       |
 | `PATCH /clients/{clientId}/employees/{employeeId}/status`              | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating                                      |
 | `PATCH /clients/{clientId}/employees/{employeeId}/job-position`        | Verified user with a membership       | `{ "employee": { … } }` in the new job position                                                                           |
 | `GET /clients/{clientId}/employees/{employeeId}/training-records`      | Verified user with a membership       | `{ "items": [ … ] }`, each record with its `training`, newest first; `?domain=`                                           |
+| `GET /clients/{clientId}/employees/{employeeId}/training-sheets`       | Verified user with a membership       | `{ "ssm": { ready, missing }, "psi": { ready, missing } }`: whether each individual training sheet can be drawn up        |
+| `GET /clients/{clientId}/employees/{employeeId}/training-sheet`        | Verified user with a membership       | `200 application/pdf`, the sheet built on the spot; `?domain=ssm\|psi`; `409 missing_sheet_data`, `503 pdf_unavailable`   |
 | `GET /clients/{clientId}/trainings`                                    | Verified user with a membership       | `{ "items": [ … ] }`, newest first, each with `attendeeCount`; `?domain=&phase=`                                          |
 | `GET /clients/{clientId}/trainings/proposal`                           | Verified user with a membership       | `{ durationMinutes, material, trainer, … }`; `?domain=&phase=&heldOn=&jobPositionId=`                                     |
 | `POST /clients/{clientId}/trainings`                                   | Verified user with a membership       | `201 { "training": { …, "records": [ … ] } }`                                                                             |
@@ -380,8 +382,7 @@ the organization's list: the same row as a client's list plus `client: { id, nam
 envelope, current employees by default and `?status=terminated` for the leavers, `?clientId=`
 for one client, and `q` matching the client's name as well. Only employees of active clients
 are listed, never those of archived ones. Leads are never included, so an owner and a specialist see the same list. It sorts by `name` (the default),
-`client`, `jobPosition` or `hiredAt`. A filter by training state comes with the training
-records (ADR 021, step 3), with the state on each row.
+`client`, `jobPosition` or `hiredAt`, and takes `?trainingState=` as a client's list does.
 
 Job positions ([ADR 006](architecture/adr-006-job-positions.md)) are the posts a client
 employs people in. The list is not paginated, since a client has a handful, leaves archived
@@ -437,6 +438,23 @@ execution staff and the specialist's (the technician's) for technical-administra
 as the themes have it; the specialist verifies every occupational safety training and nobody
 a fire-safety one; the trainer of a workplace training admits to work. A `jobPositionId` of
 another client is `400`.
+
+The two individual training sheets
+([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)) are built on demand
+and never stored. `GET …/employees/{employeeId}/training-sheets` answers for both domains
+whether the sheet can be drawn up and, when not, the codes of what is missing:
+`employee.commute_route` on the occupational safety sheet while the route is empty, and
+`employee.workplace` on both while the employee has no workplace at a client with more than one
+active workplace. Nothing else blocks a sheet, and a leaver's sheets are drawn up too.
+`GET …/employees/{employeeId}/training-sheet?domain=ssm|psi` builds the merge data from the
+employee, the position, the workplace and the domain's training records
+([document engine](document-engine.md#sheets)), merges the newest registered version of the
+template `training_sheet_ssm` or `training_sheet_psi`, converts it with the converter issuing
+uses, and answers the PDF as an attachment named in ASCII after the domain and the person,
+`Fisa-SSM-Popescu-Ion.pdf`. Missing data answers `409` with the reason `missing_sheet_data`
+and the codes under `missing`, before anything is merged; no converter, `503` with the reason
+`pdf_unavailable`, as printing does; a template not registered yet, `503` with the reason
+`template_missing`. An employee who is not the client's is `404`.
 
 Employees carry `training: { ssm, psi }`, each `{ state, dueOn, lastPeriodicOn }`, in the list
 and the detail: `state` is `untrained`, `current`, `due` or `overdue`, null for a leaver, and

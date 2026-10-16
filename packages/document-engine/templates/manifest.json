@@ -287,6 +287,16 @@
         "kind": "correction",
         "note": "Corecturi de limbă: „Am luat cunoștință” în blocul de predare-primire."
       }
+    },
+    {
+      "perEmployee": true,
+      "typeKey": "training_sheet_ssm",
+      "title": "Fișa individuală de instruire SSM",
+      "file": "fisa_instruire_ssm.docx",
+      "change": {
+        "kind": "layout",
+        "note": "Fișa de instruire individuală a fiecărui angajat, după modelul din anexa nr. 11 la normele metodologice aprobate prin H.G. 1425/2006."
+      }
     }
   ]
 }

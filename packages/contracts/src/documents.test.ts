@@ -17,6 +17,7 @@ import {
   isDatedDocumentType,
   maxFirstFireDecisionNumber,
 } from './documents';
+import { trainingSheetTypeKeys } from './training-sheets';
 
 describe('documentSetOf', () => {
   it.each(documentSets)('places every built-in type of the %s set in it', (set) => {
@@ -35,6 +36,11 @@ describe('the sets', () => {
   it('share no type key', () => {
     const occupational = new Set<string>(documentSetTypeKeys.occupational_safety);
     expect(fireSafetyDocumentTypeKeys.filter((key) => occupational.has(key))).toEqual([]);
+  });
+
+  it('hold none of the individual training sheets, which belong to an employee', () => {
+    const inSets = new Set<string>(Object.values(documentSetTypeKeys).flat());
+    expect(Object.values(trainingSheetTypeKeys).filter((key) => inSets.has(key))).toEqual([]);
   });
 
   it('each have a group of their own', () => {

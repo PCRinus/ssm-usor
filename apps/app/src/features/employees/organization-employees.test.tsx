@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { untrained } from '@/test/training-fixture';
 
 const petromId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const navalId = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
@@ -44,6 +45,7 @@ const employee = (
   hiredAt: '2020-03-01',
   status: 'active',
   terminatedAt: null,
+  training: untrained,
   createdAt: '2026-09-17T10:00:00+00:00',
   updatedAt: '2026-09-17T10:00:00+00:00',
   client: { id: clientId, name: clientName },

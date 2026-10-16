@@ -1,10 +1,12 @@
 import { readFileSync } from 'node:fs';
 
 import {
+  documentSetTypeKeys,
   documentTypeKeys,
   fireSafetyDocumentTypeKeys,
   fireSafetyMissingDocumentData,
   isDatedDocumentType,
+  trainingSheetTypeKeys,
 } from '@ssm-usor/contracts';
 import {
   annexTitlePage,
@@ -38,9 +40,17 @@ import { annexTitlePagesData } from '../../src/modules/documents/snapshot';
 // code cannot: the templates, merged with the context the API builds.
 
 const templatesUrl = new URL('../../../../packages/document-engine/templates/', import.meta.url);
-const manifest = JSON.parse(readFileSync(new URL('manifest.json', templatesUrl), 'utf8')) as {
-  templates: { typeKey: string; title: string; file: string }[];
-};
+type ManifestEntry = { typeKey: string; title: string; file: string; perEmployee?: true };
+const manifestIn = (folder: URL) =>
+  JSON.parse(readFileSync(new URL('manifest.json', folder), 'utf8')) as {
+    templates: ManifestEntry[];
+  };
+// The individual training sheets are registered with the set's templates and never merged with
+// a client's context (ADR 021).
+const setTemplatesIn = (folder: URL) => ({
+  templates: manifestIn(folder).templates.filter((entry) => !entry.perEmployee),
+});
+const manifest = setTemplatesIn(templatesUrl);
 
 const refusedFor = (merging: () => unknown) => {
   try {
@@ -53,6 +63,23 @@ const refusedFor = (merging: () => unknown) => {
     throw error;
   }
 };
+
+describe('the per-employee templates', () => {
+  const perEmployee = [templatesUrl, new URL('fire/', templatesUrl)].flatMap((folder) =>
+    manifestIn(folder)
+      .templates.filter((entry) => entry.perEmployee)
+      .map((entry) => entry.typeKey)
+  );
+
+  it('are the two individual training sheets', () => {
+    expect(perEmployee).toEqual(Object.values(trainingSheetTypeKeys));
+  });
+
+  it('are never part of a set', () => {
+    const inSets = new Set<string>(Object.values(documentSetTypeKeys).flat());
+    expect(perEmployee.filter((typeKey) => inSets.has(typeKey))).toEqual([]);
+  });
+});
 
 describe('the built-in templates', () => {
   it('are the document types of the contracts, in the same order', () => {
@@ -794,9 +821,7 @@ describe('the risk assessment', () => {
 
 describe('the fire-safety templates', () => {
   const fireUrl = new URL('fire/', templatesUrl);
-  const fireManifest = JSON.parse(readFileSync(new URL('manifest.json', fireUrl), 'utf8')) as {
-    templates: { typeKey: string; title: string; file: string }[];
-  };
+  const fireManifest = setTemplatesIn(fireUrl);
 
   it('are the fire-safety document types of the contracts, in the same order', () => {
     expect(fireManifest.templates.map((entry) => entry.typeKey)).toEqual([

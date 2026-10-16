@@ -382,7 +382,10 @@ export async function listClientDocuments(
 
 type Template = { typeKey: string; title: string; versionId: string; storagePath: string };
 
-async function builtInTemplates(db: DataClient, typeKeys: readonly string[]): Promise<Template[]> {
+export async function builtInTemplates(
+  db: DataClient,
+  typeKeys: readonly string[]
+): Promise<Template[]> {
   const { data, error } = await db
     .from('document_templates')
     .select('type_key, title, document_template_versions(id, version, storage_path)')

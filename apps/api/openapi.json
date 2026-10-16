@@ -2542,6 +2542,69 @@
         },
         "required": ["items"]
       },
+      "TrainingSheetsResponse": {
+        "type": "object",
+        "properties": {
+          "ssm": {
+            "type": "object",
+            "properties": {
+              "ready": {
+                "type": "boolean"
+              },
+              "missing": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["employee.commute_route", "employee.workplace"]
+                }
+              }
+            },
+            "required": ["ready", "missing"]
+          },
+          "psi": {
+            "type": "object",
+            "properties": {
+              "ready": {
+                "type": "boolean"
+              },
+              "missing": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["employee.commute_route", "employee.workplace"]
+                }
+              }
+            },
+            "required": ["ready", "missing"]
+          }
+        },
+        "required": ["ssm", "psi"]
+      },
+      "MissingSheetDataResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": ["conflict"]
+          },
+          "message": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["missing_sheet_data"]
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["employee.commute_route", "employee.workplace"]
+            },
+            "minItems": 1
+          }
+        },
+        "required": ["error", "message", "reason", "missing"]
+      },
       "JobPositionListResponse": {
         "type": "object",
         "properties": {
@@ -11877,7 +11940,7 @@
       "get": {
         "operationId": "listOrganizationEmployees",
         "summary": "List the organization's employees across its clients",
-        "description": "Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are never listed. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics.",
+        "description": "Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are never listed. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics. `trainingState` keeps the employees in that training state in either domain.",
         "security": [
           {
             "bearerAuth": []
@@ -11941,6 +12004,15 @@
             },
             "required": false,
             "name": "clientId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["untrained", "due", "overdue"]
+            },
+            "required": false,
+            "name": "trainingState",
             "in": "query"
           },
           {
@@ -12806,6 +12878,234 @@
           },
           "503": {
             "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/training-sheets": {
+      "get": {
+        "operationId": "getTrainingSheets",
+        "summary": "Whether an employee's two individual training sheets can be drawn up",
+        "description": "For each domain, `ready` and the codes of what is missing (ADR 021): the commute route on the occupational safety sheet (`employee.commute_route`), and on both the workplace when the client has more than one active workplace and the employee has none (`employee.workplace`). Every other empty line prints empty. A former employee's sheets are drawn up too.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The readiness of both sheets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingSheetsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/training-sheet": {
+      "get": {
+        "operationId": "getTrainingSheet",
+        "summary": "Download an employee's individual training sheet of a domain as a PDF",
+        "description": "Built on the spot from the employee, their workplace and position, and their training records of the domain, merged into the newest registered version of the sheet's template and converted by the converter that makes the PDFs at issuing; nothing is stored. Hiring trainings not recorded yet print blank, and the periodic tables run on in blank rows to the end of their page for signing on paper.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "psi"]
+            },
+            "required": true,
+            "name": "domain",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sheet, named in `Content-Disposition`",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or domain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Data the sheet needs is missing (reason `missing_sheet_data`, the codes under `missing`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MissingSheetDataResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Supabase is unavailable, the template is not registered (reason `template_missing`), or there is no converter or it failed (reason `pdf_unavailable`)",
             "content": {
               "application/json": {
                 "schema": {

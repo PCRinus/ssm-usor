@@ -1935,6 +1935,67 @@ export interface EmployeeTrainingRecordListResponse {
   items: EmployeeTrainingRecordListResponseItemsItem[];
 }
 
+export type TrainingSheetsResponseSsmMissingItem =
+  (typeof TrainingSheetsResponseSsmMissingItem)[keyof typeof TrainingSheetsResponseSsmMissingItem];
+
+export const TrainingSheetsResponseSsmMissingItem = {
+  employeecommute_route: 'employee.commute_route',
+  employeeworkplace: 'employee.workplace',
+} as const;
+
+export type TrainingSheetsResponseSsm = {
+  ready: boolean;
+  missing: TrainingSheetsResponseSsmMissingItem[];
+};
+
+export type TrainingSheetsResponsePsiMissingItem =
+  (typeof TrainingSheetsResponsePsiMissingItem)[keyof typeof TrainingSheetsResponsePsiMissingItem];
+
+export const TrainingSheetsResponsePsiMissingItem = {
+  employeecommute_route: 'employee.commute_route',
+  employeeworkplace: 'employee.workplace',
+} as const;
+
+export type TrainingSheetsResponsePsi = {
+  ready: boolean;
+  missing: TrainingSheetsResponsePsiMissingItem[];
+};
+
+export interface TrainingSheetsResponse {
+  ssm: TrainingSheetsResponseSsm;
+  psi: TrainingSheetsResponsePsi;
+}
+
+export type MissingSheetDataResponseError =
+  (typeof MissingSheetDataResponseError)[keyof typeof MissingSheetDataResponseError];
+
+export const MissingSheetDataResponseError = {
+  conflict: 'conflict',
+} as const;
+
+export type MissingSheetDataResponseReason =
+  (typeof MissingSheetDataResponseReason)[keyof typeof MissingSheetDataResponseReason];
+
+export const MissingSheetDataResponseReason = {
+  missing_sheet_data: 'missing_sheet_data',
+} as const;
+
+export type MissingSheetDataResponseMissingItem =
+  (typeof MissingSheetDataResponseMissingItem)[keyof typeof MissingSheetDataResponseMissingItem];
+
+export const MissingSheetDataResponseMissingItem = {
+  employeecommute_route: 'employee.commute_route',
+  employeeworkplace: 'employee.workplace',
+} as const;
+
+export interface MissingSheetDataResponse {
+  error: MissingSheetDataResponseError;
+  message: string;
+  reason: MissingSheetDataResponseReason;
+  /** @minItems 1 */
+  missing: MissingSheetDataResponseMissingItem[];
+}
+
 export type JobPositionListResponseItemsItemStaffCategory =
   (typeof JobPositionListResponseItemsItemStaffCategory)[keyof typeof JobPositionListResponseItemsItemStaffCategory];
 
@@ -6855,6 +6916,7 @@ export type ListOrganizationEmployeesParams = {
   order?: ListOrganizationEmployeesOrder;
   status?: ListOrganizationEmployeesStatus;
   clientId?: string;
+  trainingState?: ListOrganizationEmployeesTrainingState;
   /**
    * @maxLength 100
    */
@@ -6885,6 +6947,15 @@ export type ListOrganizationEmployeesStatus =
 export const ListOrganizationEmployeesStatus = {
   active: 'active',
   terminated: 'terminated',
+} as const;
+
+export type ListOrganizationEmployeesTrainingState =
+  (typeof ListOrganizationEmployeesTrainingState)[keyof typeof ListOrganizationEmployeesTrainingState];
+
+export const ListOrganizationEmployeesTrainingState = {
+  untrained: 'untrained',
+  due: 'due',
+  overdue: 'overdue',
 } as const;
 
 export type ListTrainingsParams = {
@@ -6941,6 +7012,18 @@ export type ListEmployeeTrainingRecordsDomain =
   (typeof ListEmployeeTrainingRecordsDomain)[keyof typeof ListEmployeeTrainingRecordsDomain];
 
 export const ListEmployeeTrainingRecordsDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type GetTrainingSheetParams = {
+  domain: GetTrainingSheetDomain;
+};
+
+export type GetTrainingSheetDomain =
+  (typeof GetTrainingSheetDomain)[keyof typeof GetTrainingSheetDomain];
+
+export const GetTrainingSheetDomain = {
   ssm: 'ssm',
   psi: 'psi',
 } as const;
@@ -9594,7 +9677,7 @@ export const getListOrganizationEmployeesUrl = (params?: ListOrganizationEmploye
 };
 
 /**
- * Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are never listed. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics.
+ * Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are never listed. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics. `trainingState` keeps the employees in that training state in either domain.
  * @summary List the organization's employees across its clients
  */
 export const listOrganizationEmployees = async (
@@ -10639,6 +10722,308 @@ export function useListEmployeeTrainingRecords<
     params,
     options
   );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetTrainingSheetsUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/training-sheets`;
+};
+
+/**
+ * For each domain, `ready` and the codes of what is missing (ADR 021): the commute route on the occupational safety sheet (`employee.commute_route`), and on both the workplace when the client has more than one active workplace and the employee has none (`employee.workplace`). Every other empty line prints empty. A former employee's sheets are drawn up too.
+ * @summary Whether an employee's two individual training sheets can be drawn up
+ */
+export const getTrainingSheets = async (
+  clientId: string,
+  employeeId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TrainingSheetsResponse> => {
+  return apiFetch<TrainingSheetsResponse>(getGetTrainingSheetsUrl(clientId, employeeId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetTrainingSheetsQueryKey = (clientId: string, employeeId: string) => {
+  return [`/clients/${clientId}/employees/${employeeId}/training-sheets`] as const;
+};
+
+export const getGetTrainingSheetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTrainingSheets>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrainingSheets>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTrainingSheetsQueryKey(clientId, employeeId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTrainingSheets>>> = ({ signal }) =>
+    getTrainingSheets(clientId, employeeId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getTrainingSheets>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetTrainingSheetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTrainingSheets>>
+>;
+export type GetTrainingSheetsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetTrainingSheets<
+  TData = Awaited<ReturnType<typeof getTrainingSheets>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrainingSheets>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTrainingSheets>>,
+          TError,
+          Awaited<ReturnType<typeof getTrainingSheets>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTrainingSheets<
+  TData = Awaited<ReturnType<typeof getTrainingSheets>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrainingSheets>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTrainingSheets>>,
+          TError,
+          Awaited<ReturnType<typeof getTrainingSheets>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTrainingSheets<
+  TData = Awaited<ReturnType<typeof getTrainingSheets>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrainingSheets>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Whether an employee's two individual training sheets can be drawn up
+ */
+
+export function useGetTrainingSheets<
+  TData = Awaited<ReturnType<typeof getTrainingSheets>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrainingSheets>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetTrainingSheetsQueryOptions(clientId, employeeId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetTrainingSheetUrl = (
+  clientId: string,
+  employeeId: string,
+  params: GetTrainingSheetParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/employees/${employeeId}/training-sheet?${stringifiedParams}`
+    : `/clients/${clientId}/employees/${employeeId}/training-sheet`;
+};
+
+/**
+ * Built on the spot from the employee, their workplace and position, and their training records of the domain, merged into the newest registered version of the sheet's template and converted by the converter that makes the PDFs at issuing; nothing is stored. Hiring trainings not recorded yet print blank, and the periodic tables run on in blank rows to the end of their page for signing on paper.
+ * @summary Download an employee's individual training sheet of a domain as a PDF
+ */
+export const getTrainingSheet = async (
+  clientId: string,
+  employeeId: string,
+  params: GetTrainingSheetParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getGetTrainingSheetUrl(clientId, employeeId, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetTrainingSheetQueryKey = (
+  clientId: string,
+  employeeId: string,
+  params?: GetTrainingSheetParams
+) => {
+  return [
+    `/clients/${clientId}/employees/${employeeId}/training-sheet`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetTrainingSheetQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTrainingSheet>>,
+  TError = ErrorType<ApiErrorResponse | MissingSheetDataResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  params: GetTrainingSheetParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrainingSheet>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTrainingSheetQueryKey(clientId, employeeId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTrainingSheet>>> = ({ signal }) =>
+    getTrainingSheet(clientId, employeeId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getTrainingSheet>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetTrainingSheetQueryResult = NonNullable<Awaited<ReturnType<typeof getTrainingSheet>>>;
+export type GetTrainingSheetQueryError = ErrorType<ApiErrorResponse | MissingSheetDataResponse>;
+
+export function useGetTrainingSheet<
+  TData = Awaited<ReturnType<typeof getTrainingSheet>>,
+  TError = ErrorType<ApiErrorResponse | MissingSheetDataResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  params: GetTrainingSheetParams,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrainingSheet>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTrainingSheet>>,
+          TError,
+          Awaited<ReturnType<typeof getTrainingSheet>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTrainingSheet<
+  TData = Awaited<ReturnType<typeof getTrainingSheet>>,
+  TError = ErrorType<ApiErrorResponse | MissingSheetDataResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  params: GetTrainingSheetParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrainingSheet>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTrainingSheet>>,
+          TError,
+          Awaited<ReturnType<typeof getTrainingSheet>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTrainingSheet<
+  TData = Awaited<ReturnType<typeof getTrainingSheet>>,
+  TError = ErrorType<ApiErrorResponse | MissingSheetDataResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  params: GetTrainingSheetParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrainingSheet>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Download an employee's individual training sheet of a domain as a PDF
+ */
+
+export function useGetTrainingSheet<
+  TData = Awaited<ReturnType<typeof getTrainingSheet>>,
+  TError = ErrorType<ApiErrorResponse | MissingSheetDataResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  params: GetTrainingSheetParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrainingSheet>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetTrainingSheetQueryOptions(clientId, employeeId, params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

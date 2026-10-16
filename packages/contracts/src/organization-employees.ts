@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { employeeListItemSchema, employeeStatusSchema } from './employees';
 import { listQuerySchema, listSearchSchema, pageSchema } from './list';
+import { trainingStateFilterSchema } from './trainings';
 
 export const organizationEmployeeSortKeys = ['name', 'client', 'jobPosition', 'hiredAt'] as const;
 export type OrganizationEmployeeSortKey = (typeof organizationEmployeeSortKeys)[number];
@@ -12,6 +13,7 @@ export const listOrganizationEmployeesQuerySchema = listQuerySchema(
 ).extend({
   status: employeeStatusSchema.optional(),
   clientId: z.uuid().optional(),
+  trainingState: trainingStateFilterSchema.optional(),
   q: listSearchSchema.optional(),
 });
 

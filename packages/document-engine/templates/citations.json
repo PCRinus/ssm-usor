@@ -13053,6 +13053,19 @@
       "text": null
     },
     {
+      "manifest": "ssm",
+      "file": "fisa_instruire_ssm.docx",
+      "typeKey": "training_sheet_ssm",
+      "paragraph": 3,
+      "lastParagraph": 3,
+      "block": null,
+      "form": "reference",
+      "act": "hg-1425-2006",
+      "article": null,
+      "locator": null,
+      "text": null
+    },
+    {
       "manifest": "fire",
       "file": "fire/1.1_fire_decision_organization.docx",
       "typeKey": "fire_decision_organization",
@@ -16858,6 +16871,19 @@
       "form": "reference",
       "act": "lege-307-2006",
       "article": "27",
+      "locator": null,
+      "text": null
+    },
+    {
+      "manifest": "fire",
+      "file": "fire/fisa_instructaj_psi.docx",
+      "typeKey": "training_sheet_psi",
+      "paragraph": 3,
+      "lastParagraph": 3,
+      "block": null,
+      "form": "reference",
+      "act": "omai-712-2005",
+      "article": null,
       "locator": null,
       "text": null
     },

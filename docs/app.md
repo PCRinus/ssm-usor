@@ -158,14 +158,16 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clients/$clientId/index.tsx`                                        | `/clients/:id`                                              | Redirects to the details.                                                                                                                                                                                   |
 | `routes/_authenticated/clients/$clientId/details.tsx`                                      | `/clients/:id/details`                                      | "Detalii": one card per kind of data, each edited in place: the company, the legal representative, the workplaces, the contact, and the owners' notes for an owner.                                         |
 | `routes/_authenticated/clients/$clientId/employees.tsx`                                    | pathless                                                    | Employees section layout carrying the breadcrumb title.                                                                                                                                                     |
-| `routes/_authenticated/clients/$clientId/employees/index.tsx`                              | `/clients/:id/employees`                                    | The client's employees with a status filter and a text search (`q`) in the search params.                                                                                                                   |
+| `routes/_authenticated/clients/$clientId/employees/_views.tsx`                             | `pathless`                                                  | The two views of the employees section, "Angajați" and "Instruiri" (ADR 021), as a nested section navigation above them.                                                                                    |
+| `routes/_authenticated/clients/$clientId/employees/_views/index.tsx`                       | `/clients/:id/employees`                                    | The client's employees with a status filter, a training-state filter (`trainingState`) and a text search (`q`) in the search params.                                                                        |
+| `routes/_authenticated/clients/$clientId/employees/_views/trainings.tsx`                   | `/clients/:id/employees/trainings`                          | "Instruiri" (ADR 021): the trainings held at the client, newest first, with the domain and the phase in the search params.                                                                                  |
 | `routes/_authenticated/clients/$clientId/employees/new.tsx`                                | `/clients/:id/employees/new`                                | Form that adds an employee to the client.                                                                                                                                                                   |
 | `routes/_authenticated/clients/$clientId/job-positions/index.tsx`                          | `/clients/:id/job-positions`                                | The client's job positions (ADR 006): the posts it employs people in, then the risk evaluations that are not of a position (ADR 015).                                                                       |
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId.tsx`                 | `/clients/:id/job-positions/:jobPositionId`                 | Layout of one position: finds it in the client's list of positions and names the breadcrumb.                                                                                                                |
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/index.tsx`           | `/clients/:id/job-positions/:jobPositionId`                 | One position with its protective equipment (ADR 011), the instruction modules it applies (ADR 012) and its risk evaluation (ADR 015).                                                                       |
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/risk-evaluation.tsx` | `/clients/:id/job-positions/:jobPositionId/risk-evaluation` | The position's risk evaluation, read by the position; offers to start one while there is none.                                                                                                              |
 | `routes/_authenticated/clients/$clientId/job-positions/risk-evaluations.$evaluationId.tsx` | `/clients/:id/job-positions/risk-evaluations/:evaluationId` | A risk evaluation that is not of a position: the sensitive groups, or one with a name. A position's evaluation found here redirects to its address under the position.                                      |
-| `routes/_authenticated/employees/index.tsx`                                                | `/employees`                                                | "Angajați" (ADR 021), the sidebar entry after "Clienți": every client's employees in one list, with the current/former filter, a client filter, the text search and the sort in the search params.          |
+| `routes/_authenticated/employees/index.tsx`                                                | `/employees`                                                | "Angajați" (ADR 021), the sidebar entry after "Clienți": every client's employees in one list, with the status, client and training-state filters, the text search and the sort in the search params.       |
 | `routes/_authenticated/instructions.tsx`                                                   | `/instructions`                                             | Layout of the instruction library (ADR 012), the sidebar entry between the clients and the organization.                                                                                                    |
 | `routes/_authenticated/instructions/index.tsx`                                             | `/instructions`                                             | Opens the SSM tab, `/instructions/ssm`.                                                                                                                                                                     |
 | `routes/_authenticated/instructions/_library.tsx`                                          | `/instructions/*`                                           | Pathless layout of the library: the title and the section navigation with one tab per domain.                                                                                                               |
@@ -187,7 +189,11 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clients/$clientId/documents/$documentId.tsx`                        | `/clients/:id/documents/:documentId`                        | One document in the in-app Word editor; a full page.                                                                                                                                                        |
 | `routes/_authenticated/clients/$clientId/fire-safety-documents/index.tsx`                  | `/clients/:id/fire-safety-documents`                        | "Documente PSI", the client's fire-safety set (ADR 016): the same card, sections and actions as "Documente SSM".                                                                                            |
 | `routes/_authenticated/clients/$clientId/fire-safety-documents/$documentId.tsx`            | `/clients/:id/fire-safety-documents/:documentId`            | One fire-safety document in the in-app Word editor; a full page.                                                                                                                                            |
-| `routes/_authenticated/clients/$clientId/employees/$employeeId.tsx`                        | `/clients/:id/employees/:employeeId`                        | Employee record, the only page that can reveal the CNP.                                                                                                                                                     |
+| `routes/_authenticated/clients/$clientId/employees/$employeeId.tsx`                        | `/clients/:id/employees/:employeeId`                        | Employee layout: loads the employee, names the breadcrumb, and shows the header and the tabs "Date", "Instruire SSM" and "Instruire PSI".                                                                   |
+| `routes/_authenticated/clients/$clientId/employees/$employeeId/index.tsx`                  | `/clients/:id/employees/:employeeId`                        | "Date": the employee record and files, the only page that can reveal the CNP.                                                                                                                               |
+| `routes/_authenticated/clients/$clientId/employees/$employeeId/training/index.tsx`         | `/clients/:id/employees/:employeeId/training`               | Redirects to "Instruire SSM".                                                                                                                                                                               |
+| `routes/_authenticated/clients/$clientId/employees/$employeeId/training/ssm.tsx`           | `/clients/:id/employees/:employeeId/training/ssm`           | "Instruire SSM" (ADR 021): the occupational safety state and records of the employee.                                                                                                                       |
+| `routes/_authenticated/clients/$clientId/employees/$employeeId/training/psi.tsx`           | `/clients/:id/employees/:employeeId/training/psi`           | "Instruire PSI" (ADR 021): the fire-safety state and records of the employee.                                                                                                                               |
 | `routes/_authenticated/clients/$clientId/contract/index.tsx`                               | `/clients/:id/contract`                                     | "Contract", for owners: the client's service contract (ADR 007).                                                                                                                                            |
 | `routes/_authenticated/clients/$clientId/contract/edit.tsx`                                | `/clients/:id/contract/edit`                                | The client's contract in the editor; a full page.                                                                                                                                                           |
 | `routes/_authenticated/clients/$clientId/other-documents.tsx`                              | `/clients/:id/other-documents`                              | Layout of "Alte documente" carrying the breadcrumb title.                                                                                                                                                   |
@@ -436,20 +442,64 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   position and the hire date. Above it, the current/former filter, a client combobox over the
   first hundred active clients (`?clientId=`), and the search box "Caută după nume, marcă sau
   client"; filters, sort and search reset to page one. Without any employee it says how
-  employees are added, from a client's page. The training-state columns and filter come with
-  the training records (ADR 021, steps 3 and 4).
+  employees are added, from a client's page. The training-state column and filter are those of
+  a client's list, described below.
 - Date fields use `src/components/date-picker.tsx`: a text input for typed Romanian dates
   (`dd.mm.yyyy`, also with slashes or dashes) next to a button that opens the shadcn calendar
   (react-day-picker, Romanian locale, month and year dropdowns, optional bounds). The form
   only ever receives ISO dates; helpers live in `src/lib/dates.ts`.
-- `/clients/:id/employees/:employeeId`: the employee record from the detail endpoint, opened
-  from the name in the list and rendered without the client summary and tabs. Sections mirror
+- `/clients/:id/employees/:employeeId`: the employee from the detail endpoint, opened from the
+  name in the list and rendered without the client summary and tabs
+  (`src/features/employees/employee-layout.tsx`). A header carries the name, the post, the
+  client and the status, with "Modifică" and the status action, above three tabs: **Date**,
+  **Instruire SSM** and **Instruire PSI**; while an employee is open, the sidebar folds the same
+  three out under "Clienți", headed by the name. The **Date** tab holds the record: sections mirror
   the form: identity, employment (with the computed tenure and the leave date), contact
   (`mailto:` and `tel:` links), and the training-sheet fields; missing values show a dash. The
   CNP stays masked to its last four digits until **Arată** is pressed and is masked again on
   every visit. The status action opens the same dialog as the list; both invalidate the list
   and the record. The loader warms the query and names the breadcrumb; a 404 shows a not-found
   screen.
+- Training records (ADR 021, `src/features/trainings/`): each training tab of an employee
+  shows the domain's state as a badge ("Neinstruit", "La zi", "Scadentă", "Depășită"; none for a
+  leaver), the next training due and the last periodic training, from the employee's `training`
+  field, then the records from `GET …/employees/{employeeId}/training-records?domain=`, newest
+  first: phase, day, duration ("120 min (2 h)"), the occupation, the material clamped to two
+  lines behind "mai mult", who trained and verified with their functions, the supplementary
+  reason, "Admis la lucru de … la …" and a badge for a record taken from paper. An empty
+  `training-tab-actions` container at the top right is kept for the sheet's download.
+  "Înregistrează o instruire" opens the recording dialog with the employee as the only
+  attendee, proposing the next hiring phase until both are recorded; a record's "Modifică" and
+  "Șterge" act on its training held, which with other attendees turns the dialog into the
+  attendee checklist and says "Această instruire are N participanți; modificarea îi privește
+  pe toți".
+- `/clients/:id/employees/trainings`, "Instruiri": the client's trainings held from
+  `GET /clients/{clientId}/trainings`, newest first, filtered by domain ("Toate", "SSM", "PSI"
+  links, `?domain=`) and by phase (a select, `?phase=`), both replacing the history entry; each
+  row has the day, the phase with its domain and paper badges, the duration, the trainer, the
+  number of attendees and the clamped material, with "Modifică" and "Șterge" (after a
+  confirmation naming the attendees it concerns) in its menu. An empty list says so for the
+  filter chosen.
+- The recording dialog (`training-dialog.tsx`) creates with `POST …/trainings` or replaces with
+  `PUT …/trainings/{trainingId}`: domain, phase, day (today by default, never after), source
+  (in the app or from a paper sheet), the job position (required except for the
+  introductory general training), the attendees, then duration, material, trainer, verifier
+  (SSM only) and, for the workplace training, "Admis la lucru"; the supplementary reason for a
+  supplementary training, and notes. The attendees are the client's current employees of the
+  position, every one of them for an introductory general training, as a searchable checklist
+  with "Toți" and "Niciunul"; a periodic training ticks the whole post when the post is chosen,
+  and editing keeps the training's attendees listed. Once the domain, phase, day and position
+  are set, `GET …/trainings/proposal` fills every field the person has not typed in, and a
+  later proposal never overwrites one they have; without a material it says the themes are not
+  generated yet. The proposal's `themesRevisionId` goes with the material. Editing starts from
+  what was saved and asks for no proposal. A `400` lands on its field; saving invalidates the
+  trainings, the employees' records and pages, and both employee lists.
+- Training state in the lists: the client's employees and the root "Angajați" page have a
+  column "Instruire" with a small "SSM" and "PSI" badge, muted for "La zi", amber for
+  "Scadentă", red for "Depășită", outlined for "Neinstruit", none for a leaver, the state and
+  due date in the tooltip and read out; chips "Toate / Scadente / Depășite / Neinstruiți" set
+  `?trainingState=` with a replaced history entry and back to page one, and are hidden on the
+  former employees.
 - `/clients/:id/employees/new`: the creation form, rendered without the client summary and
   tabs (`staticData.fullPage`); a disabled first field names the client. Sections: employer, identity
   (name, optional CNP and internal number), employment (job title, hire date), contact, and
@@ -514,6 +564,15 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   workplace only when it was changed, so a workplace archived since stays on the person and is
   listed as "Arhivat". The employee page shows the same facts in the same order, in its section
   "Fișa de instruire".
+- `TrainingSheetDownload` (`src/features/training-sheets/training-sheet-download.tsx`, ADR 021)
+  takes the client, the employee and a domain and renders "Descarcă fișa SSM" or "Descarcă fișa
+  PSI": it reads both sheets' readiness from `GET …/employees/{employeeId}/training-sheets`,
+  fetches the PDF from `GET …/training-sheet?domain=` and saves it under the name the API
+  gives. While data is missing the button is disabled and a warning lists what to fill in,
+  "Fișa nu se poate întocmi până nu completezi: traseul de deplasare, punctul de lucru", with
+  "Completează datele" opening the employee's edit form; a failed download is a toast, "Convertorul
+  PDF nu este disponibil" when there is no converter. Each training view of the employee page
+  holds one, in its `training-tab-actions` container.
 - `/clients/:clientId/training`: the "Instruire și responsabili" section of a client, what its
   generated documentation prints beyond the registration data (ADR 005), with the
   responsible persons below. The first card holds the periodic training schedule: duration, interval for administrative staff and for workers, first month, and the

@@ -222,7 +222,7 @@ export const listOrganizationEmployeesRoute = createRoute({
   operationId: 'listOrganizationEmployees',
   summary: "List the organization's employees across its clients",
   description:
-    "Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are never listed. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics.",
+    "Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are never listed. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics. `trainingState` keeps the employees in that training state in either domain.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { query: listOrganizationEmployeesQuerySchema },

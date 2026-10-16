@@ -1,0 +1,300 @@
+import {
+  supplementaryTrainingReasonLabels,
+  type TrainingDomain,
+  trainingDomainLabels,
+  type TrainingPhase,
+  trainingPhaseLabels,
+} from '@ssm-usor/contracts';
+import { Badge } from '@ssm-usor/ui/components/badge';
+import { Button } from '@ssm-usor/ui/components/button';
+import { Skeleton } from '@ssm-usor/ui/components/skeleton';
+import { getRouteApi, useRouteContext } from '@tanstack/react-router';
+import { ClipboardCheck, Pencil, Plus, Trash2 } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
+
+import {
+  type EmployeeTrainingRecordListResponse,
+  getListEmployeeTrainingRecordsQueryKey,
+  useListEmployeeTrainingRecords,
+} from '@/api/generated/api';
+import { EmptyState } from '@/components/empty-state';
+import { Notice } from '@/components/notice';
+import { useAuth } from '@/features/auth/auth-context';
+import { formatDate } from '@/features/employees/employee-format';
+import { EmployeePending } from '@/features/employees/employee-pending';
+import { useEmployee } from '@/features/employees/use-employee';
+import { TrainingSheetDownload } from '@/features/training-sheets/training-sheet-download';
+
+import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
+import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
+import { formatDuration, formatPerson } from './training-format';
+import { TrainingMaterial } from './training-material';
+import { TrainingStateBadge } from './training-state-badge';
+
+type EmployeeTrainingRecord = EmployeeTrainingRecordListResponse['items'][number];
+
+const employeeRoute = getRouteApi('/_authenticated/clients/$clientId/employees/$employeeId');
+const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
+
+// A new hire's trainings come in the law's order; afterwards the periodic one is the usual.
+function nextPhase(records: EmployeeTrainingRecord[]): TrainingPhase {
+  const held = new Set(records.map((record) => record.training.phase));
+  if (!held.has('introductory_general')) return 'introductory_general';
+  if (!held.has('workplace')) return 'workplace';
+  return 'periodic';
+}
+
+function StatusFact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid gap-1">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="text-sm font-medium">{children}</dd>
+    </div>
+  );
+}
+
+export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
+  const { clientId, employeeId } = employeeRoute.useParams();
+  const readOnly = clientRoute.useLoaderData().client.archivedAt !== null;
+  const { session } = useAuth();
+  const userId = session?.user.id ?? '';
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const employee = useEmployee(clientId, employeeId).data?.employee;
+  const params = { domain };
+  const records = useListEmployeeTrainingRecords(clientId, employeeId, params, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getListEmployeeTrainingRecordsQueryKey(clientId, employeeId, params), userId],
+      enabled: Boolean(userId && apiRequest.baseUrl),
+    },
+  });
+  const [target, setTarget] = useState<TrainingDialogTarget | null>(null);
+  const [deleting, setDeleting] = useState<TrainingToDelete | null>(null);
+  if (!employee) return <EmployeePending />;
+  const status = employee.training[domain];
+  const label = trainingDomainLabels[domain];
+  const items = records.data?.items ?? [];
+  const record = () => setTarget({ kind: 'new', domain, phase: nextPhase(items) });
+  const recordButton = !readOnly && (
+    <Button data-testid="training-record" disabled={!records.data} onClick={record}>
+      <Plus aria-hidden="true" />
+      Înregistrează o instruire
+    </Button>
+  );
+
+  return (
+    <div data-testid="employee-training-tab" data-domain={domain} className="grid gap-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <h2 className="text-lg font-semibold">Instruire {label}</h2>
+        <div className="flex flex-wrap gap-2">
+          <div data-testid="training-tab-actions" className="flex flex-wrap gap-2">
+            <TrainingSheetDownload clientId={clientId} employeeId={employeeId} domain={domain} />
+          </div>
+          {recordButton}
+        </div>
+      </div>
+
+      <dl
+        data-testid="training-status"
+        className="grid gap-4 rounded-lg border bg-card px-5 py-4 sm:grid-cols-3"
+      >
+        <StatusFact label="Starea instruirii">
+          {status.state ? (
+            <TrainingStateBadge state={status.state} testId="training-state" />
+          ) : (
+            <span className="font-normal text-muted-foreground" data-testid="training-state">
+              Fără termen: nu mai lucrează la client
+            </span>
+          )}
+        </StatusFact>
+        <StatusFact label="Următoarea instruire">
+          <span data-testid="training-due-on">
+            {status.dueOn ? (
+              formatDate(status.dueOn)
+            ) : (
+              <span className="font-normal text-muted-foreground">
+                {status.state ? 'Intervalul de instruire nu este stabilit' : '—'}
+              </span>
+            )}
+          </span>
+        </StatusFact>
+        <StatusFact label="Ultima instruire periodică">
+          <span data-testid="training-last-periodic">
+            {status.lastPeriodicOn ? (
+              formatDate(status.lastPeriodicOn)
+            ) : (
+              <span className="font-normal text-muted-foreground">—</span>
+            )}
+          </span>
+        </StatusFact>
+      </dl>
+
+      {records.isError ? (
+        <Notice
+          variant="destructive"
+          data-testid="training-records-error"
+          action={
+            <Button
+              variant="outline"
+              disabled={records.isFetching}
+              onClick={() => void records.refetch()}
+            >
+              Încearcă din nou
+            </Button>
+          }
+        >
+          Nu am putut încărca instruirile. Încearcă din nou.
+        </Notice>
+      ) : !records.data ? (
+        <div className="grid gap-3" aria-busy="true">
+          <Skeleton className="h-28 w-full rounded-lg" />
+          <Skeleton className="h-28 w-full rounded-lg" />
+        </div>
+      ) : items.length === 0 ? (
+        <div className="rounded-lg border bg-card px-5 py-10">
+          <EmptyState
+            icon={ClipboardCheck}
+            data-testid="training-records-empty"
+            actions={recordButton}
+          >
+            Nicio instruire înregistrată încă. Fiecare instruire {label} a angajatului apare aici și
+            în fișa lui individuală.
+          </EmptyState>
+        </div>
+      ) : (
+        <ol className="grid gap-3" aria-label={`Instruirile ${label}`}>
+          {items.map((item) => (
+            <RecordItem
+              key={item.id}
+              record={item}
+              readOnly={readOnly}
+              onEdit={() => setTarget({ kind: 'edit', trainingId: item.training.id })}
+              onDelete={() =>
+                setDeleting({
+                  id: item.training.id,
+                  phase: item.training.phase,
+                  heldOn: item.training.heldOn,
+                })
+              }
+            />
+          ))}
+        </ol>
+      )}
+
+      <TrainingDialog
+        clientId={clientId}
+        userId={userId}
+        target={target}
+        fixedAttendee={employee}
+        onClose={() => setTarget(null)}
+      />
+      <DeleteTrainingDialog
+        clientId={clientId}
+        userId={userId}
+        training={deleting}
+        onClose={() => setDeleting(null)}
+      />
+    </div>
+  );
+}
+
+function RecordItem({
+  record,
+  readOnly,
+  onEdit,
+  onDelete,
+}: {
+  record: EmployeeTrainingRecord;
+  readOnly: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { training, admission } = record;
+  return (
+    <li
+      data-testid="training-record-item"
+      data-phase={training.phase}
+      className="grid gap-3 rounded-lg border bg-card px-5 py-4"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="font-medium">{trainingPhaseLabels[training.phase]}</span>
+            <span className="text-sm text-muted-foreground tabular-nums">
+              {formatDate(training.heldOn)}
+            </span>
+            {training.source === 'paper' && (
+              <Badge variant="outline" data-testid="training-record-paper">
+                De pe fișa de hârtie
+              </Badge>
+            )}
+          </p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            <span data-testid="training-record-duration">
+              {formatDuration(training.durationMinutes)}
+            </span>{' '}
+            · {record.occupation}
+          </p>
+        </div>
+        {!readOnly && (
+          <div className="flex gap-1">
+            <Button variant="ghost" size="sm" data-testid="training-record-edit" onClick={onEdit}>
+              <Pencil aria-hidden="true" />
+              Modifică
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              data-testid="training-record-delete"
+              onClick={onDelete}
+            >
+              <Trash2 aria-hidden="true" />
+              Șterge
+            </Button>
+          </div>
+        )}
+      </div>
+      <TrainingMaterial text={training.material} />
+      <dl className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
+        <RecordFact label="A instruit">{formatPerson(training.trainer)}</RecordFact>
+        {training.verifier && (
+          <RecordFact label="A verificat">{formatPerson(training.verifier)}</RecordFact>
+        )}
+        {training.supplementaryReason && (
+          <RecordFact label="Motivul" wide>
+            {supplementaryTrainingReasonLabels[training.supplementaryReason]}
+          </RecordFact>
+        )}
+        {admission && (
+          <RecordFact label="Admitere" wide>
+            <span data-testid="training-record-admission">
+              Admis la lucru de {formatPerson(admission)} la {formatDate(admission.admittedOn)}
+            </span>
+          </RecordFact>
+        )}
+        {training.notes && (
+          <RecordFact label="Observații" wide>
+            {training.notes}
+          </RecordFact>
+        )}
+      </dl>
+    </li>
+  );
+}
+
+function RecordFact({
+  label,
+  wide,
+  children,
+}: {
+  label: string;
+  wide?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className={wide ? 'sm:col-span-2' : undefined}>
+      <dt className="inline text-muted-foreground">{label}: </dt>
+      <dd className="inline break-words">{children}</dd>
+    </div>
+  );
+}
