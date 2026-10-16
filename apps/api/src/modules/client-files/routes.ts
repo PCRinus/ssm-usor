@@ -42,7 +42,7 @@ export const listClientFilesRoute = createRoute({
   operationId: 'listClientFiles',
   summary: "List a client's files",
   description:
-    "The files the caller can see, newest first (ADR 013). A specialist does not see the files for owners only, so a count shown to them counts only theirs. Each names the employee it belongs to, if any; `employeeId` keeps only that employee's files (ADR 021).",
+    "The files the caller can see, newest first (ADR 013). A specialist does not see the files for owners only, so a count shown to them counts only theirs. Without `employeeId` the list holds the client's own files only; with it, only that employee's files, each naming the employee (ADR 021).",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams, query: listClientFilesQuerySchema },

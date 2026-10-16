@@ -7202,6 +7202,9 @@ export type UploadClientDocumentParams = {
 };
 
 export type ListClientFilesParams = {
+  /**
+   * One of the client's employees, whose files the list holds; without it, the list holds the client's own files only.
+   */
   employeeId?: string;
 };
 
@@ -22929,7 +22932,7 @@ export const getListClientFilesUrl = (clientId: string, params?: ListClientFiles
 };
 
 /**
- * The files the caller can see, newest first (ADR 013). A specialist does not see the files for owners only, so a count shown to them counts only theirs. Each names the employee it belongs to, if any; `employeeId` keeps only that employee's files (ADR 021).
+ * The files the caller can see, newest first (ADR 013). A specialist does not see the files for owners only, so a count shown to them counts only theirs. Without `employeeId` the list holds the client's own files only; with it, only that employee's files, each naming the employee (ADR 021).
  * @summary List a client's files
  */
 export const listClientFiles = async (

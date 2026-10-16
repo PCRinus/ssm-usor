@@ -120,7 +120,6 @@ function UploadForm({
             <DialogDescription data-testid="client-files-upload-employee">
               Pentru angajatul{' '}
               <span className="font-medium text-foreground">{formatEmployeeName(employee)}</span>.
-              Apar și în Alte documente ale clientului.
             </DialogDescription>
           )}
         </DialogHeader>

@@ -67,7 +67,7 @@ From the due date, a **training state** per domain: _neinstruit_ while the emplo
 
 ### History kept on paper comes in as records and as files
 
-A client onboarded with sheets filled by hand gets its history two ways. A training held can be recorded for a past day with the source _de pe fișa de hârtie_, the material and the duration typed, the signatures understood to be on the paper; the minimum for the due dates is the hiring trainings and the last periodic training per employee. And a **client file** ([ADR 013](adr-013-client-files.md)) can be attached to an employee: the photograph or the scan of the paper sheet, uploaded from the employee's page and listed there, and under the client's files with the employee's name. The workers' representative's course certificate of [ADR 010](adr-010-conditional-documents.md) is such a file too. Extracting the rows of a photographed sheet into proposed records is a feature of its own, after the records exist.
+A client onboarded with sheets filled by hand gets its history two ways. A training held can be recorded for a past day with the source _de pe fișa de hârtie_, the material and the duration typed, the signatures understood to be on the paper; the minimum for the due dates is the hiring trainings and the last periodic training per employee. And a **client file** ([ADR 013](adr-013-client-files.md)) can be attached to an employee: the photograph or the scan of the paper sheet, uploaded from the employee's page and listed there, and under the client's files with the employee's name. The workers' representative's course certificate of [ADR 010](adr-010-conditional-documents.md) is such a file too. Extracting the rows of a photographed sheet into proposed records is a feature of its own, after the records exist. (Note of 2026-10-17: an employee's files are listed on the employee's page only. The client's "Alte documente" lists the client's own files, those of no employee, because the files of every employee there buried the client's own.)
 
 ### A page of the organization's employees, with search
 
@@ -92,7 +92,7 @@ The app gains a root page _Angajați_, every current employee of every client of
 - The employee form grows five optional fields and a workplace; the sheets, not the form, refuse to print without the route and, at a multi-site client, the workplace.
 - "Locul de muncă" has a fourth meaning in the source forms, the place a person works, and the glossary says what the sheets print for it.
 - The glossary's training session stays the planned session of the themes; a training held is what happened, and a training record is one person's attendance.
-- Client files can belong to an employee; the client's files list shows whose.
+- Client files can belong to an employee; the client's files list shows whose. (Note of 2026-10-17: it no longer does; it holds the client's own files only, and an employee's stay on their page.)
 - The employees API gains an organization-wide list with text search; the first index on a function of a text column, and the first use of `unaccent`.
 - The old decision against a global employee list is reversed in part: the list exists, with the training states that make it an exceptions view.
 
