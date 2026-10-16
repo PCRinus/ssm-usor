@@ -139,7 +139,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                               |
 | `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                                              |
 | `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=&trainingState=&q=`              |
-| `GET /employees`                                                       | Verified user with a membership       | The organization's employees across its clients, each with `client`; `?clientId=&status=&q=&includeArchivedClients=`      |
+| `GET /employees`                                                       | Verified user with a membership       | The organization's employees across its active clients, each with `client`; `?clientId=&status=&q=`                       |
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                                               |
 | `GET /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                                               |
 | `PUT /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }` after replacing what was entered about them                                                       |
@@ -379,8 +379,7 @@ filters nothing. See the [data model](data-model.md#employees) for how the datab
 the organization's list: the same row as a client's list plus `client: { id, name }`, the same
 envelope, current employees by default and `?status=terminated` for the leavers, `?clientId=`
 for one client, and `q` matching the client's name as well. Only employees of active clients
-are listed; `?includeArchivedClients=true` adds those of archived ones. Leads are never
-included, so an owner and a specialist see the same list. It sorts by `name` (the default),
+are listed, never those of archived ones. Leads are never included, so an owner and a specialist see the same list. It sorts by `name` (the default),
 `client`, `jobPosition` or `hiredAt`. A filter by training state comes with the training
 records (ADR 021, step 3), with the state on each row.
 

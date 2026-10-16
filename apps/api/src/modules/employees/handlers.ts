@@ -439,8 +439,7 @@ export const listOrganizationEmployees: RouteHandler<
   typeof listOrganizationEmployeesRoute,
   ApiEnv
 > = async (c) => {
-  const { status, clientId, q, includeArchivedClients, page, pageSize, sort, order } =
-    c.req.valid('query');
+  const { status, clientId, q, page, pageSize, sort, order } = c.req.valid('query');
   const db = createDataClient(c);
   const filtered = () => {
     let query = db
@@ -448,8 +447,8 @@ export const listOrganizationEmployees: RouteHandler<
       .select(organizationEmployeeListColumns, { count: 'exact' })
       .is('archived_at', null)
       // Only an owner reads leads, and the list should not change with the role.
-      .eq('client.stage', 'client');
-    if (includeArchivedClients === 'false') query = query.is('client.archived_at', null);
+      .eq('client.stage', 'client')
+      .is('client.archived_at', null);
     if (clientId) query = query.eq('client_id', clientId);
     query = status ? query.eq('status', status) : query.neq('status', 'terminated');
     return matchingEveryTerm(query, q, organizationEmployeeSearchFields).returns<

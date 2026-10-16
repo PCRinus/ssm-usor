@@ -13,7 +13,6 @@ export const listOrganizationEmployeesQuerySchema = listQuerySchema(
   status: employeeStatusSchema.optional(),
   clientId: z.uuid().optional(),
   q: listSearchSchema.optional(),
-  includeArchivedClients: z.enum(['true', 'false']).default('false'),
 });
 
 export type ListOrganizationEmployeesQuery = z.infer<typeof listOrganizationEmployeesQuerySchema>;

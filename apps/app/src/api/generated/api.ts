@@ -6859,7 +6859,6 @@ export type ListOrganizationEmployeesParams = {
    * @maxLength 100
    */
   q?: string;
-  includeArchivedClients?: ListOrganizationEmployeesIncludeArchivedClients;
 };
 
 export type ListOrganizationEmployeesSort =
@@ -6886,14 +6885,6 @@ export type ListOrganizationEmployeesStatus =
 export const ListOrganizationEmployeesStatus = {
   active: 'active',
   terminated: 'terminated',
-} as const;
-
-export type ListOrganizationEmployeesIncludeArchivedClients =
-  (typeof ListOrganizationEmployeesIncludeArchivedClients)[keyof typeof ListOrganizationEmployeesIncludeArchivedClients];
-
-export const ListOrganizationEmployeesIncludeArchivedClients = {
-  true: 'true',
-  false: 'false',
 } as const;
 
 export type ListTrainingsParams = {
@@ -9603,7 +9594,7 @@ export const getListOrganizationEmployeesUrl = (params?: ListOrganizationEmploye
 };
 
 /**
- * Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are left out unless `includeArchivedClients=true`. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics.
+ * Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are never listed. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics.
  * @summary List the organization's employees across its clients
  */
 export const listOrganizationEmployees = async (

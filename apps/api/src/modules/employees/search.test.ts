@@ -185,13 +185,13 @@ describe('GET /employees', () => {
     );
   });
 
-  it('filters by client, status and archived clients', async () => {
+  it('filters by client and status, never listing archived clients', async () => {
     mockUpstream();
-    await request(`/employees?clientId=${clientId}&status=terminated&includeArchivedClients=true`);
+    await request(`/employees?clientId=${clientId}&status=terminated`);
     const query = employeesQuery();
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
     expect(query.get('status')).toBe('eq.terminated');
-    expect(query.has('client.archived_at')).toBe(false);
+    expect(query.get('client.archived_at')).toBe('is.null');
     expect(query.get('client.stage')).toBe('eq.client');
   });
 
@@ -221,17 +221,14 @@ describe('GET /employees', () => {
     expect(query.get('offset')).toBe('25');
   });
 
-  it.each(['sort=cnp', 'clientId=not-a-uuid', 'status=suspended', 'includeArchivedClients=yes'])(
-    'rejects %s',
-    async (search) => {
-      mockUpstream();
-      const response = await request(`/employees?${search}`);
-      expect(response.status).toBe(400);
-      expect(
-        fetchMock.mock.calls.some(([input]) => String(input).includes('/rest/v1/employees'))
-      ).toBe(false);
-    }
-  );
+  it.each(['sort=cnp', 'clientId=not-a-uuid', 'status=suspended'])('rejects %s', async (search) => {
+    mockUpstream();
+    const response = await request(`/employees?${search}`);
+    expect(response.status).toBe(400);
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).includes('/rest/v1/employees'))
+    ).toBe(false);
+  });
 
   it('answers a page past the end with an empty page and the real total', async () => {
     let call = 0;
