@@ -14,6 +14,7 @@ import { type ReactNode, useState } from 'react';
 import { getGetEmployeeQueryKey, useGetEmployee } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { useAuth } from '@/features/auth/auth-context';
+import { EmployeeFilesCard } from '@/features/client-files/employee-files-card';
 
 import { formatDate, formatTenure, todayIso } from './employee-format';
 import { EmployeeJobPositionDialog } from './employee-job-position-dialog';
@@ -200,6 +201,8 @@ export function EmployeePage() {
             {employee.notes}
           </Fact>
         </Section>
+
+        <EmployeeFilesCard employee={employee} />
       </div>
       <EmployeeStatusDialog clientId={clientId} change={change} onClose={() => setChange(null)} />
       <EmployeeJobPositionDialog

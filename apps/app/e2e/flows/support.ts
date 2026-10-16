@@ -593,6 +593,11 @@ export async function cleanUp() {
     await admin.from('client_fire_safety').delete().eq('organization_id', id);
     // Their records go with them, and the records restrict the deletion of the employees.
     await admin.from('trainings').delete().eq('organization_id', id);
+    // Before the employees, whom a file can belong to.
+    const files = await admin.from('client_files').select('storage_path').eq('organization_id', id);
+    const filePaths = (files.data ?? []).map((file) => file.storage_path as string);
+    if (filePaths.length > 0) await admin.storage.from('client-files').remove(filePaths);
+    await admin.from('client_files').delete().eq('organization_id', id);
     await admin.from('employees').delete().eq('organization_id', id);
     // After the employees, who point at them.
     await admin.from('client_workplaces').delete().eq('organization_id', id);
@@ -601,10 +606,6 @@ export async function cleanUp() {
     // After the employees, who point at them.
     await admin.from('job_positions').delete().eq('organization_id', id);
     await admin.from('client_owner_notes').delete().eq('organization_id', id);
-    const files = await admin.from('client_files').select('storage_path').eq('organization_id', id);
-    const filePaths = (files.data ?? []).map((file) => file.storage_path as string);
-    if (filePaths.length > 0) await admin.storage.from('client-files').remove(filePaths);
-    await admin.from('client_files').delete().eq('organization_id', id);
     await admin.from('service_contracts').delete().eq('organization_id', id);
     await admin.from('clients').delete().eq('organization_id', id);
     await admin.from('organizations').delete().eq('id', id);
