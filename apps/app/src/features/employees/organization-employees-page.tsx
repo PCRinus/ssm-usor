@@ -94,7 +94,6 @@ export function OrganizationEmployeesPage() {
                   search={{
                     ...(filter.status ? { status: filter.status } : {}),
                     clientId,
-                    trainingState,
                     q,
                   }}
                   data-testid={filter.testId}
