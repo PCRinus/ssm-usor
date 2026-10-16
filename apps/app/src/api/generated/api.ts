@@ -6855,6 +6855,7 @@ export type ListOrganizationEmployeesParams = {
   order?: ListOrganizationEmployeesOrder;
   status?: ListOrganizationEmployeesStatus;
   clientId?: string;
+  trainingState?: ListOrganizationEmployeesTrainingState;
   /**
    * @maxLength 100
    */
@@ -6885,6 +6886,15 @@ export type ListOrganizationEmployeesStatus =
 export const ListOrganizationEmployeesStatus = {
   active: 'active',
   terminated: 'terminated',
+} as const;
+
+export type ListOrganizationEmployeesTrainingState =
+  (typeof ListOrganizationEmployeesTrainingState)[keyof typeof ListOrganizationEmployeesTrainingState];
+
+export const ListOrganizationEmployeesTrainingState = {
+  untrained: 'untrained',
+  due: 'due',
+  overdue: 'overdue',
 } as const;
 
 export type ListTrainingsParams = {
@@ -9594,7 +9604,7 @@ export const getListOrganizationEmployeesUrl = (params?: ListOrganizationEmploye
 };
 
 /**
- * Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are never listed. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics.
+ * Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are never listed. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics. `trainingState` keeps the employees in that training state in either domain.
  * @summary List the organization's employees across its clients
  */
 export const listOrganizationEmployees = async (
