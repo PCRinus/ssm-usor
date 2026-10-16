@@ -3,9 +3,9 @@ import { Link } from '@tanstack/react-router';
 
 import type { OrganizationEmployeeListResponse } from '@/api/generated/api';
 import { createDataTableColumns } from '@/components/data-table/columns';
-import { TrainingStatusBadges } from '@/features/trainings/training-state-badge';
 
 import { formatDate } from './employee-format';
+import { trainingStateColumns } from './training-state-columns';
 
 export type OrganizationEmployeeRow = OrganizationEmployeeListResponse['items'][number];
 
@@ -61,12 +61,7 @@ export const organizationEmployeeColumns = helper.columns([
     enableSorting: true,
     meta: { skeletonClassName: 'w-28' },
   }),
-  helper.display({
-    id: 'training',
-    header: 'Instruire',
-    meta: { skeletonClassName: 'w-20' },
-    cell: ({ row }) => <TrainingStatusBadges training={row.original.training} />,
-  }),
+  ...trainingStateColumns<OrganizationEmployeeRow>(),
   helper.accessor('hiredAt', {
     id: 'hiredAt',
     header: 'Angajat din',
