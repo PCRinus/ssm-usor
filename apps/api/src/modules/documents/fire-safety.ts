@@ -27,7 +27,8 @@ import {
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { countOf, listed, runOn, withoutFinalStop } from '../../lib/romanian';
+import { collator, countOf, listed, runOn, withoutFinalStop } from '../../lib/romanian';
+import { filled } from '../../lib/text';
 import { type AnnualReportContext, buildAnnualReport } from './annual-report';
 import {
   type AnnexContext,
@@ -391,9 +392,6 @@ export type FireSafetySetFacts = Pick<
   | 'fireOwnInstructions'
 >;
 
-const filled = (value: string | null | undefined): value is string =>
-  typeof value === 'string' && value.trim().length > 0;
-
 const requiredWorkplaceFacts = [
   'activity',
   'assemblyPoint',
@@ -514,8 +512,6 @@ const capacityUnits: Record<FireExtinguishingAgent, string> = {
   water: 'l',
   clean_agent: 'kg',
 };
-
-const collator = new Intl.Collator('ro');
 
 const alarmKinds = new Set<FireInstallationKind>(['detection_alarm', 'gas_detection']);
 

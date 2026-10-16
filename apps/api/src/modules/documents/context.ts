@@ -19,7 +19,8 @@ import {
   trainingMonths,
 } from '@ssm-usor/contracts';
 
-import { countOf, listed } from '../../lib/romanian';
+import { collator, countOf, listed } from '../../lib/romanian';
+import { filled } from '../../lib/text';
 import type { FireSafetyClientFacts, FireWorkplaceFacts } from './fire-safety';
 import { type ContextParts, gapRules } from './gaps';
 import { asPerson, type Person, withRole } from './people';
@@ -311,9 +312,6 @@ export function undecidedJobPositions(
     }))
     .filter((position) => position.undecided.length > 0);
 }
-
-const filled = (value: string | null | undefined): value is string =>
-  typeof value === 'string' && value.trim().length > 0;
 
 /**
  * What is in the way of generating, in the order the form lists it. Empty when ready. With a
@@ -748,7 +746,6 @@ const groupOrder: Record<InstructionModuleGroup, number> = {
   work_equipment: 1,
   protective_equipment: 2,
 };
-const collator = new Intl.Collator('ro');
 
 /**
  * The modules of one domain the current positions apply, each once, numbered in group and title
