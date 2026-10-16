@@ -38,6 +38,7 @@ import {
   months,
   printedDate,
 } from './context';
+import { type ContextParts, gapRules } from './gaps';
 import { installationParts, installationText } from './installations';
 import { buildSiteSheet, type SiteSheetContext } from './site-sheet';
 import {
@@ -473,11 +474,28 @@ const printedAs: Record<FireSafetyMissingData, readonly (keyof FireSafetyContext
   'documents.fire_own_instructions': ['fireThemes'],
 };
 
+const fireSafetyGaps = gapRules<FireSafetySetFacts, FireSafetyMissingData, FireSafetyContext>({
+  missing: missingFireSafetyData,
+  printedAs,
+  parts: fireSafetyContextParts,
+});
+
 /** Whether a gap is in a name the document printed, which its snapshot keeps. */
-export function fireSafetyGapConcerns(code: string, printedNames: readonly string[]) {
-  const names = printedAs[code as FireSafetyMissingData];
-  return names === undefined || names.some((name) => printedNames.includes(name));
-}
+export const fireSafetyGapConcerns = fireSafetyGaps.concerns;
+
+/**
+ * Call `missingFireSafetyData` first: this throws when something is missing. The provider's
+ * representative is not asked for, since no fire-safety document prints it; the provider keeps
+ * the shape the occupational safety set gives it, with an empty name where none is stored.
+ */
+export const buildFireSafetyContext = fireSafetyGaps.build;
+
+/**
+ * The data one fire-safety document is merged with when it is generated again: what the gaps of
+ * `missingFireSafetyData` cover is left out rather than left blank, so a template that prints
+ * any of it has no value for it.
+ */
+export const buildPartialFireSafetyContext = fireSafetyGaps.buildPartial;
 
 const roleLabels: Partial<Record<ResponsiblePersonRole, string>> = {
   fire_intervention_leader: 'șef echipă de primă intervenție',
@@ -537,47 +555,8 @@ function otherEquipmentGroups(units: FireSafetyClientFacts['equipment']) {
     .filter((group) => group.count > 0);
 }
 
-/**
- * Call `missingFireSafetyData` first: this throws when something is missing. The provider's
- * representative is not asked for, since no fire-safety document prints it; the provider keeps
- * the shape the occupational safety set gives it, with an empty name where none is stored.
- */
-export function buildFireSafetyContext(facts: FireSafetySetFacts): FireSafetyContext {
-  const missing = missingFireSafetyData(facts);
-  if (missing.length > 0) throw new Error(`Missing document data: ${missing.join(', ')}`);
-  return fireSafetyContextWithout(facts, []) as FireSafetyContext;
-}
-
-/**
- * The data one fire-safety document is merged with when it is generated again: what the gaps of
- * `missingFireSafetyData` cover is left out rather than left blank, so a template that prints
- * any of it has no value for it.
- */
-export function buildPartialFireSafetyContext(
-  facts: FireSafetySetFacts,
-  typeKey?: string
-): Partial<FireSafetyContext> {
-  return fireSafetyContextWithout(facts, missingFireSafetyData(facts, typeKey));
-}
-
-function fireSafetyContextWithout(
-  facts: FireSafetySetFacts,
-  gaps: readonly FireSafetyMissingData[]
-): Partial<FireSafetyContext> {
-  const leftOut = new Set(gaps.flatMap((code) => printedAs[code]));
-  return Object.fromEntries(
-    Object.entries(fireSafetyContextParts(facts)).flatMap(([name, part]) => {
-      if (leftOut.has(name as keyof FireSafetyContext)) return [];
-      const value = part();
-      return value === undefined ? [] : [[name, value]];
-    })
-  );
-}
-
 // A part is only called when no gap leaves it out, which is what makes its `!` safe.
-function fireSafetyContextParts(facts: FireSafetySetFacts): {
-  [Name in keyof FireSafetyContext]-?: () => FireSafetyContext[Name];
-} {
+function fireSafetyContextParts(facts: FireSafetySetFacts): ContextParts<FireSafetyContext> {
   const { organization, client } = facts;
   const inSet = (typeKey: FireSafetyTypeKeyFromTenEmployees) =>
     documentApplies(facts, typeKey) || facts.fireSafety.generatedFromTenEmployees.includes(typeKey);

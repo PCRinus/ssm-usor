@@ -21,6 +21,7 @@ import {
 
 import { countOf, listed } from '../../lib/romanian';
 import type { FireSafetyClientFacts, FireWorkplaceFacts } from './fire-safety';
+import { type ContextParts, gapRules } from './gaps';
 import {
   incompleteRiskEvaluations,
   riskAssessment,
@@ -465,11 +466,6 @@ const printedAs = {
   'documents.fire_own_instructions': [],
 } satisfies Record<MissingDocumentData, readonly (keyof DocumentContext)[]>;
 
-/** Whether a gap is in a name a document prints: one its snapshot keeps or its template asks for. */
-export function documentGapConcerns(code: MissingDocumentData, printedNames: readonly string[]) {
-  return printedAs[code].some((name) => printedNames.includes(name));
-}
-
 // A representative whose employee has left no longer speaks for the workers.
 const currentWorkersRepresentatives = (facts: Pick<DocumentFacts, 'responsiblePersons'>) =>
   facts.responsiblePersons.filter(
@@ -550,10 +546,8 @@ export function romanianDay(timestamp: string) {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
-type ContextParts = { [Name in keyof DocumentContext]-?: () => DocumentContext[Name] };
-
 // A part is only called when no gap leaves it out, which is what makes its `!` safe.
-function contextParts(facts: DocumentFacts): ContextParts {
+function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
   const { organization, client } = facts;
   const year = Number(facts.issueDate.slice(0, 4));
   const withRole = (role: ResponsiblePersonRole): Person[] =>
@@ -727,38 +721,33 @@ function contextParts(facts: DocumentFacts): ContextParts {
   };
 }
 
-function contextWithout(facts: DocumentFacts, gaps: readonly MissingDocumentData[]) {
-  const leftOut = new Set<string>(gaps.flatMap((code) => printedAs[code]));
-  return Object.fromEntries(
-    Object.entries(contextParts(facts)).flatMap(([name, part]) => {
-      if (leftOut.has(name)) return [];
-      const value = part();
-      return value === undefined ? [] : [[name, value]];
-    })
-  );
-}
+const documentGaps = gapRules<DocumentFacts, MissingDocumentData, DocumentContext>({
+  missing: missingDocumentData,
+  printedAs,
+  parts: contextParts,
+});
+
+/** Whether a gap is in a name a document prints: one its snapshot keeps or its template asks for. */
+export const documentGapConcerns: (
+  code: MissingDocumentData,
+  printedNames: readonly string[]
+) => boolean = documentGaps.concerns;
 
 /**
  * The data every template is merged with. Call `missingDocumentData` first: this throws when
  * something is missing, because a data field is never left blank in a document.
  */
-export function buildDocumentContext(facts: DocumentFacts): DocumentContext {
-  const missing = missingDocumentData(facts);
-  if (missing.length > 0) throw new Error(`Missing document data: ${missing.join(', ')}`);
-  return contextWithout(facts, []) as DocumentContext;
-}
+export const buildDocumentContext: (facts: DocumentFacts) => DocumentContext = documentGaps.build;
 
 /**
  * The data one document is merged with when it is generated again: what the gaps of
  * `missingDocumentData(facts, typeKey)` cover is left out rather than left blank, so a template
  * that prints any of it has no value for it.
  */
-export function buildPartialDocumentContext(
+export const buildPartialDocumentContext = documentGaps.buildPartial as (
   facts: DocumentFacts,
   typeKey: string
-): PartialDocumentContext {
-  return contextWithout(facts, missingDocumentData(facts, typeKey)) as PartialDocumentContext;
-}
+) => PartialDocumentContext;
 
 const groupOrder: Record<InstructionModuleGroup, number> = {
   work_activity: 0,
