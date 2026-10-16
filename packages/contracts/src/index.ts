@@ -22,6 +22,7 @@ export * from './job-positions';
 export * from './legislation';
 export * from './list';
 export * from './mail';
+export * from './organization-employees';
 export * from './organizations';
 export * from './pdf';
 export * from './profile';
@@ -29,6 +30,7 @@ export * from './protective-equipment';
 export * from './risk-evaluations';
 export * from './risk-levels';
 export * from './service-contracts';
+export * from './trainings';
 export * from './waitlist';
 
 export const leadApplicationSchema = z.object({

@@ -77,7 +77,7 @@ ADR 019 names the trainer by staff category: the technician for the technical-ad
 ## What is left out
 
 - The evacuation plan and the intervention plan (art. 18 lit. k), art. 28 to 33 and annex 3): the evacuation plan is drawn, and a drawing editor for it is a feature of its own; the intervention plan reads the site sheet's data and needs the inspectorate's approval. Both wait for that feature, and a plan the provider has is uploaded as a client file ([ADR 013](adr-013-client-files.md)) meanwhile.
-- The training sheets, one per employee: #425, with the per-employee documents of #183.
+- The training sheets, one per employee: #425, with the per-employee documents of #183. (Built by [ADR 021](adr-021-training-records-and-individual-sheets.md), 2026-10-16.)
 - The fire risk analysis (art. 18 lit. d)): the provider has no method, and it is not the technician's work.
 - Fire-safety duties in job descriptions (art. 9), together with the occupational safety twin of #278.
 - The half-yearly analysis report, the records of evacuation and intervention exercises (art. 18 lit. l), m)) and the own control reports (lit. r)): records of events, on the dated mechanism when they come.

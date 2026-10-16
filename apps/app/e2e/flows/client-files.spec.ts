@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-import { cleanUp, createAccount, createClientCompany, createOrganization, signIn } from './support';
+import {
+  cleanUp,
+  createAccount,
+  createClientCompany,
+  createEmployee,
+  createOrganization,
+  signIn,
+} from './support';
 
 test.afterAll(cleanUp);
 
@@ -55,4 +62,46 @@ test('an owner uploads files to a client, renames one and deletes it', async ({ 
   await page.getByTestId('client-file-delete-confirm').click();
   await expect(page.getByText('„Certificat de înregistrare” a fost șters.')).toBeVisible();
   await expect(page.getByTestId('client-files-empty')).toBeVisible();
+});
+
+test('a paper training sheet uploaded on the employee page is listed there and under the client', async ({
+  page,
+}) => {
+  const owner = await createAccount('employee-files-owner', 'Olga Angajați');
+  const organizationId = await createOrganization('Fisiere angajat E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'S.C. FISIERE ANGAJAT E2E S.R.L.');
+  await createEmployee(organizationId, clientId, {
+    lastName: 'Popescu',
+    firstName: 'Ion',
+    jobTitle: 'Sudor',
+  });
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto(`/clients/${clientId}/employees`);
+  await page.getByTestId('employees-open').click();
+  const card = page.getByTestId('employee-files-card');
+  await expect(card.getByTestId('client-files-empty')).toBeVisible();
+
+  await card.getByTestId('client-files-upload').click();
+  const dialog = page.getByTestId('client-files-upload-dialog');
+  await expect(dialog.getByTestId('client-files-upload-employee')).toContainText('Popescu Ion');
+  await dialog.getByTestId('client-files-input').setInputFiles({
+    name: 'fisa de instruire 2019.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.7\n%%EOF\n'),
+  });
+  await dialog.getByTestId('client-files-upload-submit').click();
+  await expect(page.getByText('„fisa de instruire 2019” a fost încărcat.')).toBeVisible();
+  await expect(card.getByTestId('client-file-row')).toHaveCount(1);
+  await expect(card.getByTestId('client-file-employee')).toHaveCount(0);
+
+  await page.goto(`/clients/${clientId}/other-documents`);
+  const row = page.getByTestId('client-file-row');
+  await expect(row.getByTestId('client-file-open')).toHaveText('fisa de instruire 2019');
+  await expect(row.getByTestId('client-file-employee')).toHaveText('Popescu Ion');
+  await row.getByTestId('client-file-employee').click();
+  await expect(page.getByTestId('employee-page')).toBeVisible();
+  await expect(page.getByTestId('employee-files-card').getByTestId('client-file-row')).toHaveCount(
+    1
+  );
 });

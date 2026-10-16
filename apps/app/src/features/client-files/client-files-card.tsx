@@ -1,3 +1,4 @@
+import { formatEmployeeName } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -18,8 +19,17 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
-import { Download, FileUp, Lock, MoreHorizontal, Pencil, Trash2, Upload } from 'lucide-react';
+import { Link, useRouteContext } from '@tanstack/react-router';
+import {
+  Download,
+  FileUp,
+  Lock,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Upload,
+  UserRound,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import {
@@ -39,6 +49,7 @@ import { fileAddress, openDownload } from '@/lib/save-file';
 import { DeleteClientFileDialog, RenameClientFileDialog } from './client-file-dialogs';
 import {
   type ClientFile,
+  type ClientFileEmployee,
   fileKind,
   formatFileSize,
   formatUploadDate,
@@ -50,18 +61,24 @@ import { hasFiles, useFileDrop } from './use-file-drop';
 // `readOnly` is an archived company.
 export function ClientFilesCard({
   client,
+  employee,
   userId,
   readOnly,
 }: {
   client: Client;
+  employee?: ClientFileEmployee;
   userId: string;
   readOnly: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const isOwner = useMe().data?.membership?.role === 'owner';
   const lead = client.stage === 'lead';
-  const queryKey = [...getListClientFilesQueryKey(client.id), userId];
-  const files = useListClientFiles(client.id, { request: apiRequest, query: { queryKey } });
+  const params = employee ? { employeeId: employee.id } : undefined;
+  const queryKey = [...getListClientFilesQueryKey(client.id, params), userId];
+  const files = useListClientFiles(client.id, params, {
+    request: apiRequest,
+    query: { queryKey },
+  });
   const [uploading, setUploading] = useState<File[] | null>(null);
   const [renaming, setRenaming] = useState<ClientFile | null>(null);
   const [deleting, setDeleting] = useState<ClientFile | null>(null);
@@ -139,13 +156,14 @@ export function ClientFilesCard({
   return (
     <>
       <SectionCard
-        data-testid="client-files-card"
-        title="Alte documente"
+        data-testid={employee ? 'employee-files-card' : 'client-files-card'}
+        title={employee ? 'Fișiere' : 'Alte documente'}
         className="relative"
         description={
           <>
-            Certificatul de înregistrare, procese-verbale ITM, fișe de aptitudine și alte fișiere
-            despre client.
+            {employee
+              ? 'Fișele de instruire completate pe hârtie, fotografiate sau scanate, și alte fișiere despre angajat. Apar și în Alte documente ale clientului.'
+              : 'Certificatul de înregistrare, procese-verbale ITM, fișe de aptitudine și alte fișiere despre client.'}
             {lead && (
               <span data-testid="client-files-lead-hint">
                 {' '}
@@ -228,7 +246,9 @@ export function ClientFilesCard({
               {items.map((file) => (
                 <FileRow
                   key={file.id}
+                  clientId={client.id}
                   file={file}
+                  showEmployee={!employee}
                   changeable={file.canChange && !readOnly}
                   showOwnersOnly={!lead}
                   canSwitch={isOwner && !lead && !readOnly}
@@ -259,6 +279,7 @@ export function ClientFilesCard({
       {canUpload && (
         <UploadClientFilesDialog
           clientId={client.id}
+          employee={employee}
           lead={lead}
           canChooseOwnersOnly={isOwner && !lead}
           files={uploading}
@@ -281,7 +302,9 @@ export function ClientFilesCard({
 }
 
 function FileRow({
+  clientId,
   file,
+  showEmployee,
   changeable,
   showOwnersOnly,
   canSwitch,
@@ -292,7 +315,9 @@ function FileRow({
   onDelete,
   onOwnersOnly,
 }: {
+  clientId: string;
   file: ClientFile;
+  showEmployee: boolean;
   changeable: boolean;
   showOwnersOnly: boolean;
   canSwitch: boolean;
@@ -326,6 +351,17 @@ function FileRow({
             >
               {file.name}
             </button>
+            {showEmployee && file.employee && (
+              <Link
+                to="/clients/$clientId/employees/$employeeId"
+                params={{ clientId, employeeId: file.employee.id }}
+                data-testid="client-file-employee"
+                className="flex w-fit items-center gap-1 rounded-sm text-xs text-muted-foreground underline-offset-4 outline-none hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                <UserRound className="size-3.5 shrink-0" aria-hidden="true" />
+                {formatEmployeeName(file.employee)}
+              </Link>
+            )}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
               <span data-testid="client-file-kind">{kind.label}</span>
               <span className="sm:hidden">· {size}</span>

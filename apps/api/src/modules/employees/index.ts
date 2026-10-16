@@ -3,6 +3,7 @@ import {
   createEmployee,
   getEmployee,
   listEmployees,
+  listOrganizationEmployees,
   updateEmployee,
   updateEmployeeJobPosition,
   updateEmployeeStatus,
@@ -11,6 +12,7 @@ import {
   createEmployeeRoute,
   getEmployeeRoute,
   listEmployeesRoute,
+  listOrganizationEmployeesRoute,
   updateEmployeeJobPositionRoute,
   updateEmployeeRoute,
   updateEmployeeStatusRoute,
@@ -22,4 +24,5 @@ export const employeesRouter = createRouter()
   .openapi(getEmployeeRoute, getEmployee)
   .openapi(updateEmployeeRoute, updateEmployee)
   .openapi(updateEmployeeStatusRoute, updateEmployeeStatus)
-  .openapi(updateEmployeeJobPositionRoute, updateEmployeeJobPosition);
+  .openapi(updateEmployeeJobPositionRoute, updateEmployeeJobPosition)
+  .openapi(listOrganizationEmployeesRoute, listOrganizationEmployees);

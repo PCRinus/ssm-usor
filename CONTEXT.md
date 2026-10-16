@@ -22,7 +22,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Fire-safety authorization** (_autorizația de cadru tehnic_): the inspectorate's authorization of a provider to act as fire-safety technician under contract, required by Legea 307/2006 art. 12^2 since OUG 17/2026. Optional text on the organization, as the provider writes it; decision 5 prints it when set and never asks for it. ADR 019. Avoid: certificate, which is the technician's own qualification, and _atestat_, which the norms use for firms that service equipment.
 
-**Employee** (_angajat_): a person employed by a client. Avoid: worker, staff, user.
+**Employee** (_angajat_): a person employed by a client, assigned to a job position and to the workplace they work at. Avoid: worker, staff, user.
 
 **Responsible person** (_persoană responsabilă_): someone who holds a role in a client's safety organization: workplace manager, first-aider, member of the risk evaluation team. One person can hold several roles. May or may not be an employee. A role is not a job position.
 
@@ -48,7 +48,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Work zone** (_zona de lucru_): the kind of place a job position works in, as free text: "Birou", "Atelier, teren". Not an address. Avoid: workplace.
 
-**Workplace** (_punct de lucru_): an address where a client operates, the registered office included. Its kind is a **fixed space** (_spațiu fix_) or a **temporary or mobile site** (_șantier temporar sau mobil_), which has no floor area and no row in annex 6 of OMAI 163/2007. ADR 018. Avoid: location, site on its own, and "loc de muncă".
+**Workplace** (_punct de lucru_): an address where a client operates, the registered office included. Its kind is a **fixed space** (_spațiu fix_) or a **temporary or mobile site** (_șantier temporar sau mobil_), which has no floor area and no row in annex 6 of OMAI 163/2007. An employee works at one, by default the only active one a client has. ADR 018, ADR 021. Avoid: location, site on its own, and "loc de muncă".
 
 **Fire-safety means** (_mijloace de apărare împotriva incendiilor_): the equipment and installations a workplace has against fire, recorded one unit per row: each extinguisher, sand box, fire post or fire blanket, and each installation, such as the alarm system or the interior hydrants. They have a tab of their own, _Mijloace PSI_. ADR 018. Avoid: inventory, _dotări_ as a word users see, and PSI equipment, which collides with protective equipment.
 
@@ -78,7 +78,19 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Fire-safety training themes** (_tematica de instruire în domeniul situațiilor de urgență_): the fire-safety set's training themes and training–testing programme: what the introductory general, workplace and periodic trainings cover and who gives them, a block per staff category, citing the fire-safety own instructions' own chapters by article range as static text and, in each periodic training session, the `psi` instruction modules the category's positions apply by title and article range, as the client's newest fire-safety own instructions revision annexes them, so they need a generated one. ADR 019, ADR 012 amended 2026-10-11. Avoid: training themes on their own, which is the occupational safety document, and training plan.
 
-**Training session** (_ședință de instruire_): one periodic training in one of the months an interval gives from the first training month: a month, a content line and the periodic duration. The training themes of the occupational safety set print one row per session of a job position; the fire-safety training themes, one per session of a staff category (ADR 019). Avoid: instructaj, which the law replaced.
+**Training session** (_ședință de instruire_): one periodic training in one of the months an interval gives from the first training month: a month, a content line and the periodic duration. The training themes of the occupational safety set print one row per session of a job position; the fire-safety training themes, one per session of a staff category (ADR 019). Planned, not held: see training held. Avoid: instructaj, which the law replaced.
+
+**Training held** (_instruire efectuată_): one act of training at a client: in one domain, occupational safety or fire safety, of one phase, on a day, with a duration in minutes, the material taught as text, who trained and, where the form has that signature, who verified. Recorded once with the employees who attended; a hiring training has one attendee. ADR 021. Avoid: session, which is the planned one, event, and instructaj.
+
+**Training record** (_instruire_, on an employee's page under _Instruire_): one employee's attendance at a training held, with the occupation printed for it, the name of their position at the time. What the individual training sheets print, one row each, and what the electronic signature will sign. The workplace training record also carries "admis la lucru". ADR 021. Avoid: attendance, training flag, completion.
+
+**Training phase** (_tipul instruirii_): which of the law's trainings a training held is: **introductory general** (_introductiv-generală_), **workplace** (_la locul de muncă_), **periodic** (_periodică_) or **supplementary** (_periodică suplimentară_), the last with its reason among the cases of HG 1425/2006 art. 98. The first two are the **hiring trainings**. ADR 021. Avoid: kind, level, instructaj introductiv.
+
+**Signer slot** (_semnatar_): a role on a training record that a signature fills: the trainee, the trainer, the verifier, the person who admits to work. Fixed per domain and phase, proposed as the people the app holds, replaceable with who actually trained. Empty until the electronic signature exists; the paper sheet carries the signatures meanwhile. ADR 021. Avoid: signature, which is what fills it.
+
+**Next training due** (_termenul următoarei instruiri_): the day the last periodic training record, else the workplace training record, else the hire date, gives when the interval of the employee's position or staff category is added; computed per domain, never stored. A supplementary training does not move it. Its **training state** (_starea instruirii_): _neinstruit_ with no hiring training recorded, _la zi_, _scadentă_ within the next thirty days, _depășită_ once passed; none for a leaver. ADR 021. Avoid: expiry, deadline, which prevention measures have, and trained as a yes or no.
+
+**Commute** (_traseul de deplasare_): the route an employee takes between home and work, as free text, and its duration in minutes. Kept on the employee, optional on the form, required by the occupational safety sheet, which prints it: an accident on the normal route and within its normal duration is a work accident (Legea 319/2006 art. 30). ADR 021. Avoid: route declaration, which is the paper habit the sheet replaces.
 
 **Own instructions** (_instrucțiuni proprii_, IPSSM): the document of the set that binds the client's workers: a **common part** the app generates, which lists as **annexes** the instruction modules the client's positions apply. Its Word file is the common part; its issued PDF is the common part and the annexes in one file, each module after an **annex title page** that names it "Anexa N" (the module's own file is never written to). ADR 012. Avoid: bound document, assembled document.
 
@@ -98,7 +110,11 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 ## Documents
 
-**Document**: one document type, once, for a client, with its revisions; a dated type once per period. Part of one of the client's two **documentation sets**, or its service contract. ADR 005. Avoid: file (that is what a revision has), pack as something users see.
+**Document**: one document type, once, for a client, with its revisions; a dated type once per period. Part of one of the client's two **documentation sets**, or its service contract. ADR 005. Avoid: file (that is what a revision has), pack as something users see, and sheet, which is generated about one employee and never kept.
+
+**Sheet** (_fișă_): what the app generates about one employee: built from the employee and their training records when opened, merged and converted to PDF in one request, streamed, never stored and never revised. Not a document, in no documentation set, on no documents tab; its own readiness names what it lacks. ADR 021. Avoid: document, per-employee document, booklet.
+
+**Individual training sheet** (_fișa individuală de instruire_ for occupational safety, after HG 1425/2006 annex 11; _fișa individuală de instructaj în domeniul situațiilor de urgență_ for fire safety, after the OMAI 712/2005 annex): the sheet of one employee in one domain: the identification block with the workplace and the position's work zone as "locul de muncă", the hiring trainings and "admis la lucru", and the periodic table with a row per periodic or supplementary training record and, while signatures are on paper, blank rows to the end of the page. Blocks on the commute (occupational safety) and on the workplace at a client with several. ADR 021. Avoid: training booklet, fișa de instruire on its own, which does not say which domain, and training sheet of a position.
 
 **Dated document type**: a document type a client holds once per **period** rather than once, each period a document of its own with its own revisions, so that the report of 2025 stays beside the report of 2026, both asked for at a control. Generating it asks for the year, the current one proposed; another year makes another document, never a revision. The annual report is the only one. ADR 020. Avoid: revisions for the years, which say a report replaced the one before it.
 
@@ -120,7 +136,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Posted instructions** (_instrucțiunile de apărare împotriva incendiilor și atribuțiile salariaților la locurile de muncă_): the annex of decision 6 of the fire-safety set, a page set per workplace that says the duties of each kind of person, how to behave in case of fire, the workplace's extinguishers and installations, its fire risks, the smoking rule and first aid; drafted by the workplace manager, checked by the fire-safety technician, approved by the client's representative. ADR 019. Avoid: posted workplace sheet, which is the sheet of OMAI 163/2007 annex 1, and _instrucțiuni de afișat_ as something users see.
 
-**Client file** (_fișier_): a file about a client that the app did not write: uploaded, named, downloaded, deleted. Has no revisions and no type. An owner can keep one **for owners only**. A lead has them too. ADR 013. Avoid: document, which the app generates and issues, and attachment.
+**Client file** (_fișier_): a file about a client that the app did not write: uploaded, named, downloaded, deleted. Has no revisions and no type. An owner can keep one **for owners only**. A lead has them too. One can belong to an employee, such as the photograph of a paper training sheet, shown on their page and under the client's files with their name (ADR 021). ADR 013. Avoid: document, which the app generates and issues, and attachment.
 
 **Other documents** (_alte documente_): a client's files together, and the tab that lists them. Neither its documentation set nor its service contract. Avoid: annex, which the contracts use for an annex to a contract.
 

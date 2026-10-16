@@ -1,5 +1,5 @@
 begin;
-select plan(38);
+select plan(42);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -22,6 +22,10 @@ insert into public.clients (id, organization_id, legal_name, cui, stage) values
   ('cccccccc-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'Client of A', '1590082', 'client'),
   ('cccccccc-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'Lead of A', '14399840', 'lead'),
   ('cccccccc-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'Archived later', '5022670', 'client');
+
+insert into public.employees (id, organization_id, client_id, last_name, first_name, job_title, hired_at) values
+  ('eeeeeeee-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001', 'Popescu', 'Ion', 'Sudor', '2020-03-01'),
+  ('eeeeeeee-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000003', 'Ionescu', 'Ana', 'Sudor', '2020-03-01');
 
 create or replace function pg_temp.act_as(user_id text)
 returns void language sql as $$
@@ -302,6 +306,38 @@ select results_eq(
   $$ delete from public.client_files where id = 'f0000000-0000-4000-8000-000000000002' returning id $$,
   $$ values ('f0000000-0000-4000-8000-000000000002'::uuid) $$,
   'an owner deletes any file of an active client'
+);
+
+select lives_ok(
+  $$ insert into public.client_files (id, organization_id, client_id, employee_id, name, original_file_name, mime_type, size_bytes, sha256)
+     values ('f0000000-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001',
+       'eeeeeeee-0000-4000-8000-000000000001', 'Fișă de instruire', 'fisa.jpg', 'image/jpeg', 700, repeat('a', 64)) $$,
+  'a file belongs to an employee of its client'
+);
+
+select throws_ok(
+  $$ insert into public.client_files (organization_id, client_id, employee_id, name, original_file_name, mime_type, size_bytes, sha256)
+     values ('11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001',
+       'eeeeeeee-0000-4000-8000-000000000003', 'Fișă', 'fisa.jpg', 'image/jpeg', 700, repeat('a', 64)) $$,
+  '23503',
+  null,
+  'never to an employee of another client'
+);
+
+select throws_ok(
+  $$ update public.client_files set employee_id = null where id = 'f0000000-0000-4000-8000-000000000005' $$,
+  '42501',
+  null,
+  'and keeps the employee it was uploaded for'
+);
+
+reset role;
+
+select throws_ok(
+  $$ delete from public.employees where id = 'eeeeeeee-0000-4000-8000-000000000001' $$,
+  '23503',
+  null,
+  'whose row cannot be deleted from under it'
 );
 
 select * from finish();

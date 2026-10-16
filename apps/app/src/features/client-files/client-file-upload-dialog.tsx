@@ -1,9 +1,11 @@
+import { formatEmployeeName } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
   Dialog,
   DialogBody,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -18,6 +20,7 @@ import { Notice } from '@/components/notice';
 import {
   chosenFileKind,
   clientFileAccept,
+  type ClientFileEmployee,
   fileCountLabel,
   formatFileSize,
 } from './client-file-format';
@@ -27,12 +30,14 @@ import { useFileDrop } from './use-file-drop';
 // `files` is null while the dialog is closed, and holds the files dropped on the card to open it.
 export function UploadClientFilesDialog({
   clientId,
+  employee,
   lead,
   canChooseOwnersOnly,
   files,
   onClose,
 }: {
   clientId: string;
+  employee?: ClientFileEmployee;
   lead: boolean;
   canChooseOwnersOnly: boolean;
   files: File[] | null;
@@ -43,6 +48,7 @@ export function UploadClientFilesDialog({
       {files && (
         <UploadForm
           clientId={clientId}
+          employee={employee}
           lead={lead}
           canChooseOwnersOnly={canChooseOwnersOnly}
           initialFiles={files}
@@ -61,12 +67,14 @@ function uploadLabel(count: number) {
 
 function UploadForm({
   clientId,
+  employee,
   lead,
   canChooseOwnersOnly,
   initialFiles,
   onClose,
 }: {
   clientId: string;
+  employee: ClientFileEmployee | undefined;
   lead: boolean;
   canChooseOwnersOnly: boolean;
   initialFiles: File[];
@@ -74,6 +82,7 @@ function UploadForm({
 }) {
   const { chosen, phase, add, remove, start } = useClientFileUploads(
     clientId,
+    employee?.id,
     initialFiles,
     onClose
   );
@@ -99,7 +108,7 @@ function UploadForm({
     <DialogContent
       data-testid="client-files-upload-dialog"
       className="sm:max-w-lg"
-      aria-describedby={undefined}
+      {...(employee ? {} : { 'aria-describedby': undefined })}
       showCloseButton={!sending}
       onEscapeKeyDown={holdOpen}
       onInteractOutside={holdOpen}
@@ -107,6 +116,13 @@ function UploadForm({
       <form onSubmit={onSubmit} aria-busy={sending} noValidate>
         <DialogHeader>
           <DialogTitle>Încarcă fișiere</DialogTitle>
+          {employee && (
+            <DialogDescription data-testid="client-files-upload-employee">
+              Pentru angajatul{' '}
+              <span className="font-medium text-foreground">{formatEmployeeName(employee)}</span>.
+              Apar și în Alte documente ale clientului.
+            </DialogDescription>
+          )}
         </DialogHeader>
         <DialogBody className="mt-4 grid gap-5">
           {phase === 'finished' && failedCount > 0 && (

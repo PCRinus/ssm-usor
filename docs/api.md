@@ -75,8 +75,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/service-contract/send`                       | Owner                                 | The same, after emailing the issued PDF to `to`                                                                           |
 | `GET /clients/{clientId}/owner-notes`                                  | Owner                                 | `{ "notes": { "body", "updatedAt" } }`; an empty body when none were written                                              |
 | `PUT /clients/{clientId}/owner-notes`                                  | Owner                                 | The notes after replacing them                                                                                            |
-| `GET /clients/{clientId}/files`                                        | Verified user with a membership       | `{ "items": [ … ] }`, the files the caller can see, newest first; not paginated                                           |
-| `POST /clients/{clientId}/files`                                       | Verified user with a membership       | `201 { "file": { … } }` from the bytes in the body; `?fileName=&name=&note=&ownersOnly=`                                  |
+| `GET /clients/{clientId}/files`                                        | Verified user with a membership       | `{ "items": [ … ] }`, the files the caller can see, newest first; not paginated; `?employeeId=` for one employee's        |
+| `POST /clients/{clientId}/files`                                       | Verified user with a membership       | `201 { "file": { … } }` from the bytes in the body; `?fileName=&name=&note=&ownersOnly=&employeeId=`                      |
 | `PATCH /clients/{clientId}/files/{fileId}`                             | Uploader or owner                     | `{ "file": { … } }` after renaming or annotating it                                                                       |
 | `PUT /clients/{clientId}/files/{fileId}/owners-only`                   | Owner                                 | `{ "file": { … } }` after keeping it for owners or opening it to the team                                                 |
 | `GET /clients/{clientId}/files/{fileId}/download`                      | Verified user with a membership       | `{ "url", "fileName", "disposition", "expiresInSeconds" }`, a link valid for a minute                                     |
@@ -138,12 +138,20 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                                             |
 | `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                               |
 | `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                                              |
-| `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=`                                |
+| `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=&trainingState=&q=`              |
+| `GET /employees`                                                       | Verified user with a membership       | The organization's employees across its active clients, each with `client`; `?clientId=&status=&q=`                       |
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                                               |
 | `GET /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                                               |
 | `PUT /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }` after replacing what was entered about them                                                       |
 | `PATCH /clients/{clientId}/employees/{employeeId}/status`              | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating                                      |
 | `PATCH /clients/{clientId}/employees/{employeeId}/job-position`        | Verified user with a membership       | `{ "employee": { … } }` in the new job position                                                                           |
+| `GET /clients/{clientId}/employees/{employeeId}/training-records`      | Verified user with a membership       | `{ "items": [ … ] }`, each record with its `training`, newest first; `?domain=`                                           |
+| `GET /clients/{clientId}/trainings`                                    | Verified user with a membership       | `{ "items": [ … ] }`, newest first, each with `attendeeCount`; `?domain=&phase=`                                          |
+| `GET /clients/{clientId}/trainings/proposal`                           | Verified user with a membership       | `{ durationMinutes, material, trainer, … }`; `?domain=&phase=&heldOn=&jobPositionId=`                                     |
+| `POST /clients/{clientId}/trainings`                                   | Verified user with a membership       | `201 { "training": { …, "records": [ … ] } }`                                                                             |
+| `GET /clients/{clientId}/trainings/{trainingId}`                       | Verified user with a membership       | `{ "training": { …, "records": [ … ] } }`                                                                                 |
+| `PUT /clients/{clientId}/trainings/{trainingId}`                       | Verified user with a membership       | `{ "training": { … } }` after replacing its facts and attendees                                                           |
+| `DELETE /clients/{clientId}/trainings/{trainingId}`                    | Verified user with a membership       | `204`, the records deleted with it                                                                                        |
 | `GET /clients/{clientId}/job-positions`                                | Verified user with a membership       | `{ "items": [ … ] }`, by name, each with `employeeCount`                                                                  |
 | `POST /clients/{clientId}/job-positions`                               | Verified user with a membership       | `201 { "jobPosition": { … } }`                                                                                            |
 | `PUT /clients/{clientId}/job-positions/{jobPositionId}`                | Verified user with a membership       | `{ "jobPosition": { … } }` after the change                                                                               |
@@ -337,7 +345,8 @@ so does a CNP or employee number already used by an active employee of that clie
 omits the CNP and, without `?status=`, returns current employees; archived rows
 are never listed. Lists are paginated with page numbers (`page` from 1, `pageSize` up to 100,
 25 by default) and sorted by one whitelisted key at a time (employees:
-`sort=name|jobTitle|hiredAt`; clients:
+`sort=name|jobTitle|jobPosition|hiredAt`; the organization's employees:
+`sort=name|client|jobPosition|hiredAt`; clients:
 `sort=legalName|cui|currentEmployeeCount|jobPositionCount|documentation|clientSince`;
 `order=asc|desc`), always with the id as a tiebreaker; the shared query and envelope schemas
 live in `packages/contracts/src/list.ts`. A page past the end answers an empty page with the
@@ -349,6 +358,30 @@ is for undoing a mistake; a rehire after a gap is a new employee. `PUT …/emplo
 replaces what was entered about a person with the same body and rules as `POST`; a missing
 `jobPositionId` keeps their position, a hire date after the leave date answers `400` on
 `hiredAt`, and status, leave date and archive are not its to touch.
+
+The facts the individual training sheets print
+([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)) ride on the same
+bodies, all optional: `workplaceId`, `qualification` and `education` (up to 160 characters),
+`authorizations` (up to 500), `commuteRoute` (up to 1000) and `commuteMinutes` (an integer from 1
+to 600). A `workplaceId` that is archived or belongs to another client answers `400` with an issue
+on `workplaceId`, as for a job position. `POST` without one gives the employee the client's only
+active workplace when it has exactly one, and none otherwise; `PUT` without the key keeps the
+stored workplace, and `workplaceId: null` clears it. The detail returns the five facts and both
+the list and the detail carry `workplace: { id, name } | null`, the name read even once the
+workplace is archived.
+
+Both employee lists take `?q=`, up to 100 characters, and keep the employees that match every
+term of it: the text is lowercased, stripped of diacritics and split on anything that is not a
+letter or a digit, and each term must appear somewhere in the name (`last_name first_name`) or
+the employee number, so `stefan tar` finds "Țăranu Ștefan" and `a-17` finds "A-17". A blank `q`
+filters nothing. See the [data model](data-model.md#employees) for how the database matches.
+`GET /employees` ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)) is
+the organization's list: the same row as a client's list plus `client: { id, name }`, the same
+envelope, current employees by default and `?status=terminated` for the leavers, `?clientId=`
+for one client, and `q` matching the client's name as well. Only employees of active clients
+are listed, never those of archived ones. Leads are never included, so an owner and a specialist see the same list. It sorts by `name` (the default),
+`client`, `jobPosition` or `hiredAt`. A filter by training state comes with the training
+records (ADR 021, step 3), with the state on each row.
 
 Job positions ([ADR 006](architecture/adr-006-job-positions.md)) are the posts a client
 employs people in. The list is not paginated, since a client has a handful, leaves archived
@@ -365,6 +398,50 @@ client lacks it. Employees carry `jobPosition: { id, name }` in the list and the
 the list sorts by `jobPosition` as well. `PATCH …/employees/{employeeId}/job-position` moves
 a person to another position; the contract title changes only when `jobTitle` is sent with
 it, since a post can change without a new contract.
+
+Training records ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md))
+hang off the client. A training held is recorded once with its attendees: `POST …/trainings`
+takes `domain`, `phase`, `heldOn`, `durationMinutes` (1 to 600), `material`, `trainer` and an
+optional `verifier` as `{ name, jobTitle }`, `supplementaryReason` (required for, and only
+for, a supplementary training), `source` (`app` by default, `paper` for history typed from a
+sheet), an optional `themesRevisionId` and `notes`, `employeeIds` and an optional
+`admission: { admittedOn, name, jobTitle }`. The admission, "admis la lucru", is one for every
+attendee and allowed on a workplace training only; a body that breaks a rule answers `400`. A
+day after today in Romania is `400` on `heldOn`; an attendee who is not an employee of the
+client, or one archived as a mistake, `400` on `employeeIds` (a leaver is fine: paper history
+may belong to one); a revision that is not one of the client's training themes of the domain,
+`400` on `themesRevisionId`. Each attendee's record takes the name of their job position as
+its `occupation`. `PUT` replaces the facts and the attendees: an attendee who stays keeps their
+record and its occupation, one left out loses it. The list is not paginated. The detail lists
+the records by name, each with `employee: { id, lastName, firstName }`, `occupation` and
+`admission` or null; `GET …/employees/{employeeId}/training-records` lists one person's
+records with their training's facts, newest first. An archived client or a lead answers `409`
+as elsewhere.
+
+`GET …/trainings/proposal` proposes what the flow pre-fills, every value the specialist may
+change and null where nothing can be proposed. A periodic training takes the content line and
+duration of the session of `heldOn`'s month, else the last session before it, from the client's
+newest training themes revision of the domain, draft or issued: by the position for
+occupational safety, by the position's staff category for fire safety, with
+`themesRevisionId` naming the revision; without one, or for a position the themes do not hold,
+the material is null and the duration the schedule's. A hiring training proposes 240 minutes
+(occupational safety) or 480 (fire safety) and the content line of the 4.2 or 3.1 plan, the
+occupational safety workplace plan citing the position's modules from the themes and the
+fire-safety one the instructions decision. A supplementary training proposes 60 minutes and no
+material. The people follow "Who signs what": the specialist is the caller, by their profile's
+name and professional title; the workplace manager is the first one the client designated,
+else the legal representative; the fire-safety technician is the organization's, as `Cadru
+tehnic PSI`. The introductory general training is the specialist's (the technician's in fire
+safety); the workplace, periodic and supplementary trainings are the workplace manager's for
+execution staff and the specialist's (the technician's) for technical-administrative staff,
+as the themes have it; the specialist verifies every occupational safety training and nobody
+a fire-safety one; the trainer of a workplace training admits to work. A `jobPositionId` of
+another client is `400`.
+
+Employees carry `training: { ssm, psi }`, each `{ state, dueOn, lastPeriodicOn }`, in the list
+and the detail: `state` is `untrained`, `current`, `due` or `overdue`, null for a leaver, and
+`dueOn` null while the interval is undecided. `GET …/employees?trainingState=` takes
+`untrained`, `due` or `overdue` and keeps the employees in that state in either domain.
 
 Protective equipment ([ADR 011](architecture/adr-011-protective-equipment.md)) hangs off the
 job position: `GET …/equipment` lists its entries in the order they were added, with
@@ -480,13 +557,20 @@ A client's files ([ADR 013](architecture/adr-013-client-files.md)) are what the 
 keeps about a client or a lead without the app writing or reading them; a lead uses the same
 routes. `GET /clients/{clientId}/files` lists the files the caller can see: a specialist is
 not told that files for owners only exist. Each carries `name`, `note`, `ownersOnly`,
-`originalFileName`, `mimeType`, `sizeBytes`, `sha256`, `uploadedBy` (`{ id, fullName }`, null
-once the account is gone) and `canChange`, true for its uploader and for an owner.
+`employee` (`{ id, lastName, firstName }` for a file that belongs to one of the client's
+employees, otherwise null), `originalFileName`, `mimeType`, `sizeBytes`, `sha256`,
+`uploadedBy` (`{ id, fullName }`, null once the account is gone) and `canChange`, true for its
+uploader and for an owner. `?employeeId=` keeps only that employee's files ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)); a
+value that is not an id answers `400`, and the id of an employee the client does not have gives
+an empty list.
 
 `POST` takes one file per request: its bytes as the body (`application/octet-stream`), and
 the rest in the query, since the body is the file. `fileName` is the name on the uploader's
 computer, whose extension decides the type; `name` defaults to it without the extension;
-`note` is optional; `ownersOnly` is `true` or `false`. A refused file answers `400` with a
+`note` is optional; `ownersOnly` is `true` or `false`; `employeeId`, optional, gives the file
+to one of the client's employees, and one the client does not have, or one archived, answers
+`400` with an issue on `employeeId` before anything is stored. It cannot be changed after the
+upload. A refused file answers `400` with a
 reason: `client_file_empty`; `client_file_too_large` over 20 MiB, by `Content-Length` before
 the body is read; `client_file_type_not_allowed` for any extension but `.pdf`, `.jpg`,
 `.jpeg`, `.png`, `.docx`, `.doc`, `.xlsx` and `.xls`; and `client_file_content_mismatch` when

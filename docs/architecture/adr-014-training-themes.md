@@ -45,7 +45,7 @@ The themes are generated from the client's newest own instructions revision, dra
 
 ### The snapshot holds the sessions
 
-The themes' part of the merge context is one object: the own instructions revision cited, and per position its trainer, its interval, its modules, and its sessions with their month and content line. It is recorded whole in the revision's snapshot, so the themes show "Date modificate" when the own instructions are regenerated, a position or its modules change, or the training schedule moves, and so the training sheets to come can copy a session's content line as the material taught, which art. 81 requires them to name, instead of reading it back from Word.
+The themes' part of the merge context is one object: the own instructions revision cited, and per position its trainer, its interval, its modules, and its sessions with their month and content line. It is recorded whole in the revision's snapshot, so the themes show "Date modificate" when the own instructions are regenerated, a position or its modules change, or the training schedule moves, and so the training sheets to come can copy a session's content line as the material taught, which art. 81 requires them to name, instead of reading it back from Word. (Note of 2026-10-16: [ADR 021](adr-021-training-records-and-individual-sheets.md) proposes a periodic training's material from that session line.)
 
 ## Consequences
 

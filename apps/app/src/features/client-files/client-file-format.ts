@@ -12,6 +12,8 @@ import { dateToIso, formatRoDate } from '@/lib/dates';
 
 export type ClientFile = ClientFileListResponse['items'][number];
 
+export type ClientFileEmployee = NonNullable<ClientFile['employee']>;
+
 export const clientFileAccept = Object.keys(clientFileExtensions)
   .map((extension) => `.${extension}`)
   .join(',');
@@ -94,6 +96,10 @@ export function uploadFailureMessage(cause: unknown) {
   const reason = (cause.body as Partial<ApiErrorResponse> | undefined)?.reason;
   if (reason && Object.hasOwn(refusals, reason)) return refusals[reason as keyof typeof refusals];
   if (cause.status === 409) return archivedMessage;
+  const issues = (cause.body as Partial<ApiErrorResponse> | undefined)?.issues;
+  if (issues?.some((issue) => issue.path === 'employeeId')) {
+    return 'Angajatul nu mai există la acest client.';
+  }
   if (cause.status === 403) {
     return 'Doar administratorii pot încărca fișiere pentru administratori.';
   }

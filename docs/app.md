@@ -158,13 +158,14 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clients/$clientId/index.tsx`                                        | `/clients/:id`                                              | Redirects to the details.                                                                                                                                                                                   |
 | `routes/_authenticated/clients/$clientId/details.tsx`                                      | `/clients/:id/details`                                      | "Detalii": one card per kind of data, each edited in place: the company, the legal representative, the workplaces, the contact, and the owners' notes for an owner.                                         |
 | `routes/_authenticated/clients/$clientId/employees.tsx`                                    | pathless                                                    | Employees section layout carrying the breadcrumb title.                                                                                                                                                     |
-| `routes/_authenticated/clients/$clientId/employees/index.tsx`                              | `/clients/:id/employees`                                    | The client's employees with a status filter in the search params.                                                                                                                                           |
+| `routes/_authenticated/clients/$clientId/employees/index.tsx`                              | `/clients/:id/employees`                                    | The client's employees with a status filter and a text search (`q`) in the search params.                                                                                                                   |
 | `routes/_authenticated/clients/$clientId/employees/new.tsx`                                | `/clients/:id/employees/new`                                | Form that adds an employee to the client.                                                                                                                                                                   |
 | `routes/_authenticated/clients/$clientId/job-positions/index.tsx`                          | `/clients/:id/job-positions`                                | The client's job positions (ADR 006): the posts it employs people in, then the risk evaluations that are not of a position (ADR 015).                                                                       |
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId.tsx`                 | `/clients/:id/job-positions/:jobPositionId`                 | Layout of one position: finds it in the client's list of positions and names the breadcrumb.                                                                                                                |
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/index.tsx`           | `/clients/:id/job-positions/:jobPositionId`                 | One position with its protective equipment (ADR 011), the instruction modules it applies (ADR 012) and its risk evaluation (ADR 015).                                                                       |
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/risk-evaluation.tsx` | `/clients/:id/job-positions/:jobPositionId/risk-evaluation` | The position's risk evaluation, read by the position; offers to start one while there is none.                                                                                                              |
 | `routes/_authenticated/clients/$clientId/job-positions/risk-evaluations.$evaluationId.tsx` | `/clients/:id/job-positions/risk-evaluations/:evaluationId` | A risk evaluation that is not of a position: the sensitive groups, or one with a name. A position's evaluation found here redirects to its address under the position.                                      |
+| `routes/_authenticated/employees/index.tsx`                                                | `/employees`                                                | "Angajați" (ADR 021), the sidebar entry after "Clienți": every client's employees in one list, with the current/former filter, a client filter, the text search and the sort in the search params.          |
 | `routes/_authenticated/instructions.tsx`                                                   | `/instructions`                                             | Layout of the instruction library (ADR 012), the sidebar entry between the clients and the organization.                                                                                                    |
 | `routes/_authenticated/instructions/index.tsx`                                             | `/instructions`                                             | Opens the SSM tab, `/instructions/ssm`.                                                                                                                                                                     |
 | `routes/_authenticated/instructions/_library.tsx`                                          | `/instructions/*`                                           | Pathless layout of the library: the title and the section navigation with one tab per domain.                                                                                                               |
@@ -409,19 +410,34 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   and the `Pager` footer; the page owns the query and maps the table's sort and page
   callbacks onto its search params. While another sort or page loads, the rows of the earlier
   one stay, dimmed, and the table is `aria-busy` (`isPlaceholderData`).
+- A list searched by text puts `src/components/search-input.tsx` above its table: the text goes
+  into `?q=` 300 ms after typing pauses (or at once on Enter), with replace navigation and back
+  to page one; the clear button and Escape empty it. The box follows the URL when the search
+  changes from outside (back, or a "Șterge căutarea" action in the empty state), and keeps a
+  space typed after a word. An empty list with a search says that nothing matches and offers
+  to clear it, instead of the empty state of a list with no rows at all.
 - `/clients/:id/employees`: the client's employees from `GET /clients/{clientId}/employees`,
   under a client summary card (name, CUI, main activity, registered office, declared headcount) and section tabs. The list shows
   name and internal number, job title, contact, and hire date (plus the leave date for former
   employees); **Angajați actuali** (the default) and **Foști angajați** (`?status=terminated`)
   switch between the two groups through the search params, and so do the page (`?page=`) and
   the sort (`?sort=&order=`, defaults omitted; a sort change goes back to page one);
-  the footer shows the bounds and total with previous/next controls. The
+  the footer shows the bounds and total with previous/next controls. A search box
+  ("Caută după nume sau marcă", `?q=`) keeps across the two groups. The
   CNP is never part of the list. The client itself comes from `GET /clients/{clientId}`; a
   404 shows the not-found screen.
   Each row has an actions menu: **Marchează plecarea…** opens a dialog asking for the leave
   date (today by default, not before the hire date) and calls `PATCH …/status`; on the former
   employees tab **Reactivează…** clears it, for undoing a mistake, since a rehire after a gap
   is a new employee. The list is invalidated so the row moves between the two tabs.
+- `/employees`, "Angajați" in the sidebar for every member: the organization's employees from
+  `GET /employees`, every active client's in one table with the name and employee number
+  (opening the employee under their client), the client (opening its details), the job
+  position and the hire date. Above it, the current/former filter, a client combobox over the
+  first hundred active clients (`?clientId=`), and the search box "Caută după nume, marcă sau
+  client"; filters, sort and search reset to page one. Without any employee it says how
+  employees are added, from a client's page. The training-state columns and filter come with
+  the training records (ADR 021, steps 3 and 4).
 - Date fields use `src/components/date-picker.tsx`: a text input for typed Romanian dates
   (`dd.mm.yyyy`, also with slashes or dashes) next to a button that opens the shadcn calendar
   (react-day-picker, Romanian locale, month and year dropdowns, optional bounds). The form
@@ -489,6 +505,15 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   position opens a dialog that moves the person and sends the contract title only when it was
   changed. Creating, moving, marking a leaver and reactivating all refresh the positions list,
   whose counts they change.
+- Employees and what the training sheets print (ADR 021): the employee form's group "Fișa de
+  instruire", all optional, starts with "Punct de lucru", a picker of the client's active
+  workplaces from `GET …/workplaces` (`src/features/employees/employee-workplace-combobox.tsx`),
+  chosen already on a new employee when the client has exactly one; after the birth date and
+  place, the home address and the blood group come "Calificarea", "Studiile", "Autorizații",
+  "Traseul de deplasare" and "Durata deplasării (minute)", then the notes. Editing sends the
+  workplace only when it was changed, so a workplace archived since stays on the person and is
+  listed as "Arhivat". The employee page shows the same facts in the same order, in its section
+  "Fișa de instruire".
 - `/clients/:clientId/training`: the "Instruire și responsabili" section of a client, what its
   generated documentation prints beyond the registration data (ADR 005), with the
   responsible persons below. The first card holds the periodic training schedule: duration, interval for administrative staff and for workers, first month, and the
@@ -757,7 +782,15 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   dropped files already in its list; while the card is on screen a file dropped anywhere else
   is refused rather than opened by the browser in place of the app. An archived client gets
   the list and the downloads only: no dialog, no drop. The same card is on a lead's page,
-  where it says that the files stay the owners' until promotion and has no switch.
+  where it says that the files stay the owners' until promotion and has no switch. A file that
+  belongs to an employee shows the employee's name as a small line under its name, a link to
+  the employee page.
+- The employee page ends with "Fișiere", the same card for that employee's files
+  (`EmployeeFilesCard` in `src/features/client-files/`, [ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)):
+  it lists `GET /clients/{clientId}/files?employeeId=`, leaves out the employee line, and its
+  upload dialog names the employee and sends every file with `employeeId`; there is no way to
+  choose another employee. Renaming, the owners' switch, deleting and an archived client's
+  read-only list work as on the tab, and both lists refresh after any change.
 - The upload dialog (`src/features/client-files/client-file-upload-dialog.tsx`) has a drop zone with
   "Alege fișiere" and the accepted types and the 20 MB limit under it, the list of chosen
   files (name, kind, size, a button to take each out), an owner's "Doar pentru

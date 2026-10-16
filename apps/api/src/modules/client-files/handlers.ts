@@ -45,10 +45,10 @@ type FileRow = Pick<
   | 'uploaded_by'
   | 'created_at'
   | 'updated_at'
->;
+> & { employees: { id: string; last_name: string; first_name: string } | null };
 
 const fileColumns =
-  'id, name, note, owners_only, original_file_name, mime_type, size_bytes, sha256, storage_path, uploaded_by, created_at, updated_at';
+  'id, name, note, owners_only, original_file_name, mime_type, size_bytes, sha256, storage_path, uploaded_by, created_at, updated_at, employees(id, last_name, first_name)';
 
 const isOwner = (c: Context<ApiEnv>) => c.get('membership').role === 'owner';
 
@@ -69,6 +69,13 @@ function toClientFile(c: Context<ApiEnv>, row: FileRow, names: Map<string, strin
     name: row.name,
     note: row.note,
     ownersOnly: row.owners_only,
+    employee: row.employees
+      ? {
+          id: row.employees.id,
+          lastName: row.employees.last_name,
+          firstName: row.employees.first_name,
+        }
+      : null,
     originalFileName: row.original_file_name,
     mimeType: row.mime_type as ClientFileType,
     sizeBytes: row.size_bytes,
@@ -107,6 +114,22 @@ async function findFile(db: DataClient, clientId: string, fileId: string) {
   if (error) throw fromDatabaseError(error, 'find client file');
   if (!data) throw new ApiError('not_found', 'This file does not exist under this client.');
   return data;
+}
+
+async function requireEmployee(db: DataClient, clientId: string, employeeId: string) {
+  const { data, error } = await db
+    .from('employees')
+    .select('id')
+    .eq('id', employeeId)
+    .eq('client_id', clientId)
+    .is('archived_at', null)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find employee');
+  if (!data) {
+    throw new ApiError('validation_error', 'This employee does not exist under this client.', [
+      { path: 'employeeId', message: 'This employee does not exist under this client.' },
+    ]);
+  }
 }
 
 function requireChangeable(c: Context<ApiEnv>, row: FileRow) {
@@ -156,14 +179,12 @@ function checkedType(fileName: string, bytes: Uint8Array) {
 
 export const listClientFiles: RouteHandler<typeof listClientFilesRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
+  const { employeeId } = c.req.valid('query');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  const { data, error } = await db
-    .from('client_files')
-    .select(fileColumns)
-    .eq('client_id', clientId)
-    .order('created_at', { ascending: false })
-    .order('id');
+  let files = db.from('client_files').select(fileColumns).eq('client_id', clientId);
+  if (employeeId) files = files.eq('employee_id', employeeId);
+  const { data, error } = await files.order('created_at', { ascending: false }).order('id');
   if (error) throw fromDatabaseError(error, 'list client files');
   const names = await uploaderNames(db, data);
   return c.json({ items: data.map((row) => toClientFile(c, row, names)) }, 200);
@@ -185,12 +206,14 @@ export const uploadClientFile: RouteHandler<typeof uploadClientFileRoute, ApiEnv
   if (asked && !isOwner(c)) {
     throw new ApiError('forbidden', 'Only an owner keeps a file for owners only.');
   }
+  if (query.employeeId) await requireEmployee(db, clientId, query.employeeId);
   const stem = splitFileName(query.fileName).stem.trim().slice(0, 200).trim();
   const { data: row, error } = await db
     .from('client_files')
     .insert({
       organization_id: c.get('membership').organizationId,
       client_id: clientId,
+      employee_id: query.employeeId ?? null,
       name: query.name ?? (stem || query.fileName.slice(0, 200)),
       note: query.note || null,
       owners_only: asked || client.stage === 'lead',

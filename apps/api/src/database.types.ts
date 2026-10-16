@@ -78,6 +78,7 @@ export type Database = {
         Row: {
           client_id: string;
           created_at: string;
+          employee_id: string | null;
           id: string;
           mime_type: string;
           name: string;
@@ -94,6 +95,7 @@ export type Database = {
         Insert: {
           client_id: string;
           created_at?: string;
+          employee_id?: string | null;
           id?: string;
           mime_type: string;
           name: string;
@@ -110,6 +112,7 @@ export type Database = {
         Update: {
           client_id?: string;
           created_at?: string;
+          employee_id?: string | null;
           id?: string;
           mime_type?: string;
           name?: string;
@@ -130,6 +133,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_files_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'client_files_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
           },
           {
             foreignKeyName: 'client_files_organization_id_fkey';
@@ -324,6 +341,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_responsible_persons_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
           },
           {
             foreignKeyName: 'client_responsible_persons_employee_of_client';
@@ -884,13 +908,17 @@ export type Database = {
       employees: {
         Row: {
           archived_at: string | null;
+          authorizations: string | null;
           birth_date: string | null;
           birth_place: string | null;
           blood_group: string | null;
           client_id: string;
           cnp: string | null;
+          commute_minutes: number | null;
+          commute_route: string | null;
           created_at: string;
           created_by: string | null;
+          education: string | null;
           email: string | null;
           employee_number: string | null;
           first_name: string;
@@ -903,20 +931,43 @@ export type Database = {
           notes: string | null;
           organization_id: string;
           phone: string | null;
+          qualification: string | null;
           rh_factor: string | null;
           status: Database['public']['Enums']['employee_status'];
           terminated_at: string | null;
           updated_at: string;
+          workplace_id: string | null;
+          employee_client_search_name: string | null;
+          employee_search_name: string | null;
+          training_status: {
+            client_id: string | null;
+            employee_id: string | null;
+            organization_id: string | null;
+            psi_due_on: string | null;
+            psi_has_hiring_training: boolean | null;
+            psi_last_periodic_on: string | null;
+            psi_state: Database['public']['Enums']['training_state'] | null;
+            psi_workplace_trained_on: string | null;
+            ssm_due_on: string | null;
+            ssm_has_hiring_training: boolean | null;
+            ssm_last_periodic_on: string | null;
+            ssm_state: Database['public']['Enums']['training_state'] | null;
+            ssm_workplace_trained_on: string | null;
+          } | null;
         };
         Insert: {
           archived_at?: string | null;
+          authorizations?: string | null;
           birth_date?: string | null;
           birth_place?: string | null;
           blood_group?: string | null;
           client_id: string;
           cnp?: string | null;
+          commute_minutes?: number | null;
+          commute_route?: string | null;
           created_at?: string;
           created_by?: string | null;
+          education?: string | null;
           email?: string | null;
           employee_number?: string | null;
           first_name: string;
@@ -929,20 +980,26 @@ export type Database = {
           notes?: string | null;
           organization_id: string;
           phone?: string | null;
+          qualification?: string | null;
           rh_factor?: string | null;
           status?: Database['public']['Enums']['employee_status'];
           terminated_at?: string | null;
           updated_at?: string;
+          workplace_id?: string | null;
         };
         Update: {
           archived_at?: string | null;
+          authorizations?: string | null;
           birth_date?: string | null;
           birth_place?: string | null;
           blood_group?: string | null;
           client_id?: string;
           cnp?: string | null;
+          commute_minutes?: number | null;
+          commute_route?: string | null;
           created_at?: string;
           created_by?: string | null;
+          education?: string | null;
           email?: string | null;
           employee_number?: string | null;
           first_name?: string;
@@ -955,10 +1012,12 @@ export type Database = {
           notes?: string | null;
           organization_id?: string;
           phone?: string | null;
+          qualification?: string | null;
           rh_factor?: string | null;
           status?: Database['public']['Enums']['employee_status'];
           terminated_at?: string | null;
           updated_at?: string;
+          workplace_id?: string | null;
         };
         Relationships: [
           {
@@ -995,6 +1054,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employees_workplace_in_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_workplaces';
+            referencedColumns: ['id', 'client_id'];
           },
         ];
       };
@@ -2786,6 +2852,208 @@ export type Database = {
           },
         ];
       };
+      training_records: {
+        Row: {
+          admitted_by_job_title: string | null;
+          admitted_by_name: string | null;
+          admitted_on: string | null;
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          employee_id: string;
+          id: string;
+          occupation: string;
+          organization_id: string;
+          phase: Database['public']['Enums']['training_phase'];
+          training_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          admitted_by_job_title?: string | null;
+          admitted_by_name?: string | null;
+          admitted_on?: string | null;
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          employee_id: string;
+          id?: string;
+          occupation: string;
+          organization_id: string;
+          phase: Database['public']['Enums']['training_phase'];
+          training_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          admitted_by_job_title?: string | null;
+          admitted_by_name?: string | null;
+          admitted_on?: string | null;
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          employee_id?: string;
+          id?: string;
+          occupation?: string;
+          organization_id?: string;
+          phase?: Database['public']['Enums']['training_phase'];
+          training_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'training_records_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'training_records_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'training_records_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'training_records_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'training_records_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'training_records_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'training_records_training_of_client';
+            columns: ['training_id', 'client_id', 'phase'];
+            isOneToOne: false;
+            referencedRelation: 'trainings';
+            referencedColumns: ['id', 'client_id', 'phase'];
+          },
+        ];
+      };
+      trainings: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          domain: Database['public']['Enums']['training_domain'];
+          duration_minutes: number;
+          held_on: string;
+          id: string;
+          material: string;
+          notes: string | null;
+          organization_id: string;
+          phase: Database['public']['Enums']['training_phase'];
+          source: Database['public']['Enums']['training_source'];
+          supplementary_reason: Database['public']['Enums']['supplementary_training_reason'] | null;
+          themes_revision_id: string | null;
+          trainer_job_title: string;
+          trainer_name: string;
+          updated_at: string;
+          verifier_job_title: string | null;
+          verifier_name: string | null;
+        };
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          domain: Database['public']['Enums']['training_domain'];
+          duration_minutes: number;
+          held_on: string;
+          id?: string;
+          material: string;
+          notes?: string | null;
+          organization_id: string;
+          phase: Database['public']['Enums']['training_phase'];
+          source?: Database['public']['Enums']['training_source'];
+          supplementary_reason?:
+            Database['public']['Enums']['supplementary_training_reason'] | null;
+          themes_revision_id?: string | null;
+          trainer_job_title: string;
+          trainer_name: string;
+          updated_at?: string;
+          verifier_job_title?: string | null;
+          verifier_name?: string | null;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          domain?: Database['public']['Enums']['training_domain'];
+          duration_minutes?: number;
+          held_on?: string;
+          id?: string;
+          material?: string;
+          notes?: string | null;
+          organization_id?: string;
+          phase?: Database['public']['Enums']['training_phase'];
+          source?: Database['public']['Enums']['training_source'];
+          supplementary_reason?:
+            Database['public']['Enums']['supplementary_training_reason'] | null;
+          themes_revision_id?: string | null;
+          trainer_job_title?: string;
+          trainer_name?: string;
+          updated_at?: string;
+          verifier_job_title?: string | null;
+          verifier_name?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'trainings_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'trainings_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'trainings_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'trainings_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'trainings_themes_revision_id_fkey';
+            columns: ['themes_revision_id'];
+            isOneToOne: false;
+            referencedRelation: 'document_revisions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       waitlist_subscribers: {
         Row: {
           confirmation_sent_at: string | null;
@@ -2898,6 +3166,53 @@ export type Database = {
           },
         ];
       };
+      employee_training_status: {
+        Row: {
+          client_id: string | null;
+          employee_id: string | null;
+          organization_id: string | null;
+          psi_due_on: string | null;
+          psi_has_hiring_training: boolean | null;
+          psi_last_periodic_on: string | null;
+          psi_state: Database['public']['Enums']['training_state'] | null;
+          psi_workplace_trained_on: string | null;
+          ssm_due_on: string | null;
+          ssm_has_hiring_training: boolean | null;
+          ssm_last_periodic_on: string | null;
+          ssm_state: Database['public']['Enums']['training_state'] | null;
+          ssm_workplace_trained_on: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'employees_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employees_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employees_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'employees_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Functions: {
       accept_invitation_as: {
@@ -2971,6 +3286,34 @@ export type Database = {
       };
       current_organization_id: { Args: never; Returns: string };
       effective_user_id: { Args: never; Returns: string };
+      employee_client_search_name: {
+        Args: { '': Database['public']['Tables']['employees']['Row'] };
+        Returns: {
+          error: true;
+        } & 'the function public.employee_client_search_name with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
+      };
+      employee_search_name: {
+        Args: { '': Database['public']['Tables']['employees']['Row'] };
+        Returns: {
+          error: true;
+        } & 'the function public.employee_search_name with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
+      };
+      employee_training_due: {
+        Args: {
+          p_domain: Database['public']['Enums']['training_domain'];
+          p_employee_id: string;
+          p_hired_at: string;
+          p_interval_months: number;
+          p_status: Database['public']['Enums']['employee_status'];
+        };
+        Returns: {
+          due_on: string;
+          has_hiring_training: boolean;
+          last_periodic_on: string;
+          state: Database['public']['Enums']['training_state'];
+          workplace_trained_on: string;
+        }[];
+      };
       is_draft_document_path: { Args: { p_path: string }; Returns: boolean };
       is_instruction_module_path: { Args: { p_path: string }; Returns: boolean };
       is_organization_owner: { Args: never; Returns: boolean };
@@ -3106,6 +3449,30 @@ export type Database = {
         };
         Returns: string;
       };
+      save_training: {
+        Args: {
+          p_admitted_by_job_title?: string;
+          p_admitted_by_name?: string;
+          p_admitted_on?: string;
+          p_attendees: Json;
+          p_client_id: string;
+          p_domain: Database['public']['Enums']['training_domain'];
+          p_duration_minutes: number;
+          p_held_on: string;
+          p_material: string;
+          p_notes?: string;
+          p_phase: Database['public']['Enums']['training_phase'];
+          p_source: Database['public']['Enums']['training_source'];
+          p_supplementary_reason?: Database['public']['Enums']['supplementary_training_reason'];
+          p_themes_revision_id?: string;
+          p_trainer_job_title: string;
+          p_trainer_name: string;
+          p_training_id?: string;
+          p_verifier_job_title?: string;
+          p_verifier_name?: string;
+        };
+        Returns: string;
+      };
       start_regeneration_job: {
         Args: {
           p_client_ids: string[];
@@ -3136,6 +3503,31 @@ export type Database = {
         Args: { p_items: string[]; p_max: number; p_min: number };
         Returns: boolean;
       };
+      training_status: {
+        Args: { '': Database['public']['Tables']['employees']['Row'] };
+        Returns: {
+          client_id: string | null;
+          employee_id: string | null;
+          organization_id: string | null;
+          psi_due_on: string | null;
+          psi_has_hiring_training: boolean | null;
+          psi_last_periodic_on: string | null;
+          psi_state: Database['public']['Enums']['training_state'] | null;
+          psi_workplace_trained_on: string | null;
+          ssm_due_on: string | null;
+          ssm_has_hiring_training: boolean | null;
+          ssm_last_periodic_on: string | null;
+          ssm_state: Database['public']['Enums']['training_state'] | null;
+          ssm_workplace_trained_on: string | null;
+        };
+        SetofOptions: {
+          from: 'employees';
+          to: 'employee_training_status';
+          isOneToOne: true;
+          isSetofReturn: true;
+        };
+      };
+      unaccent_immutable: { Args: { '': string }; Returns: string };
     };
     Enums: {
       client_stage: 'lead' | 'client';
@@ -3179,6 +3571,18 @@ export type Database = {
         | 'fire_intervention_leader';
       risk_evaluation_kind: 'job_position' | 'sensitive_groups' | 'other';
       staff_category: 'technical_administrative' | 'execution';
+      supplementary_training_reason:
+        | 'absence_over_thirty_days'
+        | 'rules_changed'
+        | 'after_accident'
+        | 'special_works'
+        | 'new_equipment'
+        | 'changed_procedure'
+        | 'new_technology';
+      training_domain: 'ssm' | 'psi';
+      training_phase: 'introductory_general' | 'workplace' | 'periodic' | 'supplementary';
+      training_source: 'app' | 'paper';
+      training_state: 'untrained' | 'current' | 'due' | 'overdue';
       work_system_component: 'executant' | 'work_task' | 'means_of_production' | 'work_environment';
       workplace_kind: 'fixed_space' | 'mobile_site';
     };
@@ -3346,6 +3750,19 @@ export const Constants = {
       ],
       risk_evaluation_kind: ['job_position', 'sensitive_groups', 'other'],
       staff_category: ['technical_administrative', 'execution'],
+      supplementary_training_reason: [
+        'absence_over_thirty_days',
+        'rules_changed',
+        'after_accident',
+        'special_works',
+        'new_equipment',
+        'changed_procedure',
+        'new_technology',
+      ],
+      training_domain: ['ssm', 'psi'],
+      training_phase: ['introductory_general', 'workplace', 'periodic', 'supplementary'],
+      training_source: ['app', 'paper'],
+      training_state: ['untrained', 'current', 'due', 'overdue'],
       work_system_component: ['executant', 'work_task', 'means_of_production', 'work_environment'],
       workplace_kind: ['fixed_space', 'mobile_site'],
     },

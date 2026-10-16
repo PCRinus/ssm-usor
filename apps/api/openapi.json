@@ -1113,6 +1113,20 @@
                   "nullable": true,
                   "format": "date"
                 },
+                "workplace": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"]
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -1120,6 +1134,54 @@
                 "updatedAt": {
                   "type": "string",
                   "format": "date-time"
+                },
+                "training": {
+                  "type": "object",
+                  "properties": {
+                    "ssm": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["untrained", "current", "due", "overdue", null]
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "lastPeriodicOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        }
+                      },
+                      "required": ["state", "dueOn", "lastPeriodicOn"]
+                    },
+                    "psi": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["untrained", "current", "due", "overdue", null]
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "lastPeriodicOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        }
+                      },
+                      "required": ["state", "dueOn", "lastPeriodicOn"]
+                    }
+                  },
+                  "required": ["ssm", "psi"]
                 }
               },
               "required": [
@@ -1135,8 +1197,10 @@
                 "hiredAt",
                 "status",
                 "terminatedAt",
+                "workplace",
                 "createdAt",
-                "updatedAt"
+                "updatedAt",
+                "training"
               ]
             }
           },
@@ -1248,6 +1312,40 @@
                 "type": "string",
                 "nullable": true
               },
+              "workplace": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"]
+              },
+              "qualification": {
+                "type": "string",
+                "nullable": true
+              },
+              "education": {
+                "type": "string",
+                "nullable": true
+              },
+              "authorizations": {
+                "type": "string",
+                "nullable": true
+              },
+              "commuteRoute": {
+                "type": "string",
+                "nullable": true
+              },
+              "commuteMinutes": {
+                "type": "integer",
+                "nullable": true
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
@@ -1260,6 +1358,54 @@
                 "type": "string",
                 "nullable": true,
                 "format": "date-time"
+              },
+              "training": {
+                "type": "object",
+                "properties": {
+                  "ssm": {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "nullable": true,
+                        "enum": ["untrained", "current", "due", "overdue", null]
+                      },
+                      "dueOn": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "date"
+                      },
+                      "lastPeriodicOn": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "date"
+                      }
+                    },
+                    "required": ["state", "dueOn", "lastPeriodicOn"]
+                  },
+                  "psi": {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "nullable": true,
+                        "enum": ["untrained", "current", "due", "overdue", null]
+                      },
+                      "dueOn": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "date"
+                      },
+                      "lastPeriodicOn": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "date"
+                      }
+                    },
+                    "required": ["state", "dueOn", "lastPeriodicOn"]
+                  }
+                },
+                "required": ["ssm", "psi"]
               }
             },
             "required": [
@@ -1282,9 +1428,16 @@
               "bloodGroup",
               "rhFactor",
               "notes",
+              "workplace",
+              "qualification",
+              "education",
+              "authorizations",
+              "commuteRoute",
+              "commuteMinutes",
               "createdAt",
               "updatedAt",
-              "archivedAt"
+              "archivedAt",
+              "training"
             ]
           }
         },
@@ -1372,6 +1525,41 @@
             "nullable": true,
             "minLength": 1,
             "maxLength": 2000
+          },
+          "workplaceId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "qualification": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "education": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "authorizations": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "commuteRoute": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "commuteMinutes": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 600
           }
         },
         "required": ["lastName", "firstName", "jobTitle", "hiredAt"]
@@ -1458,6 +1646,41 @@
             "nullable": true,
             "minLength": 1,
             "maxLength": 2000
+          },
+          "workplaceId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "qualification": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "education": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "authorizations": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "commuteRoute": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "commuteMinutes": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 600
           }
         },
         "required": ["lastName", "firstName", "jobTitle", "hiredAt"]
@@ -1504,6 +1727,820 @@
           }
         },
         "required": ["jobPositionId"]
+      },
+      "OrganizationEmployeeListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "lastName": {
+                  "type": "string"
+                },
+                "firstName": {
+                  "type": "string"
+                },
+                "employeeNumber": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "email": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "phone": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "jobTitle": {
+                  "type": "string"
+                },
+                "jobPosition": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"]
+                },
+                "hiredAt": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["active", "terminated"]
+                },
+                "terminatedAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date"
+                },
+                "workplace": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"]
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "training": {
+                  "type": "object",
+                  "properties": {
+                    "ssm": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["untrained", "current", "due", "overdue", null]
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "lastPeriodicOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        }
+                      },
+                      "required": ["state", "dueOn", "lastPeriodicOn"]
+                    },
+                    "psi": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["untrained", "current", "due", "overdue", null]
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "lastPeriodicOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        }
+                      },
+                      "required": ["state", "dueOn", "lastPeriodicOn"]
+                    }
+                  },
+                  "required": ["ssm", "psi"]
+                },
+                "client": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"]
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "lastName",
+                "firstName",
+                "employeeNumber",
+                "email",
+                "phone",
+                "jobTitle",
+                "jobPosition",
+                "hiredAt",
+                "status",
+                "terminatedAt",
+                "workplace",
+                "createdAt",
+                "updatedAt",
+                "training",
+                "client"
+              ]
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["items", "page", "pageSize", "total"]
+      },
+      "TrainingListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "domain": {
+                  "type": "string",
+                  "enum": ["ssm", "psi"]
+                },
+                "phase": {
+                  "type": "string",
+                  "enum": ["introductory_general", "workplace", "periodic", "supplementary"]
+                },
+                "heldOn": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "durationMinutes": {
+                  "type": "integer"
+                },
+                "material": {
+                  "type": "string"
+                },
+                "trainer": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "jobTitle": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["name", "jobTitle"]
+                },
+                "verifier": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "jobTitle": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["name", "jobTitle"]
+                },
+                "supplementaryReason": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": [
+                    "absence_over_thirty_days",
+                    "rules_changed",
+                    "after_accident",
+                    "special_works",
+                    "new_equipment",
+                    "changed_procedure",
+                    "new_technology",
+                    null
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "enum": ["app", "paper"]
+                },
+                "themesRevisionId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                },
+                "notes": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "attendeeCount": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "domain",
+                "phase",
+                "heldOn",
+                "durationMinutes",
+                "material",
+                "trainer",
+                "verifier",
+                "supplementaryReason",
+                "source",
+                "themesRevisionId",
+                "notes",
+                "createdAt",
+                "updatedAt",
+                "attendeeCount"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "TrainingProposal": {
+        "type": "object",
+        "properties": {
+          "durationMinutes": {
+            "type": "integer",
+            "nullable": true
+          },
+          "material": {
+            "type": "string",
+            "nullable": true
+          },
+          "trainer": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "jobTitle": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["name", "jobTitle"]
+          },
+          "verifier": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "jobTitle": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["name", "jobTitle"]
+          },
+          "admittedBy": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "jobTitle": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["name", "jobTitle"]
+          },
+          "themesRevisionId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "durationMinutes",
+          "material",
+          "trainer",
+          "verifier",
+          "admittedBy",
+          "themesRevisionId"
+        ]
+      },
+      "TrainingResponse": {
+        "type": "object",
+        "properties": {
+          "training": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "domain": {
+                "type": "string",
+                "enum": ["ssm", "psi"]
+              },
+              "phase": {
+                "type": "string",
+                "enum": ["introductory_general", "workplace", "periodic", "supplementary"]
+              },
+              "heldOn": {
+                "type": "string",
+                "format": "date"
+              },
+              "durationMinutes": {
+                "type": "integer"
+              },
+              "material": {
+                "type": "string"
+              },
+              "trainer": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "jobTitle": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name", "jobTitle"]
+              },
+              "verifier": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "jobTitle": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name", "jobTitle"]
+              },
+              "supplementaryReason": {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  "absence_over_thirty_days",
+                  "rules_changed",
+                  "after_accident",
+                  "special_works",
+                  "new_equipment",
+                  "changed_procedure",
+                  "new_technology",
+                  null
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": ["app", "paper"]
+              },
+              "themesRevisionId": {
+                "type": "string",
+                "nullable": true,
+                "format": "uuid"
+              },
+              "notes": {
+                "type": "string",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "employee": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "lastName": {
+                          "type": "string"
+                        },
+                        "firstName": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["id", "lastName", "firstName"]
+                    },
+                    "occupation": {
+                      "type": "string"
+                    },
+                    "admission": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "admittedOn": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "jobTitle": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["admittedOn", "name", "jobTitle"]
+                    }
+                  },
+                  "required": ["id", "employee", "occupation", "admission"]
+                }
+              }
+            },
+            "required": [
+              "id",
+              "clientId",
+              "domain",
+              "phase",
+              "heldOn",
+              "durationMinutes",
+              "material",
+              "trainer",
+              "verifier",
+              "supplementaryReason",
+              "source",
+              "themesRevisionId",
+              "notes",
+              "createdAt",
+              "updatedAt",
+              "records"
+            ]
+          }
+        },
+        "required": ["training"]
+      },
+      "TrainingRequest": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "enum": ["ssm", "psi"]
+          },
+          "phase": {
+            "type": "string",
+            "enum": ["introductory_general", "workplace", "periodic", "supplementary"]
+          },
+          "heldOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 600
+          },
+          "material": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "trainer": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "jobTitle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            },
+            "required": ["name", "jobTitle"]
+          },
+          "verifier": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "jobTitle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            },
+            "required": ["name", "jobTitle"]
+          },
+          "supplementaryReason": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "absence_over_thirty_days",
+              "rules_changed",
+              "after_accident",
+              "special_works",
+              "new_equipment",
+              "changed_procedure",
+              "new_technology",
+              null
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": ["app", "paper"],
+            "default": "app"
+          },
+          "themesRevisionId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "employeeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "minItems": 1,
+            "maxItems": 500
+          },
+          "admission": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "admittedOn": {
+                "type": "string",
+                "format": "date"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "jobTitle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            },
+            "required": ["admittedOn", "name", "jobTitle"]
+          }
+        },
+        "required": [
+          "domain",
+          "phase",
+          "heldOn",
+          "durationMinutes",
+          "material",
+          "trainer",
+          "employeeIds"
+        ]
+      },
+      "EmployeeTrainingRecordListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "occupation": {
+                  "type": "string"
+                },
+                "admission": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "admittedOn": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "jobTitle": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["admittedOn", "name", "jobTitle"]
+                },
+                "training": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "clientId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": ["ssm", "psi"]
+                    },
+                    "phase": {
+                      "type": "string",
+                      "enum": ["introductory_general", "workplace", "periodic", "supplementary"]
+                    },
+                    "heldOn": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "durationMinutes": {
+                      "type": "integer"
+                    },
+                    "material": {
+                      "type": "string"
+                    },
+                    "trainer": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "jobTitle": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["name", "jobTitle"]
+                    },
+                    "verifier": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "jobTitle": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["name", "jobTitle"]
+                    },
+                    "supplementaryReason": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "absence_over_thirty_days",
+                        "rules_changed",
+                        "after_accident",
+                        "special_works",
+                        "new_equipment",
+                        "changed_procedure",
+                        "new_technology",
+                        null
+                      ]
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": ["app", "paper"]
+                    },
+                    "themesRevisionId": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    },
+                    "notes": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "clientId",
+                    "domain",
+                    "phase",
+                    "heldOn",
+                    "durationMinutes",
+                    "material",
+                    "trainer",
+                    "verifier",
+                    "supplementaryReason",
+                    "source",
+                    "themesRevisionId",
+                    "notes",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              },
+              "required": ["id", "occupation", "admission", "training"]
+            }
+          }
+        },
+        "required": ["items"]
       },
       "JobPositionListResponse": {
         "type": "object",
@@ -7428,6 +8465,23 @@
                 "ownersOnly": {
                   "type": "boolean"
                 },
+                "employee": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "lastName": {
+                      "type": "string"
+                    },
+                    "firstName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "lastName", "firstName"]
+                },
                 "originalFileName": {
                   "type": "string"
                 },
@@ -7483,6 +8537,7 @@
                 "name",
                 "note",
                 "ownersOnly",
+                "employee",
                 "originalFileName",
                 "mimeType",
                 "sizeBytes",
@@ -7516,6 +8571,23 @@
               },
               "ownersOnly": {
                 "type": "boolean"
+              },
+              "employee": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "firstName": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "lastName", "firstName"]
               },
               "originalFileName": {
                 "type": "string"
@@ -7572,6 +8644,7 @@
               "name",
               "note",
               "ownersOnly",
+              "employee",
               "originalFileName",
               "mimeType",
               "sizeBytes",
@@ -10076,7 +11149,7 @@
       "get": {
         "operationId": "listEmployees",
         "summary": "List a client's employees",
-        "description": "Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; \"name\" orders by last name then first name. The CNP is only returned by the detail route.",
+        "description": "Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; \"name\" orders by last name then first name. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics. The CNP is only returned by the detail route.",
         "security": [
           {
             "bearerAuth": []
@@ -10140,6 +11213,24 @@
             },
             "required": false,
             "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["untrained", "due", "overdue"]
+            },
+            "required": false,
+            "name": "trainingState",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
             "in": "query"
           }
         ],
@@ -10751,6 +11842,950 @@
           },
           "404": {
             "description": "The employee does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/employees": {
+      "get": {
+        "operationId": "listOrganizationEmployees",
+        "summary": "List the organization's employees across its clients",
+        "description": "Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are never listed. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["name", "client", "jobPosition", "hiredAt"],
+              "default": "name"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"],
+              "default": "asc"
+            },
+            "required": false,
+            "name": "order",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["active", "terminated"]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "clientId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of employees with the total count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationEmployeeListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/trainings": {
+      "get": {
+        "operationId": "listTrainings",
+        "summary": "List a client's trainings held",
+        "description": "Every training held at the client, newest first, each with its number of attendees; not paginated. Filtered by domain and phase when given (ADR 021).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "psi"]
+            },
+            "required": false,
+            "name": "domain",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["introductory_general", "workplace", "periodic", "supplementary"]
+            },
+            "required": false,
+            "name": "phase",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The trainings held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createTraining",
+        "summary": "Record a training held with its attendees",
+        "description": "Every attendee gets a training record carrying the name of their job position as the occupation. The attendees are employees of the client in any status, since a record typed from paper may belong to someone who has left. `admission`, \"admis la lucru\", is given to every attendee and only on a workplace training.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The training with its records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, a day after today, an attendee who is not an employee of this client (an issue on `employeeIds`), or a themes revision of another client (on `themesRevisionId`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/trainings/proposal": {
+      "get": {
+        "operationId": "getTrainingProposal",
+        "summary": "Propose the facts of a training held from the plan",
+        "description": "The duration, the material, the trainer, the verifier and who admits to work, as the plan proposes them for the domain, the phase, the day and the job position (ADR 021): a periodic training takes the session of that month, else the last one before it, from the client's newest training themes revision of the domain, by position for occupational safety and by the position's staff category for fire safety; a hiring training the templates' plan, 240 or 480 minutes; a supplementary training 60 minutes and no material. Each value is null where nothing can be proposed.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "psi"]
+            },
+            "required": true,
+            "name": "domain",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["introductory_general", "workplace", "periodic", "supplementary"]
+            },
+            "required": true,
+            "name": "phase",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": true,
+            "name": "heldOn",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "jobPositionId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The proposal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingProposal"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or query, or a job position of another client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/trainings/{trainingId}": {
+      "get": {
+        "operationId": "getTraining",
+        "summary": "Read a training held with its records",
+        "description": "The records by the attendee's name.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "trainingId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The training with its records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client, or the training under it, does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateTraining",
+        "summary": "Replace a training's facts and attendees",
+        "description": "An attendee who stays keeps their record and the occupation it printed; one who is left out loses theirs; a new one gets a record with the name of their current job position.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "trainingId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The training after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, a day after today, an attendee who is not an employee of this client (an issue on `employeeIds`), or a themes revision of another client (on `themesRevisionId`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client, or the training under it, does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTraining",
+        "summary": "Delete a training held and its records",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "trainingId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client, or the training under it, does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/training-records": {
+      "get": {
+        "operationId": "listEmployeeTrainingRecords",
+        "summary": "List an employee's training records",
+        "description": "Each record with the facts of its training held, newest first, of one domain when given.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "psi"]
+            },
+            "required": false,
+            "name": "domain",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The training records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeTrainingRecordListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The employee does not exist under this client in the organization",
             "content": {
               "application/json": {
                 "schema": {
@@ -21454,7 +23489,7 @@
       "get": {
         "operationId": "listClientFiles",
         "summary": "List a client's files",
-        "description": "The files the caller can see, newest first (ADR 013). A specialist does not see the files for owners only, so a count shown to them counts only theirs.",
+        "description": "The files the caller can see, newest first (ADR 013). A specialist does not see the files for owners only, so a count shown to them counts only theirs. Each names the employee it belongs to, if any; `employeeId` keeps only that employee's files (ADR 021).",
         "security": [
           {
             "bearerAuth": []
@@ -21469,6 +23504,15 @@
             "required": true,
             "name": "clientId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "employeeId",
+            "in": "query"
           }
         ],
         "responses": {
@@ -21483,7 +23527,7 @@
             }
           },
           "400": {
-            "description": "Invalid path",
+            "description": "Invalid path or query",
             "content": {
               "application/json": {
                 "schema": {
@@ -21547,7 +23591,7 @@
       "post": {
         "operationId": "uploadClientFile",
         "summary": "Upload one file about a client",
-        "description": "Takes the bytes of the file, up to 20 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only.",
+        "description": "Takes the bytes of the file, up to 20 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.",
         "security": [
           {
             "bearerAuth": []
@@ -21601,6 +23645,15 @@
             "required": false,
             "name": "ownersOnly",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "employeeId",
+            "in": "query"
           }
         ],
         "requestBody": {
@@ -21626,7 +23679,7 @@
             }
           },
           "400": {
-            "description": "Invalid path or query, or the file is empty, too large or of a refused type",
+            "description": "Invalid path or query, the file is empty, too large or of a refused type, or the employee is not one of the client",
             "content": {
               "application/json": {
                 "schema": {

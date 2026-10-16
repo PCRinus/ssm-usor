@@ -34,6 +34,7 @@ const certificate = {
   name: 'Certificat de înregistrare',
   note: 'Copie conformă, primită de la contabil.' as string | null,
   ownersOnly: false,
+  employee: null as { id: string; lastName: string; firstName: string } | null,
   originalFileName: 'certificat.pdf',
   mimeType: 'application/pdf',
   sizeBytes: 1_258_291,
@@ -56,7 +57,44 @@ const offer = {
   canChange: false,
 };
 
+const employee = {
+  id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+  clientId,
+  lastName: 'Popescu',
+  firstName: 'Ion',
+  employeeNumber: 'A-17',
+  email: null,
+  phone: null,
+  jobTitle: 'Sudor',
+  jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor' },
+  hiredAt: '2020-03-01',
+  status: 'active',
+  terminatedAt: null,
+  cnp: null,
+  birthDate: null,
+  birthPlace: null,
+  homeAddress: null,
+  bloodGroup: null,
+  rhFactor: null,
+  notes: null,
+  archivedAt: null,
+  createdAt: '2026-09-17T10:00:00+00:00',
+  updatedAt: '2026-09-17T10:00:00+00:00',
+};
+
+const trainingSheet = {
+  ...certificate,
+  id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
+  name: 'Fișă de instruire 2019',
+  note: null,
+  employee: { id: employee.id, lastName: 'Popescu', firstName: 'Ion' },
+  originalFileName: 'IMG_2041.jpg',
+  mimeType: 'image/jpeg',
+  sizeBytes: 800_000,
+};
+
 const filesPath = `/clients/${clientId}/files`;
+const employeePath = `/clients/${clientId}/employees/${employee.id}`;
 
 type Handler = (init: RequestInit | undefined, url: URL) => Response;
 
@@ -94,6 +132,7 @@ function mockApi({
       });
     }
     if (pathname === `/clients/${clientId}`) return Response.json({ client: company });
+    if (pathname === employeePath) return Response.json({ employee });
     if (pathname === filesPath) return Response.json({ items });
     if (pathname.endsWith('/download')) return download(init, url);
     if (pathname.endsWith('/owners-only')) return ownersOnly(init, url);
@@ -578,6 +617,103 @@ describe('changing a client file', () => {
     await waitFor(() => expect(clicked).toHaveLength(1));
     expect(open).toHaveBeenCalledTimes(1);
     expect(new URL(clicked[0]!).searchParams.get('disposition')).toBe('attachment');
+  });
+});
+
+describe('the files of an employee', () => {
+  it('names the employee under a file in the client tab, linking to their page', async () => {
+    mockApi({ items: [trainingSheet, certificate] });
+    mount();
+
+    const [sheetRow, certificateRow] = await screen.findAllByTestId('client-file-row');
+    const link = within(sheetRow!).getByTestId('client-file-employee');
+    expect(link.textContent).toBe('Popescu Ion');
+    expect(link.getAttribute('href')).toBe(employeePath);
+    expect(within(certificateRow!).queryByTestId('client-file-employee')).toBeNull();
+    expect(new URL(String(requests(filesPath, 'GET')[0]![0])).search).toBe('');
+  });
+
+  it('lists only their files on the employee page, without repeating their name', async () => {
+    mockApi({ items: [trainingSheet] });
+    mount(employeePath);
+
+    const card = await screen.findByTestId('employee-files-card');
+    expect(within(card).getByRole('heading', { level: 2, name: 'Fișiere' })).toBeTruthy();
+    const [row] = await within(card).findAllByTestId('client-file-row');
+    expect(within(row!).getByTestId('client-file-open').textContent).toBe('Fișă de instruire 2019');
+    expect(within(row!).queryByTestId('client-file-employee')).toBeNull();
+    expect(within(row!).getByTestId('client-file-actions')).toBeTruthy();
+    expect(
+      requests(filesPath, 'GET').map(([input]) =>
+        new URL(String(input)).searchParams.get('employeeId')
+      )
+    ).toEqual([employee.id]);
+  });
+
+  it('uploads from the employee page for that employee, whom the dialog names', async () => {
+    mockApi({ items: [] });
+    mount(employeePath);
+    const user = userEvent.setup();
+
+    const card = await screen.findByTestId('employee-files-card');
+    expect(await within(card).findByTestId('client-files-empty')).toBeTruthy();
+    const dialog = await openUploadDialog(user);
+    expect(within(dialog).getByTestId('client-files-upload-employee').textContent).toContain(
+      'Pentru angajatul Popescu Ion.'
+    );
+    await user.upload(within(dialog).getByTestId('client-files-input'), pdf('fisa 2019.pdf'));
+    await user.click(within(dialog).getByTestId('client-files-upload-submit'));
+
+    expect(await screen.findByText('„fisa 2019” a fost încărcat.')).toBeTruthy();
+    expect(uploads.map((sent) => Object.fromEntries(sent.url.searchParams))).toEqual([
+      { fileName: 'fisa 2019.pdf', ownersOnly: 'false', employeeId: employee.id },
+    ]);
+    await waitFor(() =>
+      expect(
+        requests(filesPath, 'GET').filter(
+          ([input]) => new URL(String(input)).searchParams.get('employeeId') === employee.id
+        ).length
+      ).toBeGreaterThan(1)
+    );
+  });
+
+  it('says so when the employee is not the client’s', async () => {
+    mockApi({ items: [] });
+    answerUpload = () => ({
+      status: 400,
+      body: {
+        error: 'validation_error',
+        message: 'This employee does not exist under this client.',
+        issues: [
+          { path: 'employeeId', message: 'This employee does not exist under this client.' },
+        ],
+      },
+    });
+    mount(employeePath);
+    const user = userEvent.setup();
+
+    const dialog = await openUploadDialog(user);
+    await user.upload(within(dialog).getByTestId('client-files-input'), pdf('fisa.pdf'));
+    await user.click(within(dialog).getByTestId('client-files-upload-submit'));
+
+    expect((await within(dialog).findByTestId('client-file-upload-error')).textContent).toBe(
+      'Angajatul nu mai există la acest client.'
+    );
+  });
+
+  it('offers only the list and the downloads under an archived client', async () => {
+    mockApi({
+      role: 'owner',
+      company: { ...client, archivedAt: '2026-09-29T10:00:00+00:00' },
+      items: [trainingSheet],
+    });
+    mount(employeePath);
+
+    const card = await screen.findByTestId('employee-files-card');
+    const [row] = await within(card).findAllByTestId('client-file-row');
+    expect(within(card).queryByTestId('client-files-upload')).toBeNull();
+    expect(within(row!).queryByTestId('client-file-actions')).toBeNull();
+    expect(within(row!).getByTestId('client-file-download')).toBeTruthy();
   });
 });
 

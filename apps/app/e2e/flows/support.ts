@@ -75,13 +75,17 @@ export async function createLead(organizationId: string, legalName: string, cui:
 }
 
 // A client company of the organization. Removed with it by `cleanUp`.
-export async function createClientCompany(organizationId: string, legalName: string) {
+export async function createClientCompany(
+  organizationId: string,
+  legalName: string,
+  cui = '1590082'
+) {
   const client = await admin
     .from('clients')
     .insert({
       organization_id: organizationId,
       legal_name: legalName,
-      cui: '1590082',
+      cui,
       legal_representative_name: 'Maria Popescu',
     })
     .select('id')
@@ -458,7 +462,7 @@ export async function createJobPosition(
 export async function createEmployee(
   organizationId: string,
   clientId: string,
-  name: { firstName: string; lastName: string; jobTitle: string }
+  name: { firstName: string; lastName: string; jobTitle: string; employeeNumber?: string }
 ) {
   const employee = await admin.from('employees').insert({
     organization_id: organizationId,
@@ -466,6 +470,7 @@ export async function createEmployee(
     first_name: name.firstName,
     last_name: name.lastName,
     job_title: name.jobTitle,
+    employee_number: name.employeeNumber ?? null,
     hired_at: '2024-02-15',
   });
   if (employee.error) throw employee.error;
@@ -520,6 +525,15 @@ export async function putBehindItsTemplate(clientId: string, typeKey: string) {
   }
   created.templateVersions.push({ id: version.data.id, storagePath });
   return generatedFrom.data.version;
+}
+
+export async function accessTokenOf(email: string, withPassword = password) {
+  const client = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await client.auth.signInWithPassword({ email, password: withPassword });
+  if (error) throw error;
+  return data.session.access_token;
 }
 
 // What the recovery email would carry, without sending one.
@@ -582,17 +596,21 @@ export async function cleanUp() {
     await admin.from('fire_buildings').delete().eq('organization_id', id);
     await admin.from('fire_substances').delete().eq('organization_id', id);
     await admin.from('client_fire_safety').delete().eq('organization_id', id);
-    await admin.from('client_workplaces').delete().eq('organization_id', id);
+    // Their records go with them, and the records restrict the deletion of the employees.
+    await admin.from('trainings').delete().eq('organization_id', id);
+    // Before the employees, whom a file can belong to.
+    const files = await admin.from('client_files').select('storage_path').eq('organization_id', id);
+    const filePaths = (files.data ?? []).map((file) => file.storage_path as string);
+    if (filePaths.length > 0) await admin.storage.from('client-files').remove(filePaths);
+    await admin.from('client_files').delete().eq('organization_id', id);
     await admin.from('employees').delete().eq('organization_id', id);
+    // After the employees, who point at them.
+    await admin.from('client_workplaces').delete().eq('organization_id', id);
     // Their factors and measures go with them; a position's would go with the position.
     await admin.from('risk_evaluations').delete().eq('organization_id', id);
     // After the employees, who point at them.
     await admin.from('job_positions').delete().eq('organization_id', id);
     await admin.from('client_owner_notes').delete().eq('organization_id', id);
-    const files = await admin.from('client_files').select('storage_path').eq('organization_id', id);
-    const filePaths = (files.data ?? []).map((file) => file.storage_path as string);
-    if (filePaths.length > 0) await admin.storage.from('client-files').remove(filePaths);
-    await admin.from('client_files').delete().eq('organization_id', id);
     await admin.from('service_contracts').delete().eq('organization_id', id);
     await admin.from('clients').delete().eq('organization_id', id);
     await admin.from('organizations').delete().eq('id', id);

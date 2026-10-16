@@ -32,6 +32,7 @@ const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const ownFileId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
 const colleagueFileId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+const employeeId = '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d';
 
 const pathOf = (fileId: string, extension: string) =>
   `${organizationId}/${clientId}/${fileId}.${extension}`;
@@ -49,6 +50,7 @@ const ownFile = {
   uploaded_by: user.id as string | null,
   created_at: '2026-09-30T10:00:00+00:00',
   updated_at: '2026-09-30T10:00:00+00:00',
+  employees: null as { id: string; last_name: string; first_name: string } | null,
 };
 const colleagueFile = {
   ...ownFile,
@@ -68,7 +70,9 @@ type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined
 const fetchMock = vi.fn<typeof fetch>();
 let role: 'owner' | 'specialist' = 'specialist';
 
-function mockUpstream(handlers: { clients?: Handler; files?: Handler; storage?: Handler } = {}) {
+function mockUpstream(
+  handlers: { clients?: Handler; employees?: Handler; files?: Handler; storage?: Handler } = {}
+) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     const method = init?.method ?? 'GET';
@@ -78,6 +82,9 @@ function mockUpstream(handlers: { clients?: Handler; files?: Handler; storage?: 
     }
     if (url.pathname === '/rest/v1/clients') {
       return handlers.clients?.(init, url) ?? Response.json([clientRow]);
+    }
+    if (url.pathname === '/rest/v1/employees') {
+      return handlers.employees?.(init, url) ?? Response.json([{ id: employeeId }]);
     }
     if (url.pathname === '/rest/v1/profiles') {
       return Response.json([
@@ -196,6 +203,36 @@ describe('GET /clients/{clientId}/files', () => {
     const listed = new URL(String(calls('/rest/v1/client_files', 'GET')[0]![0]));
     expect(listed.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(listed.searchParams.get('order')).toBe('created_at.desc,id.asc');
+    expect(listed.searchParams.has('employee_id')).toBe(false);
+    expect(items.every((item) => item.employee === null)).toBe(true);
+  });
+
+  it("keeps only an employee's files when asked, and names the employee of each", async () => {
+    mockUpstream({
+      files: () =>
+        Response.json([
+          {
+            ...ownFile,
+            employees: { id: employeeId, last_name: 'Popescu', first_name: 'Ion' },
+          },
+        ]),
+    });
+    const response = await request(`/clients/${clientId}/files?employeeId=${employeeId}`);
+    expect(response.status).toBe(200);
+    const { items } = clientFileListResponseSchema.parse(await response.json());
+    expect(items.map((item) => item.employee)).toEqual([
+      { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
+    ]);
+    const listed = new URL(String(calls('/rest/v1/client_files', 'GET')[0]![0]));
+    expect(listed.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+    expect(listed.searchParams.get('employee_id')).toBe(`eq.${employeeId}`);
+    expect(listed.searchParams.get('select')).toContain('employees(id,last_name,first_name)');
+  });
+
+  it('refuses an employee filter that is not an id', async () => {
+    mockUpstream();
+    expect((await request(`/clients/${clientId}/files?employeeId=popescu`)).status).toBe(400);
+    expect(calls('/rest/v1/client_files', 'GET')).toHaveLength(0);
   });
 
   it('lets an owner change every file', async () => {
@@ -231,6 +268,7 @@ describe('POST /clients/{clientId}/files', () => {
       mime_type: 'application/pdf',
       size_bytes: pdf.length,
       uploaded_by: user.id,
+      employee_id: null,
     });
     expect(row.sha256).toMatch(/^[0-9a-f]{64}$/);
     const [stored] = calls(`/storage/v1/object/client-files/${pathOf(ownFileId, 'pdf')}`, 'POST');
@@ -251,6 +289,30 @@ describe('POST /clients/{clientId}/files', () => {
       note: 'Expiră în mai',
       mime_type: 'image/png',
     });
+  });
+
+  it('gives the file to an employee of the client', async () => {
+    mockUpstream();
+    const response = await upload({ fileName: 'fisa instruire.png', employeeId }, png);
+    expect(response.status).toBe(201);
+    expect(sent('/rest/v1/client_files', 'POST')).toMatchObject({
+      client_id: clientId,
+      employee_id: employeeId,
+    });
+    const checked = new URL(String(calls('/rest/v1/employees', 'GET')[0]![0]));
+    expect(checked.searchParams.get('id')).toBe(`eq.${employeeId}`);
+    expect(checked.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+    expect(checked.searchParams.get('archived_at')).toBe('is.null');
+  });
+
+  it('refuses an employee the client does not have', async () => {
+    mockUpstream({ employees: () => Response.json([]) });
+    const response = await upload({ fileName: 'fisa instruire.pdf', employeeId }, pdf);
+    expect(response.status).toBe(400);
+    const body = apiErrorResponseSchema.parse(await response.json());
+    expect(body.issues?.map((issue) => issue.path)).toEqual(['employeeId']);
+    expect(calls('/rest/v1/client_files', 'POST')).toHaveLength(0);
+    expect(calls('/storage/v1/object/client-files', 'POST')).toHaveLength(0);
   });
 
   it.each([

@@ -1,5 +1,5 @@
 begin;
-select plan(17);
+select plan(20);
 
 -- Fixtures: two organizations with one member and one client each, plus an archived client in A.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -52,6 +52,33 @@ select throws_ok(
   '23514',
   null,
   'the CNP must have thirteen digits'
+);
+
+insert into public.client_workplaces (id, organization_id, client_id, name) values
+  ('d2d2d2d2-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', 'Sediu B');
+
+select throws_ok(
+  $$ insert into public.employees (organization_id, client_id, last_name, first_name, job_title, hired_at, workplace_id)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Other', 'Site', 'Sudor', '2020-01-01', 'd2d2d2d2-0000-4000-8000-000000000001') $$,
+  '23503',
+  null,
+  'an employee cannot work at a workplace of another client'
+);
+
+select throws_ok(
+  $$ insert into public.employees (organization_id, client_id, last_name, first_name, job_title, hired_at, commute_minutes)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'No', 'Commute', 'Sudor', '2020-01-01', 0) $$,
+  '23514',
+  null,
+  'a commute lasts between 1 and 600 minutes'
+);
+
+select throws_ok(
+  $$ insert into public.employees (organization_id, client_id, last_name, first_name, job_title, hired_at, qualification)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Blank', 'Qualification', 'Sudor', '2020-01-01', '   ') $$,
+  '23514',
+  null,
+  'a qualification is not blank'
 );
 
 -- Organization B's client row, to hand to the headcount as someone who cannot read it.

@@ -20,6 +20,19 @@ export function listQuerySchema<const Keys extends readonly [string, ...string[]
   });
 }
 
+export const listSearchSchema = z.string().trim().max(100);
+
+// Lowercase and without diacritics, as the database's unaccent() leaves a name. Splitting on
+// anything but letters and digits also keeps PostgREST's filter syntax out of the terms.
+export function searchTerms(q: string | undefined) {
+  return (q ?? '')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+}
+
 export function pageSchema<Item extends z.ZodType>(item: Item) {
   return z.object({
     items: z.array(item),

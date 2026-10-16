@@ -37,6 +37,8 @@ export const clientFileSchema = z.object({
   name: z.string(),
   note: z.string().nullable(),
   ownersOnly: z.boolean(),
+  // Null for a file about the client itself.
+  employee: z.object({ id: z.uuid(), lastName: z.string(), firstName: z.string() }).nullable(),
   originalFileName: z.string(),
   mimeType: clientFileTypeSchema,
   sizeBytes: z.int().min(1),
@@ -51,6 +53,12 @@ export const clientFileSchema = z.object({
 });
 
 export type ClientFile = z.infer<typeof clientFileSchema>;
+
+export const listClientFilesQuerySchema = z.object({
+  employeeId: z.uuid().optional(),
+});
+
+export type ListClientFilesQuery = z.infer<typeof listClientFilesQuerySchema>;
 
 export const clientFileListResponseSchema = z.object({ items: z.array(clientFileSchema) });
 
@@ -68,6 +76,8 @@ export const uploadClientFileQuerySchema = z.object({
   name: name.optional(),
   note: note.optional(),
   ownersOnly: z.enum(['true', 'false']).default('false'),
+  // One of the client's employees; it cannot be changed after the upload.
+  employeeId: z.uuid().optional(),
 });
 
 export type UploadClientFileQuery = z.infer<typeof uploadClientFileQuerySchema>;

@@ -434,19 +434,23 @@ and a denormalized `organization_id`, and a composite foreign key on `(client_id
 organization_id)` guarantees the client belongs to the same organization, so the policies
 stay a one-line comparison like on `clients`.
 
-| Column                                      | Notes                                                                                      |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `last_name`, `first_name`                   | Required, separate columns: forms print "Numele și prenumele" and lists sort by last name. |
-| `cnp`                                       | Optional, thirteen digits; checksum and date validated by the API. Unique per client.      |
-| `employee_number`                           | The client's own identifier (marca); import and dedupe key. Unique per client.             |
-| `email`, `phone`                            | Optional, for invitations and remote signing.                                              |
-| `job_title`                                 | Required free text (funcția). A COR code column will join it once the list exists.         |
-| `hired_at`                                  | Required; drives the introductory training deadline. Tenure is computed, never stored.     |
-| `status`, `terminated_at`                   | `active` or `terminated`; the date is required exactly when terminated.                    |
-| `birth_date`, `birth_place`, `home_address` | Optional fields of the individual training sheet. The birth date must agree with the CNP.  |
-| `blood_group`, `rh_factor`                  | Optional, constrained to `0(I)`, `A(II)`, `B(III)`, `AB(IV)` and `+`, `-`.                 |
-| `notes`                                     | Free text, up to 2000 characters.                                                          |
-| `archived_at`                               | Soft delete for rows entered by mistake; a leaver is a status change, not an archive.      |
+| Column                                      | Notes                                                                                                                                                   |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `last_name`, `first_name`                   | Required, separate columns: forms print "Numele și prenumele" and lists sort by last name.                                                              |
+| `cnp`                                       | Optional, thirteen digits; checksum and date validated by the API. Unique per client.                                                                   |
+| `employee_number`                           | The client's own identifier (marca); import and dedupe key. Unique per client.                                                                          |
+| `email`, `phone`                            | Optional, for invitations and remote signing.                                                                                                           |
+| `job_title`                                 | Required free text (funcția). A COR code column will join it once the list exists.                                                                      |
+| `hired_at`                                  | Required; drives the introductory training deadline. Tenure is computed, never stored.                                                                  |
+| `status`, `terminated_at`                   | `active` or `terminated`; the date is required exactly when terminated.                                                                                 |
+| `birth_date`, `birth_place`, `home_address` | Optional fields of the individual training sheet. The birth date must agree with the CNP.                                                               |
+| `blood_group`, `rh_factor`                  | Optional, constrained to `0(I)`, `A(II)`, `B(III)`, `AB(IV)` and `+`, `-`.                                                                              |
+| `notes`                                     | Free text, up to 2000 characters.                                                                                                                       |
+| `workplace_id`                              | Optional: the workplace the person works at, by a composite foreign key on `(workplace_id, client_id)` to `client_workplaces (id, client_id)`. ADR 021. |
+| `qualification`, `education`                | Optional free text the individual training sheets print (calificarea, studiile), up to 160 characters each.                                             |
+| `authorizations`                            | Optional free text (autorizații: "ISCIR" and the like), up to 500 characters.                                                                           |
+| `commute_route`, `commute_minutes`          | Optional: the commute (traseul de deplasare) as free text up to 1000 characters, and its duration, 1 to 600 minutes.                                    |
+| `archived_at`                               | Soft delete for rows entered by mistake; a leaver is a status change, not an archive.                                                                   |
 
 Both unique indexes are partial on `archived_at is null`, so archiving a mistaken row releases
 its CNP and employee number. The insert policy additionally requires the client to be active
@@ -463,11 +467,41 @@ more than 30 working days triggers supplementary training; it will be a dated ev
 the training records, from which "currently absent" is derived.
 
 Not on the employee row, on purpose: training completion, signatures, and medical fitness.
-Those are evidence records with dates and actors (a `training_records` table follows), because a
-flag would be wrong the day after the periodic training expires. The post a person fills is
-a job position, below. Departments are a future entity; no free-text stand-in was added. Workplaces exist as
-`client_workplaces`, and an employee does not point at one yet. Contract type, working
+Those are evidence records with dates and actors (the training records below), because a
+flag would be wrong the day after the periodic training expires. The employee responses carry
+each domain's training state, next training due and last periodic training as `training`,
+computed by the `employee_training_status` view below and never stored. The post a person fills is
+a job position, below. Departments are a future entity; no free-text stand-in was added. Contract type, working
 hours, and salary are HR data the product avoids.
+
+The workplace and the commute are optional on the row and on the form: the occupational safety
+sheet is what requires the commute route, and both sheets the workplace at a client with
+several ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)). Adding an
+employee without a workplace gives them the client's only active one when it has exactly one;
+the API does that, not a trigger, and refuses a workplace that is archived or belongs to another
+client, which the foreign key alone would take. The foreign key restricts deleting a workplace an
+employee points at; archiving one leaves the employees on it.
+
+The employee lists are searched by text (ADR 021). Matching is a substring per term: the API
+lowercases the query, strips its diacritics, splits it on anything that is not a letter or a
+digit, and asks, for every term, `ILIKE '%term%'` on the computed field
+`employee_search_name(employees)` (`lower(unaccent_immutable(last_name || ' ' || first_name))`),
+on `employee_number`, and for the organization-wide list on
+`employee_client_search_name(employees)`, the client's legal name the same way. Every term must
+match one of them, so `stefan tar` finds "Țăranu Ștefan" and `naval popescu` the Popescu of the
+naval yard. A substring was chosen over a prefix of a word because people type the part they
+remember, the middle of a double name or the digits of an employee number, and a list of a few
+thousand rows per organization does not need ranking. Splitting on punctuation is also what
+keeps a typed comma or parenthesis out of PostgREST's filter syntax.
+
+`unaccent` and `pg_trgm` live in the `extensions` schema. `unaccent()` is only stable, since it
+looks its dictionary up by name, so `public.unaccent_immutable(text)` wraps it with the
+dictionary named with its schema, and the index can use the wrapper. `employees_search_name_idx`
+is a GIN trigram index on the same expression, because a btree cannot serve a match in the
+middle of a string; `employees_employee_number_search_idx` is one on the employee number.
+`employee_search_name` must stay inlinable to use the index: a plain SQL function without
+`set search_path`. The client's name is a subquery per row, read as the caller, and
+has no index; the organization's own employees are few enough for it.
 
 The CAEN Rev. 3 class list (651 four-digit codes with Romanian names) also lives in
 `packages/contracts` and feeds the form's combobox and the seed. The county list is a Zod enum in `packages/contracts`. It flows into the OpenAPI document and
@@ -502,6 +536,74 @@ runs as the person inserting, so the policies decide, as everywhere.
 Members read, create, update and delete the positions of their organization; updates are
 granted on the descriptive columns and `archived_at` only. Deleting succeeds only for a
 position no employee points at: the foreign key keeps the rest.
+
+## Training records
+
+A **training held** is one row of `trainings`, and each employee who attended it one row of
+`training_records`, the **training record** the individual training sheets print
+([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)). Both carry
+`client_id` and a denormalized `organization_id` with the composite foreign key to the client,
+the four policies of the organization's members (insert only for an active client), the
+archived-client freeze and the lead trigger, as the other tables under a client do. The records
+are kept whatever becomes of the employee: a leaver's sheets stay printable.
+
+| `trainings` column                    | Notes                                                                                                                                   |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain`                              | `training_domain`: `ssm` or `psi`.                                                                                                      |
+| `phase`                               | `training_phase`: `introductory_general`, `workplace`, `periodic` or `supplementary`.                                                   |
+| `held_on`                             | The day it was held. The API refuses a day after today in Romania.                                                                      |
+| `duration_minutes`, `material`        | 1 to 600 minutes; the material taught as text, 1 to 4000 characters. Kept as saved, whatever the themes they were proposed from become. |
+| `trainer_name`, `trainer_job_title`   | Required, 1 to 160 characters each.                                                                                                     |
+| `verifier_name`, `verifier_job_title` | Both or neither: the fire-safety sheet has no verifier's signature.                                                                     |
+| `supplementary_reason`                | `supplementary_training_reason`, one of the cases of H.G. 1425/2006 art. 98; set exactly when the phase is `supplementary`.             |
+| `source`                              | `training_source`: `app`, or `paper` for a training typed from a sheet filled by hand, whose signatures are on the paper.               |
+| `themes_revision_id`                  | The training themes revision the material was proposed from, if any; set null when that revision is deleted.                            |
+| `notes`                               | Optional, up to 2000 characters.                                                                                                        |
+
+| `training_records` column                                  | Notes                                                                                                                                   |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `training_id`, `phase`                                     | The training and its phase, together with `client_id` a foreign key to `trainings (id, client_id, phase)`, deleted and updated with it. |
+| `employee_id`                                              | An employee of the same client in any status, by the composite key `(employee_id, client_id)`; once per training.                       |
+| `occupation`                                               | The name of the employee's job position when the record was made: a person who changes post keeps the rows of the old one.              |
+| `admitted_on`, `admitted_by_name`, `admitted_by_job_title` | "Admis la lucru": all three or none, and only on a workplace training, which the check reads from the record's own `phase`.             |
+
+The phase is kept on the record so that a check constraint, not a trigger, holds the admission
+to the workplace training; the foreign key carries a change of the training's phase to its
+records. Members update a training's facts and a record's admission only: a training never
+moves to another client, and a record never to another training or person.
+
+`save_training(...)` records a training and its attendees in one transaction, or with
+`p_training_id` replaces both: the records of attendees left out are deleted, those who stay
+keep their record and its occupation, the new ones get a record, and the one admission given
+is set on every attendee. It runs as the caller and returns null for a client or a training
+the caller cannot see. Deleting a training deletes its records; until signatures exist a
+record is editable and deletable like any fact entered by hand. The `training_signatures`
+table comes with the electronic signature.
+
+### Next training due and training state
+
+`employee_training_status` is a view, security invoker, with one row per employee and, for
+each domain, `<domain>_last_periodic_on`, `<domain>_workplace_trained_on`,
+`<domain>_has_hiring_training`, `<domain>_due_on` and `<domain>_state`. Nothing of it is stored.
+
+- The interval runs from the day of the last periodic record, else of the latest workplace
+  record, else the hire date. A supplementary record never moves it.
+- The interval is, for `ssm`, the position's `training_interval_months`, else the client's
+  interval for the position's staff category; for `psi`, the `client_fire_safety` interval for
+  the category, which a position cannot override. An undecided interval, or a category the
+  client does not train, leaves `due_on` null.
+- The state (`training_state`) is `untrained` without an introductory general or a workplace
+  record in the domain; otherwise `overdue` once `due_on` has passed, `due` when it falls
+  within the next thirty days, else `current`, as it is without a due date. A terminated
+  employee has a null state. Days are Romanian days, as the documents date them.
+
+`employee_training_due(...)` computes one domain for one employee; it sets no `search_path`
+and qualifies every name instead, so that the planner inlines it. The employee lists read the
+view through `training_status(employees)`, a PostgREST computed relationship (to-one, `rows
+1`), embedded as `training_status(...)` and as `training_status!inner(...)` with an `or`
+filter when the list is filtered by a training state. A row costs a few index reads:
+`training_records (employee_id)` and the primary keys; `trainings (client_id, domain, phase,
+held_on)` serves a client's list of trainings.
 
 ## Protective equipment
 
@@ -846,12 +948,21 @@ deleting the first.
 | `size_bytes`, `sha256` | 1 byte to 20 MiB, and the SHA-256 of the content in hex.                                    |
 | `storage_path`         | Generated as `<organization>/<client>/<id>.<extension>` from the type; unique.              |
 | `uploaded_by`          | The signed-in user, the platform admin during an impersonation; null once the account goes. |
+| `employee_id`          | Optional: the employee of the same client the file is about (ADR 021); set at upload only.  |
 
 Members read their organization's files, except that a file for owners only is an owner's
 alone. A member inserts a row as its uploader, for an active client of their organization, or
 for a lead when they are an owner, and only an owner inserts one for owners only. The uploader
 and any owner update and delete the files they can see; column grants limit an update to
 `name`, `note` and `owners_only`.
+
+A file can belong to one of the client's employees ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)),
+such as the photograph of a paper training sheet: `employee_id` with `client_id` references
+`employees (id, client_id)`, so the employee is always the file's client's, and `on delete
+restrict` since employees are never deleted. The column grants leave it out of an update, so
+a file stays with the employee it was uploaded for. `client_files_employee_id_idx` on
+`(employee_id, created_at desc)` serves an employee's list. The policies do not change: who
+sees a file does not depend on whose it is.
 
 The archived-client trigger applies (`CLA01`). `protect_client_file_visibility` runs before
 every insert and update: a lead's file is for owners only (`CFL01`) until the lead is

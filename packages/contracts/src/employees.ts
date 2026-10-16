@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 import { decodeCnp, isValidCnpInput, normalizeCnp } from './cnp';
-import { listQuerySchema, pageSchema } from './list';
+import { listQuerySchema, listSearchSchema, pageSchema } from './list';
+import { employeeTrainingSchema, trainingStateFilterSchema } from './trainings';
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
 
@@ -52,6 +53,14 @@ export const createEmployeeRequestSchema = z
     bloodGroup: bloodGroupSchema.nullish(),
     rhFactor: rhFactorSchema.nullish(),
     notes: optionalText(1, 2000),
+    // Left out when adding someone, the client's only active workplace if it has exactly one;
+    // left out when editing, the stored one stays (ADR 021).
+    workplaceId: z.uuid().nullish(),
+    qualification: optionalText(1, 160),
+    education: optionalText(1, 160),
+    authorizations: optionalText(1, 500),
+    commuteRoute: optionalText(1, 1000),
+    commuteMinutes: z.number().int().min(1).max(600).nullish(),
   })
   .superRefine((body, ctx) => {
     if (body.birthDate && body.birthDate >= body.hiredAt) {
@@ -98,6 +107,9 @@ export type EmployeeSortKey = (typeof employeeSortKeys)[number];
 
 export const listEmployeesQuerySchema = listQuerySchema(employeeSortKeys, 'name').extend({
   status: employeeStatusSchema.optional(),
+  // Matched in either domain.
+  trainingState: trainingStateFilterSchema.optional(),
+  q: listSearchSchema.optional(),
 });
 
 export type ListEmployeesQuery = z.infer<typeof listEmployeesQuerySchema>;
@@ -125,9 +137,16 @@ export const employeeSchema = z.object({
   bloodGroup: bloodGroupSchema.nullable(),
   rhFactor: rhFactorSchema.nullable(),
   notes: z.string().nullable(),
+  workplace: z.object({ id: z.uuid(), name: z.string() }).nullable(),
+  qualification: z.string().nullable(),
+  education: z.string().nullable(),
+  authorizations: z.string().nullable(),
+  commuteRoute: z.string().nullable(),
+  commuteMinutes: z.number().int().nullable(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
   archivedAt: z.iso.datetime({ offset: true }).nullable(),
+  training: employeeTrainingSchema,
 });
 
 export type Employee = z.infer<typeof employeeSchema>;
@@ -145,8 +164,10 @@ export const employeeListItemSchema = employeeSchema.pick({
   hiredAt: true,
   status: true,
   terminatedAt: true,
+  workplace: true,
   createdAt: true,
   updatedAt: true,
+  training: true,
 });
 
 export type EmployeeListItem = z.infer<typeof employeeListItemSchema>;

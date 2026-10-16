@@ -11,6 +11,7 @@ const searchSchema = z.object({
   page: z.number().int().min(1).optional().catch(undefined),
   sort: z.enum(employeeSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
+  q: z.string().max(100).optional().catch(undefined),
 });
 
 export const Route = createFileRoute('/_authenticated/clients/$clientId/employees/')({

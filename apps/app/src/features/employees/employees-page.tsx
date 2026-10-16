@@ -10,11 +10,13 @@ import { getListEmployeesQueryKey, useListEmployees } from '@/api/generated/api'
 import { ApiHttpError } from '@/api/http';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
+import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
 
 import { employeeColumns, type EmployeeRow } from './employee-columns';
 import { employeeStatusLabels } from './employee-format';
 import { type EmployeeStatusChange, EmployeeStatusDialog } from './employee-status-dialog';
+import { EmployeesNoMatch } from './employees-no-match';
 
 const employeesRoute = getRouteApi('/_authenticated/clients/$clientId/employees/');
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
@@ -40,11 +42,19 @@ export function EmployeesPage() {
     page = 1,
     sort = defaultSort.sort,
     order = defaultSort.order,
+    q,
   } = employeesRoute.useSearch();
   const navigate = employeesRoute.useNavigate();
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const params = { ...(status ? { status } : {}), page, pageSize: defaultPageSize, sort, order };
+  const params = {
+    ...(status ? { status } : {}),
+    ...(q ? { q } : {}),
+    page,
+    pageSize: defaultPageSize,
+    sort,
+    order,
+  };
   const employees = useListEmployees(clientId, params, {
     request: apiRequest,
     query: {
@@ -84,7 +94,7 @@ export function EmployeesPage() {
                   key={filter.label}
                   to="/clients/$clientId/employees"
                   params={{ clientId }}
-                  search={filter.status ? { status: filter.status } : {}}
+                  search={{ ...(filter.status ? { status: filter.status } : {}), q }}
                   data-testid={filter.testId}
                   aria-current={active ? 'page' : undefined}
                   replace
@@ -100,6 +110,19 @@ export function EmployeesPage() {
               );
             })}
           </nav>
+          <SearchInput
+            value={q}
+            onSearch={(next) =>
+              void navigate({
+                replace: true,
+                search: (prev) => ({ ...prev, q: next || undefined, page: undefined }),
+              })
+            }
+            placeholder="Caută după nume sau marcă"
+            label="Caută angajați"
+            testId="employees-search"
+            className="w-full sm:w-64"
+          />
           {employees.isSuccess && (
             <span className="ml-auto text-sm text-muted-foreground" data-testid="employees-count">
               {meta.total === 1 ? '1 angajat' : `${meta.total} angajați`}
@@ -165,28 +188,44 @@ export function EmployeesPage() {
             </>
           }
           empty={
-            <>
-              <UserRound className="mx-auto mb-4 size-8 text-muted-foreground" aria-hidden="true" />
-              <h3 className="text-base font-medium">
-                {status === 'terminated' ? 'Niciun fost angajat' : 'Niciun angajat încă'}
-              </h3>
-              <p
-                data-testid="employees-empty"
-                className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
-              >
-                {status === 'terminated'
-                  ? 'Angajații care pleacă rămân aici, cu dovezile lor.'
-                  : 'Adaugă angajații clientului pentru a le organiza instruirile și documentele.'}
-              </p>
-              {!status && !readOnly && (
-                <Button asChild variant="outline" className="mt-5">
-                  <Link to="/clients/$clientId/employees/new" params={{ clientId }}>
-                    <Plus aria-hidden="true" />
-                    Adaugă primul angajat
-                  </Link>
-                </Button>
-              )}
-            </>
+            q ? (
+              <EmployeesNoMatch
+                hint="Verifică ce ai scris sau caută după alt nume ori altă marcă."
+                testId="employees-empty"
+                onClear={() =>
+                  void navigate({
+                    replace: true,
+                    search: (prev) => ({ ...prev, q: undefined, page: undefined }),
+                  })
+                }
+              />
+            ) : (
+              <>
+                <UserRound
+                  className="mx-auto mb-4 size-8 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <h3 className="text-base font-medium">
+                  {status === 'terminated' ? 'Niciun fost angajat' : 'Niciun angajat încă'}
+                </h3>
+                <p
+                  data-testid="employees-empty"
+                  className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
+                >
+                  {status === 'terminated'
+                    ? 'Angajații care pleacă rămân aici, cu dovezile lor.'
+                    : 'Adaugă angajații clientului pentru a le organiza instruirile și documentele.'}
+                </p>
+                {!status && !readOnly && (
+                  <Button asChild variant="outline" className="mt-5">
+                    <Link to="/clients/$clientId/employees/new" params={{ clientId }}>
+                      <Plus aria-hidden="true" />
+                      Adaugă primul angajat
+                    </Link>
+                  </Button>
+                )}
+              </>
+            )
           }
         />
       </div>

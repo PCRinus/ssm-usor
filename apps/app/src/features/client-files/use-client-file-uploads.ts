@@ -45,6 +45,7 @@ const sameFile = (a: File, b: File) =>
 // `onAllUploaded` is not called after a failure: the list stays, so no file goes missing unsaid.
 export function useClientFileUploads(
   clientId: string,
+  employeeId: string | undefined,
   initialFiles: File[],
   onAllUploaded: () => void
 ) {
@@ -77,6 +78,7 @@ export function useClientFileUploads(
         getUploadClientFileUrl(clientId, {
           fileName: job.file.name,
           ownersOnly: job.ownersOnly ? 'true' : 'false',
+          employeeId,
         }),
         job.file,
         {

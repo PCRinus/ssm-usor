@@ -14,6 +14,7 @@ import { type ReactNode, useState } from 'react';
 import { getGetEmployeeQueryKey, useGetEmployee } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { useAuth } from '@/features/auth/auth-context';
+import { EmployeeFilesCard } from '@/features/client-files/employee-files-card';
 
 import { formatDate, formatTenure, todayIso } from './employee-format';
 import { EmployeeJobPositionDialog } from './employee-job-position-dialog';
@@ -176,6 +177,9 @@ export function EmployeePage() {
         </Section>
 
         <Section title="Fișa de instruire">
+          <Fact label="Punct de lucru" wide>
+            {employee.workplace?.name}
+          </Fact>
           <Fact label="Data nașterii">
             {employee.birthDate ? formatDate(employee.birthDate) : null}
           </Fact>
@@ -184,10 +188,21 @@ export function EmployeePage() {
             {employee.homeAddress}
           </Fact>
           <Fact label="Grupa sanguină">{blood}</Fact>
+          <Fact label="Calificarea">{employee.qualification}</Fact>
+          <Fact label="Studiile">{employee.education}</Fact>
+          <Fact label="Autorizații" wide>
+            {employee.authorizations}
+          </Fact>
+          <Fact label="Traseul de deplasare" wide>
+            {employee.commuteRoute}
+          </Fact>
+          <Fact label="Durata deplasării (minute)">{employee.commuteMinutes}</Fact>
           <Fact label="Observații" wide>
             {employee.notes}
           </Fact>
         </Section>
+
+        <EmployeeFilesCard employee={employee} />
       </div>
       <EmployeeStatusDialog clientId={clientId} change={change} onClose={() => setChange(null)} />
       <EmployeeJobPositionDialog
