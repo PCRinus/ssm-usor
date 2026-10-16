@@ -19,7 +19,6 @@ import {
   fireSubstanceDetails,
   type FireSubstancesState,
   type ResponsiblePersonRole,
-  samePersonName,
   type StaffCategory,
   trainingMonths,
   unfilledMark,
@@ -40,6 +39,13 @@ import {
 } from './context';
 import { type ContextParts, gapRules } from './gaps';
 import { installationParts, installationText } from './installations';
+import {
+  asPerson,
+  distinctByName,
+  distinctPeopleByName,
+  type Person as BasePerson,
+  withRole,
+} from './people';
 import { buildSiteSheet, type SiteSheetContext } from './site-sheet';
 import {
   dealChapters,
@@ -146,9 +152,7 @@ export type FireSafetyClientFacts = {
   substances: { state: FireSubstancesState; entries: FireSubstanceFacts[] };
 };
 
-type Person = {
-  name: string;
-  jobTitle: string;
+type Person = BasePerson & {
   /** "mecanic auto": the job title inside a sentence, where a table cell prints `jobTitle`. */
   jobTitleRunOn: string;
 };
@@ -593,30 +597,27 @@ function fireContext(
   inSet: (typeKey: FireSafetyTypeKeyFromTenEmployees) => boolean
 ): FireContext {
   const card = facts.fireSafety.card!;
-  const asPerson = (person: DocumentFacts['responsiblePersons'][number]): Person => ({
-    name: person.fullName.trim(),
-    jobTitle: person.jobTitle.trim(),
+  const asRunOnPerson = (person: DocumentFacts['responsiblePersons'][number]): Person => ({
+    ...asPerson(person),
     jobTitleRunOn: runOn(person.jobTitle.trim()),
   });
-  const holding = (role: ResponsiblePersonRole) =>
-    facts.responsiblePersons.filter((person) => person.roles.includes(role));
+  const holding = (role: ResponsiblePersonRole) => withRole(facts.responsiblePersons, role);
   const servesAt = (workplaceId: string) => (person: { workplaceId: string | null }) =>
     person.workplaceId === null || person.workplaceId === workplaceId;
-  const coordinator = asPerson(holding('fire_safety_coordinator')[0]!);
-  const interventionLeader = asPerson(holding('fire_intervention_leader')[0]!);
+  const coordinator = asRunOnPerson(holding('fire_safety_coordinator')[0]!);
+  const interventionLeader = asRunOnPerson(holding('fire_intervention_leader')[0]!);
   const managers = holding('workplace_manager');
   const workplaceManagers = managers.map((person) => ({
-    ...asPerson(person),
+    ...asRunOnPerson(person),
     workplaceName:
       facts.workplaces.find((workplace) => workplace.id === person.workplaceId)?.name.trim() ??
       null,
   }));
-  const designated: FireContext['designated'] = [];
-  for (const person of [coordinator, interventionLeader, ...workplaceManagers]) {
-    if (!designated.some((each) => samePersonName(each.name, person.name))) {
-      designated.push({ name: person.name, jobTitle: person.jobTitle });
-    }
-  }
+  const designated = distinctPeopleByName([
+    coordinator,
+    interventionLeader,
+    ...workplaceManagers,
+  ]).map(({ name, jobTitle }) => ({ name, jobTitle }));
   const staffOf = (category: 'technical_administrative' | 'execution') =>
     facts.jobPositions
       .filter((position) => position.staffCategory === category)
@@ -631,10 +632,7 @@ function fireContext(
   ) as Record<FireDecision, string>;
 
   const activeWorkplaceIds = new Set(facts.workplaces.map((workplace) => workplace.id));
-  const managerNames: string[] = [];
-  for (const { name } of workplaceManagers) {
-    if (!managerNames.some((each) => samePersonName(each, name))) managerNames.push(name);
-  }
+  const managerNames = distinctByName(workplaceManagers.map((person) => person.name));
 
   const workplaces = facts.workplaces.map((workplace, index): FireWorkplaceContext => {
     const units = facts.fireSafety.equipment.filter((unit) => unit.workplaceId === workplace.id);
@@ -643,7 +641,7 @@ function fireContext(
     );
     const manager = managers
       .filter(servesAt(workplace.id))
-      .map(asPerson)
+      .map(asRunOnPerson)
       .sort((a, b) => collator.compare(a.name, b.name))[0];
     const firstIntervention = facts.responsiblePersons
       .filter(
@@ -658,7 +656,7 @@ function fireContext(
           Number(!b.roles.includes('fire_intervention_leader'))
       )
       .map((person) => ({
-        ...asPerson(person),
+        ...asRunOnPerson(person),
         roleLabel: listed(
           (['fire_intervention_leader', 'fire_safety_coordinator'] as const)
             .filter((role) => person.roles.includes(role))
@@ -1021,16 +1019,9 @@ function fireThemes(facts: FireSafetySetFacts): FireThemesContext | undefined {
   const firstMonth = card.trainingFirstMonth!;
   const periodicMinutes = card.periodicTrainingHours! * 60;
   const instructionsDecision = `${facts.firstDecisionNumber + fireDecisionOrdinals.instructions - 1} PSI`;
-  const managerNames: string[] = [];
-  for (const person of facts.responsiblePersons) {
-    const name = person.fullName.trim();
-    if (
-      person.roles.includes('workplace_manager') &&
-      !managerNames.some((each) => samePersonName(each, name))
-    ) {
-      managerNames.push(name);
-    }
-  }
+  const managerNames = distinctByName(
+    withRole(facts.responsiblePersons, 'workplace_manager').map((person) => person.fullName.trim())
+  );
   // The line runs on after the title ("… sau, după caz, …"), where glued words only break it early.
   const managers = workplaceManagersTrainer(managerNames, ' ');
   return {

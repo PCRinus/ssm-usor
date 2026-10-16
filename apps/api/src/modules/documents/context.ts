@@ -22,6 +22,7 @@ import {
 import { countOf, listed } from '../../lib/romanian';
 import type { FireSafetyClientFacts, FireWorkplaceFacts } from './fire-safety';
 import { type ContextParts, gapRules } from './gaps';
+import { asPerson, type Person, withRole } from './people';
 import {
   incompleteRiskEvaluations,
   riskAssessment,
@@ -139,8 +140,6 @@ export type DocumentFacts = {
   riskEvaluations: RiskEvaluationFacts[];
   fireSafety: FireSafetyClientFacts;
 };
-
-type Person = { name: string; jobTitle: string };
 
 type PositionContext = {
   name: string;
@@ -502,13 +501,8 @@ export const months = (firstMonth: number, intervalMonths: number) => {
   return `${names.length === 1 ? 'luna' : 'lunile'} ${listed(names)}`;
 };
 
-const asPerson = (person: DocumentFacts['responsiblePersons'][number]): Person => ({
-  name: person.fullName.trim(),
-  jobTitle: person.jobTitle.trim(),
-});
-
 function imminentDangerWordingOf(people: DocumentFacts['responsiblePersons']) {
-  const managers = people.filter((person) => person.roles.includes('workplace_manager'));
+  const managers = withRole(people, 'workplace_manager');
   const designatedManagers = managers.filter((person) => person.roles.includes('imminent_danger'));
   const others = people.filter(
     (person) =>
@@ -550,11 +544,11 @@ export function romanianDay(timestamp: string) {
 function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
   const { organization, client } = facts;
   const year = Number(facts.issueDate.slice(0, 4));
-  const withRole = (role: ResponsiblePersonRole): Person[] =>
-    facts.responsiblePersons.filter((person) => person.roles.includes(role)).map(asPerson);
-  const workplaceManagers = withRole('workplace_manager');
-  const firstAiders = withRole('first_aid');
-  const imminentDanger = withRole('imminent_danger');
+  const holding = (role: ResponsiblePersonRole) =>
+    withRole(facts.responsiblePersons, role).map(asPerson);
+  const workplaceManagers = holding('workplace_manager');
+  const firstAiders = holding('first_aid');
+  const imminentDanger = holding('imminent_danger');
   const imminentDangerWording = imminentDangerWordingOf(facts.responsiblePersons);
   const workersRepresentatives = currentWorkersRepresentatives(facts).map(asPerson);
   const intervalOf = (position: DocumentFacts['jobPositions'][number]) =>
@@ -606,7 +600,7 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
       workplaceManagers.map((person) => `${person.name}, ${person.jobTitle}`).join('; '),
     firstAiders: () => firstAiders,
     firstAiderNames: () => listed(firstAiders.map((person) => person.name)),
-    evaluationTeam: () => withRole('risk_evaluation_team'),
+    evaluationTeam: () => holding('risk_evaluation_team'),
     imminentDanger: () => imminentDanger,
     imminentDangerText: () => described(imminentDanger),
     workplaceManagersAssumeImminentDanger: () => imminentDangerWording.wording === 'assume',
