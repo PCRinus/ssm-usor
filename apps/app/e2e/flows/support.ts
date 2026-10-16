@@ -75,13 +75,17 @@ export async function createLead(organizationId: string, legalName: string, cui:
 }
 
 // A client company of the organization. Removed with it by `cleanUp`.
-export async function createClientCompany(organizationId: string, legalName: string) {
+export async function createClientCompany(
+  organizationId: string,
+  legalName: string,
+  cui = '1590082'
+) {
   const client = await admin
     .from('clients')
     .insert({
       organization_id: organizationId,
       legal_name: legalName,
-      cui: '1590082',
+      cui,
       legal_representative_name: 'Maria Popescu',
     })
     .select('id')
@@ -458,7 +462,7 @@ export async function createJobPosition(
 export async function createEmployee(
   organizationId: string,
   clientId: string,
-  name: { firstName: string; lastName: string; jobTitle: string }
+  name: { firstName: string; lastName: string; jobTitle: string; employeeNumber?: string }
 ) {
   const employee = await admin.from('employees').insert({
     organization_id: organizationId,
@@ -466,6 +470,7 @@ export async function createEmployee(
     first_name: name.firstName,
     last_name: name.lastName,
     job_title: name.jobTitle,
+    employee_number: name.employeeNumber ?? null,
     hired_at: '2024-02-15',
   });
   if (employee.error) throw employee.error;

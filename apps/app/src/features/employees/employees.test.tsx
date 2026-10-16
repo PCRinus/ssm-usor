@@ -330,7 +330,11 @@ describe('client employees list', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('clients-open'));
     await screen.findByTestId('client-details-page');
-    await user.click(screen.getByRole('link', { name: 'Angajați' }));
+    await user.click(
+      within(screen.getByRole('navigation', { name: 'Secțiunile clientului' })).getByRole('link', {
+        name: 'Angajați',
+      })
+    );
     await screen.findByTestId('employees-page');
     expect(runtime.router.history.length).toBe(3);
 

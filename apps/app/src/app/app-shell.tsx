@@ -47,6 +47,7 @@ import {
   ShieldAlert,
   UserRound,
   Users,
+  UsersRound,
 } from 'lucide-react';
 import { type ComponentProps, Fragment, type ReactNode, useEffect, useState } from 'react';
 
@@ -67,6 +68,7 @@ const navigation = [
   { to: '/dashboard', label: 'Prezentare generală', icon: LayoutDashboard, ownerOnly: false },
   { to: '/leads', label: 'Clienți potențiali', icon: Handshake, ownerOnly: true },
   { to: '/clients', label: 'Clienți', icon: Users, ownerOnly: false },
+  { to: '/employees', label: 'Angajați', icon: UsersRound, ownerOnly: false },
   {
     to: '/instructions',
     label: 'Instrucțiuni',

@@ -30,6 +30,7 @@ import { Route as AuthenticatedRisksRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients/index';
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients/$clientId';
 import { Route as AuthenticatedClientsNewRouteImport } from './routes/_authenticated/clients/new';
+import { Route as AuthenticatedEmployeesIndexRouteImport } from './routes/_authenticated/employees/index';
 import { Route as AuthenticatedInstructionsIndexRouteImport } from './routes/_authenticated/instructions/index';
 import { Route as AuthenticatedInstructionsModuleIdRouteImport } from './routes/_authenticated/instructions/$moduleId';
 import { Route as AuthenticatedInstructionsLibraryRouteImport } from './routes/_authenticated/instructions/_library';
@@ -190,6 +191,12 @@ const AuthenticatedClientsNewRoute = AuthenticatedClientsNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AuthenticatedClientsRoute,
 } as any);
+const AuthenticatedEmployeesIndexRoute =
+  AuthenticatedEmployeesIndexRouteImport.update({
+    id: '/employees/',
+    path: '/employees/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any);
 const AuthenticatedInstructionsIndexRoute =
   AuthenticatedInstructionsIndexRouteImport.update({
     id: '/',
@@ -530,6 +537,7 @@ export interface FileRoutesByFullPath {
   '/organization/team': typeof AuthenticatedOrganizationTeamRoute;
   '/risks/$profileId': typeof AuthenticatedRisksProfileIdRoute;
   '/clients/': typeof AuthenticatedClientsIndexRoute;
+  '/employees/': typeof AuthenticatedEmployeesIndexRoute;
   '/instructions/': typeof AuthenticatedInstructionsIndexRoute;
   '/leads/': typeof AuthenticatedLeadsIndexRoute;
   '/legislatie/': typeof AuthenticatedLegislatieIndexRoute;
@@ -595,6 +603,7 @@ export interface FileRoutesByTo {
   '/organization/team': typeof AuthenticatedOrganizationTeamRoute;
   '/risks/$profileId': typeof AuthenticatedRisksProfileIdRoute;
   '/clients': typeof AuthenticatedClientsIndexRoute;
+  '/employees': typeof AuthenticatedEmployeesIndexRoute;
   '/leads': typeof AuthenticatedLeadsIndexRoute;
   '/legislatie': typeof AuthenticatedLegislatieIndexRoute;
   '/organization': typeof AuthenticatedOrganizationIndexRoute;
@@ -662,6 +671,7 @@ export interface FileRoutesById {
   '/_authenticated/organization/team': typeof AuthenticatedOrganizationTeamRoute;
   '/_authenticated/risks/$profileId': typeof AuthenticatedRisksProfileIdRoute;
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute;
+  '/_authenticated/employees/': typeof AuthenticatedEmployeesIndexRoute;
   '/_authenticated/instructions/': typeof AuthenticatedInstructionsIndexRoute;
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute;
   '/_authenticated/legislatie/': typeof AuthenticatedLegislatieIndexRoute;
@@ -736,6 +746,7 @@ export interface FileRouteTypes {
     | '/organization/team'
     | '/risks/$profileId'
     | '/clients/'
+    | '/employees/'
     | '/instructions/'
     | '/leads/'
     | '/legislatie/'
@@ -801,6 +812,7 @@ export interface FileRouteTypes {
     | '/organization/team'
     | '/risks/$profileId'
     | '/clients'
+    | '/employees'
     | '/leads'
     | '/legislatie'
     | '/organization'
@@ -867,6 +879,7 @@ export interface FileRouteTypes {
     | '/_authenticated/organization/team'
     | '/_authenticated/risks/$profileId'
     | '/_authenticated/clients/'
+    | '/_authenticated/employees/'
     | '/_authenticated/instructions/'
     | '/_authenticated/leads/'
     | '/_authenticated/legislatie/'
@@ -1070,6 +1083,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/clients/new';
       preLoaderRoute: typeof AuthenticatedClientsNewRouteImport;
       parentRoute: typeof AuthenticatedClientsRoute;
+    };
+    '/_authenticated/employees/': {
+      id: '/_authenticated/employees/';
+      path: '/employees';
+      fullPath: '/employees/';
+      preLoaderRoute: typeof AuthenticatedEmployeesIndexRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
     };
     '/_authenticated/instructions/': {
       id: '/_authenticated/instructions/';
@@ -1771,6 +1791,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedOrganizationRoute: typeof AuthenticatedOrganizationRouteWithChildren;
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute;
   AuthenticatedRisksRoute: typeof AuthenticatedRisksRouteWithChildren;
+  AuthenticatedEmployeesIndexRoute: typeof AuthenticatedEmployeesIndexRoute;
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -1782,6 +1803,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedOrganizationRoute: AuthenticatedOrganizationRouteWithChildren,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRisksRoute: AuthenticatedRisksRouteWithChildren,
+  AuthenticatedEmployeesIndexRoute: AuthenticatedEmployeesIndexRoute,
 };
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

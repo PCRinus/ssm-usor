@@ -184,7 +184,10 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   await expect(electrician.getByTestId('job-position-employees')).toHaveText('Un angajat');
 
   // On the person's page the two facts stand apart, and the post can change on its own.
-  await page.getByRole('link', { name: 'Angajați' }).first().click();
+  await page
+    .getByRole('navigation', { name: 'Secțiunile clientului' })
+    .getByRole('link', { name: 'Angajați' })
+    .click();
   await row.getByRole('link').first().click();
   await expect(page.getByTestId('employee-job-position')).toHaveText('Electrician');
   await expect(page.getByText('Electrician întreținere')).toBeVisible();
