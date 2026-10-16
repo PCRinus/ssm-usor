@@ -138,6 +138,13 @@ export type Database = {
             foreignKeyName: 'client_files_employee_of_client';
             columns: ['employee_id', 'client_id'];
             isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'client_files_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
           },
