@@ -1,5 +1,7 @@
 import {
   extinguisherCode,
+  fireEquipmentKindLabels,
+  fireEquipmentKinds,
   type FireExtinguishingAgent,
   fireExtinguishingAgents,
 } from '@ssm-usor/contracts';
@@ -65,6 +67,15 @@ export function extinguisherGroups(units: readonly Unit[]) {
     groups.set(key, group);
   }
   return [...groups.values()];
+}
+
+export function otherEquipmentGroups(units: readonly Unit[]) {
+  return fireEquipmentKinds
+    .filter((kind) => kind !== 'extinguisher')
+    .flatMap((kind) => {
+      const found = units.filter((unit) => unit.kind === kind);
+      return found.length > 0 ? [{ kind, label: fireEquipmentKindLabels[kind], units: found }] : [];
+    });
 }
 
 export function firmsOf(names: readonly (string | null)[]) {

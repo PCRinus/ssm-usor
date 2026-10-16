@@ -1,8 +1,6 @@
 import {
   type FireDecision,
   fireDecisionTypeKeys,
-  fireEquipmentKindLabels,
-  fireEquipmentKinds,
   fireExtinguishingAgentLabels,
   fireInstallationKindLabels,
   fireInstallationKinds,
@@ -16,7 +14,7 @@ import {
 import { printedAddress } from '../../lib/address';
 import { countOf, definiteRole, listed, runOn } from '../../lib/romanian';
 import { documentApplies, printedDate } from './context';
-import { extinguisherGroups } from './equipment';
+import { extinguisherGroups, otherEquipmentGroups } from './equipment';
 import type {
   FireNamedPeople,
   FireSafetyClientFacts,
@@ -93,20 +91,11 @@ function extinguisherRows(units: readonly Unit[]): MeansRow[] {
 }
 
 function otherEquipmentRows(units: readonly Unit[]): MeansRow[] {
-  return fireEquipmentKinds
-    .filter((kind) => kind !== 'extinguisher')
-    .flatMap((kind) => {
-      const found = units.filter((unit) => unit.kind === kind);
-      return found.length > 0
-        ? [
-            {
-              what: fireEquipmentKindLabels[kind],
-              quantity: `${found.length}\u00a0buc.`,
-              next: datesOf(found.map((unit) => unit.nextServiceOn)),
-            },
-          ]
-        : [];
-    });
+  return otherEquipmentGroups(units).map((group) => ({
+    what: group.label,
+    quantity: `${group.units.length}\u00a0buc.`,
+    next: datesOf(group.units.map((unit) => unit.nextServiceOn)),
+  }));
 }
 
 function installationRows(installations: readonly Installation[]): MeansRow[] {

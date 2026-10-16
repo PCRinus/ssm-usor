@@ -3,8 +3,6 @@ import {
   type FireDecision,
   fireDecisionOrdinals,
   type FireEquipmentKind,
-  fireEquipmentKindLabels,
-  fireEquipmentKinds,
   type FireExtinguisherNorm,
   fireExtinguisherNormLabels,
   type FireExtinguishingAgent,
@@ -36,7 +34,7 @@ import {
   months,
   printedDate,
 } from './context';
-import { extinguisherGroups, firmsOf, isGasAgent } from './equipment';
+import { extinguisherGroups, firmsOf, isGasAgent, otherEquipmentGroups } from './equipment';
 import { type ContextParts, gapRules } from './gaps';
 import { installationParts, installationText } from './installations';
 import {
@@ -505,16 +503,6 @@ const roleLabels: Partial<Record<ResponsiblePersonRole, string>> = {
 
 const alarmKinds = new Set<FireInstallationKind>(['detection_alarm', 'gas_detection']);
 
-function otherEquipmentGroups(units: FireSafetyClientFacts['equipment']) {
-  return fireEquipmentKinds
-    .filter((kind) => kind !== 'extinguisher')
-    .map((kind) => ({
-      kindLabel: fireEquipmentKindLabels[kind],
-      count: units.filter((unit) => unit.kind === kind).length,
-    }))
-    .filter((group) => group.count > 0);
-}
-
 // A part is only called when no gap leaves it out, which is what makes its `!` safe.
 function fireSafetyContextParts(facts: FireSafetySetFacts): ContextParts<FireSafetyContext> {
   const { organization, client } = facts;
@@ -740,7 +728,10 @@ function fireContext(
       specificMeasuresRunOn: runOn(workplace.specificMeasures?.trim() ?? ''),
       extinguishers,
       extinguisherCount: extinguishers.reduce((total, group) => total + group.count, 0),
-      otherEquipment: otherEquipmentGroups(units),
+      otherEquipment: otherEquipmentGroups(units).map((group) => ({
+        kindLabel: group.label,
+        count: group.units.length,
+      })),
       installations: installations.map((installation) =>
         installationParts(installation.kind, installation.description)
       ),
