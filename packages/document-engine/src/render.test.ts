@@ -114,6 +114,28 @@ describe('renderDocument', () => {
     expect(documentText(renderDocument(template, data))).toBe('1. Alunecare\n2. Electrocutare');
   });
 
+  it('tells the last item of a list with {{$last}}, a nested list by its own items', () => {
+    const template = docx(
+      paragraph(run('{{#kinds}}')) +
+        paragraph(run('– {{name}}{{#$last}}.{{/$last}}{{^$last}};{{/$last}}')) +
+        paragraph(run('{{/kinds}}')) +
+        paragraph(
+          run(
+            '{{#kinds}}{{#parts}}{{.}}{{^$last}}, {{/$last}}{{/parts}}{{^$last}}; {{/$last}}{{/kinds}}'
+          )
+        )
+    );
+    const data = {
+      kinds: [
+        { name: 'Hârtie', parts: ['carton', 'ziare'] },
+        { name: 'Lemn', parts: ['talaș'] },
+      ],
+    };
+    expect(documentText(renderDocument(template, data))).toBe(
+      '– Hârtie;\n– Lemn.\ncarton, ziare; talaș'
+    );
+  });
+
   it('says which top-level names it printed, and none it did not', () => {
     const template = docx(
       paragraph(run('{{client.legalName}}')) +

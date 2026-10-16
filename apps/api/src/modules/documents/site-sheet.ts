@@ -2,10 +2,14 @@ import {
   extinguisherCode,
   fireBuildingClassificationLabels,
   type FireDecision,
+  fireDecisionTypeKeys,
   fireExtinguishingAgents,
   type FireInstallationKind,
   fireInstallationKindLabels,
+  fireSafetyDocumentTitles,
+  type FireSafetyDocumentTypeKey,
   type FireSafetyTypeKeyFromTenEmployees,
+  fireSafetyTypeKeysFromTenEmployees,
   samePersonName,
   unfilledMark,
 } from '@ssm-usor/contracts';
@@ -66,7 +70,29 @@ const decimal = (value: number) => String(value).replace('.', ',');
 const decided = (number: string) => `Decizia nr.\u00a0${number}`;
 const following = (number: string) => `potrivit Deciziei nr.\u00a0${number}`;
 
-const noPrivateService = 'nu există; nu este cazul';
+const notApplicable = 'nu este cazul';
+
+const listedDocuments = [
+  'fire_own_instructions',
+  'fire_training_themes',
+  'fire_test_hiring',
+  'fire_test_annual',
+  'fire_means_list',
+  'fire_workplace_organization',
+  'fire_substances_list',
+  'fire_maintenance_schedules',
+  'fire_registers',
+  'fire_work_permit',
+  'fire_installation_register',
+  'fire_extinguisher_register',
+] as const satisfies readonly FireSafetyDocumentTypeKey[];
+
+const isFromTenEmployees = (
+  typeKey: FireSafetyDocumentTypeKey
+): typeKey is FireSafetyTypeKeyFromTenEmployees =>
+  (fireSafetyTypeKeysFromTenEmployees as readonly string[]).includes(typeKey);
+
+const collator = new Intl.Collator('ro');
 
 function firmsOf(names: readonly (string | null)[]) {
   const firms: string[] = [];
@@ -118,7 +144,7 @@ function installationLine(installation: Installation) {
     trimmed(installation.maintainer) && `firma de service: ${installation.maintainer!.trim()}`,
     installation.lastCheckOn && `ultima verificare: ${printedDate(installation.lastCheckOn)}`,
   ].filter(Boolean);
-  return parts.length > 0 ? `există: ${parts.join('; ')}` : 'există';
+  return ['există', ...parts].join('; ');
 }
 
 /** Absent from the inventory, a kind prints as "nu există": the inventory is the record. */
@@ -147,10 +173,14 @@ export function buildSiteSheet({
 }: SiteSheetInput): SiteSheetContext {
   const { client, organization, fireSafety } = facts;
   const card = fireSafety.card;
-  const active = new Set(facts.workplaces.map((workplace) => workplace.id));
+  const workplaces = [...facts.workplaces].sort(
+    (a, b) =>
+      Number(b.registeredOffice) - Number(a.registeredOffice) || collator.compare(a.name, b.name)
+  );
+  const active = new Set(workplaces.map((workplace) => workplace.id));
   const equipment = fireSafety.equipment.filter((unit) => active.has(unit.workplaceId));
   const installations = fireSafety.installations.filter((each) => active.has(each.workplaceId));
-  const fixedSpaces = facts.workplaces.filter((workplace) => workplace.kind === 'fixed_space');
+  const fixedSpaces = workplaces.filter((workplace) => workplace.kind === 'fixed_space');
   const buildingOf = (workplaceId: string): Building | null =>
     fireSafety.buildings.find((building) => building.workplaceId === workplaceId) ?? null;
 
@@ -160,7 +190,7 @@ export function buildSiteSheet({
     representativeName !== null &&
     trimmed(client.contactName) !== null &&
     samePersonName(client.contactName!.trim(), representativeName);
-  const registeredOffice = facts.workplaces.find((workplace) => workplace.registeredOffice);
+  const registeredOffice = workplaces.find((workplace) => workplace.registeredOffice);
   const operatorAddress =
     printedAddress(client) || (registeredOffice && printedAddress(registeredOffice)) || null;
   const contacts = [
@@ -174,17 +204,15 @@ export function buildSiteSheet({
     .filter(Boolean)
     .join(', ');
 
+  const branches = workplaces.filter((workplace) => !workplace.registeredOffice);
   const pointsOfWork =
-    facts.workplaces.length === 0
-      ? null
+    branches.length === 0
+      ? notApplicable
       : [
-          ...facts.workplaces.map((workplace) => {
-            const notes = [
-              workplace.registeredOffice && !/sediu/i.test(workplace.name) && 'sediu social',
-              workplace.kind === 'mobile_site' && 'șantier temporar sau mobil',
-            ].filter(Boolean);
+          ...branches.map((workplace) => {
+            const note = workplace.kind === 'mobile_site' ? ' (șantier temporar sau mobil)' : '';
             const address = printedAddress(workplace) || `adresa: ${unfilledMark}`;
-            return `– ${workplace.name.trim()}${notes.length > 0 ? ` (${notes.join(', ')})` : ''}: ${address}`;
+            return `– ${workplace.name.trim()}${note}: ${address}`;
           }),
           `Telefon, fax, e-mail pentru fiecare: ${unfilledMark}`,
         ].join('\n');
@@ -277,7 +305,7 @@ export function buildSiteSheet({
   };
 
   const activities = [
-    ...new Set(facts.workplaces.flatMap((workplace) => trimmed(workplace.activity) ?? [])),
+    ...new Set(workplaces.flatMap((workplace) => trimmed(workplace.activity) ?? [])),
   ];
   const caen = trimmed(client.caenCode);
   const employees =
@@ -289,7 +317,7 @@ export function buildSiteSheet({
     row(
       'Domeniul de activitate',
       activities.length > 0
-        ? `${activities.join('; ')}${caen ? ` (cod CAEN ${caen})` : ''}; domeniul din model: ${unfilledMark}`
+        ? [...activities, ...(caen ? [`cod CAEN ${caen}`] : [])].join('; ')
         : null,
       'se alege unul dintre domeniile modelului: administrativ; comercial; cult; cultură; educație; financiar-bancar; fond forestier; monumente istorice și de arhitectură; sănătate; sport; agrement; turism; transporturi; operatori economici cu risc mare și foarte mare de incendiu; alte domenii de activitate'
     ),
@@ -326,7 +354,7 @@ export function buildSiteSheet({
     ),
     row(
       'Personal angajat',
-      `${employees} în total, după lista clientului; numărul estimativ pe fiecare clădire: ${unfilledMark}`,
+      `${employees} în total; numărul estimativ pe fiecare clădire: ${unfilledMark}`,
       'număr estimativ, pentru fiecare clădire'
     ),
     row(
@@ -342,6 +370,7 @@ export function buildSiteSheet({
     const units = equipment.filter((unit) => unit.workplaceId === workplace.id);
     const address = printedAddress(workplace);
     const fuel = trimmed(building?.heatingFuel);
+    const gasUse = trimmed(building?.gasUse);
     const electricalMaintainer = trimmed(building?.electricalMaintainer);
     const electricalCheck = building?.electricalLastCheckOn ?? null;
     const notes = trimmed(building?.notes);
@@ -395,7 +424,7 @@ export function buildSiteSheet({
         ),
         row(
           'Instalație de alimentare cu gaze naturale/G.P.L.',
-          trimmed(building?.gasUse),
+          gasUse && `există; utilizare: ${runOn(gasUse)}`,
           'dacă există; scopul utilizării (prepararea hranei, încălzire, uz industrial)'
         ),
         row(
@@ -535,32 +564,29 @@ export function buildSiteSheet({
   const technician = technicianName
     ? `cadrul tehnic PSI, ${technicianName}${certificate ? `, titular al certificatului ${certificate}` : ''}`
     : 'cadrul tehnic PSI';
-  const managers = workplaceManagerNames.length > 0 ? ` (${listed(workplaceManagerNames)})` : '';
-  const intervals = card
-    ? listed(
-        [
-          administrative &&
-            card.administrativeTrainingIntervalMonths !== null &&
-            `personalul administrativ la ${countOf(card.administrativeTrainingIntervalMonths, 'lună', 'luni')}`,
-          execution &&
-            card.workerTrainingIntervalMonths !== null &&
-            `personalul de execuție la ${countOf(card.workerTrainingIntervalMonths, 'lună', 'luni')}`,
-        ].filter((part): part is string => Boolean(part))
-      )
-    : '';
-  const hours =
-    card?.periodicTrainingHours != null
-      ? `câte ${countOf(card.periodicTrainingHours, 'oră', 'ore')} la fiecare instruire periodică`
-      : '';
+  const managers =
+    workplaceManagerNames.length === 0
+      ? 'conducătorii locurilor de muncă'
+      : workplaceManagerNames.length === 1
+        ? `conducătorul locului de muncă (${workplaceManagerNames[0]})`
+        : `conducătorii locurilor de muncă (${listed(workplaceManagerNames)})`;
+  const periodically = (months: number | null) =>
+    [
+      months === null ? 'periodic' : `periodic la ${countOf(months, 'lună', 'luni')}`,
+      card?.periodicTrainingHours != null &&
+        `câte ${countOf(card.periodicTrainingHours, 'oră', 'ore')}`,
+    ]
+      .filter(Boolean)
+      .join(', ');
   const training = card
-    ? [
-        `da, periodic, ${following(decisionNumbers.training)}${intervals ? `: ${intervals}` : ''}${intervals && hours ? `, ${hours}` : ''}`,
-        administrative && `personalul administrativ este instruit de ${technician}`,
+    ? `da, ${following(decisionNumbers.training)}: ${[
+        administrative &&
+          `personalul administrativ este instruit ${periodically(card.administrativeTrainingIntervalMonths)}, de ${technician}`,
         execution &&
-          `personalul de execuție, de șefii locurilor de muncă${managers}, cu cadrul tehnic, după caz`,
+          `personalul de execuție este instruit ${periodically(card.workerTrainingIntervalMonths)}, de ${managers}, cu cadrul tehnic, după caz`,
       ]
         .filter((part): part is string => Boolean(part))
-        .join('; ')
+        .join('; ')}`
     : null;
 
   const control = inSet('fire_decision_control')
@@ -576,34 +602,22 @@ export function buildSiteSheet({
       : []),
   ];
 
-  const decisionSubjects: [FireDecision, string, FireSafetyTypeKeyFromTenEmployees?][] = [
-    ['organization', 'organizarea apărării împotriva incendiilor'],
-    ['training', 'instruirea în domeniul situațiilor de urgență'],
-    ['openFire', 'lucrul cu foc deschis'],
-    ['smoking', 'fumatul'],
-    ['technician', 'cadrul tehnic PSI'],
-    ['instructions', 'instrucțiunile de apărare împotriva incendiilor'],
-    ['waste', 'colectarea deșeurilor'],
-    ['seasons', 'perioadele caniculare și sezonul rece', 'fire_decision_seasons'],
-    ['control', 'controlul propriu', 'fire_decision_control'],
-  ];
+  const holds = (typeKey: FireSafetyDocumentTypeKey) =>
+    !isFromTenEmployees(typeKey) || inSet(typeKey);
   const documents = [
-    ...decisionSubjects.flatMap(([decision, subject, gated]) =>
-      !gated || inSet(gated) ? [`${decided(decisionNumbers[decision])} privind ${subject}`] : []
+    ...(
+      Object.entries(fireDecisionTypeKeys) as [FireDecision, FireSafetyDocumentTypeKey][]
+    ).flatMap(([decision, typeKey]) =>
+      holds(typeKey)
+        ? [
+            fireSafetyDocumentTitles[typeKey].replace(
+              /^Decizia /,
+              `${decided(decisionNumbers[decision])} `
+            ),
+          ]
+        : []
     ),
-    'Instrucțiunile proprii de apărare împotriva incendiilor',
-    'Tematica de instruire în domeniul situațiilor de urgență',
-    'Testele de verificare a cunoștințelor',
-    'Lista mijloacelor de apărare împotriva incendiilor',
-    'Organizarea apărării împotriva incendiilor la fiecare loc de muncă',
-    'Lista substanțelor periculoase',
-    ...(inSet('fire_maintenance_schedules') ? ['Graficele de întreținere și verificare'] : []),
-    'Evidența exercițiilor de intervenție, a controalelor și a permiselor de lucru cu foc',
-    'Permisul de lucru cu foc',
-    ...(inSet('fire_installation_register')
-      ? ['Registrul de control pentru instalațiile de apărare împotriva incendiilor']
-      : []),
-    'Registrul de evidență a controlului stingătoarelor de incendiu',
+    ...listedDocuments.filter(holds).map((typeKey) => fireSafetyDocumentTitles[typeKey]),
   ];
 
   const extinguisherFirms = firmsOf(
@@ -638,7 +652,7 @@ export function buildSiteSheet({
     row('Control intern de prevenire', control, 'dacă se execută, la ce interval și de către cine'),
     row(
       'Serviciu privat pentru situații de urgență',
-      noPrivateService,
+      notApplicable,
       'dacă există sau dacă este încheiat un contract: obiectul contractului, datele firmei'
     ),
     row(

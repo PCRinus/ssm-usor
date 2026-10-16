@@ -472,7 +472,7 @@ describe('the fire-safety context', () => {
       hasInteriorHydrants: true,
       manager: { name: 'Florin Cristian TALOȘ', jobTitle: 'Administrator' },
       firstInterventionNames: 'Florin Cristian TALOȘ',
-      interventionLeaderName: 'Ioana PETRE',
+      interventionLeaderName: 'Florin Cristian TALOȘ',
     });
     expect(office!.installations[0]).toEqual({
       kindLabel: 'Instalație de detectare, semnalizare și avertizare la incendiu',
@@ -508,7 +508,96 @@ describe('the fire-safety context', () => {
       normLabel: '—',
     });
     expect(site!.extinguisherCount).toBeGreaterThan(0);
-    expect(office).toMatchObject({ areaLabel: '180\u00a0m²', normLabel: '—' });
+    expect(office).toMatchObject({ areaLabel: '180\u00a0m²', normLabel: 'fără normă din anexa 6' });
+  });
+
+  it("has the intervention leader act where he is tied or tied to none, and the workplace's manager where he is tied elsewhere", () => {
+    const [manager, leader] = facts.responsiblePersons;
+    const sheetsWith = (persons: DocumentFacts['responsiblePersons']) =>
+      buildFireSafetyContext({ ...facts, responsiblePersons: persons }).fire.workplaces.map(
+        (workplace) => workplace.interventionLeaderName
+      );
+    expect(sheetsWith([manager!, leader!])).toEqual(['Ioana PETRE', 'Florin Cristian TALOȘ']);
+    expect(sheetsWith([manager!, { ...leader!, workplaceId: null }])).toEqual([
+      'Ioana PETRE',
+      'Ioana PETRE',
+    ]);
+    expect(
+      sheetsWith([
+        { ...manager!, roles: manager!.roles.filter((role) => role !== 'workplace_manager') },
+        leader!,
+        { ...leader!, fullName: 'Dan ROTARU', roles: ['workplace_manager'] },
+      ])
+    ).toEqual(['Ioana PETRE', 'Ioana PETRE']);
+  });
+
+  it('sorts the installations of a workplace into those of alarm and those of extinguishing, the safety lighting apart', () => {
+    const [workshop, office] = buildFireSafetyContext({
+      ...facts,
+      fireSafety: {
+        ...facts.fireSafety,
+        installations: [
+          ...facts.fireSafety.installations,
+          ...(['emergency_lighting', 'gas_detection', 'sprinklers'] as const).map((kind) => ({
+            workplaceId: officeId,
+            kind,
+            description: null,
+            maintainer: null,
+            lastCheckOn: null,
+            nextCheckOn: null,
+          })),
+        ],
+      },
+    }).fire.workplaces;
+    expect(workshop).toMatchObject({
+      alarmInstallations: [],
+      extinguishingInstallations: [
+        { kindLabel: 'Hidranți exteriori', description: 'Doi hidranți în curte' },
+      ],
+      hasEmergencyLighting: false,
+    });
+    expect(office!.alarmInstallations.map((each) => each.kindLabel)).toEqual([
+      'Instalație de detectare, semnalizare și avertizare la incendiu',
+      'Instalație de detectare a gazelor',
+    ]);
+    expect(office!.extinguishingInstallations.map((each) => each.kindLabel)).toEqual([
+      'Hidranți interiori',
+      'Instalație de stingere cu sprinklere',
+    ]);
+    expect(office!.hasEmergencyLighting).toBe(true);
+    expect(office!.installations).toHaveLength(5);
+  });
+
+  it('prints an installation whose description names its kind by the description alone', () => {
+    const [, office] = buildFireSafetyContext({
+      ...facts,
+      fireSafety: {
+        ...facts.fireSafety,
+        installations: [
+          ...facts.fireSafety.installations,
+          {
+            workplaceId: officeId,
+            kind: 'interior_hydrants',
+            description: '2 hidranti interiori Dn 50',
+            maintainer: null,
+            lastCheckOn: null,
+            nextCheckOn: null,
+          },
+          {
+            workplaceId: officeId,
+            kind: 'other',
+            description: 'ușă rezistentă la foc',
+            maintainer: null,
+            lastCheckOn: null,
+            nextCheckOn: null,
+          },
+        ],
+      },
+    }).fire.workplaces;
+    expect(office!.installations.slice(-2)).toEqual([
+      { kindLabel: '2 hidranti interiori Dn 50', description: '' },
+      { kindLabel: 'Ușă rezistentă la foc', description: '' },
+    ]);
   });
 
   it('prints each listed substance with its texts trimmed and the empty ones as the mark to fill in', () => {
@@ -616,6 +705,7 @@ describe('the fire-safety context', () => {
     expect(workshop).toEqual({
       name: 'Atelier Ghiroda',
       activity: 'Atelier de sudură',
+      activityRunOn: 'atelier de sudură',
       hasRows: true,
       empty: false,
       rows: [
@@ -652,7 +742,8 @@ describe('the fire-safety context', () => {
         },
         {
           what: 'Reîncărcarea stingătoarelor (P6 – 2\u00a0buc., P50 carosabil – 1\u00a0buc., G5 – 1\u00a0buc.)',
-          interval: 'la termenul producătorului',
+          interval:
+            'după fiecare utilizare și la cel mult 3 ani sau la termenul producătorului, dacă este mai scurt',
           who: 'S.C. FOC STOP S.R.L.',
           basis: 'OMAI 135/2023 – art. 12',
         },
@@ -844,6 +935,23 @@ describe('the fire-safety context', () => {
       'I.P.S.U. Lucrul cu foc deschis, art.\u00a01–7',
       'instrucțiunile afișate la locul de muncă (Decizia nr.\u00a010 PSI)',
     ]);
+  });
+
+  it('names the posts that apply a module when others in their category do not', () => {
+    const [accountant, welder] = facts.jobPositions;
+    const [execution] = buildFireSafetyContext({
+      ...facts,
+      jobPositions: [{ ...accountant!, staffCategory: 'execution' }, welder!],
+    }).fireThemes!.categories;
+    expect(execution!.sessions[0]!.content.split('; ')[1]).toBe(
+      'I.P.S.U. Lucrul cu foc deschis, art.\u00a01–7 (Sudor)'
+    );
+  });
+
+  it('names the workplaces of the themes, the registered office first', () => {
+    expect(buildFireSafetyContext(facts).fireThemes!.workplaceNames).toBe(
+      'Sediul social, Atelier Ghiroda'
+    );
   });
 
   it('cites a module without numbered articles by its title alone', () => {

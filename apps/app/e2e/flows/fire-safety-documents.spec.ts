@@ -191,7 +191,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
   const reportDownload = page.waitForEvent('download');
   await act(page, rows.nth(2), 'document-download-draft');
   expect((await reportDownload).suggestedFilename()).toBe(
-    'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor 2025 - rev. 1.docx'
+    'Raportul anual de evaluare a capacității de apărare împotriva incendiilor 2025 - rev. 1.docx'
   );
 
   await page.getByRole('link', { name: 'Documente SSM' }).click();

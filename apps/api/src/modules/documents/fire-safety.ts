@@ -12,7 +12,6 @@ import {
   fireExtinguishingAgentLabels,
   fireExtinguishingAgents,
   type FireInstallationKind,
-  fireInstallationKindLabels,
   fireSafetyMissingDocumentData,
   type FireSafetyTypeKeyFromTenEmployees,
   type FireSmokingPolicy,
@@ -39,6 +38,7 @@ import {
   months,
   printedDate,
 } from './context';
+import { installationParts, installationText } from './installations';
 import { buildSiteSheet, type SiteSheetContext } from './site-sheet';
 import {
   dealChapters,
@@ -162,7 +162,7 @@ type FireWorkplaceContext = {
   address: string;
   /** "450 m²", or a dash for a mobile site. */
   areaLabel: string;
-  /** "Clădiri comerciale (1 buc./200 m²)", or a dash for a mobile site and a space with no norm. */
+  /** "Clădiri comerciale (1 buc./200 m²)", "fără normă din anexa 6", or a dash for a mobile site. */
   normLabel: string;
   assemblyPoint: string;
   /** The three texts of section I end without a stop: the posted instructions list them as items. */
@@ -182,6 +182,11 @@ type FireWorkplaceContext = {
   extinguisherCount: number;
   otherEquipment: { kindLabel: string; count: number }[];
   installations: { kindLabel: string; description: string }[];
+  /** Detection and gas detection, which the posted sheet lists with the means of alarm. */
+  alarmInstallations: { kindLabel: string; description: string }[];
+  /** Every other installation but the safety lighting, under limiting and extinguishing. */
+  extinguishingInstallations: { kindLabel: string; description: string }[];
+  hasEmergencyLighting: boolean;
   hasInstallations: boolean;
   hasExteriorHydrants: boolean;
   hasInteriorHydrants: boolean;
@@ -191,6 +196,11 @@ type FireWorkplaceContext = {
   firstIntervention: (Person & { roleLabel: string })[];
   /** "Ion POP și Ana RUS"; the set's leader when nobody answers for this workplace alone. */
   firstInterventionNames: string;
+  /**
+   * Who cuts the power, works the installations and leads the evacuation here: a leader tied to
+   * this workplace or to none, else, where the leaders are tied elsewhere, its manager, else the
+   * set's leader.
+   */
   interventionLeaderName: string;
 };
 
@@ -225,6 +235,8 @@ type FireThemesCategoryContext = {
 type FireThemesContext = {
   /** Never printed: what makes the themes out of date when the IPSU changes. */
   ownInstructionsRevision: { id: string; number: number; versionIds: string[] };
+  /** "Sediul social, Atelierul mecanic": the active workplaces, the registered office first. */
+  workplaceNames: string;
   /** One per staff category with current posts, technical-administrative first. */
   categories: FireThemesCategoryContext[];
 };
@@ -234,6 +246,8 @@ type FireScheduleRow = { what: string; interval: string; who: string; basis: str
 type FireScheduleContext = {
   name: string;
   activity: string;
+  /** The activity inside a sentence: "atelier de sudură". */
+  activityRunOn: string;
   /** The extinguishers' rows, then one per installation, then the free rows. */
   rows: FireScheduleRow[];
   hasRows: boolean;
@@ -281,6 +295,8 @@ export type FireContext = {
   coordinator: Person;
   interventionLeader: Person;
   workplaceManagers: (Person & { workplaceName: string | null })[];
+  /** More than one workplace manager, which decision 1 names in the plural. */
+  manyWorkplaceManagers: boolean;
   /** Each person once, for the acknowledgement tables. */
   designated: Pick<Person, 'name' | 'jobTitle'>[];
   workplaces: FireWorkplaceContext[];
@@ -479,6 +495,8 @@ const capacityUnits: Record<FireExtinguishingAgent, string> = {
 
 const collator = new Intl.Collator('ro');
 
+const alarmKinds = new Set<FireInstallationKind>(['detection_alarm', 'gas_detection']);
+
 function extinguisherGroups(units: FireSafetyClientFacts['equipment']) {
   const extinguishers = units.flatMap((unit) =>
     unit.kind === 'extinguisher' && unit.agent !== null && unit.capacity !== null
@@ -668,11 +686,13 @@ function fireContext(
             .map((role) => roleLabels[role]!)
         ),
       }));
-    const leaderHere = facts.responsiblePersons.find(
-      (person) =>
-        servesAt(workplace.id)(person) && person.roles.includes('fire_intervention_leader')
-    );
-    const interventionLeaderName = leaderHere ? asPerson(leaderHere).name : interventionLeader.name;
+    const leaders = holding('fire_intervention_leader');
+    const leaderHere =
+      leaders.find((person) => person.workplaceId === workplace.id) ??
+      leaders.find((person) => person.workplaceId === null);
+    const interventionLeaderName = leaderHere
+      ? asPerson(leaderHere).name
+      : (manager?.name ?? interventionLeader.name);
     const hasAreaAndNorm = workplaceHasAreaAndNorm(workplace.kind);
     const norm = hasAreaAndNorm ? fireExtinguisherNormLabels[workplace.extinguisherNorm!] : null;
     const extinguishers = extinguisherGroups(units);
@@ -683,7 +703,11 @@ function fireContext(
       activityRunOn: runOn(workplace.activity!.trim()),
       address: printedAddress(workplace) || '—',
       areaLabel: hasAreaAndNorm ? `${workplace.floorAreaM2!}\u00a0m²` : '—',
-      normLabel: norm?.rate ? `${norm.label} (${norm.rate})` : '—',
+      normLabel: norm?.rate
+        ? `${norm.label} (${norm.rate})`
+        : workplace.extinguisherNorm === 'none' && hasAreaAndNorm
+          ? 'fără normă din anexa 6'
+          : '—',
       assemblyPoint: workplace.assemblyPoint!.trim(),
       combustibleMaterials: withoutFinalStop(workplace.combustibleMaterials!.trim()),
       ignitionSources: withoutFinalStop(workplace.ignitionSources!.trim()),
@@ -693,10 +717,19 @@ function fireContext(
       extinguishers,
       extinguisherCount: extinguishers.reduce((total, group) => total + group.count, 0),
       otherEquipment: otherEquipmentGroups(units),
-      installations: installations.map((installation) => ({
-        kindLabel: fireInstallationKindLabels[installation.kind],
-        description: installation.description?.trim() ?? '',
-      })),
+      installations: installations.map((installation) =>
+        installationParts(installation.kind, installation.description)
+      ),
+      alarmInstallations: installations
+        .filter((installation) => alarmKinds.has(installation.kind))
+        .map((installation) => installationParts(installation.kind, installation.description)),
+      extinguishingInstallations: installations
+        .filter(
+          (installation) =>
+            !alarmKinds.has(installation.kind) && installation.kind !== 'emergency_lighting'
+        )
+        .map((installation) => installationParts(installation.kind, installation.description)),
+      hasEmergencyLighting: installations.some((each) => each.kind === 'emergency_lighting'),
       hasInstallations: installations.length > 0,
       hasExteriorHydrants: installations.some((each) => each.kind === 'exterior_hydrants'),
       hasInteriorHydrants: installations.some((each) => each.kind === 'interior_hydrants'),
@@ -743,6 +776,7 @@ function fireContext(
     coordinator,
     interventionLeader,
     workplaceManagers,
+    manyWorkplaceManagers: managerNames.length > 1,
     designated,
     workplaces,
     hasExteriorHydrants: workplaces.some((workplace) => workplace.hasExteriorHydrants),
@@ -942,24 +976,19 @@ function fireSchedule({
           }),
           {
             what: `Reîncărcarea stingătoarelor (${counted(groups)})`,
-            interval: 'la termenul producătorului',
+            interval:
+              'după fiecare utilizare și la cel mult 3 ani sau la termenul producătorului, dacă este mai scurt',
             who: firmsOf(groups.flatMap((group) => group.units.map((unit) => unit.maintainer))),
             basis: 'OMAI 135/2023 – art. 12',
           },
         ];
   const installationRows = installations.map((installation): FireScheduleRow => {
-    const description = installation.description?.trim();
     const interval =
       installation.lastCheckOn && installation.nextCheckOn
         ? checkInterval(installation.lastCheckOn, installation.nextCheckOn)
         : null;
     return {
-      what:
-        installation.kind === 'other' && description
-          ? description
-          : [fireInstallationKindLabels[installation.kind], description]
-              .filter(Boolean)
-              .join(' – '),
+      what: installationText(installation.kind, installation.description),
       interval: interval ?? producerTerms,
       who: firmsOf([installation.maintainer]),
       basis: installation.nextCheckOn
@@ -977,7 +1006,14 @@ function fireSchedule({
       basis: '—',
     })),
   ];
-  return { name, activity, rows, hasRows: rows.length > 0, empty: rows.length === 0 };
+  return {
+    name,
+    activity,
+    activityRunOn: runOn(activity),
+    rows,
+    hasRows: rows.length > 0,
+    empty: rows.length === 0,
+  };
 }
 
 const staffCategoryLabels: Record<StaffCategory, string> = {
@@ -991,8 +1027,9 @@ const fireModuleCitation = ({ title, articleCount }: { title: string; articleCou
 
 /**
  * A staff category's sessions cite the fire-safety modules its posts apply, each whole, as the
- * newest IPSU revision annexes them; a module the revision does not annex waits for the IPSU to
- * be generated again (ADR 014, ADR 012 amendment of 2026-10-11).
+ * newest IPSU revision annexes them, naming the posts that apply a module when others in the
+ * category do not; a module the revision does not annex waits for the IPSU to be generated again
+ * (ADR 014, ADR 012 amendment of 2026-10-11).
  */
 function fireThemes(facts: FireSafetySetFacts): FireThemesContext | undefined {
   const ipsu = facts.fireOwnInstructions;
@@ -1024,22 +1061,36 @@ function fireThemes(facts: FireSafetySetFacts): FireThemesContext | undefined {
       // A draft generated again keeps its id; new module versions still date the themes.
       versionIds: ipsu.annexes.map((annex) => annex.versionId),
     },
+    workplaceNames: [...facts.workplaces]
+      .sort(
+        (a, b) =>
+          Number(b.registeredOffice) - Number(a.registeredOffice) ||
+          collator.compare(a.name, b.name)
+      )
+      .map((workplace) => workplace.name.trim())
+      .join(', '),
     categories: (['technical_administrative', 'execution'] as const).flatMap((category) => {
       const positions = facts.jobPositions.filter(
         (position) => position.staffCategory === category
       );
       if (positions.length === 0) return [];
       const posts = positions.map((position) => position.name.trim());
-      const applied = new Set(
-        positions.flatMap((position) =>
-          position.instructions
-            .filter((module) => module.domain === 'psi')
-            .map((module) => module.moduleId)
-        )
-      );
-      const modules = ipsu.annexes
-        .filter((annex) => applied.has(annex.moduleId))
-        .map((annex) => fireModuleCitation({ ...annex, title: annex.title.trim() }));
+      const applying = (moduleId: string) =>
+        positions.filter((position) =>
+          position.instructions.some(
+            (module) => module.domain === 'psi' && module.moduleId === moduleId
+          )
+        );
+      const modules = ipsu.annexes.flatMap((annex) => {
+        const appliedBy = applying(annex.moduleId);
+        if (appliedBy.length === 0) return [];
+        const citation = fireModuleCitation({ ...annex, title: annex.title.trim() });
+        return [
+          appliedBy.length === positions.length
+            ? citation
+            : `${citation} (${appliedBy.map((position) => position.name.trim()).join(', ')})`,
+        ];
+      });
       const execution = category === 'execution';
       const sessionMonths = trainingMonths(firstMonth, intervalMonths[category]);
       const ranges = dealChapters(fireOwnInstructionsChapters, sessionMonths.length);

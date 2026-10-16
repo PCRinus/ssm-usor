@@ -196,7 +196,7 @@ export const fireSafetyDocumentTitles = {
     'Registru de control pentru instalațiile de apărare împotriva incendiilor',
   fire_extinguisher_register: 'Registru de evidență a controlului stingătoarelor de incendiu',
   fire_site_sheet: 'Fișa obiectivului',
-  fire_annual_report: 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor',
+  fire_annual_report: 'Raportul anual de evaluare a capacității de apărare împotriva incendiilor',
 } as const satisfies Record<FireSafetyDocumentTypeKey, string>;
 
 /**

@@ -317,7 +317,7 @@ describe('the building of a workplace', () => {
       { yearBuilt: 1987.5 },
       { builtAreaM2: 0 },
       { waterReserveM3: -1 },
-      { levels: 'P' },
+      { levels: ' ' },
       { classification: 'industrial' },
     ]) {
       expect(fireBuildingRequestSchema.safeParse(building).success).toBe(false);

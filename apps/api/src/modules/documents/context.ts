@@ -535,6 +535,21 @@ export function printedDate(isoDate: string) {
   return `${day}.${month}.${year}`;
 }
 
+const romanianDayFormat = new Intl.DateTimeFormat('en', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  timeZone: 'Europe/Bucharest',
+});
+
+/** The ISO date a timestamp falls on in Romania, which the documents are dated by. */
+export function romanianDay(timestamp: string) {
+  const parts = Object.fromEntries(
+    romanianDayFormat.formatToParts(new Date(timestamp)).map((part) => [part.type, part.value])
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
 type ContextParts = { [Name in keyof DocumentContext]-?: () => DocumentContext[Name] };
 
 // A part is only called when no gap leaves it out, which is what makes its `!` safe.
@@ -777,7 +792,7 @@ export function annexedModules(
       number: index + 1,
       title: module.title.trim(),
       versionId: module.version.id,
-      versionDate: printedDate(module.version.createdAt.slice(0, 10)),
+      versionDate: printedDate(romanianDay(module.version.createdAt)),
     }));
 }
 

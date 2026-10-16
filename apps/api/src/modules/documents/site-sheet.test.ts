@@ -41,7 +41,7 @@ describe('the site sheet', () => {
     expect(
       valueOf(identity, 'Coordonatele filialelor/sucursalelor/punctelor de lucru (dacă este cazul)')
     ).toBe(
-      '– Atelier Ghiroda: Ghiroda, județul Timiș, Str. Industriilor 4\n– Sediul social: București, Sector 1, Calea Victoriei 122A\nTelefon, fax, e-mail pentru fiecare: DE COMPLETAT'
+      '– Atelier Ghiroda: Ghiroda, județul Timiș, Str. Industriilor 4\nTelefon, fax, e-mail pentru fiecare: DE COMPLETAT'
     );
     expect(valueOf(identity, 'Număr de înregistrare din registrul comerțului')).toBe(
       'J35/1234/2008, CUI 14399840'
@@ -55,6 +55,15 @@ describe('the site sheet', () => {
     ).toBe('CT 1234/2024; termen de valabilitate: DE COMPLETAT');
   });
 
+  it('lists no point of work for a client that works only at its registered office', () => {
+    const { identity } = sheetOf({
+      workplaces: facts.workplaces.filter((workplace) => workplace.registeredOffice),
+    });
+    expect(
+      valueOf(identity, 'Coordonatele filialelor/sucursalelor/punctelor de lucru (dacă este cazul)')
+    ).toBe('nu este cazul');
+  });
+
   it("leaves the administrator's phone to fill in when the contact is someone else", () => {
     const { identity } = sheetOf({
       client: { ...facts.client, contactName: 'Ana CONTABIL', tradeRegisterNumber: null },
@@ -65,25 +74,25 @@ describe('the site sheet', () => {
     );
   });
 
-  it('gives each general fact per building, a gap for a building that has none', () => {
+  it('gives each general fact per building, the registered office first, a gap for a building that has none', () => {
     const { general } = sheetOf();
     expect(valueOf(general, 'Anul de construire (punere în funcțiune)')).toBe(
-      'Clădirea 1 (Atelier Ghiroda): 1987\nClădirea 2 (Sediul social): DE COMPLETAT'
+      'Clădirea 1 (Sediul social): DE COMPLETAT\nClădirea 2 (Atelier Ghiroda): 1987'
     );
     expect(valueOf(general, 'Suprafața construită/desfășurată')).toBe(
-      'Clădirea 1 (Atelier Ghiroda): 412,5\u00a0m²\nClădirea 2 (Sediul social): DE COMPLETAT'
+      'Clădirea 1 (Sediul social): DE COMPLETAT\nClădirea 2 (Atelier Ghiroda): 412,5\u00a0m²'
     );
     expect(
       valueOf(
         general,
         'Clasificare construcție (civilă, de producție, de depozitare, cu funcțiuni mixte)'
       )
-    ).toBe('Clădirea 1 (Atelier Ghiroda): de producție\nClădirea 2 (Sediul social): DE COMPLETAT');
+    ).toBe('Clădirea 1 (Sediul social): DE COMPLETAT\nClădirea 2 (Atelier Ghiroda): de producție');
     expect(valueOf(general, 'Domeniul de activitate')).toBe(
-      'Atelier de sudură; Birouri (cod CAEN 2562); domeniul din model: DE COMPLETAT'
+      'Birouri; Atelier de sudură; cod CAEN 2562'
     );
     expect(valueOf(general, 'Personal angajat')).toBe(
-      '12 angajați în total, după lista clientului; numărul estimativ pe fiecare clădire: DE COMPLETAT'
+      '12 angajați în total; numărul estimativ pe fiecare clădire: DE COMPLETAT'
     );
     expect(valueOf(general, 'Utilizarea clădirii')).toBeNull();
   });
@@ -116,7 +125,7 @@ describe('the site sheet', () => {
   });
 
   it("fills a building's technical rows from its block and the inventory, and the rest as gaps", () => {
-    const [workshop, office] = sheetOf().buildings;
+    const [office, workshop] = sheetOf().buildings;
     expect(workshop!.place).toBe('Atelier Ghiroda, Ghiroda, județul Timiș, Str. Industriilor 4');
     expect(workshop!.constructive.every((row) => row.value === null && row.hint)).toBe(true);
     expect(valueOf(workshop!.technical, 'Sisteme de încălzire')).toBe(
@@ -126,7 +135,7 @@ describe('the site sheet', () => {
       'întreținute de S.C. ELECTRO SERV S.R.L.; ultima verificare: 12.03.2026'
     );
     expect(valueOf(workshop!.technical, 'Instalație de alimentare cu gaze naturale/G.P.L.')).toBe(
-      'încălzire și apă caldă'
+      'există; utilizare: încălzire și apă caldă'
     );
     expect(valueOf(workshop!.technical, 'Sisteme și instalații tehnologice')).toBe(
       'Aparate de sudură, polizoare unghiulare'
@@ -134,7 +143,7 @@ describe('the site sheet', () => {
     expect(valueOf(workshop!.technical, 'Sisteme de detectare a incendiilor')).toBe('nu există');
     expect(valueOf(workshop!.technical, 'Sisteme de alarmare/avertizare')).toBeNull();
     expect(valueOf(workshop!.technical, 'Hidranți exteriori')).toBe(
-      'există: doi hidranți în curte'
+      'există; doi hidranți în curte'
     );
     expect(valueOf(workshop!.technical, 'Stingătoare')).toBe(
       'P6 – 2\u00a0buc., P50 carosabil – 1\u00a0buc., G5 – 1\u00a0buc.; verificate de S.C. FOC STOP S.R.L.'
@@ -151,7 +160,7 @@ describe('the site sheet', () => {
 
     expect(valueOf(office!.technical, 'Instalații electrice')).toBeNull();
     expect(valueOf(office!.technical, 'Sisteme de detectare a incendiilor')).toBe(
-      'există: firma de service: S.C. ALARM SERVICE S.R.L.; ultima verificare: 12.03.2026'
+      'există; firma de service: S.C. ALARM SERVICE S.R.L.; ultima verificare: 12.03.2026'
     );
     expect(valueOf(office!.technical, 'Sisteme de alarmare/avertizare')).toBe(
       'prin instalația de detectare, semnalizare și avertizare la incendiu; tipul avertizării: DE COMPLETAT'
@@ -164,7 +173,7 @@ describe('the site sheet', () => {
 
   it('marks the half of the electrical facts that is missing', () => {
     const [building] = facts.fireSafety.buildings;
-    const [workshop] = sheetOf(
+    const [, workshop] = sheetOf(
       withFire({ buildings: [{ ...building!, electricalMaintainer: null }] })
     ).buildings;
     expect(valueOf(workshop!.technical, 'Instalații electrice')).toBe(
@@ -192,13 +201,13 @@ describe('the site sheet', () => {
   it("states the organization from the decisions, and the control decision's intervals from ten employees", () => {
     const { organization } = sheetOf();
     expect(valueOf(organization, 'Instruirea personalului')).toBe(
-      'da, periodic, potrivit Deciziei nr.\u00a06 PSI: personalul administrativ la 6 luni și personalul de execuție la 3 luni, câte 2 ore la fiecare instruire periodică; personalul administrativ este instruit de cadrul tehnic PSI, Radu STAN, titular al certificatului CT 1234/2024; personalul de execuție, de șefii locurilor de muncă (Florin Cristian TALOȘ și Ioana PETRE), cu cadrul tehnic, după caz'
+      'da, potrivit Deciziei nr.\u00a06 PSI: personalul administrativ este instruit periodic la 6 luni, câte 2 ore, de cadrul tehnic PSI, Radu STAN, titular al certificatului CT 1234/2024; personalul de execuție este instruit periodic la 3 luni, câte 2 ore, de conducătorii locurilor de muncă (Florin Cristian TALOȘ și Ioana PETRE), cu cadrul tehnic, după caz'
     );
     expect(valueOf(organization, 'Control intern de prevenire')).toMatch(
       /^da, potrivit Deciziei nr.\u00a013 PSI: coordonatorul privind apărarea împotriva incendiilor, Florin Cristian TALOȘ, și cadrul tehnic – trimestrial/
     );
     expect(valueOf(organization, 'Serviciu privat pentru situații de urgență')).toBe(
-      'nu există; nu este cazul'
+      'nu este cazul'
     );
     expect(valueOf(organization, 'Planuri/exerciții de evacuare din clădire')).toBeNull();
     expect(valueOf(organization, 'Afișare instrucțiuni specifice')).toContain(
@@ -208,8 +217,11 @@ describe('the site sheet', () => {
       'reglementată prin Decizia nr.\u00a07 PSI privind lucrul cu foc deschis, Decizia nr.\u00a08 PSI privind fumatul, Decizia nr.\u00a011 PSI privind colectarea deșeurilor și Decizia nr.\u00a012 PSI privind perioadele caniculare și sezonul rece; asigurarea căilor de acces, de evacuare și de intervenție: DE COMPLETAT'
     );
     const documents = valueOf(organization, 'Documente specifice de apărare împotriva incendiilor');
-    expect(documents!.split('\n')).toHaveLength(20);
+    expect(documents!.split('\n')).toHaveLength(21);
     expect(documents).toContain('– Decizia nr.\u00a013 PSI privind controlul propriu');
+    expect(documents).toContain('– Instrucțiuni proprii în domeniul situațiilor de urgență\n');
+    expect(documents).toContain('– Test la angajare\n– Test anual\n');
+    expect(documents).toContain('– Registru de evidență a controlului stingătoarelor de incendiu');
     expect(
       valueOf(
         organization,
@@ -220,6 +232,19 @@ describe('the site sheet', () => {
     );
   });
 
+  it('names the one workplace manager who trains the execution staff in the singular', () => {
+    const [administrator, leader] = facts.responsiblePersons;
+    const { organization } = sheetOf({
+      responsiblePersons: [
+        administrator!,
+        { ...leader!, roles: leader!.roles.filter((role) => role !== 'workplace_manager') },
+      ],
+    });
+    expect(valueOf(organization, 'Instruirea personalului')).toContain(
+      'personalul de execuție este instruit periodic la 3 luni, câte 2 ore, de conducătorul locului de muncă (Florin Cristian TALOȘ), cu cadrul tehnic, după caz'
+    );
+  });
+
   it('under ten employees lists only the documents the set holds and the daily and monthly checks', () => {
     const { organization } = sheetOf({ currentEmployeeCount: 4 });
     expect(valueOf(organization, 'Control intern de prevenire')).toBe(
@@ -227,7 +252,7 @@ describe('the site sheet', () => {
     );
     expect(valueOf(organization, 'Ordinea interioară')).not.toContain('sezonul rece');
     const documents = valueOf(organization, 'Documente specifice de apărare împotriva incendiilor');
-    expect(documents!.split('\n')).toHaveLength(16);
+    expect(documents!.split('\n')).toHaveLength(17);
     expect(documents).not.toContain('controlul propriu');
     expect(documents).not.toContain('Graficele');
   });

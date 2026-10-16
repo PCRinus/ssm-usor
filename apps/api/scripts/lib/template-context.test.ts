@@ -945,10 +945,10 @@ describe('the fire-safety templates', () => {
     expect(sheet).toContain('– stingătoare: Ioana PETRE și Florin Cristian TALOȘ;');
     expect(sheet).toContain('– hidranți interiori: Florin Cristian TALOȘ;');
     const seasons = documentText(renderDocument(file('fire_decision_seasons'), data));
-    expect(seasons).toContain('Atelier Ghiroda (atelier de sudură);\nSediul social (birouri);');
+    expect(seasons).toContain('Atelier Ghiroda (atelier de sudură);\nSediul social (birouri).');
     const training = documentText(renderDocument(file('fire_decision_training'), data));
     expect(training).toContain(
-      'personalul administrativ (Contabil) va fi instruit la 6 luni, respectiv în lunile februarie și august, între zilele 2 și 7 ale lunii;'
+      'personalul administrativ (Contabil) va fi instruit o dată la 6 luni, respectiv în lunile februarie și august, între zilele 2 și 7 ale lunii;'
     );
   });
 
@@ -985,16 +985,16 @@ describe('the fire-safety templates', () => {
       'Număr de înregistrare din registrul comerțului\nJ35/1234/2008, CUI 14399840'
     );
     expect(text).toContain(
-      '1.2.1. Clădirea 1: Atelier Ghiroda, Ghiroda, județul Timiș, Str. Industriilor 4'
+      '1.2.1. Clădirea 1: Sediul social, București, Sector 1, Calea Victoriei 122A'
     );
     expect(text).toContain(
-      '1.2.2. Clădirea 2: Sediul social, București, Sector 1, Calea Victoriei 122A'
+      '1.2.2. Clădirea 2: Atelier Ghiroda, Ghiroda, județul Timiș, Str. Industriilor 4'
     );
     expect(text).toContain(
       'Stabilitatea la foc\nDE COMPLETAT(din proiect sau din alte documente tehnice'
     );
     expect(text).toContain('Substanța 2: Diluant pentru vopsele');
-    expect(text).toContain('Serviciu privat pentru situații de urgență\nnu există; nu este cazul');
+    expect(text).toContain('Serviciu privat pentru situații de urgență\nnu este cazul');
     expect(text).not.toContain('Operatorul nu are clădiri proprii');
     const fewer = documentText(renderDocument(file, { ...buildFireSafetyContext(fewest) }));
     expect(fewer).toContain('declară că în activitatea sa nu utilizează substanțe periculoase');
@@ -1009,8 +1009,8 @@ describe('the fire-safety templates', () => {
       )
     );
     const text = documentText(renderDocument(file, { ...buildFireSafetyContext(facts) }));
-    expect(text).toContain('Atelier Ghiroda (Atelier de sudură)');
-    expect(text).toContain('Sediul social (Birouri)');
+    expect(text).toContain('Atelier Ghiroda (atelier de sudură)');
+    expect(text).toContain('Sediul social (birouri)');
     expect(text).toContain('Verificarea prin cântărire a stingătoarelor cu CO₂ sau agent curat');
     expect(text).toContain('următorul service: 15.01.2027 și 12.03.2027');
     expect(text).toContain('următoarea verificare: 12.09.2026');
@@ -1080,7 +1080,7 @@ describe('the fire-safety templates', () => {
     );
     expect(text).toContain('Locul de muncă: Atelier Ghiroda (atelier de sudură)');
     expect(text).toContain('Stingător tip P50 – Pulbere, 50\u00a0kg, carosabil: 1 buc.;');
-    expect(text).toContain('Ladă cu nisip: 1 buc.;');
+    expect(text).toContain('Ladă cu nisip: 1 buc.');
     expect(text).toContain('redate în Decizia nr. 9 PSI.');
     expect(text).toContain('conform Deciziei nr. 8 PSI:');
     expect(text.match(/^Conduita salvatorului cuprinde, în această ordine:$/gm)).toHaveLength(

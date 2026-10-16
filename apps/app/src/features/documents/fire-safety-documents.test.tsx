@@ -57,7 +57,7 @@ const fireDocument = (
   issued: null,
 });
 
-const reportTitle = 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor';
+const reportTitle = 'Raportul anual de evaluare a capacității de apărare împotriva incendiilor';
 const report2026 = fireDocument(
   'de8f9a0e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
   'fire_annual_report',

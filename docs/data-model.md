@@ -377,7 +377,7 @@ is nullable:
 | -------------------------- | --------------------------------------------------------------------------------------- |
 | `year_built`               | `smallint`, 1800 to 2100 in the database; the API refuses a year after the current one. |
 | `built_area_m2`            | `numeric(10, 2)`, above 0.                                                              |
-| `levels`                   | The height regime as written, "P+1E"; 2 to 40.                                          |
+| `levels`                   | The height regime as written, "P" or "P+1E"; 1 to 40.                                   |
 | `classification`           | `fire_building_classification`: `civil`, `production`, `storage` or `mixed`.            |
 | `structure`                | The load-bearing structure, 2 to 120.                                                   |
 | `heating_fuel`             | 2 to 80.                                                                                |

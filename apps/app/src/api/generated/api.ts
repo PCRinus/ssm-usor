@@ -3877,7 +3877,7 @@ export interface FireBuildingRequest {
    */
   builtAreaM2?: number | null;
   /**
-   * @minLength 2
+   * @minLength 1
    * @maxLength 40
    * @nullable
    */

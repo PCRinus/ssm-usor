@@ -29,3 +29,14 @@ export function runOn(text: string) {
 export function withoutFinalStop(text: string) {
   return text.replace(/(?<!\.)[.;]$/, '');
 }
+
+/**
+ * A job title with its first word made definite where the article is a plain "-ul" after a
+ * consonant ("Administrator unic" → "Administratorul unic"); null for any other ending, whose
+ * article depends on a gender the title does not show.
+ */
+export function definiteRole(role: string) {
+  const match = /^(\p{L}+)(.*)$/su.exec(role.trim());
+  if (!match || !/[bcdfghjklmnprstvzșțx]$/iu.test(match[1]!)) return null;
+  return `${match[1]}ul${match[2]}`;
+}

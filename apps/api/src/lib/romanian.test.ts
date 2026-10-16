@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { countOf, listed, runOn, withoutFinalStop } from './romanian';
+import { countOf, definiteRole, listed, runOn, withoutFinalStop } from './romanian';
 
 describe('a count in words', () => {
   it('puts "de" between a number and its noun from 20 on, except 101 to 119 and the like', () => {
@@ -53,5 +53,16 @@ describe('a value listed as an item', () => {
     expect(withoutFinalStop('Cartoane, hârtie;')).toBe('Cartoane, hârtie');
     expect(withoutFinalStop('Cartoane, hârtie')).toBe('Cartoane, hârtie');
     expect(withoutFinalStop('Cartoane, hârtie etc...')).toBe('Cartoane, hârtie etc...');
+  });
+});
+
+describe('a job title made definite', () => {
+  it('adds "-ul" to a first word ending in a consonant, and leaves any other ending', () => {
+    expect(definiteRole('Administrator')).toBe('Administratorul');
+    expect(definiteRole(' Administrator unic ')).toBe('Administratorul unic');
+    expect(definiteRole('Director general')).toBe('Directorul general');
+    expect(definiteRole('Președinte')).toBeNull();
+    expect(definiteRole('Directoare')).toBeNull();
+    expect(definiteRole('')).toBeNull();
   });
 });

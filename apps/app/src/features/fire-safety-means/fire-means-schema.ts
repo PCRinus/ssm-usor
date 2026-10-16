@@ -327,7 +327,7 @@ export const buildingFormSchema = z.object({
       (value) => value === '' || (decimalText.test(value) && parsedDecimal(value) > 0),
       'Introdu suprafața în m², de exemplu 412,5.'
     ),
-  levels: optionalText(2, 40, 'Regimul de înălțime'),
+  levels: optionalText(1, 40, 'Regimul de înălțime'),
   classification: z.string(),
   structure: optionalText(2, 120, 'Structura'),
   heatingFuel: optionalText(2, 80, 'Combustibilul'),

@@ -560,8 +560,8 @@ const yearBuilt = z
 export const fireBuildingRequestSchema = z.object({
   yearBuilt: yearBuilt.nullish(),
   builtAreaM2: z.number().positive().max(maxDecimal).nullish(),
-  // "P+1E", "S+P+4E".
-  levels: optionalText(2, 40),
+  // "P", "P+1E", "S+P+4E".
+  levels: optionalText(1, 40),
   classification: fireBuildingClassificationSchema.nullish(),
   structure: optionalText(2, 120),
   heatingFuel: optionalText(2, 80),

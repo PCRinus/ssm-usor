@@ -3738,7 +3738,7 @@ describe('the fire-safety set', () => {
       ...fireDocumentRow,
       id: crypto.randomUUID(),
       type_key: 'fire_annual_report',
-      title: 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor',
+      title: 'Raportul anual de evaluare a capacității de apărare împotriva incendiilor',
       period,
     });
     const tenEmployees = () => new Response(null, { headers: { 'content-range': '0-0/10' } });
@@ -3855,14 +3855,14 @@ describe('the fire-safety set', () => {
             docx_path: `${organizationId}/${clientId}/${documentId}/1.docx`,
             revision: 1,
             client_documents: {
-              title: 'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor',
+              title: 'Raportul anual de evaluare a capacității de apărare împotriva incendiilor',
               period: 2025,
             },
           }),
       });
       const response = await request(`/documents/${documentId}/revisions/${revisionId}/download`);
       expect(documentDownloadResponseSchema.parse(await response.json()).fileName).toBe(
-        'Raportul anual de evaluare a nivelului de apărare împotriva incendiilor 2025 - rev. 1.docx'
+        'Raportul anual de evaluare a capacității de apărare împotriva incendiilor 2025 - rev. 1.docx'
       );
     });
 

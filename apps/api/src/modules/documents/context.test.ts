@@ -10,6 +10,7 @@ import {
   documentGapConcerns,
   missingDocumentData,
   quantityLabel,
+  romanianDay,
   undecidedJobPositions,
   workersRepresentativeClash,
 } from './context';
@@ -562,6 +563,24 @@ describe('the merge context', () => {
       })),
     });
     expect([none.annexes, none.noAnnexes]).toEqual([[], true]);
+  });
+
+  it('dates a module version by the Romanian calendar day, past midnight there while it is still the day before in UTC', () => {
+    expect(romanianDay('2026-10-15T21:06:12.345678+00:00')).toBe('2026-10-16');
+    expect(romanianDay('2026-10-15T20:59:59+00:00')).toBe('2026-10-15');
+    expect(romanianDay('2026-01-15T22:30:00+00:00')).toBe('2026-01-16');
+    expect(romanianDay('2026-01-15T21:30:00+00:00')).toBe('2026-01-15');
+    const late = buildDocumentContext({
+      ...facts,
+      jobPositions: facts.jobPositions.map((position) => ({
+        ...position,
+        instructions: position.instructions.map((module) => ({
+          ...module,
+          version: { ...module.version, createdAt: '2026-09-25T21:06:00+00:00' },
+        })),
+      })),
+    });
+    expect(late.annexes.map((annex) => annex.versionDate)).toEqual(['26.09.2026', '26.09.2026']);
   });
 
   it('switches the branding line', () => {

@@ -15,6 +15,8 @@ import { isTextPart, replaceText } from './text';
 //   {{^plan}} … {{/plan}}                      once for false, null or an empty list
 //   {{.}}                                      the current item of a list of strings
 //   {{$index}}                                 the item's number in its list, from 1
+//   {{#$last}} … {{/$last}}                    only for the last item of its list, so the
+//                                              last item can end with a full stop
 //
 // A placeholder without a value is an error, never a blank: a generated document must not
 // leave a gap where a name belongs.
@@ -35,6 +37,7 @@ export class TemplateError extends Error {
 interface ParserContext {
   scopeList: unknown[];
   scopePathItem: number[];
+  scopePathLength: number[];
   num: number;
 }
 
@@ -60,6 +63,8 @@ const parserRecording = (used: Set<string>, missing: Set<string>) =>
       get(scope: unknown, context: ParserContext) {
         if (path === '.') return scope;
         if (path === '$index') return (context.scopePathItem.at(-1) ?? 0) + 1;
+        if (path === '$last')
+          return (context.scopePathItem.at(-1) ?? 0) + 1 === (context.scopePathLength.at(-1) ?? 1);
         const keys = path.split('.');
         const value = lookup(scope, keys);
         // A section on a boolean or a text pushes the scope it stands in once more, so the
