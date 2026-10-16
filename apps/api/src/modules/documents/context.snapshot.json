@@ -1,0 +1,1484 @@
+{
+  "annexes": [
+    {
+      "number": 1,
+      "title": "Activități de birou",
+      "versionDate": "26.09.2026",
+      "versionId": "b0b0b0b0-0000-4000-8000-000000000002"
+    },
+    {
+      "number": 2,
+      "title": "Sudură oxiacetilenică",
+      "versionDate": "25.09.2026",
+      "versionId": "b0b0b0b0-0000-4000-8000-000000000001"
+    }
+  ],
+  "branding": true,
+  "client": {
+    "legalName": "S.C. PIPETECH S.R.L.",
+    "representativeName": "Florin Cristian TALOȘ",
+    "representativeRole": "Administrator"
+  },
+  "decisionNumbers": {
+    "decision_first_aid": 7,
+    "decision_imminent_danger": 8,
+    "decision_risk_evaluation_team": 6,
+    "decision_training": 5,
+    "decision_workers_representative": 9
+  },
+  "equippedPositions": [
+    {
+      "activities": "Sudură electrică și autogenă.",
+      "equipment": [
+        {
+          "allocationLabel": "Inventar de secție",
+          "item": "Mască de sudură",
+          "quantityLabel": "1 buc. / 24 de luni",
+          "risk": "Radiații, împroșcare (față, ochi)"
+        },
+        {
+          "allocationLabel": "Inventar personal",
+          "item": "Mănuși de sudor",
+          "quantityLabel": "2 buc. / 1 lună",
+          "risk": "Căldură, foc (mâini)"
+        },
+        {
+          "allocationLabel": "Consum",
+          "item": "Mască de unică folosință",
+          "quantityLabel": "50 buc.",
+          "risk": "Pulberi"
+        }
+      ],
+      "intervalLabel": "la 2 luni",
+      "name": "Sudor",
+      "staffCategory": "Execuție",
+      "trainingDuration": "2 ore",
+      "workZone": "",
+      "workZoneLine": false,
+      "workZoneOrDash": "—"
+    }
+  ],
+  "evaluationTeam": [
+    {
+      "jobTitle": "Administrator",
+      "name": "Florin Cristian TALOȘ"
+    }
+  ],
+  "firstAiderNames": "Florin Cristian TALOȘ și Ioana PETRE",
+  "firstAiders": [
+    {
+      "jobTitle": "Administrator",
+      "name": "Florin Cristian TALOȘ"
+    },
+    {
+      "jobTitle": "Șef de echipă",
+      "name": "Ioana PETRE"
+    }
+  ],
+  "followingYear": "2027",
+  "hasEquippedPositions": true,
+  "hasUnitRisks": true,
+  "imminentDanger": [
+    {
+      "jobTitle": "Administrator",
+      "name": "Florin Cristian TALOȘ"
+    },
+    {
+      "jobTitle": "Șef de echipă",
+      "name": "Ioana PETRE"
+    }
+  ],
+  "imminentDangerManagerNames": null,
+  "imminentDangerOthersText": null,
+  "imminentDangerText": "Florin Cristian TALOȘ, având funcția de Administrator, și Ioana PETRE, având funcția de Șef de echipă",
+  "issueDate": "19.01.2026",
+  "issueYear": "2026",
+  "noAnnexes": false,
+  "noUnitRisks": false,
+  "positions": [
+    {
+      "activities": "—",
+      "intervalLabel": "la 6 luni",
+      "name": "Contabil",
+      "staffCategory": "Tehnico-administrativ",
+      "trainingDuration": "2 ore",
+      "workZone": "Birou",
+      "workZoneLine": true,
+      "workZoneOrDash": "Birou"
+    },
+    {
+      "activities": "Sudură electrică și autogenă.",
+      "intervalLabel": "la 2 luni",
+      "name": "Sudor",
+      "staffCategory": "Execuție",
+      "trainingDuration": "2 ore",
+      "workZone": "",
+      "workZoneLine": false,
+      "workZoneOrDash": "—"
+    }
+  ],
+  "provider": {
+    "legalName": "S.C. SERVICIU EXTERN DEMO S.R.L.",
+    "representativeName": "Ana IONESCU",
+    "representativeRole": "Administrator"
+  },
+  "riskAssessment": {
+    "evaluationCountText": "2 posturi de lucru și grupurile sensibile la riscuri specifice",
+    "evaluations": [
+      {
+        "components": [
+          {
+            "count": 4,
+            "groups": [
+              {
+                "factors": [
+                  {
+                    "code": "F1",
+                    "description": "Electrocutare prin atingere directă la prize, prelungitoare sau echipamente cu izolația deteriorată."
+                  },
+                  {
+                    "code": "F2",
+                    "description": "Electrocutare prin atingere indirectă, la defectarea împământării unui echipament."
+                  }
+                ],
+                "letter": "a",
+                "name": "Factori de risc electric"
+              },
+              {
+                "factors": [
+                  {
+                    "code": "F3",
+                    "description": "Lovire de colțurile mobilierului sau de sertarele lăsate deschise."
+                  },
+                  {
+                    "code": "F4",
+                    "description": "Căderea obiectelor așezate pe rafturile înalte."
+                  }
+                ],
+                "letter": "b",
+                "name": "Factori de risc mecanic"
+              }
+            ],
+            "label": "MIJLOACE DE PRODUCȚIE",
+            "noFactors": false,
+            "of": "mijloacelor de producție",
+            "share": "36,36 %"
+          },
+          {
+            "count": 2,
+            "groups": [
+              {
+                "factors": [
+                  {
+                    "code": "F5",
+                    "description": "Iluminat insuficient sau reflexii pe ecran, care obosesc vederea."
+                  },
+                  {
+                    "code": "F6",
+                    "description": "Temperatură necorespunzătoare în birou, vara sau iarna."
+                  }
+                ],
+                "letter": "a",
+                "name": "Factori de risc fizic"
+              }
+            ],
+            "label": "MEDIUL DE MUNCĂ",
+            "noFactors": false,
+            "of": "mediului de muncă",
+            "share": "18,18 %"
+          },
+          {
+            "count": 3,
+            "groups": [
+              {
+                "factors": [
+                  {
+                    "code": "F7",
+                    "description": "Cădere la același nivel prin împiedicare de cablurile lăsate pe pardoseală."
+                  },
+                  {
+                    "code": "F8",
+                    "description": "Accident de circulație pe drumul dintre domiciliu și locul de muncă sau în deplasările de serviciu."
+                  }
+                ],
+                "letter": "a",
+                "name": "Acțiuni greșite"
+              },
+              {
+                "factors": [
+                  {
+                    "code": "F9",
+                    "description": "Neanunțarea defecțiunilor observate la echipamentele de lucru."
+                  }
+                ],
+                "letter": "b",
+                "name": "Omisiuni"
+              }
+            ],
+            "label": "EXECUTANT",
+            "noFactors": false,
+            "of": "executantului",
+            "share": "27,27 %"
+          },
+          {
+            "count": 2,
+            "groups": [
+              {
+                "factors": [
+                  {
+                    "code": "F10",
+                    "description": "Poziție șezând prelungită la calculator, cu dureri de spate și ale încheieturilor."
+                  }
+                ],
+                "letter": "a",
+                "name": "Suprasolicitare fizică"
+              },
+              {
+                "factors": [
+                  {
+                    "code": "F11",
+                    "description": "Ritm de lucru intens și termene scurte."
+                  }
+                ],
+                "letter": "b",
+                "name": "Suprasolicitare psihică"
+              }
+            ],
+            "label": "SARCINA DE MUNCĂ",
+            "noFactors": false,
+            "of": "sarcinii de muncă",
+            "share": "18,18 %"
+          }
+        ],
+        "exposedPersons": "1 persoană",
+        "exposure": "8 h / schimb",
+        "factorCount": 11,
+        "findings": "Rezultatul este susținut de „Fișa de evaluare”, din care se observă că din totalul de 11 factori de risc identificați, 2 dintre ei depășesc, ca nivel parțial de risc, valoarea 3, încadrându-se în categoria factorilor de risc mediu sau mare.",
+        "globalLevel": "2,86",
+        "hasPlan": true,
+        "hasUnacceptable": true,
+        "heading": "LOCUL DE MUNCĂ: BIROU, POSTUL DE LUCRU: CONTABIL",
+        "irreversible": "Din analiza „Fișei de evaluare” se constată că 3 dintre factorii de risc identificați, reprezentând 27,27 %, pot avea consecințe ireversibile asupra executantului (deces sau invaliditate).",
+        "measuresSentence": "Pentru diminuarea sau eliminarea celor 2 factori de risc sunt necesare măsurile prezentate în „Fișa de măsuri propuse”.",
+        "name": "Contabil",
+        "noPlan": false,
+        "noUnacceptable": false,
+        "plan": [
+          {
+            "actions": "Contractarea verificării PRAM cu o firmă autorizată.",
+            "code": "F2",
+            "deadline": "Anual",
+            "description": "Electrocutare prin atingere indirectă, la defectarea împământării unui echipament.",
+            "hygienicSanitary": "—",
+            "level": 4,
+            "measures": "– Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).\n– Anunțarea imediată a conducătorului locului de muncă la orice defect electric.",
+            "observations": "—",
+            "organizational": "– Anunțarea imediată a conducătorului locului de muncă la orice defect electric.",
+            "other": "—",
+            "responsiblePerson": "Administratorul",
+            "technical": "– Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM)."
+          },
+          {
+            "actions": "—",
+            "code": "F8",
+            "deadline": "Permanent",
+            "description": "Accident de circulație pe drumul dintre domiciliu și locul de muncă sau în deplasările de serviciu.",
+            "hygienicSanitary": "—",
+            "level": 4,
+            "measures": "– Instruirea lucrătorilor privind circulația pe drumurile publice.\n– Planificarea deplasărilor de serviciu astfel încât să nu fie făcute în grabă.",
+            "observations": "Se reia la instruirea periodică.",
+            "organizational": "– Instruirea lucrătorilor privind circulația pe drumurile publice.",
+            "other": "– Planificarea deplasărilor de serviciu astfel încât să nu fie făcute în grabă.",
+            "responsiblePerson": "Conducătorul locului de muncă",
+            "technical": "—"
+          },
+          {
+            "actions": "—",
+            "code": "F1",
+            "deadline": "Permanent",
+            "description": "Electrocutare prin atingere directă la prize, prelungitoare sau echipamente cu izolația deteriorată.",
+            "hygienicSanitary": "—",
+            "level": 3,
+            "measures": "– Verificarea periodică a instalației electrice de către un electrician autorizat.\n– Interzicerea intervențiilor la instalația electrică de către persoane neautorizate.",
+            "observations": "—",
+            "organizational": "– Interzicerea intervențiilor la instalația electrică de către persoane neautorizate.",
+            "other": "—",
+            "responsiblePerson": "Administratorul",
+            "technical": "– Verificarea periodică a instalației electrice de către un electrician autorizat."
+          },
+          {
+            "actions": "—",
+            "code": "F7",
+            "deadline": "Permanent",
+            "description": "Cădere la același nivel prin împiedicare de cablurile lăsate pe pardoseală.",
+            "hygienicSanitary": "—",
+            "level": 3,
+            "measures": "– Fixarea cablurilor de-a lungul pereților, în afara căilor de trecere.",
+            "observations": "—",
+            "organizational": "– Fixarea cablurilor de-a lungul pereților, în afara căilor de trecere.",
+            "other": "—",
+            "responsiblePerson": "Conducătorul locului de muncă",
+            "technical": "—"
+          },
+          {
+            "actions": "—",
+            "code": "F10",
+            "deadline": "Permanent",
+            "description": "Poziție șezând prelungită la calculator, cu dureri de spate și ale încheieturilor.",
+            "hygienicSanitary": "– Pauze de 10 minute la fiecare două ore de lucru la calculator.",
+            "level": 3,
+            "measures": "– Scaune reglabile pe înălțime, cu spătar.\n– Pauze de 10 minute la fiecare două ore de lucru la calculator.",
+            "observations": "—",
+            "organizational": "—",
+            "other": "—",
+            "responsiblePerson": "Conducătorul locului de muncă",
+            "technical": "– Scaune reglabile pe înălțime, cu spătar."
+          },
+          {
+            "actions": "—",
+            "code": "F5",
+            "deadline": "30 de zile",
+            "description": "Iluminat insuficient sau reflexii pe ecran, care obosesc vederea.",
+            "hygienicSanitary": "—",
+            "level": 2,
+            "measures": "– Așezarea monitoarelor perpendicular pe ferestre și folosirea jaluzelelor.",
+            "observations": "—",
+            "organizational": "—",
+            "other": "—",
+            "responsiblePerson": "Conducătorul locului de muncă",
+            "technical": "– Așezarea monitoarelor perpendicular pe ferestre și folosirea jaluzelelor."
+          }
+        ],
+        "ranked": [
+          {
+            "code": "F2",
+            "description": "Electrocutare prin atingere indirectă, la defectarea împământării unui echipament.",
+            "level": 4
+          },
+          {
+            "code": "F8",
+            "description": "Accident de circulație pe drumul dintre domiciliu și locul de muncă sau în deplasările de serviciu.",
+            "level": 4
+          },
+          {
+            "code": "F1",
+            "description": "Electrocutare prin atingere directă la prize, prelungitoare sau echipamente cu izolația deteriorată.",
+            "level": 3
+          },
+          {
+            "code": "F7",
+            "description": "Cădere la același nivel prin împiedicare de cablurile lăsate pe pardoseală.",
+            "level": 3
+          },
+          {
+            "code": "F10",
+            "description": "Poziție șezând prelungită la calculator, cu dureri de spate și ale încheieturilor.",
+            "level": 3
+          },
+          {
+            "code": "F3",
+            "description": "Lovire de colțurile mobilierului sau de sertarele lăsate deschise.",
+            "level": 2
+          },
+          {
+            "code": "F4",
+            "description": "Căderea obiectelor așezate pe rafturile înalte.",
+            "level": 2
+          },
+          {
+            "code": "F5",
+            "description": "Iluminat insuficient sau reflexii pe ecran, care obosesc vederea.",
+            "level": 2
+          },
+          {
+            "code": "F9",
+            "description": "Neanunțarea defecțiunilor observate la echipamentele de lucru.",
+            "level": 2
+          },
+          {
+            "code": "F11",
+            "description": "Ritm de lucru intens și termene scurte.",
+            "level": 2
+          },
+          {
+            "code": "F6",
+            "description": "Temperatură necorespunzătoare în birou, vara sau iarna.",
+            "level": 1
+          }
+        ],
+        "roman": "I",
+        "sheet": [
+          {
+            "code": "F1",
+            "component": "MIJLOACE DE PRODUCȚIE",
+            "consequence": "Deces",
+            "description": "Electrocutare prin atingere directă la prize, prelungitoare sau echipamente cu izolația deteriorată.",
+            "gravityClass": 7,
+            "group": "Factori de risc electric",
+            "level": 3,
+            "probabilityClass": 1
+          },
+          {
+            "code": "F2",
+            "component": "",
+            "consequence": "Invaliditate gradul II",
+            "description": "Electrocutare prin atingere indirectă, la defectarea împământării unui echipament.",
+            "gravityClass": 5,
+            "group": "",
+            "level": 4,
+            "probabilityClass": 2
+          },
+          {
+            "code": "F3",
+            "component": "",
+            "consequence": "ITM 3–45 zile",
+            "description": "Lovire de colțurile mobilierului sau de sertarele lăsate deschise.",
+            "gravityClass": 2,
+            "group": "Factori de risc mecanic",
+            "level": 2,
+            "probabilityClass": 3
+          },
+          {
+            "code": "F4",
+            "component": "",
+            "consequence": "ITM 3–45 zile",
+            "description": "Căderea obiectelor așezate pe rafturile înalte.",
+            "gravityClass": 2,
+            "group": "",
+            "level": 2,
+            "probabilityClass": 2
+          },
+          {
+            "code": "F5",
+            "component": "MEDIUL DE MUNCĂ",
+            "consequence": "ITM 3–45 zile",
+            "description": "Iluminat insuficient sau reflexii pe ecran, care obosesc vederea.",
+            "gravityClass": 2,
+            "group": "Factori de risc fizic",
+            "level": 2,
+            "probabilityClass": 4
+          },
+          {
+            "code": "F6",
+            "component": "",
+            "consequence": "Minore reversibile",
+            "description": "Temperatură necorespunzătoare în birou, vara sau iarna.",
+            "gravityClass": 1,
+            "group": "",
+            "level": 1,
+            "probabilityClass": 4
+          },
+          {
+            "code": "F7",
+            "component": "EXECUTANT",
+            "consequence": "ITM 45–180 zile",
+            "description": "Cădere la același nivel prin împiedicare de cablurile lăsate pe pardoseală.",
+            "gravityClass": 3,
+            "group": "Acțiuni greșite",
+            "level": 3,
+            "probabilityClass": 3
+          },
+          {
+            "code": "F8",
+            "component": "",
+            "consequence": "Deces",
+            "description": "Accident de circulație pe drumul dintre domiciliu și locul de muncă sau în deplasările de serviciu.",
+            "gravityClass": 7,
+            "group": "",
+            "level": 4,
+            "probabilityClass": 2
+          },
+          {
+            "code": "F9",
+            "component": "",
+            "consequence": "ITM 3–45 zile",
+            "description": "Neanunțarea defecțiunilor observate la echipamentele de lucru.",
+            "gravityClass": 2,
+            "group": "Omisiuni",
+            "level": 2,
+            "probabilityClass": 3
+          },
+          {
+            "code": "F10",
+            "component": "SARCINA DE MUNCĂ",
+            "consequence": "ITM 3–45 zile",
+            "description": "Poziție șezând prelungită la calculator, cu dureri de spate și ale încheieturilor.",
+            "gravityClass": 2,
+            "group": "Suprasolicitare fizică",
+            "level": 3,
+            "probabilityClass": 5
+          },
+          {
+            "code": "F11",
+            "component": "",
+            "consequence": "ITM 3–45 zile",
+            "description": "Ritm de lucru intens și termene scurte.",
+            "gravityClass": 2,
+            "group": "Suprasolicitare psihică",
+            "level": 2,
+            "probabilityClass": 4
+          }
+        ],
+        "unacceptable": [
+          {
+            "code": "F2",
+            "description": "Electrocutare prin atingere indirectă, la defectarea împământării unui echipament.",
+            "level": 4
+          },
+          {
+            "code": "F8",
+            "description": "Accident de circulație pe drumul dintre domiciliu și locul de muncă sau în deplasările de serviciu.",
+            "level": 4
+          }
+        ],
+        "unacceptableLead": "Cei 2 factori de risc care se situează în domeniul inacceptabil sunt:",
+        "verdict": "valoare care îl încadrează în categoria locurilor de muncă cu nivel de risc acceptabil, nedepășind limita maximă acceptabilă de 3,5",
+        "workSystem": {
+          "executant": "Contabil",
+          "meansOfProduction": "Calculator, monitor, imprimantă, telefon, mobilier de birou, rafturi și documente.",
+          "workEnvironment": "Birou închis, cu iluminat natural și artificial, încălzit iarna și climatizat vara.",
+          "workTask": "—"
+        },
+        "workZoneOrDash": "Birou"
+      },
+      {
+        "components": [
+          {
+            "count": 4,
+            "groups": [
+              {
+                "factors": [
+                  {
+                    "code": "F1",
+                    "description": "Prinderea mâinilor sau a îmbrăcămintei de elementele în mișcare ale mașinilor neprotejate."
+                  },
+                  {
+                    "code": "F2",
+                    "description": "Tăiere sau înțepare cu sculele de mână ori cu muchiile pieselor."
+                  },
+                  {
+                    "code": "F3",
+                    "description": "Proiectarea de așchii sau de fragmente de disc la lucrul cu polizorul unghiular."
+                  }
+                ],
+                "letter": "a",
+                "name": "Factori de risc mecanic"
+              },
+              {
+                "factors": [
+                  {
+                    "code": "F4",
+                    "description": "Electrocutare prin atingere directă la sculele electrice portabile cu cablul deteriorat."
+                  }
+                ],
+                "letter": "b",
+                "name": "Factori de risc electric"
+              }
+            ],
+            "label": "MIJLOACE DE PRODUCȚIE",
+            "noFactors": false,
+            "of": "mijloacelor de producție",
+            "share": "33,33 %"
+          },
+          {
+            "count": 3,
+            "groups": [
+              {
+                "factors": [
+                  {
+                    "code": "F5",
+                    "description": "Zgomot peste valorile de expunere, în timpul funcționării mașinilor."
+                  },
+                  {
+                    "code": "F6",
+                    "description": "Iluminat insuficient la unele posturi de lucru."
+                  }
+                ],
+                "letter": "a",
+                "name": "Factori de risc fizic"
+              },
+              {
+                "factors": [
+                  {
+                    "code": "F7",
+                    "description": "Pulberi rezultate la șlefuire și la debitare."
+                  }
+                ],
+                "letter": "b",
+                "name": "Factori de risc chimic"
+              }
+            ],
+            "label": "MEDIUL DE MUNCĂ",
+            "noFactors": false,
+            "of": "mediului de muncă",
+            "share": "25,00 %"
+          },
+          {
+            "count": 3,
+            "groups": [
+              {
+                "factors": [
+                  {
+                    "code": "F8",
+                    "description": "Ridicarea și transportul manual al unor sarcini prea grele sau în poziții forțate."
+                  },
+                  {
+                    "code": "F9",
+                    "description": "Cădere la același nivel pe pardoseala murdară de ulei sau aglomerată cu materiale."
+                  }
+                ],
+                "letter": "a",
+                "name": "Acțiuni greșite"
+              },
+              {
+                "factors": [
+                  {
+                    "code": "F10",
+                    "description": "Nepurtarea echipamentului individual de protecție primit."
+                  }
+                ],
+                "letter": "b",
+                "name": "Omisiuni"
+              }
+            ],
+            "label": "EXECUTANT",
+            "noFactors": false,
+            "of": "executantului",
+            "share": "25,00 %"
+          },
+          {
+            "count": 2,
+            "groups": [
+              {
+                "factors": [
+                  {
+                    "code": "F11",
+                    "description": "Lucru în picioare pe toată durata schimbului."
+                  }
+                ],
+                "letter": "a",
+                "name": "Suprasolicitare fizică"
+              },
+              {
+                "factors": [
+                  {
+                    "code": "F12",
+                    "description": "Executarea unor operații pentru care lucrătorul nu a fost instruit."
+                  }
+                ],
+                "letter": "b",
+                "name": "Alte riscuri"
+              }
+            ],
+            "label": "SARCINA DE MUNCĂ",
+            "noFactors": false,
+            "of": "sarcinii de muncă",
+            "share": "16,67 %"
+          }
+        ],
+        "exposedPersons": "5 persoane",
+        "exposure": "8 h / schimb",
+        "factorCount": 12,
+        "findings": "Rezultatul este susținut de „Fișa de evaluare”, din care se observă că din totalul de 12 factori de risc identificați, 4 dintre ei depășesc, ca nivel parțial de risc, valoarea 3, încadrându-se în categoria factorilor de risc mediu sau mare.",
+        "globalLevel": "3,36",
+        "hasPlan": true,
+        "hasUnacceptable": true,
+        "heading": "POSTUL DE LUCRU: SUDOR",
+        "irreversible": "Din analiza „Fișei de evaluare” se constată că 4 dintre factorii de risc identificați, reprezentând 33,33 %, pot avea consecințe ireversibile asupra executantului (deces sau invaliditate).",
+        "measuresSentence": "Pentru diminuarea sau eliminarea celor 4 factori de risc sunt necesare măsurile prezentate în „Fișa de măsuri propuse”.",
+        "name": "Sudor",
+        "noPlan": false,
+        "noUnacceptable": false,
+        "plan": [
+          {
+            "actions": "Verificarea apărătorilor la începutul fiecărui schimb.",
+            "code": "F1",
+            "deadline": "Zilnic",
+            "description": "Prinderea mâinilor sau a îmbrăcămintei de elementele în mișcare ale mașinilor neprotejate.",
+            "hygienicSanitary": "—",
+            "level": 4,
+            "measures": "– Montarea și păstrarea apărătorilor la toate elementele în mișcare.\n– Interzicerea îmbrăcămintei largi și a bijuteriilor lângă mașini.",
+            "observations": "—",
+            "organizational": "– Interzicerea îmbrăcămintei largi și a bijuteriilor lângă mașini.",
+            "other": "—",
+            "responsiblePerson": "Șeful de echipă",
+            "technical": "– Montarea și păstrarea apărătorilor la toate elementele în mișcare."
+          },
+          {
+            "actions": "—",
+            "code": "F3",
+            "deadline": "Imediat",
+            "description": "Proiectarea de așchii sau de fragmente de disc la lucrul cu polizorul unghiular.",
+            "hygienicSanitary": "—",
+            "level": 4,
+            "measures": "– Folosirea polizorului numai cu apărătoarea discului montată.\n– Ochelari de protecție.\n– Instruirea pentru alegerea și schimbarea discurilor.",
+            "observations": "Discurile se păstrează ferite de umezeală.",
+            "organizational": "– Instruirea pentru alegerea și schimbarea discurilor.",
+            "other": "—",
+            "responsiblePerson": "Șeful de echipă",
+            "technical": "– Folosirea polizorului numai cu apărătoarea discului montată.\n– Ochelari de protecție."
+          },
+          {
+            "actions": "—",
+            "code": "F4",
+            "deadline": "Permanent",
+            "description": "Electrocutare prin atingere directă la sculele electrice portabile cu cablul deteriorat.",
+            "hygienicSanitary": "—",
+            "level": 4,
+            "measures": "– Verificarea sculelor electrice portabile înainte de fiecare folosire.\n– Scoaterea din uz a sculelor cu cablul sau carcasa deteriorată.",
+            "observations": "—",
+            "organizational": "– Scoaterea din uz a sculelor cu cablul sau carcasa deteriorată.",
+            "other": "—",
+            "responsiblePerson": "Electricianul autorizat",
+            "technical": "– Verificarea sculelor electrice portabile înainte de fiecare folosire."
+          },
+          {
+            "actions": "—",
+            "code": "F8",
+            "deadline": "30 de zile",
+            "description": "Ridicarea și transportul manual al unor sarcini prea grele sau în poziții forțate.",
+            "hygienicSanitary": "—",
+            "level": 4,
+            "measures": "– Manipularea sarcinilor de peste 25 kg de către două persoane.\n– Cărucioare pentru transportul pieselor.",
+            "observations": "—",
+            "organizational": "– Manipularea sarcinilor de peste 25 kg de către două persoane.",
+            "other": "—",
+            "responsiblePerson": "Șeful de echipă",
+            "technical": "– Cărucioare pentru transportul pieselor."
+          },
+          {
+            "actions": "—",
+            "code": "F2",
+            "deadline": "Permanent",
+            "description": "Tăiere sau înțepare cu sculele de mână ori cu muchiile pieselor.",
+            "hygienicSanitary": "—",
+            "level": 3,
+            "measures": "– Mănuși de protecție mecanică.",
+            "observations": "—",
+            "organizational": "—",
+            "other": "—",
+            "responsiblePerson": "Șeful de echipă",
+            "technical": "– Mănuși de protecție mecanică."
+          },
+          {
+            "actions": "—",
+            "code": "F5",
+            "deadline": "Anual",
+            "description": "Zgomot peste valorile de expunere, în timpul funcționării mașinilor.",
+            "hygienicSanitary": "– Audiogramă la examenul medical periodic.",
+            "level": 3,
+            "measures": "– Antifoane pentru lucrul lângă mașinile zgomotoase.\n– Audiogramă la examenul medical periodic.",
+            "observations": "—",
+            "organizational": "—",
+            "other": "—",
+            "responsiblePerson": "Administratorul",
+            "technical": "– Antifoane pentru lucrul lângă mașinile zgomotoase."
+          },
+          {
+            "actions": "—",
+            "code": "F10",
+            "deadline": "Zilnic",
+            "description": "Nepurtarea echipamentului individual de protecție primit.",
+            "hygienicSanitary": "—",
+            "level": 3,
+            "measures": "– Controlul purtării echipamentului la începutul schimbului.",
+            "observations": "—",
+            "organizational": "– Controlul purtării echipamentului la începutul schimbului.",
+            "other": "—",
+            "responsiblePerson": "Șeful de echipă",
+            "technical": "—"
+          }
+        ],
+        "ranked": [
+          {
+            "code": "F1",
+            "description": "Prinderea mâinilor sau a îmbrăcămintei de elementele în mișcare ale mașinilor neprotejate.",
+            "level": 4
+          },
+          {
+            "code": "F3",
+            "description": "Proiectarea de așchii sau de fragmente de disc la lucrul cu polizorul unghiular.",
+            "level": 4
+          },
+          {
+            "code": "F4",
+            "description": "Electrocutare prin atingere directă la sculele electrice portabile cu cablul deteriorat.",
+            "level": 4
+          },
+          {
+            "code": "F8",
+            "description": "Ridicarea și transportul manual al unor sarcini prea grele sau în poziții forțate.",
+            "level": 4
+          },
+          {
+            "code": "F2",
+            "description": "Tăiere sau înțepare cu sculele de mână ori cu muchiile pieselor.",
+            "level": 3
+          },
+          {
+            "code": "F5",
+            "description": "Zgomot peste valorile de expunere, în timpul funcționării mașinilor.",
+            "level": 3
+          },
+          {
+            "code": "F7",
+            "description": "Pulberi rezultate la șlefuire și la debitare.",
+            "level": 3
+          },
+          {
+            "code": "F9",
+            "description": "Cădere la același nivel pe pardoseala murdară de ulei sau aglomerată cu materiale.",
+            "level": 3
+          },
+          {
+            "code": "F10",
+            "description": "Nepurtarea echipamentului individual de protecție primit.",
+            "level": 3
+          },
+          {
+            "code": "F11",
+            "description": "Lucru în picioare pe toată durata schimbului.",
+            "level": 3
+          },
+          {
+            "code": "F12",
+            "description": "Executarea unor operații pentru care lucrătorul nu a fost instruit.",
+            "level": 3
+          },
+          {
+            "code": "F6",
+            "description": "Iluminat insuficient la unele posturi de lucru.",
+            "level": 2
+          }
+        ],
+        "roman": "II",
+        "sheet": [
+          {
+            "code": "F1",
+            "component": "MIJLOACE DE PRODUCȚIE",
+            "consequence": "Invaliditate gradul II",
+            "description": "Prinderea mâinilor sau a îmbrăcămintei de elementele în mișcare ale mașinilor neprotejate.",
+            "gravityClass": 5,
+            "group": "Factori de risc mecanic",
+            "level": 4,
+            "probabilityClass": 3
+          },
+          {
+            "code": "F2",
+            "component": "",
+            "consequence": "ITM 3–45 zile",
+            "description": "Tăiere sau înțepare cu sculele de mână ori cu muchiile pieselor.",
+            "gravityClass": 2,
+            "group": "",
+            "level": 3,
+            "probabilityClass": 5
+          },
+          {
+            "code": "F3",
+            "component": "",
+            "consequence": "Invaliditate gradul III",
+            "description": "Proiectarea de așchii sau de fragmente de disc la lucrul cu polizorul unghiular.",
+            "gravityClass": 4,
+            "group": "",
+            "level": 4,
+            "probabilityClass": 3
+          },
+          {
+            "code": "F4",
+            "component": "",
+            "consequence": "Deces",
+            "description": "Electrocutare prin atingere directă la sculele electrice portabile cu cablul deteriorat.",
+            "gravityClass": 7,
+            "group": "Factori de risc electric",
+            "level": 4,
+            "probabilityClass": 2
+          },
+          {
+            "code": "F5",
+            "component": "MEDIUL DE MUNCĂ",
+            "consequence": "ITM 45–180 zile",
+            "description": "Zgomot peste valorile de expunere, în timpul funcționării mașinilor.",
+            "gravityClass": 3,
+            "group": "Factori de risc fizic",
+            "level": 3,
+            "probabilityClass": 4
+          },
+          {
+            "code": "F6",
+            "component": "",
+            "consequence": "ITM 3–45 zile",
+            "description": "Iluminat insuficient la unele posturi de lucru.",
+            "gravityClass": 2,
+            "group": "",
+            "level": 2,
+            "probabilityClass": 3
+          },
+          {
+            "code": "F7",
+            "component": "",
+            "consequence": "ITM 45–180 zile",
+            "description": "Pulberi rezultate la șlefuire și la debitare.",
+            "gravityClass": 3,
+            "group": "Factori de risc chimic",
+            "level": 3,
+            "probabilityClass": 3
+          },
+          {
+            "code": "F8",
+            "component": "EXECUTANT",
+            "consequence": "ITM 45–180 zile",
+            "description": "Ridicarea și transportul manual al unor sarcini prea grele sau în poziții forțate.",
+            "gravityClass": 3,
+            "group": "Acțiuni greșite",
+            "level": 4,
+            "probabilityClass": 5
+          },
+          {
+            "code": "F9",
+            "component": "",
+            "consequence": "ITM 45–180 zile",
+            "description": "Cădere la același nivel pe pardoseala murdară de ulei sau aglomerată cu materiale.",
+            "gravityClass": 3,
+            "group": "",
+            "level": 3,
+            "probabilityClass": 3
+          },
+          {
+            "code": "F10",
+            "component": "",
+            "consequence": "ITM 45–180 zile",
+            "description": "Nepurtarea echipamentului individual de protecție primit.",
+            "gravityClass": 3,
+            "group": "Omisiuni",
+            "level": 3,
+            "probabilityClass": 4
+          },
+          {
+            "code": "F11",
+            "component": "SARCINA DE MUNCĂ",
+            "consequence": "ITM 3–45 zile",
+            "description": "Lucru în picioare pe toată durata schimbului.",
+            "gravityClass": 2,
+            "group": "Suprasolicitare fizică",
+            "level": 3,
+            "probabilityClass": 5
+          },
+          {
+            "code": "F12",
+            "component": "",
+            "consequence": "Invaliditate gradul III",
+            "description": "Executarea unor operații pentru care lucrătorul nu a fost instruit.",
+            "gravityClass": 4,
+            "group": "Alte riscuri",
+            "level": 3,
+            "probabilityClass": 2
+          }
+        ],
+        "unacceptable": [
+          {
+            "code": "F1",
+            "description": "Prinderea mâinilor sau a îmbrăcămintei de elementele în mișcare ale mașinilor neprotejate.",
+            "level": 4
+          },
+          {
+            "code": "F3",
+            "description": "Proiectarea de așchii sau de fragmente de disc la lucrul cu polizorul unghiular.",
+            "level": 4
+          },
+          {
+            "code": "F4",
+            "description": "Electrocutare prin atingere directă la sculele electrice portabile cu cablul deteriorat.",
+            "level": 4
+          },
+          {
+            "code": "F8",
+            "description": "Ridicarea și transportul manual al unor sarcini prea grele sau în poziții forțate.",
+            "level": 4
+          }
+        ],
+        "unacceptableLead": "Cei 4 factori de risc care se situează în domeniul inacceptabil sunt:",
+        "verdict": "valoare care îl încadrează în categoria locurilor de muncă cu nivel de risc acceptabil, nedepășind limita maximă acceptabilă de 3,5",
+        "workSystem": {
+          "executant": "Sudor",
+          "meansOfProduction": "Scule de mână, polizor unghiular, bormașină, mașini-unelte, piese și materiale de prelucrat.",
+          "workEnvironment": "Hală de producție cu iluminat mixt, zgomot și pulberi, ventilată natural.",
+          "workTask": "Sudură electrică și autogenă."
+        },
+        "workZoneOrDash": "—"
+      },
+      {
+        "components": [
+          {
+            "count": 1,
+            "groups": [
+              {
+                "factors": [
+                  {
+                    "code": "F1",
+                    "description": "Accidentarea persoanelor cu dizabilități pe căile de acces neadaptate (praguri, trepte)."
+                  }
+                ],
+                "letter": "a",
+                "name": "Factori de risc mecanic"
+              }
+            ],
+            "label": "MIJLOACE DE PRODUCȚIE",
+            "noFactors": false,
+            "of": "mijloacelor de producție",
+            "share": "14,29 %"
+          },
+          {
+            "count": 2,
+            "groups": [
+              {
+                "factors": [
+                  {
+                    "code": "F2",
+                    "description": "Temperaturi extreme în spațiile de lucru."
+                  }
+                ],
+                "letter": "a",
+                "name": "Factori de risc fizic"
+              },
+              {
+                "factors": [
+                  {
+                    "code": "F3",
+                    "description": "Contact cu persoane bolnave, cu risc de infectare."
+                  }
+                ],
+                "letter": "b",
+                "name": "Factori de risc biologic"
+              }
+            ],
+            "label": "MEDIUL DE MUNCĂ",
+            "noFactors": false,
+            "of": "mediului de muncă",
+            "share": "28,57 %"
+          },
+          {
+            "count": 1,
+            "groups": [
+              {
+                "factors": [
+                  {
+                    "code": "F4",
+                    "description": "Executarea de către tineri, fără supraveghere, a unor operații periculoase."
+                  }
+                ],
+                "letter": "a",
+                "name": "Acțiuni greșite"
+              }
+            ],
+            "label": "EXECUTANT",
+            "noFactors": false,
+            "of": "executantului",
+            "share": "14,29 %"
+          },
+          {
+            "count": 3,
+            "groups": [
+              {
+                "factors": [
+                  {
+                    "code": "F5",
+                    "description": "Ridicarea și transportul de greutăți de către lucrătoarea gravidă."
+                  },
+                  {
+                    "code": "F6",
+                    "description": "Statul prelungit în picioare sau în aceeași poziție."
+                  }
+                ],
+                "letter": "a",
+                "name": "Suprasolicitare fizică"
+              },
+              {
+                "factors": [
+                  {
+                    "code": "F7",
+                    "description": "Muncă de noapte sau program prelungit pentru tineri și lucrătoare gravide."
+                  }
+                ],
+                "letter": "b",
+                "name": "Suprasolicitare psihică"
+              }
+            ],
+            "label": "SARCINA DE MUNCĂ",
+            "noFactors": false,
+            "of": "sarcinii de muncă",
+            "share": "42,86 %"
+          }
+        ],
+        "exposedPersons": "După caz, la data evaluării",
+        "exposure": "8 h / schimb",
+        "factorCount": 7,
+        "findings": "Rezultatul este susținut de „Fișa de evaluare”, din care se observă că din totalul de 7 factori de risc identificați, 2 dintre ei depășesc, ca nivel parțial de risc, valoarea 3, încadrându-se în categoria factorilor de risc mediu sau mare.",
+        "globalLevel": "3,19",
+        "hasPlan": true,
+        "hasUnacceptable": true,
+        "heading": "GRUPURI SENSIBILE LA RISCURI SPECIFICE (FEMEI GRAVIDE, LĂUZE SAU FEMEI CARE ALĂPTEAZĂ, TINERI, PERSOANE CU DIZABILITĂȚI)",
+        "irreversible": "Din analiza „Fișei de evaluare” se constată că 2 dintre factorii de risc identificați, reprezentând 28,57 %, pot avea consecințe ireversibile asupra executantului (deces sau invaliditate).",
+        "measuresSentence": "Pentru diminuarea sau eliminarea celor 2 factori de risc sunt necesare măsurile prezentate în „Fișa de măsuri propuse”.",
+        "name": "Grupuri sensibile la riscuri specifice",
+        "noPlan": false,
+        "noUnacceptable": false,
+        "plan": [
+          {
+            "actions": "—",
+            "code": "F4",
+            "deadline": "Permanent",
+            "description": "Executarea de către tineri, fără supraveghere, a unor operații periculoase.",
+            "hygienicSanitary": "—",
+            "level": 4,
+            "measures": "– Lucrul tinerilor numai sub supravegherea unui lucrător cu experiență.\n– Instruire suplimentară a tinerilor la angajare.",
+            "observations": "—",
+            "organizational": "– Lucrul tinerilor numai sub supravegherea unui lucrător cu experiență.\n– Instruire suplimentară a tinerilor la angajare.",
+            "other": "—",
+            "responsiblePerson": "Conducătorul locului de muncă",
+            "technical": "—"
+          },
+          {
+            "actions": "—",
+            "code": "F5",
+            "deadline": "La anunțarea sarcinii",
+            "description": "Ridicarea și transportul de greutăți de către lucrătoarea gravidă.",
+            "hygienicSanitary": "– Evaluarea aptitudinii de către medicul de medicina muncii după anunțarea sarcinii.",
+            "level": 4,
+            "measures": "– Repartizarea lucrătoarei gravide la activități fără manipularea de greutăți.\n– Evaluarea aptitudinii de către medicul de medicina muncii după anunțarea sarcinii.",
+            "observations": "—",
+            "organizational": "– Repartizarea lucrătoarei gravide la activități fără manipularea de greutăți.",
+            "other": "—",
+            "responsiblePerson": "Administratorul",
+            "technical": "—"
+          },
+          {
+            "actions": "—",
+            "code": "F1",
+            "deadline": "60 de zile",
+            "description": "Accidentarea persoanelor cu dizabilități pe căile de acces neadaptate (praguri, trepte).",
+            "hygienicSanitary": "—",
+            "level": 3,
+            "measures": "– Semnalizarea pragurilor și a treptelor.",
+            "observations": "—",
+            "organizational": "—",
+            "other": "—",
+            "responsiblePerson": "Administratorul",
+            "technical": "– Semnalizarea pragurilor și a treptelor."
+          },
+          {
+            "actions": "—",
+            "code": "F7",
+            "deadline": "Permanent",
+            "description": "Muncă de noapte sau program prelungit pentru tineri și lucrătoare gravide.",
+            "hygienicSanitary": "—",
+            "level": 3,
+            "measures": "– Interzicerea muncii de noapte pentru tineri și pentru lucrătoarele gravide.",
+            "observations": "—",
+            "organizational": "– Interzicerea muncii de noapte pentru tineri și pentru lucrătoarele gravide.",
+            "other": "—",
+            "responsiblePerson": "Administratorul",
+            "technical": "—"
+          }
+        ],
+        "ranked": [
+          {
+            "code": "F4",
+            "description": "Executarea de către tineri, fără supraveghere, a unor operații periculoase.",
+            "level": 4
+          },
+          {
+            "code": "F5",
+            "description": "Ridicarea și transportul de greutăți de către lucrătoarea gravidă.",
+            "level": 4
+          },
+          {
+            "code": "F1",
+            "description": "Accidentarea persoanelor cu dizabilități pe căile de acces neadaptate (praguri, trepte).",
+            "level": 3
+          },
+          {
+            "code": "F3",
+            "description": "Contact cu persoane bolnave, cu risc de infectare.",
+            "level": 3
+          },
+          {
+            "code": "F7",
+            "description": "Muncă de noapte sau program prelungit pentru tineri și lucrătoare gravide.",
+            "level": 3
+          },
+          {
+            "code": "F2",
+            "description": "Temperaturi extreme în spațiile de lucru.",
+            "level": 2
+          },
+          {
+            "code": "F6",
+            "description": "Statul prelungit în picioare sau în aceeași poziție.",
+            "level": 2
+          }
+        ],
+        "roman": "III",
+        "sheet": [
+          {
+            "code": "F1",
+            "component": "MIJLOACE DE PRODUCȚIE",
+            "consequence": "ITM 45–180 zile",
+            "description": "Accidentarea persoanelor cu dizabilități pe căile de acces neadaptate (praguri, trepte).",
+            "gravityClass": 3,
+            "group": "Factori de risc mecanic",
+            "level": 3,
+            "probabilityClass": 3
+          },
+          {
+            "code": "F2",
+            "component": "MEDIUL DE MUNCĂ",
+            "consequence": "ITM 3–45 zile",
+            "description": "Temperaturi extreme în spațiile de lucru.",
+            "gravityClass": 2,
+            "group": "Factori de risc fizic",
+            "level": 2,
+            "probabilityClass": 3
+          },
+          {
+            "code": "F3",
+            "component": "",
+            "consequence": "ITM 45–180 zile",
+            "description": "Contact cu persoane bolnave, cu risc de infectare.",
+            "gravityClass": 3,
+            "group": "Factori de risc biologic",
+            "level": 3,
+            "probabilityClass": 3
+          },
+          {
+            "code": "F4",
+            "component": "EXECUTANT",
+            "consequence": "Invaliditate gradul II",
+            "description": "Executarea de către tineri, fără supraveghere, a unor operații periculoase.",
+            "gravityClass": 5,
+            "group": "Acțiuni greșite",
+            "level": 4,
+            "probabilityClass": 2
+          },
+          {
+            "code": "F5",
+            "component": "SARCINA DE MUNCĂ",
+            "consequence": "Invaliditate gradul III",
+            "description": "Ridicarea și transportul de greutăți de către lucrătoarea gravidă.",
+            "gravityClass": 4,
+            "group": "Suprasolicitare fizică",
+            "level": 4,
+            "probabilityClass": 3
+          },
+          {
+            "code": "F6",
+            "component": "",
+            "consequence": "ITM 3–45 zile",
+            "description": "Statul prelungit în picioare sau în aceeași poziție.",
+            "gravityClass": 2,
+            "group": "",
+            "level": 2,
+            "probabilityClass": 4
+          },
+          {
+            "code": "F7",
+            "component": "",
+            "consequence": "ITM 45–180 zile",
+            "description": "Muncă de noapte sau program prelungit pentru tineri și lucrătoare gravide.",
+            "gravityClass": 3,
+            "group": "Suprasolicitare psihică",
+            "level": 3,
+            "probabilityClass": 3
+          }
+        ],
+        "unacceptable": [
+          {
+            "code": "F4",
+            "description": "Executarea de către tineri, fără supraveghere, a unor operații periculoase.",
+            "level": 4
+          },
+          {
+            "code": "F5",
+            "description": "Ridicarea și transportul de greutăți de către lucrătoarea gravidă.",
+            "level": 4
+          }
+        ],
+        "unacceptableLead": "Cei 2 factori de risc care se situează în domeniul inacceptabil sunt:",
+        "verdict": "valoare care îl încadrează în categoria locurilor de muncă cu nivel de risc acceptabil, nedepășind limita maximă acceptabilă de 3,5",
+        "workSystem": {
+          "executant": "Lucrători din grupurile sensibile la riscuri specifice: femei gravide, lăuze sau femei care alăptează, tineri, persoane cu dizabilități",
+          "meansOfProduction": "Echipamentele de muncă ale postului ocupat.",
+          "workEnvironment": "Mediul de muncă al postului ocupat.",
+          "workTask": "Activitățile postului ocupat, adaptate: fără ridicarea de greutăți, fără muncă de noapte și fără expunere la substanțe periculoase."
+        },
+        "workZoneOrDash": "—"
+      }
+    ],
+    "globalLevel": "3,15",
+    "unit": {
+      "activity": "2562 – Fabricarea articolelor de feronerie",
+      "employeeCount": 6,
+      "noWorkplaces": false,
+      "workplaces": [
+        {
+          "address": "București, Sector 1, Calea Victoriei 122A",
+          "label": "Sediu social"
+        },
+        {
+          "address": "Ghiroda, județul Timiș, Str. Industriilor 4",
+          "label": "Punct de lucru „Atelier Ghiroda”"
+        }
+      ]
+    }
+  },
+  "specialist": {
+    "name": "Dan MARIN",
+    "professionalTitle": "Evaluator de risc SSM"
+  },
+  "themes": {
+    "annexTitles": "I.P.S.S.M. Activități de birou; I.P.S.S.M. Sudură oxiacetilenică",
+    "ownInstructionsRevision": {
+      "id": "d0d0d0d0-0000-4000-8000-000000000001",
+      "number": 2,
+      "versionIds": [
+        "b0b0b0b0-0000-4000-8000-000000000002",
+        "b0b0b0b0-0000-4000-8000-000000000001"
+      ]
+    },
+    "positions": [
+      {
+        "intervalLabel": "6 LUNI",
+        "modules": [
+          {
+            "citation": "I.P.S.S.M. Activități de birou, Art. 1 – 12"
+          }
+        ],
+        "name": "CONTABIL",
+        "sessions": [
+          {
+            "content": "I.P.S.S.M. Art. 1 – 95; I.P.S.S.M. Activități de birou, Art. 1 – 12",
+            "duration": "120 min",
+            "month": "FEBRUARIE"
+          },
+          {
+            "content": "I.P.S.S.M. Art. 96 – 290; I.P.S.S.M. Activități de birou, Art. 1 – 12; Testare.",
+            "duration": "120 min",
+            "month": "AUGUST"
+          }
+        ],
+        "trainer": "S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN"
+      },
+      {
+        "intervalLabel": "2 LUNI",
+        "modules": [
+          {
+            "citation": "I.P.S.S.M. Activități de birou, Art. 1 – 12"
+          },
+          {
+            "citation": "I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31"
+          }
+        ],
+        "name": "SUDOR",
+        "sessions": [
+          {
+            "content": "I.P.S.S.M. Art. 1 – 44; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",
+            "duration": "120 min",
+            "month": "FEBRUARIE"
+          },
+          {
+            "content": "I.P.S.S.M. Art. 45 – 56; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",
+            "duration": "120 min",
+            "month": "APRILIE"
+          },
+          {
+            "content": "I.P.S.S.M. Art. 57 – 95; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",
+            "duration": "120 min",
+            "month": "IUNIE"
+          },
+          {
+            "content": "I.P.S.S.M. Art. 96 – 179; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",
+            "duration": "120 min",
+            "month": "AUGUST"
+          },
+          {
+            "content": "I.P.S.S.M. Art. 180 – 235; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",
+            "duration": "120 min",
+            "month": "OCTOMBRIE"
+          },
+          {
+            "content": "I.P.S.S.M. Art. 236 – 290; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31; Testare.",
+            "duration": "120 min",
+            "month": "DECEMBRIE"
+          }
+        ],
+        "trainer": "Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă"
+      }
+    ]
+  },
+  "training": {
+    "administrative": true,
+    "administrativeFrequency": "SEMESTRIAL",
+    "administrativeMonths": "lunile februarie și august",
+    "dayFrom": 2,
+    "dayTo": 7,
+    "intervalPhrase": "se stabilesc următoarele intervale de timp",
+    "periodicDuration": "2 ore",
+    "worker": true,
+    "workerFrequency": "TRIMESTRIAL",
+    "workerMonths": "lunile februarie, mai, august și noiembrie"
+  },
+  "unequippedPositionsText": "postul de lucru Contabil",
+  "unitRisks": [
+    {
+      "measure": "– Măsurarea anuală a rezistenței prizei de pământ (buletin PRAM).\n– Anunțarea imediată a conducătorului locului de muncă la orice defect electric.",
+      "risk": "Electrocutare prin atingere indirectă, la defectarea împământării unui echipament."
+    },
+    {
+      "measure": "– Instruirea lucrătorilor privind circulația pe drumurile publice.\n– Planificarea deplasărilor de serviciu astfel încât să nu fie făcute în grabă.",
+      "risk": "Accident de circulație pe drumul dintre domiciliu și locul de muncă sau în deplasările de serviciu."
+    },
+    {
+      "measure": "– Montarea și păstrarea apărătorilor la toate elementele în mișcare.\n– Interzicerea îmbrăcămintei largi și a bijuteriilor lângă mașini.",
+      "risk": "Prinderea mâinilor sau a îmbrăcămintei de elementele în mișcare ale mașinilor neprotejate."
+    },
+    {
+      "measure": "– Folosirea polizorului numai cu apărătoarea discului montată.\n– Ochelari de protecție.\n– Instruirea pentru alegerea și schimbarea discurilor.",
+      "risk": "Proiectarea de așchii sau de fragmente de disc la lucrul cu polizorul unghiular."
+    },
+    {
+      "measure": "– Verificarea sculelor electrice portabile înainte de fiecare folosire.\n– Scoaterea din uz a sculelor cu cablul sau carcasa deteriorată.",
+      "risk": "Electrocutare prin atingere directă la sculele electrice portabile cu cablul deteriorat."
+    },
+    {
+      "measure": "– Manipularea sarcinilor de peste 25 kg de către două persoane.\n– Cărucioare pentru transportul pieselor.",
+      "risk": "Ridicarea și transportul manual al unor sarcini prea grele sau în poziții forțate."
+    },
+    {
+      "measure": "– Lucrul tinerilor numai sub supravegherea unui lucrător cu experiență.\n– Instruire suplimentară a tinerilor la angajare.",
+      "risk": "Executarea de către tineri, fără supraveghere, a unor operații periculoase."
+    },
+    {
+      "measure": "– Repartizarea lucrătoarei gravide la activități fără manipularea de greutăți.\n– Evaluarea aptitudinii de către medicul de medicina muncii după anunțarea sarcinii.",
+      "risk": "Ridicarea și transportul de greutăți de către lucrătoarea gravidă."
+    }
+  ],
+  "workersRepresentativeDecision": false,
+  "workersRepresentatives": [],
+  "workersRepresentativesLead": "următorii angajați",
+  "workplaceManagers": [
+    {
+      "jobTitle": "Administrator",
+      "name": "Florin Cristian TALOȘ"
+    },
+    {
+      "jobTitle": "Șef de echipă",
+      "name": "Ioana PETRE"
+    }
+  ],
+  "workplaceManagersAssignImminentDanger": false,
+  "workplaceManagersAssumeAndDesignateImminentDanger": false,
+  "workplaceManagersAssumeImminentDanger": true,
+  "workplaceManagersDesignateAlongsideImminentDanger": false,
+  "workplaceManagersDesignateImminentDanger": false,
+  "workplaceManagersList": "Florin Cristian TALOȘ, Administrator; Ioana PETRE, Șef de echipă",
+  "workplaceManagersText": "Florin Cristian TALOȘ, având funcția de Administrator, și Ioana PETRE, având funcția de Șef de echipă"
+}
