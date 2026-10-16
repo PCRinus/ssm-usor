@@ -75,8 +75,8 @@ test('a specialist records trainings held and follows each employee’s state', 
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText('Lăcătușu Vasile');
 
-  await page.getByTestId('employees-view').filter({ hasText: 'Instruiri' }).click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/employees/trainings$`));
+  await page.getByTestId('client-section').filter({ hasText: 'Instruiri ținute' }).click();
+  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/trainings$`));
   const trainings = page.getByTestId('trainings-row');
   await expect(trainings).toHaveCount(2);
   await page.getByTestId('trainings-record').click();
@@ -100,6 +100,11 @@ test('a specialist records trainings held and follows each employee’s state', 
   await expect(trainings).toHaveCount(3);
   await expect(trainings.first()).toContainText('Periodică');
   await expect(trainings.first()).toContainText('2 participanți');
+  const participants = trainings.first().getByTestId('trainings-attendee');
+  await expect(participants).toHaveText(['Instruitu Ion', 'Sudoru Maria']);
+  await participants.first().click();
+  await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/employees/[^/]+/training/ssm$`));
+  await expect(page.getByTestId('training-state')).toHaveText('La zi');
 
   for (const name of ['Instruitu Ion', 'Sudoru Maria']) {
     await page.goto(`/clients/${clientId}/employees`);
@@ -135,7 +140,7 @@ test('a specialist records trainings held and follows each employee’s state', 
   await expect(paperRecord.getByTestId('training-record-paper')).toBeVisible();
   await expect(paperRecord).toContainText('240 min (4 h)');
 
-  await page.goto(`/clients/${clientId}/employees/trainings?domain=ssm`);
+  await page.goto(`/clients/${clientId}/trainings?domain=ssm`);
   await expect(trainings).toHaveCount(3);
   const paperRow = trainings.filter({ hasText: 'De pe fișa de hârtie' });
   await expect(paperRow).toHaveCount(1);

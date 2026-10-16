@@ -1535,6 +1535,12 @@ export const TrainingListResponseItemsItemSource = {
   paper: 'paper',
 } as const;
 
+export type TrainingListResponseItemsItemAttendeesItem = {
+  employeeId: string;
+  lastName: string;
+  firstName: string;
+};
+
 export type TrainingListResponseItemsItem = {
   id: string;
   clientId: string;
@@ -1557,6 +1563,7 @@ export type TrainingListResponseItemsItem = {
   updatedAt: string;
   /** @minimum 0 */
   attendeeCount: number;
+  attendees: TrainingListResponseItemsItemAttendeesItem[];
 };
 
 export interface TrainingListResponse {

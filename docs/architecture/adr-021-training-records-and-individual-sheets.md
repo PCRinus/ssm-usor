@@ -51,6 +51,8 @@ A leaver's sheets are archived, not discarded, as the provider discards the pape
 
 The employee's page gains a section _Instruire_ with two views, SSM and PSI, each listing that domain's records, the next due date and the sheet's download; the client's employees section gains a view _Instruiri_ listing the trainings held, with the flow that records one.
 
+(Note of 2026-10-17: the view became a tab of the client's page of its own, _Instruiri ținute_, after _Instruire și responsabili_, each row naming its participants with a link to their training tab of its domain, because a second row of tabs under _Angajați_ was rejected; _Angajați_ is a plain list again.)
+
 ### Who signs what, prepared for the electronic signature
 
 Each training record has fixed **signer slots** by role, and the roles map onto people the app holds: the trainee is the employee; on the occupational safety sheet the trainer and the verifier are the specialist for the introductory training, the workplace manager and the specialist for the workplace training, the trainer the themes name for the position and the specialist for a periodic or supplementary training; on the fire-safety sheet the one signature beside the trainee's is the fire-safety technician's on the introductory training, the workplace manager's on the workplace training, and the trainer's, the manager or the technician as the fire-safety themes name them, on a periodic row; "admis la lucru" is the workplace manager's, or the legal representative's where the client has none. The flow proposes these names and functions and the specialist may replace them, since the person who actually trained is the fact.
@@ -101,7 +103,7 @@ The app gains a root page _Angajați_, every current employee of every client of
 1. This ADR, the glossary in `CONTEXT.md`, and the notes in ADR 005, 014, 019 and 020; `docs/data-model.md` and `docs/api.md` with the implementing steps.
 2. The employee's new fields and workplace: migration, contracts, API, form and page.
 3. The training records: the `trainings` and `training_records` tables with their policies, the contracts, the API for a client's trainings held with their attendees and for an employee's records, the proposals from the themes snapshot and the plan, and the due date and training state on the employee lists and page. Independent of step 2.
-4. The _Instruire_ section of the employee's page and the _Instruiri_ view of the client's employees section with the recording flow. On step 3.
+4. The _Instruire_ section of the employee's page and the _Instruiri_ view of the client's employees section with the recording flow. On step 3. (Note of 2026-10-17: the view is the client's tab _Instruiri ținute_, see above.)
 5. The two templates, their merge data and the on-demand PDF route with its readiness; the download on the employee's page. On steps 2 and 3.
 6. Client files on an employee. Independent.
 7. The organization-wide employees route with `unaccent` and the search, the root page _Angajați_ with its filters, and the search box on the client's list. The search is independent; the training-state filter is on step 3.

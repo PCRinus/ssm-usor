@@ -19,7 +19,7 @@ import { employeeStatusLabels } from './employee-format';
 import { type EmployeeStatusChange, EmployeeStatusDialog } from './employee-status-dialog';
 import { EmployeesNoMatch } from './employees-no-match';
 
-const employeesRoute = getRouteApi('/_authenticated/clients/$clientId/employees/_views/');
+const employeesRoute = getRouteApi('/_authenticated/clients/$clientId/employees/');
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
 const defaultSort: DataTableSort & { sort: EmployeeSortKey } = { sort: 'name', order: 'asc' };

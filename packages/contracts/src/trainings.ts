@@ -174,7 +174,18 @@ export const trainingSchema = z.object({
 
 export type Training = z.infer<typeof trainingSchema>;
 
-export const trainingListItemSchema = trainingSchema.extend({ attendeeCount: z.int().min(0) });
+export const trainingAttendeeSchema = z.object({
+  employeeId: z.uuid(),
+  lastName: z.string(),
+  firstName: z.string(),
+});
+
+export type TrainingAttendee = z.infer<typeof trainingAttendeeSchema>;
+
+export const trainingListItemSchema = trainingSchema.extend({
+  attendeeCount: z.int().min(0),
+  attendees: z.array(trainingAttendeeSchema),
+});
 
 export type TrainingListItem = z.infer<typeof trainingListItemSchema>;
 

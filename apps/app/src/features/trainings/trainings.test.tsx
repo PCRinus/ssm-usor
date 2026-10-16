@@ -162,6 +162,16 @@ const proposal = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const heldWith = (...attendees: { id: string; lastName: string; firstName: string }[]) => ({
+  ...training(),
+  attendeeCount: attendees.length,
+  attendees: attendees.map(({ id, lastName, firstName }) => ({
+    employeeId: id,
+    lastName,
+    firstName,
+  })),
+});
+
 const page = (items: unknown[]) => ({ items, page: 1, pageSize: 25, total: items.length });
 
 type Handler = (url: URL, init: RequestInit | undefined) => Response | Promise<Response>;
@@ -429,21 +439,30 @@ describe("an employee's training tabs", () => {
 });
 
 describe("a client's trainings held", () => {
-  it('is the second view of the employees section, filtered by domain and phase in the URL', async () => {
-    const held = { ...training(), attendeeCount: 2 };
+  it("is a tab of the client's page, filtered by domain and phase in the URL", async () => {
+    const held = heldWith(popescu, taranu);
     mockApi({
       [`GET ${trainingsPath}`]: (url) =>
         Response.json({ items: url.searchParams.get('phase') === 'workplace' ? [] : [held] }),
     });
     const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
     const user = userEvent.setup();
-    const views = await screen.findAllByTestId('employees-view');
-    expect(views.map((view) => view.textContent)).toEqual(['Angajați', 'Instruiri']);
-    await user.click(views[1]!);
+    await screen.findAllByTestId('employees-row');
+    const tabs = screen.getAllByTestId('client-section');
+    const labels = tabs.map((tab) => tab.textContent);
+    const tab = labels.indexOf('Instruire și responsabili') + 1;
+    expect(labels[tab]).toBe('Instruiri ținute');
+    await user.click(tabs[tab]!);
     const rows = await screen.findAllByTestId('trainings-row');
-    expect(runtime.router.state.location.pathname).toBe(`${employeesPath}/trainings`);
+    expect(runtime.router.state.location.pathname).toBe(trainingsPath);
+    expect(screen.getByRole('heading', { name: 'Instruiri ținute' })).toBeTruthy();
     expect(within(rows[0]!).getByText('Periodică')).toBeTruthy();
-    expect(within(rows[0]!).getByTestId('trainings-attendees').textContent).toBe('2 participanți');
+    expect(within(rows[0]!).getByTestId('trainings-attendee-count').textContent).toBe(
+      '2 participanți'
+    );
+    const attendees = within(rows[0]!).getAllByTestId('trainings-attendee');
+    expect(attendees.map((link) => link.textContent)).toEqual(['Popescu Ion', 'Țăranu Ștefan']);
+    expect(attendees[1]!.getAttribute('href')).toBe(`${employeesPath}/${taranu.id}/training/ssm`);
     expect(within(rows[0]!).getByText('120 min (2 h)')).toBeTruthy();
 
     const historyLength = runtime.router.history.length;
@@ -470,7 +489,7 @@ describe("a client's trainings held", () => {
     mockApi({
       [`POST ${trainingsPath}`]: () => Response.json(detailOf([popescu, taranu]), { status: 201 }),
     });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/trainings`);
+    mountApp(authFixture(makeSession()).client, trainingsPath);
     const user = userEvent.setup();
     await screen.findByTestId('trainings-empty');
     await user.click(screen.getByTestId('trainings-record'));
@@ -521,7 +540,7 @@ describe("a client's trainings held", () => {
           { status: 400 }
         ),
     });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/trainings`);
+    mountApp(authFixture(makeSession()).client, trainingsPath);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('trainings-record'));
     const dialog = await screen.findByTestId('training-dialog');
@@ -543,7 +562,7 @@ describe("a client's trainings held", () => {
   });
 
   it('deletes a training held after asking, naming everyone it concerns', async () => {
-    const held = { ...training(), attendeeCount: 2 };
+    const held = heldWith(popescu, taranu);
     let deleted = false;
     mockApi({
       [`GET ${trainingsPath}`]: () => Response.json({ items: deleted ? [] : [held] }),
@@ -552,7 +571,7 @@ describe("a client's trainings held", () => {
         return new Response(null, { status: 204 });
       },
     });
-    mountApp(authFixture(makeSession()).client, `${employeesPath}/trainings`);
+    mountApp(authFixture(makeSession()).client, trainingsPath);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('trainings-row-menu'));
     await user.click(await screen.findByTestId('trainings-delete'));

@@ -9,10 +9,8 @@ const searchSchema = z.object({
   phase: z.enum(trainingPhases).optional().catch(undefined),
 });
 
-export const Route = createFileRoute(
-  '/_authenticated/clients/$clientId/employees/_views/trainings'
-)({
-  staticData: { title: 'Instruiri' },
+export const Route = createFileRoute('/_authenticated/clients/$clientId/trainings')({
+  staticData: { title: 'Instruiri ținute' },
   validateSearch: searchSchema,
   component: ClientTrainingsPage,
 });

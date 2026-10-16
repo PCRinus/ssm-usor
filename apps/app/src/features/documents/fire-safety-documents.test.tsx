@@ -280,6 +280,7 @@ describe('client fire-safety documents', () => {
         'Posturi de lucru',
         'Mijloace PSI',
         'Instruire și responsabili',
+        'Instruiri ținute',
         'Documente SSM',
         'Documente PSI',
         'Contract',
