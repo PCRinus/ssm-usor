@@ -16,7 +16,7 @@ import { printedAddress } from '../../lib/address';
 import { countOf, listed, runOn } from '../../lib/romanian';
 import { printedDate } from './context';
 import { extinguisherGroups, firmsOf } from './equipment';
-import type { FireSafetyClientFacts, FireSafetySetFacts } from './fire-safety';
+import type { FireNamedPeople, FireSafetyClientFacts, FireSafetySetFacts } from './fire-safety';
 
 /**
  * A row of the site sheet as OMAI 89/2013 annex 4 titles it. `value` null prints the gap mark
@@ -46,9 +46,7 @@ export type SiteSheetContext = {
 export type SiteSheetInput = {
   facts: FireSafetySetFacts;
   decisionNumbers: Record<FireDecision, string>;
-  coordinatorName: string;
-  interventionLeaderName: string;
-  workplaceManagerNames: readonly string[];
+  people: FireNamedPeople;
   inSet: (typeKey: FireSafetyTypeKeyFromTenEmployees) => boolean;
 };
 
@@ -134,13 +132,13 @@ function both(
 export function buildSiteSheet({
   facts,
   decisionNumbers,
-  coordinatorName,
-  interventionLeaderName,
-  workplaceManagerNames,
+  people,
   inSet,
 }: SiteSheetInput): SiteSheetContext {
   const { client, organization, fireSafety } = facts;
   const card = fireSafety.card;
+  const coordinatorName = people.coordinator.name;
+  const workplaceManagerNames = people.managerNames;
   const workplaces = [...facts.workplaces].sort(
     (a, b) =>
       Number(b.registeredOffice) - Number(a.registeredOffice) || collator.compare(a.name, b.name)
@@ -609,7 +607,7 @@ export function buildSiteSheet({
   const organizationRows = [
     row(
       'Organizarea alarmării',
-      `da, prin ${decided(decisionNumbers.organization)} privind organizarea apărării împotriva incendiilor: ${coordinatorName} asigură observarea și anunțarea incendiului pe plan intern și prin apel la 112, iar șeful echipei de primă intervenție, ${interventionLeaderName}, anunță 112; fișa de organizare a apărării împotriva incendiilor este afișată la fiecare loc de muncă`,
+      `da, prin ${decided(decisionNumbers.organization)} privind organizarea apărării împotriva incendiilor: ${coordinatorName} asigură observarea și anunțarea incendiului pe plan intern și prin apel la 112, iar șeful echipei de primă intervenție, ${people.interventionLeader.name}, anunță 112; fișa de organizare a apărării împotriva incendiilor este afișată la fiecare loc de muncă`,
       'dacă este organizată și pe baza căror documente'
     ),
     row(

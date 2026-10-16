@@ -18,7 +18,7 @@ import { printedAddress } from '../../lib/address';
 import { countOf, definiteRole, listed, runOn } from '../../lib/romanian';
 import { documentApplies, printedDate } from './context';
 import { extinguisherGroups } from './equipment';
-import type { FireSafetyClientFacts, FireSafetySetFacts } from './fire-safety';
+import type { FireNamedPeople, FireSafetyClientFacts, FireSafetySetFacts } from './fire-safety';
 import { descriptionNamesKind, installationText } from './installations';
 import { monthNames } from './themes';
 
@@ -63,9 +63,7 @@ export type AnnualReportContext = {
 export type AnnualReportInput = {
   facts: FireSafetySetFacts;
   year: number;
-  coordinator: { name: string; jobTitle: string };
-  interventionLeader: { name: string; jobTitle: string };
-  workplaceManagerNames: readonly string[];
+  people: FireNamedPeople;
   representativeRole: string;
   inSet: (typeKey: FireSafetyTypeKeyFromTenEmployees) => boolean;
 };
@@ -156,9 +154,7 @@ const decisionOrder = Object.entries(fireDecisionTypeKeys) as [FireDecision, str
 export function buildAnnualReport({
   facts,
   year,
-  coordinator,
-  interventionLeader,
-  workplaceManagerNames,
+  people,
   representativeRole,
   inSet,
 }: AnnualReportInput): AnnualReportContext {
@@ -298,9 +294,9 @@ export function buildAnnualReport({
     year,
     nextYear: year + 1,
     decisions,
-    coordinator: `${coordinator.name}, ${coordinator.jobTitle}`,
-    interventionLeader: `${interventionLeader.name}, ${interventionLeader.jobTitle}`,
-    workplaceManagers: listed(workplaceManagerNames),
+    coordinator: `${people.coordinator.name}, ${people.coordinator.jobTitle}`,
+    interventionLeader: `${people.interventionLeader.name}, ${people.interventionLeader.jobTitle}`,
+    workplaceManagers: listed(people.managerNames),
     staff: categories.map(({ category, positions }) => ({
       label: staffLabels[category],
       posts: positions.map((position) => position.name.trim()).join(', '),

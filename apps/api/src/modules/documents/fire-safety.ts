@@ -538,42 +538,76 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): ContextParts<FireSaf
       certificate: organization.fireSafetyTechnicianCertificate!.trim(),
       authorization: organization.fireSafetyAuthorization?.trim() || null,
     }),
-    fire: () => fireContext(facts, inSet),
+    fire: () => fireContext(facts, firePeople(facts), inSet),
     seasonsDecision: () => inSet('fire_decision_seasons'),
     controlDecision: () => inSet('fire_decision_control'),
     installationRegister: () => inSet('fire_installation_register'),
     annexes: () => annexedModules(facts, 'psi'),
     noAnnexes: () => annexedModules(facts, 'psi').length === 0,
-    fireThemes: () => fireThemes(facts),
+    fireThemes: () => fireThemes(facts, firePeople(facts)),
   };
 }
 
+const asRunOnPerson = (person: DocumentFacts['responsiblePersons'][number]): Person => ({
+  ...asPerson(person),
+  jobTitleRunOn: runOn(person.jobTitle.trim()),
+});
+
+export type FireNamedPeople = {
+  coordinator: BasePerson;
+  interventionLeader: BasePerson;
+  /** Each workplace manager once: one person may head several workplaces. */
+  managerNames: readonly string[];
+};
+
+// The themes are built without `fire`, whose gaps may leave no coordinator or leader to name.
+function firePeople({
+  responsiblePersons,
+  workplaces,
+}: Pick<FireSafetySetFacts, 'responsiblePersons' | 'workplaces'>) {
+  const firstHolding = (role: ResponsiblePersonRole) => {
+    const person = withRole(responsiblePersons, role)[0];
+    return person && asRunOnPerson(person);
+  };
+  const coordinator = firstHolding('fire_safety_coordinator');
+  const interventionLeader = firstHolding('fire_intervention_leader');
+  const workplaceManagers = withRole(responsiblePersons, 'workplace_manager').map((person) => ({
+    ...asRunOnPerson(person),
+    workplaceName:
+      workplaces.find((workplace) => workplace.id === person.workplaceId)?.name.trim() ?? null,
+  }));
+  return {
+    coordinator,
+    interventionLeader,
+    workplaceManagers,
+    managerNames: distinctByName(workplaceManagers.map((person) => person.name)),
+    designated: distinctPeopleByName(
+      [coordinator, interventionLeader, ...workplaceManagers].filter(
+        (person) => person !== undefined
+      )
+    ).map(({ name, jobTitle }) => ({ name, jobTitle })),
+  };
+}
+
+type FirePeople = ReturnType<typeof firePeople>;
+
 function fireContext(
   facts: FireSafetySetFacts,
+  people: FirePeople,
   inSet: (typeKey: FireSafetyTypeKeyFromTenEmployees) => boolean
 ): FireContext {
   const card = facts.fireSafety.card!;
-  const asRunOnPerson = (person: DocumentFacts['responsiblePersons'][number]): Person => ({
-    ...asPerson(person),
-    jobTitleRunOn: runOn(person.jobTitle.trim()),
-  });
   const holding = (role: ResponsiblePersonRole) => withRole(facts.responsiblePersons, role);
   const servesAt = (workplaceId: string) => (person: { workplaceId: string | null }) =>
     person.workplaceId === null || person.workplaceId === workplaceId;
-  const coordinator = asRunOnPerson(holding('fire_safety_coordinator')[0]!);
-  const interventionLeader = asRunOnPerson(holding('fire_intervention_leader')[0]!);
   const managers = holding('workplace_manager');
-  const workplaceManagers = managers.map((person) => ({
-    ...asRunOnPerson(person),
-    workplaceName:
-      facts.workplaces.find((workplace) => workplace.id === person.workplaceId)?.name.trim() ??
-      null,
-  }));
-  const designated = distinctPeopleByName([
+  const coordinator = people.coordinator!;
+  const interventionLeader = people.interventionLeader!;
+  const namedPeople: FireNamedPeople = {
     coordinator,
     interventionLeader,
-    ...workplaceManagers,
-  ]).map(({ name, jobTitle }) => ({ name, jobTitle }));
+    managerNames: people.managerNames,
+  };
   const staffOf = (category: 'technical_administrative' | 'execution') =>
     facts.jobPositions
       .filter((position) => position.staffCategory === category)
@@ -588,7 +622,6 @@ function fireContext(
   ) as Record<FireDecision, string>;
 
   const activeWorkplaceIds = new Set(facts.workplaces.map((workplace) => workplace.id));
-  const managerNames = distinctByName(workplaceManagers.map((person) => person.name));
 
   const workplaces = facts.workplaces.map((workplace, index): FireWorkplaceContext => {
     const units = facts.fireSafety.equipment.filter((unit) => unit.workplaceId === workplace.id);
@@ -714,9 +747,9 @@ function fireContext(
     },
     coordinator,
     interventionLeader,
-    workplaceManagers,
-    manyWorkplaceManagers: managerNames.length > 1,
-    designated,
+    workplaceManagers: people.workplaceManagers,
+    manyWorkplaceManagers: people.managerNames.length > 1,
+    designated: people.designated,
     workplaces,
     hasExteriorHydrants: workplaces.some((workplace) => workplace.hasExteriorHydrants),
     hasGasExtinguishers: facts.fireSafety.equipment.some(
@@ -744,9 +777,7 @@ function fireContext(
           annualReport: buildAnnualReport({
             facts,
             year: facts.period,
-            coordinator,
-            interventionLeader,
-            workplaceManagerNames: managerNames,
+            people: namedPeople,
             representativeRole: facts.client.representativeRole?.trim() ?? '',
             inSet,
           }),
@@ -754,9 +785,7 @@ function fireContext(
     siteSheet: buildSiteSheet({
       facts,
       decisionNumbers,
-      coordinatorName: coordinator.name,
-      interventionLeaderName: interventionLeader.name,
-      workplaceManagerNames: managerNames,
+      people: namedPeople,
       inSet,
     }),
     schedules: facts.workplaces.map((workplace) =>
@@ -936,7 +965,10 @@ const fireModuleCitation = ({ title, articleCount }: { title: string; articleCou
  * category do not; a module the revision does not annex waits for the IPSU to be generated again
  * (ADR 014, ADR 012 amendment of 2026-10-11).
  */
-function fireThemes(facts: FireSafetySetFacts): FireThemesContext | undefined {
+function fireThemes(
+  facts: FireSafetySetFacts,
+  people: Pick<FirePeople, 'managerNames'>
+): FireThemesContext | undefined {
   const ipsu = facts.fireOwnInstructions;
   if (!ipsu) return undefined;
   const card = facts.fireSafety.card!;
@@ -947,11 +979,8 @@ function fireThemes(facts: FireSafetySetFacts): FireThemesContext | undefined {
   const firstMonth = card.trainingFirstMonth!;
   const periodicMinutes = card.periodicTrainingHours! * 60;
   const instructionsDecision = `${facts.firstDecisionNumber + fireDecisionOrdinals.instructions - 1} PSI`;
-  const managerNames = distinctByName(
-    withRole(facts.responsiblePersons, 'workplace_manager').map((person) => person.fullName.trim())
-  );
   // The line runs on after the title ("… sau, după caz, …"), where glued words only break it early.
-  const managers = workplaceManagersTrainer(managerNames, ' ');
+  const managers = workplaceManagersTrainer(people.managerNames, ' ');
   return {
     ownInstructionsRevision: {
       id: ipsu.revisionId,
