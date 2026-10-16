@@ -190,6 +190,11 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
         return Response.json({ employee: employeeDetail });
       case `GET ${employeePath}/training-records`:
         return Response.json({ items: [] });
+      case `GET ${employeePath}/training-sheets`:
+        return Response.json({
+          ssm: { ready: true, missing: [] },
+          psi: { ready: true, missing: [] },
+        });
       case `GET /clients/${clientId}/job-positions`:
         return Response.json({
           items: [position(welderId, 'Sudor'), position(clerkId, 'Contabil')],
@@ -270,7 +275,9 @@ describe("an employee's training tabs", () => {
     expect(screen.getByTestId('training-state').textContent).toBe('La zi');
     expect(screen.getByTestId('training-due-on').textContent).toBe('1 mar. 2027');
     expect(screen.getByTestId('training-last-periodic').textContent).toBe('1 sept. 2026');
-    expect(screen.getByTestId('training-tab-actions').children).toHaveLength(0);
+    expect(
+      within(screen.getByTestId('training-tab-actions')).getByTestId('training-sheet-ssm')
+    ).toBeTruthy();
 
     expect(items.map((item) => item.dataset.phase)).toEqual(['periodic', 'workplace']);
     const periodic = within(items[0]!);
