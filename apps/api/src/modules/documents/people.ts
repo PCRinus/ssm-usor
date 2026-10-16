@@ -26,3 +26,11 @@ export const distinctByName = (names: readonly string[]) => distinctBy(names, (n
 
 export const distinctPeopleByName = <Item extends { name: string }>(people: readonly Item[]) =>
   distinctBy(people, (person) => person.name);
+
+export const distinctRowsByName = <Row extends { fullName: string }>(rows: readonly Row[]) =>
+  distinctBy(rows, (row) => row.fullName);
+
+export const distinctHolders = (
+  persons: readonly ResponsiblePerson[],
+  role: ResponsiblePersonRole
+) => distinctRowsByName(withRole(persons, role));

@@ -23,7 +23,7 @@ import { collator, countOf, listed } from '../../lib/romanian';
 import { filled } from '../../lib/text';
 import type { FireSafetyClientFacts, FireWorkplaceFacts } from './fire-safety';
 import { type ContextParts, gapRules } from './gaps';
-import { asPerson, type Person, withRole } from './people';
+import { asPerson, distinctHolders, distinctRowsByName, type Person, withRole } from './people';
 import {
   incompleteRiskEvaluations,
   riskAssessment,
@@ -500,11 +500,14 @@ export const months = (firstMonth: number, intervalMonths: number) => {
 };
 
 function imminentDangerWordingOf(people: DocumentFacts['responsiblePersons']) {
-  const managers = withRole(people, 'workplace_manager');
-  const designatedManagers = managers.filter((person) => person.roles.includes('imminent_danger'));
-  const others = people.filter(
-    (person) =>
-      person.roles.includes('imminent_danger') && !person.roles.includes('workplace_manager')
+  const managerRows = withRole(people, 'workplace_manager');
+  const managers = distinctRowsByName(managerRows);
+  const designatedManagers = distinctHolders(managerRows, 'imminent_danger');
+  const others = distinctRowsByName(
+    people.filter(
+      (person) =>
+        person.roles.includes('imminent_danger') && !person.roles.includes('workplace_manager')
+    )
   );
   if (designatedManagers.length === 0) return { wording: 'designate', designatedManagers, others };
   const wording =
@@ -543,12 +546,14 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
   const { organization, client } = facts;
   const year = Number(facts.issueDate.slice(0, 4));
   const holding = (role: ResponsiblePersonRole) =>
-    withRole(facts.responsiblePersons, role).map(asPerson);
+    distinctHolders(facts.responsiblePersons, role).map(asPerson);
   const workplaceManagers = holding('workplace_manager');
   const firstAiders = holding('first_aid');
   const imminentDanger = holding('imminent_danger');
   const imminentDangerWording = imminentDangerWordingOf(facts.responsiblePersons);
-  const workersRepresentatives = currentWorkersRepresentatives(facts).map(asPerson);
+  const workersRepresentatives = distinctRowsByName(currentWorkersRepresentatives(facts)).map(
+    asPerson
+  );
   const intervalOf = (position: DocumentFacts['jobPositions'][number]) =>
     position.trainingIntervalMonths ??
     (position.staffCategory === 'execution'
