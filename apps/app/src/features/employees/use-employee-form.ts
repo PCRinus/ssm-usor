@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 
 import {
@@ -9,10 +9,13 @@ import {
   getGetEmployeeQueryKey,
   getListEmployeesQueryKey,
   getListJobPositionsQueryKey,
+  getListWorkplacesQueryKey,
   useCreateEmployee,
+  useListWorkplaces,
   useUpdateEmployee,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useAuth } from '@/features/auth/auth-context';
 
 import {
   birthDateFromCnp,
@@ -22,6 +25,7 @@ import {
   emptyEmployeeForm,
   toCreateEmployeeRequest,
   toEmployeeForm,
+  toUpdateEmployeeRequest,
 } from './employee-form-schema';
 
 const formFields = new Set<keyof EmployeeFormValues>(Object.keys(emptyEmployeeForm) as never[]);
@@ -40,6 +44,20 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
   });
   const create = useCreateEmployee({ request: apiRequest });
   const update = useUpdateEmployee({ request: apiRequest });
+  const { session } = useAuth();
+  const workplaces = useListWorkplaces(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getListWorkplacesQueryKey(clientId), session?.user.id] },
+  });
+
+  // A new employee of a client with one active workplace works there (ADR 021); the person can
+  // still clear it, and a later refetch does not put it back.
+  const onlyWorkplace = workplaces.data?.items.length === 1 ? workplaces.data.items[0]!.id : null;
+  useEffect(() => {
+    if (employee || !onlyWorkplace) return;
+    if (form.getValues('workplaceId') || form.getFieldState('workplaceId').isDirty) return;
+    form.resetField('workplaceId', { defaultValue: onlyWorkplace });
+  }, [employee, onlyWorkplace, form]);
 
   // The contract title follows the position until the person types one of their own: it is
   // filled while it is empty or still reads what the last choice put there. A saved title
@@ -65,14 +83,14 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      const data = toCreateEmployeeRequest(values);
       if (employee) {
+        const data = toUpdateEmployeeRequest(values, employee);
         await update.mutateAsync({ clientId, employeeId: employee.id, data });
         await queryClient.invalidateQueries({
           queryKey: getGetEmployeeQueryKey(clientId, employee.id),
         });
       } else {
-        await create.mutateAsync({ clientId, data });
+        await create.mutateAsync({ clientId, data: toCreateEmployeeRequest(values) });
       }
       // Every filtered variant of this client's list starts with the same key prefix.
       await queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) });
@@ -110,6 +128,9 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
           return;
         }
         if (cause.status === 400 && body?.issues?.length) {
+          if (body.issues.some((issue) => issue.path === 'workplaceId')) {
+            await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
+          }
           let mapped = false;
           for (const issue of body.issues) {
             if (isFormField(issue.path)) {
@@ -151,6 +172,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
     onSubmit,
     prefillBirthDate,
     choosePosition,
+    workplaces: workplaces.data?.items,
     isSaving: create.isPending || update.isPending,
   };
 }

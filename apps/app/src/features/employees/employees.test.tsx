@@ -38,6 +38,7 @@ const sampleEmployee = {
   hiredAt: '2020-03-01',
   status: 'active',
   terminatedAt: null,
+  workplace: null,
   createdAt: '2026-09-17T10:00:00+00:00',
   updatedAt: '2026-09-17T10:00:00+00:00',
 };
@@ -52,7 +53,39 @@ const createdEmployee = {
   rhFactor: null,
   notes: null,
   archivedAt: null,
+  qualification: null,
+  education: null,
+  authorizations: null,
+  commuteRoute: null,
+  commuteMinutes: null,
 };
+
+const workplace = (id: string, name: string, isRegisteredOffice = false) => ({
+  id,
+  clientId,
+  name,
+  isRegisteredOffice,
+  countyCode: 'CJ',
+  locality: 'Cluj-Napoca',
+  addressLine: null,
+  activity: null,
+  kind: 'fixed_space',
+  floorAreaM2: null,
+  extinguisherNorm: null,
+  assemblyPoint: null,
+  combustibleMaterials: null,
+  ignitionSources: null,
+  fireRiskEquipment: null,
+  specificMeasures: null,
+  createdAt: '2026-09-20T10:00:00.000Z',
+  updatedAt: '2026-09-20T10:00:00.000Z',
+});
+const registeredOffice = workplace(
+  'c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f',
+  'Sediu Str. Lungă 5',
+  true
+);
+const workshop = workplace('d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f7a', 'Atelier Str. Fabricii 3');
 
 const employeesPath = `/clients/${clientId}/employees`;
 
@@ -121,7 +154,8 @@ function mockApi(
       | 'positions'
       | 'createPosition'
       | 'move'
-      | 'update',
+      | 'update'
+      | 'workplaces',
       Route
     >
   > = {}
@@ -147,7 +181,9 @@ function mockApi(
     if (url.pathname === `/clients/${clientId}/document-details`) {
       return Response.json({ documentDetails: emptyDocumentDetails });
     }
-    if (url.pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
+    if (url.pathname === `/clients/${clientId}/workplaces`) {
+      return routes.workplaces?.(init, url) ?? Response.json({ items: [] });
+    }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}` && method === 'PUT') {
       return (
         routes.update?.(init, url) ??
@@ -519,6 +555,12 @@ describe('employee creation', () => {
       bloodGroup: 'A(II)',
       rhFactor: '+',
       notes: null,
+      workplaceId: null,
+      qualification: null,
+      education: null,
+      authorizations: null,
+      commuteRoute: null,
+      commuteMinutes: null,
     });
   });
 
@@ -574,6 +616,186 @@ describe('employee creation', () => {
     await user.click(screen.getByTestId('employee-submit'));
     expect((await screen.findByTestId('employee-form-error')).textContent).toContain('arhivat');
     expect(requests(employeesPath, 'POST')).toHaveLength(2);
+  });
+});
+
+describe('training sheet fields on employees (ADR 021)', () => {
+  const detailPath = `${employeesPath}/${sampleEmployee.id}`;
+  const editPath = `${detailPath}/edit`;
+  const withSheet = {
+    ...createdEmployee,
+    workplace: { id: workshop.id, name: workshop.name },
+    qualification: 'Sudor autorizat',
+    education: 'Școala profesională',
+    authorizations: 'ISCIR',
+    commuteRoute: 'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24',
+    commuteMinutes: 35,
+  };
+
+  async function fillRequired(user: ReturnType<typeof userEvent.setup>) {
+    await user.type(screen.getByTestId('employee-last-name'), 'Popescu');
+    await user.type(screen.getByTestId('employee-first-name'), 'Ion');
+    await pickPosition(user, 'sud', /Sudor/);
+    setDate(screen.getByTestId('employee-hired-at'), '2020-03-01');
+  }
+
+  it('preselects the only workplace of the client and sends the sheet fields', async () => {
+    mockApi({ workplaces: () => Response.json({ items: [registeredOffice] }) });
+    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await waitFor(() =>
+      expect(screen.getByTestId('employee-workplace').textContent).toContain('Sediu Str. Lungă 5')
+    );
+    await fillRequired(user);
+    await user.type(screen.getByTestId('employee-qualification'), 'Sudor autorizat');
+    await user.type(screen.getByTestId('employee-education'), 'Școala profesională');
+    await user.type(screen.getByTestId('employee-authorizations'), 'ISCIR');
+    await user.type(
+      screen.getByTestId('employee-commute-route'),
+      'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24'
+    );
+    await user.type(screen.getByTestId('employee-commute-minutes'), '35');
+    await user.click(screen.getByTestId('employee-submit'));
+    await screen.findByTestId('employees-page');
+    expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
+      workplaceId: registeredOffice.id,
+      qualification: 'Sudor autorizat',
+      education: 'Școala profesională',
+      authorizations: 'ISCIR',
+      commuteRoute: 'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24',
+      commuteMinutes: 35,
+    });
+  });
+
+  it('leaves the choice to the person when the client has several workplaces', async () => {
+    mockApi({ workplaces: () => Response.json({ items: [registeredOffice, workshop] }) });
+    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await waitFor(() =>
+      expect(screen.getByTestId<HTMLButtonElement>('employee-workplace').disabled).toBe(false)
+    );
+    expect(screen.getByTestId('employee-workplace').textContent).toContain(
+      'Alege punctul de lucru'
+    );
+    await fillRequired(user);
+    await user.click(screen.getByTestId('employee-workplace'));
+    const options = within(await screen.findByRole('listbox')).getAllByRole('option');
+    expect(options.map((option) => option.textContent)).toEqual([
+      expect.stringContaining('Sediu Str. Lungă 5'),
+      expect.stringContaining('Atelier Str. Fabricii 3'),
+    ]);
+    await user.click(options[1]!);
+    await user.click(screen.getByTestId('employee-submit'));
+    await screen.findByTestId('employees-page');
+    expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
+      workplaceId: workshop.id,
+    });
+  });
+
+  it('refuses a commute duration outside 1 to 600 minutes before contacting the API', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await fillRequired(user);
+    await user.type(screen.getByTestId('employee-commute-minutes'), '601');
+    await user.click(screen.getByTestId('employee-submit'));
+    expect((await screen.findByTestId('commuteMinutes-error')).textContent).toBe(
+      'Durata trebuie să fie între 1 și 600 de minute.'
+    );
+    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+  });
+
+  it('shows the sheet fields on the employee page', async () => {
+    mockApi({ detail: () => Response.json({ employee: withSheet }) });
+    mountApp(authFixture(makeSession()).client, detailPath);
+    const section = (await screen.findByRole('heading', { name: 'Pentru fișa de instruire' }))
+      .parentElement!;
+    expect(within(section).getByText('Atelier Str. Fabricii 3')).toBeTruthy();
+    expect(within(section).getByText('Sudor autorizat')).toBeTruthy();
+    expect(within(section).getByText('Școala profesională')).toBeTruthy();
+    expect(within(section).getByText('ISCIR')).toBeTruthy();
+    expect(
+      within(section).getByText('Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24')
+    ).toBeTruthy();
+    expect(within(section).getByText('35')).toBeTruthy();
+  });
+
+  it('prints a dash for each empty sheet field', async () => {
+    mockApi({ detail: () => Response.json({ employee: createdEmployee }) });
+    mountApp(authFixture(makeSession()).client, detailPath);
+    const empty = (await screen.findByRole('heading', { name: 'Pentru fișa de instruire' }))
+      .parentElement!;
+    expect(within(empty).getAllByText('—')).toHaveLength(6);
+  });
+
+  it('keeps an unchanged workplace out of the edit, even an archived one, and sends a new one', async () => {
+    mockApi({
+      detail: () => Response.json({ employee: withSheet }),
+      workplaces: () => Response.json({ items: [registeredOffice] }),
+    });
+    mountApp(authFixture(makeSession()).client, editPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('edit-employee-page');
+    await waitFor(() =>
+      expect(screen.getByTestId('employee-workplace').textContent).toContain(
+        'Atelier Str. Fabricii 3'
+      )
+    );
+    expect(screen.getByTestId('employee-workplace').textContent).toContain('Arhivat');
+    expect(screen.getByTestId<HTMLInputElement>('employee-commute-minutes').value).toBe('35');
+    await user.click(screen.getByTestId('employee-submit'));
+    await screen.findByTestId('employee-page');
+    const unchanged = JSON.parse(String(requests(detailPath, 'PUT')[0]![1]?.body)) as Record<
+      string,
+      unknown
+    >;
+    expect(unchanged).not.toHaveProperty('workplaceId');
+    expect(unchanged).toMatchObject({ qualification: 'Sudor autorizat', commuteMinutes: 35 });
+
+    await user.click(screen.getByTestId('employee-edit'));
+    await screen.findByTestId('edit-employee-page');
+    await user.click(screen.getByTestId('employee-workplace'));
+    await user.click(
+      within(await screen.findByRole('listbox')).getByRole('option', { name: /Sediu/ })
+    );
+    await user.click(screen.getByTestId('employee-submit'));
+    await screen.findByTestId('employee-page');
+    expect(JSON.parse(String(requests(detailPath, 'PUT')[1]![1]?.body))).toMatchObject({
+      workplaceId: registeredOffice.id,
+    });
+  });
+
+  it('puts a workplace the API refuses on its field', async () => {
+    mockApi({
+      workplaces: () => Response.json({ items: [registeredOffice] }),
+      create: () =>
+        Response.json(
+          {
+            error: 'validation_error',
+            message: 'This workplace is not an active workplace of this client.',
+            issues: [
+              {
+                path: 'workplaceId',
+                message: 'This workplace is not an active workplace of this client.',
+              },
+            ],
+          },
+          { status: 400 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await waitFor(() =>
+      expect(screen.getByTestId('employee-workplace').textContent).toContain('Sediu')
+    );
+    await fillRequired(user);
+    await user.click(screen.getByTestId('employee-submit'));
+    expect(await screen.findByTestId('workplaceId-error')).toBeTruthy();
+    expect(requests(`/clients/${clientId}/workplaces`).length).toBeGreaterThan(1);
   });
 });
 

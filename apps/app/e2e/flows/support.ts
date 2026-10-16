@@ -582,8 +582,9 @@ export async function cleanUp() {
     await admin.from('fire_buildings').delete().eq('organization_id', id);
     await admin.from('fire_substances').delete().eq('organization_id', id);
     await admin.from('client_fire_safety').delete().eq('organization_id', id);
-    await admin.from('client_workplaces').delete().eq('organization_id', id);
     await admin.from('employees').delete().eq('organization_id', id);
+    // After the employees, who point at them.
+    await admin.from('client_workplaces').delete().eq('organization_id', id);
     // Their factors and measures go with them; a position's would go with the position.
     await admin.from('risk_evaluations').delete().eq('organization_id', id);
     // After the employees, who point at them.

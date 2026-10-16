@@ -188,6 +188,21 @@ export function EmployeePage() {
             {employee.notes}
           </Fact>
         </Section>
+
+        <Section title="Pentru fișa de instruire">
+          <Fact label="Punct de lucru" wide>
+            {employee.workplace?.name}
+          </Fact>
+          <Fact label="Calificarea">{employee.qualification}</Fact>
+          <Fact label="Studiile">{employee.education}</Fact>
+          <Fact label="Autorizații" wide>
+            {employee.authorizations}
+          </Fact>
+          <Fact label="Traseul de deplasare" wide>
+            {employee.commuteRoute}
+          </Fact>
+          <Fact label="Durata deplasării (minute)">{employee.commuteMinutes}</Fact>
+        </Section>
       </div>
       <EmployeeStatusDialog clientId={clientId} change={change} onClose={() => setChange(null)} />
       <EmployeeJobPositionDialog

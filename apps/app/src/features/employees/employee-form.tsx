@@ -17,6 +17,7 @@ import { JobPositionCombobox } from '@/features/job-positions/job-position-combo
 
 import type { Employee, EmployeeFormValues } from './employee-form-schema';
 import { todayIso } from './employee-format';
+import { EmployeeWorkplaceCombobox } from './employee-workplace-combobox';
 import { useEmployeeForm } from './use-employee-form';
 
 const describedBy = (id: string, error: unknown, hint?: boolean) =>
@@ -37,10 +38,8 @@ export function EmployeeForm({
   const { session } = useAuth();
   // The shell renders this only for a signed-in user.
   const userId = session?.user.id ?? '';
-  const { form, onSubmit, prefillBirthDate, choosePosition, isSaving } = useEmployeeForm(
-    clientId,
-    employee
-  );
+  const { form, onSubmit, prefillBirthDate, choosePosition, workplaces, isSaving } =
+    useEmployeeForm(clientId, employee);
   const formRef = useRevealErrors(form);
   const {
     register,
@@ -349,6 +348,119 @@ export function EmployeeForm({
                 disabled={isSaving}
                 aria-invalid={Boolean(errors.notes)}
                 aria-describedby={describedBy('notes', errors.notes)}
+              />
+            </Field>
+          </FormSection>
+
+          <FormSection
+            title="Pentru fișa de instruire"
+            description="Apar pe fișele individuale de instruire SSM și PSI. Le poți completa și mai târziu."
+          >
+            <Field
+              id="workplaceId"
+              label="Punct de lucru"
+              mark="optional"
+              hint="Unde lucrează angajatul. Dacă clientul are un singur punct de lucru, acesta e ales automat."
+              error={errors.workplaceId}
+              className="sm:col-span-2"
+            >
+              <Controller
+                control={formControl}
+                name="workplaceId"
+                render={({ field }) => (
+                  <EmployeeWorkplaceCombobox
+                    id="workplaceId"
+                    testId="employee-workplace"
+                    workplaces={workplaces}
+                    current={employee?.workplace ?? null}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    disabled={isSaving}
+                    invalid={Boolean(errors.workplaceId)}
+                    describedBy={describedBy('workplaceId', errors.workplaceId, true)}
+                  />
+                )}
+              />
+            </Field>
+            <Field
+              id="qualification"
+              label="Calificarea"
+              mark="optional"
+              error={errors.qualification}
+            >
+              <Input
+                id="qualification"
+                data-testid="employee-qualification"
+                className="h-11"
+                {...register('qualification')}
+                autoComplete="off"
+                {...control('qualification')}
+              />
+            </Field>
+            <Field id="education" label="Studiile" mark="optional" error={errors.education}>
+              <Input
+                id="education"
+                data-testid="employee-education"
+                className="h-11"
+                {...register('education')}
+                autoComplete="off"
+                {...control('education')}
+              />
+            </Field>
+            <Field
+              id="authorizations"
+              label="Autorizații"
+              mark="optional"
+              hint="De exemplu ISCIR, electrician autorizat ANRE."
+              error={errors.authorizations}
+              className="sm:col-span-2"
+            >
+              <Input
+                id="authorizations"
+                data-testid="employee-authorizations"
+                className="h-11"
+                {...register('authorizations')}
+                autoComplete="off"
+                {...control('authorizations', true)}
+              />
+            </Field>
+            <Field
+              id="commuteRoute"
+              label="Traseul de deplasare"
+              mark="optional"
+              hint="De acasă la locul de muncă și înapoi, cu mijlocul de transport."
+              error={errors.commuteRoute}
+              className="sm:col-span-2"
+            >
+              <Textarea
+                id="commuteRoute"
+                data-testid="employee-commute-route"
+                rows={3}
+                {...register('commuteRoute')}
+                disabled={isSaving}
+                aria-invalid={Boolean(errors.commuteRoute)}
+                aria-describedby={describedBy('commuteRoute', errors.commuteRoute, true)}
+              />
+            </Field>
+            <Field
+              id="commuteMinutes"
+              label="Durata deplasării (minute)"
+              mark="optional"
+              error={errors.commuteMinutes}
+            >
+              <Input
+                id="commuteMinutes"
+                data-testid="employee-commute-minutes"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={600}
+                step={1}
+                className="h-11"
+                {...register('commuteMinutes')}
+                autoComplete="off"
+                {...control('commuteMinutes')}
               />
             </Field>
           </FormSection>

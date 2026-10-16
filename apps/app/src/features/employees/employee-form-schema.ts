@@ -9,7 +9,11 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type { CreateEmployeeRequest, EmployeeResponse } from '@/api/generated/api';
+import type {
+  CreateEmployeeRequest,
+  EmployeeResponse,
+  UpdateEmployeeRequest,
+} from '@/api/generated/api';
 
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 const optionalText = (max: number, message: string) => z.string().trim().max(max, message);
@@ -72,6 +76,19 @@ export const employeeFormSchema = z
         'Alege factorul Rh din listă.'
       ),
     notes: optionalText(2000, 'Observațiile pot avea cel mult 2000 de caractere.'),
+    workplaceId: z.string(),
+    qualification: optionalText(160, 'Calificarea poate avea cel mult 160 de caractere.'),
+    education: optionalText(160, 'Studiile pot avea cel mult 160 de caractere.'),
+    authorizations: optionalText(500, 'Autorizațiile pot avea cel mult 500 de caractere.'),
+    commuteRoute: optionalText(1000, 'Traseul poate avea cel mult 1000 de caractere.'),
+    commuteMinutes: z
+      .string()
+      .trim()
+      .regex(/^([0-9]{1,3})?$/, 'Introdu durata în minute, un număr întreg.')
+      .refine(
+        (value) => value === '' || (Number(value) >= 1 && Number(value) <= 600),
+        'Durata trebuie să fie între 1 și 600 de minute.'
+      ),
   })
   .superRefine((values, ctx) => {
     if (values.birthDate && values.hiredAt && values.birthDate >= values.hiredAt) {
@@ -110,6 +127,12 @@ export const emptyEmployeeForm: EmployeeFormValues = {
   bloodGroup: '',
   rhFactor: '',
   notes: '',
+  workplaceId: '',
+  qualification: '',
+  education: '',
+  authorizations: '',
+  commuteRoute: '',
+  commuteMinutes: '',
 };
 
 export type Employee = EmployeeResponse['employee'];
@@ -131,6 +154,12 @@ export function toEmployeeForm(employee: Employee): EmployeeFormValues {
     bloodGroup: employee.bloodGroup ?? '',
     rhFactor: employee.rhFactor ?? '',
     notes: employee.notes ?? '',
+    workplaceId: employee.workplace?.id ?? '',
+    qualification: employee.qualification ?? '',
+    education: employee.education ?? '',
+    authorizations: employee.authorizations ?? '',
+    commuteRoute: employee.commuteRoute ?? '',
+    commuteMinutes: employee.commuteMinutes?.toString() ?? '',
   };
 }
 
@@ -159,5 +188,21 @@ export function toCreateEmployeeRequest(values: EmployeeFormValues): CreateEmplo
     bloodGroup: values.bloodGroup ? (values.bloodGroup as BloodGroup) : null,
     rhFactor: values.rhFactor ? (values.rhFactor as RhFactor) : null,
     notes: textOrNull(values.notes),
+    workplaceId: textOrNull(values.workplaceId),
+    qualification: textOrNull(values.qualification),
+    education: textOrNull(values.education),
+    authorizations: textOrNull(values.authorizations),
+    commuteRoute: textOrNull(values.commuteRoute),
+    commuteMinutes: values.commuteMinutes ? Number(values.commuteMinutes) : null,
   };
+}
+
+// An unchanged workplace is left out, so the stored one stays even after it was archived,
+// which the API refuses when it is sent.
+export function toUpdateEmployeeRequest(
+  values: EmployeeFormValues,
+  employee: Employee
+): UpdateEmployeeRequest {
+  const { workplaceId, ...request } = toCreateEmployeeRequest(values);
+  return workplaceId === (employee.workplace?.id ?? null) ? request : { ...request, workplaceId };
 }

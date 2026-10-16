@@ -6,6 +6,7 @@ import {
   createClientCompany,
   createEmployee,
   createOrganization,
+  createWorkplace,
   signIn,
 } from './support';
 
@@ -136,6 +137,12 @@ test('a new hire goes into a post from the employee form, and can be moved to an
     lastName: 'Sudoru',
     jobTitle: 'Sudor',
   });
+  await createWorkplace(organizationId, clientId, {
+    name: 'Sediu Str. Fabricii 3',
+    is_registered_office: true,
+    county_code: 'CJ',
+    locality: 'Cluj-Napoca',
+  });
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.goto(`/clients/${clientId}/employees/new`);
@@ -158,6 +165,13 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   await expect(page.getByTestId('employee-job-position')).toContainText('Electrician');
   await expect(page.getByTestId('employee-job-title')).toHaveValue('Electrician');
   await page.getByTestId('employee-job-title').fill('Electrician întreținere');
+
+  await expect(page.getByTestId('employee-workplace')).toContainText('Sediu Str. Fabricii 3');
+  await page.getByTestId('employee-qualification').fill('Electrician autorizat');
+  await page.getByTestId('employee-education').fill('Școala profesională');
+  await page.getByTestId('employee-authorizations').fill('ANRE gradul II');
+  await page.getByTestId('employee-commute-route').fill('Str. Lungă 5 – Str. Fabricii 3, pe jos');
+  await page.getByTestId('employee-commute-minutes').fill('20');
   await page.getByTestId('employee-submit').click();
 
   await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/employees$`));
@@ -174,6 +188,9 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   await row.getByRole('link').first().click();
   await expect(page.getByTestId('employee-job-position')).toHaveText('Electrician');
   await expect(page.getByText('Electrician întreținere')).toBeVisible();
+  await expect(page.getByText('Sediu Str. Fabricii 3')).toBeVisible();
+  await expect(page.getByText('ANRE gradul II')).toBeVisible();
+  await expect(page.getByText('Str. Lungă 5 – Str. Fabricii 3, pe jos')).toBeVisible();
   await page.getByTestId('employee-job-position-change').click();
   await page.getByTestId('employee-position').click();
   await page.getByTestId('employee-position-search').fill('sud');
@@ -206,6 +223,7 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   await page.getByTestId('employees-edit').click();
   await expect(page.getByTestId('edit-employee-page')).toBeVisible();
   await expect(page.getByTestId('employee-job-title')).toHaveValue('Electrician întreținere');
+  await expect(page.getByTestId('employee-commute-minutes')).toHaveValue('20');
   await page.getByTestId('employee-last-name').fill('Electricu-Pop');
   await page.getByTestId('employee-phone').fill('0733 111 222');
   await page.getByTestId('employee-submit').click();
@@ -214,4 +232,5 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   await expect(page.getByText('0733 111 222')).toBeVisible();
   await expect(page.getByTestId('employee-job-position')).toHaveText('Șef de echipă');
   await expect(page.getByText('Electrician întreținere')).toBeVisible();
+  await expect(page.getByText('Sediu Str. Fabricii 3')).toBeVisible();
 });
