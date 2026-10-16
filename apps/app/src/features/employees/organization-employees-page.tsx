@@ -127,7 +127,6 @@ export function OrganizationEmployeesPage() {
             placeholder="Caută după nume, marcă sau client"
             label="Caută angajați"
             testId="organization-employees-search"
-            className="w-full sm:w-72"
           />
           {employees.isSuccess && (
             <span

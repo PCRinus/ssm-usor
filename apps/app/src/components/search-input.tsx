@@ -50,7 +50,7 @@ export function SearchInput({
   }
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative min-w-0 grow basis-88 sm:max-w-lg', className)}>
       <Search
         className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
         aria-hidden="true"
@@ -63,7 +63,7 @@ export function SearchInput({
         value={text}
         maxLength={100}
         autoComplete="off"
-        className="h-9 pr-9 pl-9 [&::-webkit-search-cancel-button]:hidden"
+        className="pr-9 pl-9 [&::-webkit-search-cancel-button]:hidden"
         onChange={(event) => change(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === 'Enter') commit(text);
@@ -80,7 +80,7 @@ export function SearchInput({
           size="icon"
           data-testid={`${testId}-clear`}
           aria-label="Șterge căutarea"
-          className="absolute top-0 right-0 size-9 text-muted-foreground hover:bg-transparent hover:text-foreground"
+          className="absolute top-1/2 right-1 size-9 -translate-y-1/2 text-muted-foreground hover:bg-transparent hover:text-foreground"
           onClick={clear}
         >
           <X aria-hidden="true" />

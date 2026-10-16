@@ -121,7 +121,6 @@ export function EmployeesPage() {
             placeholder="Caută după nume sau marcă"
             label="Caută angajați"
             testId="employees-search"
-            className="w-full sm:w-64"
           />
           {employees.isSuccess && (
             <span className="ml-auto text-sm text-muted-foreground" data-testid="employees-count">
