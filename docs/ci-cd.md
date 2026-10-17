@@ -37,7 +37,7 @@ available as a required PR check, including on documentation-only changes.
 | `apps/pdf/**`, `packages/contracts/src/pdf.ts`                                                                                            | PDF Worker and its container image ([guide](pdf.md)) |
 | `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                   |
 | `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA, portal and marketing                            |
-| `packages/contracts/**`                                                                                                                   | API, SPA, mail and SMS Workers                       |
+| `packages/contracts/**`                                                                                                                   | API, SPA, portal, mail and SMS Workers               |
 | `apps/api/openapi.json`                                                                                                                   | API and SPA                                          |
 | `orval.config.ts`                                                                                                                         | SPA                                                  |
 | `supabase/config.toml`, `supabase/migrations/**`, workflow/action/filter files                                                            | Database (hosted migrations and configuration)       |
@@ -120,13 +120,15 @@ deployments do nothing when there is nothing to apply, which is why workflow fil
 them: the commit that fixes a broken workflow retries them. A job that waits for the API
 treats a skipped API deployment as fine only when the API was not selected; selected and
 skipped means something before it failed.
-**Browser flow tests** run beside validation on pull requests only, when the SPA, the API, or
-the database is selected. They are not repeated after the merge: no deployment waits for them,
+**Browser flow tests** run beside validation on pull requests only, when the SPA, the portal,
+the API, or the database is selected: the SPA's flows unless only the portal is, then the
+portal's (`apps/portal/e2e/flows`, a sign-in by code) unless only the SPA is. The two run one
+after the other because both serve the API on the port the local stack's auth hooks call. They are not repeated after the merge: no deployment waits for them,
 and the pull request has just run them. Their three slow starts, the Supabase containers, the
 PDF converter's image and the browser, do not depend on one another, so the first two start in
 the background and are collected where they are needed. They use a local Supabase stack, the API served by Node
-with an in-memory mailer, and a preview build of the SPA, so they can create users and
-"send" email without touching production. No deployment waits for them.
+with an in-memory mailer and SMS sender, and a preview build of the SPA or the portal, so they
+can create users and "send" email and codes without touching production. No deployment waits for them.
 
 Browser tests run in their own job, **Verify deployed SPA**, after the SPA deployment has
 finished and been reported, and remain advisory. They run against production with a real

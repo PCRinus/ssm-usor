@@ -77,6 +77,7 @@ jobs:
     needs: changes
     if: >-
       needs.changes.outputs.app == 'true' ||
+      needs.changes.outputs.portal == 'true' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.database == 'true'
     runs-on: ubuntu-latest
@@ -161,9 +162,23 @@ jobs:
           fi
 
       - name: Run the browser flows
+        if: >-
+          needs.changes.outputs.app == 'true' ||
+          needs.changes.outputs.api == 'true' ||
+          needs.changes.outputs.database == 'true'
         env:
           GOTENBERG_URL: http://localhost:3300
         run: pnpm --filter @ssm-usor/app test:e2e:flows
+
+      # After the app's: both serve the API on the port the local stack's hooks call.
+      - name: Run the portal's browser flows
+        if: >-
+          !cancelled() && (
+            needs.changes.outputs.portal == 'true' ||
+            needs.changes.outputs.api == 'true' ||
+            needs.changes.outputs.database == 'true'
+          )
+        run: pnpm --filter @ssm-usor/portal test:e2e:flows
 
       - name: Upload the flow test report
         if: ${{ failure() }}
@@ -173,5 +188,7 @@ jobs:
           path: |
             apps/app/playwright-report-flows/
             apps/app/test-results-flows/
+            apps/portal/playwright-report-flows/
+            apps/portal/test-results-flows/
           retention-days: 7
           overwrite: true
