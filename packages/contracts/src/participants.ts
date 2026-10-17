@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { responsiblePersonRoleSchema } from './document-data';
 import { bloodGroupSchema, rhFactorSchema } from './employees';
 import { normalizePhone } from './phone';
 import { trainingSheetReadinessSchema } from './training-sheets';
@@ -274,3 +275,25 @@ export const portalClientEmployeesResponseSchema = z.object({
 });
 
 export type PortalClientEmployeesResponse = z.infer<typeof portalClientEmployeesResponseSchema>;
+
+export const portalResponsiblePersonSchema = z.object({
+  id: z.uuid(),
+  fullName: z.string(),
+  // As the decisions print it.
+  jobTitle: z.string(),
+  roles: z.array(responsiblePersonRoleSchema).min(1),
+  // Null for someone who is not one of the client's employees.
+  employeeId: z.uuid().nullable(),
+  // Null: every workplace of the client.
+  workplace: z.string().nullable(),
+});
+
+export type PortalResponsiblePerson = z.infer<typeof portalResponsiblePersonSchema>;
+
+export const portalResponsiblePersonsResponseSchema = z.object({
+  items: z.array(portalResponsiblePersonSchema),
+});
+
+export type PortalResponsiblePersonsResponse = z.infer<
+  typeof portalResponsiblePersonsResponseSchema
+>;

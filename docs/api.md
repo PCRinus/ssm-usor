@@ -793,6 +793,7 @@ no route outside the prefix has the tag.
 | `GET …/{participantId}/employees/{employeeId}/training-records` | Client administrator | As the employee's own                                       |
 | `GET …/{participantId}/employees/{employeeId}/sheets`           | Client administrator | As the employee's own                                       |
 | `GET …/{participantId}/employees/{employeeId}/sheets/{domain}`  | Client administrator | As the employee's own                                       |
+| `GET …/{participantId}/responsible-persons`                     | Client administrator | `{ items }`: the client's active responsible persons        |
 
 `…` stands for `/portal/participants`. `requireParticipant` (`src/lib/participant.ts`) runs
 after `requireAuth` on every one of them: as the caller it calls
@@ -804,6 +805,11 @@ also a participant uses the portal as the participant. A route for one participa
 employee's routes answer `404` for a client administrator who is not an employee; the
 administrator's routes answer `403` to an employee, checked in the API because an account that
 is also a member reads more through the members' policies than the participant's would give.
+
+A responsible person reads as the decisions name them: `fullName`, `jobTitle`, the `roles` as
+keys (the contracts' `responsiblePersonRoleLabels` word them), `employeeId` or null for someone
+who is not an employee, and the name of the one `workplace` they answer for, or null for every
+workplace. Archived rows are left out, and the list is ordered by name.
 
 Policies choose the rows a participant reads, not the columns, so every portal query names its
 columns and every response is built field by field into a schema of its own in

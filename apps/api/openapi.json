@@ -10940,6 +10940,56 @@
         },
         "required": ["items"]
       },
+      "PortalResponsiblePersonsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "fullName": {
+                  "type": "string"
+                },
+                "jobTitle": {
+                  "type": "string"
+                },
+                "roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "workplace_manager",
+                      "first_aid",
+                      "risk_evaluation_team",
+                      "imminent_danger",
+                      "workers_representative",
+                      "fire_safety_coordinator",
+                      "fire_intervention_leader"
+                    ]
+                  },
+                  "minItems": 1
+                },
+                "employeeId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                },
+                "workplace": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": ["id", "fullName", "jobTitle", "roles", "employeeId", "workplace"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
       "WaitlistSubscribeResponse": {
         "type": "object",
         "properties": {
@@ -29155,6 +29205,102 @@
           },
           "503": {
             "description": "Supabase is unavailable, the template is not registered (reason `template_missing`), or there is no converter or it failed (reason `pdf_unavailable`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/responsible-persons": {
+      "get": {
+        "operationId": "listPortalResponsiblePersons",
+        "tags": ["portal"],
+        "summary": "The client's responsible persons, for the client administrator",
+        "description": "The people the client designates by decision, with their roles, as the decisions name them. Archived rows are not listed. Ordered by name.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The responsible persons",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalResponsiblePersonsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant, or the participation is not a client administrator's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
             "content": {
               "application/json": {
                 "schema": {

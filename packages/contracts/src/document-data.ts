@@ -264,6 +264,16 @@ export const responsiblePersonRoleSchema = z.enum(responsiblePersonRoles);
 
 export type ResponsiblePersonRole = z.infer<typeof responsiblePersonRoleSchema>;
 
+export const responsiblePersonRoleLabels: Record<ResponsiblePersonRole, string> = {
+  workplace_manager: 'Conducător al locului de muncă',
+  first_aid: 'Prim ajutor',
+  risk_evaluation_team: 'Echipa de evaluare a riscurilor',
+  imminent_danger: 'Pericol grav și iminent',
+  workers_representative: 'Reprezentantul lucrătorilor',
+  fire_safety_coordinator: 'Coordonator privind apărarea împotriva incendiilor',
+  fire_intervention_leader: 'Șef echipă de primă intervenție',
+};
+
 /** A person the client designates by decision. One person often holds every role. */
 export const responsiblePersonSchema = z.object({
   id: z.uuid(),

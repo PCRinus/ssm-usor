@@ -5,6 +5,7 @@ import {
   portalEmployeeDataSchema,
   portalMeSchema,
   portalNoticeRequestSchema,
+  portalResponsiblePersonsResponseSchema,
   portalTrainingRecordsResponseSchema,
   portalTrainingSheetsSchema,
   trainingDomainSchema,
@@ -277,5 +278,33 @@ export const getPortalEmployeeTrainingSheetRoute = createRoute({
     409: missingSheetData,
     ...administratorErrors,
     503: sheetUnavailable,
+  },
+});
+
+export const listPortalResponsiblePersonsRoute = createRoute({
+  method: 'get',
+  path: '/portal/participants/{participantId}/responsible-persons',
+  operationId: 'listPortalResponsiblePersons',
+  tags,
+  summary: "The client's responsible persons, for the client administrator",
+  description:
+    'The people the client designates by decision, with their roles, as the decisions name them. Archived rows are not listed. Ordered by name.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireParticipant] as const,
+  request: { params: participantParams },
+  responses: {
+    200: {
+      description: 'The responsible persons',
+      content: {
+        'application/json': {
+          schema: portalResponsiblePersonsResponseSchema.meta({
+            id: 'PortalResponsiblePersonsResponse',
+          }),
+        },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    ...administratorErrors,
+    404: participantErrors[404],
   },
 });

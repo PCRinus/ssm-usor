@@ -620,6 +620,35 @@ export interface PortalClientEmployeesResponse {
   items: PortalClientEmployeesResponseItemsItem[];
 }
 
+export type PortalResponsiblePersonsResponseItemsItemRolesItem =
+  (typeof PortalResponsiblePersonsResponseItemsItemRolesItem)[keyof typeof PortalResponsiblePersonsResponseItemsItemRolesItem];
+
+export const PortalResponsiblePersonsResponseItemsItemRolesItem = {
+  workplace_manager: 'workplace_manager',
+  first_aid: 'first_aid',
+  risk_evaluation_team: 'risk_evaluation_team',
+  imminent_danger: 'imminent_danger',
+  workers_representative: 'workers_representative',
+  fire_safety_coordinator: 'fire_safety_coordinator',
+  fire_intervention_leader: 'fire_intervention_leader',
+} as const;
+
+export type PortalResponsiblePersonsResponseItemsItem = {
+  id: string;
+  fullName: string;
+  jobTitle: string;
+  /** @minItems 1 */
+  roles: PortalResponsiblePersonsResponseItemsItemRolesItem[];
+  /** @nullable */
+  employeeId: string | null;
+  /** @nullable */
+  workplace: string | null;
+};
+
+export interface PortalResponsiblePersonsResponse {
+  items: PortalResponsiblePersonsResponseItemsItem[];
+}
+
 type AwaitedInput<T> = PromiseLike<T> | T;
 
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
@@ -2068,6 +2097,147 @@ export function useGetPortalEmployeeTrainingSheet<
     domain,
     options
   );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListPortalResponsiblePersonsUrl = (participantId: string) => {
+  return `/portal/participants/${participantId}/responsible-persons`;
+};
+
+/**
+ * The people the client designates by decision, with their roles, as the decisions name them. Archived rows are not listed. Ordered by name.
+ * @summary The client's responsible persons, for the client administrator
+ */
+export const listPortalResponsiblePersons = async (
+  participantId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<PortalResponsiblePersonsResponse> => {
+  return apiFetch<PortalResponsiblePersonsResponse>(
+    getListPortalResponsiblePersonsUrl(participantId),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getListPortalResponsiblePersonsQueryKey = (participantId: string) => {
+  return [`/portal/participants/${participantId}/responsible-persons`] as const;
+};
+
+export const getListPortalResponsiblePersonsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPortalResponsiblePersons>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalResponsiblePersons>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListPortalResponsiblePersonsQueryKey(participantId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPortalResponsiblePersons>>> = ({
+    signal,
+  }) => listPortalResponsiblePersons(participantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: participantId !== null && participantId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listPortalResponsiblePersons>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListPortalResponsiblePersonsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPortalResponsiblePersons>>
+>;
+export type ListPortalResponsiblePersonsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListPortalResponsiblePersons<
+  TData = Awaited<ReturnType<typeof listPortalResponsiblePersons>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalResponsiblePersons>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPortalResponsiblePersons>>,
+          TError,
+          Awaited<ReturnType<typeof listPortalResponsiblePersons>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListPortalResponsiblePersons<
+  TData = Awaited<ReturnType<typeof listPortalResponsiblePersons>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalResponsiblePersons>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPortalResponsiblePersons>>,
+          TError,
+          Awaited<ReturnType<typeof listPortalResponsiblePersons>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListPortalResponsiblePersons<
+  TData = Awaited<ReturnType<typeof listPortalResponsiblePersons>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalResponsiblePersons>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The client's responsible persons, for the client administrator
+ */
+
+export function useListPortalResponsiblePersons<
+  TData = Awaited<ReturnType<typeof listPortalResponsiblePersons>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalResponsiblePersons>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListPortalResponsiblePersonsQueryOptions(participantId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

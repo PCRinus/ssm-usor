@@ -3,6 +3,7 @@ import type {
   PortalClientEmployee,
   PortalEmployeeData,
   PortalMe,
+  PortalResponsiblePerson,
   PortalTrainingRecord,
   PortalTrainingRecordsResponse,
   TrainingDomain,
@@ -31,6 +32,7 @@ import type {
   getPortalTrainingSheetsRoute,
   listPortalClientEmployeesRoute,
   listPortalEmployeeTrainingRecordsRoute,
+  listPortalResponsiblePersonsRoute,
   listPortalTrainingRecordsRoute,
   recordPortalNoticeRoute,
 } from './routes';
@@ -47,6 +49,9 @@ const dataColumns = `last_name, first_name, employee_number, job_title, hired_at
 
 const employeeListColumns = `id, last_name, first_name, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}`;
 
+const responsiblePersonColumns =
+  'id, full_name, job_title, roles, employee_id, client_workplaces!client_responsible_persons_workplace_of_client(name)';
+
 type EmployeeRef = { clientId: string; employeeId: string };
 
 function ownEmployee(participation: Participation): EmployeeRef {
@@ -61,7 +66,10 @@ function ownEmployee(participation: Participation): EmployeeRef {
 function administrator(c: Context<ApiEnv>, participantId: string) {
   const participation = participationOf(c, participantId);
   if (participation.kind !== 'client_administrator') {
-    throw new ApiError('forbidden', "Only the client administrator sees the client's employees.");
+    throw new ApiError(
+      'forbidden',
+      "Only the client administrator sees the client's employees and responsible persons."
+    );
   }
   return participation;
 }
@@ -274,6 +282,35 @@ export const listPortalClientEmployees: RouteHandler<
         position: row.job_positions.name,
         workplace: row.client_workplaces?.name ?? null,
         training: toEmployeeTraining(row.training_status),
+      })),
+    },
+    200
+  );
+};
+
+export const listPortalResponsiblePersons: RouteHandler<
+  typeof listPortalResponsiblePersonsRoute,
+  ApiEnv
+> = async (c) => {
+  const { participantId } = c.req.valid('param');
+  const { clientId } = administrator(c, participantId);
+  const { data, error } = await createDataClient(c)
+    .from('client_responsible_persons')
+    .select(responsiblePersonColumns)
+    .eq('client_id', clientId)
+    .is('archived_at', null)
+    .order('full_name')
+    .order('id');
+  if (error) throw fromDatabaseError(error, 'portal responsible persons');
+  return c.json(
+    {
+      items: data.map((row): PortalResponsiblePerson => ({
+        id: row.id,
+        fullName: row.full_name,
+        jobTitle: row.job_title,
+        roles: row.roles,
+        employeeId: row.employee_id,
+        workplace: row.client_workplaces?.name ?? null,
       })),
     },
     200

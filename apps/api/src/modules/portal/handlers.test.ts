@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import {
   portalEmployeeDataSchema,
   portalMeSchema,
+  portalResponsiblePersonsResponseSchema,
   portalTrainingRecordsResponseSchema,
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -113,6 +114,15 @@ const recordRow = {
   },
 };
 
+const responsiblePersonRow = {
+  id: 'f1f1f1f1-0000-4000-8000-000000000001',
+  full_name: 'Ion Pop',
+  job_title: 'Șef atelier',
+  roles: ['workplace_manager', 'first_aid'],
+  employee_id: colleagueId,
+  client_workplaces: { name: 'Atelier' },
+};
+
 const templatesUrl = new URL('../../../../../packages/document-engine/templates/', import.meta.url);
 
 const upstreamDefaults = {
@@ -120,6 +130,7 @@ const upstreamDefaults = {
   notice: () => Response.json(true),
   employees: () => Response.json([employeeRow]),
   records: () => Response.json([recordRow]),
+  responsiblePersons: () => Response.json([responsiblePersonRow]),
 };
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -148,6 +159,8 @@ function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
         return upstream.employees();
       case '/rest/v1/training_records':
         return upstream.records();
+      case '/rest/v1/client_responsible_persons':
+        return upstream.responsiblePersons();
       case '/rest/v1/organizations':
         return Response.json({ name: 'Protect SSM', phone: '+40256000000' });
       case '/rest/v1/clients':
@@ -493,5 +506,51 @@ describe("the client administrator's places", () => {
     const response = await request(administered(`/employees/${colleagueId}/sheets`));
 
     expect(response.status).toBe(404);
+  });
+
+  it("lists the client's active responsible persons as named, with their roles", async () => {
+    mockUpstream();
+
+    const response = await request(administered('/responsible-persons'));
+
+    expect(response.status).toBe(200);
+    expect(portalResponsiblePersonsResponseSchema.parse(await response.json())).toEqual({
+      items: [
+        {
+          id: responsiblePersonRow.id,
+          fullName: 'Ion Pop',
+          jobTitle: 'Șef atelier',
+          roles: ['workplace_manager', 'first_aid'],
+          employeeId: colleagueId,
+          workplace: 'Atelier',
+        },
+      ],
+    });
+    const query = calls('/rest/v1/client_responsible_persons')[0]!.url.searchParams;
+    expect(query.get('client_id')).toBe(`eq.${otherClientId}`);
+    expect(query.get('archived_at')).toBe('is.null');
+    expect(query.get('select')).not.toMatch(/\*|organization_id|created_by/);
+  });
+
+  it('says a responsible person who is not an employee and answers for every workplace', async () => {
+    mockUpstream({
+      responsiblePersons: () =>
+        Response.json([{ ...responsiblePersonRow, employee_id: null, client_workplaces: null }]),
+    });
+
+    const response = await request(administered('/responsible-persons'));
+
+    expect(await response.json()).toMatchObject({
+      items: [{ employeeId: null, workplace: null }],
+    });
+  });
+
+  it("answers 403 to an employee for the client's responsible persons", async () => {
+    mockUpstream();
+
+    const response = await request(own('/responsible-persons'));
+
+    expect(response.status).toBe(403);
+    expect(calls('/rest/v1/client_responsible_persons')).toEqual([]);
   });
 });
