@@ -21,6 +21,8 @@
     { "binding": "SMS", "service": "ssm-usor-sms", "entrypoint": "Sms" },
     // apps/pdf has no routes either.
     { "binding": "PDF", "service": "ssm-usor-pdf", "entrypoint": "Pdf" },
+    // The same entrypoint for its signing methods (ADR 023).
+    { "binding": "SIGNER", "service": "ssm-usor-pdf", "entrypoint": "Pdf" },
   ],
   // Bulk regeneration (ADR 017): this Worker sends one message per client and consumes them.
   // `wrangler deploy` fails while the queue does not exist; the deploy workflow creates it.

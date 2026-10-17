@@ -1,4 +1,10 @@
-import type { CurrentUser, MailService, PdfService, SmsService } from '@ssm-usor/contracts';
+import type {
+  CurrentUser,
+  MailService,
+  PdfService,
+  SignerService,
+  SmsService,
+} from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type { Membership } from './membership';
@@ -39,6 +45,10 @@ export type ApiEnv = {
     PDF_CONVERSION?: string;
     // A Gotenberg reached by URL instead, for local development and the flow tests.
     GOTENBERG_URL?: string;
+    // apps/pdf again, typed for signing (ADR 023); used under the same PDF_CONVERSION switch.
+    SIGNER?: SignerService;
+    // A signer container reached by URL instead, for local development.
+    SIGNER_URL?: string;
     // Bulk regeneration (ADR 017), consumed by this same Worker.
     REGENERATION_QUEUE?: RegenerationQueue;
   };
