@@ -8,6 +8,10 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Member**: a user who belongs to an organization, as **owner** or **specialist**. Avoid: user (when the role matters), admin.
 
+**Participant** (_participant_): a person of a client with an account: an employee of that client, or its client administrator. Made by a member from the employee's or the client's page, invited to one address, email or phone, and signed in with a code sent there; no password. One per person and client, and one account can be a participant at several clients. Never a member, and a member never acts as one: the app's routes act on the membership, the portal's on the participations. ADR 022. Avoid: user, portal user, external user, and client user, which does not say which person.
+
+**Portal** (_portal_): what a participant sees, at `/portal`: one column, phone first, a bar of at most four places, nothing of the provider's workspace. ADR 022. Avoid: client area, employee app, self-service.
+
 **Client** (_client_): a company the organization serves. Avoid: customer, which is the organization.
 
 **Lead** (_client potențial_): a company the organization hopes to serve and does not serve yet. An owner promotes it to a client, normally once its service contract is signed, and that cannot be undone; a lead that goes nowhere is archived. Only owners work with leads. ADR 007. Avoid: prospect, opportunity, offer.
@@ -25,6 +29,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 **Employee** (_angajat_): a person employed by a client, assigned to a job position and to the workplace they work at. Avoid: worker, staff, user.
 
 **Responsible person** (_persoană responsabilă_): someone who holds a role in a client's safety organization: workplace manager, first-aider, member of the risk evaluation team. One person can hold several roles. May or may not be an employee. A role is not a job position.
+
+**Client administrator** (_administratorul clientului_): the participant who runs a client's safety records on the employer's side, the administrator, the HR person or the legal representative, and sees the client's employees, their training states and their sheets. Not a responsible-person role and not a job position; may be an employee too. ADR 022. Avoid: HR, client user, manager, and administrator on its own, which the legal representative's role also says.
 
 **Workers' representative** (_reprezentantul lucrătorilor_): the responsible-person role of an employee chosen by the workers to speak for them on safety and health. Required from 10 current employees, two from 50. Always an employee, never the client's legal representative. ADR 010. Avoid: employee representative, union representative.
 
