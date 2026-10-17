@@ -22,15 +22,20 @@ export class PreviewBlockedError extends Error {
 // Call it straight from a tap: the tab must open before the first await, or pop-up blockers
 // refuse it. A blob URL made here is same-origin for the tab, so the browser's own viewer shows
 // the PDF inline, iOS Safari included.
-export async function openPreview(load: () => Promise<Blob>, title: string) {
+export async function openPreview(
+  load: () => Promise<Blob>,
+  text: { title: string; pending: string }
+) {
   const tab = window.open('', '_blank');
   if (!tab) throw new PreviewBlockedError();
   tab.document.write(
     '<!doctype html><meta charset="utf-8"><meta name="color-scheme" content="light dark">' +
-      '<p style="font:16px system-ui,sans-serif;margin:2rem;opacity:.7">Se pregătește fișa…</p>'
+      '<p style="font:16px system-ui,sans-serif;margin:2rem;opacity:.7"></p>'
   );
   tab.document.close();
-  tab.document.title = title;
+  tab.document.title = text.title;
+  const pending = tab.document.querySelector('p');
+  if (pending) pending.textContent = text.pending;
   try {
     const objectUrl = URL.createObjectURL(await load());
     tab.location.replace(objectUrl);

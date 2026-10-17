@@ -22,7 +22,7 @@ the portal has no password.
 
 Everything but `/sign-in` sits under `_participant` (a session, then `useGetPortalMe`; a `403`
 says the account has no access and offers to sign out) and, but `/alege`, under `_portal`
-(a chosen participation, the privacy notice, the bar). One participation is chosen by itself;
+(a chosen participation, the privacy notice, the shell). One participation is chosen by itself;
 the choice among several is kept in `localStorage` per account and changed from _Contul meu_.
 
 **Signing in.** A value with `@` is an email; anything else is a phone, normalized to E.164 with
@@ -45,13 +45,62 @@ Romanian. They are few, so they sit on _Acasă_ rather than below a list of empl
 run to dozens on a phone. The privacy notice tells an administrator that they see the
 employees' records and sheets on the employer's behalf, under the same laws.
 
-**The bar** is at the bottom on a phone, above the safe area, and at the top from 640 px. At
-most four places: an employee has _Acasă_, _Instruiri_, _Datele mele_, _Contul meu_; a client
+**The shell** (`src/app/portal-shell.tsx`) is a header, the page and a quiet footer. At most
+four places: an employee has _Acasă_, _Instruiri_, _Datele mele_, _Contul meu_; a client
 administrator _Acasă_, _Angajați_, _Contul meu_, plus _Instruiri_ when they are an employee
-too, whose _Datele mele_ is then a link on _Acasă_.
+too, whose _Datele mele_ is then a card on _Acasă_. One list of places
+(`src/app/portal-header.tsx`) serves both layouts:
+
+- On a phone (below 640 px) the header is a 56 px strip with the logo, and the places are a bar
+  fixed at the bottom, a lime pill under the current icon. The bar is padded by
+  `env(safe-area-inset-bottom)` (the viewport meta has `viewport-fit=cover`, without which the
+  inset is zero on iOS), and the page reserves
+  `calc(var(--portal-bar-height) + env(safe-area-inset-bottom) + 1rem)` below its content, the
+  bar's height being the `--portal-bar-height` variable of `src/styles.css`. The root is
+  `min-h-svh`: the small viewport unit is the stable one on iOS, where `dvh` resizes as Safari's
+  toolbar collapses and `vh` overflows under it.
+- From 640 px the header is 64 px, sticky, with the places as text links (a 3 px lime underline
+  and `aria-current="page"` on the current one) and the account menu on the right
+  (`src/app/account-menu.tsx`): the initials, the name and the client, then _Schimbă clientul_
+  when there are several, _Contul meu_ and _Ieși din cont_. _Contul meu_ leaves the list there.
+  The language switch will sit left of the menu.
+
+Pages lay out in a 64 rem column with 20 px gutters on a phone and 32 px from 640 px
+(`pageColumn` in `src/components/page.tsx`), on a 12-column grid from 1024 px: _Acasă_ 7 + 5
+(the side column holds the _Datele mele_ summary and the provider to ask), _Instruiri_ and an
+employee's page 8 + 4 (the sheets stick in the right column; on a phone they come first, as
+compact rows), _Datele mele_ 8 + 4. The footer names the provider and links the notice, the
+privacy policy and the commit version. The public pages, sign-in, `/alege`, the first-sign-in
+privacy notice, no access and not found, render inside the `PublicFrame` of `@ssm-usor/ui`
+that the app's login pages use too, with the portal's own version line as its footer.
 
 A sheet opens as a PDF in a tab opened before the request, as the app's preview does, or is
 downloaded; a sheet that is not ready names what the specialist still has to fill.
+
+## Languages
+
+Every string the portal shows goes through Lingui 6 (`@lingui/core`, `@lingui/react`; the CLI,
+`@lingui/format-po` and `@lingui/vite-plugin` in development, all from the pnpm catalog). The
+macros come from `@lingui/react/macro` (`Trans`, `useLingui`) and `@lingui/core/macro` (`msg`,
+`plural`); a count passes through `plural` with Romanian's `one`, `few` and `other` ("1 oră",
+"3 ore", "25 de ore"). `lingui({ macroTransform: true })` in `vite.config.ts` and
+`vitest.config.ts` expands the macros natively in Vite's `pre` stage, so before the React
+Compiler of `@vitejs/plugin-react`, and no Babel or SWC plugin is involved.
+
+`apps/portal/lingui.config.ts` has Romanian as the source locale and the only one so far; the
+catalog is `src/locales/ro/messages.po`, without line numbers so that unrelated edits leave it
+alone. `pnpm --filter @ssm-usor/portal i18n:extract` rewrites it from the code and
+`i18n:compile` writes `src/locales/ro/messages.ts`, which `src/app/i18n.ts` imports and
+`activateLocale` loads at startup (and in the test setup). Both files are committed, and
+`pnpm check:generated` runs the two scripts and fails when either changes: run them after
+touching a string. Production builds keep only message ids, so a string missing from the
+compiled catalog would show its id.
+
+The labels the contracts carry in Romanian (training states, phases, domains, supplementary
+reasons, responsible-person roles, missing sheet data, participation kinds) are not shown as
+they are: `src/lib/labels.ts` maps each value to a Lingui message. Dates go through
+`useFormatDate` (`src/lib/format.ts`), `Intl.DateTimeFormat` for the active locale, and
+durations through `useFormatDuration`.
 
 ## Local configuration
 
@@ -96,10 +145,9 @@ with the app's flows, so run the two one after the other.
 ## Structure
 
 The same folders as the app ([SPA folder structure](app.md)): `src/app/` (runtime, router,
-providers), `src/routes/` (thin, unexported file routes, with the committed `routeTree.gen.ts`
-that `pnpm generate:routes` regenerates for both SPAs), `src/features/`, `src/lib/` and
-`src/api/`. The root route lays every page out in one column of at most 480 px with a 16 px
-gutter.
+providers, i18n, the shell and the public frame), `src/routes/` (thin, unexported file routes,
+with the committed `routeTree.gen.ts` that `pnpm generate:routes` regenerates for both SPAs),
+`src/features/`, `src/components/`, `src/lib/`, `src/locales/` and `src/api/`.
 
 `src/api/http.ts` wires the shared adapter `@ssm-usor/api-http` (origin guard, bearer token,
 file downloads, `ApiHttpError`) without the app's PostHog reporting. It is the mutator of the

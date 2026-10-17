@@ -1,95 +1,206 @@
+import { plural } from '@lingui/core/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { ChevronRight, ClipboardCheck, IdCard, UsersRound } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 import {
+  getGetPortalTrainingSheetsQueryKey,
+  getPortalTrainingSheet,
   type PortalClientEmployeesResponse,
+  type PortalEmployeeDataResponse,
   useGetPortalEmployeeData,
+  useGetPortalTrainingSheets,
   useListPortalClientEmployees,
   useListPortalTrainingRecords,
 } from '@/api/generated/api';
-import { PageFailed, PageHeader, PageLoading } from '@/components/page';
+import { Fact, Facts } from '@/components/facts';
+import { cardClass, Page, PageFailed, PageGrid, PageHeader, PageLoading } from '@/components/page';
+import { ProviderBox } from '@/features/my-data/provider-box';
 import {
   isAdministrator,
   type Participation,
-  participationKindLabels,
   useParticipation,
 } from '@/features/participation/participation-context';
 import { ResponsiblePersonsSection } from '@/features/responsible-persons/responsible-persons-section';
 import { TrainingSummary } from '@/features/training/training-summary';
+import { useFormatDate } from '@/lib/format';
+import { participationKindMessages } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
 
 export function HomePage() {
   const participation = useParticipation();
-  const administrator = isAdministrator(participation);
-  return (
-    <main data-testid="portal-home" className="grid gap-8">
-      {administrator ? (
-        <PageHeader
-          eyebrow={participationKindLabels.client_administrator}
-          title={participation.clientName}
-        >
-          {participation.fullName}
-        </PageHeader>
-      ) : (
-        <EmployeeHeader participation={participation} />
-      )}
-      <ToDo />
-      {administrator && <EmployeesCard participantId={participation.participantId} />}
-      {participation.employeeId !== null && (
-        <OwnTraining participantId={participation.participantId} />
-      )}
-      {administrator && participation.employeeId !== null && (
-        <PlaceLink to="/datele-mele" icon={IdCard} testId="home-my-data">
-          Datele mele
-        </PlaceLink>
-      )}
-      {administrator && <ResponsiblePersonsSection participantId={participation.participantId} />}
-    </main>
+  return isAdministrator(participation) ? (
+    <AdministratorHome participation={participation} />
+  ) : (
+    <EmployeeHome participation={participation} />
   );
 }
 
-function EmployeeHeader({ participation }: { participation: Participation }) {
+function EmployeeHome({ participation }: { participation: Participation }) {
   const apiRequest = useApiRequest();
   const data = useGetPortalEmployeeData(participation.participantId, { request: apiRequest });
-  const position = data.data?.employee.position;
+  const employee = data.data?.employee;
+
   return (
-    <PageHeader eyebrow={participation.clientName} title={participation.fullName}>
-      {position && <span data-testid="home-position">{position}</span>}
-    </PageHeader>
+    <Page testId="portal-home">
+      <PageHeader eyebrow={participation.clientName} title={participation.fullName}>
+        {employee && (
+          <p className="text-[0.9375rem] text-foreground/80 sm:text-base">
+            <PositionLine position={employee.position} employeeNumber={employee.employeeNumber} />
+          </p>
+        )}
+      </PageHeader>
+      <PageGrid>
+        <div className="grid gap-6 sm:gap-7 lg:col-span-7">
+          <Signatures />
+          <OwnTraining participantId={participation.participantId} />
+        </div>
+        {data.data && (
+          <aside className="grid items-start gap-4 max-sm:hidden md:grid-cols-2 lg:col-span-5 lg:grid-cols-1">
+            <MyDataSummary data={data.data} />
+            <ProviderBox provider={data.data.provider} />
+          </aside>
+        )}
+      </PageGrid>
+    </Page>
   );
 }
 
-function ToDo() {
+function PositionLine({
+  position,
+  employeeNumber,
+}: {
+  position: string;
+  employeeNumber: string | null;
+}) {
+  return employeeNumber ? (
+    <Trans>
+      <span data-testid="home-position">{position}</span>, marca {employeeNumber}
+    </Trans>
+  ) : (
+    <span data-testid="home-position">{position}</span>
+  );
+}
+
+function AdministratorHome({ participation }: { participation: Participation }) {
+  const { i18n } = useLingui();
+  const employee = participation.employeeId !== null;
+  return (
+    <Page testId="portal-home">
+      <PageHeader
+        eyebrow={i18n._(participationKindMessages.client_administrator)}
+        title={participation.clientName}
+        description={participation.fullName}
+      />
+      <PageGrid>
+        <div className="grid gap-6 sm:gap-7 lg:col-span-7">
+          <Signatures />
+          <EmployeesCard participantId={participation.participantId} />
+          {employee && <OwnTraining participantId={participation.participantId} />}
+        </div>
+        <aside className="grid gap-6 lg:col-span-5">
+          {employee && <AdministratorOwnData participantId={participation.participantId} />}
+          <ResponsiblePersonsSection participantId={participation.participantId} />
+        </aside>
+      </PageGrid>
+    </Page>
+  );
+}
+
+function AdministratorOwnData({ participantId }: { participantId: string }) {
+  const apiRequest = useApiRequest();
+  const data = useGetPortalEmployeeData(participantId, { request: apiRequest });
+  return data.data ? (
+    <MyDataSummary data={data.data} />
+  ) : (
+    <Link to="/datele-mele" data-testid="home-my-data" className={`${cardClass} p-4 font-medium`}>
+      <Trans>Datele mele</Trans>
+    </Link>
+  );
+}
+
+function Signatures() {
   return (
     <section
       aria-labelledby="todo-title"
       data-testid="home-todo"
-      className="grid gap-2 rounded-xl border bg-card p-4 shadow-xs"
+      className="grid gap-1.5 rounded-xl border border-dashed border-input px-4.5 py-4 sm:gap-2 sm:px-5.5 sm:py-5"
     >
-      <h2 id="todo-title" className="flex items-center gap-2 text-lg font-semibold">
-        <ClipboardCheck aria-hidden="true" className="size-5 text-muted-foreground" />
-        De făcut
+      <h2 id="todo-title" className="text-base font-semibold sm:text-[1.0625rem]">
+        <Trans>Semnături</Trans>
       </h2>
-      <p className="text-muted-foreground">Nimic de semnat deocamdată.</p>
+      <p className="text-sm leading-relaxed text-foreground/80 sm:text-[0.9375rem]">
+        <Trans>
+          Nimic de semnat deocamdată. Când o instruire va avea nevoie de semnătura ta, apare aici.
+        </Trans>
+      </p>
     </section>
   );
 }
 
 function OwnTraining({ participantId }: { participantId: string }) {
   const apiRequest = useApiRequest();
+  const queryClient = useQueryClient();
   const records = useListPortalTrainingRecords(participantId, { request: apiRequest });
+  const sheets = useGetPortalTrainingSheets(participantId, { request: apiRequest });
   if (records.isPending) return <PageLoading />;
   if (records.isError) return <PageFailed onRetry={() => void records.refetch()} />;
-  return <TrainingSummary records={records.data} />;
+  return (
+    <TrainingSummary
+      records={records.data}
+      sheetAccess={{
+        sheets: sheets.data,
+        loadSheet: (domain) => getPortalTrainingSheet(participantId, domain, apiRequest),
+        onStale: () =>
+          void queryClient.invalidateQueries({
+            queryKey: getGetPortalTrainingSheetsQueryKey(participantId),
+          }),
+      }}
+    />
+  );
+}
+
+function MyDataSummary({ data }: { data: PortalEmployeeDataResponse }) {
+  const { t } = useLingui();
+  const formatDate = useFormatDate();
+  const { employee } = data;
+  return (
+    <section
+      aria-labelledby="home-my-data-title"
+      className={`${cardClass} grid gap-3 px-4 py-4 sm:px-5`}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="home-my-data-title" className="text-base font-semibold">
+          <Trans>Datele mele</Trans>
+        </h2>
+        <Link
+          to="/datele-mele"
+          data-testid="home-my-data"
+          className="text-sm font-medium underline-offset-4 hover:underline"
+        >
+          <Trans>Vezi tot</Trans>
+        </Link>
+      </div>
+      <Facts layout="rows">
+        <Fact label={t`Post de lucru`}>{employee.position}</Fact>
+        <Fact label={t`Punct de lucru`}>{employee.workplace}</Fact>
+        <Fact label={t`Angajat din`}>{formatDate(employee.hiredAt)}</Fact>
+        <Fact label={t`Traseu de deplasare`}>{employee.commuteRoute}</Fact>
+      </Facts>
+    </section>
+  );
 }
 
 function EmployeesCard({ participantId }: { participantId: string }) {
+  const { t } = useLingui();
   const apiRequest = useApiRequest();
   const employees = useListPortalClientEmployees(participantId, { request: apiRequest });
   if (employees.isPending) return <PageLoading />;
   if (employees.isError) return <PageFailed onRetry={() => void employees.refetch()} />;
 
   const items = employees.data.items;
+  const count = items.length;
   const overdue = items.filter((item) => hasState(item, 'overdue')).length;
   const due = items.filter((item) => !hasState(item, 'overdue') && hasState(item, 'due')).length;
 
@@ -97,23 +208,24 @@ function EmployeesCard({ participantId }: { participantId: string }) {
     <Link
       to="/angajati"
       data-testid="home-employees"
-      className="grid gap-3 rounded-xl border bg-card p-4 shadow-xs transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+      className={`${cardClass} grid gap-3.5 px-4 py-4 transition-colors hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:px-5`}
     >
       <span className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2 text-lg font-semibold">
-          <UsersRound aria-hidden="true" className="size-5 text-muted-foreground" />
-          Angajați
+        <span className="text-base font-semibold sm:text-[1.0625rem]">
+          <Trans>Angajați</Trans>
         </span>
         <ChevronRight aria-hidden="true" className="size-5 text-muted-foreground" />
       </span>
-      <span className="grid grid-cols-3 gap-2 text-center">
+      <span className="grid grid-cols-3 gap-2">
         <Count
-          value={items.length}
-          label={items.length === 1 ? 'angajat' : 'angajați'}
+          value={count}
+          label={t({
+            message: plural(count, { one: 'angajat', few: 'angajați', other: 'de angajați' }),
+          })}
           testId="home-employees-count"
         />
-        <Count value={due} label="cu instruirea scadentă" testId="home-employees-due" />
-        <Count value={overdue} label="cu instruirea depășită" testId="home-employees-overdue" />
+        <Count value={due} label={t`cu instruirea scadentă`} testId="home-employees-due" />
+        <Count value={overdue} label={t`cu instruirea depășită`} testId="home-employees-overdue" />
       </span>
     </Link>
   );
@@ -124,35 +236,11 @@ const hasState = (item: PortalClientEmployeesResponse['items'][number], state: '
 
 function Count({ value, label, testId }: { value: number; label: string; testId: string }) {
   return (
-    <span className="grid gap-0.5 rounded-lg bg-muted px-2 py-3">
+    <span className="grid content-start gap-0.5 rounded-lg bg-muted px-3 py-3">
       <span data-testid={testId} className="text-2xl font-semibold tabular-nums">
         {value}
       </span>
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs leading-snug text-muted-foreground">{label}</span>
     </span>
-  );
-}
-
-function PlaceLink({
-  to,
-  icon: Icon,
-  testId,
-  children,
-}: {
-  to: '/datele-mele';
-  icon: typeof IdCard;
-  testId: string;
-  children: string;
-}) {
-  return (
-    <Link
-      to={to}
-      data-testid={testId}
-      className="flex min-h-14 items-center gap-3 rounded-xl border bg-card px-4 font-medium shadow-xs transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-    >
-      <Icon aria-hidden="true" className="size-5 text-muted-foreground" />
-      <span className="flex-1">{children}</span>
-      <ChevronRight aria-hidden="true" className="size-5 text-muted-foreground" />
-    </Link>
   );
 }

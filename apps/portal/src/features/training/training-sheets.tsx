@@ -1,163 +1,177 @@
-import {
-  type ApiErrorResponse,
-  type TrainingDomain,
-  trainingDomainLabels,
-  trainingDomains,
-} from '@ssm-usor/contracts';
+import { plural } from '@lingui/core/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
+import { type TrainingDomain, trainingDomains } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { FileDown, FileText, LoaderCircle } from 'lucide-react';
-import { useState } from 'react';
+import { cn } from '@ssm-usor/ui/lib/utils';
+import { FileDown, LoaderCircle } from 'lucide-react';
+import type { ReactNode } from 'react';
 
-import type { PortalTrainingSheetsResponse } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import type {
+  PortalTrainingRecordsResponse,
+  PortalTrainingSheetsResponse,
+} from '@/api/generated/api';
 import { Notice } from '@/components/notice';
-import { openPreview, PreviewBlockedError, saveFile } from '@/lib/save-file';
+import { cardClass, SectionLabel } from '@/components/page';
+import { useFormatDate } from '@/lib/format';
+import { trainingDomainMessages } from '@/lib/labels';
 
-import { missingSheetDataSentence } from './missing-sheet-data';
+import { useMissingSheetDataSentence } from './missing-sheet-data';
+import { type LoadSheet, useSheetActions } from './use-sheet-actions';
 
-const failureOf = (cause: unknown) => {
-  if (cause instanceof PreviewBlockedError) {
-    return 'Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal sau descarcă fișa.';
-  }
-  const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
-  if (body?.reason === 'missing_sheet_data') {
-    return 'Fișa nu poate fi întocmită încă: lipsesc date pe care le completează specialistul.';
-  }
-  if (body?.reason === 'pdf_unavailable') {
-    return 'Fișa nu poate fi pregătită acum. Încearcă din nou peste câteva minute.';
-  }
-  return 'Nu am putut deschide fișa. Verifică conexiunea la internet și încearcă din nou.';
-};
+type TrainingRecord = PortalTrainingRecordsResponse['items'][number];
 
 type TrainingSheetsProps = {
+  title: ReactNode;
   sheets: PortalTrainingSheetsResponse | undefined;
+  // Undefined while the records load, so a sheet is not called empty before they arrive; null
+  // when they failed, and the sheets then go by their readiness alone.
+  records: TrainingRecord[] | null | undefined;
   failed: boolean;
-  loadSheet: (domain: TrainingDomain) => Promise<Blob>;
-  // A sheet that turned out not ready when opened: the readiness shown was stale.
+  loadSheet: LoadSheet;
   onStale: () => void;
+  className?: string;
 };
 
-export function TrainingSheets({ sheets, failed, loadSheet, onStale }: TrainingSheetsProps) {
+export function TrainingSheets({
+  title,
+  sheets,
+  records,
+  failed,
+  loadSheet,
+  onStale,
+  className,
+}: TrainingSheetsProps) {
   return (
-    <section aria-labelledby="training-sheets-title" className="grid gap-3">
-      <div className="grid gap-1">
-        <h2 id="training-sheets-title" className="text-lg font-semibold">
-          Fișele individuale de instruire
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Se întocmesc din instruirile înregistrate, de fiecare dată când le deschizi.
-        </p>
-      </div>
+    <section
+      aria-labelledby="training-sheets-title"
+      data-testid="training-sheets"
+      className={cn('grid gap-2.5 lg:gap-3.5', className)}
+    >
+      <SectionLabel id="training-sheets-title">{title}</SectionLabel>
       {failed ? (
         <Notice variant="destructive" data-testid="training-sheets-error">
-          Nu am putut verifica fișele. Reîncarcă pagina.
+          <Trans>Nu am putut verifica fișele. Reîncarcă pagina.</Trans>
         </Notice>
       ) : (
-        <ul className="grid gap-3">
-          {trainingDomains.map((domain) => (
-            <TrainingSheetRow
-              key={domain}
-              domain={domain}
-              sheet={sheets?.[domain]}
-              loadSheet={() => loadSheet(domain)}
-              onStale={onStale}
-            />
-          ))}
-        </ul>
+        trainingDomains.map((domain) => (
+          <TrainingSheetCard
+            key={domain}
+            domain={domain}
+            sheet={sheets?.[domain]}
+            records={records && records.filter((record) => record.domain === domain)}
+            loadSheet={loadSheet}
+            onStale={onStale}
+          />
+        ))
       )}
     </section>
   );
 }
 
-function TrainingSheetRow({
+function TrainingSheetCard({
   domain,
   sheet,
+  records,
   loadSheet,
   onStale,
 }: {
   domain: TrainingDomain;
   sheet: PortalTrainingSheetsResponse[TrainingDomain] | undefined;
-  loadSheet: () => Promise<Blob>;
+  records: TrainingRecord[] | null | undefined;
+  loadSheet: LoadSheet;
   onStale: () => void;
 }) {
-  const [busy, setBusy] = useState<'open' | 'download' | null>(null);
-  const [failure, setFailure] = useState<string | null>(null);
-  const label = trainingDomainLabels[domain];
-
-  async function run(kind: 'open' | 'download', action: () => Promise<void>) {
-    setBusy(kind);
-    setFailure(null);
-    try {
-      await action();
-    } catch (cause) {
-      setFailure(failureOf(cause));
-      if (cause instanceof ApiHttpError && cause.status === 409) onStale();
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  const open = () => run('open', () => openPreview(loadSheet, `Fișa ${label}`));
-  const download = () =>
-    run('download', async () => {
-      const file = await loadSheet();
-      saveFile(file, file instanceof File ? file.name : `Fisa-${label}.pdf`);
-    });
+  const { t, i18n } = useLingui();
+  const formatDate = useFormatDate();
+  const missingSentence = useMissingSheetDataSentence();
+  const { busy, failure, open, download } = useSheetActions(domain, loadSheet, onStale);
+  const label = i18n._(trainingDomainMessages[domain]);
+  const untrained = records?.length === 0;
+  const openable = sheet?.ready === true && records !== undefined && !untrained;
+  const latest = records?.[0];
+  const updated = latest && formatDate(latest.heldOn, 'short');
+  const count = records?.length ?? 0;
 
   return (
-    <li
+    <article
       data-testid={`training-sheet-${domain}`}
-      className="grid gap-3 rounded-xl border bg-card p-4 shadow-xs"
+      className={cn(
+        cardClass,
+        'grid gap-3 px-4 py-3.5 lg:px-5 lg:py-4.5',
+        openable && 'grid-cols-[minmax(0,1fr)_auto] items-center lg:grid-cols-1'
+      )}
     >
-      <h3 className="flex items-center gap-2 font-semibold">
-        <FileText aria-hidden="true" className="size-5 text-muted-foreground" />
-        Fișa {label}
-      </h3>
-      {!sheet ? (
+      <div className="grid min-w-0 gap-0.5">
+        <h3 className="text-[0.9375rem] font-semibold">
+          <span className="lg:hidden">{t`Fișa ${label}`}</span>
+          <span className="hidden lg:inline">{t`Fișa individuală ${label}`}</span>
+        </h3>
+        {openable && updated && (
+          <p className="text-xs text-muted-foreground lg:text-[0.8125rem]">
+            {t({
+              message: plural(count, {
+                one: `# instruire, actualizată ${updated}`,
+                few: `# instruiri, actualizată ${updated}`,
+                other: `# de instruiri, actualizată ${updated}`,
+              }),
+            })}
+          </p>
+        )}
+      </div>
+      {!sheet || records === undefined ? (
         <p role="status" className="text-sm text-muted-foreground">
-          Se verifică…
+          <Trans>Se verifică…</Trans>
         </p>
-      ) : sheet.ready ? (
-        <div className="grid grid-cols-2 gap-2">
+      ) : openable ? (
+        <div className="flex gap-2">
           <Button
             data-testid={`training-sheet-${domain}-open`}
-            className="h-12"
+            className="h-10 flex-1 px-3.5 whitespace-nowrap"
             disabled={busy !== null}
             onClick={() => void open()}
           >
-            {busy === 'open' ? (
-              <LoaderCircle aria-hidden="true" className="animate-spin" />
-            ) : (
-              <FileText aria-hidden="true" />
-            )}
-            Deschide PDF
+            {busy === 'open' && <LoaderCircle aria-hidden="true" className="animate-spin" />}
+            <Trans>Deschide PDF</Trans>
           </Button>
           <Button
             variant="outline"
             data-testid={`training-sheet-${domain}-download`}
-            className="h-12"
-            aria-label={`Descarcă fișa ${label}`}
+            className="size-10 lg:h-10 lg:w-auto lg:flex-1"
+            aria-label={t`Descarcă fișa ${label}`}
             disabled={busy !== null}
             onClick={() => void download()}
           >
             {busy === 'download' ? (
               <LoaderCircle aria-hidden="true" className="animate-spin" />
             ) : (
-              <FileDown aria-hidden="true" />
+              <FileDown aria-hidden="true" className="lg:hidden" />
             )}
-            Descarcă
+            <span aria-hidden="true" className="hidden lg:inline">
+              <Trans>Descarcă</Trans>
+            </span>
           </Button>
         </div>
       ) : (
-        <p data-testid={`training-sheet-${domain}-missing`} className="text-sm leading-relaxed">
-          {missingSheetDataSentence(sheet.missing)}
-        </p>
+        <div className="grid gap-1 text-sm leading-relaxed text-foreground/80">
+          {untrained && (
+            <p data-testid={`training-sheet-${domain}-untrained`}>
+              {t`Se întocmește după prima instruire ${label}.`}
+            </p>
+          )}
+          {!sheet.ready && (
+            <p data-testid={`training-sheet-${domain}-missing`}>{missingSentence(sheet.missing)}</p>
+          )}
+        </div>
       )}
       {failure && (
-        <Notice variant="destructive" data-testid={`training-sheet-${domain}-error`}>
+        <Notice
+          variant="destructive"
+          data-testid={`training-sheet-${domain}-error`}
+          className="col-span-full"
+        >
           {failure}
         </Notice>
       )}
-    </li>
+    </article>
   );
 }

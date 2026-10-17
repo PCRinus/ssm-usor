@@ -48,8 +48,15 @@ test('an invited employee signs in with an emailed code and finds their places',
   await expect(page.getByTestId('home-position')).toHaveText('Tâmplar');
   await expect(page.getByTestId('home-todo')).toContainText('Nimic de semnat deocamdată');
   await expect(page.getByTestId('training-state-ssm')).toHaveText('Neinstruit');
+  await expect(page.getByTestId('training-untrained-ssm')).toHaveText(
+    'Prima instruire SSM nu a fost încă înregistrată.'
+  );
 
   await page.getByTestId('portal-bar-instruiri').click();
+  await expect(page.getByTestId('portal-bar-instruiri')).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByTestId('training-sheet-ssm-untrained')).toHaveText(
+    'Se întocmește după prima instruire SSM.'
+  );
   await expect(page.getByTestId('training-records-empty')).toHaveText(
     'Nicio instruire înregistrată încă.'
   );
@@ -60,7 +67,7 @@ test('an invited employee signs in with an emailed code and finds their places',
   await page.getByTestId('portal-bar-datele-mele').click();
   await expect(page.getByTestId('my-data')).toContainText('Pop Ana');
   await expect(page.getByTestId('my-data-correction')).toContainText(
-    'Spune-i specialistului: Prevenție Vest E2E'
+    'Spune-i specialistului SSM: Prevenție Vest E2E'
   );
 
   await page.getByTestId('portal-bar-contul-meu').click();

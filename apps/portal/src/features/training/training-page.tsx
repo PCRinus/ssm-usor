@@ -1,3 +1,4 @@
+import { useLingui } from '@lingui/react/macro';
 import { useQueryClient } from '@tanstack/react-query';
 import { Navigate } from '@tanstack/react-router';
 
@@ -7,34 +8,42 @@ import {
   useGetPortalTrainingSheets,
   useListPortalTrainingRecords,
 } from '@/api/generated/api';
-import { PageFailed, PageHeader, PageLoading } from '@/components/page';
+import { Page, PageGrid, PageHeader } from '@/components/page';
 import { useParticipation } from '@/features/participation/participation-context';
 import { useApiRequest } from '@/lib/request';
 
-import { TrainingRecordsList } from './training-records-list';
+import { TrainingRecordsSection } from './training-records-section';
 import { TrainingSheets } from './training-sheets';
 
 export function TrainingPage() {
+  const { t } = useLingui();
   const participation = useParticipation();
   if (participation.employeeId === null) return <Navigate to="/" replace />;
   return (
-    <main data-testid="training-page">
-      <PageHeader eyebrow={participation.clientName} title="Instruiri" />
+    <Page testId="training-page">
+      <PageHeader
+        title={t`Instruirile tale`}
+        description={t`Fiecare instruire la care ai participat, cea mai recentă prima. Fișele adună aceste rânduri.`}
+      />
       <OwnTraining participantId={participation.participantId} />
-    </main>
+    </Page>
   );
 }
 
 function OwnTraining({ participantId }: { participantId: string }) {
+  const { t } = useLingui();
   const apiRequest = useApiRequest();
   const queryClient = useQueryClient();
   const records = useListPortalTrainingRecords(participantId, { request: apiRequest });
   const sheets = useGetPortalTrainingSheets(participantId, { request: apiRequest });
 
   return (
-    <div className="grid gap-8">
+    <PageGrid>
       <TrainingSheets
+        title={t`Fișele tale`}
+        className="lg:sticky lg:top-22 lg:col-span-4 lg:col-start-9 lg:row-start-1"
         sheets={sheets.data}
+        records={records.isError ? null : records.data?.items}
         failed={sheets.isError}
         loadSheet={(domain) => getPortalTrainingSheet(participantId, domain, apiRequest)}
         onStale={() =>
@@ -43,18 +52,11 @@ function OwnTraining({ participantId }: { participantId: string }) {
           })
         }
       />
-      <section aria-labelledby="training-records-title" className="grid gap-3">
-        <h2 id="training-records-title" className="text-lg font-semibold">
-          Instruirile tale
-        </h2>
-        {records.isPending ? (
-          <PageLoading />
-        ) : records.isError ? (
-          <PageFailed onRetry={() => void records.refetch()} />
-        ) : (
-          <TrainingRecordsList records={records.data.items} />
-        )}
-      </section>
-    </div>
+      <TrainingRecordsSection
+        className="lg:col-span-8 lg:row-start-1"
+        title={t`Instruirile tale`}
+        records={records}
+      />
+    </PageGrid>
   );
 }

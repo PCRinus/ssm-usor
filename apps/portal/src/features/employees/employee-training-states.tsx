@@ -1,29 +1,34 @@
-import { trainingDomainLabels, trainingDomains } from '@ssm-usor/contracts';
+import { useLingui } from '@lingui/react/macro';
+import { trainingDomains } from '@ssm-usor/contracts';
 
 import type { PortalClientEmployeesResponse } from '@/api/generated/api';
 import { TrainingStateBadge } from '@/features/training/training-state-badge';
-import { formatDate } from '@/lib/format';
+import { useFormatDate } from '@/lib/format';
+import { trainingDomainMessages } from '@/lib/labels';
 
 type ClientEmployee = PortalClientEmployeesResponse['items'][number];
 
 export function EmployeeTrainingStates({ employee }: { employee: ClientEmployee }) {
+  const { t, i18n } = useLingui();
+  const formatDate = useFormatDate();
   return (
-    <span className="grid grid-cols-2 gap-2">
+    <span className="grid grid-cols-2 gap-3 sm:flex sm:gap-8">
       {trainingDomains.map((domain) => {
         const { state, dueOn } = employee.training[domain];
+        const due = dueOn && formatDate(dueOn);
         return (
-          <span key={domain} className="grid gap-1 text-sm">
-            <span className="flex items-center gap-1.5">
-              <span className="font-medium">{trainingDomainLabels[domain]}</span>
+          <span key={domain} className="grid content-start gap-1 text-sm">
+            <span className="flex items-center gap-2">
+              <span className="font-medium">{i18n._(trainingDomainMessages[domain])}</span>
               {state ? (
                 <TrainingStateBadge state={state} testId={`employee-state-${domain}`} />
               ) : (
                 <span className="text-muted-foreground">—</span>
               )}
             </span>
-            {dueOn && (
+            {due && (
               <span className="text-xs text-muted-foreground tabular-nums">
-                {state === 'overdue' ? 'din' : 'până la'} {formatDate(dueOn)}
+                {state === 'overdue' ? t`din ${due}` : t`până la ${due}`}
               </span>
             )}
           </span>
