@@ -47,7 +47,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /health`                                                          | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }`                                                                           |
 | `POST /waitlist`                                                       | Public, behind Turnstile              | `202 { "status": "confirmation_pending" }` and a confirmation email                                                       |
 | `GET /waitlist/confirm`                                                | Public, by emailed token              | `303` to the marketing site's confirmed or invalid-link page                                                              |
-| `POST /hooks/supabase/send-email`                                      | Supabase Auth, by signature           | `200 {}` after handing the recovery, signup, or password-changed email to the mail Worker                                 |
+| `POST /hooks/supabase/send-email`                                      | Supabase Auth, by signature           | `200 {}` after handing the recovery, signup, password-changed or sign-in code email to the mail Worker                    |
+| `POST /hooks/supabase/send-sms`                                        | Supabase Auth, by signature           | `200 {}` after handing the portal's sign-in code to the SMS Worker                                                        |
 | `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership" }`; the last two are null when absent                                                  |
 | `PATCH /me/profile`                                                    | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                                                   |
 | `GET /me/invitations`                                                  | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token                                      |
@@ -1044,6 +1045,42 @@ arriving. A failed send answers `500`, which Supabase reports to the caller. The
 answers `503` while the secret or the `MAIL` binding is missing, and must finish within the
 hook's five seconds.
 
+The portal's one-time code by email ([ADR 022](architecture/adr-022-participants-and-the-portal.md))
+comes through the same hook. `signInWithOtp` makes Supabase send a `magiclink` email whose
+`token` is the code; the route hands the code, and no link, to `sendSignInCode`. While an address
+is unconfirmed Supabase sends its `signup` confirmation instead, with the code as its `token`, and
+a participant's account is created unconfirmed; a `signup` for an account whose `app_metadata`
+has `participant: true` is therefore a sign-in code too, and every other `signup` stays the
+registration's confirmation link. The code works for `otp_expiry`, the setting that also governs
+the recovery link: an hour.
+
+### Supabase Auth SMS
+
+Supabase Auth texts no one itself either: its Send SMS hook posts each code to
+`POST /hooks/supabase/send-sms`, verified the same way with `SUPABASE_AUTH_SMS_HOOK_SECRET`, a
+secret of its own, and the route hands the code to the SMS Worker's `sendSignInCode` over the
+`SMS` binding ([SMS Worker](sms.md)). Supabase holds no Twilio credentials. The payload's
+`sms.phone` (else `user.phone`) is E.164 without the `+`, which the route adds.
+
+Supabase cannot have phone sign-in on and signup by phone off: `[auth.sms] enable_signup` is the
+switch for phone sign-in as a whole, and `/otp` creates an account for any unknown number. The
+route therefore texts only an account whose `app_metadata` has `participant: true`, which only
+the API, with the secret key, can write when it creates or reuses an account for an invitation;
+any other answers `403`, so a stranger's number costs nothing. It answers `503` while the secret
+or the `SMS` binding is missing and `500` when the Worker fails.
+
+Declared in `supabase/config.toml` and pushed by CI: phone sign-in on, phone confirmation on, one
+code per number per minute, the hook, and a cap of 100 SMS an hour for the project. Two settings
+the file cannot hold are set by the configuration job through the Management API after the push:
+the code's expiry, 10 minutes (`sms_otp_exp`, which `SMS_OTP_EXPIRY_MINUTES` in the auth-hooks
+module repeats to the reader), and `sms_autoconfirm` off, because the CLI pushes
+`enable_confirmations` inverted ([supabase/cli#6997](https://github.com/supabase/cli/issues/6997));
+`[remotes.production.auth.sms]` compensates so the push itself does not flip it. Locally the
+code works 100 minutes, which the CLI fixes. Nothing has to be clicked in the dashboard. After
+the first deployment, check that **Authentication → Sign In / Providers → Phone** is on with the
+Send SMS hook as its provider and phone confirmations on; if the push is refused for want of an
+SMS provider, switch the phone provider on there once with the hook selected and re-run the job.
+
 The hook itself, the password rules, and closed signup are declared in `supabase/config.toml`
 and applied to the hosted project by CI; see [CI/CD](ci-cd.md).
 
@@ -1096,7 +1133,7 @@ authentication still applies independently, including to non-browser clients.
 ## Deployment and verification
 
 `apps/api/wrangler.jsonc` declares the `ssm-usor-api` Worker at `api.ssmusor.ro`, its
-production origins, and the service binding to `ssm-usor-mail`, which therefore deploys first. The **CI** workflow supplies the public Supabase bindings and deploys
+production origins, and the service bindings to `ssm-usor-mail` and `ssm-usor-sms`, which therefore deploy first. The **CI** workflow supplies the public Supabase bindings and deploys
 and checks the API when its inputs change on `main`. If the SPA also changed, its deployment
 waits for the API checks; otherwise the SPA is left untouched. `.dev.vars` is local only.
 See the [application deployment guide](app-deployment.md) for GitHub configuration and release steps.

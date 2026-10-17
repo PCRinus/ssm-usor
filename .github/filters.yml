@@ -36,6 +36,10 @@ mail:
   - *shared
   - 'apps/mail/**'
   - 'packages/contracts/**'
+sms:
+  - *shared
+  - 'apps/sms/**'
+  - 'packages/contracts/**'
 # Only its interface lives in the contracts.
 pdf:
   - *shared

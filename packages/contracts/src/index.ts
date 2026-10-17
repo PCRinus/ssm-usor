@@ -31,6 +31,7 @@ export * from './protective-equipment';
 export * from './risk-evaluations';
 export * from './risk-levels';
 export * from './service-contracts';
+export * from './sms';
 export * from './training-sheets';
 export * from './trainings';
 export * from './waitlist';

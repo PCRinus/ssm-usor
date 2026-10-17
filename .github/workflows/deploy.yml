@@ -35,6 +35,7 @@ jobs:
       app: ${{ steps.select.outputs.app }}
       portal: ${{ steps.select.outputs.portal }}
       mail: ${{ steps.select.outputs.mail }}
+      sms: ${{ steps.select.outputs.sms }}
       pdf: ${{ steps.select.outputs.pdf }}
       legislation: ${{ steps.select.outputs.legislation }}
       marketing: ${{ steps.select.outputs.marketing }}
@@ -85,12 +86,12 @@ jobs:
           CHANGES: ${{ steps.filter.outputs.changes || '[]' }}
         shell: bash
         run: |
-          all='["api","app","portal","mail","pdf","legislation","marketing","database","templates"]'
+          all='["api","app","portal","mail","sms","pdf","legislation","marketing","database","templates"]'
           if [[ "$EVERYTHING" == true ]]; then CHANGES=$all; fi
           for name in $(jq -r '.[]' <<< "$all"); do
             echo "$name=$(jq --arg name "$name" 'index($name) != null' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
           done
-          echo "projects=$(jq -c 'map(select(IN("api", "app", "portal", "mail", "pdf", "legislation", "marketing")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
+          echo "projects=$(jq -c 'map(select(IN("api", "app", "portal", "mail", "sms", "pdf", "legislation", "marketing")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
 
   validate:
     name: Validate repository
@@ -186,7 +187,7 @@ jobs:
           for project in $(jq -r '.[]' <<< "$PROJECTS"); do
             mkdir -p "$RUNNER_TEMP/release-$project"
             cp -R "apps/$project/.wrangler/deploy" "$RUNNER_TEMP/release-$project/worker"
-            if [[ "$project" != api && "$project" != mail && "$project" != pdf && "$project" != legislation ]]; then
+            if [[ "$project" != api && "$project" != mail && "$project" != sms && "$project" != pdf && "$project" != legislation ]]; then
               cp -R "apps/$project/dist" "$RUNNER_TEMP/release-$project/dist"
             fi
           done
@@ -230,6 +231,17 @@ jobs:
         with:
           name: release-mail-${{ github.sha }}
           path: ${{ runner.temp }}/release-mail/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+      - name: Upload validated sms release
+        if: needs.changes.outputs.sms == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-sms-${{ github.sha }}
+          path: ${{ runner.temp }}/release-sms/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
@@ -286,6 +298,7 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
       SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
+      SUPABASE_AUTH_SMS_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_SMS_HOOK_SECRET }}
     steps:
       - uses: actions/checkout@v7
 
@@ -296,6 +309,7 @@ jobs:
           : "${SUPABASE_DB_PASSWORD:?Set SUPABASE_DB_PASSWORD in GitHub secrets}"
           : "${SUPABASE_PROJECT_ID:?Set SUPABASE_PROJECT_ID in GitHub variables}"
           : "${SUPABASE_AUTH_HOOK_SECRET:?Set SUPABASE_AUTH_HOOK_SECRET in GitHub secrets}"
+          : "${SUPABASE_AUTH_SMS_HOOK_SECRET:?Set SUPABASE_AUTH_SMS_HOOK_SECRET in GitHub secrets}"
 
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v3
@@ -440,6 +454,59 @@ jobs:
           # Uploaded only once the key exists, so the Worker can ship before the Resend account does.
           secrets: ${{ env.RESEND_API_KEY != '' && 'RESEND_API_KEY' || '' }}
 
+  deploy-sms:
+    name: Deploy SMS Worker
+    needs: [changes, validate, build]
+    if: needs.changes.outputs.sms == 'true'
+    runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: deploy-sms
+      cancel-in-progress: false
+    timeout-minutes: 15
+    environment:
+      name: production
+    env:
+      TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+      TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+      SMS_FROM: ${{ secrets.SMS_FROM }}
+      TWILIO_CONFIGURED: ${{ secrets.TWILIO_ACCOUNT_SID != '' && secrets.TWILIO_AUTH_TOKEN != '' && secrets.SMS_FROM != '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-sms-${{ github.sha }}
+          path: apps/sms/.wrangler/release
+
+      - name: Report missing provider settings
+        if: env.TWILIO_CONFIGURED != 'true'
+        run: echo "::warning::TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and SMS_FROM are not all set. The SMS Worker will log messages instead of sending them."
+
+      - name: Prepare deployment message
+        id: metadata
+        uses: ./.github/actions/deployment-message
+
+      - name: Deploy validated SMS bundle
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/sms
+          packageManager: pnpm
+          command: >-
+            deploy .wrangler/release/worker/index.js --no-bundle
+            --tag ${{ github.sha }}
+            --message "${{ steps.metadata.outputs.message }}"
+          # All three or none, so the Worker can ship before the Twilio account does. The action
+          # drops the blank lines it leaves.
+          vars: ${{ env.TWILIO_CONFIGURED == 'true' && 'SMS_FROM' || '' }}
+          secrets: |
+            ${{ env.TWILIO_CONFIGURED == 'true' && 'TWILIO_ACCOUNT_SID' || '' }}
+            ${{ env.TWILIO_CONFIGURED == 'true' && 'TWILIO_AUTH_TOKEN' || '' }}
+
   deploy-legislation:
     name: Deploy legislation Worker
     needs: [changes, validate, build, deploy-database]
@@ -517,9 +584,9 @@ jobs:
 
   deploy-api:
     name: Deploy API
-    needs: [changes, validate, build, deploy-database, deploy-mail, deploy-pdf]
-    # Migrations and the mail Worker land before code that depends on them: the API's
-    # service binding cannot deploy against a Worker that does not exist. Skipped jobs are fine.
+    needs: [changes, validate, build, deploy-database, deploy-mail, deploy-sms, deploy-pdf]
+    # Migrations and the mail and SMS Workers land before code that depends on them: the API's
+    # service bindings cannot deploy against a Worker that does not exist. Skipped jobs are fine.
     if: >-
       !cancelled() &&
       needs.changes.outputs.api == 'true' &&
@@ -527,6 +594,7 @@ jobs:
       needs.build.result == 'success' &&
       (needs.deploy-database.result == 'success' || needs.deploy-database.result == 'skipped') &&
       (needs.deploy-mail.result == 'success' || needs.deploy-mail.result == 'skipped') &&
+      (needs.deploy-sms.result == 'success' || needs.deploy-sms.result == 'skipped') &&
       (needs.deploy-pdf.result == 'success' || needs.deploy-pdf.result == 'skipped')
     runs-on: ubuntu-latest
     # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
@@ -557,12 +625,13 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
+          SUPABASE_AUTH_SMS_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_SMS_HOOK_SECRET }}
           POSTHOG_SUPPORT_SECRET_KEY: ${{ secrets.POSTHOG_SUPPORT_SECRET_KEY }}
         shell: bash
         run: |
           {
             echo 'names<<EOF'
-            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY; do
+            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET SUPABASE_AUTH_SMS_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY; do
               if [[ -n "${!name}" ]]; then
                 echo "$name"
               else
@@ -599,6 +668,7 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
+          SUPABASE_AUTH_SMS_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_SMS_HOOK_SECRET }}
           POSTHOG_SUPPORT_SECRET_KEY: ${{ secrets.POSTHOG_SUPPORT_SECRET_KEY }}
           # Issued documents get their PDF from apps/pdf. Set here and not in wrangler.jsonc,
           # so that `wrangler dev`, where nothing answers that binding, issues without one.
@@ -636,7 +706,8 @@ jobs:
   deploy-auth-config:
     name: Deploy Supabase configuration
     needs: [changes, validate, deploy-api]
-    # After the API: the Send Email hook must not point at an endpoint that is not deployed yet.
+    # After the API: the Send Email and Send SMS hooks must not point at an endpoint that is not
+    # deployed yet.
     # A skipped API deployment is fine only when the API was not selected; when it was selected
     # and skipped, something before it failed and the endpoint may be missing.
     if: >-
@@ -658,8 +729,9 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
-      # Read by supabase/config.toml through env(); the API holds the same value.
+      # Read by supabase/config.toml through env(); the API holds the same values.
       SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
+      SUPABASE_AUTH_SMS_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_SMS_HOOK_SECRET }}
     steps:
       - uses: actions/checkout@v7
 
@@ -669,6 +741,7 @@ jobs:
           : "${SUPABASE_ACCESS_TOKEN:?Set SUPABASE_ACCESS_TOKEN in GitHub secrets}"
           : "${SUPABASE_PROJECT_ID:?Set SUPABASE_PROJECT_ID in GitHub variables}"
           : "${SUPABASE_AUTH_HOOK_SECRET:?Set SUPABASE_AUTH_HOOK_SECRET in GitHub secrets}"
+          : "${SUPABASE_AUTH_SMS_HOOK_SECRET:?Set SUPABASE_AUTH_SMS_HOOK_SECRET in GitHub secrets}"
           grep -q "project_id = \"$SUPABASE_PROJECT_ID\"" supabase/config.toml \
             || { echo "::error::supabase/config.toml has no [remotes] block for $SUPABASE_PROJECT_ID, so the local values would be pushed."; exit 1; }
 
@@ -685,6 +758,19 @@ jobs:
       # configuration is left as it is.
       - name: Apply supabase/config.toml to the hosted project
         run: supabase config push --project-ref "$SUPABASE_PROJECT_ID" --yes
+
+      # What config.toml cannot say: how long a texted code works, which the Send SMS hook's
+      # message states (SMS_OTP_EXPIRY_MINUTES in apps/api), and that the first code confirms a
+      # number, which the CLI pushes inverted (supabase/cli#6997). Through the Management API.
+      - name: Apply the phone sign-in settings config.toml cannot hold
+        shell: bash
+        run: |
+          curl --fail-with-body --silent --show-error \
+            -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/config/auth" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d '{"sms_otp_exp": 600, "sms_autoconfirm": false}' \
+            | jq -e '.sms_otp_exp == 600 and .sms_autoconfirm == false' > /dev/null
 
   deploy-app:
     name: Deploy SPA

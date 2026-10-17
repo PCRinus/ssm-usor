@@ -16,6 +16,8 @@
   // apps/mail has no routes; this binding is the only way to reach it.
   "services": [
     { "binding": "MAIL", "service": "ssm-usor-mail", "entrypoint": "Mail" },
+    // apps/sms neither: it holds the Twilio credentials and can do nothing else (ADR 022).
+    { "binding": "SMS", "service": "ssm-usor-sms", "entrypoint": "Sms" },
     // apps/pdf has no routes either.
     { "binding": "PDF", "service": "ssm-usor-pdf", "entrypoint": "Pdf" },
   ],

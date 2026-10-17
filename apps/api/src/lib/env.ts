@@ -1,4 +1,4 @@
-import type { CurrentUser, MailService, PdfService } from '@ssm-usor/contracts';
+import type { CurrentUser, MailService, PdfService, SmsService } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type { Membership } from './membership';
@@ -20,6 +20,8 @@ export type ApiEnv = {
     TURNSTILE_SECRET_KEY?: string;
     // Signs Supabase Auth's hook calls: "v1,whsec_<base64>", the same value Supabase holds.
     SUPABASE_AUTH_HOOK_SECRET?: string;
+    // The same for its Send SMS hook, a secret of its own.
+    SUPABASE_AUTH_SMS_HOOK_SECRET?: string;
     // Used only by the API to sign verified PostHog Support identities.
     POSTHOG_SUPPORT_SECRET_KEY?: string;
     MARKETING_ORIGIN?: string;
@@ -28,6 +30,7 @@ export type ApiEnv = {
     // Where this API is reachable from an email; the request URL is not reliable under wrangler dev.
     API_ORIGIN?: string;
     MAIL?: MailService;
+    SMS?: SmsService;
     PDF?: PdfService;
     // "service" where apps/pdf is deployed and the binding above is to be used.
     PDF_CONVERSION?: string;

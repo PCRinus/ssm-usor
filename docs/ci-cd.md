@@ -33,10 +33,11 @@ available as a required PR check, including on documentation-only changes.
 | `packages/api-http/**`                                                                                                                    | SPA and portal                                       |
 | `apps/api/**` (except the shared contract below)                                                                                          | API                                                  |
 | `apps/mail/**`                                                                                                                            | Mail Worker                                          |
+| `apps/sms/**`                                                                                                                             | SMS Worker ([guide](sms.md))                         |
 | `apps/pdf/**`, `packages/contracts/src/pdf.ts`                                                                                            | PDF Worker and its container image ([guide](pdf.md)) |
 | `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                   |
 | `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA, portal and marketing                            |
-| `packages/contracts/**`                                                                                                                   | API, SPA, and mail Worker                            |
+| `packages/contracts/**`                                                                                                                   | API, SPA, portal, mail and SMS Workers               |
 | `apps/api/openapi.json`                                                                                                                   | API and SPA                                          |
 | `orval.config.ts`                                                                                                                         | SPA                                                  |
 | `supabase/config.toml`, `supabase/migrations/**`, workflow/action/filter files                                                            | Database (hosted migrations and configuration)       |
@@ -79,9 +80,11 @@ already-bundled Worker with `--no-bundle`; SPA uploads the built static assets. 
 job runs lint, tests, application builds, or code generation again before publishing.
 
 Database migrations deploy first when selected, from the `production` environment's Supabase
-credentials. Mail and marketing deploy independently; the API waits for the mail Worker when
-both are selected, because its service binding needs that Worker to exist. The mail deployment uploads
-`RESEND_API_KEY` when the `production` environment has it and warns when it does not. SPA-only changes skip API deployment. If API and
+credentials. Mail, SMS and marketing deploy independently; the API waits for the mail and SMS
+Workers when they are selected, because its service bindings need those Workers to exist. The mail deployment uploads
+`RESEND_API_KEY` when the `production` environment has it and warns when it does not; the SMS
+deployment uploads `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and `SMS_FROM` when all three are
+there and warns when they are not. SPA-only changes skip API deployment. If API and
 SPA both change, API deployment and its HTTP smoke tests must succeed before SPA deployment.
 Before uploading, the API job looks up the `ssm-usor-regeneration` queue the Worker sends to
 and consumes, and creates it when it is missing, because `wrangler deploy` refuses a binding to
@@ -104,7 +107,11 @@ must not point at an endpoint that is not deployed yet. Only properties the file
 written; `[remotes.production]` holds the values that differ from the local stack. The push
 does not ask for confirmation in CI, so the job prints `supabase config diff` first and
 refuses to run when the file has no `[remotes]` block for the project. It needs
-`SUPABASE_AUTH_HOOK_SECRET`, which the API deployment uploads too.
+`SUPABASE_AUTH_HOOK_SECRET` and `SUPABASE_AUTH_SMS_HOOK_SECRET`, which the API deployment uploads
+too, and so does the migrations job, whose `supabase link` reads the file. After the push it
+sets through the Management API the two phone sign-in settings the file cannot hold: the texted
+code's expiry, and phone confirmation, which the CLI pushes inverted
+([supabase/cli#6997](https://github.com/supabase/cli/issues/6997)).
 
 Selection compares a push with the last run on `main` that succeeded, so what a failed,
 cancelled or superseded run carried is selected again by the next push, whatever that push

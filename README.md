@@ -39,6 +39,7 @@ The pnpm/Turborepo workspace contains:
 - `apps/portal` — the participants' portal, a second React/Vite SPA ([guide](docs/portal.md));
 - `apps/api` — the Cloudflare Worker API;
 - `apps/mail` — the internal Worker that renders and sends email;
+- `apps/sms` — the internal Worker that sends text messages through Twilio ([guide](docs/sms.md));
 - `apps/pdf` — the internal Worker that turns a Word file into a PDF, with its container ([guide](docs/pdf.md));
 - `packages/contracts` — runtime schemas and shared transport types.
 - `packages/api-http` — the fetch adapter both SPAs' generated API clients call;

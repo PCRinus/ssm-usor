@@ -21,6 +21,8 @@ const env: ApiEnv['Bindings'] = {
     sendSignupConfirmation: vi.fn(),
     sendServiceContract: vi.fn(),
     sendSignedCopyReceived: vi.fn(),
+    sendParticipantInvitation: vi.fn(),
+    sendSignInCode: vi.fn(),
   },
 };
 

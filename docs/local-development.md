@@ -63,11 +63,11 @@ on this machine, and stops with a message when the stack is not running
   stack.
 - `--app-port` and `--api-port` (defaults 5173 and 8787) let it run beside a `pnpm dev` that
   points at hosted. A port already in use stops it with a message; nothing is killed.
-- The mail Worker: when port 8790 is free it starts one; when a `pnpm dev` already runs it,
-  the API uses that one through Wrangler's dev registry.
+- The mail and SMS Workers: when port 8790 (mail) or 8793 (SMS) is free it starts one; when a
+  `pnpm dev` already runs it, the API uses that one through Wrangler's dev registry.
 - It does not seed. An empty database needs `pnpm seed:local` and
   `pnpm templates:register:local`.
-- The local Auth still sends its emails (signup, password reset) to port 8797, where the flow
+- The local Auth still sends its emails (signup, password reset) and texted codes to port 8797, where the flow
   tests' API listens (see [Emails from the local Auth](#emails-from-the-local-auth)), not to
   this API.
 
@@ -119,6 +119,7 @@ The marketing site does not need Supabase settings.
 | Portal            | http://localhost:5174  |
 | Hono API          | http://localhost:8787  |
 | Mail Worker       | http://localhost:8790  |
+| SMS Worker        | http://localhost:8793  |
 | Legislation cron  | http://localhost:8792  |
 | Marketing         | http://localhost:4321  |
 | Supabase API/Auth | http://127.0.0.1:54321 |
@@ -136,15 +137,17 @@ documents migration fails on it. Restart it once with `pnpm supabase:stop` and
 
 ### Emails from the local Auth
 
-The local stack's Auth hands its emails (signup confirmation, password reset) to
-`http://host.docker.internal:8797/hooks/supabase/send-email`: the API that the browser flow
-tests start, which keeps emails in memory. Outside those tests nothing listens there, and
+The local stack's Auth hands its emails (signup confirmation, password reset, the portal's
+code) to `http://host.docker.internal:8797/hooks/supabase/send-email`, and the portal's texted
+codes to `…/hooks/supabase/send-sms`: the API that the browser flow tests start, which keeps
+both in memory. Outside those tests nothing listens there, and
 signing up or asking for a reset against the local stack fails.
 
 To receive them from your own `pnpm dev` instead, point the `uri` in `supabase/config.toml`
 at port 8787, restart the stack (`pnpm supabase:stop`, `pnpm supabase:start`), and give the API
 the `SUPABASE_AUTH_HOOK_SECRET` from `apps/api/.dev.vars.example`. The mail Worker then logs
-the email, or sends it when it holds a Resend key. Do not commit that change.
+the email, or sends it when it holds a Resend key. The same goes for the Send SMS hook, with
+`SUPABASE_AUTH_SMS_HOOK_SECRET` and the SMS Worker. Do not commit that change.
 
 ## Legislation check
 
