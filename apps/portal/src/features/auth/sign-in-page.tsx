@@ -218,8 +218,13 @@ function CodeStep({
         </h1>
         <p data-testid="sign-in-code-sent" className="leading-relaxed text-muted-foreground">
           Dacă adresa este cunoscută, un cod este pe drum spre{' '}
-          <span className="font-medium break-all text-foreground">{target.shown}</span>. Codul are
-          șase cifre.
+          <span
+            data-testid="sign-in-code-target"
+            className="block font-medium wrap-anywhere text-foreground"
+          >
+            {target.shown}
+          </span>{' '}
+          Codul are șase cifre.
         </p>
       </div>
       <form

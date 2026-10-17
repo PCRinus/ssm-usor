@@ -43,7 +43,7 @@ describe('signing in with a code', () => {
       'textContent',
       expect.stringMatching(sameAnswer)
     );
-    expect(screen.getByTestId('sign-in-code-sent').textContent).toContain('ana@example.ro');
+    expect(screen.getByTestId('sign-in-code-target').textContent).toBe('ana@example.ro');
     expect(client.signInWithOtp).toHaveBeenCalledWith({
       email: 'ana@example.ro',
       options: { shouldCreateUser: false },
@@ -54,7 +54,7 @@ describe('signing in with a code', () => {
     const client = fakeAuthClient();
     await requestCode(client, '0721 234 567');
 
-    expect(await screen.findByTestId('sign-in-code-sent')).toBeTruthy();
+    expect((await screen.findByTestId('sign-in-code-target')).textContent).toBe('+40721234567');
     expect(client.signInWithOtp).toHaveBeenCalledWith({
       phone: '+40721234567',
       options: { shouldCreateUser: false },
