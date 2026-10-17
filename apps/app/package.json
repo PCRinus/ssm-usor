@@ -20,6 +20,7 @@
     "@docx-editor.dev/fonts": "catalog:",
     "@docx-editor.dev/react": "catalog:",
     "@hookform/resolvers": "^5.9.1",
+    "@ssm-usor/api-http": "workspace:*",
     "@ssm-usor/contracts": "workspace:*",
     "@ssm-usor/ui": "workspace:*",
     "@supabase/supabase-js": "^2.117.2",

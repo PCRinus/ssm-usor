@@ -45,7 +45,7 @@ pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
 
 ```bash
 pnpm dev:local
-pnpm dev:local --app-port 5174 --api-port 8788
+pnpm dev:local --app-port 5175 --api-port 8788
 ```
 
 It starts the API (`wrangler dev`) and the SPA (Vite) against the local stack, without
@@ -116,6 +116,7 @@ The marketing site does not need Supabase settings.
 | Service           | URL                    |
 | ----------------- | ---------------------- |
 | React SPA         | http://localhost:5173  |
+| Portal            | http://localhost:5174  |
 | Hono API          | http://localhost:8787  |
 | Mail Worker       | http://localhost:8790  |
 | Legislation cron  | http://localhost:8792  |

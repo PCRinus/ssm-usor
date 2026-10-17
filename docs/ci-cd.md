@@ -29,11 +29,13 @@ available as a required PR check, including on documentation-only changes.
 | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | `apps/marketing/**`                                                                                                                       | Marketing                                            |
 | `apps/app/**`                                                                                                                             | SPA                                                  |
+| `apps/portal/**`                                                                                                                          | Portal                                               |
+| `packages/api-http/**`                                                                                                                    | SPA and portal                                       |
 | `apps/api/**` (except the shared contract below)                                                                                          | API                                                  |
 | `apps/mail/**`                                                                                                                            | Mail Worker                                          |
 | `apps/pdf/**`, `packages/contracts/src/pdf.ts`                                                                                            | PDF Worker and its container image ([guide](pdf.md)) |
 | `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                   |
-| `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA and marketing                                    |
+| `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA, portal and marketing                            |
 | `packages/contracts/**`                                                                                                                   | API, SPA, and mail Worker                            |
 | `apps/api/openapi.json`                                                                                                                   | API and SPA                                          |
 | `orval.config.ts`                                                                                                                         | SPA                                                  |
@@ -124,7 +126,9 @@ finished and been reported, and remain advisory. They run against production wit
 account, so they stay small; flows that create users or send email are tested against a
 local stack on pull requests instead. The job caches the Chromium download by Playwright
 version and installs only its system packages on a cache hit. API smoke-test failures block
-an accompanying SPA release. There is no check of the old live release before deployment.
+an accompanying SPA release. The portal has the same pair of jobs, **Deploy portal** and
+**Verify deployed portal**, with only signed-out smoke checks and no secrets; it waits for the
+API like the SPA and never for the SPA. There is no check of the old live release before deployment.
 
 ## Caching
 

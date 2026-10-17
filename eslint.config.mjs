@@ -8,7 +8,11 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 const scriptFiles = ['**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}'];
-const reactFiles = ['apps/app/**/*.{js,jsx,ts,tsx}', 'packages/ui/**/*.{js,jsx,ts,tsx}'];
+const reactFiles = [
+  'apps/app/**/*.{js,jsx,ts,tsx}',
+  'apps/portal/**/*.{js,jsx,ts,tsx}',
+  'packages/ui/**/*.{js,jsx,ts,tsx}',
+];
 
 const orderedImports = {
   plugins: {
@@ -31,6 +35,7 @@ export default defineConfig([
     // The provider's originals, specs, and scratch previews; git ignores them too.
     'packages/document-engine/originals/**',
     'apps/app/src/routeTree.gen.ts',
+    'apps/portal/src/routeTree.gen.ts',
     '**/node_modules/**',
     '**/playwright-report/**',
     '**/playwright-report-flows/**',
@@ -66,7 +71,7 @@ export default defineConfig([
   {
     // Route components stay unexported so the router plugin can split them into lazy
     // chunks; the plugin adds its own Fast Refresh boundary to every route file.
-    files: ['apps/app/src/routes/**/*.tsx'],
+    files: ['apps/app/src/routes/**/*.tsx', 'apps/portal/src/routes/**/*.tsx'],
     rules: {
       'react-refresh/only-export-components': 'off',
     },

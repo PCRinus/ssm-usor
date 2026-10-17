@@ -22,10 +22,16 @@ app:
   - &ui
     - 'packages/ui/**'
     - 'packages/design-tokens/**'
+  - 'packages/api-http/**'
   # The generated client is not a workspace dependency on contracts.
   - 'packages/contracts/**'
   - 'apps/api/openapi.json'
   - 'orval.config.ts'
+portal:
+  - *shared
+  - *ui
+  - 'apps/portal/**'
+  - 'packages/api-http/**'
 mail:
   - *shared
   - 'apps/mail/**'

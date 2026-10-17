@@ -33,6 +33,7 @@ jobs:
     outputs:
       api: ${{ steps.select.outputs.api }}
       app: ${{ steps.select.outputs.app }}
+      portal: ${{ steps.select.outputs.portal }}
       mail: ${{ steps.select.outputs.mail }}
       pdf: ${{ steps.select.outputs.pdf }}
       legislation: ${{ steps.select.outputs.legislation }}
@@ -84,12 +85,12 @@ jobs:
           CHANGES: ${{ steps.filter.outputs.changes || '[]' }}
         shell: bash
         run: |
-          all='["api","app","mail","pdf","legislation","marketing","database","templates"]'
+          all='["api","app","portal","mail","pdf","legislation","marketing","database","templates"]'
           if [[ "$EVERYTHING" == true ]]; then CHANGES=$all; fi
           for name in $(jq -r '.[]' <<< "$all"); do
             echo "$name=$(jq --arg name "$name" 'index($name) != null' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
           done
-          echo "projects=$(jq -c 'map(select(IN("api", "app", "mail", "pdf", "legislation", "marketing")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
+          echo "projects=$(jq -c 'map(select(IN("api", "app", "portal", "mail", "pdf", "legislation", "marketing")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
 
   validate:
     name: Validate repository
@@ -150,7 +151,10 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Check public application configuration
-        if: needs.changes.outputs.app == 'true' || needs.changes.outputs.api == 'true'
+        if: >-
+          needs.changes.outputs.app == 'true' ||
+          needs.changes.outputs.portal == 'true' ||
+          needs.changes.outputs.api == 'true'
         shell: bash
         run: |
           : "${VITE_SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
@@ -204,6 +208,17 @@ jobs:
         with:
           name: release-app-${{ github.sha }}
           path: ${{ runner.temp }}/release-app/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+      - name: Upload validated portal release
+        if: needs.changes.outputs.portal == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-portal-${{ github.sha }}
+          path: ${{ runner.temp }}/release-portal/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
@@ -790,6 +805,123 @@ jobs:
           path: |
             apps/app/playwright-report/
             apps/app/test-results/
+          retention-days: 7
+          overwrite: true
+
+  deploy-portal:
+    name: Deploy portal
+    needs: [changes, validate, build, deploy-api]
+    # Like the SPA, after the API it calls, and a skipped API job only on releases without it.
+    # It does not wait for the SPA: the two share nothing at runtime.
+    if: >-
+      !cancelled() &&
+      needs.changes.outputs.portal == 'true' &&
+      needs.validate.result == 'success' &&
+      needs.build.result == 'success' &&
+      (needs.deploy-api.result == 'success' ||
+        (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true'))
+    runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: deploy-portal
+      cancel-in-progress: false
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://portal.ssmusor.ro
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-portal-${{ github.sha }}
+          path: apps/portal/.wrangler/release
+
+      - name: Prepare deployment message
+        id: metadata
+        uses: ./.github/actions/deployment-message
+
+      - name: Deploy validated portal assets
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/portal
+          packageManager: pnpm
+          command: >-
+            deploy --assets .wrangler/release/dist
+            --tag ${{ github.sha }}
+            --message "${{ steps.metadata.outputs.message }}"
+
+  # Nothing signs in yet, so the checks need no account and no secrets.
+  verify-portal:
+    name: Verify deployed portal
+    needs: [changes, deploy-portal]
+    if: ${{ !cancelled() && needs.deploy-portal.result == 'success' }}
+    runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: verify-portal
+      cancel-in-progress: false
+    timeout-minutes: 15
+    environment:
+      name: production
+    env:
+      E2E_PORTAL_URL: https://portal.ssmusor.ro
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      # The browser download is cached by Playwright version; its system packages are not.
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --filter @ssm-usor/portal exec playwright --version | tr -cd '0-9.')" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the Chromium download
+        id: chromium-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Chromium
+        if: steps.chromium-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @ssm-usor/portal exec playwright install --with-deps chromium
+
+      - name: Install Chromium's system packages
+        if: steps.chromium-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @ssm-usor/portal exec playwright install-deps chromium
+
+      - name: Check deployed portal
+        id: portal-checks
+        # Advisory during development; the deployment completed in the job before this one.
+        continue-on-error: true
+        run: pnpm --filter @ssm-usor/portal test:e2e
+
+      - name: Report browser verification warning
+        if: ${{ !cancelled() && steps.portal-checks.outcome == 'failure' }}
+        run: |
+          echo "::warning::Portal deployed, but browser verification did not pass. Review the Playwright results."
+          cat >> "$GITHUB_STEP_SUMMARY" <<'MARKDOWN'
+          ### Portal verification warning
+
+          The portal was deployed, but the Playwright browser checks did not pass.
+          These checks are currently advisory. Review the test logs and the `playwright-portal`
+          artifact, if available, before treating this release as verified.
+          MARKDOWN
+
+      - name: Upload browser test report
+        if: ${{ !cancelled() && steps.portal-checks.outcome != 'skipped' && steps.portal-checks.outcome != '' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-portal
+          path: |
+            apps/portal/playwright-report/
+            apps/portal/test-results/
           retention-days: 7
           overwrite: true
 

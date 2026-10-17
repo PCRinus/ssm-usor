@@ -9,7 +9,10 @@ has its own deployment job and can be released independently:
 | `ssm-usor-api` | `api.ssmusor.ro` | Hono API and Supabase bearer-token verification |
 | `ssm-usor-app` | `app.ssmusor.ro` | React SPA and static assets                     |
 
-Both disable `workers.dev` routes. Cloudflare creates the custom-domain DNS records and
+The portal's Worker, `ssm-usor-portal` at `portal.ssmusor.ro`, deploys the same way from the
+same values; see the [portal guide](portal.md).
+
+All of them disable `workers.dev` routes. Cloudflare creates the custom-domain DNS records and
 certificates on deployment in the account hosting the active `ssmusor.ro` zone. Resolve any
 conflicting records for these two subdomains before the first release. Marketing deploys
 independently; see the [marketing deployment guide](deployment.md).

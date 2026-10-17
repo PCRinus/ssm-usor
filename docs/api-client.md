@@ -38,7 +38,10 @@ runtime. Shared schemas remain plain Zod; OpenAPI names are attached through Zod
 in the API workspace, keeping framework dependencies out of the contracts package.
 
 Do not edit generated TypeScript. ESLint skips that directory; TypeScript and Prettier still
-check it. The HTTP adapter in `apps/app/src/api/http.ts` is handwritten and tested.
+check it. The HTTP adapter is the package `@ssm-usor/api-http`, handwritten and tested;
+`apps/app/src/api/http.ts` wires it with the app's PostHog reporting of failed requests, and
+`apps/portal/src/api/http.ts` without it. Each of those files is its app's orval mutator, so it
+declares `apiFetch` and `ErrorType` itself: orval does not follow re-exports.
 
 ## Using the client
 

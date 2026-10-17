@@ -36,10 +36,12 @@ The pnpm/Turborepo workspace contains:
 
 - `apps/marketing` — the static Astro acquisition site and landing-page concepts;
 - `apps/app` — the client-only React/Vite application shell;
+- `apps/portal` — the participants' portal, a second React/Vite SPA ([guide](docs/portal.md));
 - `apps/api` — the Cloudflare Worker API;
 - `apps/mail` — the internal Worker that renders and sends email;
 - `apps/pdf` — the internal Worker that turns a Word file into a PDF, with its container ([guide](docs/pdf.md));
 - `packages/contracts` — runtime schemas and shared transport types.
+- `packages/api-http` — the fetch adapter both SPAs' generated API clients call;
 - `packages/design-tokens` — shared brand colors, typography, radii, and Tailwind theme;
 - `packages/ui` — shared shadcn React primitives and the Tailwind CSS entry point.
 
