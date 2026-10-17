@@ -27,6 +27,25 @@ export const signInCodeSmsSchema = z.object({
 
 export type SignInCodeSms = z.infer<typeof signInCodeSmsSchema>;
 
+/** The code a signer types to sign (ADR 023): the API's own, not Supabase Auth's. */
+export const signingCodeSmsSchema = z.object({
+  to: recipientSchema,
+  code: z.string().regex(/^\d{6}$/),
+  expiresInMinutes: z.int().min(1).max(60),
+});
+
+export type SigningCodeSms = z.infer<typeof signingCodeSmsSchema>;
+
+/** Tells a signer that trainings wait for their signature (ADR 023): a count, never the list. */
+export const signatureRequestSmsSchema = z.object({
+  to: recipientSchema,
+  count: z.int().min(1).max(10_000),
+  signUrl: z.url(),
+  place: z.enum(['portal', 'app']),
+});
+
+export type SignatureRequestSms = z.infer<typeof signatureRequestSmsSchema>;
+
 /** `id` is the provider's message id, or null when the message was only logged. */
 export type SmsReceipt = { id: string | null };
 
@@ -37,4 +56,6 @@ export type SmsReceipt = { id: string | null };
 export interface SmsService {
   sendParticipantInvitation(input: ParticipantInvitationSms): Promise<SmsReceipt>;
   sendSignInCode(input: SignInCodeSms): Promise<SmsReceipt>;
+  sendSigningCode(input: SigningCodeSms): Promise<SmsReceipt>;
+  sendSignatureRequest(input: SignatureRequestSms): Promise<SmsReceipt>;
 }

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { participantInvitationText, signInCodeText, SMS_MAX_LENGTH, toSmsText } from './messages';
+import {
+  participantInvitationText,
+  signatureRequestText,
+  signInCodeText,
+  signingCodeText,
+  SMS_MAX_LENGTH,
+  toSmsText,
+} from './messages';
 
 // The GSM 03.38 default alphabet, without the escape to the extension table.
 const gsm7Basic = new Set(
@@ -110,5 +117,67 @@ describe('sign-in code', () => {
 
     expect(text).toContain(words);
     expectOneGsm7Segment(text);
+  });
+});
+
+describe('signing code', () => {
+  it('is in Romanian, without diacritics, for a Romanian number', () => {
+    const text = signingCodeText({ to: '+40722123456', code: '123456', expiresInMinutes: 10 });
+
+    expect(text).toBe(
+      'Codul tau de semnare este 123456. E valabil 10 minute. Nu il da nimanui: nimeni de la SSM Usor nu ti-l va cere.'
+    );
+    expectOneGsm7Segment(text);
+  });
+
+  it('is in English for any other number', () => {
+    const text = signingCodeText({ to: '+447700900123', code: '123456', expiresInMinutes: 10 });
+
+    expect(text).toBe(
+      'Your signing code is 123456. It is valid for 10 minutes. Do not share it: nobody from SSM Usor will ask you for it.'
+    );
+    expectOneGsm7Segment(text);
+  });
+});
+
+describe('signature request', () => {
+  const request = (to: string, count: number, place: 'portal' | 'app' = 'portal') =>
+    signatureRequestText({
+      to,
+      count,
+      place,
+      signUrl: place === 'portal' ? portalUrl : 'https://app.ssmusor.ro',
+    });
+
+  it('counts the trainings and sends a participant to the portal, in Romanian', () => {
+    const text = request('+40722123456', 7);
+
+    expect(text).toBe('Ai 7 instruiri de semnat in portalul SSM Usor: https://portal.ssmusor.ro');
+    expectOneGsm7Segment(text);
+  });
+
+  it('sends a member to the app', () => {
+    expect(request('+40722123456', 3, 'app')).toBe(
+      'Ai 3 instruiri de semnat in SSM Usor: https://app.ssmusor.ro'
+    );
+  });
+
+  it.each([
+    [1, 'Ai o instruire de semnat'],
+    [19, 'Ai 19 instruiri de semnat'],
+    [20, 'Ai 20 de instruiri de semnat'],
+    [101, 'Ai 101 instruiri de semnat'],
+    [120, 'Ai 120 de instruiri de semnat'],
+  ])('agrees the Romanian words with %i', (count, words) => {
+    expect(request('+40722123456', count)).toMatch(new RegExp(`^${words} `));
+  });
+
+  it('is in English for any other number', () => {
+    expect(request('+373691234567', 1)).toBe(
+      'You have 1 training to sign in the SSM Usor portal: https://portal.ssmusor.ro'
+    );
+    expect(request('+373691234567', 4, 'app')).toBe(
+      'You have 4 trainings to sign in SSM Usor: https://app.ssmusor.ro'
+    );
   });
 });

@@ -53,11 +53,17 @@ const mail: MailService = {
   sendSignedCopyReceived: ({ to, leadUrl }) => record('signed-copy-received', to, leadUrl),
   sendParticipantInvitation: ({ to, portalUrl }) => record('participant-invitation', to, portalUrl),
   sendSignInCode: ({ to, code }) => record('sign-in-code', to, `code=${code}`),
+  sendSigningCode: ({ to, code }) => record('signing-code', to, `code=${code}`),
+  sendSignatureRequest: ({ to, signUrl, count }) =>
+    record('signature-request', to, `${signUrl} count=${count}`),
 };
 const sms: SmsService = {
   sendParticipantInvitation: ({ to, portalUrl }) =>
     record('participant-invitation-sms', to, portalUrl),
   sendSignInCode: ({ to, code }) => record('sign-in-code-sms', to, `code=${code}`),
+  sendSigningCode: ({ to, code }) => record('signing-code-sms', to, `code=${code}`),
+  sendSignatureRequest: ({ to, signUrl, count }) =>
+    record('signature-request-sms', to, `${signUrl} count=${count}`),
 };
 
 // Every message arrives as its last delivery: an error fails its item instead of waiting for a
