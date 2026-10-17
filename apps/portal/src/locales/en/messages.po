@@ -9,7 +9,7 @@ msgstr ""
 
 #: src/features/training/training-sheets.tsx
 msgid "{count, plural, one {# instruire, actualizată {updated}} few {# instruiri, actualizată {updated}} other {# de instruiri, actualizată {updated}}}"
-msgstr "{count, plural, one {# training session, updated {updated}} other {# training sessions, updated {updated}}}"
+msgstr "{count, plural, one {# session, updated {updated}} other {# sessions, updated {updated}}}"
 
 #: src/features/home/home-page.tsx
 msgid "{count, plural, one {angajat} few {angajați} other {de angajați}}"
@@ -310,7 +310,7 @@ msgstr "Individual training sheet, {label}"
 
 #: src/features/training/training-summary.tsx
 msgid "Fișa individuală {label}, PDF"
-msgstr "Individual training sheet, {label} (PDF)"
+msgstr "{label} training sheet (PDF)"
 
 #: src/features/training/use-sheet-actions.ts
 msgid "Fișa nu poate fi întocmită încă: lipsesc date pe care le completează specialistul."

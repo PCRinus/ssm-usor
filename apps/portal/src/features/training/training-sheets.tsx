@@ -89,7 +89,8 @@ function TrainingSheetCard({
   const untrained = records?.length === 0;
   const openable = sheet?.ready === true && records !== undefined && !untrained;
   const latest = records?.[0];
-  const updated = latest && formatDate(latest.heldOn, 'short');
+  // Kept on one line: a date split across two reads as two separate facts.
+  const updated = latest && formatDate(latest.heldOn, 'short').replaceAll(' ', '\u00a0');
   const count = records?.length ?? 0;
 
   return (

@@ -245,7 +245,7 @@ describe('Instruiri', () => {
   it('counts the records of a ready sheet and says when it was last updated', async () => {
     mountPortal(signedIn(), '/instruiri');
     expect((await screen.findByTestId('training-sheet-ssm')).textContent).toContain(
-      '1 instruire, actualizată 12 sept. 2026'
+      '1 instruire, actualizată 12\u00a0sept.\u00a02026'
     );
   });
 
