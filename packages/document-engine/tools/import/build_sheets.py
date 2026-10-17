@@ -8,8 +8,14 @@ in their order, typeset to the house style. Both are written as plain OOXML, wit
 LibreOffice, on the package of the annual report (7.2): its styles, settings, fonts, theme and
 footer, without its box of document details, since a sheet is a form and carries no issue
 date. A blank is a cell with a line under it, never a run of dots.
+
+Each sheet is also the form of the signed sheet (ADR 023): with `form.on` the hiring blocks, the
+admission and the periodic tables print their variant with a content control in every cell a
+training or a signature fills, titled with the field's name (packages/contracts signed-sheet.ts),
+which LibreOffice exports as a PDF text field. Without it they print as before.
 """
 
+import itertools
 import os
 import zipfile
 
@@ -20,6 +26,11 @@ PACKAGE = os.path.join(TEMPLATES, 'fire', '7.2_fire_annual_report.docx')
 TEXT_WIDTH = 11906 - 1417 - 1134
 SIGNATURE_HEIGHT = 680
 LINE = '<w:{side} w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+# The rows of a periodic table the signed sheet holds, those of a page (rowCapacity in contracts).
+ROW_CAPACITY = 17
+FIELD_SIZE = 8
+PAPER_SIGNED = 'semnat pe hârtie'
+CONTROL_IDS = itertools.count(1)
 
 
 def escape(text):
@@ -145,7 +156,7 @@ def signatures(slots):
     return table(widths, [row(room, height=SIGNATURE_HEIGHT), row(captions)])
 
 
-def grid_table(columns, loops, *, blank_rows=0, size=8, row_height=SIGNATURE_HEIGHT):
+def grid_table(columns, loops, *, blank_rows=0, size=8, row_height=SIGNATURE_HEIGHT, extra_rows=()):
     """A printed table: its heading, the rows of each loop, then `blank_rows` empty ones.
 
     `columns` is a list of `(width, heading, value)`; a heading may be a `(group, own)` pair
@@ -212,7 +223,7 @@ def grid_table(columns, loops, *, blank_rows=0, size=8, row_height=SIGNATURE_HEI
     for _ in range(blank_rows):
         body.append(row([cell(width, [cell_paragraph(size=size)], borders=ALL) for width in widths],
                         height=row_height))
-    return table(widths, header_rows + body)
+    return table(widths, header_rows + body + list(extra_rows))
 
 
 def boxes(title, closing, count, footnote=None):
@@ -244,6 +255,137 @@ def boxes(title, closing, count, footnote=None):
     return table(widths, rows)
 
 
+def control(name, width, lines=1):
+    """A plain-text content control titled `name`. LibreOffice exports it as a text field as wide
+    and as tall as its placeholder, so the placeholder is lines of en spaces across the cell."""
+    r = rpr(FIELD_SIZE)
+    count = max(1, (width - 110 - 60) // (FIELD_SIZE * 10))
+    filler = f'<w:r>{r}<w:t xml:space="preserve">{chr(0x2002) * count}</w:t></w:r>'
+    content = f'<w:r>{r}<w:br/></w:r>'.join([filler] * lines)
+    multiline = ' w:multiLine="1"' if lines > 1 else ''
+    return (
+        f'<w:sdt><w:sdtPr>{r}<w:alias w:val="{name}"/><w:tag w:val="{name}"/>'
+        f'<w:id w:val="{next(CONTROL_IDS)}"/><w:showingPlcHdr/><w:text{multiline}/></w:sdtPr>'
+        f'<w:sdtContent>{content}</w:sdtContent></w:sdt>'
+    )
+
+
+def run(text, size=FIELD_SIZE):
+    return f'<w:r>{rpr(size)}<w:t xml:space="preserve">{escape(text)}</w:t></w:r>'
+
+
+def inline_paragraph(inner, *, size=FIELD_SIZE, align='left'):
+    props = (
+        '<w:pStyle w:val="TableContents"/><w:keepNext w:val="false"/>'
+        '<w:pageBreakBefore w:val="false"/><w:widowControl/><w:bidi w:val="0"/>'
+        '<w:spacing w:before="0" w:after="0"/><w:ind w:hanging="0" w:left="0"/>'
+        f'<w:jc w:val="{align}"/>{rpr(size)}'
+    )
+    return f'<w:p><w:pPr>{props}</w:pPr>{inner}</w:p>'
+
+
+def section(flag, xml, inverted=False):
+    """`xml` where the data's `flag` holds (or does not, `inverted`); the merge removes the tags'
+    paragraphs, so the paper sheet comes out as it was before the form existed."""
+    mark = '^' if inverted else '#'
+    return paragraph(f'{{{{{mark}{flag}}}}}', after=0) + xml + paragraph(f'{{{{/{flag}}}}}', after=0)
+
+
+def paper(xml):
+    return section('form.on', xml, inverted=True)
+
+
+def form(xml):
+    return section('form.on', xml)
+
+
+def control_fields(rows, label_width=3400, height=360):
+    """`fields` with a content control for each value: rows of `(label, name, lines, height)`."""
+    value_width = TEXT_WIDTH - label_width
+    drawn = []
+    for label, name, *rest in rows:
+        lines = rest[0] if rest else 1
+        tall = rest[1] if len(rest) > 1 else height
+        drawn.append(
+            row(
+                [
+                    cell(label_width, [cell_paragraph(label)], valign='bottom'),
+                    cell(value_width, [inline_paragraph(control(name, value_width, lines))],
+                         borders=('bottom',), valign='bottom'),
+                ],
+                height=tall,
+            )
+        )
+    return table([label_width, value_width], drawn)
+
+
+def signature_widths(count):
+    width = TEXT_WIDTH // count
+    return [width] * (count - 1) + [TEXT_WIDTH - width * (count - 1)]
+
+
+def signature_controls(slots):
+    """`signatures` with a signature field in each box: `slots` are `(caption, name)`."""
+    widths = signature_widths(len(slots))
+    room = [
+        cell(each, [inline_paragraph(control(name, each, 3))], borders=('bottom',))
+        for each, (_, name) in zip(widths, slots)
+    ]
+    captions = [
+        cell(each, [cell_paragraph(caption, size=8, align='center')])
+        for each, (caption, _) in zip(widths, slots)
+    ]
+    return table(widths, [row(room, height=SIGNATURE_HEIGHT), row(captions)])
+
+
+def signed_on_paper(slots):
+    """`signatures` of a training signed before the form, `slots` as there: each box says so."""
+    widths = signature_widths(len(slots))
+    room = [
+        cell(each, [cell_paragraph(PAPER_SIGNED, size=7, align='center')], borders=('bottom',),
+             valign='bottom')
+        for each in widths
+    ]
+    captions = []
+    for each, (caption, name) in zip(widths, slots):
+        content = [cell_paragraph(caption, size=8, align='center')]
+        if name:
+            content.append(cell_paragraph(name, size=7, align='center'))
+        captions.append(cell(each, content))
+    return table(widths, [row(room, height=SIGNATURE_HEIGHT), row(captions)])
+
+
+def form_rows(prefix, columns):
+    """The field rows `{prefix}1` to `{prefix}{ROW_CAPACITY}` of a periodic table, each printed
+    where `form.rows.{key}` holds. `columns` are `(width, cell)`, `cell(key, width)` giving the
+    inline content of the cell's paragraphs."""
+    rows = []
+    for index in range(1, ROW_CAPACITY + 1):
+        key = f'{prefix}{index}'
+        cells = []
+        for position, (width, content) in enumerate(columns):
+            paragraphs = content(key, width)
+            if position == 0:
+                paragraphs[0] = run(f'{{{{#form.rows.{key}}}}}') + paragraphs[0]
+            if position == len(columns) - 1:
+                paragraphs[-1] = paragraphs[-1] + run(f'{{{{/form.rows.{key}}}}}')
+            cells.append(cell(width, [inline_paragraph(each) for each in paragraphs], borders=ALL))
+        rows.append(row(cells, height=SIGNATURE_HEIGHT))
+    return rows
+
+
+def field_cell(column, lines=1):
+    return lambda key, width: [control(f'{key}_{column}', width, lines)]
+
+
+def dated_cell(key, width):
+    return [control(f'{key}_date', width), control(f'{key}_note', width)]
+
+
+def number_cell(key, width):
+    return [run(key[1:])]
+
+
 SSM_PERIODIC_COLUMNS = [
     (1100, 'Data instruirii', '{{heldOn}}'),
     (700, 'Durata (h)', '{{hours}}'),
@@ -255,38 +397,94 @@ SSM_PERIODIC_COLUMNS = [
 ]
 
 
-def ssm_periodic(title, first_heading, loop, page=True):
+def ssm_periodic(title, first_heading, loop, prefix, page=True):
     columns = [(SSM_PERIODIC_COLUMNS[0][0], first_heading, '{{heldOn}}'), *SSM_PERIODIC_COLUMNS[1:]]
     values = [value for _, _, value in columns]
-    return heading(title, page=page, before=0) + grid_table(
-        columns, [(loop, values), (f'blankRows.{loop}', [''] * len(columns))]
+    signed_on_paper_values = [*values[:4], (PAPER_SIGNED, True), *values[5:]]
+    widths = [width for width, _, _ in columns]
+    fields = form_rows(prefix, list(zip(widths, [
+        dated_cell,
+        field_cell('duration'),
+        field_cell('occupation', 3),
+        field_cell('material', 3),
+        field_cell('sig_trainee', 3),
+        field_cell('sig_trainer', 3),
+        field_cell('sig_verifier', 3),
+    ])))
+    return (
+        heading(title, page=page, before=0)
+        + paper(grid_table(columns, [(loop, values), (f'blankRows.{loop}', [''] * len(columns))]))
+        + form(grid_table(columns, [(loop, signed_on_paper_values)], extra_rows=fields))
+    )
+
+
+def hiring_form(key, paper_rows, slots, control_rows, control_slots):
+    """The form's variants of a hiring block: as printed with each signature box saying it was
+    signed on paper, for a training recorded from a paper sheet, else every value and signature a
+    field."""
+    return form(
+        section(f'form.{key}.paper', fields(paper_rows) + signed_on_paper(slots))
+        + section(
+            f'form.{key}.paper',
+            control_fields([*control_rows, ('Mențiuni', f'{key}_note')])
+            + signature_controls(control_slots),
+            inverted=True,
+        )
     )
 
 
 def ssm_hiring(number, title, line, signer, workplace=False):
+    key = 'h2' if workplace else 'h1'
     rows = [('A fost efectuată la data', f'{{{{hiring.{line}.heldOn}}}}')]
+    controls = [('A fost efectuată la data', f'{key}_date')]
     if workplace:
         rows.append(('Loc de muncă/post de lucru', f'{{{{hiring.{line}.place}}}}'))
+        controls.append(('Loc de muncă/post de lucru', f'{key}_place'))
     rows += [
         ('Timp de (ore)', f'{{{{hiring.{line}.hours}}}}'),
         ('De către', f'{{{{hiring.{line}.trainer}}}}'),
         ('Având funcția de', f'{{{{hiring.{line}.trainerJobTitle}}}}'),
         ('Conținutul instruirii', f'{{{{hiring.{line}.material}}}}', 720),
     ]
+    controls += [
+        ('Timp de (ore)', f'{key}_duration'),
+        ('De către', f'{key}_trainer'),
+        ('Având funcția de', f'{key}_trainer_job_title'),
+        ('Conținutul instruirii', f'{key}_material', 3, 720),
+    ]
+    slots = [
+        ('Semnătura celui instruit', None),
+        ('Semnătura celui care a efectuat instruirea', f'{{{{signers.{signer}.trainer}}}}'),
+        ('Semnătura celui care a verificat însușirea cunoștințelor', f'{{{{signers.{signer}.verifier}}}}'),
+    ]
+    control_slots = [
+        (slots[0][0], f'{key}_sig_trainee'),
+        (slots[1][0], f'{key}_sig_trainer'),
+        (slots[2][0], f'{key}_sig_verifier'),
+    ]
     return (
         paragraph(f'{number}) {title}', bold=True, before=0 if workplace else 240, after=60,
                   keep=True, page=workplace)
-        + fields(rows)
-        + signatures([
-            ('Semnătura celui instruit', None),
-            ('Semnătura celui care a efectuat instruirea', f'{{{{signers.{signer}.trainer}}}}'),
-            ('Semnătura celui care a verificat însușirea cunoștințelor', f'{{{{signers.{signer}.verifier}}}}'),
-        ])
+        + paper(fields(rows) + signatures(slots))
+        + hiring_form(key, rows, slots, controls, control_slots)
     )
 
 
 def empty_table(columns, rows=5, height=480):
     return grid_table([(width, title, '') for width, title in columns], [], blank_rows=rows, row_height=height)
+
+
+def continuation():
+    return section('form.continuation', paragraph('{{form.continuation}}', italic=True, align='center',
+                                                  after=240))
+
+
+def ssm_admission(dated):
+    return [
+        ('Numele și prenumele', '{{admission.name}}'),
+        ('Funcția (șef secție, atelier, șantier etc.)', '{{admission.jobTitle}}'),
+        ('Data și semnătura', dated, SIGNATURE_HEIGHT),
+    ]
 
 
 def ssm_body():
@@ -296,6 +494,7 @@ def ssm_body():
         paragraph('privind securitatea și sănătatea în muncă', bold=True, align='center', after=60, keep=True),
         paragraph('conform anexei nr. 11 la normele metodologice aprobate prin H.G. 1425/2006',
                   align='center', after=240),
+        continuation(),
         fields([
             ('Numele și prenumele', '{{employee.name}}'),
             ('Legitimația, marca', '{{employee.employeeNumber}}'),
@@ -312,13 +511,20 @@ def ssm_body():
         ssm_hiring(1, 'Instruirea introductiv-generală', 'introductory', 'introductory'),
         ssm_hiring(2, 'Instruirea la locul de muncă', 'workplace', 'workplace', workplace=True),
         paragraph('3) Admis la lucru', bold=True, before=240, after=60, keep=True),
-        fields([
-            ('Numele și prenumele', '{{admission.name}}'),
-            ('Funcția (șef secție, atelier, șantier etc.)', '{{admission.jobTitle}}'),
-            ('Data și semnătura', '{{admission.admittedOn}}', SIGNATURE_HEIGHT),
-        ]),
-        ssm_periodic('Instruirea periodică', 'Data instruirii', 'periodic'),
-        ssm_periodic('Instruirea periodică suplimentară', 'Data efectuării', 'supplementary'),
+        paper(fields(ssm_admission('{{admission.admittedOn}}'))),
+        form(
+            section('form.h2.paper', fields(ssm_admission(
+                f'{{{{admission.admittedOn}}}}{{{{#admission.admittedOn}}}}, {PAPER_SIGNED}{{{{/admission.admittedOn}}}}'
+            )))
+            + section('form.h2.paper', control_fields([
+                ('Numele și prenumele', 'adm_name'),
+                ('Funcția (șef secție, atelier, șantier etc.)', 'adm_job_title'),
+                ('Data', 'adm_date'),
+                ('Semnătura', 'adm_sig', 3, SIGNATURE_HEIGHT),
+            ]), inverted=True)
+        ),
+        ssm_periodic('Instruirea periodică', 'Data instruirii', 'periodic', 'p'),
+        ssm_periodic('Instruirea periodică suplimentară', 'Data efectuării', 'supplementary', 's'),
         heading('Rezultatele testărilor', page=True, before=0),
         empty_table([(1500, 'Data'), (3955, 'Materialul examinat'), (1700, 'Calificativ'), (2200, 'Examinator')]),
         heading('Accidente de muncă sau îmbolnăviri profesionale suferite'),
@@ -340,11 +546,17 @@ def ssm_body():
 
 
 def psi_hiring(number, title, line, workplace=False):
+    key = 'h2' if workplace else 'h1'
     rows = [('Efectuat la data de', f'{{{{hiring.{line}.heldOn}}}}')]
+    controls = [('Efectuat la data de', f'{key}_date')]
     if workplace:
         rows += [
             ('Pentru locul de muncă', f'{{{{hiring.{line}.place}}}}'),
             ('Specialitatea (meseria)', f'{{{{hiring.{line}.occupation}}}}'),
+        ]
+        controls += [
+            ('Pentru locul de muncă', f'{key}_place'),
+            ('Specialitatea (meseria)', f'{key}_occupation'),
         ]
     rows += [
         ('Timp de (ore)', f'{{{{hiring.{line}.hours}}}}'),
@@ -352,15 +564,24 @@ def psi_hiring(number, title, line, workplace=False):
         ('Având funcția de', f'{{{{hiring.{line}.trainerJobTitle}}}}'),
         ('Conținutul instructajului', f'{{{{hiring.{line}.material}}}}', 720),
     ]
+    controls += [
+        ('Timp de (ore)', f'{key}_duration'),
+        ('De către', f'{key}_trainer'),
+        ('Având funcția de', f'{key}_trainer_job_title'),
+        ('Conținutul instructajului', f'{key}_material', 3, 720),
+    ]
+    slots = [
+        ('Semnătura salariatului (persoanei care a verificat însușirea cunoștințelor)',
+         f'{{{{signers.{line}.verifier}}}}'),
+        ('Semnătura persoanei instruite', None),
+    ]
+    # The record names who verified as its trainer when it has no verifier (ADR 021).
+    control_slots = [(slots[0][0], f'{key}_sig_trainer'), (slots[1][0], f'{key}_sig_trainee')]
     return (
         paragraph(f'{number}. {title}', bold=True, before=0 if workplace else 240, after=60,
                   keep=True, page=workplace)
-        + fields(rows)
-        + signatures([
-            ('Semnătura salariatului (persoanei care a verificat însușirea cunoștințelor)',
-             f'{{{{signers.{line}.verifier}}}}'),
-            ('Semnătura persoanei instruite', None),
-        ])
+        + paper(fields(rows) + signatures(slots))
+        + hiring_form(key, rows, slots, controls, control_slots)
     )
 
 
@@ -377,6 +598,22 @@ PSI_PERIODIC_COLUMNS = [
 
 def psi_body():
     values = [value for _, _, value in PSI_PERIODIC_COLUMNS]
+    signed_on_paper_values = [*values[:5], (PAPER_SIGNED, True), values[6]]
+    widths = [width for width, _, _ in PSI_PERIODIC_COLUMNS]
+    fields_rows = form_rows('p', list(zip(widths, [
+        number_cell,
+        dated_cell,
+        field_cell('occupation', 3),
+        field_cell('material', 3),
+        field_cell('duration'),
+        field_cell('sig_trainee', 3),
+        field_cell('sig_trainer', 3),
+    ])))
+    psi_admission = [
+        ('Data', '{{admission.admittedOn}}'),
+        ('Numele și prenumele', '{{admission.name}}'),
+        ('Funcția (șef secție, atelier, șantier etc.)', '{{admission.jobTitle}}'),
+    ]
     return ''.join([
         paragraph('Unitatea: {{client.legalName}}', after=0),
         paragraph('FIȘĂ INDIVIDUALĂ', size=16, bold=True, align='center', before=3000, after=120, keep=True),
@@ -384,6 +621,7 @@ def psi_body():
                   after=60, keep=True),
         paragraph('conform anexei la dispozițiile generale aprobate prin OMAI 712/2005', align='center',
                   after=1200),
+        continuation(),
         fields([
             ('Numele și prenumele', '{{employee.name}}'),
             ('Marca', '{{employee.employeeNumber}}'),
@@ -406,14 +644,19 @@ def psi_body():
         psi_hiring(1, 'Instructajul introductiv general', 'introductory'),
         psi_hiring(2, 'Instructajul la locul de muncă', 'workplace', workplace=True),
         paragraph('3. Admis la lucru', bold=True, before=240, after=60, keep=True),
-        fields([
-            ('Data', '{{admission.admittedOn}}'),
-            ('Numele și prenumele', '{{admission.name}}'),
-            ('Funcția (șef secție, atelier, șantier etc.)', '{{admission.jobTitle}}'),
-        ]),
+        paper(fields(psi_admission)),
+        form(
+            section('form.h2.paper', fields(psi_admission))
+            + section('form.h2.paper', control_fields([
+                ('Data', 'adm_date'),
+                ('Numele și prenumele', 'adm_name'),
+                ('Funcția (șef secție, atelier, șantier etc.)', 'adm_job_title'),
+            ]), inverted=True)
+        ),
         heading('Instructaj periodic', page=True, before=0),
-        grid_table(PSI_PERIODIC_COLUMNS,
-                   [('periodic', values), ('blankRows.periodic', [''] * len(PSI_PERIODIC_COLUMNS))]),
+        paper(grid_table(PSI_PERIODIC_COLUMNS,
+                         [('periodic', values), ('blankRows.periodic', [''] * len(PSI_PERIODIC_COLUMNS))])),
+        form(grid_table(PSI_PERIODIC_COLUMNS, [('periodic', signed_on_paper_values)], extra_rows=fields_rows)),
     ])
 
 
@@ -479,4 +722,5 @@ def write(name, body):
 
 if __name__ == '__main__':
     write('fisa_instruire_ssm.docx', ssm_body())
+    CONTROL_IDS = itertools.count(1)
     write(os.path.join('fire', 'fisa_instructaj_psi.docx'), psi_body())

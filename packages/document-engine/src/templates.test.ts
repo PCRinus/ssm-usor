@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
-import { trainingSheetSamples } from '../tools/training-sheet-samples';
+import { trainingSheetFormSample, trainingSheetSamples } from '../tools/training-sheet-samples';
 import { annexTitlePage } from './annex-title';
 import { renderDocument, templatePlaceholders } from './render';
 import { documentText } from './text';
@@ -2645,6 +2645,37 @@ describe('the individual training sheets', () => {
       expect(text).toContain(data.hiring.workplace.place);
       expect(text).toContain(data.admission.name);
       expect(text.split(data.employee.name)).toHaveLength(2);
+    });
+
+    const titles = (docx: Uint8Array) =>
+      [
+        ...new PizZip(docx)
+          .file('word/document.xml')!
+          .asText()
+          .matchAll(/<w:alias w:val="([^"]+)"\/>/g),
+      ].map((match) => match[1]!);
+
+    it('prints no field on the paper sheet', () => {
+      for (const { data } of [recorded, empty]) {
+        expect(titles(renderDocument(read(name), data))).toEqual([]);
+      }
+    });
+
+    it("prints the signed sheet's fields once each, and the rows signed on paper as text", () => {
+      const data = trainingSheetFormSample(domain);
+      const docx = renderDocument(read(name), data);
+      const printed = titles(docx);
+      expect(new Set(printed).size).toBe(printed.length);
+      expect(printed).toEqual(
+        expect.arrayContaining(['h2_date', 'h2_sig_trainee', 'p3_date', 'p17_note'])
+      );
+      expect(printed.some((title) => /^(h1|p1|p2)_/.test(title))).toBe(false);
+      expect(printed.includes('adm_sig')).toBe(domain === 'ssm');
+      expect(printed.includes('s17_sig_verifier')).toBe(domain === 'ssm');
+      const text = documentText(docx);
+      expect(text).toContain('semnat pe hârtie');
+      expect(text).toContain(data.periodic[1]!.material);
+      expect(text).not.toContain('{{');
     });
 
     it('prints a row per item of its blank rows, and none without them', () => {

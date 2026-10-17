@@ -1,7 +1,9 @@
 import {
   type EmployeeTrainingRecord,
   type MissingSheetData,
+  sheetRowKeys,
   supplementaryTrainingReasonLabels,
+  tableRowOf,
   type TrainingDomain,
   type TrainingPhase,
 } from '@ssm-usor/contracts';
@@ -109,7 +111,31 @@ export type TrainingSheetData = {
     introductory: { trainer: string; verifier: string };
     workplace: { trainer: string; verifier: string };
   };
+  form: SheetForm;
 };
+
+/**
+ * Which variant of each part the template prints: the paper sheet with `on` false, else the signed
+ * sheet's form (ADR 023), where a hiring block recorded from a paper sheet prints as text marked
+ * signed on paper, and a table row prints its fields where `rows` holds it (signed-sheet.ts).
+ */
+export type SheetForm = {
+  on: boolean;
+  /** The line under the title of a continuation sheet; empty on the first. */
+  continuation: string;
+  h1: { paper: boolean };
+  h2: { paper: boolean };
+  rows: Record<string, boolean>;
+};
+
+export function paperForm(domain: TrainingDomain): SheetForm {
+  const rows = Object.fromEntries(
+    sheetRowKeys(domain)
+      .filter((key) => tableRowOf(key))
+      .map((key) => [key, false])
+  );
+  return { on: false, continuation: '', h1: { paper: false }, h2: { paper: false }, rows };
+}
 
 export function missingSheetDataOf(facts: TrainingSheetFacts): MissingSheetData[] {
   const missing: MissingSheetData[] = [];
@@ -132,7 +158,7 @@ const text = (value: string | null | undefined) => value?.trim() ?? '';
 const joined = (separator: string, ...parts: (string | null | undefined)[]) =>
   parts.map(text).filter(Boolean).join(separator);
 
-const chronological = (a: SheetRecord, b: SheetRecord) =>
+export const chronological = (a: SheetRecord, b: SheetRecord) =>
   a.training.heldOn.localeCompare(b.training.heldOn) ||
   a.training.createdAt.localeCompare(b.training.createdAt);
 
@@ -151,7 +177,7 @@ export function placeOfWork(facts: TrainingSheetFacts) {
   return joined(' – ', workplace?.name, employee.position.workZone);
 }
 
-const material = (record: SheetRecord) => {
+export const materialOf = (record: SheetRecord) => {
   const reason = record.training.supplementaryReason;
   const taught = text(record.training.material);
   if (!reason) return taught;
@@ -176,7 +202,7 @@ function hiringLine(record: SheetRecord | null, place: string): HiringLine {
     hours: hoursOf(training.durationMinutes),
     trainer: training.trainer.name,
     trainerJobTitle: training.trainer.jobTitle,
-    material: material(record),
+    material: materialOf(record),
     occupation: record.occupation,
     place,
   };
@@ -197,7 +223,7 @@ const sheetRow = (record: SheetRecord): SheetRow => ({
   heldOn: printedDate(record.training.heldOn),
   hours: hoursOf(record.training.durationMinutes),
   occupation: record.occupation,
-  material: material(record),
+  material: materialOf(record),
   trainer: record.training.trainer.name,
   verifier: record.training.verifier?.name ?? '',
 });
@@ -309,6 +335,7 @@ function sheetParts(facts: TrainingSheetFacts) {
       introductory: signersOf(domain, introductory),
       workplace: signersOf(domain, workplace),
     }),
+    form: () => paperForm(domain),
   };
 }
 

@@ -6,6 +6,15 @@ export type SheetDomain = 'ssm' | 'psi';
 
 const blank = (count: number) => Array.from({ length: count }, () => ({}));
 
+/** The paper sheet's choice of every form variant (ADR 023): the template prints as on paper. */
+export function paperForm(domain: SheetDomain) {
+  const rows: Record<string, boolean> = {};
+  for (const table of domain === 'ssm' ? ['p', 's'] : ['p']) {
+    for (let index = 1; index <= 17; index++) rows[`${table}${index}`] = false;
+  }
+  return { on: false, continuation: '', h1: { paper: false }, h2: { paper: false }, rows };
+}
+
 const unrecorded = {
   heldOn: '',
   hours: '',
@@ -72,6 +81,7 @@ const periodicRow = (heldOn: string, material: string) => ({
 function ssmSample(recorded: boolean) {
   if (!recorded) {
     return {
+      form: paperForm('ssm'),
       branding: true,
       client: { legalName: 'S.C. INSTALAȚII TERMICE ȘI SANITARE BANAT CONSTRUCT S.R.L.' },
       employee: { ...identity, authorizations: '', qualification: '', commute: identity.commute },
@@ -87,6 +97,7 @@ function ssmSample(recorded: boolean) {
     };
   }
   return {
+    form: paperForm('ssm'),
     branding: true,
     client: { legalName: 'S.C. INSTALAȚII TERMICE ȘI SANITARE BANAT CONSTRUCT S.R.L.' },
     employee: identity,
@@ -113,7 +124,7 @@ function ssmSample(recorded: boolean) {
 }
 
 function psiSample(recorded: boolean) {
-  const base = ssmSample(recorded);
+  const base = { ...ssmSample(recorded), form: paperForm('psi') };
   if (!recorded) return { ...base, blankRows: { periodic: blank(17), supplementary: [] } };
   return {
     ...base,
@@ -157,4 +168,21 @@ export function trainingSheetSamples(domain: SheetDomain) {
     { label: 'records', data: sample(true) },
     { label: 'empty', data: sample(false) },
   ];
+}
+
+/**
+ * The first page of a signed sheet (ADR 023): the introductory training and the first two
+ * periodic rows recorded from a paper sheet, every other row a field.
+ */
+export function trainingSheetFormSample(domain: SheetDomain) {
+  const [{ data }] = trainingSheetSamples(domain) as [{ data: ReturnType<typeof ssmSample> }];
+  const form = paperForm(domain);
+  for (const key of Object.keys(form.rows)) form.rows[key] = !['p1', 'p2'].includes(key);
+  return {
+    ...data,
+    periodic: data.periodic.slice(0, 2),
+    supplementary: [],
+    blankRows: { periodic: [], supplementary: [] },
+    form: { ...form, on: true, h1: { paper: true } },
+  };
 }
