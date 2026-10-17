@@ -1103,10 +1103,12 @@ yet: a template file read for a participant needs the API's secret key or a poli
 ### The phone in E.164
 
 `employees.phone` is stored in E.164, checked by `employees_phone_e164`. The contract's
-`phoneSchema` normalizes it with Romania as the default country: spaces, dots, dashes and
-parentheses are dropped, `0721 000 000` and `0040 721 000 000` become `+40721000000`, a number
-written with `+` or `00` keeps its own country, and a Romanian number has nine digits after
-`+40`. Anything else is refused. The migration normalized existing rows the same way and set
+`phoneSchema` normalizes it with `normalizePhone`, built on `libphonenumber-js` (`min`
+metadata), with Romania as the default country: spaces, dots, dashes and parentheses are
+allowed, `0721 000 000`, `721 000 000` and `0040 721 000 000` become `+40721000000`, a number
+written with `+` or `00` keeps its own country, and the number must be valid for that country
+(its length and, for the larger countries, its digits), landlines included. Other text around
+the number is refused. `countryOf` names the country of a stored number. The migration normalized existing rows the same way and set
 the rest to null. `clients.contact_phone` and `organizations.phone` stay free text.
 
 ## Waitlist subscribers

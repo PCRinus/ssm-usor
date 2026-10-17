@@ -453,6 +453,37 @@ describe("the client's administrator in the portal", () => {
       'altă persoană'
     );
   });
+
+  it("invites by SMS at a number in its own country's format, refusing one that does not fit", async () => {
+    mockApi();
+    const user = userEvent.setup();
+    mountTraining();
+    const card = await screen.findByTestId('client-administrator-card');
+    await user.click(await within(card).findByTestId('administrator-invite'));
+    const dialog = await screen.findByTestId('administrator-invite-dialog');
+    await user.click(within(dialog).getByRole('radio', { name: 'SMS' }));
+    const phone = within(dialog).getByTestId<HTMLInputElement>('administrator-phone');
+    const country = within(dialog).getByTestId<HTMLSelectElement>('administrator-phone-country');
+    expect(country.value).toBe('RO');
+    expect(phone.value).toBe('0722 000 111');
+
+    await user.clear(phone);
+    await user.type(phone, '0721 000');
+    await user.click(within(dialog).getByTestId('administrator-invite-submit'));
+    expect((await within(dialog).findByTestId('administrator-phone-error')).textContent).toBe(
+      'Numărul de telefon nu este valid pentru țara aleasă.'
+    );
+
+    await user.clear(phone);
+    await user.selectOptions(country, 'MD');
+    await user.type(phone, '069 123 456');
+    await user.click(within(dialog).getByTestId('administrator-invite-submit'));
+    await waitFor(() =>
+      expect(requests(`/clients/${clientId}/participant-invitations`, 'POST')).toEqual([
+        { channel: 'sms', address: '+37369123456', fullName: 'Maria Popescu' },
+      ])
+    );
+  });
 });
 
 describe('participant failures', () => {

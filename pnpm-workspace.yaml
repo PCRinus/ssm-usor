@@ -14,3 +14,4 @@ catalog:
   '@docx-editor.dev/core': 2.26.0
   '@docx-editor.dev/fonts': 2.26.0
   '@docx-editor.dev/react': 2.26.0
+  libphonenumber-js: 1.13.14
