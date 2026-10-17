@@ -17,10 +17,12 @@
     "templates:register": "node --env-file-if-exists=.env.seed --import tsx scripts/register-templates.ts",
     "templates:register:local": "node --import tsx scripts/register-templates.ts --local",
     "legislation:check": "node --env-file-if-exists=.env.seed --import tsx scripts/check-legislation.ts",
-    "legislation:check:local": "node --import tsx scripts/check-legislation.ts --local"
+    "legislation:check:local": "node --import tsx scripts/check-legislation.ts --local",
+    "signing:ca": "node --import tsx scripts/signing-ca.ts"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",
+    "@peculiar/x509": "2.1.0",
     "@scalar/hono-api-reference": "^0.12.2",
     "@ssm-usor/contracts": "workspace:*",
     "@ssm-usor/document-engine": "workspace:*",
@@ -28,6 +30,7 @@
     "@supabase/supabase-js": "^2.117.2",
     "fflate": "^0.8.3",
     "hono": "^4.13.7",
+    "reflect-metadata": "0.2.2",
     "zod": "^4.6.4"
   },
   "devDependencies": {

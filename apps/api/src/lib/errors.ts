@@ -6,6 +6,7 @@ export const errorStatus = {
   validation_error: 400,
   not_found: 404,
   conflict: 409,
+  unprocessable: 422,
   service_unavailable: 503,
   internal_error: 500,
 } as const satisfies Record<ApiErrorCode, number>;
@@ -16,6 +17,7 @@ export const defaultMessages = {
   validation_error: 'The request is invalid.',
   not_found: 'The requested resource does not exist.',
   conflict: 'The request conflicts with existing data.',
+  unprocessable: 'The request is well formed but cannot be carried out.',
   service_unavailable: 'The service is temporarily unavailable.',
   internal_error: 'An unexpected error occurred.',
 } as const satisfies Record<ApiErrorCode, string>;

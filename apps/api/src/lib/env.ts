@@ -49,6 +49,12 @@ export type ApiEnv = {
     SIGNER?: SignerService;
     // A signer container reached by URL instead, for local development.
     SIGNER_URL?: string;
+    // The app's certificate authority (ADR 023): its P-256 key as PKCS#8 PEM, its certificate
+    // as PEM, and the AES-256 key, base64, under which signers' private keys are stored.
+    // `pnpm --filter @ssm-usor/api signing:ca` makes all three.
+    SIGNING_CA_KEY?: string;
+    SIGNING_CA_CERT?: string;
+    SIGNING_KEY_ENCRYPTION_KEY?: string;
     // Bulk regeneration (ADR 017), consumed by this same Worker.
     REGENERATION_QUEUE?: RegenerationQueue;
   };

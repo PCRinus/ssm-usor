@@ -629,11 +629,14 @@ jobs:
           SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
           SUPABASE_AUTH_SMS_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_SMS_HOOK_SECRET }}
           POSTHOG_SUPPORT_SECRET_KEY: ${{ secrets.POSTHOG_SUPPORT_SECRET_KEY }}
+          SIGNING_CA_KEY: ${{ secrets.SIGNING_CA_KEY }}
+          SIGNING_CA_CERT: ${{ secrets.SIGNING_CA_CERT }}
+          SIGNING_KEY_ENCRYPTION_KEY: ${{ secrets.SIGNING_KEY_ENCRYPTION_KEY }}
         shell: bash
         run: |
           {
             echo 'names<<EOF'
-            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET SUPABASE_AUTH_SMS_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY; do
+            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET SUPABASE_AUTH_SMS_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY SIGNING_CA_KEY SIGNING_CA_CERT SIGNING_KEY_ENCRYPTION_KEY; do
               if [[ -n "${!name}" ]]; then
                 echo "$name"
               else
@@ -672,6 +675,9 @@ jobs:
           SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
           SUPABASE_AUTH_SMS_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_SMS_HOOK_SECRET }}
           POSTHOG_SUPPORT_SECRET_KEY: ${{ secrets.POSTHOG_SUPPORT_SECRET_KEY }}
+          SIGNING_CA_KEY: ${{ secrets.SIGNING_CA_KEY }}
+          SIGNING_CA_CERT: ${{ secrets.SIGNING_CA_CERT }}
+          SIGNING_KEY_ENCRYPTION_KEY: ${{ secrets.SIGNING_KEY_ENCRYPTION_KEY }}
           # Issued documents get their PDF from apps/pdf. Set here and not in wrangler.jsonc,
           # so that `wrangler dev`, where nothing answers that binding, issues without one.
           PDF_CONVERSION: service

@@ -32,6 +32,7 @@ export * from './protective-equipment';
 export * from './risk-evaluations';
 export * from './risk-levels';
 export * from './service-contracts';
+export * from './signatures';
 export * from './signer';
 export * from './signer-http';
 export * from './sms';
@@ -91,6 +92,7 @@ export const apiErrorCodeSchema = z.enum([
   'validation_error',
   'not_found',
   'conflict',
+  'unprocessable',
   'service_unavailable',
   'internal_error',
 ]);
