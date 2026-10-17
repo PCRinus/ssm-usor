@@ -15,3 +15,7 @@ The five default triage labels: `needs-triage`, `needs-info`, `ready-for-agent`,
 ### Domain docs
 
 Single-context: one `CONTEXT.md` at the repo root, ADRs in `docs/architecture/`. See `docs/agents/domain.md`.
+
+## Pull requests
+
+A pull request that changes what people see carries screenshots of the changed elements in its description, under Evidence: before and after where there is a before, at phone width and at desktop width when the change reaches both. Take them on the branch's own code, with real-looking data. Host them on the orphan branch `pr-screenshots`, in a folder named after the feature branch (`git worktree add /tmp/pr-screenshots pr-screenshots`, copy the PNGs into `<branch-name>/`, commit, push), and link them with `https://raw.githubusercontent.com/PCRinus/ssm-usor/pr-screenshots/<branch-name>/<file>.png`. Never commit screenshots to a feature branch or to `main`.
