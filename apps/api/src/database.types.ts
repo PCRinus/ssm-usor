@@ -996,6 +996,95 @@ export type Database = {
           },
         ];
       };
+      employee_signing_agreements: {
+        Row: {
+          client_file_id: string | null;
+          client_id: string;
+          created_at: string;
+          employee_id: string;
+          generated_at: string;
+          marked_by: string | null;
+          organization_id: string;
+          signed_at: string | null;
+          state: string;
+          updated_at: string;
+        };
+        Insert: {
+          client_file_id?: string | null;
+          client_id: string;
+          created_at?: string;
+          employee_id: string;
+          generated_at?: string;
+          marked_by?: string | null;
+          organization_id: string;
+          signed_at?: string | null;
+          state?: string;
+          updated_at?: string;
+        };
+        Update: {
+          client_file_id?: string | null;
+          client_id?: string;
+          created_at?: string;
+          employee_id?: string;
+          generated_at?: string;
+          marked_by?: string | null;
+          organization_id?: string;
+          signed_at?: string | null;
+          state?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'employee_signing_agreements_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employee_signing_agreements_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employee_signing_agreements_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'employee_signing_agreements_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'employee_signing_agreements_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'employee_signing_agreements_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employee_signing_agreements_scan_of_client';
+            columns: ['client_file_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_files';
+            referencedColumns: ['id', 'client_id'];
+          },
+        ];
+      };
       employees: {
         Row: {
           archived_at: string | null;
@@ -3054,6 +3143,326 @@ export type Database = {
           },
         ];
       };
+      signature_requests: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          id: string;
+          issued_at: string;
+          issued_by: string | null;
+          notified_at: string | null;
+          organization_id: string;
+          signer_account_id: string | null;
+          signing_session_id: string | null;
+          slot: Database['public']['Enums']['signer_slot'];
+          state: string;
+          training_record_id: string;
+          updated_at: string;
+          void_reason: string | null;
+          voided_at: string | null;
+        };
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          id?: string;
+          issued_at?: string;
+          issued_by?: string | null;
+          notified_at?: string | null;
+          organization_id: string;
+          signer_account_id?: string | null;
+          signing_session_id?: string | null;
+          slot: Database['public']['Enums']['signer_slot'];
+          state?: string;
+          training_record_id: string;
+          updated_at?: string;
+          void_reason?: string | null;
+          voided_at?: string | null;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          id?: string;
+          issued_at?: string;
+          issued_by?: string | null;
+          notified_at?: string | null;
+          organization_id?: string;
+          signer_account_id?: string | null;
+          signing_session_id?: string | null;
+          slot?: Database['public']['Enums']['signer_slot'];
+          state?: string;
+          training_record_id?: string;
+          updated_at?: string;
+          void_reason?: string | null;
+          voided_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'signature_requests_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'signature_requests_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'signature_requests_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'signature_requests_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'signature_requests_record_of_client';
+            columns: ['training_record_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'training_records';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'signature_requests_signing_session_id_fkey';
+            columns: ['signing_session_id'];
+            isOneToOne: false;
+            referencedRelation: 'signing_sessions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      signed_sheet_rows: {
+        Row: {
+          created_at: string;
+          filled_at: string;
+          id: string;
+          row_key: string;
+          signed_sheet_id: string;
+          training_record_id: string;
+          voided_at: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          filled_at?: string;
+          id?: string;
+          row_key: string;
+          signed_sheet_id: string;
+          training_record_id: string;
+          voided_at?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          filled_at?: string;
+          id?: string;
+          row_key?: string;
+          signed_sheet_id?: string;
+          training_record_id?: string;
+          voided_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'signed_sheet_rows_signed_sheet_id_fkey';
+            columns: ['signed_sheet_id'];
+            isOneToOne: false;
+            referencedRelation: 'signed_sheets';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'signed_sheet_rows_training_record_id_fkey';
+            columns: ['training_record_id'];
+            isOneToOne: false;
+            referencedRelation: 'training_records';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      signed_sheets: {
+        Row: {
+          certified_at: string | null;
+          client_id: string;
+          created_at: string;
+          digest: string;
+          domain: Database['public']['Enums']['training_domain'];
+          employee_id: string;
+          id: string;
+          organization_id: string;
+          row_capacity: number;
+          rows_used: number;
+          sequence: number;
+          storage_path: string;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          certified_at?: string | null;
+          client_id: string;
+          created_at?: string;
+          digest: string;
+          domain: Database['public']['Enums']['training_domain'];
+          employee_id: string;
+          id?: string;
+          organization_id: string;
+          row_capacity: number;
+          rows_used?: number;
+          sequence?: number;
+          storage_path: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          certified_at?: string | null;
+          client_id?: string;
+          created_at?: string;
+          digest?: string;
+          domain?: Database['public']['Enums']['training_domain'];
+          employee_id?: string;
+          id?: string;
+          organization_id?: string;
+          row_capacity?: number;
+          rows_used?: number;
+          sequence?: number;
+          storage_path?: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'signed_sheets_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'signed_sheets_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'signed_sheets_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'signed_sheets_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'signed_sheets_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'signed_sheets_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      signing_identities: {
+        Row: {
+          account_id: string;
+          certificate_pem: string;
+          certificate_serial: string;
+          created_at: string;
+          id: string;
+          key_version: number;
+          not_after: string;
+          not_before: string;
+          private_key_encrypted: string;
+          subject_name: string;
+        };
+        Insert: {
+          account_id: string;
+          certificate_pem: string;
+          certificate_serial: string;
+          created_at?: string;
+          id?: string;
+          key_version?: number;
+          not_after: string;
+          not_before: string;
+          private_key_encrypted: string;
+          subject_name: string;
+        };
+        Update: {
+          account_id?: string;
+          certificate_pem?: string;
+          certificate_serial?: string;
+          created_at?: string;
+          id?: string;
+          key_version?: number;
+          not_after?: string;
+          not_before?: string;
+          private_key_encrypted?: string;
+          subject_name?: string;
+        };
+        Relationships: [];
+      };
+      signing_sessions: {
+        Row: {
+          account_id: string;
+          address: string;
+          attempts: number;
+          channel: string;
+          client_ip: unknown;
+          code_hash: string;
+          code_sent_at: string;
+          created_at: string;
+          expires_at: string;
+          id: string;
+          user_agent: string | null;
+          verified_at: string | null;
+        };
+        Insert: {
+          account_id: string;
+          address: string;
+          attempts?: number;
+          channel: string;
+          client_ip?: unknown;
+          code_hash: string;
+          code_sent_at?: string;
+          created_at?: string;
+          expires_at?: string;
+          id?: string;
+          user_agent?: string | null;
+          verified_at?: string | null;
+        };
+        Update: {
+          account_id?: string;
+          address?: string;
+          attempts?: number;
+          channel?: string;
+          client_ip?: unknown;
+          code_hash?: string;
+          code_sent_at?: string;
+          created_at?: string;
+          expires_at?: string;
+          id?: string;
+          user_agent?: string | null;
+          verified_at?: string | null;
+        };
+        Relationships: [];
+      };
       training_records: {
         Row: {
           admitted_by_job_title: string | null;
@@ -3149,6 +3558,140 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'trainings';
             referencedColumns: ['id', 'client_id', 'phase'];
+          },
+        ];
+      };
+      training_signatures: {
+        Row: {
+          address: string | null;
+          certificate_serial: string | null;
+          channel: string | null;
+          client_id: string;
+          client_ip: unknown;
+          code_sent_at: string | null;
+          code_verified_at: string | null;
+          created_at: string;
+          digest_after: string | null;
+          digest_before: string | null;
+          id: string;
+          marked_by: string | null;
+          method: string;
+          organization_id: string;
+          request_id: string;
+          signed_at: string;
+          signer_account_id: string | null;
+          signer_job_title: string | null;
+          signer_name: string;
+          signing_session_id: string | null;
+          slot: Database['public']['Enums']['signer_slot'];
+          training_record_id: string;
+          user_agent: string | null;
+          void_reason: string | null;
+          voided_at: string | null;
+        };
+        Insert: {
+          address?: string | null;
+          certificate_serial?: string | null;
+          channel?: string | null;
+          client_id: string;
+          client_ip?: unknown;
+          code_sent_at?: string | null;
+          code_verified_at?: string | null;
+          created_at?: string;
+          digest_after?: string | null;
+          digest_before?: string | null;
+          id?: string;
+          marked_by?: string | null;
+          method: string;
+          organization_id: string;
+          request_id: string;
+          signed_at?: string;
+          signer_account_id?: string | null;
+          signer_job_title?: string | null;
+          signer_name: string;
+          signing_session_id?: string | null;
+          slot: Database['public']['Enums']['signer_slot'];
+          training_record_id: string;
+          user_agent?: string | null;
+          void_reason?: string | null;
+          voided_at?: string | null;
+        };
+        Update: {
+          address?: string | null;
+          certificate_serial?: string | null;
+          channel?: string | null;
+          client_id?: string;
+          client_ip?: unknown;
+          code_sent_at?: string | null;
+          code_verified_at?: string | null;
+          created_at?: string;
+          digest_after?: string | null;
+          digest_before?: string | null;
+          id?: string;
+          marked_by?: string | null;
+          method?: string;
+          organization_id?: string;
+          request_id?: string;
+          signed_at?: string;
+          signer_account_id?: string | null;
+          signer_job_title?: string | null;
+          signer_name?: string;
+          signing_session_id?: string | null;
+          slot?: Database['public']['Enums']['signer_slot'];
+          training_record_id?: string;
+          user_agent?: string | null;
+          void_reason?: string | null;
+          voided_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'training_signatures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'training_signatures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'training_signatures_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'training_signatures_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'training_signatures_record_of_client';
+            columns: ['training_record_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'training_records';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'training_signatures_request_of_slot';
+            columns: ['request_id', 'training_record_id', 'slot'];
+            isOneToOne: false;
+            referencedRelation: 'signature_requests';
+            referencedColumns: ['id', 'training_record_id', 'slot'];
+          },
+          {
+            foreignKeyName: 'training_signatures_signing_session_id_fkey';
+            columns: ['signing_session_id'];
+            isOneToOne: false;
+            referencedRelation: 'signing_sessions';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -3612,6 +4155,47 @@ export type Database = {
         Returns: undefined;
       };
       lock_members_as_owner: { Args: never; Returns: string };
+      mark_paper_signature: {
+        Args: {
+          p_record_id: string;
+          p_signer_job_title?: string;
+          p_signer_name: string;
+          p_slot: Database['public']['Enums']['signer_slot'];
+        };
+        Returns: {
+          address: string | null;
+          certificate_serial: string | null;
+          channel: string | null;
+          client_id: string;
+          client_ip: unknown;
+          code_sent_at: string | null;
+          code_verified_at: string | null;
+          created_at: string;
+          digest_after: string | null;
+          digest_before: string | null;
+          id: string;
+          marked_by: string | null;
+          method: string;
+          organization_id: string;
+          request_id: string;
+          signed_at: string;
+          signer_account_id: string | null;
+          signer_job_title: string | null;
+          signer_name: string;
+          signing_session_id: string | null;
+          slot: Database['public']['Enums']['signer_slot'];
+          training_record_id: string;
+          user_agent: string | null;
+          void_reason: string | null;
+          voided_at: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'training_signatures';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       my_open_invitations: {
         Args: never;
         Returns: {
@@ -3822,6 +4406,17 @@ export type Database = {
         Args: { p_items: string[]; p_max: number; p_min: number };
         Returns: boolean;
       };
+      training_record_has_slot: {
+        Args: {
+          p_record_id: string;
+          p_slot: Database['public']['Enums']['signer_slot'];
+        };
+        Returns: boolean;
+      };
+      training_record_is_signed: {
+        Args: { p_record_id: string };
+        Returns: boolean;
+      };
       training_status: {
         Args: { '': Database['public']['Tables']['employees']['Row'] };
         Returns: {
@@ -3851,6 +4446,10 @@ export type Database = {
         };
       };
       unaccent_immutable: { Args: { '': string }; Returns: string };
+      void_training_signatures: {
+        Args: { p_reason: string; p_record_id: string };
+        Returns: number;
+      };
     };
     Enums: {
       client_stage: 'lead' | 'client';
@@ -3894,6 +4493,7 @@ export type Database = {
         | 'fire_safety_coordinator'
         | 'fire_intervention_leader';
       risk_evaluation_kind: 'job_position' | 'sensitive_groups' | 'other';
+      signer_slot: 'trainee' | 'trainer' | 'verifier' | 'admitter';
       staff_category: 'technical_administrative' | 'execution';
       supplementary_training_reason:
         | 'absence_over_thirty_days'
@@ -4074,6 +4674,7 @@ export const Constants = {
         'fire_intervention_leader',
       ],
       risk_evaluation_kind: ['job_position', 'sensitive_groups', 'other'],
+      signer_slot: ['trainee', 'trainer', 'verifier', 'admitter'],
       staff_category: ['technical_administrative', 'execution'],
       supplementary_training_reason: [
         'absence_over_thirty_days',
