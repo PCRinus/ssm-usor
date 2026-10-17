@@ -23,16 +23,25 @@ def signature_fields() -> list[str]:
     return [f'row{row}_{column}' for row in range(1, ROWS + 1) for column in SIGNATURE_COLUMNS]
 
 
-def sheet() -> bytes:
-    """A training sheet as LibreOffice exports one: every cell a text field, signature cells included."""
+def sheet(titled: bool = False) -> bytes:
+    """A training sheet as LibreOffice exports one: every cell a text field, signature cells included.
+
+    `titled` names the fields as LibreOffice names content controls, Widget, _2, _3, …, with the
+    name meant in the tooltip.
+    """
     output = BytesIO()
     pdf = canvas.Canvas(output, pagesize=A4)
     pdf.drawString(40, 800, 'Fișa individuală de instruire')
+    count = 0
     for row in range(1, ROWS + 1):
         y = 760 - row * 40
         for index, column in enumerate(COLUMNS):
+            count += 1
+            name = f'row{row}_{column}'
             pdf.acroForm.textfield(
-                name=f'row{row}_{column}',
+                name=('Widget' if count == 1 else f'_{count}') if titled else name,
+                tooltip=name if titled else None,
+                value='   ' if titled else '',
                 x=40 + index * 130,
                 y=y,
                 width=120,

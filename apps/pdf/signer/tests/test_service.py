@@ -94,6 +94,23 @@ def test_prepare_sheet_turns_the_named_text_fields_into_signature_fields():
     assert refused['error'] == 'unknown_fields'
 
 
+def test_prepare_sheet_names_the_fields_by_their_tooltips_first():
+    titled = unb64(
+        post(
+            '/prepare-sheet',
+            {'pdf': b64(sheet(titled=True)), 'signatureFields': signature_fields()},
+        )['pdf']
+    )
+    fields = form_fields(PdfFileReader(BytesIO(titled)))
+    assert sorted(fields) == sorted(form_fields(PdfFileReader(BytesIO(prepared_sheet()))))
+    assert all('/TU' not in field.dictionary for field in fields.values())
+    assert fields['row1_trainee'].field_type == '/Sig'
+    assert fields['row1_date'].field_type == '/Tx'
+    assert '/V' not in fields['row1_date'].dictionary
+    pdf = sign(fill_row(titled, 1), trainee, 'row1_trainee', 1, certify=True)
+    assert validate(pdf)[0]['modificationsPermitted']
+
+
 def test_fill_writes_values_with_appearances_and_refuses_unknown_names():
     pdf = fill_row(prepared_sheet(), 1)
     field = form_fields(PdfFileReader(BytesIO(pdf)))['row1_theme']

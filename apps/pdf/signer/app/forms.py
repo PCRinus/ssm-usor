@@ -84,6 +84,7 @@ def require_fields(fields: dict[str, Field], names: Iterable[str]) -> None:
 
 def prepare_sheet(pdf: bytes, signature_fields: list[str]) -> bytes:
     writer = open_writer(pdf)
+    _name_by_tooltip(writer, form_fields(writer))
     fields = form_fields(writer)
     require_fields(fields, signature_fields)
     for name in signature_fields:
@@ -95,8 +96,42 @@ def prepare_sheet(pdf: bytes, signature_fields: list[str]) -> bytes:
         if len(field.widgets) != 1:
             raise SignerError('several_widgets', f'{name} appears more than once.')
         _turn_into_signature_field(writer, field)
+    for name, field in fields.items():
+        if field.field_type == '/Tx' and name not in signature_fields:
+            _clear_placeholder(writer, field)
     _drop_need_appearances(writer)
     return written(writer)
+
+
+def _clear_placeholder(writer: IncrementalPdfFileWriter, field: Field) -> None:
+    # LibreOffice exports the blank placeholder as the value; a viewer or a flattening merge that
+    # redraws the field from it prints a question mark for each space its font lacks.
+    value = field.dictionary.get('/V')
+    if value is None or str(value).strip():
+        return
+    for key in ('/V', '/DV'):
+        field.dictionary.pop(key, None)
+    writer.update_container(field.dictionary)
+
+
+def _name_by_tooltip(writer: IncrementalPdfFileWriter, fields: dict[str, Field]) -> None:
+    # LibreOffice exports a Word content control as a text field named Widget, _2, _3, … and
+    # puts the control's title, which the template sets to the field's name, in the tooltip.
+    titled = {name: field for name, field in fields.items() if '/TU' in field.dictionary}
+    titles = [str(field.dictionary['/TU']) for field in titled.values()]
+    duplicates = sorted({title for title in titles if titles.count(title) > 1})
+    if duplicates:
+        raise SignerError('duplicate_fields', f'Fields titled twice: {", ".join(duplicates)}.')
+    taken = set(fields) - set(titled)
+    clashes = sorted(taken.intersection(titles))
+    if clashes:
+        raise SignerError(
+            'duplicate_fields', f'Fields named and titled alike: {", ".join(clashes)}.'
+        )
+    for field in titled.values():
+        field.dictionary[pdf_name('/T')] = generic.TextStringObject(str(field.dictionary['/TU']))
+        del field.dictionary['/TU']
+        writer.update_container(field.dictionary)
 
 
 def _turn_into_signature_field(writer: IncrementalPdfFileWriter, field: Field) -> None:
