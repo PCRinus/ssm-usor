@@ -1,6 +1,6 @@
 # ADR 023: The advanced electronic signature, first on training records
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-18
 
 ## Context
