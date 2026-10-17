@@ -6,7 +6,7 @@
   // Internal only: the API reaches it through a service binding.
   "workers_dev": false,
   "preview_urls": false,
-  // SMS_FROM and the Twilio secrets come from the deployment workflow (docs/sms.md); without
+  // SMS_FROM and the Twilio values come from the deployment workflow (docs/sms.md); without
   // them the Worker logs each message instead of sending it.
   "observability": {
     "enabled": true,

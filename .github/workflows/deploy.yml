@@ -468,10 +468,11 @@ jobs:
     environment:
       name: production
     env:
-      TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+      # The account SID and the sender are identifiers, not secrets; the auth token is the secret.
+      TWILIO_ACCOUNT_SID: ${{ vars.TWILIO_ACCOUNT_SID }}
       TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-      SMS_FROM: ${{ secrets.SMS_FROM }}
-      TWILIO_CONFIGURED: ${{ secrets.TWILIO_ACCOUNT_SID != '' && secrets.TWILIO_AUTH_TOKEN != '' && secrets.SMS_FROM != '' }}
+      SMS_FROM: ${{ vars.SMS_FROM }}
+      TWILIO_CONFIGURED: ${{ vars.TWILIO_ACCOUNT_SID != '' && secrets.TWILIO_AUTH_TOKEN != '' && vars.SMS_FROM != '' }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
@@ -502,10 +503,10 @@ jobs:
             --message "${{ steps.metadata.outputs.message }}"
           # All three or none, so the Worker can ship before the Twilio account does. The action
           # drops the blank lines it leaves.
-          vars: ${{ env.TWILIO_CONFIGURED == 'true' && 'SMS_FROM' || '' }}
-          secrets: |
+          vars: |
             ${{ env.TWILIO_CONFIGURED == 'true' && 'TWILIO_ACCOUNT_SID' || '' }}
-            ${{ env.TWILIO_CONFIGURED == 'true' && 'TWILIO_AUTH_TOKEN' || '' }}
+            ${{ env.TWILIO_CONFIGURED == 'true' && 'SMS_FROM' || '' }}
+          secrets: ${{ env.TWILIO_CONFIGURED == 'true' && 'TWILIO_AUTH_TOKEN' || '' }}
 
   deploy-legislation:
     name: Deploy legislation Worker

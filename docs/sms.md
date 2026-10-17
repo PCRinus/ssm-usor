@@ -57,8 +57,9 @@ registry. Without the Twilio settings it logs each message. To send real message
 2. Register the alphanumeric sender `SSMUsor` for Romania where Twilio asks for it, or use a
    Twilio number or a Messaging Service for countries that refuse alphanumeric senders. Check
    delivery to a new country with its first participant rather than promising it.
-3. Save `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and `SMS_FROM` as secrets of the `production`
-   GitHub environment, then re-run the SMS deployment. Until all three exist, the deployment
+3. Save `TWILIO_ACCOUNT_SID` and `SMS_FROM` as variables and `TWILIO_AUTH_TOKEN` as a secret of
+   the `production` GitHub environment (the SID and the sender are identifiers; only the token
+   grants anything), then re-run the SMS deployment. Until all three exist, the deployment
    warns and the Worker only logs.
 
 The Send SMS hook that hands the API each sign-in code is described in the

@@ -83,7 +83,7 @@ Database migrations deploy first when selected, from the `production` environmen
 credentials. Mail, SMS and marketing deploy independently; the API waits for the mail and SMS
 Workers when they are selected, because its service bindings need those Workers to exist. The mail deployment uploads
 `RESEND_API_KEY` when the `production` environment has it and warns when it does not; the SMS
-deployment uploads `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and `SMS_FROM` when all three are
+deployment uploads the `TWILIO_ACCOUNT_SID` and `SMS_FROM` variables and the `TWILIO_AUTH_TOKEN` secret when all three are
 there and warns when they are not. SPA-only changes skip API deployment. If API and
 SPA both change, API deployment and its HTTP smoke tests must succeed before SPA deployment.
 Before uploading, the API job looks up the `ssm-usor-regeneration` queue the Worker sends to
