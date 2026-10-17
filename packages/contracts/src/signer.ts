@@ -10,7 +10,7 @@ export type SignatureValidation = {
   signerName: string;
   /** ISO 8601, from the signature's own signing time; null when it has none. */
   signedAt: string | null;
-  /** The bytes the signature covers are unchanged. */
+  /** The bytes the signature covers are unchanged, and the signature over them verifies against its certificate. The chain is not checked: the app is its own authority. */
   intact: boolean;
   /** Every change after this signature was a permitted one (form fill or signature). */
   modificationsPermitted: boolean;
@@ -21,7 +21,7 @@ export type SignatureValidation = {
 export type BeginSignatureOptions = {
   /** The signature field to sign; must exist and be empty. */
   field: string;
-  /** The signer's certificate and the chain up to the app's CA, PEM. */
+  /** The signer's certificate and the chain up to the app's CA, PEM. An ECDSA P-256 key; key usage digitalSignature (and nonRepudiation), which validators look for. */
   certificatePem: string;
   chainPem: string[];
   reason: string;
@@ -29,7 +29,10 @@ export type BeginSignatureOptions = {
   signedAt: string;
   /** True for the first signature on a sheet: certifies it with form filling and signing as the only permitted changes. */
   certify: boolean;
-  /** Fields this signature locks against later changes: the row's fields. */
+  /**
+   * Fields this signature locks against later changes: the row's text fields. Never a signature
+   * field still to be signed, which the lock would keep from being signed.
+   */
   lockFields: string[];
   /** The visible text in the field, one line each. */
   appearanceLines: string[];
@@ -38,9 +41,13 @@ export type BeginSignatureOptions = {
 export type BeginSignatureResult = {
   /** The PDF with the signature placeholder; goes back unchanged to `finishSignature`. */
   prepared: ArrayBuffer;
-  /** The bytes the caller signs: ECDSA P-256 over SHA-256, raw r||s (IEEE P1363, 64 bytes). */
+  /**
+   * The bytes the caller signs as they are: the DER of the signature's signed attributes, which
+   * carry the document's digest. ECDSA P-256 with SHA-256, as WebCrypto's `sign({ name: 'ECDSA',
+   * hash: 'SHA-256' }, key, toSign)` gives it: raw r||s (IEEE P1363, 64 bytes).
+   */
   toSign: ArrayBuffer;
-  /** Opaque; the service keeps what it needs to finish for ten minutes. */
+  /** Opaque; the service keeps what it needs to finish for ten minutes, in memory, so a restart of the container loses it too. */
   sessionToken: string;
 };
 
@@ -54,7 +61,11 @@ export interface SignerService {
   fillFields(pdf: ArrayBuffer, values: Record<string, string>): Promise<ArrayBuffer>;
   /** First phase of a signature: the placeholder goes in, the bytes to sign come out. */
   beginSignature(pdf: ArrayBuffer, options: BeginSignatureOptions): Promise<BeginSignatureResult>;
-  /** Second phase: the raw signature over `toSign` goes in; the signed PDF comes out. Rejects when the session is unknown or expired. */
+  /**
+   * Second phase: the raw signature over `toSign` goes in; the signed PDF comes out. Rejects when
+   * the session is unknown, expired or finished, when the signature does not verify against the
+   * certificate, or when `prepared` is not the PDF the first phase returned.
+   */
   finishSignature(
     prepared: ArrayBuffer,
     sessionToken: string,

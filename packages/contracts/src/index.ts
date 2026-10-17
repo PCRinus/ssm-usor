@@ -33,6 +33,7 @@ export * from './risk-evaluations';
 export * from './risk-levels';
 export * from './service-contracts';
 export * from './signer';
+export * from './signer-http';
 export * from './sms';
 export * from './training-sheets';
 export * from './trainings';

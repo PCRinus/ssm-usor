@@ -1,14 +1,26 @@
 import { Container, getContainer } from '@cloudflare/containers';
-import type { PdfService } from '@ssm-usor/contracts';
+import {
+  type BeginSignatureOptions,
+  type BeginSignatureResult,
+  type PdfService,
+  type SignatureValidation,
+  signerOverHttp,
+  type SignerService,
+} from '@ssm-usor/contracts';
 import { WorkerEntrypoint } from 'cloudflare:workers';
 
 import { convertDocuments, convertDocx } from './convert';
+import { postToSigner } from './sign';
 
-type PdfEnv = { GOTENBERG: DurableObjectNamespace<Gotenberg> };
+type PdfEnv = {
+  GOTENBERG: DurableObjectNamespace<Gotenberg>;
+  SIGNER: DurableObjectNamespace<Signer>;
+};
 
 // Word to PDF needs a layout engine, in practice LibreOffice, which cannot run in a Worker
-// (ADR 005). This Worker owns the container that runs it and offers one method over a
-// service binding, as apps/mail does for email. It has no routes.
+// (ADR 005), and a PAdES signature needs pyHanko (ADR 023). This Worker owns the containers that
+// run them and offers their methods over a service binding, as apps/mail does for email. It has
+// no routes.
 
 export class Gotenberg extends Container {
   defaultPort = 3000;
@@ -21,7 +33,17 @@ export class Gotenberg extends Container {
   enableInternet = false;
 }
 
-export class Pdf extends WorkerEntrypoint<PdfEnv> implements PdfService {
+export class Signer extends Container {
+  defaultPort = 3301;
+  pingEndpoint = 'signer/health';
+  // A signature's two phases must reach the instance that holds its session, which it keeps for
+  // the same ten minutes.
+  sleepAfter = '10m';
+  // Nothing is fetched while signing or validating: no revocation lists, no timestamps.
+  enableInternet = false;
+}
+
+export class Pdf extends WorkerEntrypoint<PdfEnv> implements PdfService, SignerService {
   async convertDocx(docx: ArrayBuffer): Promise<ArrayBuffer> {
     const container = getContainer(this.env.GOTENBERG);
     // `fetch` starts the container when it sleeps and waits for its port.
@@ -31,6 +53,38 @@ export class Pdf extends WorkerEntrypoint<PdfEnv> implements PdfService {
   async convertDocuments(files: ArrayBuffer[]): Promise<ArrayBuffer> {
     const container = getContainer(this.env.GOTENBERG);
     return convertDocuments((request) => container.fetch(request), files);
+  }
+
+  private signer(): SignerService {
+    const container = getContainer(this.env.SIGNER);
+    return signerOverHttp(postToSigner((request) => container.fetch(request)));
+  }
+
+  async prepareSheet(pdf: ArrayBuffer, signatureFields: string[]): Promise<ArrayBuffer> {
+    return this.signer().prepareSheet(pdf, signatureFields);
+  }
+
+  async fillFields(pdf: ArrayBuffer, values: Record<string, string>): Promise<ArrayBuffer> {
+    return this.signer().fillFields(pdf, values);
+  }
+
+  async beginSignature(
+    pdf: ArrayBuffer,
+    options: BeginSignatureOptions
+  ): Promise<BeginSignatureResult> {
+    return this.signer().beginSignature(pdf, options);
+  }
+
+  async finishSignature(
+    prepared: ArrayBuffer,
+    sessionToken: string,
+    signature: ArrayBuffer
+  ): Promise<ArrayBuffer> {
+    return this.signer().finishSignature(prepared, sessionToken, signature);
+  }
+
+  async validate(pdf: ArrayBuffer): Promise<SignatureValidation[]> {
+    return this.signer().validate(pdf);
   }
 }
 
