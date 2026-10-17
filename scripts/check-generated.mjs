@@ -11,13 +11,14 @@ const paths = [
   'apps/portal/src/api/generated',
   'apps/app/src/routeTree.gen.ts',
   'apps/portal/src/routeTree.gen.ts',
+  'apps/portal/src/locales',
   'packages/document-engine/templates/citations.json',
 ];
 function snapshot() {
   const files = new Map();
   function visit(path) {
     if (!existsSync(path)) return;
-    if (path.endsWith('.json') || path.endsWith('.ts')) {
+    if (/\.(json|ts|po)$/.test(path)) {
       files.set(path, createHash('sha256').update(readFileSync(path)).digest('hex'));
       return;
     }
@@ -30,6 +31,8 @@ function snapshot() {
 const before = snapshot();
 execFileSync('pnpm', ['generate:api'], { stdio: 'inherit' });
 execFileSync('pnpm', ['generate:routes'], { stdio: 'inherit' });
+execFileSync('pnpm', ['--filter', '@ssm-usor/portal', 'i18n:extract'], { stdio: 'inherit' });
+execFileSync('pnpm', ['--filter', '@ssm-usor/portal', 'i18n:compile'], { stdio: 'inherit' });
 execFileSync('pnpm', ['--filter', '@ssm-usor/document-engine', 'citations'], { stdio: 'inherit' });
 const after = snapshot();
 const changed = [...new Set([...before.keys(), ...after.keys()])].filter(

@@ -13,9 +13,13 @@
     "test:e2e:flows": "playwright test --config playwright.flows.config.ts",
     "preview": "vite preview --port 4176",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
-    "deploy": "pnpm build && wrangler deploy"
+    "deploy": "pnpm build && wrangler deploy",
+    "i18n:extract": "lingui extract --clean",
+    "i18n:compile": "lingui compile --typescript --strict"
   },
   "dependencies": {
+    "@lingui/core": "catalog:",
+    "@lingui/react": "catalog:",
     "@ssm-usor/api-http": "workspace:*",
     "@ssm-usor/contracts": "workspace:*",
     "@ssm-usor/ui": "workspace:*",
@@ -27,6 +31,9 @@
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@lingui/cli": "catalog:",
+    "@lingui/format-po": "catalog:",
+    "@lingui/vite-plugin": "catalog:",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/router-cli": "^1.167.36",

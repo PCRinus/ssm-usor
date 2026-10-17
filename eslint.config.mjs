@@ -37,6 +37,7 @@ export default defineConfig([
     'packages/document-engine/originals/**',
     'apps/app/src/routeTree.gen.ts',
     'apps/portal/src/routeTree.gen.ts',
+    'apps/portal/src/locales/**',
     '**/node_modules/**',
     '**/playwright-report/**',
     '**/playwright-report-flows/**',

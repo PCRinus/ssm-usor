@@ -14,4 +14,9 @@ catalog:
   '@docx-editor.dev/core': 2.26.0
   '@docx-editor.dev/fonts': 2.26.0
   '@docx-editor.dev/react': 2.26.0
+  '@lingui/cli': 6.9.1
+  '@lingui/core': 6.9.1
+  '@lingui/format-po': 6.9.1
+  '@lingui/react': 6.9.1
+  '@lingui/vite-plugin': 6.9.1
   libphonenumber-js: 1.13.14
