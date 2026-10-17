@@ -37,7 +37,7 @@ available as a required PR check, including on documentation-only changes.
 | `apps/pdf/**`, `packages/contracts/src/pdf.ts`                                                                                            | PDF Worker and its container image ([guide](pdf.md)) |
 | `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                   |
 | `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA, portal and marketing                            |
-| `packages/contracts/**`                                                                                                                   | API, SPA, portal, mail and SMS Workers               |
+| `packages/contracts/**`                                                                                                                   | API, SPA, mail and SMS Workers                       |
 | `apps/api/openapi.json`                                                                                                                   | API and SPA                                          |
 | `orval.config.ts`                                                                                                                         | SPA                                                  |
 | `supabase/config.toml`, `supabase/migrations/**`, workflow/action/filter files                                                            | Database (hosted migrations and configuration)       |
