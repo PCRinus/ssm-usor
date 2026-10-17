@@ -24,6 +24,7 @@ jobs:
       pull-requests: read
     outputs:
       app: ${{ steps.filter.outputs.app }}
+      portal: ${{ steps.filter.outputs.portal }}
       api: ${{ steps.filter.outputs.api }}
       database: ${{ steps.filter.outputs.database }}
       code: ${{ steps.filter.outputs.code }}
