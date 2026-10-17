@@ -126,6 +126,16 @@ export const trainingRequestSchema = z
     // Any status: a record typed from paper may belong to someone who has left.
     employeeIds: z.array(z.uuid()).min(1).max(500),
     admission: trainingAdmissionRequestSchema.nullish(),
+    // The accounts asked to sign each slot electronically (ADR 023); a slot left out or null is
+    // signed on paper. The trainee's signer is the employee's own participant, found by the API.
+    // Without the field nothing is requested.
+    signers: z
+      .object({
+        trainer: z.uuid().nullish(),
+        verifier: z.uuid().nullish(),
+        admitter: z.uuid().nullish(),
+      })
+      .nullish(),
   })
   .superRefine((body, ctx) => {
     if (body.phase === 'supplementary' && !body.supplementaryReason) {
@@ -147,6 +157,20 @@ export const trainingRequestSchema = z
         code: 'custom',
         path: ['admission'],
         message: 'Only a workplace training admits to work.',
+      });
+    }
+    if (body.signers?.verifier && !body.verifier) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['signers', 'verifier'],
+        message: 'Only a training with a verifier has a verifier to sign.',
+      });
+    }
+    if (body.signers?.admitter && !body.admission) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['signers', 'admitter'],
+        message: 'Only a training that admits to work has an admitter to sign.',
       });
     }
     if (new Set(body.employeeIds).size !== body.employeeIds.length) {

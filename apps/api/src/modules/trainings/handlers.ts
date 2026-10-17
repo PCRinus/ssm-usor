@@ -15,6 +15,7 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { collator } from '../../lib/romanian';
 import { romanianDay } from '../documents/context';
+import { issueSignatureRequests, planSignatureRequests } from '../signing/requests';
 import { fireSafetyTechnicianJobTitle, trainingProposal } from './proposal';
 import type {
   createTrainingRoute,
@@ -246,8 +247,11 @@ export const createTraining: RouteHandler<typeof createTrainingRoute, ApiEnv> = 
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  const trainingId = await saveTraining(db, clientId, undefined, c.req.valid('json'));
+  const body = c.req.valid('json');
+  const plan = await planSignatureRequests(db, clientId, body.signers);
+  const trainingId = await saveTraining(db, clientId, undefined, body);
   if (!trainingId) throw noSuchClient();
+  await issueSignatureRequests(c, db, { clientId, trainingId, plan });
   return c.json({ training: await loadTraining(db, clientId, trainingId) }, 201);
 };
 
@@ -260,8 +264,11 @@ export const updateTraining: RouteHandler<typeof updateTrainingRoute, ApiEnv> = 
   const { clientId, trainingId } = c.req.valid('param');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  const saved = await saveTraining(db, clientId, trainingId, c.req.valid('json'));
+  const body = c.req.valid('json');
+  const plan = await planSignatureRequests(db, clientId, body.signers);
+  const saved = await saveTraining(db, clientId, trainingId, body);
   if (!saved) throw noSuchTraining();
+  await issueSignatureRequests(c, db, { clientId, trainingId, plan });
   return c.json({ training: await loadTraining(db, clientId, trainingId) }, 200);
 };
 

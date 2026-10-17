@@ -29,6 +29,7 @@ import { portalRouter } from './modules/portal';
 import { protectiveEquipmentRouter } from './modules/protective-equipment';
 import { riskEvaluationsRouter } from './modules/risk-evaluations';
 import { serviceContractsRouter } from './modules/service-contracts';
+import { signingRouter } from './modules/signing';
 import { trainingsRouter } from './modules/trainings';
 import { waitlistRouter } from './modules/waitlist';
 import { createRouter } from './router';
@@ -87,6 +88,7 @@ export function createApp() {
   app.route('/', invitationsRouter);
   app.route('/', participantsRouter);
   app.route('/', portalRouter);
+  app.route('/', signingRouter);
   app.route('/', waitlistRouter);
   app.route('/', authHooksRouter);
 

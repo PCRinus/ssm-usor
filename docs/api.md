@@ -419,7 +419,10 @@ carries its attendees ordered by name, `attendees: [{ employeeId, lastName, firs
 read in the same query as `attendeeCount`. The detail lists the records by name, each with
 `employee: { id, lastName, firstName }`, `occupation` and `admission` or null; `GET …/employees/{employeeId}/training-records` lists one person's
 records with their training's facts, newest first. An archived client or a lead answers `409`
-as elsewhere.
+as elsewhere. The body's optional `signers: { trainer?, verifier?, admitter? }` names the
+accounts asked to sign the slots electronically, and saving issues their requests; see
+[Signatures](#signatures). A training whose record is signed answers `409` with
+`record_signed` to an edit that changes what the record prints.
 
 `GET …/trainings/proposal` proposes what the flow pre-fills, every value the specialist may
 change and null where nothing can be proposed. A periodic training takes the content line and
@@ -797,6 +800,10 @@ no route outside the prefix has the tag.
 | `GET …/{participantId}/employees/{employeeId}/sheets`           | Client administrator | As the employee's own                                       |
 | `GET …/{participantId}/employees/{employeeId}/sheets/{domain}`  | Client administrator | As the employee's own                                       |
 | `GET …/{participantId}/responsible-persons`                     | Client administrator | `{ items }`: the client's active responsible persons        |
+| `GET …/{participantId}/signature-requests`                      | Participant          | `{ items }`: the pending requests addressed to them         |
+| `GET …/{participantId}/employees/signature-requests`            | Client administrator | `{ items }`: the client's pending requests                  |
+| `GET …/{participantId}/signing-agreement`                       | Employee             | `200 application/pdf`, their own signing agreement          |
+| `GET …/{participantId}/signing-agreement/state`                 | Employee             | `{ agreement }`, null until the specialist records one      |
 
 `…` stands for `/portal/participants`. `requireParticipant` (`src/lib/participant.ts`) runs
 after `requireAuth` on every one of them: as the caller it calls
@@ -824,6 +831,104 @@ The secret key is used in one place: the sheet PDF reads its template from Stora
 `createAdminFileStore`, because Storage's template policy admits members only. The participant
 reads the template's registry row through their own policy, so the path the secret key reads
 is one they are allowed. Everything else runs as the participant.
+
+## Signatures
+
+[ADR 023](architecture/adr-023-advanced-electronic-signature.md) records the design and
+[the data model](data-model.md#signatures) the database side. The `signing` module holds the
+routes below; the signing session itself, the code, the sheet and the two-phase signature, is
+not built yet.
+
+| Route                                                                    | Response                                                                     |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `GET /clients/{clientId}/signer-candidates`                              | `{ items }`: members, then active participants, each account once            |
+| `GET /clients/{clientId}/training-records/{recordId}/signatures`         | `{ recordId, slots }`, each slot with its state                              |
+| `POST /clients/{clientId}/training-records/{recordId}/signatures/paper`  | The slots, after `{ slot, signerName, signerJobTitle? }` marked on paper     |
+| `POST /clients/{clientId}/training-records/{recordId}/signatures/void`   | The slots, after `{ reason }` voided every live signature and request        |
+| `GET /me/signature-requests`                                             | `{ items }`: the caller's own pending requests across clients, oldest first  |
+| `GET /clients/{clientId}/signature-requests`                             | `{ items }`: the client's requests in `?state=` (`pending` by default)       |
+| `GET /clients/{clientId}/employees/{employeeId}/signing-agreement`       | `200 application/pdf`, the act adițional drawn up on the spot                |
+| `GET /clients/{clientId}/employees/{employeeId}/signing-agreement/state` | `{ agreement }`: `state`, `generatedAt`, `signedAt`, `clientFileId`, or null |
+| `PUT /clients/{clientId}/employees/{employeeId}/signing-agreement/state` | The agreement after `{ state: generated \| signed_on_paper, clientFileId? }` |
+
+Every member route takes a membership; the four portal routes are in the [Portal](#portal)
+table, with the `portal` tag.
+
+**Requests at save.** `POST` and `PUT …/trainings` with `signers` first read the signer
+candidates and refuse, before saving, an account that is neither a member of the organization
+nor an active participant of the client: `422` with `signer_not_of_client` and the slot in
+`issues`. After the save, for every record of the training and every slot it has (the verifier
+only with a verifier, the admitter only with an admission), a pending request goes in as the
+member, row-level security and the database's checks applying: the trainee's to the employee's
+own active participant, found by the API; the trainer's, verifier's and admitter's to the
+accounts named. A slot left out or null is signed on paper, and a body without `signers`, or a
+training whose `source` is `paper`, asks nobody. A slot that already has a live request,
+pending or signed, is left alone, so a save after an edit issues only what the edit voided
+(the database voids the pending requests of a record whose printed facts change). A request the
+database refuses answers `422` with its reason (`SIG05`, `signer_not_of_client`; `SIG03`,
+`slot_not_on_record`).
+
+Each signer is then told once per save, with the number of requests issued to them and never
+the list: by email whenever the person has one (a member's account email; an employee's email
+on their row; otherwise the address of the participant's accepted invitation), else by SMS to
+the phone, through `sendSignatureRequest` of the mail or SMS Worker. A member is sent to the
+app's address and signs there; a participant, and every trainee, to the portal's. A message
+that fails leaves its requests standing; `notified_at`, which members may not write, is set
+with the secret key on the requests whose signer was told.
+
+**Slots.** A slot is `pending` (with `signer: { accountId, name }`), `signed` electronically or
+`paper`, with `signedAt`, `signerName` and `signerJobTitle` as printed, `void` when its request
+or signature was voided and nothing replaced it (`voidedAt`, `voidReason`), or `unassigned`.
+`…/paper` calls `mark_paper_signature`; `…/void` calls `void_training_signatures`. Both answer
+`404` for a record outside the client in the path, checked before the function runs.
+
+**Errors.** The database's codes become API errors in `fromDatabaseError`, the raise's message
+being the `reason`: `SIG01` (`record_signed`, `record_has_signatures`), `SIG02`
+(`slot_signed`), `SIG06` and `SIG07` (`agreement_signed_electronically`) are `409`; `SIG03` and
+`SIG05` are `422`; `SIG04` (`reason_required`, `signer_name_required`) is `400`. The signing
+code's own refusals are `409` too, from the API: `code_rate_limited` (a second code within 60
+seconds), `code_attempts_exceeded`, `code_expired`, `code_already_used` and `code_invalid`.
+
+**Lists.** An item carries the request, the client, the record (its training, employee, day,
+domain and phase) and `agreementState`, the employee's signing agreement, null when none is
+recorded, which the app and the portal show as "act adițional nesemnat". The portal's items
+carry the record as its row of the sheet prints it and `signerName`, the person the slot prints.
+The participant's own list reads the requests addressed to them as themselves, then those
+records, by id and client, with the secret key: a workplace manager signs other employees'
+admissions, whose records the participant policies do not show. The administrator's list is
+read as the administrator and refused to an employee with `403`.
+
+**The signing agreement** is drawn up like an individual training sheet: merged from the
+`signing_agreement` template with `buildSigningAgreementData` (the employee, the client's legal
+name, CUI, registered office and representative, the provider's legal name) and converted, never
+stored. It names the channel the codes go to, email when the employee's row has one, else the
+phone; with neither it answers `409` with `employee_has_no_address`. The portal reads its
+template with the secret key, as the sheets do, after the participant's own policy has shown the
+registry row (`20261018110000_signing_agreement_policy.sql`). `PUT …/state` inserts the row or
+updates only the columns members may change; `signed_electronically` is the signing session's.
+
+**The authority and the identities.** The app is its own certificate authority. Its secrets
+are `SIGNING_CA_KEY` (P-256, PKCS#8 PEM), `SIGNING_CA_CERT` (PEM) and
+`SIGNING_KEY_ENCRYPTION_KEY` (32 bytes, base64), made by
+`pnpm --filter @ssm-usor/api signing:ca`, which prints the three `.dev.vars` lines; a PEM may
+carry its line breaks as `\n`. Without them signing answers `503` with `signing_unavailable`.
+`src/lib/signing-ca.ts` issues an identity: a P-256 key from WebCrypto, stored as PKCS#8 under
+AES-256-GCM with a random IV and the account id as additional data, and a two-year certificate
+signed by the authority whose subject is the person's name (CN, cut to 64 characters) and the
+account id (the `serialNumber` attribute), with key usage `digitalSignature` and
+`nonRepudiation` and a random serial. `identityFor` reissues an identity that has expired,
+expires within 30 days, names the person differently, or was made under an authority or a
+key-encryption key since replaced; the row is replaced, and a signature keeps its certificate's
+serial in its evidence. `signWithIdentity` signs the signer container's `toSign` as raw r‖s.
+`src/lib/x509.ts` is the only importer of `@peculiar/x509`, whose dependency needs
+`reflect-metadata` loaded first. `src/modules/signing/identities.ts` keeps the identities in
+`signing_identities` with the secret key.
+
+**The signing code.** `src/modules/signing/signing-sessions.ts`: six digits, its SHA-256 salted
+with the session id kept in `signing_sessions` and the code never, ten minutes, three attempts
+counted with a compare-and-set, one code per account a minute, sent by `sendSigningCode` of the
+mail or SMS Worker. A code that could not be sent removes its session and answers `503` with
+`signing_code_not_sent`.
 
 ## What the documents print
 
@@ -1211,6 +1316,7 @@ with an optional `reason` where one status covers cases the client words differe
 | `403`  | `forbidden`           | No organization membership, not an owner where one is required, or the database policy rejected the write.            |
 | `404`  | `not_found`           | No matching route, no company registered with the CUI, or no such client, employee, workplace, or responsible person. |
 | `409`  | `conflict`            | Duplicate CUI, CNP, or employee number, an employee added to an archived client, or an invitation conflict.           |
+| `422`  | `unprocessable`       | A well-formed request the data refuses, such as a signer who cannot sign the slot.                                    |
 | `503`  | `service_unavailable` | Missing/invalid Supabase configuration, timeout, rate limit, or authentication service failure.                       |
 | `500`  | `internal_error`      | Unexpected API failure.                                                                                               |
 

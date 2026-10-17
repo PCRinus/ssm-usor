@@ -85,8 +85,29 @@ export const archivedClientError = () =>
 // Raised by the triggers that keep employees, positions, workplaces and documents off a lead.
 const leadCode = 'CLL01';
 
+// Raised by the signing schema (ADR 023); the message is the reason.
+const signingErrors: Record<
+  string,
+  { code: 'conflict' | 'unprocessable' | 'validation_error'; message: string }
+> = {
+  SIG01: { code: 'conflict', message: 'The training record is signed; void its signatures first.' },
+  SIG02: { code: 'conflict', message: 'This slot is signed already.' },
+  SIG03: { code: 'unprocessable', message: 'The training record has no such slot.' },
+  SIG04: { code: 'validation_error', message: 'A reason or a name is required.' },
+  SIG05: { code: 'unprocessable', message: 'This person cannot sign this slot.' },
+  SIG06: { code: 'conflict', message: 'A signature is written once.' },
+  SIG07: {
+    code: 'conflict',
+    message: 'An agreement signed electronically is changed only by the signing flow.',
+  },
+};
+
 // Translate PostgREST/Postgres failures into API errors without leaking details.
 export function fromDatabaseError(error: PostgrestError, context: string): ApiError {
+  const signing = error.code ? signingErrors[error.code] : undefined;
+  if (signing) {
+    return new ApiError(signing.code, signing.message, undefined, error.message || undefined);
+  }
   switch (error.code) {
     case '23505':
       return new ApiError('conflict');

@@ -48,6 +48,7 @@ export const ApiErrorResponseError = {
   validation_error: 'validation_error',
   not_found: 'not_found',
   conflict: 'conflict',
+  unprocessable: 'unprocessable',
   service_unavailable: 'service_unavailable',
   internal_error: 'internal_error',
 } as const;
@@ -1914,6 +1915,18 @@ export type TrainingRequestAdmission = {
   jobTitle: string;
 } | null;
 
+/**
+ * @nullable
+ */
+export type TrainingRequestSigners = {
+  /** @nullable */
+  trainer?: string | null;
+  /** @nullable */
+  verifier?: string | null;
+  /** @nullable */
+  admitter?: string | null;
+} | null;
+
 export interface TrainingRequest {
   domain: TrainingRequestDomain;
   phase: TrainingRequestPhase;
@@ -1949,6 +1962,8 @@ export interface TrainingRequest {
   employeeIds: string[];
   /** @nullable */
   admission?: TrainingRequestAdmission;
+  /** @nullable */
+  signers?: TrainingRequestSigners;
 }
 
 /**
@@ -7146,6 +7161,258 @@ export interface ClientParticipantsResponse {
   invitations: ClientParticipantsResponseInvitationsItem[];
 }
 
+export type SignerCandidatesResponseItemsItemKind =
+  (typeof SignerCandidatesResponseItemsItemKind)[keyof typeof SignerCandidatesResponseItemsItemKind];
+
+export const SignerCandidatesResponseItemsItemKind = {
+  member: 'member',
+  employee: 'employee',
+  client_administrator: 'client_administrator',
+} as const;
+
+export type SignerCandidatesResponseItemsItem = {
+  accountId: string;
+  name: string;
+  /** @nullable */
+  jobTitle: string | null;
+  kind: SignerCandidatesResponseItemsItemKind;
+  /** @nullable */
+  employeeId: string | null;
+};
+
+export interface SignerCandidatesResponse {
+  items: SignerCandidatesResponseItemsItem[];
+}
+
+export type RecordSignaturesResponseSlotsItemSlot =
+  (typeof RecordSignaturesResponseSlotsItemSlot)[keyof typeof RecordSignaturesResponseSlotsItemSlot];
+
+export const RecordSignaturesResponseSlotsItemSlot = {
+  trainee: 'trainee',
+  trainer: 'trainer',
+  verifier: 'verifier',
+  admitter: 'admitter',
+} as const;
+
+export type RecordSignaturesResponseSlotsItemState =
+  (typeof RecordSignaturesResponseSlotsItemState)[keyof typeof RecordSignaturesResponseSlotsItemState];
+
+export const RecordSignaturesResponseSlotsItemState = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RecordSignaturesResponseSlotsItemSigner = {
+  accountId: string;
+  /** @nullable */
+  name: string | null;
+} | null;
+
+export type RecordSignaturesResponseSlotsItem = {
+  slot: RecordSignaturesResponseSlotsItemSlot;
+  state: RecordSignaturesResponseSlotsItemState;
+  /** @nullable */
+  requestId: string | null;
+  /** @nullable */
+  signer: RecordSignaturesResponseSlotsItemSigner;
+  /** @nullable */
+  issuedAt: string | null;
+  /** @nullable */
+  notifiedAt: string | null;
+  /** @nullable */
+  signedAt: string | null;
+  /** @nullable */
+  signerName: string | null;
+  /** @nullable */
+  signerJobTitle: string | null;
+  /** @nullable */
+  voidedAt: string | null;
+  /** @nullable */
+  voidReason: string | null;
+};
+
+export interface RecordSignaturesResponse {
+  recordId: string;
+  slots: RecordSignaturesResponseSlotsItem[];
+}
+
+export type PaperSignatureRequestSlot =
+  (typeof PaperSignatureRequestSlot)[keyof typeof PaperSignatureRequestSlot];
+
+export const PaperSignatureRequestSlot = {
+  trainee: 'trainee',
+  trainer: 'trainer',
+  verifier: 'verifier',
+  admitter: 'admitter',
+} as const;
+
+export interface PaperSignatureRequest {
+  slot: PaperSignatureRequestSlot;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  signerName: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   * @nullable
+   */
+  signerJobTitle?: string | null;
+}
+
+export interface VoidSignaturesRequest {
+  /**
+   * @minLength 1
+   * @maxLength 500
+   */
+  reason: string;
+}
+
+export type SignatureRequestListResponseItemsItemSlot =
+  (typeof SignatureRequestListResponseItemsItemSlot)[keyof typeof SignatureRequestListResponseItemsItemSlot];
+
+export const SignatureRequestListResponseItemsItemSlot = {
+  trainee: 'trainee',
+  trainer: 'trainer',
+  verifier: 'verifier',
+  admitter: 'admitter',
+} as const;
+
+export type SignatureRequestListResponseItemsItemState =
+  (typeof SignatureRequestListResponseItemsItemState)[keyof typeof SignatureRequestListResponseItemsItemState];
+
+export const SignatureRequestListResponseItemsItemState = {
+  pending: 'pending',
+  signed: 'signed',
+  void: 'void',
+} as const;
+
+export type SignatureRequestListResponseItemsItemClient = {
+  id: string;
+  name: string;
+};
+
+export type SignatureRequestListResponseItemsItemRecordEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
+};
+
+export type SignatureRequestListResponseItemsItemRecordDomain =
+  (typeof SignatureRequestListResponseItemsItemRecordDomain)[keyof typeof SignatureRequestListResponseItemsItemRecordDomain];
+
+export const SignatureRequestListResponseItemsItemRecordDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type SignatureRequestListResponseItemsItemRecordPhase =
+  (typeof SignatureRequestListResponseItemsItemRecordPhase)[keyof typeof SignatureRequestListResponseItemsItemRecordPhase];
+
+export const SignatureRequestListResponseItemsItemRecordPhase = {
+  introductory_general: 'introductory_general',
+  workplace: 'workplace',
+  periodic: 'periodic',
+  supplementary: 'supplementary',
+} as const;
+
+export type SignatureRequestListResponseItemsItemRecord = {
+  id: string;
+  trainingId: string;
+  employee: SignatureRequestListResponseItemsItemRecordEmployee;
+  domain: SignatureRequestListResponseItemsItemRecordDomain;
+  phase: SignatureRequestListResponseItemsItemRecordPhase;
+  heldOn: string;
+};
+
+/**
+ * @nullable
+ */
+export type SignatureRequestListResponseItemsItemSigner = {
+  accountId: string;
+  /** @nullable */
+  name: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type SignatureRequestListResponseItemsItemAgreementState =
+  | (typeof SignatureRequestListResponseItemsItemAgreementState)[keyof typeof SignatureRequestListResponseItemsItemAgreementState]
+  | null;
+
+export const SignatureRequestListResponseItemsItemAgreementState = {
+  generated: 'generated',
+  signed_electronically: 'signed_electronically',
+  signed_on_paper: 'signed_on_paper',
+} as const;
+
+export type SignatureRequestListResponseItemsItem = {
+  id: string;
+  slot: SignatureRequestListResponseItemsItemSlot;
+  state: SignatureRequestListResponseItemsItemState;
+  issuedAt: string;
+  /** @nullable */
+  notifiedAt: string | null;
+  client: SignatureRequestListResponseItemsItemClient;
+  record: SignatureRequestListResponseItemsItemRecord;
+  /** @nullable */
+  signer: SignatureRequestListResponseItemsItemSigner;
+  /** @nullable */
+  agreementState: SignatureRequestListResponseItemsItemAgreementState;
+};
+
+export interface SignatureRequestListResponse {
+  items: SignatureRequestListResponseItemsItem[];
+}
+
+export type SigningAgreementResponseAgreementState =
+  (typeof SigningAgreementResponseAgreementState)[keyof typeof SigningAgreementResponseAgreementState];
+
+export const SigningAgreementResponseAgreementState = {
+  generated: 'generated',
+  signed_electronically: 'signed_electronically',
+  signed_on_paper: 'signed_on_paper',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SigningAgreementResponseAgreement = {
+  state: SigningAgreementResponseAgreementState;
+  generatedAt: string;
+  /** @nullable */
+  signedAt: string | null;
+  /** @nullable */
+  clientFileId: string | null;
+} | null;
+
+export interface SigningAgreementResponse {
+  /** @nullable */
+  agreement: SigningAgreementResponseAgreement;
+}
+
+export type SigningAgreementStateRequestState =
+  (typeof SigningAgreementStateRequestState)[keyof typeof SigningAgreementStateRequestState];
+
+export const SigningAgreementStateRequestState = {
+  generated: 'generated',
+  signed_on_paper: 'signed_on_paper',
+} as const;
+
+export interface SigningAgreementStateRequest {
+  state: SigningAgreementStateRequestState;
+  /** @nullable */
+  clientFileId?: string | null;
+}
+
 export type WaitlistSubscribeResponseStatus =
   (typeof WaitlistSubscribeResponseStatus)[keyof typeof WaitlistSubscribeResponseStatus];
 
@@ -7630,6 +7897,19 @@ export type DownloadFileDisposition =
 export const DownloadFileDisposition = {
   attachment: 'attachment',
   inline: 'inline',
+} as const;
+
+export type ListClientSignatureRequestsParams = {
+  state?: ListClientSignatureRequestsState;
+};
+
+export type ListClientSignatureRequestsState =
+  (typeof ListClientSignatureRequestsState)[keyof typeof ListClientSignatureRequestsState];
+
+export const ListClientSignatureRequestsState = {
+  pending: 'pending',
+  signed: 'signed',
+  void: 'void',
 } as const;
 
 export type ConfirmWaitlistSubscriptionParams = {
@@ -27177,6 +27457,1218 @@ export const useRevokeClientParticipant = <
   TContext
 > => {
   return useMutation(getRevokeClientParticipantMutationOptions(options), queryClient);
+};
+
+export const getListSignerCandidatesUrl = (clientId: string) => {
+  return `/clients/${clientId}/signer-candidates`;
+};
+
+/**
+ * The organization's members, then the client's active participants, each once by account (a member who is also a participant is listed as a member). The app proposes a signer for each slot of a training from these (ADR 023); the trainee's is always the employee's own participant, which the API finds itself.
+ * @summary Who may be asked to sign a client's training records
+ */
+export const listSignerCandidates = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SignerCandidatesResponse> => {
+  return apiFetch<SignerCandidatesResponse>(getListSignerCandidatesUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListSignerCandidatesQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/signer-candidates`] as const;
+};
+
+export const getListSignerCandidatesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSignerCandidates>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listSignerCandidates>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSignerCandidatesQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSignerCandidates>>> = ({ signal }) =>
+    listSignerCandidates(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listSignerCandidates>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListSignerCandidatesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSignerCandidates>>
+>;
+export type ListSignerCandidatesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListSignerCandidates<
+  TData = Awaited<ReturnType<typeof listSignerCandidates>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listSignerCandidates>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listSignerCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof listSignerCandidates>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListSignerCandidates<
+  TData = Awaited<ReturnType<typeof listSignerCandidates>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listSignerCandidates>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listSignerCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof listSignerCandidates>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListSignerCandidates<
+  TData = Awaited<ReturnType<typeof listSignerCandidates>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listSignerCandidates>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Who may be asked to sign a client's training records
+ */
+
+export function useListSignerCandidates<
+  TData = Awaited<ReturnType<typeof listSignerCandidates>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listSignerCandidates>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListSignerCandidatesQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetRecordSignaturesUrl = (clientId: string, recordId: string) => {
+  return `/clients/${clientId}/training-records/${recordId}/signatures`;
+};
+
+/**
+ * The trainee and the trainer always, the verifier when the training has one, the admitter when the record admits to work. A slot is `pending` with the signer addressed, `signed` electronically or `paper` with the name and function as printed, `void` when its request or signature was voided and nothing replaced it, or `unassigned`.
+ * @summary The signature slots of a training record and each one's state
+ */
+export const getRecordSignatures = async (
+  clientId: string,
+  recordId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RecordSignaturesResponse> => {
+  return apiFetch<RecordSignaturesResponse>(getGetRecordSignaturesUrl(clientId, recordId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetRecordSignaturesQueryKey = (clientId: string, recordId: string) => {
+  return [`/clients/${clientId}/training-records/${recordId}/signatures`] as const;
+};
+
+export const getGetRecordSignaturesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRecordSignatures>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  recordId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getRecordSignatures>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRecordSignaturesQueryKey(clientId, recordId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRecordSignatures>>> = ({ signal }) =>
+    getRecordSignatures(clientId, recordId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null && clientId !== undefined && recordId !== null && recordId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getRecordSignatures>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetRecordSignaturesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRecordSignatures>>
+>;
+export type GetRecordSignaturesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetRecordSignatures<
+  TData = Awaited<ReturnType<typeof getRecordSignatures>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  recordId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getRecordSignatures>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRecordSignatures>>,
+          TError,
+          Awaited<ReturnType<typeof getRecordSignatures>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetRecordSignatures<
+  TData = Awaited<ReturnType<typeof getRecordSignatures>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  recordId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getRecordSignatures>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRecordSignatures>>,
+          TError,
+          Awaited<ReturnType<typeof getRecordSignatures>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetRecordSignatures<
+  TData = Awaited<ReturnType<typeof getRecordSignatures>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  recordId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getRecordSignatures>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The signature slots of a training record and each one's state
+ */
+
+export function useGetRecordSignatures<
+  TData = Awaited<ReturnType<typeof getRecordSignatures>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  recordId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getRecordSignatures>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetRecordSignaturesQueryOptions(clientId, recordId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getMarkPaperSignatureUrl = (clientId: string, recordId: string) => {
+  return `/clients/${clientId}/training-records/${recordId}/signatures/paper`;
+};
+
+/**
+ * For a person without an account, or one who signed the paper instead: a pending request of the slot is voided with `signed_on_paper` and the slot gets a paper signature that records the member who marked it. The record is not frozen by it.
+ * @summary Mark a slot as signed by hand
+ */
+export const markPaperSignature = async (
+  clientId: string,
+  recordId: string,
+  paperSignatureRequest: PaperSignatureRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RecordSignaturesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RecordSignaturesResponse>(getMarkPaperSignatureUrl(clientId, recordId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(paperSignatureRequest),
+  });
+};
+
+export const getMarkPaperSignatureMutationKey = () => ['markPaperSignature'] as const;
+
+export const getMarkPaperSignatureMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markPaperSignature>>,
+    TError,
+    MarkPaperSignatureMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markPaperSignature>>,
+  TError,
+  MarkPaperSignatureMutationVariables,
+  TContext
+> => {
+  const mutationKey = getMarkPaperSignatureMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markPaperSignature>>,
+    MarkPaperSignatureMutationVariables
+  > = (props) => {
+    const { clientId, recordId, data } = props ?? {};
+
+    return markPaperSignature(clientId, recordId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkPaperSignatureMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markPaperSignature>>
+>;
+export type MarkPaperSignatureMutationBody = PaperSignatureRequest;
+export type MarkPaperSignatureMutationError = ErrorType<ApiErrorResponse>;
+export type MarkPaperSignatureMutationVariables = {
+  clientId: string;
+  recordId: string;
+  data: PaperSignatureRequest;
+};
+
+/**
+ * @summary Mark a slot as signed by hand
+ */
+export const useMarkPaperSignature = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof markPaperSignature>>,
+      TError,
+      MarkPaperSignatureMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof markPaperSignature>>,
+  TError,
+  MarkPaperSignatureMutationVariables,
+  TContext
+> => {
+  return useMutation(getMarkPaperSignatureMutationOptions(options), queryClient);
+};
+
+export const getVoidRecordSignaturesUrl = (clientId: string, recordId: string) => {
+  return `/clients/${clientId}/training-records/${recordId}/signatures/void`;
+};
+
+/**
+ * Every live signature of the record, paper ones included, and every request that is not void, with the reason given. The record is editable again; saving the corrected training with its signers issues the requests again. The evidence rows stay, marked void.
+ * @summary Void a training record's signatures, to correct it
+ */
+export const voidRecordSignatures = async (
+  clientId: string,
+  recordId: string,
+  voidSignaturesRequest: VoidSignaturesRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RecordSignaturesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RecordSignaturesResponse>(getVoidRecordSignaturesUrl(clientId, recordId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(voidSignaturesRequest),
+  });
+};
+
+export const getVoidRecordSignaturesMutationKey = () => ['voidRecordSignatures'] as const;
+
+export const getVoidRecordSignaturesMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof voidRecordSignatures>>,
+    TError,
+    VoidRecordSignaturesMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof voidRecordSignatures>>,
+  TError,
+  VoidRecordSignaturesMutationVariables,
+  TContext
+> => {
+  const mutationKey = getVoidRecordSignaturesMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof voidRecordSignatures>>,
+    VoidRecordSignaturesMutationVariables
+  > = (props) => {
+    const { clientId, recordId, data } = props ?? {};
+
+    return voidRecordSignatures(clientId, recordId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VoidRecordSignaturesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof voidRecordSignatures>>
+>;
+export type VoidRecordSignaturesMutationBody = VoidSignaturesRequest;
+export type VoidRecordSignaturesMutationError = ErrorType<ApiErrorResponse>;
+export type VoidRecordSignaturesMutationVariables = {
+  clientId: string;
+  recordId: string;
+  data: VoidSignaturesRequest;
+};
+
+/**
+ * @summary Void a training record's signatures, to correct it
+ */
+export const useVoidRecordSignatures = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof voidRecordSignatures>>,
+      TError,
+      VoidRecordSignaturesMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof voidRecordSignatures>>,
+  TError,
+  VoidRecordSignaturesMutationVariables,
+  TContext
+> => {
+  return useMutation(getVoidRecordSignaturesMutationOptions(options), queryClient);
+};
+
+export const getListMySignatureRequestsUrl = () => {
+  return `/me/signature-requests`;
+};
+
+/**
+ * Oldest first, with the client, the employee, the day, the domain and the phase, and the employee's signing agreement, whose absence the app shows as a warning.
+ * @summary The signed-in member's pending signature requests, across clients
+ */
+export const listMySignatureRequests = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SignatureRequestListResponse> => {
+  return apiFetch<SignatureRequestListResponse>(getListMySignatureRequestsUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListMySignatureRequestsQueryKey = () => {
+  return [`/me/signature-requests`] as const;
+};
+
+export const getListMySignatureRequestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMySignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof listMySignatureRequests>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMySignatureRequestsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listMySignatureRequests>>> = ({
+    signal,
+  }) => listMySignatureRequests({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMySignatureRequests>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListMySignatureRequestsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMySignatureRequests>>
+>;
+export type ListMySignatureRequestsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListMySignatureRequests<
+  TData = Awaited<ReturnType<typeof listMySignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listMySignatureRequests>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMySignatureRequests>>,
+          TError,
+          Awaited<ReturnType<typeof listMySignatureRequests>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListMySignatureRequests<
+  TData = Awaited<ReturnType<typeof listMySignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listMySignatureRequests>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMySignatureRequests>>,
+          TError,
+          Awaited<ReturnType<typeof listMySignatureRequests>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListMySignatureRequests<
+  TData = Awaited<ReturnType<typeof listMySignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listMySignatureRequests>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The signed-in member's pending signature requests, across clients
+ */
+
+export function useListMySignatureRequests<
+  TData = Awaited<ReturnType<typeof listMySignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listMySignatureRequests>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListMySignatureRequestsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListClientSignatureRequestsUrl = (
+  clientId: string,
+  params?: ListClientSignatureRequestsParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/signature-requests?${stringifiedParams}`
+    : `/clients/${clientId}/signature-requests`;
+};
+
+/**
+ * For the specialist: who still has to sign what, oldest first, with the signer's name as the app knows it.
+ * @summary A client's signature requests in one state, pending by default
+ */
+export const listClientSignatureRequests = async (
+  clientId: string,
+  params?: ListClientSignatureRequestsParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SignatureRequestListResponse> => {
+  return apiFetch<SignatureRequestListResponse>(
+    getListClientSignatureRequestsUrl(clientId, params),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getListClientSignatureRequestsQueryKey = (
+  clientId: string,
+  params?: ListClientSignatureRequestsParams
+) => {
+  return [`/clients/${clientId}/signature-requests`, ...(params ? [params] : [])] as const;
+};
+
+export const getListClientSignatureRequestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listClientSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: ListClientSignatureRequestsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientSignatureRequests>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListClientSignatureRequestsQueryKey(clientId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listClientSignatureRequests>>> = ({
+    signal,
+  }) => listClientSignatureRequests(clientId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listClientSignatureRequests>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListClientSignatureRequestsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listClientSignatureRequests>>
+>;
+export type ListClientSignatureRequestsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListClientSignatureRequests<
+  TData = Awaited<ReturnType<typeof listClientSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params: undefined | ListClientSignatureRequestsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientSignatureRequests>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listClientSignatureRequests>>,
+          TError,
+          Awaited<ReturnType<typeof listClientSignatureRequests>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListClientSignatureRequests<
+  TData = Awaited<ReturnType<typeof listClientSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: ListClientSignatureRequestsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientSignatureRequests>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listClientSignatureRequests>>,
+          TError,
+          Awaited<ReturnType<typeof listClientSignatureRequests>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListClientSignatureRequests<
+  TData = Awaited<ReturnType<typeof listClientSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: ListClientSignatureRequestsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientSignatureRequests>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A client's signature requests in one state, pending by default
+ */
+
+export function useListClientSignatureRequests<
+  TData = Awaited<ReturnType<typeof listClientSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: ListClientSignatureRequestsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientSignatureRequests>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListClientSignatureRequestsQueryOptions(clientId, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetSigningAgreementUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/signing-agreement`;
+};
+
+/**
+ * Drawn up on the spot from the template, the employee, the client and the provider, nothing stored; the channel it names is email when the employee has one, otherwise the phone. Recording that it was handed out or signed on paper is the state route.
+ * @summary An employee's signing agreement (act adițional) as a PDF
+ */
+export const getSigningAgreement = async (
+  clientId: string,
+  employeeId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getGetSigningAgreementUrl(clientId, employeeId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetSigningAgreementQueryKey = (clientId: string, employeeId: string) => {
+  return [`/clients/${clientId}/employees/${employeeId}/signing-agreement`] as const;
+};
+
+export const getGetSigningAgreementQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSigningAgreement>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSigningAgreementQueryKey(clientId, employeeId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSigningAgreement>>> = ({ signal }) =>
+    getSigningAgreement(clientId, employeeId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getSigningAgreement>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetSigningAgreementQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSigningAgreement>>
+>;
+export type GetSigningAgreementQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetSigningAgreement<
+  TData = Awaited<ReturnType<typeof getSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSigningAgreement>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSigningAgreement>>,
+          TError,
+          Awaited<ReturnType<typeof getSigningAgreement>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetSigningAgreement<
+  TData = Awaited<ReturnType<typeof getSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSigningAgreement>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSigningAgreement>>,
+          TError,
+          Awaited<ReturnType<typeof getSigningAgreement>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetSigningAgreement<
+  TData = Awaited<ReturnType<typeof getSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSigningAgreement>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary An employee's signing agreement (act adițional) as a PDF
+ */
+
+export function useGetSigningAgreement<
+  TData = Awaited<ReturnType<typeof getSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSigningAgreement>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetSigningAgreementQueryOptions(clientId, employeeId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetSigningAgreementStateUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/signing-agreement/state`;
+};
+
+/**
+ * `agreement` is null until one is recorded.
+ * @summary An employee's signing agreement state
+ */
+export const getSigningAgreementState = async (
+  clientId: string,
+  employeeId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SigningAgreementResponse> => {
+  return apiFetch<SigningAgreementResponse>(getGetSigningAgreementStateUrl(clientId, employeeId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetSigningAgreementStateQueryKey = (clientId: string, employeeId: string) => {
+  return [`/clients/${clientId}/employees/${employeeId}/signing-agreement/state`] as const;
+};
+
+export const getGetSigningAgreementStateQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSigningAgreementState>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSigningAgreementState>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSigningAgreementStateQueryKey(clientId, employeeId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSigningAgreementState>>> = ({
+    signal,
+  }) => getSigningAgreementState(clientId, employeeId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getSigningAgreementState>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetSigningAgreementStateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSigningAgreementState>>
+>;
+export type GetSigningAgreementStateQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetSigningAgreementState<
+  TData = Awaited<ReturnType<typeof getSigningAgreementState>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSigningAgreementState>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSigningAgreementState>>,
+          TError,
+          Awaited<ReturnType<typeof getSigningAgreementState>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetSigningAgreementState<
+  TData = Awaited<ReturnType<typeof getSigningAgreementState>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSigningAgreementState>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSigningAgreementState>>,
+          TError,
+          Awaited<ReturnType<typeof getSigningAgreementState>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetSigningAgreementState<
+  TData = Awaited<ReturnType<typeof getSigningAgreementState>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSigningAgreementState>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary An employee's signing agreement state
+ */
+
+export function useGetSigningAgreementState<
+  TData = Awaited<ReturnType<typeof getSigningAgreementState>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSigningAgreementState>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetSigningAgreementStateQueryOptions(clientId, employeeId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getPutSigningAgreementStateUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/signing-agreement/state`;
+};
+
+/**
+ * `generated` when it was handed to the employee, `signed_on_paper` when it came back signed by hand, with the scan as a file of the client in `clientFileId`. `signed_electronically` is set by the signing flow alone, and an agreement in that state is not changed here.
+ * @summary Record an employee's signing agreement as handed out or signed on paper
+ */
+export const putSigningAgreementState = async (
+  clientId: string,
+  employeeId: string,
+  signingAgreementStateRequest: SigningAgreementStateRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SigningAgreementResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<SigningAgreementResponse>(getPutSigningAgreementStateUrl(clientId, employeeId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(signingAgreementStateRequest),
+  });
+};
+
+export const getPutSigningAgreementStateMutationKey = () => ['putSigningAgreementState'] as const;
+
+export const getPutSigningAgreementStateMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof putSigningAgreementState>>,
+    TError,
+    PutSigningAgreementStateMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof putSigningAgreementState>>,
+  TError,
+  PutSigningAgreementStateMutationVariables,
+  TContext
+> => {
+  const mutationKey = getPutSigningAgreementStateMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof putSigningAgreementState>>,
+    PutSigningAgreementStateMutationVariables
+  > = (props) => {
+    const { clientId, employeeId, data } = props ?? {};
+
+    return putSigningAgreementState(clientId, employeeId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PutSigningAgreementStateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof putSigningAgreementState>>
+>;
+export type PutSigningAgreementStateMutationBody = SigningAgreementStateRequest;
+export type PutSigningAgreementStateMutationError = ErrorType<ApiErrorResponse>;
+export type PutSigningAgreementStateMutationVariables = {
+  clientId: string;
+  employeeId: string;
+  data: SigningAgreementStateRequest;
+};
+
+/**
+ * @summary Record an employee's signing agreement as handed out or signed on paper
+ */
+export const usePutSigningAgreementState = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof putSigningAgreementState>>,
+      TError,
+      PutSigningAgreementStateMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof putSigningAgreementState>>,
+  TError,
+  PutSigningAgreementStateMutationVariables,
+  TContext
+> => {
+  return useMutation(getPutSigningAgreementStateMutationOptions(options), queryClient);
 };
 
 export const getSubscribeToWaitlistUrl = () => {
