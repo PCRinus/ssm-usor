@@ -447,6 +447,13 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   (`dd.mm.yyyy`, also with slashes or dashes) next to a button that opens the shadcn calendar
   (react-day-picker, Romanian locale, month and year dropdowns, optional bounds). The form
   only ever receives ISO dates; helpers live in `src/lib/dates.ts`.
+- Phone fields use `src/components/phone-input.tsx`: a country picker (Romania first, then the
+  countries foreign workers most often come from, then the rest by Romanian name, each with its
+  calling code) beside the national number, formatted as it is typed (`libphonenumber-js`). The
+  form holds one E.164 string; a stored number opens in its own country. `src/lib/phone.ts` holds
+  the field's check, the contracts' libphonenumber-based `normalizePhone`, and its message. The
+  employee form and the administrator invitation by SMS use it; a client's contact phone stays a
+  free-text input.
 - `/clients/:id/employees/:employeeId`: the employee from the detail endpoint, opened from the
   name in the list and rendered without the client summary and tabs
   (`src/features/employees/employee-layout.tsx`). A header carries the name, the post, the

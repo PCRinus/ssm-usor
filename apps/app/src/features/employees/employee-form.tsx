@@ -11,6 +11,7 @@ import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
 import { Notice } from '@/components/notice';
+import { PhoneInput } from '@/components/phone-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useAuth } from '@/features/auth/auth-context';
 import { JobPositionCombobox } from '@/features/job-positions/job-position-combobox';
@@ -252,14 +253,22 @@ export function EmployeeForm({
               />
             </Field>
             <Field id="phone" label="Telefon" mark="optional" error={errors.phone}>
-              <Input
-                id="phone"
-                data-testid="employee-phone"
-                type="tel"
-                className="h-11"
-                {...register('phone')}
-                autoComplete="off"
-                {...control('phone')}
+              <Controller
+                control={formControl}
+                name="phone"
+                render={({ field }) => (
+                  <PhoneInput
+                    id="phone"
+                    data-testid="employee-phone"
+                    ref={field.ref}
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    autoComplete="off"
+                    {...control('phone')}
+                  />
+                )}
               />
             </Field>
           </FormSection>

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { formatEmployeeName } from '@ssm-usor/contracts';
+import { formatEmployeeName, normalizePhone } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
@@ -18,6 +18,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useInviteClientAdministrator } from '@/api/generated/api';
 import { Field, FieldMessage } from '@/components/form-field';
 import { Notice } from '@/components/notice';
+import { PhoneInput } from '@/components/phone-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import type { Client } from '@/features/clients/client-form-schema';
 import { EmployeeCombobox } from '@/features/training/employee-combobox';
@@ -86,7 +87,8 @@ function InviteAdministratorForm({
       // Neither channel is proposed first (ADR 022), even when the client has both.
       channel: '',
       email: client.contactEmail ?? '',
-      phone: client.contactPhone ?? '',
+      // The contact phone is free text; the invitation needs it in E.164.
+      phone: normalizePhone(client.contactPhone ?? '') ?? client.contactPhone ?? '',
     },
   });
   const formRef = useRevealErrors(form);
@@ -263,16 +265,24 @@ function InviteAdministratorForm({
               mark="required"
               error={errors.phone}
             >
-              <Input
-                id="administrator-phone"
-                data-testid="administrator-phone"
-                type="tel"
-                autoComplete="off"
-                placeholder="07xx xxx xxx"
-                disabled={busy}
-                aria-invalid={Boolean(errors.phone)}
-                aria-describedby={errors.phone ? 'administrator-phone-error' : undefined}
-                {...form.register('phone')}
+              <Controller
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <PhoneInput
+                    id="administrator-phone"
+                    data-testid="administrator-phone"
+                    ref={field.ref}
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    autoComplete="off"
+                    disabled={busy}
+                    aria-invalid={Boolean(errors.phone)}
+                    aria-describedby={errors.phone ? 'administrator-phone-error' : undefined}
+                  />
+                )}
               />
             </Field>
           )}

@@ -1,6 +1,8 @@
 import { normalizePhone } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
+import { invalidPhoneMessage } from '@/lib/phone';
+
 const emailSchema = z.email().max(254);
 
 export const administratorInviteFormSchema = z
@@ -41,9 +43,7 @@ export const administratorInviteFormSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['phone'],
-        message: values.phone
-          ? 'Numărul de telefon nu este valid.'
-          : 'Completează numărul de telefon.',
+        message: values.phone ? invalidPhoneMessage : 'Completează numărul de telefon.',
       });
     }
   });

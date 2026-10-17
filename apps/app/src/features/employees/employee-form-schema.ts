@@ -4,7 +4,6 @@ import {
   decodeCnp,
   isValidCnpInput,
   normalizeCnp,
-  normalizePhone,
   type RhFactor,
   rhFactors,
 } from '@ssm-usor/contracts';
@@ -15,6 +14,7 @@ import type {
   EmployeeResponse,
   UpdateEmployeeRequest,
 } from '@/api/generated/api';
+import { optionalPhoneField } from '@/lib/phone';
 
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 const optionalText = (max: number, message: string) => z.string().trim().max(max, message);
@@ -49,13 +49,7 @@ export const employeeFormSchema = z
         (value) => value === '' || z.email().safeParse(value).success,
         'Introdu o adresă de email validă.'
       ),
-    phone: z
-      .string()
-      .trim()
-      .refine(
-        (value) => value === '' || normalizePhone(value) !== null,
-        'Introdu un număr de telefon valid.'
-      ),
+    phone: optionalPhoneField,
     // The id of one of the client's job positions (ADR 006).
     jobPosition: z.uuid('Alege postul de lucru.'),
     jobTitle: z

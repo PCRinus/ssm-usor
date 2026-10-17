@@ -503,11 +503,13 @@ describe('employee creation', () => {
     expect(screen.getByTestId('employee-last-name').getAttribute('aria-invalid')).toBe('true');
     await user.type(screen.getByTestId('employee-cnp'), '1900101400128');
     await user.type(screen.getByTestId('employee-email'), 'not-an-email');
-    await user.type(screen.getByTestId('employee-phone'), 'call me');
+    await user.type(screen.getByTestId('employee-phone'), '0721 000');
     await user.click(screen.getByTestId('employee-submit'));
     expect((await screen.findByTestId('cnp-error')).textContent).toContain('CNP invalid');
     expect(screen.getByTestId('email-error')).toBeTruthy();
-    expect(screen.getByTestId('phone-error')).toBeTruthy();
+    expect(screen.getByTestId('phone-error').textContent).toBe(
+      'Numărul de telefon nu este valid pentru țara aleasă.'
+    );
     expect(requests(employeesPath, 'POST')).toHaveLength(0);
   });
 
@@ -560,7 +562,7 @@ describe('employee creation', () => {
       cnp: '1900101400127',
       employeeNumber: 'A-17',
       email: 'ion.popescu@example.com',
-      phone: '0721 000 000',
+      phone: '+40721000000',
       jobPositionId: sampleEmployee.jobPosition.id,
       // Filled from the position; nobody typed it.
       jobTitle: 'Sudor',
@@ -1352,7 +1354,8 @@ describe('employee editing', () => {
     await screen.findByTestId('edit-employee-page');
     const phone = screen.getByTestId('employee-phone');
     await user.clear(phone);
-    await user.type(phone, '0733 111 222');
+    await user.selectOptions(screen.getByTestId('employee-phone-country'), 'IT');
+    await user.type(phone, '333 123 4567');
     const lastName = screen.getByTestId('employee-last-name');
     await user.clear(lastName);
     await user.type(lastName, 'Popescu-Ionescu');
@@ -1364,7 +1367,7 @@ describe('employee editing', () => {
     const [, init] = requests(`${employeesPath}/${sampleEmployee.id}`, 'PUT')[0]!;
     expect(JSON.parse(String(init?.body))).toMatchObject({
       lastName: 'Popescu-Ionescu',
-      phone: '0733 111 222',
+      phone: '+393331234567',
       cnp: '1900101400127',
       jobTitle: 'Muncitor calificat',
       jobPositionId: sampleEmployee.jobPosition.id,
