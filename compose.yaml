@@ -1,6 +1,6 @@
-# The Word-to-PDF converter for local development and the flow tests: the same image and
-# flags as the deployed container (apps/pdf/Dockerfile), reached by the API through
-# GOTENBERG_URL=http://localhost:3300 in apps/api/.dev.vars (docs/pdf.md).
+# The containers of apps/pdf for local development and the flow tests, built from the same
+# Dockerfiles as the deployed ones and reached by the API through GOTENBERG_URL=http://localhost:3300
+# and SIGNER_URL=http://localhost:3301 in apps/api/.dev.vars (docs/pdf.md).
 services:
   gotenberg:
     build: apps/pdf
@@ -9,6 +9,23 @@ services:
       - '3300:3000'
     healthcheck:
       test: ['CMD', 'curl', '-sf', 'http://localhost:3000/health']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  signer:
+    build: apps/pdf/signer
+    container_name: ssm-usor-signer
+    ports:
+      - '3301:3301'
+    healthcheck:
+      # The image has no curl.
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          'import urllib.request; urllib.request.urlopen("http://localhost:3301/health")',
+        ]
       interval: 5s
       timeout: 3s
       retries: 12

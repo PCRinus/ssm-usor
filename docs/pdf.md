@@ -8,7 +8,9 @@ when a revision is issued. Turning a Word file into a PDF with its layout needs 
 engine, in practice headless LibreOffice, which cannot run in a Worker. `apps/pdf` owns a
 [Cloudflare Container](https://developers.cloudflare.com/containers/) that runs
 [Gotenberg](https://gotenberg.dev), and offers one method over a service binding, as
-`apps/mail` does for email. It has no routes and no `workers.dev` address.
+`apps/mail` does for email. It has no routes and no `workers.dev` address. A second container
+runs the [signer](#signer) of [ADR 023](architecture/adr-023-advanced-electronic-signature.md),
+behind the same entrypoint.
 
 It is a Worker of its own so that Docker, the image registry and the container's lifecycle
 stay out of the API's deployment: a problem here cannot block an API release.
@@ -127,12 +129,125 @@ itself, which builds the image and starts the container on the first conversion,
 on `apps/pdf`. Tests (`src/convert.test.ts`) cover the request and the failure handling
 without a container.
 
+## Signer
+
+[ADR 023](architecture/adr-023-advanced-electronic-signature.md) signs the individual training
+sheet as a PDF form that collects PAdES signatures row by row. The second container class,
+`Signer`, runs a small Python service around [pyHanko](https://pyhanko.readthedocs.io)
+(`apps/pdf/signer`), and the `Pdf` entrypoint offers it as `SignerService` in
+`packages/contracts/src/signer.ts`:
+
+```ts
+prepareSheet(pdf: ArrayBuffer, signatureFields: string[]): Promise<ArrayBuffer>;
+fillFields(pdf: ArrayBuffer, values: Record<string, string>): Promise<ArrayBuffer>;
+beginSignature(pdf: ArrayBuffer, options: BeginSignatureOptions): Promise<BeginSignatureResult>;
+finishSignature(prepared: ArrayBuffer, sessionToken: string, signature: ArrayBuffer): Promise<ArrayBuffer>;
+validate(pdf: ArrayBuffer): Promise<SignatureValidation[]>;
+```
+
+`prepareSheet` turns the named text fields, the signature cells LibreOffice exported, into
+signature fields of the same rectangle. `fillFields` writes values as an incremental update,
+each with its appearance drawn in an embedded Liberation Sans, so no viewer needs to redraw
+fields and earlier signatures stay valid. Unknown field names are refused.
+
+### The two phases
+
+The private key never leaves the API, so a signature takes two calls.
+
+1. `beginSignature` writes, as an incremental update, the signature dictionary with a
+   placeholder for its contents, the visible text (`appearanceLines`), the signing time
+   (`signedAt`, the dictionary's `/M`) and, on the first signature (`certify: true`), the
+   certification that permits form filling and signing only (DocMDP level 2). It hashes the
+   signed byte range with SHA-256 and returns the prepared PDF, `toSign` and a session token.
+   `toSign` is the DER of the CMS signed attributes, which hold that digest (content type,
+   message digest and the signing certificate; no signing-time attribute, which PAdES leaves
+   to `/M`).
+2. The API signs `toSign` as it is, with WebCrypto: ECDSA P-256 with SHA-256, which answers
+   raw r||s, 64 bytes.
+3. `finishSignature` turns r||s into the DER that CMS expects, checks it against the
+   certificate, checks that `prepared` is the PDF the first phase returned, wraps it with the
+   certificate and its chain, and writes it into the placeholder.
+
+A session is kept in memory for ten minutes and finishes once; a restart of the container
+loses it, and the caller begins again. That is why the class runs one instance.
+
+`lockFields`, the row's text fields, become the signature's `/FieldMDP` reference, which is
+what validators read. They are not written as a `/Lock` into the field: after the certification
+that would itself be a change the document does not permit. A row's signature fields still to
+be signed must not be in the list, or they could not be signed.
+
+`validate` trusts no root, the app being its own authority, and reports per signature whether
+the signed bytes are intact and the signature verifies, and whether every later change was
+form filling or signing that touched no locked field. pyHanko's own default policy wrongly
+counts an appearance written before a signed revision as changed after it, so the service
+validates without in-place appearance updates, which it never makes.
+
+### Over HTTP
+
+The container answers JSON, every PDF and signature in base64, on port 3301. The same client,
+`signerOverHttp` in `packages/contracts/src/signer-http.ts`, serves `apps/pdf` and a local API.
+
+| Route                 | Body                                                                                                           | Answer                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `POST /prepare-sheet` | `pdf`, `signatureFields`                                                                                       | `pdf`                                 |
+| `POST /fill`          | `pdf`, `values`                                                                                                | `pdf`                                 |
+| `POST /sign/begin`    | `pdf`, `field`, `certificatePem`, `chainPem`, `reason`, `signedAt`, `certify`, `lockFields`, `appearanceLines` | `prepared`, `toSign`, `sessionToken`  |
+| `POST /sign/finish`   | `prepared`, `sessionToken`, `signature`                                                                        | `pdf`                                 |
+| `POST /validate`      | `pdf`                                                                                                          | `signatures`: `SignatureValidation[]` |
+| `GET /health`         |                                                                                                                | `{ "status": "ok" }`                  |
+
+A refusal is `{ "error", "detail" }`: 400 for the request or the PDF (`unknown_fields`,
+`already_signed`, `cannot_certify`, `bad_signature`, `prepared_changed`, …), 404 for an unknown
+or expired session, 422 for a malformed body. `apps/pdf` rejects every failure with the message
+`signer_failed` and logs the reason as one JSON line (`signer_refused`, `signer_unreachable`,
+`signer_timeout`, `signer_not_json`). A container that did not start, or answered 5xx, is
+tried once more after two seconds; a request still unanswered after 60 seconds is not.
+
+### The container
+
+| Setting         | Value                                | Why                                                                               |
+| --------------- | ------------------------------------ | --------------------------------------------------------------------------------- |
+| Image           | `python:3.12.15-slim-trixie`, 229 MB | `apps/pdf/signer/Dockerfile`; every Python package pinned in `requirements.txt`   |
+| Instance type   | `basic`                              | A quarter of a vCPU: the service starts in about 4 s. On `lite` it took some 40 s |
+| `max_instances` | 1                                    | A signature's second phase must find the session its first phase left             |
+| `sleepAfter`    | 10 minutes                           | The session's lifetime                                                            |
+| Internet        | off                                  | Nothing is fetched: no revocation lists, no timestamps                            |
+
+Liberation Sans comes from Debian and is rescaled to 1,000 units per em when the image is
+built: pyHanko writes a subset's widths in the font's own units, and PDF reads them as
+thousandths, so Liberation's 2,048 would spread every line out.
+
+Measured on 18 October 2026 in Docker on a quarter of a CPU: ready in 3.6 s, then a
+preparation, a fill, both phases of a signature and a validation of a small sheet take well
+under a second together, in about 85 MB of memory.
+
+### How the API reaches it
+
+`apps/api/src/lib/signer.ts` picks it as `pdf.ts` picks the converter: `createSigner` returns
+the `SIGNER` binding (the same `Pdf` entrypoint) where `PDF_CONVERSION=service`, else the
+signer at `SIGNER_URL`, else nothing, and `requireSigner` answers `503` with the reason
+`signer_unavailable`. Any failure of a method answers the same.
+
+Locally, `pnpm dev:pdf` starts the signer beside Gotenberg, from the same Dockerfile, on port 3301. Set `SIGNER_URL=http://localhost:3301` in `apps/api/.dev.vars` and restart `pnpm dev`.
+
+The service's tests are Python and need Python 3.12 or newer, once:
+
+```sh
+pnpm --filter @ssm-usor/pdf setup:signer   # a venv in apps/pdf/signer/.venv
+pnpm --filter @ssm-usor/pdf test:signer    # pytest
+```
+
+They make a throwaway certificate authority and sheet, and sign, fill and validate it as the
+sheet will be. CI does not run them yet. `src/sign.test.ts` covers the forwarding in the
+Worker without a container.
+
 ## Deployment
 
-The job "Deploy PDF Worker" runs on `main` when `apps/pdf/**` or the interface changes.
-`wrangler deploy` uploads the Worker, builds the image from the Dockerfile with the runner's
-Docker, pushes it to Cloudflare's registry, and rolls the container out. The production build
-job does the same build as a dry run, so a broken Dockerfile fails before deployment.
+The job "Deploy PDF Worker" runs on `main` when `apps/pdf/**` or the interfaces change.
+`wrangler deploy` uploads the Worker, builds an image for each container class, Gotenberg's
+and the signer's, with the runner's Docker, pushes them to Cloudflare's registry, and rolls the
+containers out. The production build job does the same builds as a dry run, so a broken
+Dockerfile fails before deployment.
 
 `CLOUDFLARE_API_TOKEN` was created from the "Edit Cloudflare Workers" template
 ([deployment guide](deployment.md)). If the first deployment is refused for lack of
