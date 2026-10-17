@@ -1,0 +1,273 @@
+import { z } from 'zod';
+
+import { bloodGroupSchema, rhFactorSchema } from './employees';
+import { normalizePhone } from './phone';
+import { trainingSheetReadinessSchema } from './training-sheets';
+import {
+  employeeTrainingSchema,
+  supplementaryTrainingReasonSchema,
+  trainingAdmissionSchema,
+  trainingDomainSchema,
+  trainingPhaseSchema,
+} from './trainings';
+
+export const participantKinds = ['employee', 'client_administrator'] as const;
+export const participantKindSchema = z.enum(participantKinds);
+export type ParticipantKind = z.infer<typeof participantKindSchema>;
+
+export const participantChannels = ['email', 'sms'] as const;
+export const participantChannelSchema = z.enum(participantChannels);
+export type ParticipantChannel = z.infer<typeof participantChannelSchema>;
+
+const invitedEmailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
+
+const addressFields = {
+  channel: participantChannelSchema,
+  // An email, or a phone the API stores in E.164 with Romania as the default country.
+  address: z.string().trim().min(3).max(254),
+};
+
+function normalizedAddress<T extends { channel: ParticipantChannel; address: string }>(
+  body: T,
+  ctx: z.RefinementCtx
+): T {
+  const address =
+    body.channel === 'email'
+      ? invitedEmailSchema.safeParse(body.address).data
+      : normalizePhone(body.address);
+  if (!address) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['address'],
+      message: body.channel === 'email' ? 'Invalid email address.' : 'Invalid phone number.',
+    });
+    return z.NEVER;
+  }
+  return { ...body, address };
+}
+
+/**
+ * Invites an employee to the portal at their own email or phone, as their row holds it; the
+ * employee is the one in the path.
+ */
+export const participantInvitationRequestSchema = z
+  .object(addressFields)
+  .transform(normalizedAddress);
+
+export type ParticipantInvitationRequest = z.input<typeof participantInvitationRequestSchema>;
+
+/**
+ * Invites the client administrator at a typed address. Either an employee of the client, whose
+ * name is read from their row, or a name.
+ */
+export const clientAdministratorInvitationRequestSchema = z
+  .object({
+    ...addressFields,
+    employeeId: z.uuid().nullish(),
+    fullName: z.string().trim().min(2).max(160).nullish(),
+  })
+  .superRefine((body, ctx) => {
+    if (!body.employeeId && !body.fullName) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['fullName'],
+        message: 'A name is needed for a person who is not an employee.',
+      });
+    }
+  })
+  .transform(normalizedAddress);
+
+export type ClientAdministratorInvitationRequest = z.input<
+  typeof clientAdministratorInvitationRequestSchema
+>;
+
+export const participantInvitationStatuses = ['open', 'expired', 'accepted', 'revoked'] as const;
+export const participantInvitationStatusSchema = z.enum(participantInvitationStatuses);
+export type ParticipantInvitationStatus = z.infer<typeof participantInvitationStatusSchema>;
+
+export const participantInvitationSchema = z.object({
+  id: z.uuid(),
+  clientId: z.uuid(),
+  kind: participantKindSchema,
+  // Null for a person who is not an employee of the client.
+  employeeId: z.uuid().nullable(),
+  // The employee's name as their row holds it now, or the name typed for the invitation.
+  fullName: z.string(),
+  channel: participantChannelSchema,
+  // An email, or a phone in E.164.
+  address: z.string(),
+  status: participantInvitationStatusSchema,
+  lastSentAt: z.iso.datetime({ offset: true }),
+  // Ten minutes after the last message: no resend before.
+  resendableAt: z.iso.datetime({ offset: true }),
+  expiresAt: z.iso.datetime({ offset: true }),
+  createdAt: z.iso.datetime({ offset: true }),
+});
+
+export type ParticipantInvitation = z.infer<typeof participantInvitationSchema>;
+
+export const clientParticipantSchema = z.object({
+  id: z.uuid(),
+  clientId: z.uuid(),
+  kind: participantKindSchema,
+  employeeId: z.uuid().nullable(),
+  fullName: z.string(),
+  // The invitation's address, which is the one they sign in with.
+  channel: participantChannelSchema.nullable(),
+  address: z.string().nullable(),
+  createdAt: z.iso.datetime({ offset: true }),
+  revokedAt: z.iso.datetime({ offset: true }).nullable(),
+  // Null until the portal has shown the privacy notice.
+  noticeVersion: z.string().nullable(),
+});
+
+export type ClientParticipant = z.infer<typeof clientParticipantSchema>;
+
+/** An employee's standing on the portal, for their page: at most one of the two is set. */
+export const employeeParticipantStateSchema = z.object({
+  participant: clientParticipantSchema.nullable(),
+  // The newest invitation neither accepted nor revoked, open or expired.
+  invitation: participantInvitationSchema.nullable(),
+});
+
+export type EmployeeParticipantState = z.infer<typeof employeeParticipantStateSchema>;
+
+/** A client's active participants and its invitations neither accepted nor revoked. */
+export const clientParticipantsResponseSchema = z.object({
+  participants: z.array(clientParticipantSchema),
+  invitations: z.array(participantInvitationSchema),
+});
+
+export type ClientParticipantsResponse = z.infer<typeof clientParticipantsResponseSchema>;
+
+/** `reason` values on participant errors, so the app can word them itself. */
+export const participantErrorReasons = {
+  employeeHasParticipant: 'employee_has_participant',
+  employeeAlreadyInvited: 'employee_already_invited',
+  addressHasParticipant: 'address_has_participant',
+  addressInvitedForAnotherPerson: 'address_invited_for_another_person',
+  employeeRequired: 'employee_required',
+  fullNameRequired: 'full_name_required',
+  invalidAddress: 'invalid_address',
+  addressNotOfEmployee: 'address_not_of_employee',
+  sentRecently: 'sent_recently',
+  invitationAccepted: 'invitation_accepted',
+  invitationRevoked: 'invitation_revoked',
+  // 503: the invitation is saved; a resend is possible ten minutes after it.
+  accountUnavailable: 'participant_account_unavailable',
+  messageNotSent: 'participant_message_not_sent',
+} as const;
+
+export type ParticipantErrorReason =
+  (typeof participantErrorReasons)[keyof typeof participantErrorReasons];
+
+/** One client the signed-in account is a participant of, from `current_participations()`. */
+export const portalParticipationSchema = z.object({
+  participantId: z.uuid(),
+  organizationName: z.string(),
+  clientId: z.uuid(),
+  clientName: z.string(),
+  kind: participantKindSchema,
+  employeeId: z.uuid().nullable(),
+  fullName: z.string(),
+  // Null until the privacy notice was shown on this participation.
+  noticeVersion: z.string().nullable(),
+});
+
+export type PortalParticipation = z.infer<typeof portalParticipationSchema>;
+
+/** Never empty: an account without participations is answered 403. */
+export const portalMeSchema = z.object({
+  participations: z.array(portalParticipationSchema).min(1),
+});
+
+export type PortalMe = z.infer<typeof portalMeSchema>;
+
+export const portalNoticeRequestSchema = z.object({
+  version: z.string().trim().min(1).max(40),
+});
+
+export type PortalNoticeRequest = z.infer<typeof portalNoticeRequestSchema>;
+
+const portalPersonSchema = z.object({ name: z.string(), jobTitle: z.string() });
+
+export const portalTrainingRecordSchema = z.object({
+  id: z.uuid(),
+  domain: trainingDomainSchema,
+  phase: trainingPhaseSchema,
+  heldOn: z.iso.date(),
+  durationMinutes: z.int(),
+  material: z.string(),
+  trainer: portalPersonSchema,
+  verifier: portalPersonSchema.nullable(),
+  supplementaryReason: supplementaryTrainingReasonSchema.nullable(),
+  // The position's name when the record was made.
+  occupation: z.string(),
+  admission: trainingAdmissionSchema.nullable(),
+});
+
+export type PortalTrainingRecord = z.infer<typeof portalTrainingRecordSchema>;
+
+export const portalTrainingRecordsResponseSchema = z.object({
+  // Newest first.
+  items: z.array(portalTrainingRecordSchema),
+  training: employeeTrainingSchema,
+});
+
+export type PortalTrainingRecordsResponse = z.infer<typeof portalTrainingRecordsResponseSchema>;
+
+/**
+ * _Datele mele_: what the individual training sheets print about the person, never the CNP or
+ * the specialist's notes.
+ */
+export const portalEmployeeDataSchema = z.object({
+  employee: z.object({
+    lastName: z.string(),
+    firstName: z.string(),
+    employeeNumber: z.string().nullable(),
+    contractTitle: z.string(),
+    position: z.string(),
+    workplace: z.string().nullable(),
+    hiredAt: z.iso.date(),
+    homeAddress: z.string().nullable(),
+    birthDate: z.iso.date().nullable(),
+    birthPlace: z.string().nullable(),
+    bloodGroup: bloodGroupSchema.nullable(),
+    rhFactor: rhFactorSchema.nullable(),
+    qualification: z.string().nullable(),
+    education: z.string().nullable(),
+    authorizations: z.string().nullable(),
+    commuteRoute: z.string().nullable(),
+    commuteMinutes: z.int().nullable(),
+  }),
+  training: employeeTrainingSchema,
+  client: z.object({ name: z.string() }),
+  // Who corrects the data: the organization that keeps the client's records.
+  provider: z.object({ name: z.string(), phone: z.string().nullable() }),
+});
+
+export type PortalEmployeeData = z.infer<typeof portalEmployeeDataSchema>;
+
+export const portalTrainingSheetsSchema = z.object({
+  ssm: trainingSheetReadinessSchema,
+  psi: trainingSheetReadinessSchema,
+});
+
+export type PortalTrainingSheets = z.infer<typeof portalTrainingSheetsSchema>;
+
+export const portalClientEmployeeSchema = z.object({
+  id: z.uuid(),
+  lastName: z.string(),
+  firstName: z.string(),
+  position: z.string(),
+  workplace: z.string().nullable(),
+  training: employeeTrainingSchema,
+});
+
+export type PortalClientEmployee = z.infer<typeof portalClientEmployeeSchema>;
+
+export const portalClientEmployeesResponseSchema = z.object({
+  items: z.array(portalClientEmployeeSchema),
+});
+
+export type PortalClientEmployeesResponse = z.infer<typeof portalClientEmployeesResponseSchema>;

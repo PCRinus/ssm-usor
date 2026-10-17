@@ -40,8 +40,20 @@ gutter.
 
 `src/api/http.ts` wires the shared adapter `@ssm-usor/api-http` (origin guard, bearer token,
 file downloads, `ApiHttpError`) without the app's PostHog reporting. It is the mutator of the
-portal's own generated client, which orval writes from the operations tagged `portal` once the
-API has some.
+portal's own generated client, `src/api/generated/api.ts`, which orval writes from the
+operations tagged `portal` ([API client](api-client.md#two-clients-from-one-document)) and
+nothing else. Do not edit it; `pnpm generate:api` rewrites it with the app's.
+
+The client calls the API's `/portal` routes ([API](api.md#portal)). Every one of them first
+links a first sign-in to its open invitations, then answers `403` to an account that is a
+participant nowhere. `useGetPortalMe` lists the participations, one per client, each with its
+`participantId`; the portal picks one (asking only when there are several) and passes its
+`participantId` to every other hook. An employee's places use `useListPortalTrainingRecords`,
+`useGetPortalEmployeeData`, `useGetPortalTrainingSheets` and `getPortalTrainingSheet` (a PDF;
+`409 missing_sheet_data` names what the specialist still has to fill); the client
+administrator's use `useListPortalClientEmployees` and the `…Employee…` variants of the
+records and sheets. `useRecordPortalNotice` records the privacy notice's version once shown,
+and `noticeVersion` on the participation says whether it was.
 
 ## Cloudflare deployment
 

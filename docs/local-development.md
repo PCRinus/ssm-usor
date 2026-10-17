@@ -90,7 +90,7 @@ VITE_API_URL=http://localhost:8787
 ```dotenv
 SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_PUBLISHABLE_KEY=sb_publishable_LOCAL_KEY
-CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174
 ```
 
 Use the same local publishable key in both files. The SPA never gets the secret key. The API

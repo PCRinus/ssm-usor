@@ -5,6 +5,7 @@
 //
 //   SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY   from `supabase status`
 //   APP_ORIGIN, CORS_ORIGINS                                      where the SPA under test is served
+//   PORTAL_ORIGIN                                                 where the portal under test is served
 //   SUPABASE_AUTH_HOOK_SECRET                                     the local placeholder from supabase/config.toml
 //   SUPABASE_AUTH_SMS_HOOK_SECRET                                 the same for the Send SMS hook
 //   PORT                                                          defaults to 8797
@@ -84,6 +85,7 @@ const env: ApiEnv['Bindings'] = {
   SUPABASE_AUTH_SMS_HOOK_SECRET: process.env.SUPABASE_AUTH_SMS_HOOK_SECRET,
   CORS_ORIGINS: process.env.CORS_ORIGINS,
   APP_ORIGIN: process.env.APP_ORIGIN,
+  PORTAL_ORIGIN: process.env.PORTAL_ORIGIN,
   GOTENBERG_URL: process.env.GOTENBERG_URL || undefined,
   MAIL: mail,
   SMS: sms,

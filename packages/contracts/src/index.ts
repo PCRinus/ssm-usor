@@ -24,6 +24,7 @@ export * from './list';
 export * from './mail';
 export * from './organization-employees';
 export * from './organizations';
+export * from './participants';
 export * from './pdf';
 export * from './phone';
 export * from './profile';

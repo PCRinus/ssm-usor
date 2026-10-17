@@ -8,9 +8,10 @@
   // Preserve public Supabase bindings supplied by the deployment workflow.
   "keep_vars": true,
   "vars": {
-    "CORS_ORIGINS": "https://app.ssmusor.ro",
+    "CORS_ORIGINS": "https://app.ssmusor.ro,https://portal.ssmusor.ro",
     "API_ORIGIN": "https://api.ssmusor.ro",
     "APP_ORIGIN": "https://app.ssmusor.ro",
+    "PORTAL_ORIGIN": "https://portal.ssmusor.ro",
     "MARKETING_ORIGIN": "https://ssmusor.ro",
   },
   // apps/mail has no routes; this binding is the only way to reach it.

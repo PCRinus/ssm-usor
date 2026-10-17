@@ -13,7 +13,7 @@ Copy `apps/api/.dev.vars.example` to `apps/api/.dev.vars` and fill in:
 ```dotenv
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
-CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174
 ```
 
 Use the same Supabase project URL and publishable key as `apps/app/.env.local`, without the
@@ -726,6 +726,96 @@ owner. Someone who is not a member of the caller's organization is `404`. Removi
 the membership only: the account, the profile, and what the person created stay, the person
 sees no organization, and can be invited again.
 
+## Participants
+
+[ADR 022](architecture/adr-022-participants-and-the-portal.md) records the design and
+[the data model](data-model.md#participants) the database side. Every member invites, resends
+and revokes; these routes take a membership like the client routes and are not part of the
+portal's client.
+
+| Route                                                                     | Response                                                                    |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `GET /clients/{clientId}/employees/{employeeId}/participant`              | `{ participant, invitation }`: the active participant, else the pending one |
+| `POST /clients/{clientId}/employees/{employeeId}/participant-invitations` | `201` with the invitation, after sending its message                        |
+| `POST /clients/{clientId}/participant-invitations`                        | `201` with the client administrator's invitation, after sending its message |
+| `GET /clients/{clientId}/participants`                                    | `{ participants, invitations }`: active participants, pending invitations   |
+| `POST /participant-invitations/{invitationId}/resend`                     | The invitation renewed for 30 days, after sending its message again         |
+| `POST /participant-invitations/{invitationId}/revoke`                     | `204`                                                                       |
+| `POST /client-participants/{participantId}/revoke`                        | `204`; the person's records stay                                            |
+
+An employee is invited with `{ channel, address }`, `channel` `email` or `sms`; the address
+must be the employee's own email or phone as their row holds it, which the database checks. The
+client administrator is invited with `{ channel, address, employeeId?, fullName? }`: an
+employee of the client, whose name is read from their row, or a name. The contract lowercases
+an email and puts a phone in E.164 with Romania as the default country, so `0721 000 000`
+arrives as `+40721000000`. An invitation is `open`, `expired`, `accepted` or `revoked`;
+`resendableAt` is 10 minutes after `lastSentAt`, and the database refuses a message before it.
+
+Sending runs as the member first: `create_participant_invitation` (or
+`resend_participant_invitation`) saves the invitation and its send time. Then, with the secret
+key and only for this, the API prepares the account the person will sign in with:
+`auth_user_id_by_address` finds the account the address already has, since the Auth Admin API
+finds no user by phone; without one it creates the user through the Auth Admin API with
+`email_confirm: false` or `phone_confirm: false`, so the first code confirms the address. Either
+way the account carries `app_metadata.participant: true`, merged into the metadata it already
+has, so a platform admin's `role` stays; without the flag the Send SMS hook texts it nothing.
+An address that already belongs to a member is reused as it is: the account then has a
+membership in the app and participations in the portal. Last, the message goes out over the
+`MAIL` or `SMS` binding with `PORTAL_ORIGIN` as its link and no token.
+
+When the account or the message fails the answer is `503` with the reason
+`participant_account_unavailable` or `participant_message_not_sent`, and the invitation stays
+saved with its send time: the member resends it once the 10 minutes are over. A missing secret
+key or binding answers `503` before anything is saved.
+
+Errors carry a `reason` from `participantErrorReasons` in the contracts, all `409`:
+`employee_has_participant`, `employee_already_invited` (open at another address),
+`address_has_participant`, `address_invited_for_another_person`, `address_not_of_employee`,
+`employee_required`, `full_name_required`, `invalid_address`, `sent_recently`,
+`invitation_accepted`, `invitation_revoked`, plus `client_archived` and `client_is_lead`. A
+client, employee or invitation outside the organization is `404`.
+
+## Portal
+
+The routes under `/portal` are the portal's and nothing else's. Each carries the OpenAPI tag
+`portal`, which is what puts it in the portal's generated client ([API client](api-client.md));
+no route outside the prefix has the tag.
+
+| Route                                                           | Who                  | Response                                                    |
+| --------------------------------------------------------------- | -------------------- | ----------------------------------------------------------- |
+| `GET /portal/me`                                                | Participant          | `{ participations: [ … ] }`, never empty                    |
+| `POST /portal/participants/{participantId}/notice`              | Participant          | `204` after recording `{ version }` of the privacy notice   |
+| `GET …/{participantId}/training-records`                        | Employee             | `{ items, training }`: own records newest first, the states |
+| `GET …/{participantId}/data`                                    | Employee             | _Datele mele_: what the sheets print, and the provider      |
+| `GET …/{participantId}/sheets`                                  | Employee             | `{ ssm, psi }`, each `{ ready, missing }`                   |
+| `GET …/{participantId}/sheets/{domain}`                         | Employee             | `200 application/pdf`; `409 missing_sheet_data`             |
+| `GET …/{participantId}/employees`                               | Client administrator | `{ items }`: current employees with their training states   |
+| `GET …/{participantId}/employees/{employeeId}/training-records` | Client administrator | As the employee's own                                       |
+| `GET …/{participantId}/employees/{employeeId}/sheets`           | Client administrator | As the employee's own                                       |
+| `GET …/{participantId}/employees/{employeeId}/sheets/{domain}`  | Client administrator | As the employee's own                                       |
+
+`…` stands for `/portal/participants`. `requireParticipant` (`src/lib/participant.ts`) runs
+after `requireAuth` on every one of them: as the caller it calls
+`accept_participant_invitations()`, which links a first sign-in from an invited, now confirmed
+address to its open invitations and is a no-op afterwards, then `current_participations()`,
+and answers `403` when the account has none. It never looks at a membership: a member who is
+also a participant uses the portal as the participant. A route for one participation takes its
+`participantId` from the path and answers `404` for one that is not the caller's. The
+employee's routes answer `404` for a client administrator who is not an employee; the
+administrator's routes answer `403` to an employee, checked in the API because an account that
+is also a member reads more through the members' policies than the participant's would give.
+
+Policies choose the rows a participant reads, not the columns, so every portal query names its
+columns and every response is built field by field into a schema of its own in
+`packages/contracts/src/participants.ts`: never the CNP, the specialist's notes, a training's
+notes, or the organization's bank, contract and terms details. Nothing of the app's responses
+is reused as-is. A new portal route does the same.
+
+The secret key is used in one place: the sheet PDF reads its template from Storage with
+`createAdminFileStore`, because Storage's template policy admits members only. The participant
+reads the template's registry row through their own policy, so the path the secret key reads
+is one they are allowed. Everything else runs as the participant.
+
 ## What the documents print
 
 The `document-data` module holds the facts a client's SSM documentation prints
@@ -1091,7 +1181,7 @@ src/
   index.ts             the Worker: the app's fetch, and the queue consumer for bulk regeneration
   app.ts               cross-cutting: headers, CORS, module mounting, OpenAPI document, errors
   router.ts            createRouter(): an OpenAPIHono with the shared validation error hook
-  lib/                 auth, db, admin-db, tokens, turnstile, env, errors, membership, shared OpenAPI pieces
+  lib/                 auth, db, admin-db, tokens, turnstile, env, errors, membership, participant, shared OpenAPI pieces
   modules/<domain>/    routes.ts (OpenAPI route definitions), handlers.ts, index.ts (router), tests
 ```
 
@@ -1119,13 +1209,17 @@ Upstream error details are not returned to callers; database failures are logged
 only. Authentication failures include `WWW-Authenticate: Bearer`.
 
 Every response carries `Server-Timing`: `total` for the whole request, and `auth` and
-`membership` for the token and membership checks that run before a handler. What is left of
+`membership` for the token and membership checks that run before a handler, or
+`participations` for the portal's. What is left of
 `total` is the handler, which is mostly its database reads. The browser's network tab shows the
 values under a request's timing.
 
 `CORS_ORIGINS` is a comma-separated list of exact browser origins for every route except
-`/waitlist`, which allows only `MARKETING_ORIGIN`. Production defaults to
-`https://app.ssmusor.ro`; `.dev.vars` allows the local Vite origins instead. OPTIONS preflight
+`/waitlist`, which allows only `MARKETING_ORIGIN`. Production allows the app and the portal,
+`https://app.ssmusor.ro` and `https://portal.ssmusor.ro`; `.dev.vars` allows the local Vite
+origins of both, ports 5173 and 5174, instead. `PORTAL_ORIGIN` is the portal's address that
+participant invitations link to, `https://portal.ssmusor.ro` in `wrangler.jsonc` and
+`http://localhost:5174` locally. OPTIONS preflight
 does not require authentication and allows GET, POST, PATCH, and DELETE requests with Authorization/Content-Type headers.
 Cookie credentials are not enabled. CORS controls browser access to responses; bearer
 authentication still applies independently, including to non-browser clients.

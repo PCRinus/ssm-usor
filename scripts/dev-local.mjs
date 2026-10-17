@@ -158,6 +158,8 @@ for (const [name, value] of [
 }
 
 const appUrl = `http://localhost:${port.app}`;
+// Where `pnpm dev:portal` serves the portal; dev:local does not start it.
+const portalUrl = 'http://localhost:5174';
 const apiUrl = `http://localhost:${port.api}`;
 const apiVars = {
   SUPABASE_URL: supabase.url,
@@ -166,8 +168,9 @@ const apiVars = {
   SUPABASE_SECRET_KEY: supabase.secretKey,
   SUPABASE_AUTH_HOOK_SECRET: LOCAL_AUTH_HOOK_SECRET,
   SUPABASE_AUTH_SMS_HOOK_SECRET: LOCAL_AUTH_SMS_HOOK_SECRET,
-  CORS_ORIGINS: `${appUrl},http://127.0.0.1:${port.app}`,
+  CORS_ORIGINS: `${appUrl},http://127.0.0.1:${port.app},${portalUrl}`,
   APP_ORIGIN: appUrl,
+  PORTAL_ORIGIN: portalUrl,
   API_ORIGIN: apiUrl,
 };
 

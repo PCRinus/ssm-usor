@@ -9984,6 +9984,962 @@
         },
         "required": ["token", "termsVersion"]
       },
+      "EmployeeParticipantState": {
+        "type": "object",
+        "properties": {
+          "participant": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["employee", "client_administrator"]
+              },
+              "employeeId": {
+                "type": "string",
+                "nullable": true,
+                "format": "uuid"
+              },
+              "fullName": {
+                "type": "string"
+              },
+              "channel": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["email", "sms", null]
+              },
+              "address": {
+                "type": "string",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "revokedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "noticeVersion": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "clientId",
+              "kind",
+              "employeeId",
+              "fullName",
+              "channel",
+              "address",
+              "createdAt",
+              "revokedAt",
+              "noticeVersion"
+            ]
+          },
+          "invitation": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "clientId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["employee", "client_administrator"]
+              },
+              "employeeId": {
+                "type": "string",
+                "nullable": true,
+                "format": "uuid"
+              },
+              "fullName": {
+                "type": "string"
+              },
+              "channel": {
+                "type": "string",
+                "enum": ["email", "sms"]
+              },
+              "address": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["open", "expired", "accepted", "revoked"]
+              },
+              "lastSentAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "resendableAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "clientId",
+              "kind",
+              "employeeId",
+              "fullName",
+              "channel",
+              "address",
+              "status",
+              "lastSentAt",
+              "resendableAt",
+              "expiresAt",
+              "createdAt"
+            ]
+          }
+        },
+        "required": ["participant", "invitation"]
+      },
+      "ParticipantInvitationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["employee", "client_administrator"]
+          },
+          "employeeId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": ["email", "sms"]
+          },
+          "address": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["open", "expired", "accepted", "revoked"]
+          },
+          "lastSentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resendableAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "clientId",
+          "kind",
+          "employeeId",
+          "fullName",
+          "channel",
+          "address",
+          "status",
+          "lastSentAt",
+          "resendableAt",
+          "expiresAt",
+          "createdAt"
+        ]
+      },
+      "ParticipantInvitationRequest": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": ["email", "sms"]
+          },
+          "address": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 254
+          }
+        },
+        "required": ["channel", "address"]
+      },
+      "ClientAdministratorInvitationRequest": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": ["email", "sms"]
+          },
+          "address": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 254
+          },
+          "employeeId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "fullName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          }
+        },
+        "required": ["channel", "address"]
+      },
+      "ClientParticipantsResponse": {
+        "type": "object",
+        "properties": {
+          "participants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["employee", "client_administrator"]
+                },
+                "employeeId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                },
+                "fullName": {
+                  "type": "string"
+                },
+                "channel": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["email", "sms", null]
+                },
+                "address": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "revokedAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                },
+                "noticeVersion": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "kind",
+                "employeeId",
+                "fullName",
+                "channel",
+                "address",
+                "createdAt",
+                "revokedAt",
+                "noticeVersion"
+              ]
+            }
+          },
+          "invitations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["employee", "client_administrator"]
+                },
+                "employeeId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                },
+                "fullName": {
+                  "type": "string"
+                },
+                "channel": {
+                  "type": "string",
+                  "enum": ["email", "sms"]
+                },
+                "address": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["open", "expired", "accepted", "revoked"]
+                },
+                "lastSentAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "resendableAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "expiresAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "clientId",
+                "kind",
+                "employeeId",
+                "fullName",
+                "channel",
+                "address",
+                "status",
+                "lastSentAt",
+                "resendableAt",
+                "expiresAt",
+                "createdAt"
+              ]
+            }
+          }
+        },
+        "required": ["participants", "invitations"]
+      },
+      "PortalMeResponse": {
+        "type": "object",
+        "properties": {
+          "participations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "participantId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "organizationName": {
+                  "type": "string"
+                },
+                "clientId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "clientName": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["employee", "client_administrator"]
+                },
+                "employeeId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                },
+                "fullName": {
+                  "type": "string"
+                },
+                "noticeVersion": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "participantId",
+                "organizationName",
+                "clientId",
+                "clientName",
+                "kind",
+                "employeeId",
+                "fullName",
+                "noticeVersion"
+              ]
+            },
+            "minItems": 1
+          }
+        },
+        "required": ["participations"]
+      },
+      "PortalNoticeRequest": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          }
+        },
+        "required": ["version"]
+      },
+      "PortalTrainingRecordsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "domain": {
+                  "type": "string",
+                  "enum": ["ssm", "psi"]
+                },
+                "phase": {
+                  "type": "string",
+                  "enum": ["introductory_general", "workplace", "periodic", "supplementary"]
+                },
+                "heldOn": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "durationMinutes": {
+                  "type": "integer"
+                },
+                "material": {
+                  "type": "string"
+                },
+                "trainer": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "jobTitle": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["name", "jobTitle"]
+                },
+                "verifier": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "jobTitle": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["name", "jobTitle"]
+                },
+                "supplementaryReason": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": [
+                    "absence_over_thirty_days",
+                    "rules_changed",
+                    "after_accident",
+                    "special_works",
+                    "new_equipment",
+                    "changed_procedure",
+                    "new_technology",
+                    null
+                  ]
+                },
+                "occupation": {
+                  "type": "string"
+                },
+                "admission": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "admittedOn": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "jobTitle": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["admittedOn", "name", "jobTitle"]
+                }
+              },
+              "required": [
+                "id",
+                "domain",
+                "phase",
+                "heldOn",
+                "durationMinutes",
+                "material",
+                "trainer",
+                "verifier",
+                "supplementaryReason",
+                "occupation",
+                "admission"
+              ]
+            }
+          },
+          "training": {
+            "type": "object",
+            "properties": {
+              "ssm": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["untrained", "current", "due", "overdue", null]
+                  },
+                  "dueOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "lastPeriodicOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "intervalMonths": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 1
+                  },
+                  "intervalSource": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["position", "client", null]
+                  }
+                },
+                "required": ["state", "dueOn", "lastPeriodicOn", "intervalMonths", "intervalSource"]
+              },
+              "psi": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["untrained", "current", "due", "overdue", null]
+                  },
+                  "dueOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "lastPeriodicOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "intervalMonths": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 1
+                  },
+                  "intervalSource": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["position", "client", null]
+                  }
+                },
+                "required": ["state", "dueOn", "lastPeriodicOn", "intervalMonths", "intervalSource"]
+              }
+            },
+            "required": ["ssm", "psi"]
+          }
+        },
+        "required": ["items", "training"]
+      },
+      "PortalEmployeeDataResponse": {
+        "type": "object",
+        "properties": {
+          "employee": {
+            "type": "object",
+            "properties": {
+              "lastName": {
+                "type": "string"
+              },
+              "firstName": {
+                "type": "string"
+              },
+              "employeeNumber": {
+                "type": "string",
+                "nullable": true
+              },
+              "contractTitle": {
+                "type": "string"
+              },
+              "position": {
+                "type": "string"
+              },
+              "workplace": {
+                "type": "string",
+                "nullable": true
+              },
+              "hiredAt": {
+                "type": "string",
+                "format": "date"
+              },
+              "homeAddress": {
+                "type": "string",
+                "nullable": true
+              },
+              "birthDate": {
+                "type": "string",
+                "nullable": true,
+                "format": "date"
+              },
+              "birthPlace": {
+                "type": "string",
+                "nullable": true
+              },
+              "bloodGroup": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["0(I)", "A(II)", "B(III)", "AB(IV)", null]
+              },
+              "rhFactor": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["+", "-", null]
+              },
+              "qualification": {
+                "type": "string",
+                "nullable": true
+              },
+              "education": {
+                "type": "string",
+                "nullable": true
+              },
+              "authorizations": {
+                "type": "string",
+                "nullable": true
+              },
+              "commuteRoute": {
+                "type": "string",
+                "nullable": true
+              },
+              "commuteMinutes": {
+                "type": "integer",
+                "nullable": true
+              }
+            },
+            "required": [
+              "lastName",
+              "firstName",
+              "employeeNumber",
+              "contractTitle",
+              "position",
+              "workplace",
+              "hiredAt",
+              "homeAddress",
+              "birthDate",
+              "birthPlace",
+              "bloodGroup",
+              "rhFactor",
+              "qualification",
+              "education",
+              "authorizations",
+              "commuteRoute",
+              "commuteMinutes"
+            ]
+          },
+          "training": {
+            "type": "object",
+            "properties": {
+              "ssm": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["untrained", "current", "due", "overdue", null]
+                  },
+                  "dueOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "lastPeriodicOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "intervalMonths": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 1
+                  },
+                  "intervalSource": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["position", "client", null]
+                  }
+                },
+                "required": ["state", "dueOn", "lastPeriodicOn", "intervalMonths", "intervalSource"]
+              },
+              "psi": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["untrained", "current", "due", "overdue", null]
+                  },
+                  "dueOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "lastPeriodicOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "intervalMonths": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 1
+                  },
+                  "intervalSource": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["position", "client", null]
+                  }
+                },
+                "required": ["state", "dueOn", "lastPeriodicOn", "intervalMonths", "intervalSource"]
+              }
+            },
+            "required": ["ssm", "psi"]
+          },
+          "client": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": ["name"]
+          },
+          "provider": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["name", "phone"]
+          }
+        },
+        "required": ["employee", "training", "client", "provider"]
+      },
+      "PortalTrainingSheetsResponse": {
+        "type": "object",
+        "properties": {
+          "ssm": {
+            "type": "object",
+            "properties": {
+              "ready": {
+                "type": "boolean"
+              },
+              "missing": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["employee.commute_route", "employee.workplace"]
+                }
+              }
+            },
+            "required": ["ready", "missing"]
+          },
+          "psi": {
+            "type": "object",
+            "properties": {
+              "ready": {
+                "type": "boolean"
+              },
+              "missing": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["employee.commute_route", "employee.workplace"]
+                }
+              }
+            },
+            "required": ["ready", "missing"]
+          }
+        },
+        "required": ["ssm", "psi"]
+      },
+      "PortalClientEmployeesResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "lastName": {
+                  "type": "string"
+                },
+                "firstName": {
+                  "type": "string"
+                },
+                "position": {
+                  "type": "string"
+                },
+                "workplace": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "training": {
+                  "type": "object",
+                  "properties": {
+                    "ssm": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["untrained", "current", "due", "overdue", null]
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "lastPeriodicOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "intervalMonths": {
+                          "type": "integer",
+                          "nullable": true,
+                          "minimum": 1
+                        },
+                        "intervalSource": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["position", "client", null]
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "dueOn",
+                        "lastPeriodicOn",
+                        "intervalMonths",
+                        "intervalSource"
+                      ]
+                    },
+                    "psi": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["untrained", "current", "due", "overdue", null]
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "lastPeriodicOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "intervalMonths": {
+                          "type": "integer",
+                          "nullable": true,
+                          "minimum": 1
+                        },
+                        "intervalSource": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["position", "client", null]
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "dueOn",
+                        "lastPeriodicOn",
+                        "intervalMonths",
+                        "intervalSource"
+                      ]
+                    }
+                  },
+                  "required": ["ssm", "psi"]
+                }
+              },
+              "required": ["id", "lastName", "firstName", "position", "workplace", "training"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
       "WaitlistSubscribeResponse": {
         "type": "object",
         "properties": {
@@ -26484,6 +27440,1721 @@
           },
           "503": {
             "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/participant": {
+      "get": {
+        "operationId": "getEmployeeParticipant",
+        "summary": "An employee's standing on the portal",
+        "description": "The active participant the employee is, or else the newest invitation neither accepted nor revoked, open or expired (ADR 022).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The participant or the invitation, at most one of the two",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeParticipantState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The employee does not exist under this client in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/participant-invitations": {
+      "post": {
+        "operationId": "inviteEmployeeParticipant",
+        "summary": "Invite an employee to the portal by email or SMS",
+        "description": "Every member invites. The address is the employee's own email or phone, as their record holds it. Inviting the same address again renews its invitation and resends the message. The account the person signs in with is created now, unconfirmed, or the address's existing account is reused; the response never says which.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParticipantInvitationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The invitation, with its message sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantInvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client or the employee does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The person or the address is a participant or invited already, the address is not the employee's, a message was sent in the last 10 minutes, the invitation is closed, or the client is archived or a lead; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The account or the message could not be prepared (reason `participant_account_unavailable` or `participant_message_not_sent`); the invitation is saved and can be resent 10 minutes after it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/participant-invitations": {
+      "post": {
+        "operationId": "inviteClientAdministrator",
+        "summary": "Invite the client administrator to the portal by email or SMS",
+        "description": "The person who runs the safety records on the employer's side: an employee of the client (`employeeId`), whose name is read from their record, or a person named in `fullName`. The address is typed. Otherwise as inviting an employee.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientAdministratorInvitationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The invitation, with its message sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantInvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client or the employee does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The person or the address is a participant or invited already, the address is not the employee's, a message was sent in the last 10 minutes, the invitation is closed, or the client is archived or a lead; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The account or the message could not be prepared (reason `participant_account_unavailable` or `participant_message_not_sent`); the invitation is saved and can be resent 10 minutes after it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/participants": {
+      "get": {
+        "operationId": "listClientParticipants",
+        "summary": "A client's participants and pending invitations",
+        "description": "The active participants, oldest first, and the invitations neither accepted nor revoked, open or expired, newest first.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Participants and invitations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientParticipantsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/participant-invitations/{invitationId}/resend": {
+      "post": {
+        "operationId": "resendParticipantInvitation",
+        "summary": "Renew a participant invitation for 30 days and send its message again",
+        "description": "At most one message per 10 minutes. An expired invitation can be resent.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "invitationId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The renewed invitation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantInvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No invitation with this id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The person or the address is a participant or invited already, the address is not the employee's, a message was sent in the last 10 minutes, the invitation is closed, or the client is archived or a lead; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The account or the message could not be prepared (reason `participant_account_unavailable` or `participant_message_not_sent`); the invitation is saved and can be resent 10 minutes after it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/participant-invitations/{invitationId}/revoke": {
+      "post": {
+        "operationId": "revokeParticipantInvitation",
+        "summary": "Revoke a participant invitation",
+        "description": "A code received at the address no longer makes the person a participant. The account stays.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "invitationId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No pending invitation with this id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client-participants/{participantId}/revoke": {
+      "post": {
+        "operationId": "revokeClientParticipant",
+        "summary": "Revoke a participant",
+        "description": "The person no longer sees the client in the portal. Their records stay, and they can be invited again.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No active participant with this id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/me": {
+      "get": {
+        "operationId": "getPortalMe",
+        "tags": ["portal"],
+        "summary": "The clients the signed-in account is a participant of",
+        "description": "Accepts the open invitations of the account's confirmed address first, so a first sign-in needs nothing else (ADR 022). Every portal route does the same. When there are several, the portal asks which client to open.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The participations, never empty",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalMeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/notice": {
+      "post": {
+        "operationId": "recordPortalNotice",
+        "tags": ["portal"],
+        "summary": "Record that the privacy notice was shown",
+        "description": "The version shown and the time are kept on the participation.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortalNoticeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Recorded"
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/training-records": {
+      "get": {
+        "operationId": "listPortalTrainingRecords",
+        "tags": ["portal"],
+        "summary": "The participant's own training records and training state",
+        "description": "Newest first, both domains, with the state and the next due date per domain.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Records and state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalTrainingRecordsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, or it is a client administrator's who is not an employee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/data": {
+      "get": {
+        "operationId": "getPortalEmployeeData",
+        "tags": ["portal"],
+        "summary": "What the employer holds about the participant (Datele mele)",
+        "description": "The identification data the individual training sheets print, read-only, and who corrects it. Never the CNP or the specialist's notes.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalEmployeeDataResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, or it is a client administrator's who is not an employee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/sheets": {
+      "get": {
+        "operationId": "getPortalTrainingSheets",
+        "tags": ["portal"],
+        "summary": "Whether the participant's two individual training sheets can be opened",
+        "description": "For each domain, `ready` and the codes of what the client's specialist still has to fill.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The readiness of both sheets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalTrainingSheetsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, or it is a client administrator's who is not an employee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/sheets/{domain}": {
+      "get": {
+        "operationId": "getPortalTrainingSheet",
+        "tags": ["portal"],
+        "summary": "The participant's individual training sheet of a domain as a PDF",
+        "description": "Drawn up on the spot, as the employee's page in the app does; nothing is stored.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "psi"]
+            },
+            "required": true,
+            "name": "domain",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sheet, named in `Content-Disposition`",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or domain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, or it is a client administrator's who is not an employee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Data the sheet needs is missing (reason `missing_sheet_data`, the codes under `missing`); the client's specialist fills it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MissingSheetDataResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Supabase is unavailable, the template is not registered (reason `template_missing`), or there is no converter or it failed (reason `pdf_unavailable`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/employees": {
+      "get": {
+        "operationId": "listPortalClientEmployees",
+        "tags": ["portal"],
+        "summary": "The client's current employees with their training states",
+        "description": "For the client administrator only. Ordered by name.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The employees",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalClientEmployeesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant, or the participation is not a client administrator's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, or the employee is not of its client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/employees/{employeeId}/training-records": {
+      "get": {
+        "operationId": "listPortalEmployeeTrainingRecords",
+        "tags": ["portal"],
+        "summary": "An employee's training records and training state, for the client administrator",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Records and state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalTrainingRecordsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant, or the participation is not a client administrator's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, or the employee is not of its client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/employees/{employeeId}/sheets": {
+      "get": {
+        "operationId": "getPortalEmployeeTrainingSheets",
+        "tags": ["portal"],
+        "summary": "Whether an employee's sheets can be opened, for the client administrator",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The readiness of both sheets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalTrainingSheetsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant, or the participation is not a client administrator's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, or the employee is not of its client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/employees/{employeeId}/sheets/{domain}": {
+      "get": {
+        "operationId": "getPortalEmployeeTrainingSheet",
+        "tags": ["portal"],
+        "summary": "An employee's individual training sheet as a PDF, for the client administrator",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "psi"]
+            },
+            "required": true,
+            "name": "domain",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sheet, named in `Content-Disposition`",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or domain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant, or the participation is not a client administrator's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, or the employee is not of its client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Data the sheet needs is missing (reason `missing_sheet_data`, the codes under `missing`); the client's specialist fills it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MissingSheetDataResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Supabase is unavailable, the template is not registered (reason `template_missing`), or there is no converter or it failed (reason `pdf_unavailable`)",
             "content": {
               "application/json": {
                 "schema": {
