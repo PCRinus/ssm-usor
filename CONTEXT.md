@@ -102,7 +102,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Signing session** (_sesiune de semnare_): one act of signing: the list on the signer's screen, one fresh code to their address, and the signatures it creates, one per listed request. ADR 023. Avoid: batch, which does not say a code was involved.
 
-**Signed record** (_instruirea semnată_): the one-page PDF of one training record with a signature block per slot, generated when its first request is issued and changed only by a signature. What the signatures are in; the sheet prints its row with a mark. ADR 023. Avoid: signed sheet, which is never signed as a whole.
+**Signed sheet** (_fișa semnată_): an individual training sheet once it is stored for signing: the PDF with its cells as form fields, certified by its first signature, grown by one filled row per training and signed row by row, continued on a second sheet when full. What the signatures are in; the on-demand sheet stays for the unsigned. ADR 023. Avoid: signed record, which was the one-page-per-training draft.
 
 **Signature request** (_cerere de semnare_): one slot of one record addressed to one signer, pending until signed or void. Issued when the training is saved, told to the signer once per session, voided when the record changes. ADR 023. Avoid: task, envelope.
 
