@@ -19,6 +19,9 @@ pnpm-lock.yaml
 apps/app/src/routeTree.gen.ts
 apps/portal/src/routeTree.gen.ts
 
+# Written by lingui compile.
+apps/portal/src/locales/*/messages.ts
+
 # The provider's originals and their specs; git ignores them too.
 packages/document-engine/originals/
 

@@ -35,6 +35,7 @@ import type {
   listPortalResponsiblePersonsRoute,
   listPortalTrainingRecordsRoute,
   recordPortalNoticeRoute,
+  setPortalLanguageRoute,
 } from './routes';
 
 // Policies choose the rows a participant reads, not the columns: every select here names its
@@ -156,6 +157,7 @@ export const getPortalMe: RouteHandler<typeof getPortalMeRoute, ApiEnv> = async 
         employeeId: participation.employeeId,
         fullName: participation.fullName,
         noticeVersion: participation.noticeVersion,
+        language: participation.language,
       })),
     } satisfies PortalMe,
     200
@@ -173,6 +175,19 @@ export const recordPortalNotice: RouteHandler<typeof recordPortalNoticeRoute, Ap
   });
   if (error) throw fromDatabaseError(error, 'record participant notice');
   if (!recorded) throw new ApiError('not_found', 'This participation is not yours.');
+  return c.body(null, 204);
+};
+
+export const setPortalLanguage: RouteHandler<typeof setPortalLanguageRoute, ApiEnv> = async (c) => {
+  const { participantId } = c.req.valid('param');
+  const { language } = c.req.valid('json');
+  participationOf(c, participantId);
+  const { data: saved, error } = await createDataClient(c).rpc('set_participant_language', {
+    p_participant_id: participantId,
+    p_language: language,
+  });
+  if (error) throw fromDatabaseError(error, 'set participant language');
+  if (!saved) throw new ApiError('not_found', 'This participation is not yours.');
   return c.body(null, 204);
 };
 

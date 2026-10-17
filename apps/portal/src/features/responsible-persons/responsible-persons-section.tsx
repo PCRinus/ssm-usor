@@ -1,11 +1,14 @@
-import { responsiblePersonRoleLabels } from '@ssm-usor/contracts';
-import { ShieldCheck } from 'lucide-react';
+import { Trans, useLingui } from '@lingui/react/macro';
 
 import { useListPortalResponsiblePersons } from '@/api/generated/api';
-import { PageFailed, PageLoading } from '@/components/page';
+import { cardClass, PageFailed, PageLoading } from '@/components/page';
+import { useFormatList } from '@/lib/format';
+import { responsiblePersonRoleMessages } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
 
 export function ResponsiblePersonsSection({ participantId }: { participantId: string }) {
+  const { i18n } = useLingui();
+  const formatList = useFormatList();
   const apiRequest = useApiRequest();
   const persons = useListPortalResponsiblePersons(participantId, { request: apiRequest });
   return (
@@ -14,9 +17,8 @@ export function ResponsiblePersonsSection({ participantId }: { participantId: st
       data-testid="responsible-persons"
       className="grid gap-3"
     >
-      <h2 id="responsible-persons-title" className="flex items-center gap-2 text-lg font-semibold">
-        <ShieldCheck aria-hidden="true" className="size-5 text-muted-foreground" />
-        Persoane responsabile
+      <h2 id="responsible-persons-title" className="text-base font-semibold">
+        <Trans>Persoane responsabile</Trans>
       </h2>
       {persons.isPending ? (
         <PageLoading />
@@ -25,24 +27,30 @@ export function ResponsiblePersonsSection({ participantId }: { participantId: st
       ) : persons.data.items.length === 0 ? (
         <p
           data-testid="responsible-persons-empty"
-          className="rounded-xl border border-dashed px-4 py-6 text-center text-muted-foreground"
+          className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground"
         >
-          Nicio persoană responsabilă desemnată încă.
+          <Trans>Nicio persoană responsabilă desemnată încă.</Trans>
         </p>
       ) : (
-        <ul className="grid gap-3">
+        <ul className={`${cardClass} divide-y overflow-hidden`}>
           {persons.data.items.map((person) => (
             <li
               key={person.id}
               data-testid="responsible-person"
-              className="grid gap-1 rounded-xl border bg-card p-4 shadow-xs"
+              className="grid gap-1 px-4 py-3.5 sm:px-5"
             >
               <span className="font-semibold break-words">{person.fullName}</span>
               <span className="text-sm break-words text-muted-foreground">
-                {[person.jobTitle, person.workplace].filter(Boolean).join(' · ')}
+                {formatList(
+                  [person.jobTitle, person.workplace].filter((part): part is string =>
+                    Boolean(part)
+                  )
+                )}
               </span>
               <span data-testid="responsible-person-roles" className="text-sm break-words">
-                {person.roles.map((role) => responsiblePersonRoleLabels[role]).join(', ')}
+                {formatList(
+                  person.roles.map((role) => i18n._(responsiblePersonRoleMessages[role]))
+                )}
               </span>
             </li>
           ))}

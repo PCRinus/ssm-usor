@@ -3,6 +3,7 @@ import {
   missingSheetDataResponseSchema,
   portalClientEmployeesResponseSchema,
   portalEmployeeDataSchema,
+  portalLanguageRequestSchema,
   portalMeSchema,
   portalNoticeRequestSchema,
   portalResponsiblePersonsResponseSchema,
@@ -121,6 +122,33 @@ export const recordPortalNoticeRoute = createRoute({
   },
   responses: {
     204: { description: 'Recorded' },
+    400: { description: 'Invalid path or body', content: errorContent },
+    ...participantErrors,
+  },
+});
+
+export const setPortalLanguageRoute = createRoute({
+  method: 'put',
+  path: '/portal/participants/{participantId}/language',
+  operationId: 'setPortalLanguage',
+  tags,
+  summary: 'Choose the language the portal is shown in',
+  description: 'Kept on the participation; the portal uses it at every sign-in.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireParticipant] as const,
+  request: {
+    params: participantParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: portalLanguageRequestSchema.meta({ id: 'PortalLanguageRequest' }),
+        },
+      },
+    },
+  },
+  responses: {
+    204: { description: 'Saved' },
     400: { description: 'Invalid path or body', content: errorContent },
     ...participantErrors,
   },

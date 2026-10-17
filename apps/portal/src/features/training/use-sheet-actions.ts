@@ -1,0 +1,67 @@
+import type { MessageDescriptor } from '@lingui/core';
+import { msg } from '@lingui/core/macro';
+import { useLingui } from '@lingui/react/macro';
+import type { ApiErrorResponse, TrainingDomain } from '@ssm-usor/contracts';
+import { useState } from 'react';
+
+import { ApiHttpError } from '@/api/http';
+import { trainingDomainMessages } from '@/lib/labels';
+import { openPreview, PreviewBlockedError, saveFile } from '@/lib/save-file';
+
+function failureOf(cause: unknown): MessageDescriptor {
+  if (cause instanceof PreviewBlockedError) {
+    return msg`Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal sau descarcă fișa.`;
+  }
+  const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+  if (body?.reason === 'missing_sheet_data') {
+    return msg`Fișa nu poate fi întocmită încă: lipsesc date pe care le completează specialistul.`;
+  }
+  if (body?.reason === 'pdf_unavailable') {
+    return msg`Fișa nu poate fi pregătită acum. Încearcă din nou peste câteva minute.`;
+  }
+  return msg`Nu am putut deschide fișa. Verifică conexiunea la internet și încearcă din nou.`;
+}
+
+export type LoadSheet = (domain: TrainingDomain) => Promise<Blob>;
+
+export function useSheetActions(
+  domain: TrainingDomain,
+  loadSheet: LoadSheet,
+  // A sheet that turned out not ready when opened: the readiness shown was stale.
+  onStale: () => void
+) {
+  const { t, i18n } = useLingui();
+  const [busy, setBusy] = useState<'open' | 'download' | null>(null);
+  const [failure, setFailure] = useState<MessageDescriptor | null>(null);
+  const label = i18n._(trainingDomainMessages[domain]);
+
+  async function run(kind: 'open' | 'download', action: () => Promise<void>) {
+    setBusy(kind);
+    setFailure(null);
+    try {
+      await action();
+    } catch (cause) {
+      setFailure(failureOf(cause));
+      if (cause instanceof ApiHttpError && cause.status === 409) onStale();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return {
+    busy,
+    failure: failure && i18n._(failure),
+    open: () =>
+      run('open', () =>
+        openPreview(() => loadSheet(domain), {
+          title: t`Fișa individuală ${label}`,
+          pending: t`Se pregătește fișa…`,
+        })
+      ),
+    download: () =>
+      run('download', async () => {
+        const file = await loadSheet(domain);
+        saveFile(file, file instanceof File ? file.name : t`Fisa-individuala-${label}.pdf`);
+      }),
+  };
+}

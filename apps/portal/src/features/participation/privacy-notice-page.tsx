@@ -1,24 +1,24 @@
-import { Link } from '@tanstack/react-router';
-import { ChevronLeft } from 'lucide-react';
+import { useLingui } from '@lingui/react/macro';
 
-import { PageHeader } from '@/components/page';
+import { Page, PageGrid, PageHeader } from '@/components/page';
 
 import { useParticipation } from './participation-context';
 import { PrivacyNoticeText } from './privacy-notice';
 
 export function PrivacyNoticePage() {
+  const { t } = useLingui();
   const participation = useParticipation();
   return (
-    <main data-testid="privacy-notice-page">
-      <Link
-        to="/contul-meu"
-        className="-ml-2 inline-flex min-h-11 items-center gap-1 px-2 pt-4 text-sm font-medium"
-      >
-        <ChevronLeft aria-hidden="true" className="size-4" />
-        Contul meu
-      </Link>
-      <PageHeader title="Cum folosim datele tale" />
-      <PrivacyNoticeText participation={participation} />
-    </main>
+    <Page testId="privacy-notice-page">
+      <PageHeader
+        title={t`Cum folosim datele tale`}
+        description={t`Ce ți-am spus la prima intrare în portal.`}
+      />
+      <PageGrid>
+        <div className="lg:col-span-8">
+          <PrivacyNoticeText participation={participation} />
+        </div>
+      </PageGrid>
+    </Page>
   );
 }

@@ -10398,6 +10398,11 @@
                 "noticeVersion": {
                   "type": "string",
                   "nullable": true
+                },
+                "language": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["ro", "en", null]
                 }
               },
               "required": [
@@ -10408,7 +10413,8 @@
                 "kind",
                 "employeeId",
                 "fullName",
-                "noticeVersion"
+                "noticeVersion",
+                "language"
               ]
             },
             "minItems": 1
@@ -10426,6 +10432,16 @@
           }
         },
         "required": ["version"]
+      },
+      "PortalLanguageRequest": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "enum": ["ro", "en"]
+          }
+        },
+        "required": ["language"]
       },
       "PortalTrainingRecordsResponse": {
         "type": "object",
@@ -28320,6 +28336,105 @@
         "responses": {
           "204": {
             "description": "Recorded"
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/language": {
+      "put": {
+        "operationId": "setPortalLanguage",
+        "tags": ["portal"],
+        "summary": "Choose the language the portal is shown in",
+        "description": "Kept on the participation; the portal uses it at every sign-in.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortalLanguageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Saved"
           },
           "400": {
             "description": "Invalid path or body",

@@ -9,10 +9,20 @@
         ".env.production",
         ".env.production.local"
       ],
-      "env": ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY", "VITE_API_URL"]
+      "env": [
+        "GIT_COMMIT_SHA",
+        "VITE_SUPABASE_URL",
+        "VITE_SUPABASE_PUBLISHABLE_KEY",
+        "VITE_API_URL"
+      ]
     },
     "dev": {
-      "env": ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY", "VITE_API_URL"]
+      "env": [
+        "GIT_COMMIT_SHA",
+        "VITE_SUPABASE_URL",
+        "VITE_SUPABASE_PUBLISHABLE_KEY",
+        "VITE_API_URL"
+      ]
     }
   }
 }

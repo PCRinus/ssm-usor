@@ -787,6 +787,7 @@ no route outside the prefix has the tag.
 | --------------------------------------------------------------- | -------------------- | ----------------------------------------------------------- |
 | `GET /portal/me`                                                | Participant          | `{ participations: [ … ] }`, never empty                    |
 | `POST /portal/participants/{participantId}/notice`              | Participant          | `204` after recording `{ version }` of the privacy notice   |
+| `PUT /portal/participants/{participantId}/language`             | Participant          | `204` after saving `{ language }`, `ro` or `en`             |
 | `GET …/{participantId}/training-records`                        | Employee             | `{ items, training }`: own records newest first, the states |
 | `GET …/{participantId}/data`                                    | Employee             | _Datele mele_: what the sheets print, and the provider      |
 | `GET …/{participantId}/sheets`                                  | Employee             | `{ ssm, psi }`, each `{ ready, missing }`                   |

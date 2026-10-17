@@ -58,6 +58,7 @@ export default defineConfig({
   use: {
     baseURL: portalUrl,
     browserName: 'chromium',
+    locale: 'ro-RO',
     viewport: { width: 390, height: 844 },
     hasTouch: true,
     actionTimeout: 10_000,

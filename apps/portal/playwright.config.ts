@@ -12,6 +12,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_PORTAL_URL ?? 'http://localhost:4176',
     browserName: 'chromium',
+    locale: 'ro-RO',
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
     trace: 'retain-on-failure',

@@ -1,3 +1,4 @@
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate } from '@tanstack/react-router';
 import { ChevronLeft } from 'lucide-react';
@@ -10,9 +11,9 @@ import {
   useListPortalEmployeeTrainingRecords,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { PageFailed, PageHeader, PageLoading } from '@/components/page';
+import { Page, PageGrid, PageHeader } from '@/components/page';
 import { isAdministrator, useParticipation } from '@/features/participation/participation-context';
-import { TrainingRecordsList } from '@/features/training/training-records-list';
+import { TrainingRecordsSection } from '@/features/training/training-records-section';
 import { TrainingSheets } from '@/features/training/training-sheets';
 import { useApiRequest } from '@/lib/request';
 
@@ -22,16 +23,16 @@ export function EmployeePage({ employeeId }: { employeeId: string }) {
   const participation = useParticipation();
   if (!isAdministrator(participation)) return <Navigate to="/" replace />;
   return (
-    <main data-testid="employee-page">
+    <Page testId="employee-page">
       <Link
         to="/angajati"
-        className="-ml-2 inline-flex min-h-11 items-center gap-1 px-2 pt-4 text-sm font-medium"
+        className="-mb-3 -ml-1 inline-flex min-h-11 w-fit items-center gap-1 rounded-sm px-1 text-sm font-medium focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:-mb-5"
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
-        Angajați
+        <Trans>Angajați</Trans>
       </Link>
       <EmployeeDetail participantId={participation.participantId} employeeId={employeeId} />
-    </main>
+    </Page>
   );
 }
 
@@ -42,6 +43,7 @@ function EmployeeDetail({
   participantId: string;
   employeeId: string;
 }) {
+  const { t } = useLingui();
   const apiRequest = useApiRequest();
   const queryClient = useQueryClient();
   const employees = useListPortalClientEmployees(participantId, { request: apiRequest });
@@ -55,42 +57,47 @@ function EmployeeDetail({
 
   if (records.error instanceof ApiHttpError && records.error.status === 404) {
     return (
-      <PageHeader title="Angajatul nu a fost găsit">
-        Poate a fost scos din evidența companiei.
-      </PageHeader>
+      <PageHeader
+        title={t`Angajatul nu a fost găsit`}
+        description={t`Poate a fost scos din evidența companiei.`}
+      />
     );
   }
 
   return (
-    <div className="grid gap-8">
-      <PageHeader title={employee ? `${employee.lastName} ${employee.firstName}` : 'Angajat'}>
-        {employee && [employee.position, employee.workplace].filter(Boolean).join(' · ')}
-      </PageHeader>
-      {employee && <EmployeeTrainingStates employee={employee} />}
-      <TrainingSheets
-        sheets={sheets.data}
-        failed={sheets.isError}
-        loadSheet={(domain) =>
-          getPortalEmployeeTrainingSheet(participantId, employeeId, domain, apiRequest)
-        }
-        onStale={() =>
-          void queryClient.invalidateQueries({
-            queryKey: getGetPortalEmployeeTrainingSheetsQueryKey(participantId, employeeId),
-          })
-        }
-      />
-      <section aria-labelledby="employee-records-title" className="grid gap-3">
-        <h2 id="employee-records-title" className="text-lg font-semibold">
-          Instruiri
-        </h2>
-        {records.isPending ? (
-          <PageLoading />
-        ) : records.isError ? (
-          <PageFailed onRetry={() => void records.refetch()} />
-        ) : (
-          <TrainingRecordsList records={records.data.items} />
+    <>
+      <PageHeader
+        title={employee ? `${employee.lastName} ${employee.firstName}` : t`Angajat`}
+        description={employee && [employee.position, employee.workplace].filter(Boolean).join(', ')}
+      >
+        {employee && (
+          <div className="pt-3">
+            <EmployeeTrainingStates employee={employee} />
+          </div>
         )}
-      </section>
-    </div>
+      </PageHeader>
+      <PageGrid>
+        <TrainingSheets
+          title={t`Fișele individuale`}
+          className="lg:sticky lg:top-22 lg:col-span-4 lg:col-start-9 lg:row-start-1"
+          sheets={sheets.data}
+          records={records.isError ? null : records.data?.items}
+          failed={sheets.isError}
+          loadSheet={(domain) =>
+            getPortalEmployeeTrainingSheet(participantId, employeeId, domain, apiRequest)
+          }
+          onStale={() =>
+            void queryClient.invalidateQueries({
+              queryKey: getGetPortalEmployeeTrainingSheetsQueryKey(participantId, employeeId),
+            })
+          }
+        />
+        <TrainingRecordsSection
+          className="lg:col-span-8 lg:row-start-1"
+          title={t`Instruiri`}
+          records={records}
+        />
+      </PageGrid>
+    </>
   );
 }

@@ -1,3 +1,4 @@
+import { type PortalLanguage, portalLanguages } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { endTime, startTime } from 'hono/timing';
@@ -17,6 +18,7 @@ export interface Participation {
   employeeId: string | null;
   fullName: string;
   noticeVersion: string | null;
+  language: PortalLanguage | null;
 }
 
 // Accepting first links a first sign-in to its open invitations, so the person lands on the
@@ -44,6 +46,7 @@ export const requireParticipant = createMiddleware<ApiEnv>(async (c, next) => {
       employeeId: row.employee_id,
       fullName: row.full_name,
       noticeVersion: row.notice_version,
+      language: portalLanguages.find((language) => language === row.language) ?? null,
     }))
   );
   await next();
