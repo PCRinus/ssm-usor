@@ -1,6 +1,6 @@
 # ADR 022: Participants, the people of a client who sign in, and the portal they see
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-17
 
 ## Context
