@@ -21,7 +21,7 @@ export function AccountPage() {
       <PageHeader title="Contul meu" />
       <dl className="divide-y rounded-xl border bg-card px-4 shadow-xs">
         <Row label="Intri cu">
-          <span data-testid="account-address" className="break-all">
+          <span data-testid="account-address" className="wrap-anywhere">
             {session ? formatSignInAddress(session.user) : ''}
           </span>
         </Row>

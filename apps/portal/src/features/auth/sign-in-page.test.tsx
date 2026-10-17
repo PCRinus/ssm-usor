@@ -43,7 +43,7 @@ describe('signing in with a code', () => {
       'textContent',
       expect.stringMatching(sameAnswer)
     );
-    expect(screen.getByTestId('sign-in-code-sent').textContent).toContain('ana@example.ro');
+    expect(screen.getByTestId('sign-in-code-target').textContent).toBe('ana@example.ro');
     expect(client.signInWithOtp).toHaveBeenCalledWith({
       email: 'ana@example.ro',
       options: { shouldCreateUser: false },
@@ -54,7 +54,7 @@ describe('signing in with a code', () => {
     const client = fakeAuthClient();
     await requestCode(client, '0721 234 567');
 
-    expect(await screen.findByTestId('sign-in-code-sent')).toBeTruthy();
+    expect((await screen.findByTestId('sign-in-code-target')).textContent).toBe('+40721234567');
     expect(client.signInWithOtp).toHaveBeenCalledWith({
       phone: '+40721234567',
       options: { shouldCreateUser: false },
@@ -134,11 +134,13 @@ describe('signing in with a code', () => {
     expect(screen.getByTestId('sign-in-resend').textContent).toBe('Trimite alt cod în 60 s');
   });
 
-  it('verifies the email code once six digits are typed and opens the portal', async () => {
+  it('waits for Intră before verifying the email code, then opens the portal', async () => {
     const client = fakeAuthClient();
     const person = await requestCode(client, 'ana@example.ro');
 
     await person.type(await screen.findByTestId('sign-in-code'), '123456');
+    expect(client.verifyOtp).not.toHaveBeenCalled();
+    await person.click(screen.getByTestId('sign-in-verify'));
 
     expect(client.verifyOtp).toHaveBeenCalledWith({
       email: 'ana@example.ro',
@@ -152,7 +154,7 @@ describe('signing in with a code', () => {
     const client = fakeAuthClient();
     const person = await requestCode(client, '+40 721 234 567');
 
-    await person.type(await screen.findByTestId('sign-in-code'), '654321');
+    await person.type(await screen.findByTestId('sign-in-code'), '654321{Enter}');
 
     expect(client.verifyOtp).toHaveBeenCalledWith({
       phone: '+40721234567',
@@ -170,18 +172,33 @@ describe('signing in with a code', () => {
     const person = await requestCode(client, 'ana@example.ro');
     const code = await screen.findByTestId('sign-in-code');
 
-    await person.type(code, '111111');
+    await person.type(code, '111111{Enter}');
     expect((await screen.findByTestId('sign-in-code-error')).textContent).toContain(
       'Codul nu este corect sau a expirat'
     );
 
     await person.clear(code);
-    await person.type(code, '222222');
+    await person.type(code, '222222{Enter}');
     await waitFor(() => expect(client.verifyOtp).toHaveBeenCalledTimes(2));
     expect(await screen.findByTestId('portal-loading')).toBeTruthy();
   });
 
-  it('asks for six digits before verifying', async () => {
+  it('sends an eight-digit code as typed and keeps no more than eight digits', async () => {
+    const client = fakeAuthClient();
+    const person = await requestCode(client, 'ana@example.ro');
+
+    await person.type(await screen.findByTestId('sign-in-code'), '123456789');
+    expect(screen.getByTestId('sign-in-code')).toHaveProperty('value', '12345678');
+    await person.keyboard('{Enter}');
+
+    expect(client.verifyOtp).toHaveBeenCalledWith({
+      email: 'ana@example.ro',
+      token: '12345678',
+      type: 'email',
+    });
+  });
+
+  it('asks for the whole code before verifying', async () => {
     const client = fakeAuthClient();
     const person = await requestCode(client, 'ana@example.ro');
 
@@ -189,7 +206,9 @@ describe('signing in with a code', () => {
     expect(screen.getByTestId('sign-in-code')).toHaveProperty('value', '123');
     await person.click(screen.getByTestId('sign-in-verify'));
 
-    expect(screen.getByTestId('sign-in-code-error').textContent).toBe('Codul are șase cifre.');
+    expect(screen.getByTestId('sign-in-code-error').textContent).toBe(
+      'Scrie toate cifrele din cod.'
+    );
     expect(client.verifyOtp).not.toHaveBeenCalled();
   });
 

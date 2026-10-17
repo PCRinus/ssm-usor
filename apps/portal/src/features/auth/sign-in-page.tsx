@@ -12,7 +12,7 @@ import { parseSignInAddress } from './sign-in-address';
 
 // Supabase sends one code per address per minute and refuses a second request before.
 const resendDelayMs = 60_000;
-const codeLength = 6;
+const codeLength = { min: 6, max: 8 };
 
 const unreachableMessage =
   'Cererea nu a putut fi trimisă. Verifică conexiunea la internet și încearcă din nou.';
@@ -176,8 +176,8 @@ function CodeStep({
 
   async function verify(value: string) {
     if (verifying) return;
-    if (value.length !== codeLength) {
-      setError('Codul are șase cifre.');
+    if (value.length < codeLength.min) {
+      setError('Scrie toate cifrele din cod.');
       return;
     }
     setVerifying(true);
@@ -218,8 +218,12 @@ function CodeStep({
         </h1>
         <p data-testid="sign-in-code-sent" className="leading-relaxed text-muted-foreground">
           Dacă adresa este cunoscută, un cod este pe drum spre{' '}
-          <span className="font-medium break-all text-foreground">{target.shown}</span>. Codul are
-          șase cifre.
+          <span
+            data-testid="sign-in-code-target"
+            className="block font-medium wrap-anywhere text-foreground"
+          >
+            {target.shown}
+          </span>
         </p>
       </div>
       <form
@@ -239,15 +243,13 @@ function CodeStep({
             className="h-14 text-center font-mono text-2xl tracking-[0.5em] tabular-nums"
             value={code}
             onChange={(event) => {
-              const digits = event.target.value.replace(/\D/g, '').slice(0, codeLength);
-              setCode(digits);
-              if (digits.length === codeLength) void verify(digits);
+              setCode(event.target.value.replace(/\D/g, '').slice(0, codeLength.max));
             }}
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
-            pattern="[0-9]*"
-            maxLength={codeLength}
+            pattern={`[0-9]{${codeLength.min},${codeLength.max}}`}
+            maxLength={codeLength.max}
             disabled={verifying}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? 'sign-in-code-error' : undefined}
