@@ -1,0 +1,771 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-10-17 22:21+0300\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: en\n"
+
+#: src/features/training/training-sheets.tsx
+msgid "{count, plural, one {# instruire, actualizată {updated}} few {# instruiri, actualizată {updated}} other {# de instruiri, actualizată {updated}}}"
+msgstr "{count, plural, one {# training session, updated {updated}} other {# training sessions, updated {updated}}}"
+
+#: src/features/home/home-page.tsx
+msgid "{count, plural, one {angajat} few {angajați} other {de angajați}}"
+msgstr "{count, plural, one {employee} other {employees}}"
+
+#: src/features/training/missing-sheet-data.ts
+msgid "{count, plural, one {Fișa nu poate fi întocmită încă: lipsește {items}; spune-i specialistului.} few {Fișa nu poate fi întocmită încă: lipsesc {items}; spune-i specialistului.} other {Fișa nu poate fi întocmită încă: lipsesc {items}; spune-i specialistului.}}"
+msgstr "{count, plural, one {The sheet cannot be drawn up yet: the {items} is missing; tell the specialist.} other {The sheet cannot be drawn up yet: the {items} are missing; tell the specialist.}}"
+
+#: src/lib/format.ts
+msgid "{hours, plural, one {# oră} few {# ore} other {# de ore}}"
+msgstr "{hours, plural, one {# hour} other {# hours}}"
+
+#: src/lib/format.ts
+msgid "{hoursText} și {minutesText}"
+msgstr "{hoursText} and {minutesText}"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "{minutes, plural, one {# minut} few {# minute} other {# de minute}}"
+msgstr "{minutes, plural, one {# minute} other {# minutes}}"
+
+#: src/features/training/training-records-list.tsx
+msgid "{phase}, admis la lucru"
+msgstr "{phase}, cleared to work"
+
+#: src/lib/format.ts
+msgid "{rest, plural, one {# minut} few {# minute} other {# de minute}}"
+msgstr "{rest, plural, one {# minute} other {# minutes}}"
+
+#: src/features/participation/privacy-notice.tsx
+msgid "<0>{clientName}</0> este angajatorul tău."
+msgstr "<0>{clientName}</0> is your employer."
+
+#: src/features/home/home-page.tsx
+msgid "<0>{position}</0>, marca {employeeNumber}"
+msgstr "<0>{position}</0>, employee no. {employeeNumber}"
+
+#: src/lib/labels.ts
+msgid "Absență de peste 30 de zile lucrătoare"
+msgstr "Absence of more than 30 working days"
+
+#: src/app/places.ts
+msgid "Acasă"
+msgstr "Home"
+
+#: src/app/App.tsx
+msgid "Accesul la portal nu este încă configurat. Revino puțin mai târziu."
+msgstr "Access to the portal is not set up yet. Please come back a little later."
+
+#: src/lib/labels.ts
+msgid "Administratorul clientului"
+msgstr "Client administrator"
+
+#: src/features/account/account-page.tsx
+msgid "Adresa cu care intri în portal și clientul pe care îl vezi."
+msgstr "The address you sign in with and the client you are viewing."
+
+#: src/features/auth/sign-in-address.ts
+msgid "Adresa de email nu pare scrisă corect."
+msgstr "The email address does not look right."
+
+#: src/routes/__root.tsx
+msgid "Adresa nu duce nicăieri în portal."
+msgstr "This address does not lead anywhere in the portal."
+
+#: src/features/participation/privacy-notice.tsx
+msgid "Ai acces la portal pentru <0>{clientName}</0>."
+msgstr "You have access to the portal for <0>{clientName}</0>."
+
+#: src/features/participation/privacy-notice.tsx
+msgid "Aici vezi instruirile tale, fișele tale individuale de instruire și datele tale de identificare, așa cum sunt trecute pe fișe."
+msgstr "Here you see your training sessions, your individual training sheets and your identification details, as they appear on the sheets."
+
+#: src/features/participation/privacy-notice.tsx
+msgid "Aici vezi, în numele angajatorului, angajații companiei cu stadiul instruirii lor, instruirile fiecăruia și fișele lor individuale de instruire, precum și persoanele responsabile desemnate de companie. Sunt date personale ale angajaților, puse la dispoziția ta doar ca să urmărești aceste evidențe pentru companie. Despre tine păstrăm numele și adresa la care ai primit invitația, ca să te poți conecta."
+msgstr "Here you see, on the employer's behalf, the company's employees with the state of their training, each one's training sessions and individual training sheets, and the responsible persons the company has appointed. This is the employees' personal data, made available to you only so that you can follow these records for the company. About you, we keep your name and the address your invitation was sent to, so that you can sign in."
+
+#: src/features/participation/participation-picker.tsx
+msgid "Alege clientul"
+msgstr "Choose the client"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Am cerut un cod nou. Folosește-l pe cel mai recent."
+msgstr "We asked for a new code. Use the most recent one."
+
+#: src/features/participation/privacy-notice.tsx
+msgid "Am înțeles"
+msgstr "Got it"
+
+#: src/features/employees/employee-page.tsx
+#: src/lib/labels.ts
+msgid "Angajat"
+msgstr "Employee"
+
+#: src/features/home/home-page.tsx
+#: src/features/my-data/my-data-page.tsx
+msgid "Angajat din"
+msgstr "Employed since"
+
+#: src/app/places.ts
+#: src/features/employees/employee-page.tsx
+#: src/features/employees/employees-page.tsx
+#: src/features/home/home-page.tsx
+msgid "Angajați"
+msgstr "Employees"
+
+#: src/features/participation/privacy-notice.tsx
+msgid "Angajatorul este obligat să țină aceste evidențe de Legea nr. 319/2006 a securității și sănătății în muncă, de HG nr. 1425/2006 și de OMAI nr. 712/2005. Datele sunt prelucrate pentru aceste obligații legale, nu pe baza unui acord pe care să ți-l cerem, iar portalul doar ți le arată. Dacă ceva nu este corect, spune-i specialistului {organizationName}."
+msgstr "The employer must keep these records under Legea nr. 319/2006 (Law 319/2006 on occupational safety and health), HG nr. 1425/2006 (the Government Decision implementing it) and OMAI nr. 712/2005 (the Order of the Minister of Administration and Interior on fire safety training). The data is processed to meet these legal obligations, not on the basis of a consent we would ask you for, and the portal only shows it to you. If something is not right, tell the {organizationName} specialist."
+
+#: src/features/employees/employee-page.tsx
+msgid "Angajatul nu a fost găsit"
+msgstr "Employee not found"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Autorizații"
+msgstr "Authorizations"
+
+#: src/features/training/use-sheet-actions.ts
+msgid "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal sau descarcă fișa."
+msgstr "The browser blocked the new window. Allow pop-up windows for the portal or download the sheet."
+
+#. placeholder {0}: participation.fullName
+#: src/features/participation/privacy-notice.tsx
+msgid "Bun venit, {0}"
+msgstr "Welcome, {0}"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Calificare"
+msgstr "Qualification"
+
+#: src/features/employees/employees-page.tsx
+msgid "Caută după nume"
+msgstr "Search by name"
+
+#: src/features/employees/employees-page.tsx
+msgid "Caută un angajat după nume"
+msgstr "Search for an employee by name"
+
+#: src/features/participation/privacy-notice-page.tsx
+msgid "Ce ți-am spus la prima intrare în portal."
+msgstr "What we told you the first time you signed in to the portal."
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Ce tipăresc fișele tale de instruire, așa cum le ține angajatorul."
+msgstr "What your training sheets print, as your employer keeps it."
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Cererea nu a putut fi trimisă. Verifică conexiunea la internet și încearcă din nou."
+msgstr "The request could not be sent. Check your internet connection and try again."
+
+#: src/features/my-data/provider-box.tsx
+msgid "Ceva nu e corect?"
+msgstr "Something not right?"
+
+#: src/features/account/account-page.tsx
+msgid "Clientul"
+msgstr "Client"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Codul de intrare"
+msgstr "Sign-in code"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Codul nu este corect sau a expirat. Verifică-l sau cere un cod nou."
+msgstr "The code is not correct or has expired. Check it or ask for a new code."
+
+#: src/lib/labels.ts
+msgid "Conducător al locului de muncă"
+msgstr "Workplace manager"
+
+#: src/features/participation/participant-gate.tsx
+msgid "Contul acesta nu are acces la portal"
+msgstr "This account has no access to the portal"
+
+#: src/app/account-menu.tsx
+#: src/app/places.ts
+#: src/features/account/account-page.tsx
+msgid "Contul meu"
+msgstr "My account"
+
+#: src/features/participation/participation-picker.tsx
+msgid "Contul tău are acces la mai mulți clienți ai prestatorului SSM. Alege-l pe cel pe care vrei să îl deschizi; îl poți schimba oricând din contul tău."
+msgstr "Your account has access to several clients of the SSM provider. Choose the one you want to open; you can change it at any time from your account."
+
+#. placeholder {0}: participation.fullName
+#. placeholder {1}: participation.clientName
+#: src/app/account-menu.tsx
+msgid "Contul tău: {0}, {1}"
+msgstr "Your account: {0}, {1}"
+
+#: src/lib/labels.ts
+msgid "Coordonator privind apărarea împotriva incendiilor"
+msgstr "Fire safety coordinator"
+
+#: src/features/home/home-page.tsx
+msgid "cu instruirea depășită"
+msgstr "with training overdue"
+
+#: src/features/home/home-page.tsx
+msgid "cu instruirea scadentă"
+msgstr "with training due"
+
+#: src/app/portal-footer.tsx
+#: src/features/account/account-page.tsx
+#: src/features/participation/privacy-notice-page.tsx
+#: src/features/participation/privacy-notice.tsx
+msgid "Cum folosim datele tale"
+msgstr "How we use your data"
+
+#. placeholder {0}: target.shown
+#: src/features/auth/sign-in-page.tsx
+msgid "Dacă adresa este cunoscută, un cod este pe drum spre <0>{0}</0>"
+msgstr "If the address is known, a code is on its way to <0>{0}</0>"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Data și locul nașterii"
+msgstr "Date and place of birth"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Date personale"
+msgstr "Personal details"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Datele le ține angajatorul tău; specialistul SSM le corectează."
+msgstr "Your employer keeps this data; the SSM specialist corrects it."
+
+#: src/app/places.ts
+#: src/features/home/home-page.tsx
+#: src/features/my-data/my-data-page.tsx
+msgid "Datele mele"
+msgstr "My data"
+
+#: src/lib/labels.ts
+msgid "Depășită"
+msgstr "Overdue"
+
+#: src/features/training/training-sheets.tsx
+msgid "Descarcă"
+msgstr "Download"
+
+#: src/features/training/training-sheets.tsx
+msgid "Descarcă fișa {label}"
+msgstr "Download the {label} sheet"
+
+#: src/features/training/training-sheets.tsx
+msgid "Deschide PDF"
+msgstr "Open PDF"
+
+#: src/features/employees/employee-training-states.tsx
+msgid "din {due}"
+msgstr "since {due}"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Domiciliu"
+msgstr "Home address"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Drumul tău obișnuit între casă și muncă. Un accident pe acest traseu, în durata lui normală, este accident de muncă."
+msgstr "Your usual way between home and work. An accident on this route, within its normal duration, is a work accident."
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Durata"
+msgstr "Duration"
+
+#: src/lib/labels.ts
+msgid "Echipa de evaluare a riscurilor"
+msgstr "Risk evaluation team"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Email sau număr de telefon"
+msgstr "Email or phone number"
+
+#: src/features/participation/privacy-notice.tsx
+msgid "Evidența instruirilor de securitate și sănătate în muncă (SSM) și de situații de urgență (PSI) o ține <0>{organizationName}</0>, prestatorul de servicii SSM al companiei, în numele ei."
+msgstr "The records of occupational safety (SSM) and fire safety (PSI) training are kept by <0>{organizationName}</0>, the company's SSM service provider, on its behalf."
+
+#: src/lib/labels.ts
+msgid "Executarea unor lucrări speciale"
+msgstr "Carrying out special works"
+
+#: src/features/training/training-page.tsx
+msgid "Fiecare instruire la care ai participat, cea mai recentă prima. Fișele adună aceste rânduri."
+msgstr "Every training session you took part in, the most recent first. The sheets gather these rows."
+
+#: src/features/participation/privacy-notice.tsx
+msgid "Fiind și angajat, vezi și instruirile tale, fișele tale și datele tale de identificare."
+msgstr "As you are also an employee, you also see your own training sessions, sheets and identification details."
+
+#: src/features/training/training-sheets.tsx
+msgid "Fișa {label}"
+msgstr "{label} sheet"
+
+#: src/features/training/training-sheets.tsx
+#: src/features/training/use-sheet-actions.ts
+msgid "Fișa individuală {label}"
+msgstr "Individual training sheet, {label}"
+
+#: src/features/training/training-summary.tsx
+msgid "Fișa individuală {label}, PDF"
+msgstr "Individual training sheet, {label} (PDF)"
+
+#: src/features/training/use-sheet-actions.ts
+msgid "Fișa nu poate fi întocmită încă: lipsesc date pe care le completează specialistul."
+msgstr "The sheet cannot be drawn up yet: data the specialist fills in is missing."
+
+#: src/features/training/use-sheet-actions.ts
+msgid "Fișa nu poate fi pregătită acum. Încearcă din nou peste câteva minute."
+msgstr "The sheet cannot be prepared right now. Try again in a few minutes."
+
+#: src/features/employees/employee-page.tsx
+msgid "Fișele individuale"
+msgstr "Individual training sheets"
+
+#: src/features/training/training-page.tsx
+msgid "Fișele tale"
+msgstr "Your sheets"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Folosește altă adresă"
+msgstr "Use another address"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Funcția din contract"
+msgstr "Contract title"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Grupa sanguină"
+msgstr "Blood group"
+
+#: src/app/account-menu.tsx
+#: src/features/participation/sign-out-button.tsx
+msgid "Ieși din cont"
+msgstr "Sign out"
+
+#: src/app/App.tsx
+#: src/components/page.tsx
+#: src/features/participation/participant-gate.tsx
+msgid "Încearcă din nou"
+msgstr "Try again"
+
+#: src/features/training/training-records-list.tsx
+msgid "Instructor {name}, {jobTitle}. {duration}."
+msgstr "Trainer {name}, {jobTitle}. {duration}."
+
+#: src/features/training/training-records-list.tsx
+msgid "Instructor {name}. {duration}."
+msgstr "Trainer {name}. {duration}."
+
+#: src/features/training/training-summary.tsx
+msgid "Instruire {label}"
+msgstr "{label} training"
+
+#: src/lib/labels.ts
+msgid "Instruire introductiv-generală"
+msgstr "Induction training"
+
+#: src/lib/labels.ts
+msgid "Instruire la locul de muncă"
+msgstr "Workplace training"
+
+#: src/lib/labels.ts
+msgid "Instruire periodică"
+msgstr "Periodic training"
+
+#: src/lib/labels.ts
+msgid "Instruire periodică suplimentară"
+msgstr "Supplementary periodic training"
+
+#: src/features/training/training-summary.tsx
+msgid "Instruirea ta"
+msgstr "Your training"
+
+#: src/app/places.ts
+#: src/features/employees/employee-page.tsx
+msgid "Instruiri"
+msgstr "Training"
+
+#: src/features/training/training-page.tsx
+msgid "Instruirile tale"
+msgstr "Your training sessions"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Intră"
+msgstr "Sign in"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Intră în portal"
+msgstr "Sign in to the portal"
+
+#: src/features/account/account-page.tsx
+msgid "Intri cu"
+msgstr "You sign in with"
+
+#: src/lib/labels.ts
+msgid "Introducerea unei noi tehnologii sau proceduri de lucru"
+msgstr "Introduction of a new technology or work procedure"
+
+#: src/lib/labels.ts
+msgid "Introducerea unui echipament de muncă sau modificarea celui existent"
+msgstr "Introduction of new work equipment or a change to existing equipment"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "La locul de muncă"
+msgstr "At work"
+
+#: src/lib/labels.ts
+msgid "La zi"
+msgstr "Up to date"
+
+#: src/app/portal-header.tsx
+msgid "Locurile portalului"
+msgstr "Portal sections"
+
+#: src/features/participation/privacy-notice.tsx
+msgid "Mai multe despre cum sunt păstrate și protejate datele găsești în <0>politica de confidențialitate</0>."
+msgstr "You can read more about how the data is kept and protected in the <0>privacy policy</0>."
+
+#: src/features/training/training-material.tsx
+msgid "Mai puțin"
+msgstr "Less"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Marca"
+msgstr "Employee no."
+
+#: src/routes/__root.tsx
+msgid "Mergi la pagina principală"
+msgstr "Go to the home page"
+
+#: src/lib/labels.ts
+msgid "Modificarea prevederilor de securitate și sănătate în muncă sau a instrucțiunilor proprii"
+msgstr "Changes to occupational safety and health rules or to the company's own instructions"
+
+#: src/lib/labels.ts
+msgid "Modificarea tehnologiilor existente sau a procedurilor de lucru"
+msgstr "Changes to existing technologies or work procedures"
+
+#: src/components/facts.tsx
+msgid "Necompletat"
+msgstr "Not filled in"
+
+#: src/lib/labels.ts
+msgid "Neinstruit"
+msgstr "Not trained"
+
+#: src/features/training/training-summary.tsx
+msgid "Nestabilită"
+msgstr "Not set"
+
+#: src/features/training/training-records-list.tsx
+msgid "Nicio instruire înregistrată încă."
+msgstr "No training recorded yet."
+
+#: src/features/responsible-persons/responsible-persons-section.tsx
+msgid "Nicio persoană responsabilă desemnată încă."
+msgstr "No responsible person appointed yet."
+
+#: src/features/employees/employees-page.tsx
+msgid "Niciun angajat cu acest nume."
+msgstr "No employee with this name."
+
+#: src/features/employees/employees-page.tsx
+msgid "Niciun angajat înregistrat încă."
+msgstr "No employees recorded yet."
+
+#: src/features/home/home-page.tsx
+msgid "Nimic de semnat deocamdată. Când o instruire va avea nevoie de semnătura ta, apare aici."
+msgstr "Nothing to sign for now. When a training needs your signature, it shows up here."
+
+#: src/features/training/use-sheet-actions.ts
+msgid "Nu am putut deschide fișa. Verifică conexiunea la internet și încearcă din nou."
+msgstr "We could not open the sheet. Check your internet connection and try again."
+
+#: src/app/account-menu.tsx
+msgid "Nu am putut ieși din cont."
+msgstr "We could not sign you out."
+
+#: src/components/page.tsx
+msgid "Nu am putut încărca pagina. Verifică conexiunea la internet."
+msgstr "We could not load the page. Check your internet connection."
+
+#: src/features/participation/sign-out-button.tsx
+msgid "Nu am putut închide sesiunea. Verifică conexiunea și încearcă din nou."
+msgstr "We could not end the session. Check your connection and try again."
+
+#: src/app/App.tsx
+msgid "Nu am putut restabili sesiunea. Verifică conexiunea și încearcă din nou."
+msgstr "We could not restore the session. Check your connection and try again."
+
+#: src/features/participation/privacy-notice.tsx
+msgid "Nu am putut salva. Verifică conexiunea la internet și încearcă din nou."
+msgstr "We could not save. Check your internet connection and try again."
+
+#: src/features/training/training-sheets.tsx
+msgid "Nu am putut verifica fișele. Reîncarcă pagina."
+msgstr "We could not check the sheets. Reload the page."
+
+#: src/features/auth/sign-in-address.ts
+msgid "Numărul nu pare scris corect. Scrie-l cu 0 în față, de exemplu 0721 234 567, sau cu prefixul țării, de exemplu +373 69 123 456."
+msgstr "The number does not look right. Write it with a leading 0, for example 0721 234 567, or with the country code, for example +373 69 123 456."
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Nume și prenume"
+msgstr "Full name"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "nume@exemplu.ro sau 0721 234 567"
+msgstr "name@example.com or 0721 234 567"
+
+#: src/routes/__root.tsx
+msgid "Pagina nu a fost găsită"
+msgstr "Page not found"
+
+#: src/routes/__root.tsx
+msgid "Pagina nu a putut fi încărcată"
+msgstr "The page could not be loaded"
+
+#: src/features/employees/employee-training-states.tsx
+msgid "până la {due}"
+msgstr "until {due}"
+
+#: src/lib/labels.ts
+msgid "Pericol grav și iminent"
+msgstr "Serious and imminent danger"
+
+#: src/features/responsible-persons/responsible-persons-section.tsx
+msgid "Persoane responsabile"
+msgstr "Responsible persons"
+
+#: src/features/employees/employee-page.tsx
+msgid "Poate a fost scos din evidența companiei."
+msgstr "They may have been removed from the company's records."
+
+#: src/app/portal-footer.tsx
+msgid "Politica de confidențialitate"
+msgstr "Privacy policy"
+
+#: src/app/App.tsx
+msgid "Portalul nu este disponibil"
+msgstr "The portal is not available"
+
+#: src/features/participation/participant-gate.tsx
+msgid "Portalul nu s-a putut încărca"
+msgstr "The portal could not load"
+
+#: src/features/participation/participant-gate.tsx
+msgid "Portalul se deschide cu adresa de email sau numărul de telefon la care ai primit invitația. Dacă nu ai primit una, cere-i specialistului în securitate și sănătate în muncă al angajatorului tău să te invite."
+msgstr "The portal opens with the email address or phone number your invitation was sent to. If you have not received one, ask your employer's occupational safety and health specialist to invite you."
+
+#: src/features/home/home-page.tsx
+#: src/features/my-data/my-data-page.tsx
+msgid "Post de lucru"
+msgstr "Job position"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Prea multe încercări. Așteaptă puțin și încearcă din nou."
+msgstr "Too many attempts. Wait a little and try again."
+
+#: src/features/account/account-page.tsx
+msgid "Prestator SSM"
+msgstr "SSM provider"
+
+#. placeholder {0}: item.organizationName
+#. placeholder {0}: participation.organizationName
+#: src/app/portal-footer.tsx
+#: src/features/participation/participation-picker.tsx
+msgid "Prestator SSM: {0}"
+msgstr "SSM provider: {0}"
+
+#: src/lib/labels.ts
+msgid "Prim ajutor"
+msgstr "First aid"
+
+#: src/features/training/training-summary.tsx
+msgid "Prima instruire {label} nu a fost încă înregistrată."
+msgstr "Your first {label} training has not been recorded yet."
+
+#: src/lib/labels.ts
+msgid "PSI"
+msgstr "PSI"
+
+#: src/features/home/home-page.tsx
+#: src/features/my-data/my-data-page.tsx
+msgid "Punct de lucru"
+msgstr "Workplace"
+
+#: src/lib/labels.ts
+msgid "punctul de lucru"
+msgstr "workplace"
+
+#: src/routes/__root.tsx
+msgid "Reîncarcă pagina și încearcă din nou."
+msgstr "Reload the page and try again."
+
+#: src/lib/labels.ts
+msgid "Reluarea activității după un accident de muncă"
+msgstr "Return to work after a work accident"
+
+#: src/lib/labels.ts
+msgid "Reprezentantul lucrătorilor"
+msgstr "Workers' representative"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Rh negativ"
+msgstr "Rh negative"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Rh pozitiv"
+msgstr "Rh positive"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Ruta"
+msgstr "Route"
+
+#: src/lib/labels.ts
+msgid "Scadentă"
+msgstr "Due"
+
+#: src/app/account-menu.tsx
+#: src/features/account/account-page.tsx
+msgid "Schimbă clientul"
+msgstr "Change client"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Scrie adresa de email sau numărul de telefon la care ai primit invitația. Îți trimitem acolo un cod de intrare."
+msgstr "Enter the email address or phone number your invitation was sent to. We will send a sign-in code there."
+
+#: src/features/auth/sign-in-address.ts
+msgid "Scrie adresa de email sau numărul de telefon."
+msgstr "Enter your email address or phone number."
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Scrie codul primit"
+msgstr "Enter the code you received"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Scrie toate cifrele din cod."
+msgstr "Enter all the digits of the code."
+
+#: src/app/App.tsx
+#: src/components/page.tsx
+#: src/features/participation/participant-gate.tsx
+msgid "Se încarcă…"
+msgstr "Loading…"
+
+#: src/features/training/training-sheets.tsx
+msgid "Se întocmește după prima instruire {label}."
+msgstr "Drawn up after the first {label} training."
+
+#: src/features/training/training-summary.tsx
+#: src/features/training/use-sheet-actions.ts
+msgid "Se pregătește fișa…"
+msgstr "Preparing the sheet…"
+
+#: src/features/participation/privacy-notice.tsx
+msgid "Se salvează…"
+msgstr "Saving…"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Se trimite…"
+msgstr "Sending…"
+
+#: src/features/auth/sign-in-page.tsx
+#: src/features/training/training-sheets.tsx
+msgid "Se verifică…"
+msgstr "Checking…"
+
+#: src/lib/labels.ts
+msgid "Șef echipă de primă intervenție"
+msgstr "First-intervention team leader"
+
+#: src/features/home/home-page.tsx
+msgid "Semnături"
+msgstr "Signatures"
+
+#: src/features/my-data/provider-box.tsx
+msgid "Spune-i specialistului SSM: {name}, <0>{phone}</0>."
+msgstr "Tell the SSM specialist: {name}, <0>{phone}</0>."
+
+#: src/features/my-data/provider-box.tsx
+msgid "Spune-i specialistului SSM: {name}."
+msgstr "Tell the SSM specialist: {name}."
+
+#: src/lib/labels.ts
+msgid "SSM"
+msgstr "SSM"
+
+#: src/app/portal-header.tsx
+msgid "SSM Ușor, acasă"
+msgstr "SSM Ușor, home"
+
+#: src/features/employees/employees-page.tsx
+msgid "Stadiul instruirii fiecărui angajat; deschide unul pentru instruirile și fișele lui."
+msgstr "The training state of each employee; open one for their training sessions and sheets."
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Studii"
+msgstr "Education"
+
+#: src/features/training/training-material.tsx
+msgid "Tot textul"
+msgstr "Full text"
+
+#: src/features/home/home-page.tsx
+msgid "Traseu de deplasare"
+msgstr "Commute"
+
+#: src/lib/labels.ts
+msgid "traseul de deplasare"
+msgstr "commute route"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Traseul de deplasare"
+msgstr "Commute"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Trimite alt cod"
+msgstr "Send another code"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Trimite alt cod în {secondsLeft} s"
+msgstr "Send another code in {secondsLeft} s"
+
+#: src/features/auth/sign-in-page.tsx
+msgid "Trimite codul"
+msgstr "Send the code"
+
+#: src/features/training/training-summary.tsx
+msgid "Ultima"
+msgstr "Last held"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Un câmp necompletat apare gol și pe fișă, în afară de traseul de deplasare, pe care fișa SSM îl cere."
+msgstr "A field left empty is also blank on the sheet, except the commute, which the SSM sheet requires."
+
+#: src/features/training/training-summary.tsx
+msgid "Următoarea"
+msgstr "Next due"
+
+#: src/features/participation/participant-gate.tsx
+msgid "Verifică conexiunea la internet și încearcă din nou."
+msgstr "Check your internet connection and try again."
+
+#: src/app/commit-version.tsx
+msgid "Versiune <0>{shortCommitSha}</0>"
+msgstr "Version <0>{shortCommitSha}</0>"
+
+#: src/app/commit-version.tsx
+msgid "Versiunea portalului: commit {commitSha}"
+msgstr "Portal version: commit {commitSha}"
+
+#: src/features/training/training-summary.tsx
+msgid "Vezi instruirile"
+msgstr "See your training"
+
+#: src/features/home/home-page.tsx
+msgid "Vezi tot"
+msgstr "See all"

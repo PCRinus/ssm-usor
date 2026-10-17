@@ -1,7 +1,7 @@
 import { plural } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react/macro';
 
-const intlLocales: Record<string, string> = { ro: 'ro-RO' };
+const intlLocales: Record<string, string> = { ro: 'ro-RO', en: 'en-GB' };
 
 export type DateStyle = 'long' | 'short';
 
