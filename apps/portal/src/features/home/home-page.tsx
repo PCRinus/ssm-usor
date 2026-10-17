@@ -14,6 +14,7 @@ import {
   participationKindLabels,
   useParticipation,
 } from '@/features/participation/participation-context';
+import { ResponsiblePersonsSection } from '@/features/responsible-persons/responsible-persons-section';
 import { TrainingSummary } from '@/features/training/training-summary';
 import { useApiRequest } from '@/lib/request';
 
@@ -42,6 +43,7 @@ export function HomePage() {
           Datele mele
         </PlaceLink>
       )}
+      {administrator && <ResponsiblePersonsSection participantId={participation.participantId} />}
     </main>
   );
 }

@@ -7,6 +7,7 @@ import {
   useGetPortalEmployeeData,
   useGetPortalMe,
   useListPortalClientEmployees,
+  useListPortalResponsiblePersons,
   useListPortalTrainingRecords,
   useRecordPortalNotice,
 } from '@/api/generated/api';
@@ -28,6 +29,7 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   useListPortalTrainingRecords: vi.fn(),
   useGetPortalEmployeeData: vi.fn(),
   useListPortalClientEmployees: vi.fn(),
+  useListPortalResponsiblePersons: vi.fn(),
 }));
 
 const recordNotice = vi.fn();
@@ -42,6 +44,7 @@ beforeEach(() => {
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryPending());
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryPending());
   vi.mocked(useListPortalClientEmployees).mockReturnValue(queryPending());
+  vi.mocked(useListPortalResponsiblePersons).mockReturnValue(queryPending());
 });
 
 afterEach(() => {
@@ -115,6 +118,27 @@ describe('the participant shell', () => {
       },
       expect.anything()
     );
+  });
+
+  it("tells a client administrator they see the employees on the employer's behalf", async () => {
+    vi.mocked(useGetPortalMe).mockReturnValue(
+      queryResult({
+        participations: [
+          participation({ kind: 'client_administrator', employeeId: null, noticeVersion: null }),
+        ],
+      })
+    );
+    mountPortal(signedIn(), '/');
+
+    const notice = await screen.findByTestId('privacy-notice');
+    expect(notice.textContent).toContain('Ai acces la portal pentru Mobilă Bună S.A.');
+    expect(notice.textContent).not.toContain('angajatorul tău');
+    expect(screen.getByTestId('privacy-notice-administrator').textContent).toContain(
+      'în numele angajatorului'
+    );
+    expect(notice.textContent).toContain('Legea nr. 319/2006');
+    expect(within(notice).queryByRole('checkbox')).toBeNull();
+    expect(screen.getByTestId('privacy-notice-accept').textContent).toBe('Am înțeles');
   });
 
   it('shows the notice again when it was accepted in an older version', async () => {

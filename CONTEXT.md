@@ -30,7 +30,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Responsible person** (_persoană responsabilă_): someone who holds a role in a client's safety organization: workplace manager, first-aider, member of the risk evaluation team. One person can hold several roles. May or may not be an employee. A role is not a job position.
 
-**Client administrator** (_administratorul clientului_): the participant who runs a client's safety records on the employer's side, the administrator, the HR person or the legal representative, and sees the client's employees, their training states and their sheets. Not a responsible-person role and not a job position; may be an employee too. ADR 022. Avoid: HR, client user, manager, and administrator on its own, which the legal representative's role also says.
+**Client administrator** (_administratorul clientului_): the participant who runs a client's safety records on the employer's side, the administrator, the HR person or the legal representative, and sees the client's employees, their training states and their sheets, and the client's responsible persons. Not a responsible-person role and not a job position; may be an employee too. ADR 022. Avoid: HR, client user, manager, and administrator on its own, which the legal representative's role also says.
 
 **Workers' representative** (_reprezentantul lucrătorilor_): the responsible-person role of an employee chosen by the workers to speak for them on safety and health. Required from 10 current employees, two from 50. Always an employee, never the client's legal representative. ADR 010. Avoid: employee representative, union representative.
 

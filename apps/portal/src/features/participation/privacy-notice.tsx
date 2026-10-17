@@ -33,11 +33,22 @@ export function PrivacyNoticeText({ participation }: { participation: Participat
         (PSI) o ține <strong>{organizationName}</strong>, prestatorul de servicii SSM al companiei,
         în numele ei.
       </p>
-      <p>
-        {administrator
-          ? 'Aici vezi angajații companiei, stadiul instruirii lor și fișele lor individuale de instruire.'
-          : 'Aici vezi instruirile tale, fișele tale individuale de instruire și datele tale de identificare, așa cum sunt trecute pe fișe.'}
-      </p>
+      {administrator ? (
+        <p data-testid="privacy-notice-administrator">
+          Aici vezi, în numele angajatorului, angajații companiei cu stadiul instruirii lor,
+          instruirile fiecăruia și fișele lor individuale de instruire, precum și persoanele
+          responsabile desemnate de companie. Sunt date personale ale angajaților, puse la
+          dispoziția ta doar ca să urmărești aceste evidențe pentru companie. Despre tine păstrăm
+          numele și adresa la care ai primit invitația, ca să te poți conecta.
+          {participation.employeeId !== null &&
+            ' Fiind și angajat, vezi și instruirile tale, fișele tale și datele tale de identificare.'}
+        </p>
+      ) : (
+        <p>
+          Aici vezi instruirile tale, fișele tale individuale de instruire și datele tale de
+          identificare, așa cum sunt trecute pe fișe.
+        </p>
+      )}
       <p>
         Angajatorul este obligat să țină aceste evidențe de Legea nr. 319/2006 a securității și
         sănătății în muncă, de HG nr. 1425/2006 și de OMAI nr. 712/2005. Datele sunt prelucrate

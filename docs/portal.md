@@ -12,12 +12,12 @@ the portal has no password.
 | ----------------------- | ----------------------------------------------------------------------------- |
 | `/sign-in`              | One field, email or phone, then the six-digit code                            |
 | `/alege`                | Which client to open, for an account with several participations              |
-| `/`                     | _Acasă_                                                                       |
+| `/`                     | _Acasă_; for a client administrator also the client's responsible persons     |
 | `/instruiri`            | _Instruiri_: the participant's records and the two individual training sheets |
 | `/datele-mele`          | _Datele mele_: the identification data the sheets print                       |
 | `/contul-meu`           | _Contul meu_: the sign-in address, the client, the provider, sign out         |
 | `/informare`            | The privacy notice, read-only                                                 |
-| `/angajati`             | The client's employees, for a client administrator                            |
+| `/angajati`             | The client's employees with a filter by name, for a client administrator      |
 | `/angajati/$employeeId` | One employee's records and sheets, for a client administrator                 |
 
 Everything but `/sign-in` sits under `_participant` (a session, then `useGetPortalMe`; a `403`
@@ -37,6 +37,12 @@ code can be asked for after 60 seconds, Supabase's limit per address.
 null or older than `currentPrivacyNoticeVersion` (`packages/contracts/src/participants.ts`);
 "Am înțeles" records the current version. Raise the constant when the text changes and every
 participant reads it again. It links the privacy policy at `https://ssmusor.ro/confidentialitate`.
+
+**The client administrator's Acasă** shows the employee counts, which link to _Angajați_,
+and below them the client's responsible persons: name, job title and workplace, and the roles in
+Romanian. They are few, so they sit on _Acasă_ rather than below a list of employees that can
+run to dozens on a phone. The privacy notice tells an administrator that they see the
+employees' records and sheets on the employer's behalf, under the same laws.
 
 **The bar** is at the bottom on a phone, above the safe area, and at the top from 640 px. At
 most four places: an employee has _Acasă_, _Instruiri_, _Datele mele_, _Contul meu_; a client
@@ -80,8 +86,10 @@ pnpm --filter @ssm-usor/portal test:e2e:flows
 
 `apps/portal/e2e/flows` runs against the local stack like the app's flows: the API served by
 Node with an in-memory mailbox on port 8797 and a preview build of the portal on 4178. A member
-creates an employee and invites them through the API; the flow then signs in with the code read
-from the mailbox. It shares port 8797 with the app's flows, so run the two one after the other.
+creates the fixtures and the invitation through the API; the flow then signs in with the code
+read from the mailbox. `sign-in.spec.ts` follows an employee through their places,
+`administrator.spec.ts` a client administrator through _Acasă_ (the employee count and the
+responsible persons), _Angajați_ and one employee's records and sheets. It shares port 8797 with the app's flows, so run the two one after the other.
 
 ## Structure
 
@@ -104,8 +112,8 @@ participant nowhere. `useGetPortalMe` lists the participations, one per client, 
 `participantId` to every other hook. An employee's places use `useListPortalTrainingRecords`,
 `useGetPortalEmployeeData`, `useGetPortalTrainingSheets` and `getPortalTrainingSheet` (a PDF;
 `409 missing_sheet_data` names what the specialist still has to fill); the client
-administrator's use `useListPortalClientEmployees` and the `…Employee…` variants of the
-records and sheets. `useRecordPortalNotice` records the privacy notice's version once shown,
+administrator's use `useListPortalClientEmployees`, the `…Employee…` variants of the records
+and sheets, and `useListPortalResponsiblePersons`. `useRecordPortalNotice` records the privacy notice's version once shown,
 and `noticeVersion` on the participation says whether it was.
 
 ## Cloudflare deployment

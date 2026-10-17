@@ -10,6 +10,7 @@ import {
   useGetPortalTrainingSheets,
   useListPortalClientEmployees,
   useListPortalEmployeeTrainingRecords,
+  useListPortalResponsiblePersons,
   useListPortalTrainingRecords,
 } from '@/api/generated/api';
 import {
@@ -35,6 +36,7 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   useListPortalClientEmployees: vi.fn(),
   useListPortalEmployeeTrainingRecords: vi.fn(),
   useGetPortalEmployeeTrainingSheets: vi.fn(),
+  useListPortalResponsiblePersons: vi.fn(),
 }));
 
 const sheetsReady = { ssm: { ready: true, missing: [] }, psi: { ready: true, missing: [] } };
@@ -47,6 +49,7 @@ beforeEach(() => {
   vi.mocked(useListPortalClientEmployees).mockReturnValue(queryPending());
   vi.mocked(useListPortalEmployeeTrainingRecords).mockReturnValue(queryPending());
   vi.mocked(useGetPortalEmployeeTrainingSheets).mockReturnValue(queryPending());
+  vi.mocked(useListPortalResponsiblePersons).mockReturnValue(queryPending());
 });
 
 afterEach(disposeRuntimes);
@@ -102,6 +105,57 @@ describe('Acasă', () => {
     expect(screen.getByTestId('home-employees-due').textContent).toBe('1');
     expect(screen.getByTestId('home-employees-overdue').textContent).toBe('1');
     expect(screen.queryByTestId('training-summary-ssm')).toBeNull();
+  });
+
+  it("shows a client administrator the client's responsible persons with their roles", async () => {
+    vi.mocked(useGetPortalMe).mockReturnValue(
+      queryResult({
+        participations: [participation({ kind: 'client_administrator', employeeId: null })],
+      })
+    );
+    vi.mocked(useListPortalResponsiblePersons).mockReturnValue(
+      queryResult({
+        items: [
+          {
+            id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000b1',
+            fullName: 'Radu Stan',
+            jobTitle: 'Șef de atelier',
+            roles: ['workplace_manager', 'fire_intervention_leader'],
+            employeeId: '6f0c3e43-0c1b-4f4b-8a1e-0000000000e3',
+            workplace: 'Atelierul din Lugoj',
+          },
+        ],
+      })
+    );
+    mountPortal(signedIn(), '/');
+
+    const person = await screen.findByTestId('responsible-person');
+    expect(person.textContent).toContain('Radu Stan');
+    expect(person.textContent).toContain('Șef de atelier · Atelierul din Lugoj');
+    expect(within(person).getByTestId('responsible-person-roles').textContent).toBe(
+      'Conducător al locului de muncă, Șef echipă de primă intervenție'
+    );
+  });
+
+  it('says when the client has designated nobody yet', async () => {
+    vi.mocked(useGetPortalMe).mockReturnValue(
+      queryResult({
+        participations: [participation({ kind: 'client_administrator', employeeId: null })],
+      })
+    );
+    vi.mocked(useListPortalResponsiblePersons).mockReturnValue(queryResult({ items: [] }));
+    mountPortal(signedIn(), '/');
+
+    expect((await screen.findByTestId('responsible-persons-empty')).textContent).toBe(
+      'Nicio persoană responsabilă desemnată încă.'
+    );
+  });
+
+  it("does not show an employee the client's responsible persons", async () => {
+    mountPortal(signedIn(), '/');
+    expect(await screen.findByTestId('portal-home')).toBeTruthy();
+    expect(screen.queryByTestId('responsible-persons')).toBeNull();
+    expect(useListPortalResponsiblePersons).not.toHaveBeenCalled();
   });
 });
 
@@ -268,6 +322,33 @@ describe('Angajați', () => {
     expect(row.textContent).toContain('până la 1 noiembrie 2026');
     expect(within(row).getByTestId('employee-state-psi').textContent).toBe('Neinstruit');
     expect(row.getAttribute('href')).toBe('/angajati/6f0c3e43-0c1b-4f4b-8a1e-0000000000e2');
+  });
+
+  it('finds an employee by name, without diacritics', async () => {
+    vi.mocked(useListPortalClientEmployees).mockReturnValue(
+      queryResult({
+        items: ['Ionescu Dan', 'Țăran Ștefan', 'Popa Ana'].map((name, index) => ({
+          id: `6f0c3e43-0c1b-4f4b-8a1e-0000000000f${index}`,
+          lastName: name.split(' ')[0]!,
+          firstName: name.split(' ')[1]!,
+          position: 'Șofer',
+          workplace: null,
+          training: { ssm: trainingStatus(), psi: trainingStatus() },
+        })),
+      })
+    );
+    mountPortal(signedIn(), '/angajati');
+
+    await userEvent.type(await screen.findByTestId('employees-search'), 'stefan tar');
+    const rows = screen.getAllByTestId('employee-row');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.textContent).toContain('Țăran Ștefan');
+
+    await userEvent.clear(screen.getByTestId('employees-search'));
+    await userEvent.type(screen.getByTestId('employees-search'), 'Zamfir');
+    expect(screen.getByTestId('employees-no-match').textContent).toBe(
+      'Niciun angajat cu acest nume.'
+    );
   });
 
   it("opens an employee's records and sheets", async () => {
