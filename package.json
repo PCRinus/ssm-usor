@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "turbo build",
-    "dev": "pnpm --silent dev:pdf || echo \"The PDF converter did not start (is Docker running?). Issuing and the sheets have no PDF until pnpm dev:pdf succeeds.\"; turbo dev",
+    "dev": "pnpm --silent dev:pdf || echo \"The PDF converter did not start (is Docker running?). Documents and sheets have no PDF until pnpm dev:pdf succeeds.\"; turbo dev",
     "dev:marketing": "pnpm --filter @ssm-usor/marketing dev",
     "stop:marketing": "pnpm --filter @ssm-usor/marketing stop",
     "dev:app": "pnpm --filter @ssm-usor/app dev",
