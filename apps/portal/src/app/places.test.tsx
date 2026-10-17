@@ -66,6 +66,7 @@ describe('Acasă', () => {
     expect(screen.getByTestId('home-position').textContent).toBe('Tâmplar');
     expect(screen.getByTestId('home-todo').textContent).toContain('Nimic de semnat deocamdată');
     expect(screen.getByTestId('training-state-ssm').textContent).toBe('La zi');
+    expect(screen.getByTestId('training-state-ssm').className).toContain('bg-success');
     expect(screen.getByTestId('training-state-psi').textContent).toBe('Depășită');
     expect(screen.getByTestId('training-due-ssm').textContent).toBe('12 martie 2027');
     expect(screen.getByTestId('training-last-psi').textContent).toBe('3 februarie 2026');

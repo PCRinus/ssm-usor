@@ -9,6 +9,7 @@ import {
   type OrganizationEmployeeSortKey,
   pageRange,
   searchTerms,
+  type TrainingStateFilter,
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
@@ -38,6 +39,18 @@ const employeeListColumnsFilteredByTraining = employeeListColumns.replace(
   'training_status(',
   'training_status!inner('
 ) as typeof employeeListColumns;
+
+// "La zi" means up to date in both domains; every other state flags someone the specialist has
+// to see to in either.
+function inTrainingState<
+  Q extends { or(filters: string, options: { referencedTable: string }): Q },
+>(query: Q, state: TrainingStateFilter) {
+  const filters =
+    state === 'current'
+      ? 'and(ssm_state.eq.current,psi_state.eq.current)'
+      : `ssm_state.eq.${state},psi_state.eq.${state}`;
+  return query.or(filters, { referencedTable: 'training_status' });
+}
 
 // The CNP and the training-sheet details are read only for one employee at a time.
 export const employeeColumns = `${employeeListColumns}, cnp, birth_date, birth_place, home_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_minutes`;
@@ -212,11 +225,7 @@ export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = as
       .select(trainingState ? employeeListColumnsFilteredByTraining : employeeListColumns, {
         count: 'exact',
       });
-    const trained = trainingState
-      ? base.or(`ssm_state.eq.${trainingState},psi_state.eq.${trainingState}`, {
-          referencedTable: 'training_status',
-        })
-      : base;
+    const trained = trainingState ? inTrainingState(base, trainingState) : base;
     const scoped = trained.eq('client_id', clientId).is('archived_at', null);
     const current = status ? scoped.eq('status', status) : scoped.neq('status', 'terminated');
     return matchingEveryTerm(current, q, employeeSearchFields);
@@ -453,13 +462,7 @@ export const listOrganizationEmployees: RouteHandler<
           : organizationEmployeeListColumns,
         { count: 'exact' }
       );
-    let query = (
-      trainingState
-        ? base.or(`ssm_state.eq.${trainingState},psi_state.eq.${trainingState}`, {
-            referencedTable: 'training_status',
-          })
-        : base
-    )
+    let query = (trainingState ? inTrainingState(base, trainingState) : base)
       .is('archived_at', null)
       // Only an owner reads leads, and the list should not change with the role.
       .eq('client.stage', 'client')

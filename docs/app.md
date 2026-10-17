@@ -501,9 +501,9 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   trainings, the employees' records and pages, and both employee lists.
 - Training state in the lists: the client's employees and the root "Angajați" page have two
   columns, "Instruire SSM" and "Instruire PSI", each with the domain's state as a badge in
-  words, muted for "La zi", amber for "Scadentă", red for "Depășită", outlined for
+  words, green for "La zi", amber for "Scadentă", red for "Depășită", outlined for
   "Neinstruit", and under it the next training due, "până la {date}" or, when overdue,
-  "din {date}"; a leaver shows a dash. Chips "Toate / Scadente / Depășite / Neinstruiți" set
+  "din {date}"; a leaver shows a dash. Chips "Toate / La zi / Scadente / Depășite / Neinstruiți" set
   `?trainingState=` with a replaced history entry and back to page one, and are hidden on the
   former employees.
 - `/clients/:id/employees/new`: the creation form, rendered without the client summary and
