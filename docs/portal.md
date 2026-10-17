@@ -87,20 +87,40 @@ macros come from `@lingui/react/macro` (`Trans`, `useLingui`) and `@lingui/core/
 `vitest.config.ts` expands the macros natively in Vite's `pre` stage, so before the React
 Compiler of `@vitejs/plugin-react`, and no Babel or SWC plugin is involved.
 
-`apps/portal/lingui.config.ts` has Romanian as the source locale and the only one so far; the
-catalog is `src/locales/ro/messages.po`, without line numbers so that unrelated edits leave it
-alone. `pnpm --filter @ssm-usor/portal i18n:extract` rewrites it from the code and
-`i18n:compile` writes `src/locales/ro/messages.ts`, which `src/app/i18n.ts` imports and
-`activateLocale` loads at startup (and in the test setup). Both files are committed, and
-`pnpm check:generated` runs the two scripts and fails when either changes: run them after
-touching a string. Production builds keep only message ids, so a string missing from the
-compiled catalog would show its id.
+`apps/portal/lingui.config.ts` has Romanian as the source locale and English beside it
+(falling back to Romanian); the catalogs are `src/locales/{ro,en}/messages.po`, without line
+numbers so that unrelated edits leave them alone. `pnpm --filter @ssm-usor/portal i18n:extract`
+rewrites them from the code and `i18n:compile` writes `src/locales/{ro,en}/messages.ts`, which
+`src/app/i18n.ts` imports. Every file is committed, and `pnpm check:generated` runs the two
+scripts and fails when any changes: run them after touching a string, and translate the new
+`msgstr ""` entries of the English catalog (extract reports how many are missing; keep it at
+0). English plurals take `one` and `other` only. Production builds keep only message ids, so a
+string missing from the compiled catalog would show its id.
+
+The locale is chosen in this order (`src/features/language/locale.ts`):
+
+1. Signed in, the language saved on the chosen participation (`client_participants.language`,
+   `language` in `/portal/me`), applied by `ParticipantGate` before the first paint.
+2. Otherwise the choice remembered on the device, in `localStorage` under
+   `ssm-usor.portal.language`.
+3. Otherwise the browser: Romanian when any of `navigator.languages` starts with `ro`, English
+   otherwise.
+
+`activateLocale` sets the catalog, `<html lang>` and the tab title, without a reload. The switch
+(`src/features/language/language-switch.tsx`, "RO | EN") sits in the header beside the account
+menu from 640 px, as a row of _Contul meu_ for the phone, and under the card of every page in the
+public frame (sign-in, the client picker, the privacy notice), above the version line. Where a
+participation is chosen it saves the language on it (`PUT
+/portal/participants/{participantId}/language`) and updates the cached `/portal/me`; it also
+remembers the choice on the device, which is all the sign-in page does. The Playwright configs
+pin `locale: 'ro-RO'` and the unit test setup reports a Romanian browser, so tests read Romanian
+unless they choose otherwise.
 
 The labels the contracts carry in Romanian (training states, phases, domains, supplementary
 reasons, responsible-person roles, missing sheet data, participation kinds) are not shown as
 they are: `src/lib/labels.ts` maps each value to a Lingui message. Dates go through
-`useFormatDate` (`src/lib/format.ts`), `Intl.DateTimeFormat` for the active locale, and
-durations through `useFormatDuration`.
+`useFormatDate` (`src/lib/format.ts`), `Intl.DateTimeFormat` for the active locale (`ro-RO`,
+`en-GB`), durations through `useFormatDuration` and lists through `useFormatList`.
 
 ## Local configuration
 

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { cardClass, Page, PageGrid, PageHeader } from '@/components/page';
 import { useAuth } from '@/features/auth/auth-context';
+import { ParticipantLanguageSwitch } from '@/features/language/language-switch';
 import { useParticipations } from '@/features/participation/participation-context';
 import { SignOutButton } from '@/features/participation/sign-out-button';
 import { formatSignInAddress } from '@/lib/format';
@@ -52,6 +53,14 @@ export function AccountPage() {
             <Row label={t`Prestator SSM`}>
               <span data-testid="account-provider">{participation.organizationName}</span>
             </Row>
+            <div data-testid="account-language" className="flex items-center gap-3 py-2">
+              <dt className="flex-1 text-sm text-muted-foreground">
+                <Trans>Limba</Trans>
+              </dt>
+              <dd>
+                <ParticipantLanguageSwitch participation={participation} />
+              </dd>
+            </div>
           </dl>
           <Link
             to="/informare"

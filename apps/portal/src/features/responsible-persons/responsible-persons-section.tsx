@@ -2,11 +2,13 @@ import { Trans, useLingui } from '@lingui/react/macro';
 
 import { useListPortalResponsiblePersons } from '@/api/generated/api';
 import { cardClass, PageFailed, PageLoading } from '@/components/page';
+import { useFormatList } from '@/lib/format';
 import { responsiblePersonRoleMessages } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
 
 export function ResponsiblePersonsSection({ participantId }: { participantId: string }) {
   const { i18n } = useLingui();
+  const formatList = useFormatList();
   const apiRequest = useApiRequest();
   const persons = useListPortalResponsiblePersons(participantId, { request: apiRequest });
   return (
@@ -39,10 +41,16 @@ export function ResponsiblePersonsSection({ participantId }: { participantId: st
             >
               <span className="font-semibold break-words">{person.fullName}</span>
               <span className="text-sm break-words text-muted-foreground">
-                {[person.jobTitle, person.workplace].filter(Boolean).join(', ')}
+                {formatList(
+                  [person.jobTitle, person.workplace].filter((part): part is string =>
+                    Boolean(part)
+                  )
+                )}
               </span>
               <span data-testid="responsible-person-roles" className="text-sm break-words">
-                {person.roles.map((role) => i18n._(responsiblePersonRoleMessages[role])).join(', ')}
+                {formatList(
+                  person.roles.map((role) => i18n._(responsiblePersonRoleMessages[role]))
+                )}
               </span>
             </li>
           ))}

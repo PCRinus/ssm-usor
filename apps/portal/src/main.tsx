@@ -4,11 +4,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import App from '@/app/App';
-import { activateLocale, sourceLocale } from '@/app/i18n';
+import { activateLocale } from '@/app/i18n';
 import { createPortalRuntime } from '@/app/portal-runtime';
+import { deviceLocale } from '@/features/language/locale';
 import { supabase } from '@/lib/supabase';
 
-activateLocale(sourceLocale);
+activateLocale(deviceLocale());
 
 const runtime = createPortalRuntime(supabase?.auth ?? null);
 

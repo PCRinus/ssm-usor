@@ -3,10 +3,12 @@ import { useLingui } from '@lingui/react/macro';
 
 const intlLocales: Record<string, string> = { ro: 'ro-RO', en: 'en-GB' };
 
+export const intlLocaleOf = (locale: string) => intlLocales[locale] ?? locale;
+
 export type DateStyle = 'long' | 'short';
 
 export function formatDate(isoDate: string, locale: string, style: DateStyle = 'long') {
-  return new Intl.DateTimeFormat(intlLocales[locale] ?? locale, {
+  return new Intl.DateTimeFormat(intlLocaleOf(locale), {
     day: 'numeric',
     month: style,
     year: 'numeric',
@@ -17,6 +19,12 @@ export function formatDate(isoDate: string, locale: string, style: DateStyle = '
 export function useFormatDate() {
   const { i18n } = useLingui();
   return (isoDate: string, style: DateStyle = 'long') => formatDate(isoDate, i18n.locale, style);
+}
+
+export function useFormatList() {
+  const { i18n } = useLingui();
+  return (items: string[]) =>
+    new Intl.ListFormat(intlLocaleOf(i18n.locale), { style: 'short', type: 'unit' }).format(items);
 }
 
 export function useFormatDuration() {

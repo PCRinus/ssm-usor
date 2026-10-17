@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { Building2, ChevronRight } from 'lucide-react';
 
 import { PublicFrame } from '@/app/public-frame';
+import { ParticipantLanguageSwitch } from '@/features/language/language-switch';
 import { participationKindMessages } from '@/lib/labels';
 
 import { useParticipations } from './participation-context';
@@ -15,6 +16,7 @@ export function ParticipationPicker() {
   return (
     <PublicFrame
       testId="participation-picker"
+      languageSwitch={current ? <ParticipantLanguageSwitch participation={current} /> : undefined}
       title={t`Alege clientul`}
       description={t`Contul tău are acces la mai mulți clienți ai prestatorului SSM. Alege-l pe cel pe care vrei să îl deschizi; îl poți schimba oricând din contul tău.`}
     >

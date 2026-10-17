@@ -320,6 +320,10 @@ msgstr "Fișa nu poate fi întocmită încă: lipsesc date pe care le completeaz
 msgid "Fișa nu poate fi pregătită acum. Încearcă din nou peste câteva minute."
 msgstr "Fișa nu poate fi pregătită acum. Încearcă din nou peste câteva minute."
 
+#: src/features/training/use-sheet-actions.ts
+msgid "Fisa-individuala-{label}.pdf"
+msgstr "Fisa-individuala-{label}.pdf"
+
 #: src/features/employees/employee-page.tsx
 msgid "Fișele individuale"
 msgstr "Fișele individuale"
@@ -419,6 +423,11 @@ msgstr "La locul de muncă"
 #: src/lib/labels.ts
 msgid "La zi"
 msgstr "La zi"
+
+#: src/features/account/account-page.tsx
+#: src/features/language/language-switch.tsx
+msgid "Limba"
+msgstr "Limba"
 
 #: src/app/portal-header.tsx
 msgid "Locurile portalului"
@@ -559,6 +568,10 @@ msgstr "Portalul nu s-a putut încărca"
 #: src/features/participation/participant-gate.tsx
 msgid "Portalul se deschide cu adresa de email sau numărul de telefon la care ai primit invitația. Dacă nu ai primit una, cere-i specialistului în securitate și sănătate în muncă al angajatorului tău să te invite."
 msgstr "Portalul se deschide cu adresa de email sau numărul de telefon la care ai primit invitația. Dacă nu ai primit una, cere-i specialistului în securitate și sănătate în muncă al angajatorului tău să te invite."
+
+#: src/app/i18n.ts
+msgid "Portalul SSM Ușor"
+msgstr "Portalul SSM Ușor"
 
 #: src/features/home/home-page.tsx
 #: src/features/my-data/my-data-page.tsx

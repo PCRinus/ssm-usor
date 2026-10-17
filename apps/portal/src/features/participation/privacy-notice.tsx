@@ -10,6 +10,7 @@ import {
 } from '@/api/generated/api';
 import { PublicFrame } from '@/app/public-frame';
 import { Notice } from '@/components/notice';
+import { ParticipantLanguageSwitch } from '@/features/language/language-switch';
 import { useApiRequest } from '@/lib/request';
 
 import { isAdministrator, type Participation } from './participation-context';
@@ -123,6 +124,7 @@ export function PrivacyNoticeGate({ participation }: { participation: Participat
   return (
     <PublicFrame
       testId="privacy-notice"
+      languageSwitch={<ParticipantLanguageSwitch participation={participation} />}
       title={t`Cum folosim datele tale`}
       description={t`Bun venit, ${participation.fullName}`}
     >

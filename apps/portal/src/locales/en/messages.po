@@ -320,6 +320,10 @@ msgstr "The sheet cannot be drawn up yet: data the specialist fills in is missin
 msgid "Fișa nu poate fi pregătită acum. Încearcă din nou peste câteva minute."
 msgstr "The sheet cannot be prepared right now. Try again in a few minutes."
 
+#: src/features/training/use-sheet-actions.ts
+msgid "Fisa-individuala-{label}.pdf"
+msgstr "Individual-training-sheet-{label}.pdf"
+
 #: src/features/employees/employee-page.tsx
 msgid "Fișele individuale"
 msgstr "Individual training sheets"
@@ -419,6 +423,11 @@ msgstr "At work"
 #: src/lib/labels.ts
 msgid "La zi"
 msgstr "Up to date"
+
+#: src/features/account/account-page.tsx
+#: src/features/language/language-switch.tsx
+msgid "Limba"
+msgstr "Language"
 
 #: src/app/portal-header.tsx
 msgid "Locurile portalului"
@@ -559,6 +568,10 @@ msgstr "The portal could not load"
 #: src/features/participation/participant-gate.tsx
 msgid "Portalul se deschide cu adresa de email sau numărul de telefon la care ai primit invitația. Dacă nu ai primit una, cere-i specialistului în securitate și sănătate în muncă al angajatorului tău să te invite."
 msgstr "The portal opens with the email address or phone number your invitation was sent to. If you have not received one, ask your employer's occupational safety and health specialist to invite you."
+
+#: src/app/i18n.ts
+msgid "Portalul SSM Ușor"
+msgstr "SSM Ușor portal"
 
 #: src/features/home/home-page.tsx
 #: src/features/my-data/my-data-page.tsx

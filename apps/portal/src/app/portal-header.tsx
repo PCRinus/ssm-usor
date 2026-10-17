@@ -3,6 +3,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 
 import { pageColumn } from '@/components/page';
+import { ParticipantLanguageSwitch } from '@/features/language/language-switch';
 import type { Participation } from '@/features/participation/participation-context';
 
 import { AccountMenu } from './account-menu';
@@ -58,6 +59,7 @@ export function PortalHeader({
           </ul>
         </nav>
         <div className="ml-auto hidden items-center gap-4 sm:flex">
+          <ParticipantLanguageSwitch participation={participation} />
           <AccountMenu participation={participation} />
         </div>
       </div>

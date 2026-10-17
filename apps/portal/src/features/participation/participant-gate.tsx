@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useGetPortalMe } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { PublicFrame } from '@/app/public-frame';
+import { deviceLocale, useActiveLocale } from '@/features/language/locale';
 import { useApiRequest } from '@/lib/request';
 
 import { readChosenParticipant, rememberChosenParticipant } from './chosen-participant';
@@ -17,6 +18,12 @@ export function ParticipantGate({ userId }: { userId: string }) {
   const apiRequest = useApiRequest();
   const me = useGetPortalMe({ request: apiRequest });
   const [chosenId, setChosenId] = useState(() => readChosenParticipant(userId));
+  const participations = me.data?.participations ?? [];
+  const participation =
+    participations.length === 1
+      ? participations[0]!
+      : (participations.find((item) => item.participantId === chosenId) ?? null);
+  useActiveLocale(participation?.language ?? deviceLocale());
 
   if (me.isPending) {
     return (
@@ -50,12 +57,6 @@ export function ParticipantGate({ userId }: { userId: string }) {
       </PublicFrame>
     );
   }
-
-  const { participations } = me.data;
-  const participation =
-    participations.length === 1
-      ? participations[0]!
-      : (participations.find((item) => item.participantId === chosenId) ?? null);
 
   return (
     <ParticipationContext.Provider

@@ -7,6 +7,15 @@ beforeAll(() => activateLocale(sourceLocale));
 
 afterEach(cleanup);
 
+afterEach(() => activateLocale(sourceLocale));
+
+// jsdom reports en-US; the portal's tests read the Romanian a Romanian browser gets.
+beforeEach(() => {
+  vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['ro-RO', 'ro']);
+});
+
+afterEach(() => vi.restoreAllMocks());
+
 afterEach(() => {
   sessionStorage.clear();
   localStorage.clear();

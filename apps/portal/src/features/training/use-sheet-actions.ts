@@ -61,7 +61,7 @@ export function useSheetActions(
     download: () =>
       run('download', async () => {
         const file = await loadSheet(domain);
-        saveFile(file, file instanceof File ? file.name : `Fisa-${label}.pdf`);
+        saveFile(file, file instanceof File ? file.name : t`Fisa-individuala-${label}.pdf`);
       }),
   };
 }

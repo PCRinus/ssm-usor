@@ -9,6 +9,7 @@ import { type FormEvent, useEffect, useRef, useState } from 'react';
 
 import { PublicFrame } from '@/app/public-frame';
 import { Notice } from '@/components/notice';
+import { deviceLocale, useActiveLocale } from '@/features/language/locale';
 
 import { useAuth } from './auth-context';
 import type { CodeVerificationResult, SignInAddress } from './auth-store';
@@ -51,6 +52,7 @@ export function SignInPage() {
   const [addressError, setAddressError] = useState<MessageDescriptor | null>(null);
   const [requesting, setRequesting] = useState(false);
   const { secondsLeft, restart: restartCountdown } = useResendCountdown();
+  useActiveLocale(deviceLocale());
 
   async function request(next: Target) {
     setRequesting(true);
