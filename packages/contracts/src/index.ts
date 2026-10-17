@@ -25,6 +25,7 @@ export * from './mail';
 export * from './organization-employees';
 export * from './organizations';
 export * from './pdf';
+export * from './phone';
 export * from './profile';
 export * from './protective-equipment';
 export * from './risk-evaluations';

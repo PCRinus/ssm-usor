@@ -45,7 +45,7 @@ const employeeRow = {
   cnp: '1900101400127',
   employee_number: 'A-17',
   email: 'ion.popescu@example.com',
-  phone: '+40 721 000 000',
+  phone: '+40721000000',
   job_title: 'Sudor',
   job_positions: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor autorizat' },
   hired_at: '2020-03-01',
@@ -204,7 +204,7 @@ describe('GET /clients/{clientId}/employees', () => {
           firstName: 'Ion',
           employeeNumber: 'A-17',
           email: 'ion.popescu@example.com',
-          phone: '+40 721 000 000',
+          phone: '+40721000000',
           jobTitle: 'Sudor',
           jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor autorizat' },
           hiredAt: '2020-03-01',
@@ -368,7 +368,7 @@ describe('POST /clients/{clientId}/employees', () => {
     cnp: '1900101 400127',
     employeeNumber: 'A-17',
     email: 'Ion.Popescu@Example.com',
-    phone: '+40 721 000 000',
+    phone: '0721 000 000',
     jobTitle: 'Sudor',
     hiredAt: '2020-03-01',
     birthDate: '1990-01-01',
@@ -388,7 +388,7 @@ describe('POST /clients/{clientId}/employees', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_is_lead');
   });
 
-  it('stores the digits-only CNP, lowercases the email, and scopes to the membership', async () => {
+  it('stores the digits-only CNP, lowercases the email, writes the phone in E.164, and scopes to the membership', async () => {
     mockUpstream({ employees: () => Response.json(employeeRow, { status: 201 }) });
     const response = await postEmployee(validBody);
     expect(response.status).toBe(201);
@@ -405,7 +405,7 @@ describe('POST /clients/{clientId}/employees', () => {
       cnp: '1900101400127',
       employee_number: 'A-17',
       email: 'ion.popescu@example.com',
-      phone: '+40 721 000 000',
+      phone: '+40721000000',
       job_title: 'Sudor',
       hired_at: '2020-03-01',
       birth_date: '1990-01-01',

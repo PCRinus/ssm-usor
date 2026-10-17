@@ -114,7 +114,7 @@ export function fakeEmployees(
         email: withContact
           ? fakerRO.internet.email({ firstName, lastName, provider: 'example.com' }).toLowerCase()
           : null,
-        phone: withContact ? `07${fakerRO.string.numeric(8)}` : null,
+        phone: withContact ? `+407${fakerRO.string.numeric(8)}` : null,
         job_title: fakerRO.helpers.arrayElement(jobTitles),
         hired_at: isoDate(hiredAt),
         status,

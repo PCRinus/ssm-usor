@@ -277,6 +277,94 @@ export type Database = {
           },
         ];
       };
+      client_participants: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          employee_id: string | null;
+          full_name: string | null;
+          id: string;
+          kind: Database['public']['Enums']['participant_kind'];
+          notice_shown_at: string | null;
+          notice_version: string | null;
+          organization_id: string;
+          revoked_at: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          employee_id?: string | null;
+          full_name?: string | null;
+          id?: string;
+          kind: Database['public']['Enums']['participant_kind'];
+          notice_shown_at?: string | null;
+          notice_version?: string | null;
+          organization_id: string;
+          revoked_at?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          employee_id?: string | null;
+          full_name?: string | null;
+          id?: string;
+          kind?: Database['public']['Enums']['participant_kind'];
+          notice_shown_at?: string | null;
+          notice_version?: string | null;
+          organization_id?: string;
+          revoked_at?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'client_participants_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_participants_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_participants_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_participants_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'client_participants_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'client_participants_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       client_responsible_persons: {
         Row: {
           archived_at: string | null;
@@ -2325,6 +2413,113 @@ export type Database = {
         };
         Relationships: [];
       };
+      participant_invitations: {
+        Row: {
+          accepted_at: string | null;
+          address: string;
+          channel: string;
+          client_id: string;
+          created_at: string;
+          employee_id: string | null;
+          expires_at: string;
+          full_name: string | null;
+          id: string;
+          invited_by: string | null;
+          kind: Database['public']['Enums']['participant_kind'];
+          last_sent_at: string;
+          organization_id: string;
+          participant_id: string | null;
+          revoked_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          address: string;
+          channel: string;
+          client_id: string;
+          created_at?: string;
+          employee_id?: string | null;
+          expires_at?: string;
+          full_name?: string | null;
+          id?: string;
+          invited_by?: string | null;
+          kind: Database['public']['Enums']['participant_kind'];
+          last_sent_at?: string;
+          organization_id: string;
+          participant_id?: string | null;
+          revoked_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          address?: string;
+          channel?: string;
+          client_id?: string;
+          created_at?: string;
+          employee_id?: string | null;
+          expires_at?: string;
+          full_name?: string | null;
+          id?: string;
+          invited_by?: string | null;
+          kind?: Database['public']['Enums']['participant_kind'];
+          last_sent_at?: string;
+          organization_id?: string;
+          participant_id?: string | null;
+          revoked_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'participant_invitations_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'participant_invitations_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'participant_invitations_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'participant_invitations_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'participant_invitations_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'participant_invitations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'participant_invitations_participant_id_fkey';
+            columns: ['participant_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_participants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       prevention_measures: {
         Row: {
           client_id: string;
@@ -3240,6 +3435,8 @@ export type Database = {
         };
         Returns: string;
       };
+      accept_participant_invitations: { Args: never; Returns: number };
+      administered_client_ids: { Args: never; Returns: string[] };
       apply_evaluation_profile: {
         Args: { p_evaluation_id: string; p_profile_id: string };
         Returns: number;
@@ -3251,6 +3448,15 @@ export type Database = {
           new_role: Database['public']['Enums']['organization_role'];
         };
         Returns: boolean;
+      };
+      check_participant_invitation: {
+        Args: {
+          p_address: string;
+          p_client_id: string;
+          p_employee_id: string;
+          p_except_id: string;
+        };
+        Returns: undefined;
       };
       copy_risk_factors: {
         Args: { p_evaluation_id: string; p_from_evaluation_id: string };
@@ -3278,6 +3484,40 @@ export type Database = {
           sent_at: string;
         }[];
       };
+      create_participant_invitation: {
+        Args: {
+          p_address: string;
+          p_channel: string;
+          p_client_id: string;
+          p_employee_id: string;
+          p_full_name: string;
+          p_kind: Database['public']['Enums']['participant_kind'];
+        };
+        Returns: {
+          accepted_at: string | null;
+          address: string;
+          channel: string;
+          client_id: string;
+          created_at: string;
+          employee_id: string | null;
+          expires_at: string;
+          full_name: string | null;
+          id: string;
+          invited_by: string | null;
+          kind: Database['public']['Enums']['participant_kind'];
+          last_sent_at: string;
+          organization_id: string;
+          participant_id: string | null;
+          revoked_at: string | null;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'participant_invitations';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       current_employee_count: {
         Args: { '': Database['public']['Tables']['clients']['Row'] };
         Returns: {
@@ -3293,6 +3533,20 @@ export type Database = {
         }[];
       };
       current_organization_id: { Args: never; Returns: string };
+      current_participations: {
+        Args: never;
+        Returns: {
+          client_id: string;
+          client_name: string;
+          employee_id: string;
+          full_name: string;
+          kind: Database['public']['Enums']['participant_kind'];
+          notice_version: string;
+          organization_id: string;
+          organization_name: string;
+          participant_id: string;
+        }[];
+      };
       effective_user_id: { Args: never; Returns: string };
       employee_client_search_name: {
         Args: { '': Database['public']['Tables']['employees']['Row'] };
@@ -3321,6 +3575,10 @@ export type Database = {
           state: Database['public']['Enums']['training_state'];
           workplace_trained_on: string;
         }[];
+      };
+      is_client_administrator: {
+        Args: { p_client_id: string };
+        Returns: boolean;
       };
       is_draft_document_path: { Args: { p_path: string }; Returns: boolean };
       is_instruction_module_path: { Args: { p_path: string }; Returns: boolean };
@@ -3378,6 +3636,12 @@ export type Database = {
           user_id: string;
         }[];
       };
+      participant_client_ids: { Args: never; Returns: string[] };
+      participant_employee_ids: { Args: never; Returns: string[] };
+      record_participant_notice: {
+        Args: { p_participant_id: string; p_version: string };
+        Returns: boolean;
+      };
       record_regeneration_item: {
         Args: {
           p_client_id: string;
@@ -3415,8 +3679,43 @@ export type Database = {
         Args: { p_evaluation_id: string; p_factor_ids: string[] };
         Returns: boolean;
       };
+      resend_participant_invitation: {
+        Args: { p_invitation_id: string };
+        Returns: {
+          accepted_at: string | null;
+          address: string;
+          channel: string;
+          client_id: string;
+          created_at: string;
+          employee_id: string | null;
+          expires_at: string;
+          full_name: string | null;
+          id: string;
+          invited_by: string | null;
+          kind: Database['public']['Enums']['participant_kind'];
+          last_sent_at: string;
+          organization_id: string;
+          participant_id: string | null;
+          revoked_at: string | null;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'participant_invitations';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      revoke_client_participant: {
+        Args: { p_participant_id: string };
+        Returns: boolean;
+      };
       revoke_organization_invitation: {
         Args: { invitation_id: string };
+        Returns: boolean;
+      };
+      revoke_participant_invitation: {
+        Args: { p_invitation_id: string };
         Returns: boolean;
       };
       save_evaluation_profile_factor: {
@@ -3572,6 +3871,7 @@ export type Database = {
       instruction_domain: 'ssm' | 'psi';
       instruction_module_group: 'work_activity' | 'work_equipment' | 'protective_equipment';
       organization_role: 'owner' | 'specialist';
+      participant_kind: 'employee' | 'client_administrator';
       prevention_measure_kind: 'technical' | 'organizational' | 'hygienic_sanitary' | 'other';
       responsible_person_role:
         | 'workplace_manager'
@@ -3750,6 +4050,7 @@ export const Constants = {
       instruction_domain: ['ssm', 'psi'],
       instruction_module_group: ['work_activity', 'work_equipment', 'protective_equipment'],
       organization_role: ['owner', 'specialist'],
+      participant_kind: ['employee', 'client_administrator'],
       prevention_measure_kind: ['technical', 'organizational', 'hygienic_sanitary', 'other'],
       responsible_person_role: [
         'workplace_manager',

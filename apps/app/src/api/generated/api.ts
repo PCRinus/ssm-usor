@@ -1228,10 +1228,7 @@ export interface CreateEmployeeRequest {
    * @nullable
    */
   email?: string | null;
-  /**
-   * @nullable
-   * @pattern ^\+?[0-9][0-9 ().-]{3,18}$
-   */
+  /** @nullable */
   phone?: string | null;
   /**
    * @minLength 2
@@ -1351,10 +1348,7 @@ export interface UpdateEmployeeRequest {
    * @nullable
    */
   email?: string | null;
-  /**
-   * @nullable
-   * @pattern ^\+?[0-9][0-9 ().-]{3,18}$
-   */
+  /** @nullable */
   phone?: string | null;
   /**
    * @minLength 2

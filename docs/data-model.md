@@ -1,6 +1,6 @@
 # Data model and tenancy
 
-Status: implemented for organizations, memberships, profiles, invitations, onboarding, impersonations, clients, employees, the facts documents print, generated documents, and client files  
+Status: implemented for organizations, memberships, profiles, invitations, onboarding, impersonations, clients, employees, participants, the facts documents print, generated documents, and client files  
 Audience: engineering
 
 The schema lives in checked-in SQL migrations under `supabase/migrations`, applied by the
@@ -439,7 +439,7 @@ stay a one-line comparison like on `clients`.
 | `last_name`, `first_name`                   | Required, separate columns: forms print "Numele și prenumele" and lists sort by last name.                                                              |
 | `cnp`                                       | Optional, thirteen digits; checksum and date validated by the API. Unique per client.                                                                   |
 | `employee_number`                           | The client's own identifier (marca); import and dedupe key. Unique per client.                                                                          |
-| `email`, `phone`                            | Optional, for invitations and remote signing.                                                                                                           |
+| `email`, `phone`                            | Optional, for invitations and remote signing. The phone is E.164 (see Participants).                                                                    |
 | `job_title`                                 | Required free text (funcția). A COR code column will join it once the list exists.                                                                      |
 | `hired_at`                                  | Required; drives the introductory training deadline. Tenure is computed, never stored.                                                                  |
 | `status`, `terminated_at`                   | `active` or `terminated`; the date is required exactly when terminated.                                                                                 |
@@ -1020,6 +1020,93 @@ Nobody signed in can write a token hash. A browser holds the same credentials as
 per-user client, so an owner able to write a hash could mint a link and create a confirmed
 account for someone else's address. The API sets the hash with its secret key after the
 owner's call succeeds. During an impersonation `invited_by` records the platform admin.
+
+## Participants
+
+A **participant** is a person of a client who signs in to the portal
+([ADR 022](architecture/adr-022-participants-and-the-portal.md)): an `employee` or the
+`client_administrator` (`participant_kind`). A participant is not a member: the account has no
+row in `organization_members`, so `current_organization_id()` is null and every members' policy
+yields nothing. They read through policies of their own and write nothing. One account may hold
+a membership and participations at once; the app's routes act on the membership, the portal's
+on the participations.
+
+`client_participants` holds one row per person and client, with `client_id`, a denormalized
+`organization_id` and the composite foreign key to the client, as other tables under a client.
+
+| Column                              | Notes                                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `kind`                              | `employee` or `client_administrator`. A workplace manager is an employee; the responsible persons say they manage.             |
+| `employee_id`                       | Required for an employee, optional for an administrator who is also an employee; composite key to `employees (id, client_id)`. |
+| `full_name`                         | Set exactly when there is no employee: an employee's name is read from their row.                                              |
+| `user_id`                           | The auth account, deleted with it.                                                                                             |
+| `revoked_at`                        | A revoked participant reads nothing; the row stays.                                                                            |
+| `notice_version`, `notice_shown_at` | The privacy notice shown after the first sign-in, set together.                                                                |
+
+Uniqueness holds among active rows: one participation per account and client, and one
+participant per employee. A revoked row stays, so the same person can be invited again. The
+same account can be a participant at several clients.
+
+`participant_invitations` holds a member's invitation of one person at one **address**:
+`channel` is `email` (trimmed and lowercased) or `sms` (E.164), checked against the address.
+The person is `kind`, `employee_id` and `full_name` under the same rules as on the participant.
+There is no token: receiving a sign-in code at the address is the proof. Status is derived:
+accepted (`accepted_at`, with `participant_id`), revoked, expired once `expires_at` has passed
+(30 days), otherwise open. A partial unique index allows one open invitation per address at a
+client, so inviting the same person there again renews the row (`expires_at` and `created_at`
+move); `last_sent_at` limits sending to once per 10 minutes. New rows of either table need an
+active client that is not a lead (`CLA01`, `CLL01`); revoking stays possible after archiving.
+
+Members read both tables of their organization under row-level security and write through
+functions that check the caller themselves. Every member may invite, not only owners.
+
+| Function                                          | Caller      | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `create_participant_invitation(client, kind, …)`  | member      | Takes the client, kind, employee, name, channel and address; creates or renews an invitation and returns the row. For an employee the address must be their own email or phone. Refuses an employee with an active participant (`PRT01`) or an open invitation at another address (`PRT02`), an address open for another person or held by an active participant (`PRT03`), an incoherent request (`PRT04`), and a renewal within 10 minutes (`PRT05`). |
+| `resend_participant_invitation(id)`               | member      | Renews an open or expired invitation for 30 days and returns the row; `PRT06` for an accepted or revoked one, `PRT05` within 10 minutes.                                                                                                                                                                                                                                                                                                                |
+| `revoke_participant_invitation(id)`               | member      | Revokes an open invitation; false when there was nothing to revoke.                                                                                                                                                                                                                                                                                                                                                                                     |
+| `revoke_client_participant(id)`                   | member      | Revokes an active participant; false when there was nothing to revoke.                                                                                                                                                                                                                                                                                                                                                                                  |
+| `accept_participant_invitations()`                | participant | On every portal sign-in: accepts each open invitation sent to the account's confirmed email or confirmed phone, creating the participant, and returns how many. Skips archived clients and a person already a participant there.                                                                                                                                                                                                                        |
+| `current_participations()`                        | participant | The account's active participations, with the organization and client names, the kind, the employee, the name and the notice version.                                                                                                                                                                                                                                                                                                                   |
+| `record_participant_notice(participant, version)` | participant | Records the notice on the caller's own active participation; false otherwise.                                                                                                                                                                                                                                                                                                                                                                           |
+
+A client, employee or invitation that is not the caller's raises `P0002` with
+`client_not_found`, `employee_not_found` or `invitation_not_found`; a caller without a
+membership `42501`.
+
+The participant policies, all `select` for `authenticated`, are built on `security definer`
+helpers that read the caller's active participations: `participant_client_ids()`,
+`participant_employee_ids()` (the employee rows of either kind) and `administered_client_ids()`,
+each an array compared as `column = any ((select …)::uuid[])` so it is read once per query and
+an index can serve it. `is_client_administrator(client)` answers the same for one client.
+
+| Table                        | An employee reads                       | An administrator also reads  |
+| ---------------------------- | --------------------------------------- | ---------------------------- |
+| `clients`                    | their clients                           |                              |
+| `organizations`              | the provider of their clients           |                              |
+| `employees`                  | their own row                           | every employee of the client |
+| `training_records`           | their own                               | the client's                 |
+| `trainings`                  | the trainings they attended             | the client's                 |
+| `job_positions`              | their own position                      | the client's                 |
+| `client_workplaces`          | every workplace of their clients        |                              |
+| `client_fire_safety`         | their clients' row (training intervals) |                              |
+| `client_responsible_persons` |                                         | the client's                 |
+| `document_templates`         | the built-in training sheet templates   |                              |
+| `client_participants`        | their own participations                |                              |
+
+The workplaces are all the client's because a sheet names the workplace only at a client with
+more than one. `employee_training_status` is a security-invoker view, so it follows the rows
+above; `document_template_versions` follows its templates. Storage has no participant policy
+yet: a template file read for a participant needs the API's secret key or a policy of its own.
+
+### The phone in E.164
+
+`employees.phone` is stored in E.164, checked by `employees_phone_e164`. The contract's
+`phoneSchema` normalizes it with Romania as the default country: spaces, dots, dashes and
+parentheses are dropped, `0721 000 000` and `0040 721 000 000` become `+40721000000`, a number
+written with `+` or `00` keeps its own country, and a Romanian number has nine digits after
+`+40`. Anything else is refused. The migration normalized existing rows the same way and set
+the rest to null. `clients.contact_phone` and `organizations.phone` stay free text.
 
 ## Waitlist subscribers
 
