@@ -61,6 +61,27 @@ describe('signing in with a code', () => {
     });
   });
 
+  it('asks for an SMS code at a foreign number in its own country', async () => {
+    const client = fakeAuthClient();
+    await requestCode(client, '+373 69 123 456');
+
+    expect(await screen.findByTestId('sign-in-code-sent')).toBeTruthy();
+    expect(client.signInWithOtp).toHaveBeenCalledWith({
+      phone: '+37369123456',
+      options: { shouldCreateUser: false },
+    });
+  });
+
+  it('refuses a number too short for its country', async () => {
+    const client = fakeAuthClient();
+    await requestCode(client, '0721 234');
+
+    expect((await screen.findByTestId('sign-in-address-error')).textContent).toContain(
+      'prefixul țării'
+    );
+    expect(client.signInWithOtp).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['an address nobody invited', { message: 'Signups not allowed for otp', status: 422 }],
     ['a number the SMS hook refuses', { message: 'Error sending SMS', status: 500 }],

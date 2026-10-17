@@ -26,7 +26,8 @@ says the account has no access and offers to sign out) and, but `/alege`, under 
 the choice among several is kept in `localStorage` per account and changed from _Contul meu_.
 
 **Signing in.** A value with `@` is an email; anything else is a phone, normalized to E.164 with
-Romania as the default (`normalizePhone` from the contracts). The auth store's `requestCode`
+Romania as the default (`normalizePhone` from the contracts, built on `libphonenumber-js`): a
+foreign number is typed with its `+` or `00` prefix, and the field has no country picker. The auth store's `requestCode`
 calls `signInWithOtp` with `shouldCreateUser: false` and reports only whether the request
 reached Supabase: an address nobody invited, a number the Send SMS hook refuses and a rate
 limit all show the same "if this address is known, a code is on its way", so the page never

@@ -60,8 +60,12 @@ export function SignInPage() {
   async function submitAddress(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (requesting) return;
-    const parsed = parseSignInAddress(input);
+    setRequesting(true);
+    const parsed = await parseSignInAddress(input).catch(
+      () => ({ ok: false, message: unreachableMessage }) as const
+    );
     if (!parsed.ok) {
+      setRequesting(false);
       setAddressError(parsed.message);
       return;
     }
