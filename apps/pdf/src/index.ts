@@ -9,7 +9,7 @@ import {
 } from '@ssm-usor/contracts';
 import { WorkerEntrypoint } from 'cloudflare:workers';
 
-import { convertDocuments, convertDocx } from './convert';
+import { convertDocuments, convertDocx, convertForm, mergePdfs } from './convert';
 import { postToSigner } from './sign';
 
 type PdfEnv = {
@@ -53,6 +53,16 @@ export class Pdf extends WorkerEntrypoint<PdfEnv> implements PdfService, SignerS
   async convertDocuments(files: ArrayBuffer[]): Promise<ArrayBuffer> {
     const container = getContainer(this.env.GOTENBERG);
     return convertDocuments((request) => container.fetch(request), files);
+  }
+
+  async convertForm(docx: ArrayBuffer): Promise<ArrayBuffer> {
+    const container = getContainer(this.env.GOTENBERG);
+    return convertForm((request) => container.fetch(request), docx);
+  }
+
+  async mergePdfs(files: ArrayBuffer[]): Promise<ArrayBuffer> {
+    const container = getContainer(this.env.GOTENBERG);
+    return mergePdfs((request) => container.fetch(request), files);
   }
 
   private signer(): SignerService {
