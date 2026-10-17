@@ -1,5 +1,5 @@
 begin;
-select plan(82);
+select plan(83);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -421,6 +421,12 @@ select throws_ok(
      values ('5d5d5d5d-0000-4000-8000-000000000001', 'x1', '7a7a7a7a-0000-4000-8000-000000000003') $$,
   '23514', null, 'a row key is one of the form''s prefixes'
 );
+select lives_ok(
+  $$ insert into public.signed_sheet_rows (signed_sheet_id, row_key, training_record_id)
+     values ('5d5d5d5d-0000-4000-8000-000000000001', 's1', '7a7a7a7a-0000-4000-8000-000000000003') $$,
+  'the occupational safety sheet''s supplementary table has rows of its own'
+);
+delete from public.signed_sheet_rows where row_key = 's1';
 select throws_ok(
   $$ insert into public.signed_sheets (organization_id, client_id, employee_id, domain, storage_path, digest, row_capacity)
      values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'ssm', 'sheets/again.pdf', repeat('d', 64), 8) $$,

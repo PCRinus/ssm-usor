@@ -1178,9 +1178,12 @@ undoes `signed_electronically` (`SIG07`).
 `storage_path`, the `digest` (SHA-256, hex) and `version` of the current bytes, the `row_capacity`
 of periodic rows and the `rows_used`, and `certified_at` from its first signature.
 `signed_sheet_rows` says which `training_record_id` fills which `row_key` of a sheet: `h1` and `h2`
-for the hiring trainings, `adm` for the admission, `p1` and onward for the periodic rows; one row per
-key and sheet, and one live row per record, `voided_at` marking a row _anulat_. Only the secret key
-writes either.
+for the hiring trainings, `adm` for the admission, `p1` and onward for the periodic rows, and `s1` and
+onward for the occupational safety sheet's supplementary table; one row per key and sheet, and one
+live row per record, `voided_at` marking a row _anulat_. The workplace training's record takes `h2`
+and fills the admission block with it, so the API never writes `adm`. Only the secret key writes
+either. What the rows' fields are, and how the API fills them, is in
+[the document engine's Sheets section](document-engine.md#the-signed-sheet).
 
 ### The freeze and the void
 
