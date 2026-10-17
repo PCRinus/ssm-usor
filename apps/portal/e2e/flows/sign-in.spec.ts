@@ -35,6 +35,7 @@ test('an invited employee signs in with an emailed code and finds their places',
 
   await expect.poll(() => lastSignInCode(email).catch(() => null)).not.toBeNull();
   await page.getByTestId('sign-in-code').fill(await lastSignInCode(email));
+  await page.getByTestId('sign-in-code').press('Enter');
 
   const notice = page.getByTestId('privacy-notice');
   await expect(notice).toContainText('Mobilă Bună E2E S.A. este angajatorul tău');

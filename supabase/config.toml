@@ -54,6 +54,9 @@ enable_confirmations = true
 # How long a recovery link and the portal's emailed sign-in code work. OTP_EXPIRY_MINUTES in
 # apps/api's auth-hooks module says the same to the person reading the email.
 otp_expiry = 3600
+# The hosted project had 8 from the dashboard while SMS codes and the local stack have 6; CI
+# pushes this file to hosted, so setting it here keeps the email and SMS code lengths the same.
+otp_length = 6
 
 # Tells the owner of an account that its password changed, whoever changed it: from the reset
 # link, or from "Profilul meu". It goes through the hook below as

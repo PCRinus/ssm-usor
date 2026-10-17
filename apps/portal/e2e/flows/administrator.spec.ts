@@ -45,6 +45,7 @@ test('an invited client administrator signs in and finds the employees, their re
   await page.getByTestId('sign-in-request').click();
   await expect.poll(() => lastSignInCode(email).catch(() => null)).not.toBeNull();
   await page.getByTestId('sign-in-code').fill(await lastSignInCode(email));
+  await page.getByTestId('sign-in-code').press('Enter');
 
   const notice = page.getByTestId('privacy-notice');
   await expect(notice).toContainText('Ai acces la portal pentru Brutăria Veche E2E S.R.L.');
