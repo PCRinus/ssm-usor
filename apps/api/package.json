@@ -16,6 +16,7 @@
     "seed:local": "node --env-file-if-exists=.env.seed --import tsx scripts/seed.ts --local",
     "templates:register": "node --env-file-if-exists=.env.seed --import tsx scripts/register-templates.ts",
     "templates:register:local": "node --import tsx scripts/register-templates.ts --local",
+    "signed-sheet:check:local": "node --import tsx scripts/check-signed-sheet.ts",
     "legislation:check": "node --env-file-if-exists=.env.seed --import tsx scripts/check-legislation.ts",
     "legislation:check:local": "node --import tsx scripts/check-legislation.ts --local",
     "signing:ca": "node --import tsx scripts/signing-ca.ts"

@@ -1975,7 +1975,16 @@ describe('POST /documents/{documentId}/issue', () => {
     createApp().request(
       `/documents/${documentId}/issue`,
       { method: 'POST', headers: { Authorization: 'Bearer test-access-token' } },
-      { ...env, PDF_CONVERSION: 'service', PDF: { convertDocx, convertDocuments } }
+      {
+        ...env,
+        PDF_CONVERSION: 'service',
+        PDF: {
+          convertDocx,
+          convertDocuments,
+          convertForm: convertDocx,
+          mergePdfs: convertDocuments,
+        },
+      }
     );
 
   it('makes the PDF first, stores it beside the Word file, and issues both', async () => {
@@ -2105,7 +2114,15 @@ describe('POST /documents/{documentId}/issue', () => {
     const local = await createApp().request(
       `/documents/${documentId}/issue`,
       { method: 'POST', headers: { Authorization: 'Bearer test-access-token' } },
-      { ...env, PDF: { convertDocx, convertDocuments: convertDocx } }
+      {
+        ...env,
+        PDF: {
+          convertDocx,
+          convertDocuments: convertDocx,
+          convertForm: convertDocx,
+          mergePdfs: convertDocx,
+        },
+      }
     );
     expect(local.status).toBe(200);
     expect(convertDocx).not.toHaveBeenCalled();
@@ -2561,6 +2578,8 @@ describe('POST /documents/{documentId}/print', () => {
   const service = (convertDocx: (source: ArrayBuffer) => Promise<ArrayBuffer>) => ({
     convertDocx,
     convertDocuments: (files: ArrayBuffer[]) => convertDocx(files[0]!),
+    convertForm: convertDocx,
+    mergePdfs: (files: ArrayBuffer[]) => convertDocx(files[0]!),
   });
 
   it('answers with the PDF of the file it is sent, and stores nothing', async () => {
@@ -2588,7 +2607,10 @@ describe('POST /documents/{documentId}/print', () => {
       return pdfBytes.slice().buffer;
     });
     const convertDocx = converter();
-    const bindings = { PDF_CONVERSION: 'service', PDF: { convertDocx, convertDocuments } } as const;
+    const bindings = {
+      PDF_CONVERSION: 'service',
+      PDF: { convertDocx, convertDocuments, convertForm: convertDocx, mergePdfs: convertDocuments },
+    } as const;
 
     mockUpstream({
       documents: ownInstructions(ownInstructionsSnapshot),
