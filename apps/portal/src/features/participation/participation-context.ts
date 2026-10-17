@@ -32,8 +32,3 @@ export const needsPrivacyNotice = (participation: Participation) =>
 
 export const isAdministrator = (participation: Participation) =>
   participation.kind === 'client_administrator';
-
-export const participationKindLabels: Record<Participation['kind'], string> = {
-  employee: 'Angajat',
-  client_administrator: 'Administratorul clientului',
-};

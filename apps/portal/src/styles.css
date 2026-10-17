@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    --portal-bar-height: 4rem;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
   }

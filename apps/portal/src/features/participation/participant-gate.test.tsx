@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   useGetPortalEmployeeData,
   useGetPortalMe,
+  useGetPortalTrainingSheets,
   useListPortalClientEmployees,
   useListPortalResponsiblePersons,
   useListPortalTrainingRecords,
@@ -28,6 +29,7 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   useRecordPortalNotice: vi.fn(),
   useListPortalTrainingRecords: vi.fn(),
   useGetPortalEmployeeData: vi.fn(),
+  useGetPortalTrainingSheets: vi.fn(),
   useListPortalClientEmployees: vi.fn(),
   useListPortalResponsiblePersons: vi.fn(),
 }));
@@ -43,6 +45,7 @@ beforeEach(() => {
   } as never);
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryPending());
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryPending());
+  vi.mocked(useGetPortalTrainingSheets).mockReturnValue(queryPending());
   vi.mocked(useListPortalClientEmployees).mockReturnValue(queryPending());
   vi.mocked(useListPortalResponsiblePersons).mockReturnValue(queryPending());
 });
@@ -149,13 +152,64 @@ describe('the participant shell', () => {
     expect(await screen.findByTestId('privacy-notice')).toBeTruthy();
   });
 
-  it('gives an employee the four places', async () => {
-    mountPortal(signedIn(), '/');
+  it('gives an employee the four places and marks the current one', async () => {
+    mountPortal(signedIn(), '/instruiri');
     expect(await barEntries()).toEqual(['Acasă', 'Instruiri', 'Datele mele', 'Contul meu']);
+    expect(screen.getByTestId('portal-bar-instruiri').getAttribute('aria-current')).toBe('page');
+    expect(screen.getByTestId('portal-bar-home').getAttribute('aria-current')).toBeNull();
+  });
+
+  it('leaves Contul meu to the account menu from 640 px, where the header holds the places', async () => {
+    mountPortal(signedIn(), '/');
+    const account = (await screen.findByTestId('portal-bar-contul-meu')).closest('li');
+    expect(account?.className).toContain('sm:hidden');
+    expect(screen.getByTestId('portal-bar-home').closest('li')?.className ?? '').not.toContain(
+      'sm:hidden'
+    );
+  });
+
+  it('opens the account menu with the name, the client, Contul meu and signing out', async () => {
+    const client = signedIn();
+    mountPortal(client, '/');
+
+    const trigger = await screen.findByTestId('account-menu');
+    expect(trigger.textContent).toContain('PA');
+    expect(trigger.textContent).toContain('Pop Ana');
+    expect(trigger.textContent).toContain('Mobilă Bună S.A.');
+    await userEvent.click(trigger);
+    expect((await screen.findByTestId('account-menu-account')).getAttribute('href')).toBe(
+      '/contul-meu'
+    );
+    expect(screen.queryByTestId('account-menu-switch')).toBeNull();
+
+    await userEvent.click(screen.getByTestId('account-menu-sign-out'));
+    expect(client.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    expect(await screen.findByTestId('sign-in-page')).toBeTruthy();
+  });
+
+  it('offers to switch the client from the account menu when there are several', async () => {
+    const other = participation({ participantId: '6f0c3e43-0c1b-4f4b-8a1e-000000000002' });
+    localStorage.setItem('ssm-usor.portal.participant.user-1', participation().participantId);
+    vi.mocked(useGetPortalMe).mockReturnValue(
+      queryResult({ participations: [participation(), other] })
+    );
+    mountPortal(signedIn(), '/');
+
+    await userEvent.click(await screen.findByTestId('account-menu'));
+    expect((await screen.findByTestId('account-menu-switch')).getAttribute('href')).toBe('/alege');
+  });
+
+  it('names the provider in the footer and links the notice and the privacy policy', async () => {
+    mountPortal(signedIn(), '/');
+    const footer = await screen.findByTestId('portal-footer');
+    expect(footer.textContent).toContain('Prestator SSM: Prevenție Vest S.R.L.');
+    expect(within(footer).getByTestId('footer-privacy-notice').getAttribute('href')).toBe(
+      '/informare'
+    );
     expect(
-      screen.getByTestId('portal-bar-home').getAttribute('data-status'),
-      'the current place is marked'
-    ).toBe('active');
+      within(footer).getByRole('link', { name: 'Politica de confidențialitate' })
+    ).toHaveProperty('href', 'https://ssmusor.ro/confidentialitate');
+    expect(within(footer).getByTestId('commit-version').textContent).toMatch(/^Versiune \S+$/);
   });
 
   it('gives a client administrator without an employee row three places', async () => {
@@ -213,7 +267,7 @@ describe('the participant shell', () => {
     );
     mountPortal(signedIn(), '/');
 
-    expect(await screen.findByTestId('portal-home')).toBeTruthy();
-    expect(screen.getByText('Brutăria Veche S.R.L.')).toBeTruthy();
+    const home = await screen.findByTestId('portal-home');
+    expect(within(home).getByText('Brutăria Veche S.R.L.')).toBeTruthy();
   });
 });

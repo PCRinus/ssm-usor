@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from '@lingui/core';
+import { msg } from '@lingui/core/macro';
 import {
   CircleUserRound,
   GraduationCap,
@@ -7,19 +9,46 @@ import {
   UsersRound,
 } from 'lucide-react';
 
-import { isAdministrator, type Participation } from './participation-context';
+import {
+  isAdministrator,
+  type Participation,
+} from '@/features/participation/participation-context';
 
-type Place = {
+export type Place = {
   to: '/' | '/instruiri' | '/datele-mele' | '/contul-meu' | '/angajati';
-  label: string;
+  testId: string;
+  label: MessageDescriptor;
   icon: LucideIcon;
+  // The header's account menu holds it from 640 px; the bar shows it on a phone.
+  inAccountMenu?: true;
 };
 
-const home: Place = { to: '/', label: 'Acasă', icon: House };
-const trainings: Place = { to: '/instruiri', label: 'Instruiri', icon: GraduationCap };
-const myData: Place = { to: '/datele-mele', label: 'Datele mele', icon: IdCard };
-const account: Place = { to: '/contul-meu', label: 'Contul meu', icon: CircleUserRound };
-const employees: Place = { to: '/angajati', label: 'Angajați', icon: UsersRound };
+const home: Place = { to: '/', testId: 'home', label: msg`Acasă`, icon: House };
+const trainings: Place = {
+  to: '/instruiri',
+  testId: 'instruiri',
+  label: msg`Instruiri`,
+  icon: GraduationCap,
+};
+const myData: Place = {
+  to: '/datele-mele',
+  testId: 'datele-mele',
+  label: msg`Datele mele`,
+  icon: IdCard,
+};
+const account: Place = {
+  to: '/contul-meu',
+  testId: 'contul-meu',
+  label: msg`Contul meu`,
+  icon: CircleUserRound,
+  inAccountMenu: true,
+};
+const employees: Place = {
+  to: '/angajati',
+  testId: 'angajati',
+  label: msg`Angajați`,
+  icon: UsersRound,
+};
 
 // At most four (ADR 022): an administrator who is also an employee reaches their own data from
 // Acasă instead of the bar.

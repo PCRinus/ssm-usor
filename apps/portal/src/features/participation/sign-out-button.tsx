@@ -1,28 +1,24 @@
+import { Trans } from '@lingui/react/macro';
 import { Button } from '@ssm-usor/ui/components/button';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { LogOut } from 'lucide-react';
-import { useState } from 'react';
 
 import { Notice } from '@/components/notice';
-import { useAuth } from '@/features/auth/auth-context';
+import { useSignOut } from '@/features/auth/use-sign-out';
 
-export function SignOutButton() {
-  const { auth } = useAuth();
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+export function SignOutFailed() {
+  return (
+    <Notice variant="destructive" data-testid="sign-out-error">
+      <Trans>Nu am putut închide sesiunea. Verifică conexiunea și încearcă din nou.</Trans>
+    </Notice>
+  );
+}
 
-  async function signOut() {
-    setBusy(true);
-    setFailed(false);
-    try {
-      await auth.signOut();
-    } catch {
-      setFailed(true);
-      setBusy(false);
-    }
-  }
+export function SignOutButton({ className }: { className?: string }) {
+  const { signOut, busy, failed } = useSignOut();
 
   return (
-    <div className="grid gap-3">
+    <div className={cn('grid gap-3', className)}>
       <Button
         variant="outline"
         data-testid="sign-out"
@@ -31,13 +27,9 @@ export function SignOutButton() {
         onClick={() => void signOut()}
       >
         <LogOut aria-hidden="true" />
-        Ieși din cont
+        <Trans>Ieși din cont</Trans>
       </Button>
-      {failed && (
-        <Notice variant="destructive">
-          Nu am putut închide sesiunea. Verifică conexiunea și încearcă din nou.
-        </Notice>
-      )}
+      {failed && <SignOutFailed />}
     </div>
   );
 }

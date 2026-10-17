@@ -1,7 +1,9 @@
+import { useLingui } from '@lingui/react/macro';
 import type { QueryClient } from '@tanstack/react-query';
-import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
+import { createRootRouteWithContext, Link, Outlet } from '@tanstack/react-router';
 
 import type { ApiRequestOptions } from '@/api/http';
+import { PublicFrame } from '@/app/public-frame';
 import type { AuthStore } from '@/features/auth/auth-store';
 
 export interface RouterContext {
@@ -11,32 +13,33 @@ export interface RouterContext {
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  component: RootLayout,
+  component: Outlet,
   notFoundComponent: NotFound,
   errorComponent: RouteError,
 });
 
-function RootLayout() {
-  return (
-    <div className="mx-auto flex min-h-svh w-full max-w-[30rem] flex-col px-4">
-      <Outlet />
-    </div>
-  );
-}
-
 function NotFound() {
+  const { t } = useLingui();
   return (
-    <main data-testid="not-found-page" className="grid gap-3 py-16">
-      <h1 className="text-2xl font-semibold">Pagina nu a fost găsită</h1>
-    </main>
+    <PublicFrame
+      testId="not-found-page"
+      title={t`Pagina nu a fost găsită`}
+      description={t`Adresa nu duce nicăieri în portal.`}
+    >
+      <Link to="/" className="text-center font-medium underline underline-offset-4">
+        {t`Mergi la pagina principală`}
+      </Link>
+    </PublicFrame>
   );
 }
 
 function RouteError() {
+  const { t } = useLingui();
   return (
-    <main className="grid gap-3 py-16">
-      <h1 className="text-2xl font-semibold">Pagina nu a putut fi încărcată</h1>
-      <p className="text-muted-foreground">Reîncarcă pagina și încearcă din nou.</p>
-    </main>
+    <PublicFrame
+      testId="route-error"
+      title={t`Pagina nu a putut fi încărcată`}
+      description={t`Reîncarcă pagina și încearcă din nou.`}
+    />
   );
 }

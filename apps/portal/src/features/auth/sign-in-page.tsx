@@ -1,9 +1,13 @@
+import type { MessageDescriptor } from '@lingui/core';
+import { msg } from '@lingui/core/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { useNavigate } from '@tanstack/react-router';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 
+import { PublicFrame } from '@/app/public-frame';
 import { Notice } from '@/components/notice';
 
 import { useAuth } from './auth-context';
@@ -14,8 +18,7 @@ import { parseSignInAddress } from './sign-in-address';
 const resendDelayMs = 60_000;
 const codeLength = { min: 6, max: 8 };
 
-const unreachableMessage =
-  'Cererea nu a putut fi trimisă. Verifică conexiunea la internet și încearcă din nou.';
+const unreachableMessage = msg`Cererea nu a putut fi trimisă. Verifică conexiunea la internet și încearcă din nou.`;
 
 type Target = { address: SignInAddress; shown: string };
 
@@ -40,11 +43,12 @@ function useResendCountdown() {
 }
 
 export function SignInPage() {
+  const { t, i18n } = useLingui();
   const { auth } = useAuth();
   const navigate = useNavigate();
   const [input, setInput] = useState('');
   const [target, setTarget] = useState<Target | null>(null);
-  const [addressError, setAddressError] = useState<string | null>(null);
+  const [addressError, setAddressError] = useState<MessageDescriptor | null>(null);
   const [requesting, setRequesting] = useState(false);
   const { secondsLeft, restart: restartCountdown } = useResendCountdown();
 
@@ -75,13 +79,27 @@ export function SignInPage() {
     else setAddressError(unreachableMessage);
   }
 
-  return (
-    <main data-testid="sign-in-page" className="flex min-h-svh flex-col gap-8 py-10">
-      <img src="/brand/logo.png" alt="SSM Ușor" width={2172} height={724} className="h-auto w-36" />
-      {target ? (
+  if (target) {
+    return (
+      <PublicFrame
+        testId="sign-in-page"
+        title={t`Scrie codul primit`}
+        description={
+          <span data-testid="sign-in-code-sent">
+            <Trans>
+              Dacă adresa este cunoscută, un cod este pe drum spre{' '}
+              <span
+                data-testid="sign-in-code-target"
+                className="block font-medium wrap-anywhere text-foreground"
+              >
+                {target.shown}
+              </span>
+            </Trans>
+          </span>
+        }
+      >
         <CodeStep
           key={target.shown}
-          target={target}
           secondsLeft={secondsLeft}
           requesting={requesting}
           onResend={() => request(target)}
@@ -92,65 +110,63 @@ export function SignInPage() {
           onVerify={(code) => auth.verifyCode(target.address, code)}
           onSignedIn={() => navigate({ to: '/', replace: true })}
         />
-      ) : (
-        <section className="grid gap-6" aria-labelledby="sign-in-title">
-          <div className="grid gap-2">
-            <h1 id="sign-in-title" className="text-2xl font-semibold tracking-tight">
-              Intră în portal
-            </h1>
-            <p className="leading-relaxed text-muted-foreground">
-              Scrie adresa de email sau numărul de telefon la care ai primit invitația. Îți trimitem
-              acolo un cod de intrare.
-            </p>
-          </div>
-          <form className="grid gap-5" noValidate onSubmit={(event) => void submitAddress(event)}>
-            <div className="grid gap-2">
-              <Label htmlFor="sign-in-address">Email sau număr de telefon</Label>
-              <Input
-                id="sign-in-address"
-                data-testid="sign-in-address"
-                className="h-12 text-base"
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                type="text"
-                inputMode="email"
-                autoComplete="username"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                placeholder="nume@exemplu.ro sau 0721 234 567"
-                disabled={requesting}
-                aria-invalid={Boolean(addressError)}
-                aria-describedby={addressError ? 'sign-in-address-error' : undefined}
-              />
-              {addressError && (
-                <p
-                  id="sign-in-address-error"
-                  data-testid="sign-in-address-error"
-                  role="alert"
-                  className="text-sm text-destructive"
-                >
-                  {addressError}
-                </p>
-              )}
-            </div>
-            <Button
-              type="submit"
-              data-testid="sign-in-request"
-              className="h-12 w-full text-base"
-              disabled={requesting}
+      </PublicFrame>
+    );
+  }
+
+  return (
+    <PublicFrame
+      testId="sign-in-page"
+      title={t`Intră în portal`}
+      description={t`Scrie adresa de email sau numărul de telefon la care ai primit invitația. Îți trimitem acolo un cod de intrare.`}
+    >
+      <form className="grid gap-5" noValidate onSubmit={(event) => void submitAddress(event)}>
+        <div className="grid gap-2">
+          <Label htmlFor="sign-in-address">
+            <Trans>Email sau număr de telefon</Trans>
+          </Label>
+          <Input
+            id="sign-in-address"
+            data-testid="sign-in-address"
+            className="h-12 text-base"
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            type="text"
+            inputMode="email"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder={t`nume@exemplu.ro sau 0721 234 567`}
+            disabled={requesting}
+            aria-invalid={Boolean(addressError)}
+            aria-describedby={addressError ? 'sign-in-address-error' : undefined}
+          />
+          {addressError && (
+            <p
+              id="sign-in-address-error"
+              data-testid="sign-in-address-error"
+              role="alert"
+              className="text-sm text-destructive"
             >
-              {requesting ? 'Se trimite…' : 'Trimite codul'}
-            </Button>
-          </form>
-        </section>
-      )}
-    </main>
+              {i18n._(addressError)}
+            </p>
+          )}
+        </div>
+        <Button
+          type="submit"
+          data-testid="sign-in-request"
+          className="h-12 w-full text-base"
+          disabled={requesting}
+        >
+          {requesting ? t`Se trimite…` : t`Trimite codul`}
+        </Button>
+      </form>
+    </PublicFrame>
   );
 }
 
 function CodeStep({
-  target,
   secondsLeft,
   requesting,
   onResend,
@@ -158,7 +174,6 @@ function CodeStep({
   onVerify,
   onSignedIn,
 }: {
-  target: Target;
   secondsLeft: number;
   requesting: boolean;
   onResend: () => Promise<boolean>;
@@ -166,9 +181,10 @@ function CodeStep({
   onVerify: (code: string) => Promise<CodeVerificationResult>;
   onSignedIn: () => Promise<void>;
 }) {
+  const { t, i18n } = useLingui();
   const [code, setCode] = useState('');
   const [verifying, setVerifying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<MessageDescriptor | null>(null);
   const [resent, setResent] = useState(false);
   const codeInput = useRef<HTMLInputElement>(null);
 
@@ -177,7 +193,7 @@ function CodeStep({
   async function verify(value: string) {
     if (verifying) return;
     if (value.length < codeLength.min) {
-      setError('Scrie toate cifrele din cod.');
+      setError(msg`Scrie toate cifrele din cod.`);
       return;
     }
     setVerifying(true);
@@ -190,9 +206,9 @@ function CodeStep({
     setVerifying(false);
     setError(
       result === 'invalid'
-        ? 'Codul nu este corect sau a expirat. Verifică-l sau cere un cod nou.'
+        ? msg`Codul nu este corect sau a expirat. Verifică-l sau cere un cod nou.`
         : result === 'rate-limited'
-          ? 'Prea multe încercări. Așteaptă puțin și încearcă din nou.'
+          ? msg`Prea multe încercări. Așteaptă puțin și încearcă din nou.`
           : unreachableMessage
     );
     codeInput.current?.select();
@@ -211,21 +227,7 @@ function CodeStep({
   }
 
   return (
-    <section className="grid gap-6" aria-labelledby="sign-in-code-title">
-      <div className="grid gap-2">
-        <h1 id="sign-in-code-title" className="text-2xl font-semibold tracking-tight">
-          Scrie codul primit
-        </h1>
-        <p data-testid="sign-in-code-sent" className="leading-relaxed text-muted-foreground">
-          Dacă adresa este cunoscută, un cod este pe drum spre{' '}
-          <span
-            data-testid="sign-in-code-target"
-            className="block font-medium wrap-anywhere text-foreground"
-          >
-            {target.shown}
-          </span>
-        </p>
-      </div>
+    <>
       <form
         className="grid gap-5"
         noValidate
@@ -235,7 +237,9 @@ function CodeStep({
         }}
       >
         <div className="grid gap-2">
-          <Label htmlFor="sign-in-code">Codul de intrare</Label>
+          <Label htmlFor="sign-in-code">
+            <Trans>Codul de intrare</Trans>
+          </Label>
           <Input
             ref={codeInput}
             id="sign-in-code"
@@ -261,7 +265,7 @@ function CodeStep({
               role="alert"
               className="text-sm text-destructive"
             >
-              {error}
+              {i18n._(error)}
             </p>
           )}
         </div>
@@ -271,12 +275,12 @@ function CodeStep({
           className="h-12 w-full text-base"
           disabled={verifying}
         >
-          {verifying ? 'Se verifică…' : 'Intră'}
+          {verifying ? t`Se verifică…` : t`Intră`}
         </Button>
       </form>
       {resent && (
         <Notice variant="info" data-testid="sign-in-code-resent">
-          Am cerut un cod nou. Folosește-l pe cel mai recent.
+          <Trans>Am cerut un cod nou. Folosește-l pe cel mai recent.</Trans>
         </Notice>
       )}
       <div className="grid gap-1">
@@ -288,7 +292,7 @@ function CodeStep({
           disabled={secondsLeft > 0 || requesting || verifying}
           onClick={() => void resend()}
         >
-          {secondsLeft > 0 ? `Trimite alt cod în ${secondsLeft} s` : 'Trimite alt cod'}
+          {secondsLeft > 0 ? t`Trimite alt cod în ${secondsLeft} s` : t`Trimite alt cod`}
         </Button>
         <Button
           type="button"
@@ -298,9 +302,9 @@ function CodeStep({
           disabled={verifying}
           onClick={onChangeAddress}
         >
-          Folosește altă adresă
+          <Trans>Folosește altă adresă</Trans>
         </Button>
       </div>
-    </section>
+    </>
   );
 }
