@@ -1,5 +1,5 @@
 begin;
-select plan(94);
+select plan(100);
 
 insert into auth.users (id, instance_id, aud, role, email, phone, encrypted_password, email_confirmed_at, phone_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -102,6 +102,11 @@ create or replace function pg_temp.invitation_id(p_address text, p_client_id uui
 returns uuid language sql security definer as $$
   select id from public.participant_invitations
   where address = p_address and client_id = p_client_id and accepted_at is null and revoked_at is null;
+$$;
+
+create or replace function pg_temp.participant_id(p_user_id uuid, p_client_id uuid)
+returns uuid language sql security definer as $$
+  select id from public.client_participants where user_id = p_user_id and client_id = p_client_id;
 $$;
 
 create or replace function pg_temp.backdate_send(p_address text)
@@ -366,6 +371,20 @@ select results_eq(
   $$ values ('Client One', '2026-10-17'), ('Client Two', null) $$,
   'on that participation only'
 );
+select is(
+  public.set_participant_language((select participant_id from public.current_participations() where client_name = 'Client One'), 'en'),
+  true,
+  'a participant chooses a language'
+);
+select results_eq(
+  $$ select client_name, language from public.current_participations() $$,
+  $$ values ('Client One', 'en'), ('Client Two', null) $$,
+  'which is read back on that participation only'
+);
+select throws_ok(
+  $$ select public.set_participant_language((select participant_id from public.current_participations() where client_name = 'Client One'), 'fr') $$,
+  '23514', null, 'a language the portal does not have is refused'
+);
 
 
 select pg_temp.act_as_postgres();
@@ -399,6 +418,18 @@ select results_eq(
   $$ values ('Contabil') $$,
   'and only their own position'
 );
+select is(
+  public.set_participant_language(pg_temp.participant_id('dddddddd-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001'), 'ro'),
+  false,
+  'another participant''s language is not set'
+);
+select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
+select results_eq(
+  $$ select language from public.current_participations() where client_name = 'Client One' $$,
+  $$ values ('en') $$,
+  'and stays as its participant chose'
+);
+select pg_temp.act_as('dddddddd-0000-4000-8000-000000000002');
 
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000004');
@@ -491,6 +522,11 @@ select is(
   public.record_participant_notice((select id from public.client_participants), '2026-10-17'),
   false,
   'nor records a notice'
+);
+select is(
+  public.set_participant_language((select id from public.client_participants), 'en'),
+  false,
+  'nor chooses a language'
 );
 
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');

@@ -44,6 +44,7 @@ const employeeParticipation = {
   employee_id: employeeId,
   full_name: 'Popescu Ion',
   notice_version: null,
+  language: null,
 };
 
 const administratorParticipation = {
@@ -56,6 +57,7 @@ const administratorParticipation = {
   employee_id: null,
   full_name: 'Popescu Ion',
   notice_version: '2026-10-17',
+  language: 'en',
 };
 
 const trainingStatus = {
@@ -128,6 +130,7 @@ const templatesUrl = new URL('../../../../../packages/document-engine/templates/
 const upstreamDefaults = {
   participations: () => Response.json([employeeParticipation, administratorParticipation]),
   notice: () => Response.json(true),
+  language: () => Response.json(true),
   employees: () => Response.json([employeeRow]),
   records: () => Response.json([recordRow]),
   responsiblePersons: () => Response.json([responsiblePersonRow]),
@@ -155,6 +158,8 @@ function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
         return upstream.participations();
       case '/rest/v1/rpc/record_participant_notice':
         return upstream.notice();
+      case '/rest/v1/rpc/set_participant_language':
+        return upstream.language();
       case '/rest/v1/employees':
         return upstream.employees();
       case '/rest/v1/training_records':
@@ -191,11 +196,11 @@ const calls = (pathname: string) =>
       body: init?.body ? JSON.parse(init.body as string) : undefined,
     }));
 
-const request = (path: string, body?: unknown) =>
+const request = (path: string, body?: unknown, method = body === undefined ? 'GET' : 'POST') =>
   createApp().request(
     path,
     {
-      method: body === undefined ? 'GET' : 'POST',
+      method,
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer user-token' },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     },
@@ -273,6 +278,7 @@ describe('GET /portal/me', () => {
         employeeId,
         fullName: 'Popescu Ion',
         noticeVersion: null,
+        language: null,
       },
       {
         participantId: administratorParticipantId,
@@ -283,6 +289,7 @@ describe('GET /portal/me', () => {
         employeeId: null,
         fullName: 'Popescu Ion',
         noticeVersion: '2026-10-17',
+        language: 'en',
       },
     ]);
     expect(JSON.stringify(body)).not.toContain(organizationId);
@@ -311,6 +318,50 @@ describe('POST /portal/participants/{participantId}/notice', () => {
 
     expect(response.status).toBe(404);
     expect(calls('/rest/v1/rpc/record_participant_notice')).toEqual([]);
+  });
+});
+
+describe('PUT /portal/participants/{participantId}/language', () => {
+  it('saves the language on the participation', async () => {
+    mockUpstream();
+
+    const response = await request(own('/language'), { language: 'en' }, 'PUT');
+
+    expect(response.status).toBe(204);
+    expect(calls('/rest/v1/rpc/set_participant_language')[0]?.body).toEqual({
+      p_participant_id: employeeParticipantId,
+      p_language: 'en',
+    });
+  });
+
+  it('refuses a language the portal does not have', async () => {
+    mockUpstream();
+
+    const response = await request(own('/language'), { language: 'fr' }, 'PUT');
+
+    expect(response.status).toBe(400);
+    expect(calls('/rest/v1/rpc/set_participant_language')).toEqual([]);
+  });
+
+  it("does not save on a participation that is not the account's", async () => {
+    mockUpstream();
+
+    const response = await request(
+      `/portal/participants/${strangerParticipantId}/language`,
+      { language: 'ro' },
+      'PUT'
+    );
+
+    expect(response.status).toBe(404);
+    expect(calls('/rest/v1/rpc/set_participant_language')).toEqual([]);
+  });
+
+  it('answers 404 when the database no longer finds the participation active', async () => {
+    mockUpstream({ language: () => Response.json(false) });
+
+    const response = await request(own('/language'), { language: 'ro' }, 'PUT');
+
+    expect(response.status).toBe(404);
   });
 });
 

@@ -285,6 +285,7 @@ export type Database = {
           full_name: string | null;
           id: string;
           kind: Database['public']['Enums']['participant_kind'];
+          language: string | null;
           notice_shown_at: string | null;
           notice_version: string | null;
           organization_id: string;
@@ -299,6 +300,7 @@ export type Database = {
           full_name?: string | null;
           id?: string;
           kind: Database['public']['Enums']['participant_kind'];
+          language?: string | null;
           notice_shown_at?: string | null;
           notice_version?: string | null;
           organization_id: string;
@@ -313,6 +315,7 @@ export type Database = {
           full_name?: string | null;
           id?: string;
           kind?: Database['public']['Enums']['participant_kind'];
+          language?: string | null;
           notice_shown_at?: string | null;
           notice_version?: string | null;
           organization_id?: string;
@@ -3545,6 +3548,7 @@ export type Database = {
           employee_id: string;
           full_name: string;
           kind: Database['public']['Enums']['participant_kind'];
+          language: string;
           notice_version: string;
           organization_id: string;
           organization_name: string;
@@ -3783,6 +3787,10 @@ export type Database = {
           p_verifier_name?: string;
         };
         Returns: string;
+      };
+      set_participant_language: {
+        Args: { p_language: string; p_participant_id: string };
+        Returns: boolean;
       };
       start_regeneration_job: {
         Args: {

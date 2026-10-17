@@ -30,6 +30,18 @@ export const PortalMeResponseParticipationsItemKind = {
   client_administrator: 'client_administrator',
 } as const;
 
+/**
+ * @nullable
+ */
+export type PortalMeResponseParticipationsItemLanguage =
+  | (typeof PortalMeResponseParticipationsItemLanguage)[keyof typeof PortalMeResponseParticipationsItemLanguage]
+  | null;
+
+export const PortalMeResponseParticipationsItemLanguage = {
+  ro: 'ro',
+  en: 'en',
+} as const;
+
 export type PortalMeResponseParticipationsItem = {
   participantId: string;
   organizationName: string;
@@ -41,6 +53,8 @@ export type PortalMeResponseParticipationsItem = {
   fullName: string;
   /** @nullable */
   noticeVersion: string | null;
+  /** @nullable */
+  language: PortalMeResponseParticipationsItemLanguage;
 };
 
 export interface PortalMeResponse {
@@ -122,6 +136,18 @@ export interface PortalNoticeRequest {
    * @maxLength 40
    */
   version: string;
+}
+
+export type PortalLanguageRequestLanguage =
+  (typeof PortalLanguageRequestLanguage)[keyof typeof PortalLanguageRequestLanguage];
+
+export const PortalLanguageRequestLanguage = {
+  ro: 'ro',
+  en: 'en',
+} as const;
+
+export interface PortalLanguageRequest {
+  language: PortalLanguageRequestLanguage;
 }
 
 export type PortalTrainingRecordsResponseItemsItemDomain =
@@ -893,6 +919,117 @@ export const useRecordPortalNotice = <TError = ErrorType<ApiErrorResponse>, TCon
   TContext
 > => {
   return useMutation(getRecordPortalNoticeMutationOptions(options), queryClient);
+};
+
+export const getSetPortalLanguageUrl = (participantId: string) => {
+  return `/portal/participants/${participantId}/language`;
+};
+
+/**
+ * Kept on the participation; the portal uses it at every sign-in.
+ * @summary Choose the language the portal is shown in
+ */
+export const setPortalLanguage = async (
+  participantId: string,
+  portalLanguageRequest: PortalLanguageRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<void>(getSetPortalLanguageUrl(participantId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(portalLanguageRequest),
+  });
+};
+
+export const getSetPortalLanguageMutationKey = () => ['setPortalLanguage'] as const;
+
+export const getSetPortalLanguageMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setPortalLanguage>>,
+    TError,
+    SetPortalLanguageMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setPortalLanguage>>,
+  TError,
+  SetPortalLanguageMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSetPortalLanguageMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setPortalLanguage>>,
+    SetPortalLanguageMutationVariables
+  > = (props) => {
+    const { participantId, data } = props ?? {};
+
+    return setPortalLanguage(participantId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetPortalLanguageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setPortalLanguage>>
+>;
+export type SetPortalLanguageMutationBody = PortalLanguageRequest;
+export type SetPortalLanguageMutationError = ErrorType<ApiErrorResponse>;
+export type SetPortalLanguageMutationVariables = {
+  participantId: string;
+  data: PortalLanguageRequest;
+};
+
+/**
+ * @summary Choose the language the portal is shown in
+ */
+export const useSetPortalLanguage = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof setPortalLanguage>>,
+      TError,
+      SetPortalLanguageMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof setPortalLanguage>>,
+  TError,
+  SetPortalLanguageMutationVariables,
+  TContext
+> => {
+  return useMutation(getSetPortalLanguageMutationOptions(options), queryClient);
 };
 
 export const getListPortalTrainingRecordsUrl = (participantId: string) => {

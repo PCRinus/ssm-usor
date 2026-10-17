@@ -73,6 +73,7 @@ export function participation(
     employeeId: '6f0c3e43-0c1b-4f4b-8a1e-0000000000e1',
     fullName: 'Pop Ana',
     noticeVersion: currentPrivacyNoticeVersion,
+    language: null,
     ...overrides,
   };
 }

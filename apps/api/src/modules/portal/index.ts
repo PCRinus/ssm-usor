@@ -11,6 +11,7 @@ import {
   listPortalResponsiblePersons,
   listPortalTrainingRecords,
   recordPortalNotice,
+  setPortalLanguage,
 } from './handlers';
 import {
   getPortalEmployeeDataRoute,
@@ -24,11 +25,13 @@ import {
   listPortalResponsiblePersonsRoute,
   listPortalTrainingRecordsRoute,
   recordPortalNoticeRoute,
+  setPortalLanguageRoute,
 } from './routes';
 
 export const portalRouter = createRouter()
   .openapi(getPortalMeRoute, getPortalMe)
   .openapi(recordPortalNoticeRoute, recordPortalNotice)
+  .openapi(setPortalLanguageRoute, setPortalLanguage)
   .openapi(listPortalTrainingRecordsRoute, listPortalTrainingRecords)
   .openapi(getPortalEmployeeDataRoute, getPortalEmployeeData)
   .openapi(getPortalTrainingSheetsRoute, getPortalTrainingSheets)

@@ -162,6 +162,12 @@ export const participantErrorReasons = {
 export type ParticipantErrorReason =
   (typeof participantErrorReasons)[keyof typeof participantErrorReasons];
 
+export const portalLanguages = ['ro', 'en'] as const;
+
+export const portalLanguageSchema = z.enum(portalLanguages);
+
+export type PortalLanguage = z.infer<typeof portalLanguageSchema>;
+
 /** One client the signed-in account is a participant of, from `current_participations()`. */
 export const portalParticipationSchema = z.object({
   participantId: z.uuid(),
@@ -173,6 +179,8 @@ export const portalParticipationSchema = z.object({
   fullName: z.string(),
   // Null until the privacy notice was shown on this participation.
   noticeVersion: z.string().nullable(),
+  // Null until the participant chose a language on the portal.
+  language: portalLanguageSchema.nullable(),
 });
 
 export type PortalParticipation = z.infer<typeof portalParticipationSchema>;
@@ -192,6 +200,10 @@ export const portalNoticeRequestSchema = z.object({
 });
 
 export type PortalNoticeRequest = z.infer<typeof portalNoticeRequestSchema>;
+
+export const portalLanguageRequestSchema = z.object({ language: portalLanguageSchema });
+
+export type PortalLanguageRequest = z.infer<typeof portalLanguageRequestSchema>;
 
 const portalPersonSchema = z.object({ name: z.string(), jobTitle: z.string() });
 
