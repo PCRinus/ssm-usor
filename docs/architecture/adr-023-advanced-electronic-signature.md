@@ -1,0 +1,104 @@
+# ADR 023: The advanced electronic signature, first on training records
+
+- Status: proposed
+- Date: 2026-10-18
+
+## Context
+
+Every training record of [ADR 021](adr-021-training-records-and-individual-sheets.md) has signer slots by role, the trainee, the trainer, the verifier and the person who admits to work, and the paper sheet carries the signatures until an electronic one exists. [ADR 022](adr-022-participants-and-the-portal.md) created the people who will sign, the employee and the client administrator as participants with a code sign-in, and left the portal's "what needs you" list empty on purpose. The organization's members, the specialists, already sign in to the app. This ADR gives all of them a signature.
+
+What the law accepts. HG 1425/2006 art. 81, as amended by HG 259/2022, lets the employer decide in its regulament intern whether the fișa de instruire is signed by hand or with a simple, advanced or qualified electronic signature (alin. 3¹), puts the procedure for using it in the individual employment contract under Labour Code art. 17 (alin. 3²), and asks that the training materials of an electronic training stay traceable and intact (alin. 3³). Labour Code art. 16(1¹), as left by Law 208/2021, lets the parties use an advanced or qualified signature to conclude or modify the employment contract; (1⁶) forbids the employer to oblige an employee to; (1⁷) has both parties use the same kind of signature on one act; (1⁸) obliges inspectors to accept the electronic documents without paper; (1³) sends their archiving to the archives laws. Law 214/2024 art. 4(5) gives an advanced signature the effect of a handwritten one in three alternative cases: a certificate from a Romanian public authority or a qualified provider, recognition by the party it is opposed to, including by acting on the document, or a prior agreement in a separate writing; art. 4(7) lets the members of a closed electronic system agree on the effect of any signature. Mircea's ITM contacts confirmed in October 2026 that an advanced signature suffices for everything the app generates, and that an inspector checks that a record exists, is complete and is signed, not the cryptography; the cryptography is for the accident investigation and the court years later.
+
+What an advanced signature is: eIDAS art. 26, four properties, uniquely linked to the signer, able to identify them, created with data under their sole control, and bound to the document so that any later change shows. Nobody certifies it in advance; whoever relies on it proves the four with their own evidence. A qualified signature adds a qualified certificate issued after an identity check and a key in a certified device, and gets the presumption of equivalence to a handwritten signature in exchange; the identity check is the blocker, since every employee would need onboarding by a trust service provider before signing anything.
+
+What the volume is. A client with seven employees produces about 28 training records a year with three signers each, about 85 signatures; with the document packs and the tests it is about 95 signed documents and 230 signatures, which is one envelope per document on a paid signing API, at $0.75 to $6 per envelope depending on the vendor, before the identity flows their advanced levels require. The people who sign are already authenticated by the app, and the code sign-in of ADR 022 was chosen as the sole-control step the signature would reuse.
+
+What the practice is. The SSM contact asked on 2026-10-18 that the training date on a record stay free: trainings happen days after an employee starts work, and the paperwork catches up. The training date is content the specialist enters; the moment of a signature is evidence, and the two are different fields, on paper as in the app. A late signature is the employer's compliance gap, as it is on paper, and the app records neither more nor less than when the signature was given.
+
+## Decision
+
+### An advanced signature, made in-house, on a training record
+
+The app makes an **advanced electronic signature** (_semnătură electronică avansată_) itself: a PAdES signature in a PDF, with a certificate the app issues to each signer, created only after the signer proves control of their address with a fresh code, and backed by an evidence row that says who, when, through which address and on what content. A qualified signature was rejected for the identity check above; a paid signing API was rejected because the signers are already ours, the volume is one envelope per document and the price per envelope is the whole cost of the feature; a self-hosted signing product (DocuSeal, Documenso) was rejected because it would be a second signing interface beside the portal and still leave the keys, the evidence and the certificates to us.
+
+What gets signed is a **training record**, per slot, as ADR 021 prepared: one person, one day, one material, one duration, three names. The record is rendered once as a **signed record** (_instruirea semnată_): a one-page PDF of the record, the employee's name and number, the training's domain, phase, day, duration, material, the names and functions in each slot, and under them one signature block per slot, generated by the document engine from a template of its own and converted by Gotenberg the day the first request is issued. Each signature is written into that PDF as an incremental update, so the first signer's signature stays valid when the second signs; the sheet of ADR 021 keeps printing one row per record and gains a mark under each signed row, "semnat electronic, 7 oct. 2026", and the blank rows for the pen go away for a client whose records are signed in the app. Signing the sheet was rejected: the sheet grows by a row after every training, and a signature covers a document that must never change. Signing the training held once for all its attendees was rejected: the law's signature is the trainee's on their own row, and the trainer's signature on a session is seven signatures on seven records, which one code can give at once, below.
+
+The first version signs training records only. The SSM and PSI document packs, where the employer and the specialist sign each issued document, and the hiring and periodic tests, which the app does not keep per employee yet, come after; the signing pipeline, the identities and the evidence are the same, only the document and the slots differ. When the packs are signed, the employer's slot is signed personally by the client administrator from the portal, never by a member on the employer's behalf, which is the practice on paper that makes those documents weak evidence and would have the evidence name a signer the document does not.
+
+### The signers are the people the app already holds
+
+A slot is addressed to a **signer**: the trainee is the employee's participant; the trainer, the verifier and the admitter are a member of the organization or a participant of the client, the workplace manager being an employee participant who holds that responsible-person role. When a training held is saved, the flow that proposes the names of ADR 021 also proposes the signer for each slot, by matching the proposed person to the members and the client's responsible persons; the specialist confirms or changes it. A slot whose person has no account, an external trainer or a client that has invited nobody, is left for paper: it prints blank on the sheet and is marked by the member as signed on paper, with no evidence beyond the word. A record can therefore have electronic and paper slots at once; the sheet shows which.
+
+A member signs in the app, a participant in the portal, each on the same pipeline. Both get a **signing identity** (_identitatea de semnare_): an ECDSA P-256 key pair generated by the API at the first signature, the private key encrypted at rest under a key held by the API Worker as its other secrets are, and an X.509 certificate issued by the app's own certificate authority, naming the person and their account, valid two years and reissued at expiry. The app is the certificate authority: the signature's authority is the evidence, not the issuer, and a certificate from a trust service provider would have put the identity check back. The private key never leaves the API: signing is two-phase, the signer container prepares the PDF and returns the digest to sign, the API signs it with WebCrypto after the code check, and the container embeds the result.
+
+### The sole-control step is a fresh code, one code for many signatures
+
+A signature is created only in a **signing session**: the signer sees the list of what they are about to sign, asks for a code, receives it at their address and types it. The code is issued by the API, not by Supabase's sign-in: six digits, hashed at rest, valid ten minutes, three attempts, one code per signer per minute, sent by email where the person has one and by SMS otherwise, through the mail and SMS Workers of ADR 002 and ADR 022. Being signed in is not enough, for a member with a password session or a participant whose code is an hour old: the signature's evidence must say the person held the address at that moment. Reusing Supabase's one-time passcode was rejected because its verification issues a session and keeps its own record; the evidence of the code, sent where and verified when, belongs in the signature's row.
+
+One code signs every request listed on the screen: the trainer who ran a session for seven employees signs seven records with one code, and the evidence row of each names the session, the code's address and the moment. A code per record was rejected as seven SMS for one act. The screen says what the code will sign, by employee and day, and the signer removes a record from the batch before asking for the code; a record they do not recognise is not signed, and the member sees it unsigned.
+
+What a signature records, in `training_signatures`, one row per record and slot: the signer's account and their name and function as printed, the channel and address the code went to, when it was sent and when it was verified, the moment of the signature, the digest of the PDF before and after, the certificate's serial, the client address and user agent, and the signing session. Rows are written once: no update and no delete, enforced by the policies and a trigger. A paper slot writes a row with the method `paper`, the member who marked it and the moment, and nothing else.
+
+### A request is pushed to the signer, by email first
+
+A **signature request** (_cerere de semnare_) is one slot of one record addressed to one signer: who issued it, when, when the signer was told, and its state, pending, signed, void. Saving a training held issues the requests of every slot that has a signer, and tells each signer once per session: one message, "Ai 7 instruiri de semnat", not seven, by email to the address on the employee row or the member's account, and by SMS only where the person has no email, since the code and the invitation of ADR 022 follow the same rule from now on: an employee with an email is invited by email, so that their codes are free, and SMS is spent on the people without one. No reminders in the first version; the member sees the unsigned records and knows who to call.
+
+The portal's _Acasă_ lists what needs the participant, the _Semnături_ panel of the portal, and a _Semnături_ place in the app lists a member's pending requests across their clients. The client administrator's places show the client's unsigned records.
+
+A record with a pending request is still the specialist's to edit, and editing it voids its pending requests and issues new ones, since the document changed. A record with a signature is **frozen**: its training's day, duration, material and names, and its own occupation and admission, cannot change, and neither record nor training can be deleted. To correct a signed record the member voids its signatures with a reason, which keeps the signed PDF and the rows as evidence of what was signed and withdrawn, edits, and the requests go out again. Deleting a signature was rejected: a withdrawn signature is a fact of the record's history. A dispute state, where a signer objects from the portal and the record waits, was considered with #482 and rejected on 2026-10-18: on paper the employee signs or does not, and an unsigned request is the signal the specialist needs; a correction, however communicated, goes through the void-and-reissue above.
+
+### Two documents give the employer's choice its footing
+
+HG 1425/2006 art. 81 makes the employer's choice of the electronic signature a matter of the regulament intern and the employment contract, so the app generates both pieces:
+
+- An **annex to the regulament intern** (_anexă la regulamentul intern: semnarea electronică a fișelor de instruire_), one page, a new document of the SSM pack, number 13: which documents are signed in the platform and with what kind of signature, how a signer is identified, a code to the address the employer holds for them, a fresh code at each signature, where the signed records are kept and how they are verified. Issued once per client, signed by the client administrator as the employer's act, with the specialist as its drafter. It is issued and signed as the rest of the pack is until the packs are signed in the app.
+- A **signing agreement** (_act adițional la contractul individual de muncă privind semnarea electronică_), half a page with the employee's details merged in, kept with the employee's own documents on the employee's page beside the two sheets, not in the pack: the employee agrees to sign the training records this way and the procedure is described. It is the first signature request an employee sees in the portal, before any record, and the administrator's request for it goes out at the same time, since art. 16(1⁷) has both parties sign the same way; signed by both, the employee's state becomes _semnat electronic_. An employee may decline, since art. 16(1⁶) forbids obliging them: the member prints it, it is signed by hand, and the member marks it _semnat pe hârtie_. For a new hire the same text goes into the contract itself and the agreement is skipped. The agreement is also the prior written agreement of Law 214/2024 art. 4(5)(c), and signing it electronically is the recognition of art. 4(5)(b), since the Labour Code's own rule for the contract is the special one.
+
+An employee whose agreement is not signed can still be asked to sign a record: the portal and the request list show "act adițional nesemnat" as a warning. Blocking the record's signature was rejected: the late paperwork of the practice above would have the block worked around, and an unsigned agreement is visible where it matters.
+
+### What is deferred, and why it is cheap to add
+
+- A trusted timestamp on the signature, from a qualified time-stamping authority, which would have a third party vouch for the moment of each signature and keep the signatures verifiable after the app's certificates rotate: #486, after one or two clients sign on production. The pipeline has the step and leaves it empty; a signature's time is the API's clock, recorded in the row and in the PDF. Qualified timestamps cost about €0.04 each at a Romanian provider, and the issue records three policies, per signature, per document and one a day over a hash chain of the evidence, with their prices.
+- Electronic archiving under Law 135/2007 and Law 16/1996, which Labour Code art. 16(1³) attaches to electronically signed labour documents: #487. The signed record is produced as PDF/A where Gotenberg can, carries a metadata record the issue lists, and is exportable per client with the sheets, so that an archive provider is an integration later.
+- A verification page where an inspector or a court checks a signed record: the signer container's validate route exists for the pipeline's own tests, and a page over it comes when someone outside the app asks.
+
+## What is left out
+
+- Signing the document packs and the tests, and the client administrator signing the packs from the portal: the pipeline is built for them, the documents and their slots come after the records.
+- A qualified signature, through a trust service provider's API, for the few documents a client may want one on.
+- Reminders for unsigned requests, and a bulk "trimite din nou".
+- The workplace manager's own views of the trainings they gave and the people they admitted: they get their requests and nothing else yet.
+- A participant correcting their own data from the portal (#482), and what a correction does to a signed sheet row: the signed record is frozen, the identification block of the sheet is not signed, and a changed address prints on the next sheet.
+- Signing from the app on a participant's behalf, a signature image drawn with the finger, and any signature on a document the app did not generate.
+
+## Consequences
+
+- A second container class runs beside Gotenberg in `apps/pdf`: a small Python service with pyHanko, with routes to prepare a signature, embed a signed digest, and validate a file. The API Worker gains a `SIGNER` binding and a two-phase signing flow; locally the service runs in Docker beside Gotenberg from `pnpm dev`, reached by URL as `GOTENBERG_URL` is. A cold start of a sleeping signer costs a few seconds on the first signature of the day; it sleeps after the same ten minutes.
+- The API becomes a certificate authority: a CA key as a Worker secret, a certificate per signing identity, serials and expiry on the identity row, reissue at expiry. The key-encryption key for signers' private keys is a second secret. Both are generated once and rotated by a documented procedure; losing the CA key makes new certificates unverifiable against old ones and is the one operational risk the feature adds.
+- Three tables: `signing_identities`, `signature_requests`, `training_signatures`; a freeze on `trainings` and `training_records` once a signature exists, as a trigger, with void as the way out; policies for members, for participants, who read and sign only their own requests, and for the administrator, who reads the client's. pgTAP covers the freeze, the void and the once-written rows.
+- A document type of its own, the signed record, rendered by the engine from a template, stored in the documents bucket as a file that changes only by incremental update, with each version's digest in the evidence. The sheet's blank rows become a per-client fact.
+- Two more templates: the annex, number 13 of the SSM pack, and the signing agreement, the first per-employee document beside the sheets; both carry legal text and go to the SSM contact before they ship.
+- Two more messages in each Worker, the request and the code, in Romanian and English by the rule of ADR 022. The signing code is the API's, with its own table or columns and its own rate limits.
+- The invitation dialog of ADR 022 proposes email when the employee has one.
+- Costs: nothing per signature; an SMS code for an employee without email, about $0.08 per signing session; the signer container's awake time.
+- The glossary gains advanced electronic signature, signer, signing identity, signing session, signed record, signature request, signing agreement; `docs/data-model.md`, `docs/api.md` and `docs/pdf.md` change with the pull requests.
+
+## Order of work
+
+1. This ADR and the glossary in `CONTEXT.md`.
+2. The schema: the three tables, the freeze and the void, the policies, pgTAP.
+3. The signer: the pyHanko container in `apps/pdf` with prepare, embed and validate, the two-phase flow in the PDF Worker's entrypoint, the Docker image in `pnpm dev`. Independent of step 2.
+4. The signed record: its template, its rendering and storage, the sheet's marks and the blank rows switch. Independent of steps 2 and 3.
+5. The API: identities and the CA, requests issued at save, the signing code, the signing session for members and participants, void, the messages through the Workers. On steps 2 to 4.
+6. The app: the signer proposal on the training flow, slot states on the record and the employee's page, paper slots, the _Semnături_ place for members, the warnings. On step 5.
+7. The portal: _Acasă_'s list, the _Semnături_ panel, the signing screen with the batch and the code, the agreement as the first request. On step 5.
+8. The two templates and the agreement's state on the employee's page, with the email-first rule in the invitation dialog. On step 5.
+9. Then #486, #487, the packs and the tests.
+
+## Defaults taken instead of asking the provider
+
+1. Requests go out when the training is saved, without a separate "send to sign" step.
+2. One code signs the whole batch on the screen.
+3. A certificate lasts two years; a signing code ten minutes.
+4. An unsigned signing agreement warns and does not block.
+5. A slot whose person has no account is a paper slot, marked by the member.

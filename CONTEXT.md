@@ -94,6 +94,20 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Signer slot** (_semnatar_): a role on a training record that a signature fills: the trainee, the trainer, the verifier, the person who admits to work. Fixed per domain and phase, proposed as the people the app holds, replaceable with who actually trained. Empty until the electronic signature exists; the paper sheet carries the signatures meanwhile. ADR 021. Avoid: signature, which is what fills it.
 
+**Advanced electronic signature** (_semnătură electronică avansată_): the signature the app makes itself: a PAdES signature in a PDF, under a certificate the app issues to the signer, created only after a fresh code proves the signer holds their address, and backed by an evidence row. The level of eIDAS art. 26, accepted on the training sheet by HG 1425/2006 art. 81. ADR 023. Avoid: digital signature, qualified signature, which needs a trust service provider, and e-signature on its own.
+
+**Signer** (_semnatar_, the person): the member or participant a signer slot is addressed to. A slot whose person has no account is a **paper slot**, signed by hand and marked so by a member. ADR 023.
+
+**Signing identity** (_identitatea de semnare_): a signer's key pair and certificate, made by the app at their first signature and reissued at expiry. Never shown to the signer. ADR 023. Avoid: certificate on its own, which is half of it.
+
+**Signing session** (_sesiune de semnare_): one act of signing: the list on the signer's screen, one fresh code to their address, and the signatures it creates, one per listed request. ADR 023. Avoid: batch, which does not say a code was involved.
+
+**Signed record** (_instruirea semnată_): the one-page PDF of one training record with a signature block per slot, generated when its first request is issued and changed only by a signature. What the signatures are in; the sheet prints its row with a mark. ADR 023. Avoid: signed sheet, which is never signed as a whole.
+
+**Signature request** (_cerere de semnare_): one slot of one record addressed to one signer, pending until signed or void. Issued when the training is saved, told to the signer once per session, voided when the record changes. ADR 023. Avoid: task, envelope.
+
+**Signing agreement** (_act adițional privind semnarea electronică_): the addendum to an employee's employment contract by which they agree to sign training records electronically, kept with the employee's documents, signed in the portal as their first request or by hand. The employer's side of the choice is the **annex to the regulament intern**, document 13 of the SSM pack. ADR 023. Avoid: consent, which GDPR means differently.
+
 **Next training due** (_termenul următoarei instruiri_): the day the last periodic training record, else the workplace training record, else the hire date, gives when the interval of the employee's position or staff category is added; computed per domain, never stored; none before a hiring training is recorded. A supplementary training does not move it. Its **training state** (_starea instruirii_): _neinstruit_ with no hiring training recorded, _la zi_, _scadentă_ within the next thirty days, _depășită_ once passed; none for a leaver. ADR 021. Avoid: expiry, deadline, which prevention measures have, and trained as a yes or no.
 
 **Commute** (_traseul de deplasare_): the route an employee takes between home and work, as free text, and its duration in minutes. Kept on the employee, optional on the form, required by the occupational safety sheet, which prints it: an accident on the normal route and within its normal duration is a work accident (Legea 319/2006 art. 30). ADR 021. Avoid: route declaration, which is the paper habit the sheet replaces.
