@@ -79,7 +79,7 @@ insert into public.client_responsible_persons (organization_id, client_id, full_
 
 insert into public.document_templates (organization_id, type_key, title)
 select null, v.type_key, v.title
-from (values ('training_sheet_ssm', 'Fișa individuală SSM'), ('decision_training', 'Decizia de instruire')) as v (type_key, title)
+from (values ('training_sheet_ssm', 'Fișa individuală SSM'), ('signing_agreement', 'Act adițional'), ('decision_training', 'Decizia de instruire')) as v (type_key, title)
 where not exists (select 1 from public.document_templates t where t.organization_id is null and t.type_key = v.type_key);
 
 insert into public.participant_invitations (id, organization_id, client_id, kind, employee_id, channel, address) values
@@ -337,9 +337,9 @@ select results_eq(
 );
 select is((select count(*)::int from public.client_responsible_persons), 0, 'no responsible persons');
 select results_eq(
-  $$ select type_key from public.document_templates $$,
-  $$ values ('training_sheet_ssm') $$,
-  'the training sheet templates and no other'
+  $$ select type_key from public.document_templates order by type_key $$,
+  $$ values ('signing_agreement'), ('training_sheet_ssm') $$,
+  'the per-employee templates, the sheets and the signing agreement, and no other'
 );
 select results_eq(
   $$ select employee_id, ssm_state::text from public.employee_training_status order by employee_id $$,

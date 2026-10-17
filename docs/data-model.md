@@ -1095,12 +1095,13 @@ an index can serve it. `is_client_administrator(client)` answers the same for on
 | `client_workplaces`          | every workplace of their clients        |                              |
 | `client_fire_safety`         | their clients' row (training intervals) |                              |
 | `client_responsible_persons` |                                         | the client's                 |
-| `document_templates`         | the built-in training sheet templates   |                              |
+| `document_templates`         | the built-in per-employee templates     |                              |
 | `client_participants`        | their own participations                |                              |
 
 The workplaces are all the client's because a sheet names the workplace only at a client with
 more than one. `employee_training_status` is a security-invoker view, so it follows the rows
-above; `document_template_versions` follows its templates. Storage has no participant policy
+above; `document_template_versions` follows its templates, the two training sheets and the
+signing agreement (`20261018110000_signing_agreement_policy.sql`). Storage has no participant policy
 yet: a template file read for a participant needs the API's secret key or a policy of its own.
 
 ### The phone in E.164
