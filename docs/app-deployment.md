@@ -9,7 +9,10 @@ has its own deployment job and can be released independently:
 | `ssm-usor-api` | `api.ssmusor.ro` | Hono API and Supabase bearer-token verification |
 | `ssm-usor-app` | `app.ssmusor.ro` | React SPA and static assets                     |
 
-Both disable `workers.dev` routes. Cloudflare creates the custom-domain DNS records and
+The portal's Worker, `ssm-usor-portal` at `portal.ssmusor.ro`, deploys the same way from the
+same values; see the [portal guide](portal.md).
+
+All of them disable `workers.dev` routes. Cloudflare creates the custom-domain DNS records and
 certificates on deployment in the account hosting the active `ssmusor.ro` zone. Resolve any
 conflicting records for these two subdomains before the first release. Marketing deploys
 independently; see the [marketing deployment guide](deployment.md).
@@ -39,6 +42,10 @@ and deployment jobs use its variables, secrets, and protection rules. Add these 
 | `TURNSTILE_SITE_KEY`                                            | Variable | Site key of the same Turnstile widget, built into the marketing site; without it the form is a mailto link.                                                                                                                    |
 | `TURNSTILE_SECRET_KEY`                                          | Secret   | Secret key of the Turnstile widget protecting the marketing site's waitlist form.                                                                                                                                              |
 | `RESEND_API_KEY`                                                | Secret   | Sending-only Resend key for the mail Worker; see the [mail Worker guide](mail.md).                                                                                                                                             |
+| `SUPABASE_AUTH_SMS_HOOK_SECRET`                                 | Secret   | Signs Supabase Auth's Send SMS hook, chosen like `SUPABASE_AUTH_HOOK_SECRET` but a different value. CI gives the same value to Supabase and to the API.                                                                        |
+| `TWILIO_ACCOUNT_SID`                                            | Variable | The Twilio account the SMS Worker sends through; see the [SMS Worker guide](sms.md).                                                                                                                                           |
+| `TWILIO_AUTH_TOKEN`                                             | Secret   | The auth token of that Twilio account, the one value of the three that is a secret.                                                                                                                                            |
+| `SMS_FROM`                                                      | Variable | The SMS sender: `SSMUsor`, a Twilio number, or a Messaging Service SID. Without all three Twilio values the SMS Worker only logs.                                                                                              |
 | `SEED_ALLOW_FAKE`                                               | Variable | `true` to let the seed workflow add fake clients and employees; leave unset on a real production project.                                                                                                                      |
 | `SEED_ADMIN_PASSWORD`                                           | Secret   | Only for the workflow's `reset-password` input or a first creation; otherwise not needed.                                                                                                                                      |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`, `SEED_ORGANIZATION_NAME` | Variable | Optional overrides for the seeded account, its profile name, and the organization name.                                                                                                                                        |

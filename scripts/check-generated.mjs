@@ -8,7 +8,9 @@ import process from 'node:process';
 const paths = [
   'apps/api/openapi.json',
   'apps/app/src/api/generated',
+  'apps/portal/src/api/generated',
   'apps/app/src/routeTree.gen.ts',
+  'apps/portal/src/routeTree.gen.ts',
   'packages/document-engine/templates/citations.json',
 ];
 function snapshot() {

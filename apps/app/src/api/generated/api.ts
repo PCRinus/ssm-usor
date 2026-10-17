@@ -1228,10 +1228,7 @@ export interface CreateEmployeeRequest {
    * @nullable
    */
   email?: string | null;
-  /**
-   * @nullable
-   * @pattern ^\+?[0-9][0-9 ().-]{3,18}$
-   */
+  /** @nullable */
   phone?: string | null;
   /**
    * @minLength 2
@@ -1351,10 +1348,7 @@ export interface UpdateEmployeeRequest {
    * @nullable
    */
   email?: string | null;
-  /**
-   * @nullable
-   * @pattern ^\+?[0-9][0-9 ().-]{3,18}$
-   */
+  /** @nullable */
   phone?: string | null;
   /**
    * @minLength 2
@@ -6888,6 +6882,268 @@ export interface JoinWithInvitationRequest {
    */
   fullName?: string;
   termsVersion: JoinWithInvitationRequestTermsVersion;
+}
+
+export type EmployeeParticipantStateParticipantKind =
+  (typeof EmployeeParticipantStateParticipantKind)[keyof typeof EmployeeParticipantStateParticipantKind];
+
+export const EmployeeParticipantStateParticipantKind = {
+  employee: 'employee',
+  client_administrator: 'client_administrator',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeParticipantStateParticipantChannel =
+  | (typeof EmployeeParticipantStateParticipantChannel)[keyof typeof EmployeeParticipantStateParticipantChannel]
+  | null;
+
+export const EmployeeParticipantStateParticipantChannel = {
+  email: 'email',
+  sms: 'sms',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeParticipantStateParticipant = {
+  id: string;
+  clientId: string;
+  kind: EmployeeParticipantStateParticipantKind;
+  /** @nullable */
+  employeeId: string | null;
+  fullName: string;
+  /** @nullable */
+  channel: EmployeeParticipantStateParticipantChannel;
+  /** @nullable */
+  address: string | null;
+  createdAt: string;
+  /** @nullable */
+  revokedAt: string | null;
+  /** @nullable */
+  noticeVersion: string | null;
+} | null;
+
+export type EmployeeParticipantStateInvitationKind =
+  (typeof EmployeeParticipantStateInvitationKind)[keyof typeof EmployeeParticipantStateInvitationKind];
+
+export const EmployeeParticipantStateInvitationKind = {
+  employee: 'employee',
+  client_administrator: 'client_administrator',
+} as const;
+
+export type EmployeeParticipantStateInvitationChannel =
+  (typeof EmployeeParticipantStateInvitationChannel)[keyof typeof EmployeeParticipantStateInvitationChannel];
+
+export const EmployeeParticipantStateInvitationChannel = {
+  email: 'email',
+  sms: 'sms',
+} as const;
+
+export type EmployeeParticipantStateInvitationStatus =
+  (typeof EmployeeParticipantStateInvitationStatus)[keyof typeof EmployeeParticipantStateInvitationStatus];
+
+export const EmployeeParticipantStateInvitationStatus = {
+  open: 'open',
+  expired: 'expired',
+  accepted: 'accepted',
+  revoked: 'revoked',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeParticipantStateInvitation = {
+  id: string;
+  clientId: string;
+  kind: EmployeeParticipantStateInvitationKind;
+  /** @nullable */
+  employeeId: string | null;
+  fullName: string;
+  channel: EmployeeParticipantStateInvitationChannel;
+  address: string;
+  status: EmployeeParticipantStateInvitationStatus;
+  lastSentAt: string;
+  resendableAt: string;
+  expiresAt: string;
+  createdAt: string;
+} | null;
+
+export interface EmployeeParticipantState {
+  /** @nullable */
+  participant: EmployeeParticipantStateParticipant;
+  /** @nullable */
+  invitation: EmployeeParticipantStateInvitation;
+}
+
+export type ParticipantInvitationResponseKind =
+  (typeof ParticipantInvitationResponseKind)[keyof typeof ParticipantInvitationResponseKind];
+
+export const ParticipantInvitationResponseKind = {
+  employee: 'employee',
+  client_administrator: 'client_administrator',
+} as const;
+
+export type ParticipantInvitationResponseChannel =
+  (typeof ParticipantInvitationResponseChannel)[keyof typeof ParticipantInvitationResponseChannel];
+
+export const ParticipantInvitationResponseChannel = {
+  email: 'email',
+  sms: 'sms',
+} as const;
+
+export type ParticipantInvitationResponseStatus =
+  (typeof ParticipantInvitationResponseStatus)[keyof typeof ParticipantInvitationResponseStatus];
+
+export const ParticipantInvitationResponseStatus = {
+  open: 'open',
+  expired: 'expired',
+  accepted: 'accepted',
+  revoked: 'revoked',
+} as const;
+
+export interface ParticipantInvitationResponse {
+  id: string;
+  clientId: string;
+  kind: ParticipantInvitationResponseKind;
+  /** @nullable */
+  employeeId: string | null;
+  fullName: string;
+  channel: ParticipantInvitationResponseChannel;
+  address: string;
+  status: ParticipantInvitationResponseStatus;
+  lastSentAt: string;
+  resendableAt: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export type ParticipantInvitationRequestChannel =
+  (typeof ParticipantInvitationRequestChannel)[keyof typeof ParticipantInvitationRequestChannel];
+
+export const ParticipantInvitationRequestChannel = {
+  email: 'email',
+  sms: 'sms',
+} as const;
+
+export interface ParticipantInvitationRequest {
+  channel: ParticipantInvitationRequestChannel;
+  /**
+   * @minLength 3
+   * @maxLength 254
+   */
+  address: string;
+}
+
+export type ClientAdministratorInvitationRequestChannel =
+  (typeof ClientAdministratorInvitationRequestChannel)[keyof typeof ClientAdministratorInvitationRequestChannel];
+
+export const ClientAdministratorInvitationRequestChannel = {
+  email: 'email',
+  sms: 'sms',
+} as const;
+
+export interface ClientAdministratorInvitationRequest {
+  channel: ClientAdministratorInvitationRequestChannel;
+  /**
+   * @minLength 3
+   * @maxLength 254
+   */
+  address: string;
+  /** @nullable */
+  employeeId?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  fullName?: string | null;
+}
+
+export type ClientParticipantsResponseParticipantsItemKind =
+  (typeof ClientParticipantsResponseParticipantsItemKind)[keyof typeof ClientParticipantsResponseParticipantsItemKind];
+
+export const ClientParticipantsResponseParticipantsItemKind = {
+  employee: 'employee',
+  client_administrator: 'client_administrator',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientParticipantsResponseParticipantsItemChannel =
+  | (typeof ClientParticipantsResponseParticipantsItemChannel)[keyof typeof ClientParticipantsResponseParticipantsItemChannel]
+  | null;
+
+export const ClientParticipantsResponseParticipantsItemChannel = {
+  email: 'email',
+  sms: 'sms',
+} as const;
+
+export type ClientParticipantsResponseParticipantsItem = {
+  id: string;
+  clientId: string;
+  kind: ClientParticipantsResponseParticipantsItemKind;
+  /** @nullable */
+  employeeId: string | null;
+  fullName: string;
+  /** @nullable */
+  channel: ClientParticipantsResponseParticipantsItemChannel;
+  /** @nullable */
+  address: string | null;
+  createdAt: string;
+  /** @nullable */
+  revokedAt: string | null;
+  /** @nullable */
+  noticeVersion: string | null;
+};
+
+export type ClientParticipantsResponseInvitationsItemKind =
+  (typeof ClientParticipantsResponseInvitationsItemKind)[keyof typeof ClientParticipantsResponseInvitationsItemKind];
+
+export const ClientParticipantsResponseInvitationsItemKind = {
+  employee: 'employee',
+  client_administrator: 'client_administrator',
+} as const;
+
+export type ClientParticipantsResponseInvitationsItemChannel =
+  (typeof ClientParticipantsResponseInvitationsItemChannel)[keyof typeof ClientParticipantsResponseInvitationsItemChannel];
+
+export const ClientParticipantsResponseInvitationsItemChannel = {
+  email: 'email',
+  sms: 'sms',
+} as const;
+
+export type ClientParticipantsResponseInvitationsItemStatus =
+  (typeof ClientParticipantsResponseInvitationsItemStatus)[keyof typeof ClientParticipantsResponseInvitationsItemStatus];
+
+export const ClientParticipantsResponseInvitationsItemStatus = {
+  open: 'open',
+  expired: 'expired',
+  accepted: 'accepted',
+  revoked: 'revoked',
+} as const;
+
+export type ClientParticipantsResponseInvitationsItem = {
+  id: string;
+  clientId: string;
+  kind: ClientParticipantsResponseInvitationsItemKind;
+  /** @nullable */
+  employeeId: string | null;
+  fullName: string;
+  channel: ClientParticipantsResponseInvitationsItemChannel;
+  address: string;
+  status: ClientParticipantsResponseInvitationsItemStatus;
+  lastSentAt: string;
+  resendableAt: string;
+  expiresAt: string;
+  createdAt: string;
+};
+
+export interface ClientParticipantsResponse {
+  participants: ClientParticipantsResponseParticipantsItem[];
+  invitations: ClientParticipantsResponseInvitationsItem[];
 }
 
 export type WaitlistSubscribeResponseStatus =
@@ -26132,6 +26388,793 @@ export const useJoinWithInvitation = <TError = ErrorType<ApiErrorResponse>, TCon
   TContext
 > => {
   return useMutation(getJoinWithInvitationMutationOptions(options), queryClient);
+};
+
+export const getGetEmployeeParticipantUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/participant`;
+};
+
+/**
+ * The active participant the employee is, or else the newest invitation neither accepted nor revoked, open or expired (ADR 022).
+ * @summary An employee's standing on the portal
+ */
+export const getEmployeeParticipant = async (
+  clientId: string,
+  employeeId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EmployeeParticipantState> => {
+  return apiFetch<EmployeeParticipantState>(getGetEmployeeParticipantUrl(clientId, employeeId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetEmployeeParticipantQueryKey = (clientId: string, employeeId: string) => {
+  return [`/clients/${clientId}/employees/${employeeId}/participant`] as const;
+};
+
+export const getGetEmployeeParticipantQueryOptions = <
+  TData = Awaited<ReturnType<typeof getEmployeeParticipant>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEmployeeParticipant>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetEmployeeParticipantQueryKey(clientId, employeeId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmployeeParticipant>>> = ({ signal }) =>
+    getEmployeeParticipant(clientId, employeeId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getEmployeeParticipant>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetEmployeeParticipantQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getEmployeeParticipant>>
+>;
+export type GetEmployeeParticipantQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetEmployeeParticipant<
+  TData = Awaited<ReturnType<typeof getEmployeeParticipant>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEmployeeParticipant>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getEmployeeParticipant>>,
+          TError,
+          Awaited<ReturnType<typeof getEmployeeParticipant>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetEmployeeParticipant<
+  TData = Awaited<ReturnType<typeof getEmployeeParticipant>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEmployeeParticipant>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getEmployeeParticipant>>,
+          TError,
+          Awaited<ReturnType<typeof getEmployeeParticipant>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetEmployeeParticipant<
+  TData = Awaited<ReturnType<typeof getEmployeeParticipant>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEmployeeParticipant>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary An employee's standing on the portal
+ */
+
+export function useGetEmployeeParticipant<
+  TData = Awaited<ReturnType<typeof getEmployeeParticipant>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEmployeeParticipant>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetEmployeeParticipantQueryOptions(clientId, employeeId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getInviteEmployeeParticipantUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/participant-invitations`;
+};
+
+/**
+ * Every member invites. The address is the employee's own email or phone, as their record holds it. Inviting the same address again renews its invitation and resends the message. The account the person signs in with is created now, unconfirmed, or the address's existing account is reused; the response never says which.
+ * @summary Invite an employee to the portal by email or SMS
+ */
+export const inviteEmployeeParticipant = async (
+  clientId: string,
+  employeeId: string,
+  participantInvitationRequest: ParticipantInvitationRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ParticipantInvitationResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ParticipantInvitationResponse>(
+    getInviteEmployeeParticipantUrl(clientId, employeeId),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(participantInvitationRequest),
+    }
+  );
+};
+
+export const getInviteEmployeeParticipantMutationKey = () => ['inviteEmployeeParticipant'] as const;
+
+export const getInviteEmployeeParticipantMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof inviteEmployeeParticipant>>,
+    TError,
+    InviteEmployeeParticipantMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof inviteEmployeeParticipant>>,
+  TError,
+  InviteEmployeeParticipantMutationVariables,
+  TContext
+> => {
+  const mutationKey = getInviteEmployeeParticipantMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof inviteEmployeeParticipant>>,
+    InviteEmployeeParticipantMutationVariables
+  > = (props) => {
+    const { clientId, employeeId, data } = props ?? {};
+
+    return inviteEmployeeParticipant(clientId, employeeId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InviteEmployeeParticipantMutationResult = NonNullable<
+  Awaited<ReturnType<typeof inviteEmployeeParticipant>>
+>;
+export type InviteEmployeeParticipantMutationBody = ParticipantInvitationRequest;
+export type InviteEmployeeParticipantMutationError = ErrorType<ApiErrorResponse>;
+export type InviteEmployeeParticipantMutationVariables = {
+  clientId: string;
+  employeeId: string;
+  data: ParticipantInvitationRequest;
+};
+
+/**
+ * @summary Invite an employee to the portal by email or SMS
+ */
+export const useInviteEmployeeParticipant = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof inviteEmployeeParticipant>>,
+      TError,
+      InviteEmployeeParticipantMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof inviteEmployeeParticipant>>,
+  TError,
+  InviteEmployeeParticipantMutationVariables,
+  TContext
+> => {
+  return useMutation(getInviteEmployeeParticipantMutationOptions(options), queryClient);
+};
+
+export const getInviteClientAdministratorUrl = (clientId: string) => {
+  return `/clients/${clientId}/participant-invitations`;
+};
+
+/**
+ * The person who runs the safety records on the employer's side: an employee of the client (`employeeId`), whose name is read from their record, or a person named in `fullName`. The address is typed. Otherwise as inviting an employee.
+ * @summary Invite the client administrator to the portal by email or SMS
+ */
+export const inviteClientAdministrator = async (
+  clientId: string,
+  clientAdministratorInvitationRequest: ClientAdministratorInvitationRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ParticipantInvitationResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ParticipantInvitationResponse>(getInviteClientAdministratorUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(clientAdministratorInvitationRequest),
+  });
+};
+
+export const getInviteClientAdministratorMutationKey = () => ['inviteClientAdministrator'] as const;
+
+export const getInviteClientAdministratorMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof inviteClientAdministrator>>,
+    TError,
+    InviteClientAdministratorMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof inviteClientAdministrator>>,
+  TError,
+  InviteClientAdministratorMutationVariables,
+  TContext
+> => {
+  const mutationKey = getInviteClientAdministratorMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof inviteClientAdministrator>>,
+    InviteClientAdministratorMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return inviteClientAdministrator(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InviteClientAdministratorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof inviteClientAdministrator>>
+>;
+export type InviteClientAdministratorMutationBody = ClientAdministratorInvitationRequest;
+export type InviteClientAdministratorMutationError = ErrorType<ApiErrorResponse>;
+export type InviteClientAdministratorMutationVariables = {
+  clientId: string;
+  data: ClientAdministratorInvitationRequest;
+};
+
+/**
+ * @summary Invite the client administrator to the portal by email or SMS
+ */
+export const useInviteClientAdministrator = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof inviteClientAdministrator>>,
+      TError,
+      InviteClientAdministratorMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof inviteClientAdministrator>>,
+  TError,
+  InviteClientAdministratorMutationVariables,
+  TContext
+> => {
+  return useMutation(getInviteClientAdministratorMutationOptions(options), queryClient);
+};
+
+export const getListClientParticipantsUrl = (clientId: string) => {
+  return `/clients/${clientId}/participants`;
+};
+
+/**
+ * The active participants, oldest first, and the invitations neither accepted nor revoked, open or expired, newest first.
+ * @summary A client's participants and pending invitations
+ */
+export const listClientParticipants = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ClientParticipantsResponse> => {
+  return apiFetch<ClientParticipantsResponse>(getListClientParticipantsUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListClientParticipantsQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/participants`] as const;
+};
+
+export const getListClientParticipantsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listClientParticipants>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientParticipants>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListClientParticipantsQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listClientParticipants>>> = ({ signal }) =>
+    listClientParticipants(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listClientParticipants>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListClientParticipantsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listClientParticipants>>
+>;
+export type ListClientParticipantsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListClientParticipants<
+  TData = Awaited<ReturnType<typeof listClientParticipants>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientParticipants>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listClientParticipants>>,
+          TError,
+          Awaited<ReturnType<typeof listClientParticipants>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListClientParticipants<
+  TData = Awaited<ReturnType<typeof listClientParticipants>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientParticipants>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listClientParticipants>>,
+          TError,
+          Awaited<ReturnType<typeof listClientParticipants>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListClientParticipants<
+  TData = Awaited<ReturnType<typeof listClientParticipants>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientParticipants>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A client's participants and pending invitations
+ */
+
+export function useListClientParticipants<
+  TData = Awaited<ReturnType<typeof listClientParticipants>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listClientParticipants>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListClientParticipantsQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getResendParticipantInvitationUrl = (invitationId: string) => {
+  return `/participant-invitations/${invitationId}/resend`;
+};
+
+/**
+ * At most one message per 10 minutes. An expired invitation can be resent.
+ * @summary Renew a participant invitation for 30 days and send its message again
+ */
+export const resendParticipantInvitation = async (
+  invitationId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ParticipantInvitationResponse> => {
+  return apiFetch<ParticipantInvitationResponse>(getResendParticipantInvitationUrl(invitationId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getResendParticipantInvitationMutationKey = () =>
+  ['resendParticipantInvitation'] as const;
+
+export const getResendParticipantInvitationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resendParticipantInvitation>>,
+    TError,
+    ResendParticipantInvitationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resendParticipantInvitation>>,
+  TError,
+  ResendParticipantInvitationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getResendParticipantInvitationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resendParticipantInvitation>>,
+    ResendParticipantInvitationMutationVariables
+  > = (props) => {
+    const { invitationId } = props ?? {};
+
+    return resendParticipantInvitation(invitationId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResendParticipantInvitationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resendParticipantInvitation>>
+>;
+
+export type ResendParticipantInvitationMutationError = ErrorType<ApiErrorResponse>;
+export type ResendParticipantInvitationMutationVariables = { invitationId: string };
+
+/**
+ * @summary Renew a participant invitation for 30 days and send its message again
+ */
+export const useResendParticipantInvitation = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof resendParticipantInvitation>>,
+      TError,
+      ResendParticipantInvitationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof resendParticipantInvitation>>,
+  TError,
+  ResendParticipantInvitationMutationVariables,
+  TContext
+> => {
+  return useMutation(getResendParticipantInvitationMutationOptions(options), queryClient);
+};
+
+export const getRevokeParticipantInvitationUrl = (invitationId: string) => {
+  return `/participant-invitations/${invitationId}/revoke`;
+};
+
+/**
+ * A code received at the address no longer makes the person a participant. The account stays.
+ * @summary Revoke a participant invitation
+ */
+export const revokeParticipantInvitation = async (
+  invitationId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getRevokeParticipantInvitationUrl(invitationId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getRevokeParticipantInvitationMutationKey = () =>
+  ['revokeParticipantInvitation'] as const;
+
+export const getRevokeParticipantInvitationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revokeParticipantInvitation>>,
+    TError,
+    RevokeParticipantInvitationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof revokeParticipantInvitation>>,
+  TError,
+  RevokeParticipantInvitationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRevokeParticipantInvitationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof revokeParticipantInvitation>>,
+    RevokeParticipantInvitationMutationVariables
+  > = (props) => {
+    const { invitationId } = props ?? {};
+
+    return revokeParticipantInvitation(invitationId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RevokeParticipantInvitationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof revokeParticipantInvitation>>
+>;
+
+export type RevokeParticipantInvitationMutationError = ErrorType<ApiErrorResponse>;
+export type RevokeParticipantInvitationMutationVariables = { invitationId: string };
+
+/**
+ * @summary Revoke a participant invitation
+ */
+export const useRevokeParticipantInvitation = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof revokeParticipantInvitation>>,
+      TError,
+      RevokeParticipantInvitationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof revokeParticipantInvitation>>,
+  TError,
+  RevokeParticipantInvitationMutationVariables,
+  TContext
+> => {
+  return useMutation(getRevokeParticipantInvitationMutationOptions(options), queryClient);
+};
+
+export const getRevokeClientParticipantUrl = (participantId: string) => {
+  return `/client-participants/${participantId}/revoke`;
+};
+
+/**
+ * The person no longer sees the client in the portal. Their records stay, and they can be invited again.
+ * @summary Revoke a participant
+ */
+export const revokeClientParticipant = async (
+  participantId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getRevokeClientParticipantUrl(participantId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getRevokeClientParticipantMutationKey = () => ['revokeClientParticipant'] as const;
+
+export const getRevokeClientParticipantMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revokeClientParticipant>>,
+    TError,
+    RevokeClientParticipantMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof revokeClientParticipant>>,
+  TError,
+  RevokeClientParticipantMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRevokeClientParticipantMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof revokeClientParticipant>>,
+    RevokeClientParticipantMutationVariables
+  > = (props) => {
+    const { participantId } = props ?? {};
+
+    return revokeClientParticipant(participantId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RevokeClientParticipantMutationResult = NonNullable<
+  Awaited<ReturnType<typeof revokeClientParticipant>>
+>;
+
+export type RevokeClientParticipantMutationError = ErrorType<ApiErrorResponse>;
+export type RevokeClientParticipantMutationVariables = { participantId: string };
+
+/**
+ * @summary Revoke a participant
+ */
+export const useRevokeClientParticipant = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof revokeClientParticipant>>,
+      TError,
+      RevokeClientParticipantMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof revokeClientParticipant>>,
+  TError,
+  RevokeClientParticipantMutationVariables,
+  TContext
+> => {
+  return useMutation(getRevokeClientParticipantMutationOptions(options), queryClient);
 };
 
 export const getSubscribeToWaitlistUrl = () => {

@@ -3,6 +3,8 @@ import {
   type MailService,
   type OrganizationInvitationEmail,
   organizationInvitationEmailSchema,
+  type ParticipantInvitationEmail,
+  participantInvitationEmailSchema,
   type PasswordChangedEmail,
   passwordChangedEmailSchema,
   type PasswordResetEmail,
@@ -11,6 +13,8 @@ import {
   serviceContractEmailSchema,
   type SignedCopyReceivedEmail,
   signedCopyReceivedEmailSchema,
+  type SignInCodeEmail,
+  signInCodeEmailSchema,
   type SignupConfirmationEmail,
   signupConfirmationEmailSchema,
   type WaitlistConfirmationEmail,
@@ -21,9 +25,13 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import OrganizationInvitation, {
   subject as invitationSubject,
 } from './emails/organization-invitation';
+import ParticipantInvitation, {
+  subject as participantInvitationSubject,
+} from './emails/participant-invitation';
 import PasswordChanged, { subject as passwordChangedSubject } from './emails/password-changed';
 import PasswordReset, { subject as passwordResetSubject } from './emails/password-reset';
 import ServiceContract, { subject as serviceContractSubject } from './emails/service-contract';
+import SignInCode, { subject as signInCodeSubject } from './emails/sign-in-code';
 import SignedCopyReceived, {
   subject as signedCopyReceivedSubject,
 } from './emails/signed-copy-received';
@@ -105,6 +113,26 @@ export class Mail extends WorkerEntrypoint<MailEnv> implements MailService {
       to,
       subject: signedCopyReceivedSubject(received.clientName),
       body: <SignedCopyReceived {...received} />,
+    });
+  }
+
+  async sendParticipantInvitation(input: ParticipantInvitationEmail): Promise<MailReceipt> {
+    const { to, ...invitation } = participantInvitationEmailSchema.parse(input);
+
+    return sendEmail(this.env, {
+      to,
+      subject: participantInvitationSubject(invitation.clientName),
+      body: <ParticipantInvitation {...invitation} />,
+    });
+  }
+
+  async sendSignInCode(input: SignInCodeEmail): Promise<MailReceipt> {
+    const { to, ...code } = signInCodeEmailSchema.parse(input);
+
+    return sendEmail(this.env, {
+      to,
+      subject: signInCodeSubject(code.code),
+      body: <SignInCode {...code} />,
     });
   }
 }

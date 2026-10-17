@@ -24,6 +24,7 @@ jobs:
       pull-requests: read
     outputs:
       app: ${{ steps.filter.outputs.app }}
+      portal: ${{ steps.filter.outputs.portal }}
       api: ${{ steps.filter.outputs.api }}
       database: ${{ steps.filter.outputs.database }}
       code: ${{ steps.filter.outputs.code }}
@@ -45,7 +46,7 @@ jobs:
           CHANGES: ${{ steps.filter.outputs.changes }}
         shell: bash
         run: |
-          echo "projects=$(jq -c 'map(select(IN("api", "app", "mail", "pdf", "legislation", "marketing")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
+          echo "projects=$(jq -c 'map(select(IN("api", "app", "portal", "mail", "sms", "pdf", "legislation", "marketing")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
 
   validate:
     name: Validate repository
@@ -77,6 +78,7 @@ jobs:
     needs: changes
     if: >-
       needs.changes.outputs.app == 'true' ||
+      needs.changes.outputs.portal == 'true' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.database == 'true'
     runs-on: ubuntu-latest
@@ -161,9 +163,23 @@ jobs:
           fi
 
       - name: Run the browser flows
+        if: >-
+          needs.changes.outputs.app == 'true' ||
+          needs.changes.outputs.api == 'true' ||
+          needs.changes.outputs.database == 'true'
         env:
           GOTENBERG_URL: http://localhost:3300
         run: pnpm --filter @ssm-usor/app test:e2e:flows
+
+      # After the app's: both serve the API on the port the local stack's hooks call.
+      - name: Run the portal's browser flows
+        if: >-
+          !cancelled() && (
+            needs.changes.outputs.portal == 'true' ||
+            needs.changes.outputs.api == 'true' ||
+            needs.changes.outputs.database == 'true'
+          )
+        run: pnpm --filter @ssm-usor/portal test:e2e:flows
 
       - name: Upload the flow test report
         if: ${{ failure() }}
@@ -173,5 +189,7 @@ jobs:
           path: |
             apps/app/playwright-report-flows/
             apps/app/test-results-flows/
+            apps/portal/playwright-report-flows/
+            apps/portal/test-results-flows/
           retention-days: 7
           overwrite: true

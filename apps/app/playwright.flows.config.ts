@@ -73,6 +73,7 @@ export default defineConfig({
         SUPABASE_SECRET_KEY: supabase.secretKey,
         // The placeholder the local stack signs its Send Email hook with; not a secret.
         SUPABASE_AUTH_HOOK_SECRET: 'v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXN0YWNrLW9ubHktMzI=',
+        SUPABASE_AUTH_SMS_HOOK_SECRET: 'v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXNtcy1ob29rLW9ubHk=',
         // Docker on Linux reaches the host over its bridge, not over loopback.
         HOST: process.env.CI ? '0.0.0.0' : '127.0.0.1',
         CORS_ORIGINS: appUrl,

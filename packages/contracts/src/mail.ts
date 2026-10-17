@@ -94,6 +94,32 @@ export const signedCopyReceivedEmailSchema = z.object({
 
 export type SignedCopyReceivedEmail = z.infer<typeof signedCopyReceivedEmailSchema>;
 
+/**
+ * Tells a participant who invited them to the portal and where it is (ADR 022). It carries no
+ * token: the person signs in with a code sent to the address this email came to.
+ */
+export const participantInvitationEmailSchema = z.object({
+  to: z.email(),
+  clientName: z.string().trim().min(2).max(200),
+  organizationName: z.string().trim().min(2).max(200),
+  portalUrl: z.url(),
+});
+
+export type ParticipantInvitationEmail = z.infer<typeof participantInvitationEmailSchema>;
+
+/** The portal's one-time sign-in code, sent through Supabase Auth's Send Email hook. */
+export const signInCodeEmailSchema = z.object({
+  to: z.email(),
+  code: z.string().regex(/^\d{6,10}$/),
+  /** How long the code works; Supabase Auth's email OTP expiry, in minutes. */
+  expiresInMinutes: z
+    .int()
+    .min(1)
+    .max(24 * 60),
+});
+
+export type SignInCodeEmail = z.infer<typeof signInCodeEmailSchema>;
+
 /** `id` is the provider's message id, or null when the email was only logged. */
 export type MailReceipt = { id: string | null };
 
@@ -110,4 +136,6 @@ export interface MailService {
   sendSignupConfirmation(input: SignupConfirmationEmail): Promise<MailReceipt>;
   sendServiceContract(input: ServiceContractEmail): Promise<MailReceipt>;
   sendSignedCopyReceived(input: SignedCopyReceivedEmail): Promise<MailReceipt>;
+  sendParticipantInvitation(input: ParticipantInvitationEmail): Promise<MailReceipt>;
+  sendSignInCode(input: SignInCodeEmail): Promise<MailReceipt>;
 }

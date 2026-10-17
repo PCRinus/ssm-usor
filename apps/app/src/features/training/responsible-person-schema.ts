@@ -1,4 +1,8 @@
-import { type ResponsiblePersonRole, responsiblePersonRoles } from '@ssm-usor/contracts';
+import {
+  type ResponsiblePersonRole,
+  responsiblePersonRoleLabels,
+  responsiblePersonRoles,
+} from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type { ResponsiblePersonListResponse, ResponsiblePersonRequest } from '@/api/generated/api';
@@ -10,33 +14,33 @@ export const responsibleRoleLabels: Record<
   { label: string; description: string }
 > = {
   workplace_manager: {
-    label: 'Conducător al locului de muncă',
+    label: responsiblePersonRoleLabels.workplace_manager,
     description: 'Efectuează instruirea la locul de muncă și instruirea periodică.',
   },
   first_aid: {
-    label: 'Prim ajutor',
+    label: responsiblePersonRoleLabels.first_aid,
     description: 'Aplică măsurile de prim ajutor.',
   },
   risk_evaluation_team: {
-    label: 'Echipa de evaluare a riscurilor',
+    label: responsiblePersonRoleLabels.risk_evaluation_team,
     description: 'Membru al echipei care identifică și evaluează riscurile.',
   },
   imminent_danger: {
-    label: 'Pericol grav și iminent',
+    label: responsiblePersonRoleLabels.imminent_danger,
     description: 'Ia măsurile de securitate: oprire, evacuare, anunțare.',
   },
   workers_representative: {
-    label: 'Reprezentantul lucrătorilor',
+    label: responsiblePersonRoleLabels.workers_representative,
     description:
       'Ales de lucrători dintre ei. Necesar de la 10 angajați, doi de la 50. Nu poate fi reprezentantul legal.',
   },
   fire_safety_coordinator: {
-    label: 'Coordonator privind apărarea împotriva incendiilor',
+    label: responsiblePersonRoleLabels.fire_safety_coordinator,
     description:
       'Răspunde de organizarea apărării împotriva incendiilor și de lucrul cu foc deschis.',
   },
   fire_intervention_leader: {
-    label: 'Șef echipă de primă intervenție',
+    label: responsiblePersonRoleLabels.fire_intervention_leader,
     description: 'Conduce prima intervenție în caz de incendiu, până la sosirea pompierilor.',
   },
 };

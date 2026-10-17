@@ -7,9 +7,28 @@ request functions, TanStack Query hooks, query keys, and query-option factories.
 ```text
 packages/contracts + apps/api/src/modules/*/routes.ts
   → apps/api/openapi.json
-  → apps/app/src/api/generated/api.ts
-  → apps/app
+  → apps/app/src/api/generated/api.ts      (every operation not tagged `portal`)
+  → apps/portal/src/api/generated/api.ts   (the operations tagged `portal`)
 ```
+
+## Two clients from one document
+
+`orval.config.ts` has two outputs ([ADR 022](architecture/adr-022-participants-and-the-portal.md)).
+The portal's, `portal`, reads the same document with `input.filters: { tags: ['portal'] }`,
+so its file holds the `/portal` routes, the schemas they use, and nothing else: the portal's
+whole API surface is one file a reviewer can read. The app's, `api`, excludes those operations
+and the schemas named `Portal…`; excluding by tag alone would also drop and reorder every
+schema the remaining operations do not reach. So:
+
+- A route a participant calls lives under `/portal`, has `tags: ['portal']`, and names its
+  response schemas `Portal…` in `.meta({ id })`. Its handler runs behind `requireParticipant`
+  ([API](api.md#portal)).
+- A schema both clients need, such as `ApiErrorResponse` or `MissingSheetDataResponse`, keeps
+  a name without the prefix and appears in both files.
+- Every other route has no tag.
+
+Each output has its own mutator, `apps/app/src/api/http.ts` and `apps/portal/src/api/http.ts`,
+and both are covered by `check:generated`.
 
 ## Generate and review changes
 
@@ -38,7 +57,10 @@ runtime. Shared schemas remain plain Zod; OpenAPI names are attached through Zod
 in the API workspace, keeping framework dependencies out of the contracts package.
 
 Do not edit generated TypeScript. ESLint skips that directory; TypeScript and Prettier still
-check it. The HTTP adapter in `apps/app/src/api/http.ts` is handwritten and tested.
+check it. The HTTP adapter is the package `@ssm-usor/api-http`, handwritten and tested;
+`apps/app/src/api/http.ts` wires it with the app's PostHog reporting of failed requests, and
+`apps/portal/src/api/http.ts` without it. Each of those files is its app's orval mutator, so it
+declares `apiFetch` and `ErrorType` itself: orval does not follow re-exports.
 
 ## Using the client
 

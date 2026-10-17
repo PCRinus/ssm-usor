@@ -51,8 +51,8 @@ password_requirements = "lower_upper_letters_digits"
 enable_signup = true
 # An address is confirmed before its account can be used, here as on the hosted project.
 enable_confirmations = true
-# How long a recovery link works. OTP_EXPIRY_MINUTES in apps/api's auth-hooks module says the
-# same to the person reading the email.
+# How long a recovery link and the portal's emailed sign-in code work. OTP_EXPIRY_MINUTES in
+# apps/api's auth-hooks module says the same to the person reading the email.
 otp_expiry = 3600
 
 # Tells the owner of an account that its password changed, whoever changed it: from the reset
@@ -75,6 +75,35 @@ enabled = true
 enabled = true
 uri = "http://host.docker.internal:8797/hooks/supabase/send-email"
 secrets = "v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXN0YWNrLW9ubHktMzI="
+
+# The portal's sign-in by code (ADR 022). `enable_signup` is Supabase's switch for phone sign-in
+# as a whole: phone sign-in cannot be on with signup by phone off, so anyone can have Auth make
+# an account for a number. The API's Send SMS hook texts only the accounts it made for an
+# invitation (apps/api's auth-hooks module), so a stranger's number gets no SMS.
+#
+# The code's expiry (`sms_otp_exp`) is not a property of this file: the local stack fixes it at
+# 100 minutes, and the deployment workflow sets 10 on the hosted project.
+[auth.sms]
+enable_signup = true
+# The first code confirms the number, as the first emailed code confirms an address.
+enable_confirmations = true
+# Never used: the Send SMS hook writes the message.
+template = "Your code is {{ .Code }}"
+max_frequency = "60s"
+
+# Supabase Auth hands every code it would text to the API, which forwards it to the SMS Worker.
+# Locally it points at the flow tests' API (port 8797), which keeps messages in memory, like
+# the email hook above. The value below decodes to "not-a-secret-local-sms-hook-only"; the
+# hosted project gets its own from [remotes.production] below.
+[auth.hook.send_sms]
+enabled = true
+uri = "http://host.docker.internal:8797/hooks/supabase/send-sms"
+secrets = "v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXNtcy1ob29rLW9ubHk="
+
+# Per hour, for the whole project. The default of 30 is less than a client onboarding a floor of
+# employees in one afternoon needs, and the cap is what bounds the cost of misuse (ADR 022).
+[auth.rate_limit]
+sms_sent = 100
 
 [realtime]
 enabled = false
@@ -102,3 +131,14 @@ additional_redirect_urls = []
 enabled = true
 uri = "https://api.ssmusor.ro/hooks/supabase/send-email"
 secrets = "env(SUPABASE_AUTH_HOOK_SECRET)"
+
+[remotes.production.auth.hook.send_sms]
+enabled = true
+uri = "https://api.ssmusor.ro/hooks/supabase/send-sms"
+secrets = "env(SUPABASE_AUTH_SMS_HOOK_SECRET)"
+
+# The same meaning as `enable_confirmations = true` above: the CLI pushes this key to the
+# hosted project un-negated, so there it means the opposite of what it means locally
+# (supabase/cli#6997). The deployment workflow sets the hosted value again after the push.
+[remotes.production.auth.sms]
+enable_confirmations = false

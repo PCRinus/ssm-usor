@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { decodeCnp, isValidCnpInput, normalizeCnp } from './cnp';
 import { listQuerySchema, listSearchSchema, pageSchema } from './list';
+import { phoneSchema } from './phone';
 import { employeeTrainingSchema, trainingStateFilterSchema } from './trainings';
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
@@ -35,11 +36,7 @@ export const createEmployeeRequestSchema = z
     cnp: cnpInputSchema.nullish(),
     employeeNumber: optionalText(1, 40),
     email: z.email().trim().toLowerCase().max(254).nullish(),
-    phone: z
-      .string()
-      .trim()
-      .regex(/^\+?[0-9][0-9 ().-]{3,18}$/, { message: 'Invalid phone number.' })
-      .nullish(),
+    phone: phoneSchema.nullish(),
     // The title in the employment contract. Usually the name of the job position, and not the
     // same fact (ADR 006).
     jobTitle: z.string().trim().min(2).max(160),

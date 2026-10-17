@@ -1,10 +1,13 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
+  type MissingSheetData,
   type MissingSheetDataResponse,
   type TrainingDomain,
   trainingDomains,
+  type TrainingSheetsResponse,
   trainingSheetTypeKeys,
 } from '@ssm-usor/contracts';
+import type { Context } from 'hono';
 
 import { contentDisposition } from '../../lib/content-disposition';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
@@ -26,7 +29,7 @@ import type { getTrainingSheetRoute, getTrainingSheetsRoute } from './sheet-rout
 const noSuchEmployee = () =>
   new ApiError('not_found', 'This employee does not exist under this client.');
 
-async function loadRecords(db: DataClient, employeeId: string, domain: TrainingDomain) {
+export async function loadRecords(db: DataClient, employeeId: string, domain: TrainingDomain) {
   const { data, error } = await db
     .from('training_records')
     .select(
@@ -44,7 +47,7 @@ async function loadRecords(db: DataClient, employeeId: string, domain: TrainingD
 
 // Row-level security hides other organizations' clients and their employees, so a missing row
 // is a 404 whoever the client belongs to.
-async function loadSheetFacts(
+export async function loadSheetFacts(
   db: DataClient,
   clientId: string,
   employeeId: string
@@ -98,43 +101,46 @@ async function loadSheetFacts(
   };
 }
 
-export const getTrainingSheets: RouteHandler<typeof getTrainingSheetsRoute, ApiEnv> = async (c) => {
-  const { clientId, employeeId } = c.req.valid('param');
-  const facts = await loadSheetFacts(createDataClient(c), clientId, employeeId);
+export async function trainingSheetReadiness(
+  db: DataClient,
+  clientId: string,
+  employeeId: string
+): Promise<TrainingSheetsResponse> {
+  const facts = await loadSheetFacts(db, clientId, employeeId);
   const readiness = (domain: TrainingDomain) => {
     const missing = missingSheetDataOf({ ...facts, domain, records: [] });
     return { ready: missing.length === 0, missing };
   };
-  return c.json(
-    Object.fromEntries(trainingDomains.map((domain) => [domain, readiness(domain)])) as Record<
-      TrainingDomain,
-      ReturnType<typeof readiness>
-    >,
-    200
-  );
-};
+  return Object.fromEntries(
+    trainingDomains.map((domain) => [domain, readiness(domain)])
+  ) as TrainingSheetsResponse;
+}
 
-export const getTrainingSheet: RouteHandler<typeof getTrainingSheetRoute, ApiEnv> = async (c) => {
-  const { clientId, employeeId } = c.req.valid('param');
-  const { domain } = c.req.valid('query');
-  const db = createDataClient(c);
+export const missingSheetDataResponse = (missing: MissingSheetData[]) =>
+  ({
+    error: 'conflict',
+    message: `Data the sheet prints is missing: ${missing.join(', ')}.`,
+    reason: 'missing_sheet_data',
+    missing,
+  }) satisfies MissingSheetDataResponse;
+
+export type DrawnSheet = { missing: MissingSheetData[] } | { pdf: Uint8Array; fileName: string };
+
+/** The caller reads the template, since who may read Storage differs between them. */
+export async function drawTrainingSheet(
+  c: Context<ApiEnv>,
+  db: DataClient,
+  sheet: { clientId: string; employeeId: string; domain: TrainingDomain },
+  readTemplate: (storagePath: string) => Promise<Uint8Array>
+): Promise<DrawnSheet> {
+  const { clientId, employeeId, domain } = sheet;
   const facts: TrainingSheetFacts = {
     ...(await loadSheetFacts(db, clientId, employeeId)),
     domain,
     records: await loadRecords(db, employeeId, domain),
   };
   const missing = missingSheetDataOf(facts);
-  if (missing.length > 0) {
-    return c.json(
-      {
-        error: 'conflict',
-        message: `Data the sheet prints is missing: ${missing.join(', ')}.`,
-        reason: 'missing_sheet_data',
-        missing,
-      } satisfies MissingSheetDataResponse,
-      409
-    );
-  }
+  if (missing.length > 0) return { missing };
   const pdf = requirePdfConverter(c);
   const typeKey = trainingSheetTypeKeys[domain];
   const [template] = await builtInTemplates(db, [typeKey]);
@@ -148,16 +154,33 @@ export const getTrainingSheet: RouteHandler<typeof getTrainingSheetRoute, ApiEnv
     );
   }
   const { bytes } = merge(
-    await createFileStore(c).readTemplate(template.storagePath),
+    await readTemplate(template.storagePath),
     buildTrainingSheetData(facts),
     typeKey
   );
-  const sheet = await pdf.convertDocx(bytes);
-  return c.body(new Uint8Array(sheet), 200, {
+  return {
+    pdf: await pdf.convertDocx(bytes),
+    fileName: trainingSheetFileName(domain, facts.employee),
+  };
+}
+
+export const getTrainingSheets: RouteHandler<typeof getTrainingSheetsRoute, ApiEnv> = async (c) => {
+  const { clientId, employeeId } = c.req.valid('param');
+  return c.json(await trainingSheetReadiness(createDataClient(c), clientId, employeeId), 200);
+};
+
+export const getTrainingSheet: RouteHandler<typeof getTrainingSheetRoute, ApiEnv> = async (c) => {
+  const { clientId, employeeId } = c.req.valid('param');
+  const { domain } = c.req.valid('query');
+  const sheet = await drawTrainingSheet(
+    c,
+    createDataClient(c),
+    { clientId, employeeId, domain },
+    createFileStore(c).readTemplate
+  );
+  if ('missing' in sheet) return c.json(missingSheetDataResponse(sheet.missing), 409);
+  return c.body(new Uint8Array(sheet.pdf), 200, {
     'Content-Type': 'application/pdf',
-    'Content-Disposition': contentDisposition(
-      'attachment',
-      trainingSheetFileName(domain, facts.employee)
-    ),
+    'Content-Disposition': contentDisposition('attachment', sheet.fileName),
   });
 };

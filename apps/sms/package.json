@@ -1,0 +1,24 @@
+{
+  "name": "@ssm-usor/sms",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "dev": "wrangler dev --port 8793 --inspector-port 9242",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@ssm-usor/contracts": "workspace:*",
+    "zod": "^4.6.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260928.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0",
+    "wrangler": "^4.142.0"
+  }
+}

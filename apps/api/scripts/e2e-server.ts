@@ -5,16 +5,19 @@
 //
 //   SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY   from `supabase status`
 //   APP_ORIGIN, CORS_ORIGINS                                      where the SPA under test is served
+//   PORTAL_ORIGIN                                                 where the portal under test is served
 //   SUPABASE_AUTH_HOOK_SECRET                                     the local placeholder from supabase/config.toml
+//   SUPABASE_AUTH_SMS_HOOK_SECRET                                 the same for the Send SMS hook
 //   PORT                                                          defaults to 8797
 //   HOST                                                          defaults to 127.0.0.1; 0.0.0.0 on Linux, where the
 //                                                                 Supabase containers reach the host over the Docker bridge
 //
-// The local stack's Send Email hook points here, so signing up or asking for a password
-// reset through Supabase lands in the same in-memory mailbox.
+// The local stack's Send Email and Send SMS hooks point here, so signing up, asking for a
+// password reset or for a code through Supabase lands in the same in-memory mailbox, which
+// keeps a text message under its phone number.
 import { createServer } from 'node:http';
 
-import type { MailService } from '@ssm-usor/contracts';
+import type { MailService, SmsService } from '@ssm-usor/contracts';
 
 import { createApp } from '../src/app';
 import type { ApiEnv, RegenerationQueue } from '../src/lib/env';
@@ -48,6 +51,13 @@ const mail: MailService = {
       `${returnUrl} cc=${senderEmail}; ${attachment.fileName}; ${attachment.contentBase64.slice(0, 8)}`
     ),
   sendSignedCopyReceived: ({ to, leadUrl }) => record('signed-copy-received', to, leadUrl),
+  sendParticipantInvitation: ({ to, portalUrl }) => record('participant-invitation', to, portalUrl),
+  sendSignInCode: ({ to, code }) => record('sign-in-code', to, `code=${code}`),
+};
+const sms: SmsService = {
+  sendParticipantInvitation: ({ to, portalUrl }) =>
+    record('participant-invitation-sms', to, portalUrl),
+  sendSignInCode: ({ to, code }) => record('sign-in-code-sms', to, `code=${code}`),
 };
 
 // Every message arrives as its last delivery: an error fails its item instead of waiting for a
@@ -72,10 +82,13 @@ const env: ApiEnv['Bindings'] = {
   SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY,
   SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY,
   SUPABASE_AUTH_HOOK_SECRET: process.env.SUPABASE_AUTH_HOOK_SECRET,
+  SUPABASE_AUTH_SMS_HOOK_SECRET: process.env.SUPABASE_AUTH_SMS_HOOK_SECRET,
   CORS_ORIGINS: process.env.CORS_ORIGINS,
   APP_ORIGIN: process.env.APP_ORIGIN,
+  PORTAL_ORIGIN: process.env.PORTAL_ORIGIN,
   GOTENBERG_URL: process.env.GOTENBERG_URL || undefined,
   MAIL: mail,
+  SMS: sms,
   REGENERATION_QUEUE: regenerationQueue,
 };
 

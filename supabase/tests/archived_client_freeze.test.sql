@@ -86,7 +86,7 @@ select throws_ok(
   'CLA01', null, 'the archived client itself is not edited'
 );
 select lives_ok(
-  $$ update public.employees set phone = '0700000000' where id = 'e1e1e1e1-0000-4000-8000-000000000002' $$,
+  $$ update public.employees set phone = '+40700000000' where id = 'e1e1e1e1-0000-4000-8000-000000000002' $$,
   'an active client of the same organization is untouched'
 );
 

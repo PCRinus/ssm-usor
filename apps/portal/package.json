@@ -1,0 +1,48 @@
+{
+  "name": "@ssm-usor/portal",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "dev": "vite --port 5174",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
+    "generate:routes": "tsr generate",
+    "test:e2e": "playwright test",
+    "test:e2e:flows": "playwright test --config playwright.flows.config.ts",
+    "preview": "vite preview --port 4176",
+    "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
+    "deploy": "pnpm build && wrangler deploy"
+  },
+  "dependencies": {
+    "@ssm-usor/api-http": "workspace:*",
+    "@ssm-usor/contracts": "workspace:*",
+    "@ssm-usor/ui": "workspace:*",
+    "@supabase/supabase-js": "^2.117.2",
+    "@tanstack/react-query": "^5.102.8",
+    "@tanstack/react-router": "^1.170.36",
+    "lucide-react": "^1.45.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/router-cli": "^1.167.36",
+    "@tanstack/router-plugin": "^1.168.38",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^30.1.1",
+    "oxc-transform-react": "0.149.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0",
+    "wrangler": "^4.142.0"
+  }
+}

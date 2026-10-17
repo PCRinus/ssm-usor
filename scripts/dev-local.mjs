@@ -14,8 +14,11 @@ import { parseArgs, styleText } from 'node:util';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const MAIL_PORT = 8790;
-// Not a secret: the local Auth signs its Send Email hook with it (supabase/config.toml).
+const SMS_PORT = 8793;
+// Not secrets: the local Auth signs its Send Email and Send SMS hooks with them
+// (supabase/config.toml).
 const LOCAL_AUTH_HOOK_SECRET = 'v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXN0YWNrLW9ubHktMzI=';
+const LOCAL_AUTH_SMS_HOOK_SECRET = 'v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXNtcy1ob29rLW9ubHk=';
 
 function fail(message) {
   console.error(message);
@@ -155,6 +158,8 @@ for (const [name, value] of [
 }
 
 const appUrl = `http://localhost:${port.app}`;
+// Where `pnpm dev:portal` serves the portal; dev:local does not start it.
+const portalUrl = 'http://localhost:5174';
 const apiUrl = `http://localhost:${port.api}`;
 const apiVars = {
   SUPABASE_URL: supabase.url,
@@ -162,16 +167,18 @@ const apiVars = {
   // On the command line, so visible in the process list: acceptable for the local stack's key.
   SUPABASE_SECRET_KEY: supabase.secretKey,
   SUPABASE_AUTH_HOOK_SECRET: LOCAL_AUTH_HOOK_SECRET,
-  CORS_ORIGINS: `${appUrl},http://127.0.0.1:${port.app}`,
+  SUPABASE_AUTH_SMS_HOOK_SECRET: LOCAL_AUTH_SMS_HOOK_SECRET,
+  CORS_ORIGINS: `${appUrl},http://127.0.0.1:${port.app},${portalUrl}`,
   APP_ORIGIN: appUrl,
+  PORTAL_ORIGIN: portalUrl,
   API_ORIGIN: apiUrl,
 };
 
 process.on('SIGINT', () => stop(0));
 process.on('SIGTERM', () => stop(0));
 
-// The API reaches the mail Worker through Wrangler's dev registry, so one that `pnpm dev`
-// already runs serves this API too.
+// The API reaches the mail and SMS Workers through Wrangler's dev registry, so ones that
+// `pnpm dev` already runs serve this API too.
 const mailRunning = await inUse(MAIL_PORT);
 if (!mailRunning) {
   start(
@@ -180,6 +187,16 @@ if (!mailRunning) {
     'node_modules/.bin/wrangler',
     ['dev', '--port', String(MAIL_PORT), '--inspector-port', '9239'],
     { cwd: 'apps/mail' }
+  );
+}
+const smsRunning = await inUse(SMS_PORT);
+if (!smsRunning) {
+  start(
+    'sms',
+    'yellow',
+    'node_modules/.bin/wrangler',
+    ['dev', '--port', String(SMS_PORT), '--inspector-port', '9242'],
+    { cwd: 'apps/sms' }
   );
 }
 start(
@@ -207,6 +224,7 @@ const [apiReady, appReady] = await Promise.all([ready(`${apiUrl}/health`), ready
 if (apiReady && appReady && !stopping) {
   const lines = [`App ${appUrl}  ·  API ${apiUrl}  ·  Supabase ${supabase.url}`];
   if (mailRunning) lines.push(`Mail: the Worker already running on port ${MAIL_PORT}.`);
+  if (smsRunning) lines.push(`SMS: the Worker already running on port ${SMS_PORT}.`);
   lines.push('An empty local database? pnpm seed:local and pnpm templates:register:local fill it.');
   console.log(`\n${lines.join('\n')}\n`);
 }

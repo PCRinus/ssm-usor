@@ -232,7 +232,7 @@ test('a new hire goes into a post from the employee form, and can be moved to an
   await page.getByTestId('employee-submit').click();
   await expect(page.getByText('Datele angajatului au fost salvate.')).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Electricu-Pop Dan');
-  await expect(page.getByText('0733 111 222')).toBeVisible();
+  await expect(page.getByRole('link', { name: '+40733111222' })).toBeVisible();
   await expect(page.getByTestId('employee-job-position')).toHaveText('Șef de echipă');
   await expect(page.getByText('Electrician întreținere')).toBeVisible();
   await expect(page.getByText('Sediu Str. Fabricii 3')).toBeVisible();

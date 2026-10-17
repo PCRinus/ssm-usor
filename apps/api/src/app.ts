@@ -24,6 +24,8 @@ import { jobPositionsRouter } from './modules/job-positions';
 import { legislationRouter } from './modules/legislation';
 import { meRouter } from './modules/me';
 import { organizationRouter } from './modules/organization';
+import { participantsRouter } from './modules/participants';
+import { portalRouter } from './modules/portal';
 import { protectiveEquipmentRouter } from './modules/protective-equipment';
 import { riskEvaluationsRouter } from './modules/risk-evaluations';
 import { serviceContractsRouter } from './modules/service-contracts';
@@ -83,6 +85,8 @@ export function createApp() {
   app.route('/', organizationRouter);
   app.route('/', legislationRouter);
   app.route('/', invitationsRouter);
+  app.route('/', participantsRouter);
+  app.route('/', portalRouter);
   app.route('/', waitlistRouter);
   app.route('/', authHooksRouter);
 

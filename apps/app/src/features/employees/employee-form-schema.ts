@@ -4,6 +4,7 @@ import {
   decodeCnp,
   isValidCnpInput,
   normalizeCnp,
+  normalizePhone,
   type RhFactor,
   rhFactors,
 } from '@ssm-usor/contracts';
@@ -51,7 +52,10 @@ export const employeeFormSchema = z
     phone: z
       .string()
       .trim()
-      .regex(/^(\+?[0-9][0-9 ().-]{3,18})?$/, 'Introdu un număr de telefon valid.'),
+      .refine(
+        (value) => value === '' || normalizePhone(value) !== null,
+        'Introdu un număr de telefon valid.'
+      ),
     // The id of one of the client's job positions (ADR 006).
     jobPosition: z.uuid('Alege postul de lucru.'),
     jobTitle: z

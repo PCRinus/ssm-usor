@@ -29,12 +29,15 @@ available as a required PR check, including on documentation-only changes.
 | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | `apps/marketing/**`                                                                                                                       | Marketing                                            |
 | `apps/app/**`                                                                                                                             | SPA                                                  |
+| `apps/portal/**`                                                                                                                          | Portal                                               |
+| `packages/api-http/**`                                                                                                                    | SPA and portal                                       |
 | `apps/api/**` (except the shared contract below)                                                                                          | API                                                  |
 | `apps/mail/**`                                                                                                                            | Mail Worker                                          |
+| `apps/sms/**`                                                                                                                             | SMS Worker ([guide](sms.md))                         |
 | `apps/pdf/**`, `packages/contracts/src/pdf.ts`                                                                                            | PDF Worker and its container image ([guide](pdf.md)) |
 | `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                   |
-| `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA and marketing                                    |
-| `packages/contracts/**`                                                                                                                   | API, SPA, and mail Worker                            |
+| `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA, portal and marketing                            |
+| `packages/contracts/**`                                                                                                                   | API, SPA, portal, mail and SMS Workers               |
 | `apps/api/openapi.json`                                                                                                                   | API and SPA                                          |
 | `orval.config.ts`                                                                                                                         | SPA                                                  |
 | `supabase/config.toml`, `supabase/migrations/**`, workflow/action/filter files                                                            | Database (hosted migrations and configuration)       |
@@ -77,9 +80,11 @@ already-bundled Worker with `--no-bundle`; SPA uploads the built static assets. 
 job runs lint, tests, application builds, or code generation again before publishing.
 
 Database migrations deploy first when selected, from the `production` environment's Supabase
-credentials. Mail and marketing deploy independently; the API waits for the mail Worker when
-both are selected, because its service binding needs that Worker to exist. The mail deployment uploads
-`RESEND_API_KEY` when the `production` environment has it and warns when it does not. SPA-only changes skip API deployment. If API and
+credentials. Mail, SMS and marketing deploy independently; the API waits for the mail and SMS
+Workers when they are selected, because its service bindings need those Workers to exist. The mail deployment uploads
+`RESEND_API_KEY` when the `production` environment has it and warns when it does not; the SMS
+deployment uploads the `TWILIO_ACCOUNT_SID` and `SMS_FROM` variables and the `TWILIO_AUTH_TOKEN` secret when all three are
+there and warns when they are not. SPA-only changes skip API deployment. If API and
 SPA both change, API deployment and its HTTP smoke tests must succeed before SPA deployment.
 Before uploading, the API job looks up the `ssm-usor-regeneration` queue the Worker sends to
 and consumes, and creates it when it is missing, because `wrangler deploy` refuses a binding to
@@ -102,7 +107,11 @@ must not point at an endpoint that is not deployed yet. Only properties the file
 written; `[remotes.production]` holds the values that differ from the local stack. The push
 does not ask for confirmation in CI, so the job prints `supabase config diff` first and
 refuses to run when the file has no `[remotes]` block for the project. It needs
-`SUPABASE_AUTH_HOOK_SECRET`, which the API deployment uploads too.
+`SUPABASE_AUTH_HOOK_SECRET` and `SUPABASE_AUTH_SMS_HOOK_SECRET`, which the API deployment uploads
+too, and so does the migrations job, whose `supabase link` reads the file. After the push it
+sets through the Management API the two phone sign-in settings the file cannot hold: the texted
+code's expiry, and phone confirmation, which the CLI pushes inverted
+([supabase/cli#6997](https://github.com/supabase/cli/issues/6997)).
 
 Selection compares a push with the last run on `main` that succeeded, so what a failed,
 cancelled or superseded run carried is selected again by the next push, whatever that push
@@ -111,20 +120,24 @@ deployments do nothing when there is nothing to apply, which is why workflow fil
 them: the commit that fixes a broken workflow retries them. A job that waits for the API
 treats a skipped API deployment as fine only when the API was not selected; selected and
 skipped means something before it failed.
-**Browser flow tests** run beside validation on pull requests only, when the SPA, the API, or
-the database is selected. They are not repeated after the merge: no deployment waits for them,
+**Browser flow tests** run beside validation on pull requests only, when the SPA, the portal,
+the API, or the database is selected: the SPA's flows unless only the portal is, then the
+portal's (`apps/portal/e2e/flows`, a sign-in by code) unless only the SPA is. The two run one
+after the other because both serve the API on the port the local stack's auth hooks call. They are not repeated after the merge: no deployment waits for them,
 and the pull request has just run them. Their three slow starts, the Supabase containers, the
 PDF converter's image and the browser, do not depend on one another, so the first two start in
 the background and are collected where they are needed. They use a local Supabase stack, the API served by Node
-with an in-memory mailer, and a preview build of the SPA, so they can create users and
-"send" email without touching production. No deployment waits for them.
+with an in-memory mailer and SMS sender, and a preview build of the SPA or the portal, so they
+can create users and "send" email and codes without touching production. No deployment waits for them.
 
 Browser tests run in their own job, **Verify deployed SPA**, after the SPA deployment has
 finished and been reported, and remain advisory. They run against production with a real
 account, so they stay small; flows that create users or send email are tested against a
 local stack on pull requests instead. The job caches the Chromium download by Playwright
 version and installs only its system packages on a cache hit. API smoke-test failures block
-an accompanying SPA release. There is no check of the old live release before deployment.
+an accompanying SPA release. The portal has the same pair of jobs, **Deploy portal** and
+**Verify deployed portal**, with only signed-out smoke checks and no secrets; it waits for the
+API like the SPA and never for the SPA. There is no check of the old live release before deployment.
 
 ## Caching
 
