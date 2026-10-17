@@ -179,6 +179,7 @@ def fill_fields(pdf: bytes, values: dict[str, str]) -> bytes:
     if not_text:
         raise SignerError('not_a_text_field', f'Not text fields: {", ".join(not_text)}.')
     font = SharedSubset(writer)
+    engine = font.create_font_engine(writer)
     for name, value in values.items():
         field = fields[name]
         field.dictionary[pdf_name('/V')] = generic.TextStringObject(value)
@@ -187,7 +188,7 @@ def fill_fields(pdf: bytes, values: dict[str, str]) -> bytes:
             width, height = annot_width_height(widget)
             style = TextBoxStyle(
                 font=font,
-                font_size=_font_size(field, widget),
+                font_size=_fitting_size(engine, value, width, height, _font_size(field, widget)),
                 box_layout_rule=TEXT_FIELD_LAYOUT,
             )
             content = TextFieldContent(
@@ -199,6 +200,19 @@ def fill_fields(pdf: bytes, values: dict[str, str]) -> bytes:
             content.apply_appearance(widget)
             writer.update_container(widget)
     return written(writer)
+
+
+def _fitting_size(engine, value: str, width: float, height: float, size: float) -> int:
+    # pyHanko's shrink-to-fit places the first line by the shrunk height twice, which pushes the
+    # last lines of a shrunk text below the field, where they are cut off. A size at which the text
+    # fits as it is never shrinks. Whole points, since pyHanko writes the size with %d.
+    lines = value.split('\n')
+    widest = max((engine.shape(line).x_advance for line in lines), default=0)
+    margins = TEXT_FIELD_LAYOUT.margins
+    room = [(float(height) - margins.top - margins.bottom) / len(lines)]
+    if widest > 0:
+        room.append((float(width) - margins.left - margins.right) / widest)
+    return max(1, int(min(size, *room)))
 
 
 def _font_size(field: Field, widget: generic.DictionaryObject) -> float:

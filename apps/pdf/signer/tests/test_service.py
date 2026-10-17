@@ -121,6 +121,19 @@ def test_fill_writes_values_with_appearances_and_refuses_unknown_names():
     assert refused['error'] == 'unknown_fields'
 
 
+def test_fill_sets_a_text_too_long_for_its_field_smaller_so_that_every_line_shows():
+    lines = '\n'.join(['Instruire periodică: șantier'] * 5)
+    pdf = fill(prepared_sheet(), {'row1_theme': lines, 'row1_date': '11.10.2026'})
+    fields = form_fields(PdfFileReader(BytesIO(pdf)))
+
+    def size(name: str) -> int:
+        stream = fields[name].widgets[0]['/AP']['/N'].get_object().data
+        return int(stream.split(b' Tf')[0].split()[-1])
+
+    assert size('row1_date') == 9
+    assert size('row1_theme') == 5
+
+
 def test_a_two_phase_signature_validates():
     pdf = sign(fill_row(prepared_sheet(), 1), trainee, 'row1_trainee', 1, certify=True)
     [result] = validate(pdf)
