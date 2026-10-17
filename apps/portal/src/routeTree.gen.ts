@@ -9,50 +9,280 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root';
-import { Route as IndexRouteImport } from './routes/index';
+import { Route as ParticipantRouteImport } from './routes/_participant';
+import { Route as SignInRouteImport } from './routes/sign-in';
+import { Route as ParticipantPortalRouteImport } from './routes/_participant/_portal';
+import { Route as ParticipantAlegeRouteImport } from './routes/_participant/alege';
+import { Route as ParticipantPortalIndexRouteImport } from './routes/_participant/_portal/index';
+import { Route as ParticipantPortalContulMeuRouteImport } from './routes/_participant/_portal/contul-meu';
+import { Route as ParticipantPortalDateleMeleRouteImport } from './routes/_participant/_portal/datele-mele';
+import { Route as ParticipantPortalInformareRouteImport } from './routes/_participant/_portal/informare';
+import { Route as ParticipantPortalInstruiriRouteImport } from './routes/_participant/_portal/instruiri';
+import { Route as ParticipantPortalAngajatiIndexRouteImport } from './routes/_participant/_portal/angajati/index';
+import { Route as ParticipantPortalAngajatiEmployeeIdRouteImport } from './routes/_participant/_portal/angajati/$employeeId';
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ParticipantRoute = ParticipantRouteImport.update({
+  id: '/_participant',
   getParentRoute: () => rootRouteImport,
 } as any);
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ParticipantPortalRoute = ParticipantPortalRouteImport.update({
+  id: '/_portal',
+  getParentRoute: () => ParticipantRoute,
+} as any);
+const ParticipantAlegeRoute = ParticipantAlegeRouteImport.update({
+  id: '/alege',
+  path: '/alege',
+  getParentRoute: () => ParticipantRoute,
+} as any);
+const ParticipantPortalIndexRoute = ParticipantPortalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ParticipantPortalRoute,
+} as any);
+const ParticipantPortalContulMeuRoute =
+  ParticipantPortalContulMeuRouteImport.update({
+    id: '/contul-meu',
+    path: '/contul-meu',
+    getParentRoute: () => ParticipantPortalRoute,
+  } as any);
+const ParticipantPortalDateleMeleRoute =
+  ParticipantPortalDateleMeleRouteImport.update({
+    id: '/datele-mele',
+    path: '/datele-mele',
+    getParentRoute: () => ParticipantPortalRoute,
+  } as any);
+const ParticipantPortalInformareRoute =
+  ParticipantPortalInformareRouteImport.update({
+    id: '/informare',
+    path: '/informare',
+    getParentRoute: () => ParticipantPortalRoute,
+  } as any);
+const ParticipantPortalInstruiriRoute =
+  ParticipantPortalInstruiriRouteImport.update({
+    id: '/instruiri',
+    path: '/instruiri',
+    getParentRoute: () => ParticipantPortalRoute,
+  } as any);
+const ParticipantPortalAngajatiIndexRoute =
+  ParticipantPortalAngajatiIndexRouteImport.update({
+    id: '/angajati/',
+    path: '/angajati/',
+    getParentRoute: () => ParticipantPortalRoute,
+  } as any);
+const ParticipantPortalAngajatiEmployeeIdRoute =
+  ParticipantPortalAngajatiEmployeeIdRouteImport.update({
+    id: '/angajati/$employeeId',
+    path: '/angajati/$employeeId',
+    getParentRoute: () => ParticipantPortalRoute,
+  } as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute;
+  '/': typeof ParticipantPortalIndexRoute;
+  '/sign-in': typeof SignInRoute;
+  '/alege': typeof ParticipantAlegeRoute;
+  '/contul-meu': typeof ParticipantPortalContulMeuRoute;
+  '/datele-mele': typeof ParticipantPortalDateleMeleRoute;
+  '/informare': typeof ParticipantPortalInformareRoute;
+  '/instruiri': typeof ParticipantPortalInstruiriRoute;
+  '/angajati/$employeeId': typeof ParticipantPortalAngajatiEmployeeIdRoute;
+  '/angajati/': typeof ParticipantPortalAngajatiIndexRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute;
+  '/': typeof ParticipantPortalIndexRoute;
+  '/sign-in': typeof SignInRoute;
+  '/alege': typeof ParticipantAlegeRoute;
+  '/contul-meu': typeof ParticipantPortalContulMeuRoute;
+  '/datele-mele': typeof ParticipantPortalDateleMeleRoute;
+  '/informare': typeof ParticipantPortalInformareRoute;
+  '/instruiri': typeof ParticipantPortalInstruiriRoute;
+  '/angajati/$employeeId': typeof ParticipantPortalAngajatiEmployeeIdRoute;
+  '/angajati': typeof ParticipantPortalAngajatiIndexRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
-  '/': typeof IndexRoute;
+  '/_participant': typeof ParticipantRouteWithChildren;
+  '/sign-in': typeof SignInRoute;
+  '/_participant/_portal': typeof ParticipantPortalRouteWithChildren;
+  '/_participant/alege': typeof ParticipantAlegeRoute;
+  '/_participant/_portal/contul-meu': typeof ParticipantPortalContulMeuRoute;
+  '/_participant/_portal/datele-mele': typeof ParticipantPortalDateleMeleRoute;
+  '/_participant/_portal/informare': typeof ParticipantPortalInformareRoute;
+  '/_participant/_portal/instruiri': typeof ParticipantPortalInstruiriRoute;
+  '/_participant/_portal/': typeof ParticipantPortalIndexRoute;
+  '/_participant/_portal/angajati/$employeeId': typeof ParticipantPortalAngajatiEmployeeIdRoute;
+  '/_participant/_portal/angajati/': typeof ParticipantPortalAngajatiIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/';
+  fullPaths:
+    | '/'
+    | '/sign-in'
+    | '/alege'
+    | '/contul-meu'
+    | '/datele-mele'
+    | '/informare'
+    | '/instruiri'
+    | '/angajati/$employeeId'
+    | '/angajati/';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/';
-  id: '__root__' | '/';
+  to:
+    | '/'
+    | '/sign-in'
+    | '/alege'
+    | '/contul-meu'
+    | '/datele-mele'
+    | '/informare'
+    | '/instruiri'
+    | '/angajati/$employeeId'
+    | '/angajati';
+  id:
+    | '__root__'
+    | '/_participant'
+    | '/sign-in'
+    | '/_participant/_portal'
+    | '/_participant/alege'
+    | '/_participant/_portal/contul-meu'
+    | '/_participant/_portal/datele-mele'
+    | '/_participant/_portal/informare'
+    | '/_participant/_portal/instruiri'
+    | '/_participant/_portal/'
+    | '/_participant/_portal/angajati/$employeeId'
+    | '/_participant/_portal/angajati/';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
+  ParticipantRoute: typeof ParticipantRouteWithChildren;
+  SignInRoute: typeof SignInRoute;
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/';
+    '/_participant': {
+      id: '/_participant';
+      path: '';
+      fullPath: '/';
+      preLoaderRoute: typeof ParticipantRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/sign-in': {
+      id: '/sign-in';
+      path: '/sign-in';
+      fullPath: '/sign-in';
+      preLoaderRoute: typeof SignInRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/_participant/_portal': {
+      id: '/_participant/_portal';
+      path: '';
+      fullPath: '/';
+      preLoaderRoute: typeof ParticipantPortalRouteImport;
+      parentRoute: typeof ParticipantRoute;
+    };
+    '/_participant/alege': {
+      id: '/_participant/alege';
+      path: '/alege';
+      fullPath: '/alege';
+      preLoaderRoute: typeof ParticipantAlegeRouteImport;
+      parentRoute: typeof ParticipantRoute;
+    };
+    '/_participant/_portal/': {
+      id: '/_participant/_portal/';
       path: '/';
       fullPath: '/';
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
+      preLoaderRoute: typeof ParticipantPortalIndexRouteImport;
+      parentRoute: typeof ParticipantPortalRoute;
+    };
+    '/_participant/_portal/contul-meu': {
+      id: '/_participant/_portal/contul-meu';
+      path: '/contul-meu';
+      fullPath: '/contul-meu';
+      preLoaderRoute: typeof ParticipantPortalContulMeuRouteImport;
+      parentRoute: typeof ParticipantPortalRoute;
+    };
+    '/_participant/_portal/datele-mele': {
+      id: '/_participant/_portal/datele-mele';
+      path: '/datele-mele';
+      fullPath: '/datele-mele';
+      preLoaderRoute: typeof ParticipantPortalDateleMeleRouteImport;
+      parentRoute: typeof ParticipantPortalRoute;
+    };
+    '/_participant/_portal/informare': {
+      id: '/_participant/_portal/informare';
+      path: '/informare';
+      fullPath: '/informare';
+      preLoaderRoute: typeof ParticipantPortalInformareRouteImport;
+      parentRoute: typeof ParticipantPortalRoute;
+    };
+    '/_participant/_portal/instruiri': {
+      id: '/_participant/_portal/instruiri';
+      path: '/instruiri';
+      fullPath: '/instruiri';
+      preLoaderRoute: typeof ParticipantPortalInstruiriRouteImport;
+      parentRoute: typeof ParticipantPortalRoute;
+    };
+    '/_participant/_portal/angajati/': {
+      id: '/_participant/_portal/angajati/';
+      path: '/angajati';
+      fullPath: '/angajati/';
+      preLoaderRoute: typeof ParticipantPortalAngajatiIndexRouteImport;
+      parentRoute: typeof ParticipantPortalRoute;
+    };
+    '/_participant/_portal/angajati/$employeeId': {
+      id: '/_participant/_portal/angajati/$employeeId';
+      path: '/angajati/$employeeId';
+      fullPath: '/angajati/$employeeId';
+      preLoaderRoute: typeof ParticipantPortalAngajatiEmployeeIdRouteImport;
+      parentRoute: typeof ParticipantPortalRoute;
     };
   }
 }
 
+interface ParticipantPortalRouteChildren {
+  ParticipantPortalContulMeuRoute: typeof ParticipantPortalContulMeuRoute;
+  ParticipantPortalDateleMeleRoute: typeof ParticipantPortalDateleMeleRoute;
+  ParticipantPortalInformareRoute: typeof ParticipantPortalInformareRoute;
+  ParticipantPortalInstruiriRoute: typeof ParticipantPortalInstruiriRoute;
+  ParticipantPortalIndexRoute: typeof ParticipantPortalIndexRoute;
+  ParticipantPortalAngajatiEmployeeIdRoute: typeof ParticipantPortalAngajatiEmployeeIdRoute;
+  ParticipantPortalAngajatiIndexRoute: typeof ParticipantPortalAngajatiIndexRoute;
+}
+
+const ParticipantPortalRouteChildren: ParticipantPortalRouteChildren = {
+  ParticipantPortalContulMeuRoute: ParticipantPortalContulMeuRoute,
+  ParticipantPortalDateleMeleRoute: ParticipantPortalDateleMeleRoute,
+  ParticipantPortalInformareRoute: ParticipantPortalInformareRoute,
+  ParticipantPortalInstruiriRoute: ParticipantPortalInstruiriRoute,
+  ParticipantPortalIndexRoute: ParticipantPortalIndexRoute,
+  ParticipantPortalAngajatiEmployeeIdRoute:
+    ParticipantPortalAngajatiEmployeeIdRoute,
+  ParticipantPortalAngajatiIndexRoute: ParticipantPortalAngajatiIndexRoute,
+};
+
+const ParticipantPortalRouteWithChildren =
+  ParticipantPortalRoute._addFileChildren(ParticipantPortalRouteChildren);
+
+interface ParticipantRouteChildren {
+  ParticipantPortalRoute: typeof ParticipantPortalRouteWithChildren;
+  ParticipantAlegeRoute: typeof ParticipantAlegeRoute;
+}
+
+const ParticipantRouteChildren: ParticipantRouteChildren = {
+  ParticipantPortalRoute: ParticipantPortalRouteWithChildren,
+  ParticipantAlegeRoute: ParticipantAlegeRoute,
+};
+
+const ParticipantRouteWithChildren = ParticipantRoute._addFileChildren(
+  ParticipantRouteChildren,
+);
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  ParticipantRoute: ParticipantRouteWithChildren,
+  SignInRoute: SignInRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

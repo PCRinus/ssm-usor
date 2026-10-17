@@ -10,16 +10,19 @@
     "test": "vitest run",
     "generate:routes": "tsr generate",
     "test:e2e": "playwright test",
+    "test:e2e:flows": "playwright test --config playwright.flows.config.ts",
     "preview": "vite preview --port 4176",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
     "deploy": "pnpm build && wrangler deploy"
   },
   "dependencies": {
     "@ssm-usor/api-http": "workspace:*",
+    "@ssm-usor/contracts": "workspace:*",
     "@ssm-usor/ui": "workspace:*",
     "@supabase/supabase-js": "^2.117.2",
     "@tanstack/react-query": "^5.102.8",
     "@tanstack/react-router": "^1.170.36",
+    "lucide-react": "^1.45.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
@@ -29,6 +32,7 @@
     "@tanstack/router-cli": "^1.167.36",
     "@tanstack/router-plugin": "^1.168.38",
     "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/node": "^24.13.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

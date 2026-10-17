@@ -6,8 +6,45 @@ same stack (TanStack Router with file routes, TanStack Query, Supabase, `@ssm-us
 design tokens) and with nothing of the app's shell. A participant signs in with a one-time code;
 the portal has no password.
 
-The scaffold holds one placeholder page; the sign-in page, the layout with its bar and the
-participant's places come with the next steps of the ADR.
+## Pages
+
+| Route                   | What                                                                          |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `/sign-in`              | One field, email or phone, then the six-digit code                            |
+| `/alege`                | Which client to open, for an account with several participations              |
+| `/`                     | _Acasă_                                                                       |
+| `/instruiri`            | _Instruiri_: the participant's records and the two individual training sheets |
+| `/datele-mele`          | _Datele mele_: the identification data the sheets print                       |
+| `/contul-meu`           | _Contul meu_: the sign-in address, the client, the provider, sign out         |
+| `/informare`            | The privacy notice, read-only                                                 |
+| `/angajati`             | The client's employees, for a client administrator                            |
+| `/angajati/$employeeId` | One employee's records and sheets, for a client administrator                 |
+
+Everything but `/sign-in` sits under `_participant` (a session, then `useGetPortalMe`; a `403`
+says the account has no access and offers to sign out) and, but `/alege`, under `_portal`
+(a chosen participation, the privacy notice, the bar). One participation is chosen by itself;
+the choice among several is kept in `localStorage` per account and changed from _Contul meu_.
+
+**Signing in.** A value with `@` is an email; anything else is a phone, normalized to E.164 with
+Romania as the default (`normalizePhone` from the contracts). The auth store's `requestCode`
+calls `signInWithOtp` with `shouldCreateUser: false` and reports only whether the request
+reached Supabase: an address nobody invited, a number the Send SMS hook refuses and a rate
+limit all show the same "if this address is known, a code is on its way", so the page never
+says which addresses exist. `verifyCode` calls `verifyOtp` with type `email` or `sms`. Another
+code can be asked for after 60 seconds, Supabase's limit per address.
+
+**The privacy notice** is shown before any place while the participation's `noticeVersion` is
+null or older than `currentPrivacyNoticeVersion` (`packages/contracts/src/participants.ts`);
+"Am înțeles" records the current version. Raise the constant when the text changes and every
+participant reads it again. It links the privacy policy at `https://ssmusor.ro/confidentialitate`.
+
+**The bar** is at the bottom on a phone, above the safe area, and at the top from 640 px. At
+most four places: an employee has _Acasă_, _Instruiri_, _Datele mele_, _Contul meu_; a client
+administrator _Acasă_, _Angajați_, _Contul meu_, plus _Instruiri_ when they are an employee
+too, whose _Datele mele_ is then a link on _Acasă_.
+
+A sheet opens as a PDF in a tab opened before the request, as the app's preview does, or is
+downloaded; a sheet that is not ready names what the specialist still has to fill.
 
 ## Local configuration
 
@@ -29,6 +66,22 @@ pnpm dev:portal
 
 Open `http://localhost:5174/`. The app keeps port 5173; the two keep separate sessions because
 browser storage is per origin.
+
+Local codes arrive through the local stack's auth hooks, which call port 8797: the API the
+browser flows start, not `pnpm dev`'s. To sign in by hand, point the hooks at 8787 as
+`supabase/config.toml` explains, or read the code from a running flow server's
+`/__e2e/emails?to=…`.
+
+## Browser flows
+
+```bash
+pnpm --filter @ssm-usor/portal test:e2e:flows
+```
+
+`apps/portal/e2e/flows` runs against the local stack like the app's flows: the API served by
+Node with an in-memory mailbox on port 8797 and a preview build of the portal on 4178. A member
+creates an employee and invites them through the API; the flow then signs in with the code read
+from the mailbox. It shares port 8797 with the app's flows, so run the two one after the other.
 
 ## Structure
 

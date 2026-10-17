@@ -183,6 +183,9 @@ export const portalMeSchema = z.object({
 
 export type PortalMe = z.infer<typeof portalMeSchema>;
 
+// Raised when the notice's text changes: every participation is shown it again (ADR 022).
+export const currentPrivacyNoticeVersion = '2026-10-17';
+
 export const portalNoticeRequestSchema = z.object({
   version: z.string().trim().min(1).max(40),
 });
