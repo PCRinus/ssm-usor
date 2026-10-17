@@ -10,7 +10,8 @@ const password = 'Parola-e2e-1';
 const run = `${Date.now().toString(36)}p${process.env.TEST_WORKER_INDEX ?? ''}`;
 export const addressOf = (name: string) => `${name}-${run}@e2e.test`;
 
-const created = { users: [] as string[], organizations: [] as string[] };
+// Spec files share this module in a worker, so one run makes several providers.
+const created = { providers: 0, users: [] as string[], organizations: [] as string[] };
 
 async function api<T>(path: string, token: string, init: { method: string; body?: unknown }) {
   const response = await fetch(new URL(path, process.env.E2E_API_URL), {
@@ -24,8 +25,13 @@ async function api<T>(path: string, token: string, init: { method: string; body?
   return (await response.json()) as T;
 }
 
-export async function createProvider(organizationName: string, clientName: string) {
-  const email = addressOf('owner');
+export async function createProvider(
+  organizationName: string,
+  clientName: string,
+  contact: { name: string; email: string } | null = null
+) {
+  created.providers += 1;
+  const email = addressOf(`owner${created.providers}`);
   const user = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (user.error) throw user.error;
   created.users.push(user.data.user.id);
@@ -51,6 +57,8 @@ export async function createProvider(organizationName: string, clientName: strin
       legal_name: clientName,
       cui: '1590082',
       legal_representative_name: 'Maria Popescu',
+      contact_name: contact?.name ?? null,
+      contact_email: contact?.email ?? null,
     })
     .select('id')
     .single();
@@ -90,6 +98,27 @@ export async function inviteByEmail(
   );
 }
 
+export async function addResponsiblePerson(
+  provider: { token: string; clientId: string },
+  person: { employeeId: string; fullName: string; jobTitle: string; roles: string[] }
+) {
+  await api(`/clients/${provider.clientId}/responsible-persons`, provider.token, {
+    method: 'POST',
+    body: person,
+  });
+}
+
+export async function inviteAdministratorByEmail(
+  provider: { token: string; clientId: string },
+  fullName: string,
+  email: string
+) {
+  await api(`/clients/${provider.clientId}/participant-invitations`, provider.token, {
+    method: 'POST',
+    body: { fullName, channel: 'email', address: email },
+  });
+}
+
 export async function lastSignInCode(to: string) {
   const url = new URL('/__e2e/emails', process.env.E2E_API_URL);
   url.searchParams.set('to', to);
@@ -110,6 +139,7 @@ export async function cleanUp() {
     await admin.from('participant_invitations').delete().eq('organization_id', id);
     await admin.from('client_participants').delete().eq('organization_id', id);
     await admin.from('trainings').delete().eq('organization_id', id);
+    await admin.from('client_responsible_persons').delete().eq('organization_id', id);
     await admin.from('employees').delete().eq('organization_id', id);
     await admin.from('client_workplaces').delete().eq('organization_id', id);
     await admin.from('job_positions').delete().eq('organization_id', id);
@@ -120,4 +150,6 @@ export async function cleanUp() {
   for (const id of new Set([...created.users, ...mine.map((user) => user.id)])) {
     await admin.auth.admin.deleteUser(id);
   }
+  created.users = [];
+  created.organizations = [];
 }
