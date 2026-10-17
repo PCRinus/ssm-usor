@@ -10,7 +10,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Participant** (_participant_): a person of a client with an account: an employee of that client, or its client administrator. Made by a member from the employee's or the client's page, invited to one address, email or phone, and signed in with a code sent there; no password. One per person and client, and one account can be a participant at several clients. Never a member, and a member never acts as one: the app's routes act on the membership, the portal's on the participations. ADR 022. Avoid: user, portal user, external user, and client user, which does not say which person.
 
-**Portal** (_portal_): what a participant sees, at `/portal`: one column, phone first, a bar of at most four places, nothing of the provider's workspace. ADR 022. Avoid: client area, employee app, self-service.
+**Portal** (_portal_): what a participant sees, an application of its own at `portal.ssmusor.ro` beside the app at `app.ssmusor.ro`: one column, phone first, a bar of at most four places, nothing of the provider's workspace. ADR 022. Avoid: client area, employee app, self-service.
 
 **Client** (_client_): a company the organization serves. Avoid: customer, which is the organization.
 

@@ -23,7 +23,7 @@ A **participant** (_participant_) is a person who belongs to one client and sign
 
 A participant is not a member and a member is not a participant. The organization's roles stay `owner` and `specialist`; a third value in `organization_role` was rejected, because a participant belongs to a client, not to the organization, and every policy that compares `organization_id` with the caller's would have to learn an exception. A participant acts under policies of their own, written per table, that let them read the rows about themselves: their employee row, their training records and the trainings held they attended, the client's name, their position's name and work zone, their workplace, and the organization's name and footer facts that their sheets print. Nothing in the policies of members changes.
 
-One auth account may hold a membership and participations at once. The two never mix: the app's routes act on the membership and the portal's routes on the participations, so a specialist who is also somebody's employee sees the app at `/` and the portal at `/portal`. Refusing to invite an address that has a member account was rejected: it would tell the member who invited whether that address has an account, which ADR 003 took care never to say. The one crossing: an account with participations and no membership is sent to the portal by the app's membership gate instead of to onboarding, so that an employee who types the app's address is not offered to found a provider.
+One auth account may hold a membership and participations at once. The two never mix: the app's routes act on the membership and the portal's routes on the participations, so a specialist who is also somebody's employee signs into the app at `app.ssmusor.ro` and into the portal at `portal.ssmusor.ro`, each with its own session. Refusing to invite an address that has a member account was rejected: it would tell the member who invited whether that address has an account, which ADR 003 took care never to say. Nothing sends an account from one to the other: the app's membership gate is unchanged, and a participant who types the app's address gets its login page, which asks for a password they do not have.
 
 The **workplace manager** is not a kind of participant. Being one is a responsible-person role of an employee at a client, which the app already holds; a participant whose employee row carries that role gets the manager's views when they exist, as the signing ADR will need them to sign as trainer. Storing the role twice was rejected.
 
@@ -45,7 +45,9 @@ Twilio Verify, which would generate and check the code itself, was rejected: Sup
 
 ### The portal: one column, four places, nothing else
 
-The portal is the same single-page application, served at `/portal`, with a route tree and a layout of its own: one column, phone first, a bar of at most four entries at the bottom on a phone and at the top on a wider screen, no sidebar, no breadcrumbs, no account menu with an organization in it. A separate application was rejected: it would double the auth plumbing, the contracts' client and the deploys for a few pages; the portal's routes load on demand, so the app's first download does not grow. A hostname of its own, `portal.ssmusor.ro`, can point at the same build later.
+The portal is a single-page application of its own, `apps/portal`, served at `portal.ssmusor.ro` as the app is at `app.ssmusor.ro`: a Worker with static assets, the same stack, React, TanStack Router with file routes, the UI package and the design tokens, and a layout of its own: one column, phone first, a bar of at most four entries at the bottom on a phone and at the top on a wider screen, no sidebar, no breadcrumbs, no account menu with an organization in it. A route tree inside the app was the first draft, and Mircea rejected it on 2026-10-17: what the portal would share inside the app is what it does not want, the password auth store, the membership gate, the sidebar shell, the feature folders and the route conventions of a workspace, and it would have been a second shell in an app built around the first. A separate origin also keeps the sessions apart, since the browser storage is per origin: a member signed into the app is not signed into the portal, and no rule has to send an account from one to the other. A deploy of one cannot break the other, and the portal's flows run against a small app.
+
+The portal calls the one API, under a `/portal` prefix, through a generated client of its own: the routes of the prefix carry the OpenAPI tag `portal`, and a second orval output generates from the same OpenAPI document only the operations with that tag, into the portal app, so that the portal's whole API surface is one file a reviewer can read and the app's client stays what it is. Generating one client for both apps was rejected: the portal would carry every type of the app for nothing, and nothing would say which routes a participant may call. The fetch adapter the generated code calls, the origin guard, the bearer token, the file download and the error type, moves to a package the two apps share, with the app passing in its event capture; two copies of the same error handling would drift apart.
 
 What an employee sees:
 
@@ -73,6 +75,7 @@ A participant whose employee is terminated keeps the portal: the records stay, a
 - WhatsApp as a channel: Twilio supports it, nobody has asked.
 - Inviting every employee of a client at once: one at a time from the employee's page first; a bulk action once the first client wants it.
 - A client administrator writing anything about the employees, and the "supplying data" of the product scope.
+- A password for a participant, beside the code: Supabase keeps both on one account, so it is a page in the portal and a reset flow, when the optics of a password are worth it. Mircea's call of 2026-10-17: not in the first version.
 - Removing an auth user whose invitation expired unaccepted: the row stays, as expired member invitations do; a retention rule for both at once.
 
 ## Consequences
@@ -81,7 +84,7 @@ A participant whose employee is terminated keeps the portal: the records stay, a
 - The API has a second middleware chain, `requireParticipant`, resolving the account's participations the way `requireMembership` resolves its membership, and a route prefix `/portal` whose contracts are its own; nothing of the app's responses is reused as-is, so that what a participant is told is decided once per route.
 - The mail Worker sends SMS, through Twilio, and receives a second Supabase hook. Its name is now narrower than what it does; it keeps the name.
 - Supabase's phone auth is on, with signup off and the SMS cap raised, the Send SMS hook pointed at the Worker, and the hosted project configured from `config.toml` by CI as it is now. Twilio's credentials are two more secrets of the Worker.
-- The SPA holds two shells. The portal's components come from the same UI package; what differs is the layout and the navigation.
+- A third deployed application exists, `apps/portal`, with its own Worker, custom domain, environment, CI build, verify step and Playwright flows, on the pattern of `apps/app`. The API's allowed origins gain the portal's. The fetch adapter becomes a package, the generated client is per app, and CI's drift check covers both outputs.
 - The employee's phone is stored in E.164 from now on; the form shows it as typed and keeps it normalized.
 - An auth user is created when an invitation is sent, not when it is accepted, so `auth.users` holds addresses of people who have not signed in; the invitation row says why each exists.
 - Costs: email codes are free; an SMS invitation plus a code is two messages, about $0.16, per employee without an email, then one code per sign-in.
@@ -94,9 +97,10 @@ A participant whose employee is terminated keeps the portal: the records stay, a
 3. The messages: the invitation email, the invitation SMS and `sendSms` in the mail Worker; the code email template on the Send Email hook; the Send SMS hook. Independent of step 2.
 4. The API: inviting, resending and revoking from the employees and clients modules; the auth user at send time; `requireParticipant` and `/portal/me`; the portal's read routes for the records, the sheets and the data. On steps 2 and 3.
 5. The app side: the invite, resend and revoke actions on the employee's page and the client's page, with the participant's state shown there.
-6. The portal: the sign-in page with the code, the layout and the bar, the four places of the employee, the privacy notice. On step 4.
-7. The client administrator's places. On step 6.
-8. The signing ADR.
+6. The portal application: the scaffold at `apps/portal` with its Worker and domain, the shared fetch adapter package, the `portal` tag and the second orval output, the deploy and verify jobs. Independent of steps 2 to 5.
+7. The portal's pages: the sign-in page with the code, the layout and the bar, the four places of the employee, the privacy notice. On steps 4 and 6.
+8. The client administrator's places. On step 7.
+9. The signing ADR.
 
 ## Defaults taken instead of asking the provider
 
