@@ -343,8 +343,9 @@ pnpm stop:pdf
 ```
 
 `pnpm dev:pdf` starts the converter from `compose.yaml`, the same image the deployment runs
-([PDF Worker](pdf.md)). The variable is not needed on the command line when
-`apps/api/.dev.vars` already has it.
+([PDF Worker](pdf.md)); `pnpm dev` runs it first and only warns when Docker is not up, since the
+container stays running on its own and the API calls it only when it converts. The variable is
+not needed on the command line when `apps/api/.dev.vars` already has it.
 
 `playwright.flows.config.ts` starts everything else itself, on ports of its own so
 `pnpm dev` can keep running: the API served by Node from `apps/api/scripts/e2e-server.ts`,
