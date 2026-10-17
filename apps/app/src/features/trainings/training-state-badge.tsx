@@ -10,10 +10,13 @@ import { formatDate } from '@/features/employees/employee-format';
 
 const stateBadges: Record<
   TrainingState,
-  { variant: 'outline' | 'secondary' | 'destructive'; className?: string }
+  { variant: 'outline' | 'destructive'; className?: string }
 > = {
   untrained: { variant: 'outline' },
-  current: { variant: 'secondary', className: 'text-muted-foreground' },
+  current: {
+    variant: 'outline',
+    className: 'border-success-border bg-success text-success-foreground',
+  },
   due: {
     variant: 'outline',
     className: 'border-warning-border bg-warning text-warning-foreground',

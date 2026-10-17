@@ -65,8 +65,7 @@ export const trainingStateLabels: Record<TrainingState, string> = {
   overdue: 'Depășită',
 };
 
-/** The states a list is filtered by: the ones that need the specialist. */
-export const trainingStateFilters = ['untrained', 'due', 'overdue'] as const;
+export const trainingStateFilters = ['current', 'due', 'overdue', 'untrained'] as const;
 export const trainingStateFilterSchema = z.enum(trainingStateFilters);
 export type TrainingStateFilter = z.infer<typeof trainingStateFilterSchema>;
 

@@ -308,9 +308,19 @@ describe('GET /clients/{clientId}/employees', () => {
     expect(query.get('training_status.or')).toBeNull();
   });
 
-  it('rejects a training state that is not a filter', async () => {
+  it('filters the employees up to date in either domain', async () => {
     mockUpstream({});
     const response = await request(`${employeesPath}?trainingState=current`);
+    expect(response.status).toBe(200);
+    const [listUrl] = calls('/rest/v1/employees')[0]!;
+    const query = new URL(String(listUrl)).searchParams;
+    expect(query.get('select')).toContain('training_status!inner(');
+    expect(query.get('training_status.or')).toBe('(ssm_state.eq.current,psi_state.eq.current)');
+  });
+
+  it('rejects an unknown training state', async () => {
+    mockUpstream({});
+    const response = await request(`${employeesPath}?trainingState=expired`);
     expect(response.status).toBe(400);
     expect(calls('/rest/v1/employees')).toHaveLength(0);
   });

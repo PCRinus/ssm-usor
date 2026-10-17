@@ -692,6 +692,7 @@ describe('training state in the employee lists', () => {
     const first = within(rows[0]!);
     expect(first.getByTestId('training-status-ssm').dataset.state).toBe('current');
     expect(first.getByTestId('training-status-ssm').textContent).toBe('La zi');
+    expect(first.getByTestId('training-status-ssm').className).toContain('bg-success');
     expect(first.getByTestId('training-due-ssm').textContent).toBe('până la 1 mar. 2027');
     expect(first.getByTestId('training-status-psi').textContent).toBe('Neinstruit');
     expect(first.queryByTestId('training-due-psi')).toBeNull();
@@ -702,6 +703,11 @@ describe('training state in the employee lists', () => {
     expect(second.getByTestId('training-status-psi').textContent).toBe('Scadentă');
     expect(second.getByTestId('training-due-psi').textContent).toBe('până la 30 oct. 2026');
 
+    expect(
+      within(screen.getByTestId('employees-training-filter'))
+        .getAllByRole('button')
+        .map((chip) => chip.textContent)
+    ).toEqual(['Toate', 'La zi', 'Scadente', 'Depășite', 'Neinstruiți']);
     const historyLength = runtime.router.history.length;
     await user.click(screen.getByTestId('employees-training-filter-overdue'));
     await waitFor(() =>
@@ -775,6 +781,15 @@ describe('training state in the employee lists', () => {
     await waitFor(() =>
       expect(requests('GET', '/employees').at(-1)!.url.searchParams.get('trainingState')).toBe(
         'untrained'
+      )
+    );
+    await user.click(screen.getByTestId('organization-employees-training-filter-current'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ trainingState: 'current' })
+    );
+    await waitFor(() =>
+      expect(requests('GET', '/employees').at(-1)!.url.searchParams.get('trainingState')).toBe(
+        'current'
       )
     );
   });

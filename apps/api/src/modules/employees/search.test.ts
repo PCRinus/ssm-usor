@@ -226,6 +226,15 @@ describe('GET /employees', () => {
     expect(query.get('client.archived_at')).toBe('is.null');
   });
 
+  it('filters the employees up to date in either domain', async () => {
+    mockUpstream();
+    const response = await request('/employees?trainingState=current');
+    expect(response.status).toBe(200);
+    expect(employeesQuery().get('training_status.or')).toBe(
+      '(ssm_state.eq.current,psi_state.eq.current)'
+    );
+  });
+
   it('reads the training status without filtering when no state is asked for', async () => {
     mockUpstream();
     await request('/employees');
@@ -261,7 +270,7 @@ describe('GET /employees', () => {
     expect(query.get('offset')).toBe('25');
   });
 
-  it.each(['sort=cnp', 'clientId=not-a-uuid', 'status=suspended', 'trainingState=current'])(
+  it.each(['sort=cnp', 'clientId=not-a-uuid', 'status=suspended', 'trainingState=expired'])(
     'rejects %s',
     async (search) => {
       mockUpstream();

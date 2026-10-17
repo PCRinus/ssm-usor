@@ -12401,7 +12401,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["untrained", "due", "overdue"]
+              "enum": ["current", "due", "overdue", "untrained"]
             },
             "required": false,
             "name": "trainingState",
@@ -13129,7 +13129,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["untrained", "due", "overdue"]
+              "enum": ["current", "due", "overdue", "untrained"]
             },
             "required": false,
             "name": "trainingState",

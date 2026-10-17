@@ -465,7 +465,8 @@ the interval is undecided and while the employee is `untrained`; `intervalMonths
 interval the due date counts, null while undecided, and `intervalSource` says where it comes
 from, `position` when the job position carries its own (SSM only), `client` when the client's
 training programme or fire-safety schedule sets it, null with no interval. `GET …/employees?trainingState=` takes
-`untrained`, `due` or `overdue` and keeps the employees in that state in either domain.
+`current`, `due`, `overdue` or `untrained` and keeps the employees in that state in either domain,
+so `current` also lists an employee up to date in one domain and behind in the other.
 
 Protective equipment ([ADR 011](architecture/adr-011-protective-equipment.md)) hangs off the
 job position: `GET …/equipment` lists its entries in the order they were added, with

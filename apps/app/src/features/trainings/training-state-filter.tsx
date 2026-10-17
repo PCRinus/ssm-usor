@@ -3,6 +3,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 
 const chips: { value: TrainingStateFilterValue | undefined; label: string }[] = [
   { value: undefined, label: 'Toate' },
+  { value: 'current', label: 'La zi' },
   { value: 'due', label: 'Scadente' },
   { value: 'overdue', label: 'Depășite' },
   { value: 'untrained', label: 'Neinstruiți' },

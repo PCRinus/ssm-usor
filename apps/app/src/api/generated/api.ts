@@ -7274,9 +7274,10 @@ export type ListEmployeesTrainingState =
   (typeof ListEmployeesTrainingState)[keyof typeof ListEmployeesTrainingState];
 
 export const ListEmployeesTrainingState = {
-  untrained: 'untrained',
+  current: 'current',
   due: 'due',
   overdue: 'overdue',
+  untrained: 'untrained',
 } as const;
 
 export type ListOrganizationEmployeesParams = {
@@ -7330,9 +7331,10 @@ export type ListOrganizationEmployeesTrainingState =
   (typeof ListOrganizationEmployeesTrainingState)[keyof typeof ListOrganizationEmployeesTrainingState];
 
 export const ListOrganizationEmployeesTrainingState = {
-  untrained: 'untrained',
+  current: 'current',
   due: 'due',
   overdue: 'overdue',
+  untrained: 'untrained',
 } as const;
 
 export type ListTrainingsParams = {
