@@ -24,6 +24,7 @@
     "build-covers": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_covers.py",
     "build-contract": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_contract.py",
     "build-annex-title": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_annex_title.py",
+    "build-signing": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_signing.py",
     "build-modules": "python3 tools/import/build_modules.py",
     "build-sheets": "python3 tools/import/build_sheets.py"
   },

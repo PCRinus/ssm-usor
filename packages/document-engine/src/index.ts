@@ -12,5 +12,14 @@ export {
 } from './citations';
 export { countArticles, firstLine, sweepFonts } from './modules';
 export * from './render';
+export {
+  buildSigningAgreementData,
+  type SigningAgreementData,
+  type SigningAgreementFacts,
+  type SigningCodeChannel,
+  type SigningRegulationAnnexData,
+  signingRegulationAnnexData,
+  signingTypeKeys,
+} from './signing';
 export { instructionModuleSkeleton } from './skeleton';
 export { documentText } from './text';

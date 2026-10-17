@@ -289,6 +289,17 @@
       }
     },
     {
+      "number": "13",
+      "stage": 1,
+      "typeKey": "signing_regulation_annex",
+      "title": "Anexă la Regulamentul intern privind semnarea electronică a fișelor de instruire",
+      "file": "13_signing_regulation_annex.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială: fișele de instruire SSM și PSI se semnează cu semnătură electronică avansată, după H.G. 1425/2006 art. 81 alin. (3¹)–(3³) și Codul muncii art. 16."
+      }
+    },
+    {
       "perEmployee": true,
       "typeKey": "training_sheet_ssm",
       "title": "Fișa individuală de instruire SSM",
@@ -296,6 +307,16 @@
       "change": {
         "kind": "layout",
         "note": "Fișa de instruire individuală a fiecărui angajat, după modelul din anexa nr. 11 la normele metodologice aprobate prin H.G. 1425/2006."
+      }
+    },
+    {
+      "perEmployee": true,
+      "typeKey": "signing_agreement",
+      "title": "Act adițional privind semnarea electronică",
+      "file": "act_aditional_semnare_electronica.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială: actul adițional la contractul individual de muncă prin care salariatul semnează fișele de instruire cu semnătură electronică avansată, după Codul muncii art. 16 și 17 și H.G. 1425/2006 art. 81 alin. (3²)."
       }
     }
   ]

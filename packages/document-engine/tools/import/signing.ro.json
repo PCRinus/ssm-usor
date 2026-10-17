@@ -1,0 +1,94 @@
+{
+  "annex": {
+    "file": "13_signing_regulation_annex.docx",
+    "header": {
+      "code": "R.I.S.E.",
+      "title": "Anexă la Regulamentul intern privind semnarea electronică a fișelor de instruire",
+      "preparedBy": "specialist"
+    },
+    "title": "ANEXĂ LA REGULAMENTUL INTERN",
+    "subtitle": "privind semnarea electronică a fișelor de instruire",
+    "articles": [
+      {
+        "lead": "Prezenta anexă la regulamentul intern al {{client.legalName}} stabilește modul de semnare electronică a fișelor de instruire, în temeiul:",
+        "items": [
+          "art. 81 alin. (3¹)–(3³) din H.G. 1425/2006;",
+          "art. 16 alin. (1¹)–(1⁸) din Legea 53/2003 – Codul muncii;",
+          "art. 17 alin. (3) lit. o) din Legea 53/2003;",
+          "art. 4 din Legea 214/2024 privind utilizarea semnăturii electronice;",
+          "art. 26 din Regulamentul (UE) nr. 910/2014 (eIDAS)."
+        ]
+      },
+      {
+        "lead": "Se semnează electronic fișele individuale de instruire în domeniul securității și sănătății în muncă (anexa nr. 11 la H.G. 1425/2006) și fișele individuale de instructaj în domeniul situațiilor de urgență (OMAI 712/2005), rând cu rând, pentru fiecare instruire consemnată, de lucrătorul instruit, de cel care a efectuat instruirea și de cel care a verificat-o, iar rubrica „Admis la lucru”, de cel care l-a admis la lucru. Alte documente se semnează electronic numai după ce sunt adăugate în prezenta anexă."
+      },
+      {
+        "lead": "Fișele se semnează cu semnătură electronică avansată în sensul art. 26 din Regulamentul (UE) nr. 910/2014, fără certificat calificat, creată în platforma pusă la dispoziție de {{provider.legalName}}, prestatorul de servicii de securitate și sănătate în muncă al angajatorului. Semnătura identifică în mod unic semnatarul, se creează numai cu un cod aflat sub controlul său exclusiv și este legată de fișă astfel încât orice modificare ulterioară poate fi detectată."
+      },
+      {
+        "lead": "Fiecare semnatar semnează din contul său personal, deschis pe adresa de e-mail sau pe numărul de telefon mobil comunicat angajatorului (ori prestatorului, pentru personalul acestuia). La fiecare semnare, platforma trimite acolo un cod de unică folosință, iar semnătura se creează numai după introducerea codului, pentru documentele afișate la cererea codului. Se înregistrează numele și funcția semnatarului, momentul semnării, adresa sau numărul unde s-a trimis codul și conținutul semnat."
+      },
+      {
+        "lead": "Cererea de semnare se transmite după consemnarea instruirii în platformă, iar semnatarii semnează de pe telefon sau de pe calculator. Un rând semnat al fișei nu mai poate fi modificat: o greșeală se corectează prin anularea rândului, care rămâne pe fișă cu mențiunea „anulat”, și prin consemnarea instruirii pe rândul următor, care se semnează din nou."
+      },
+      {
+        "lead": "Fișa semnată electronic se păstrează în platformă de la angajare până la încetarea raportului de muncă (art. 81 alin. (5) din H.G. 1425/2006), poate fi descărcată oricând de angajator, cu semnăturile verificabile, și se pune la dispoziția organelor de control în format electronic, fără a fi tipărită (art. 16 alin. (1⁸) din Legea 53/2003). Arhivarea se face potrivit Legii 16/1996 și Legii 135/2007."
+      },
+      {
+        "lead": "Salariatul nu poate fi obligat să semneze electronic (art. 16 alin. (1⁶) din Legea 53/2003); cel care nu optează pentru semnătura electronică semnează olograf fișa tipărită. Opțiunea salariatului și procedura de semnare se consemnează în contractul individual de muncă, la angajare, sau printr-un act adițional la acesta (art. 81 alin. (3²) din H.G. 1425/2006)."
+      },
+      {
+        "lead": "Anexa produce efecte față de salariat de la luarea la cunoștință (art. 243 din Legea 53/2003)."
+      }
+    ],
+    "signatures": [
+      {
+        "lines": ["Angajator"],
+        "name": "{{client.representativeName}}",
+        "role": "{{client.representativeRole}} al {{client.legalName}}"
+      },
+      {
+        "lines": ["Întocmit"],
+        "name": "{{specialist.name}}",
+        "role": "{{specialist.professionalTitle}}, {{provider.legalName}}"
+      }
+    ]
+  },
+  "agreement": {
+    "file": "act_aditional_semnare_electronica.docx",
+    "title": "ACT ADIȚIONAL",
+    "subtitle": "la contractul individual de muncă, privind semnarea electronică a fișelor de instruire",
+    "parties": [
+      "{{client.legalName}}, cu sediul în {{client.address}}, cod de înregistrare fiscală {{client.cui}}, reprezentată prin {{client.representativeName}}, în calitate de {{client.representativeRole}}, denumită în continuare „angajator”,",
+      "și",
+      "{{employee.name}}, salariat în funcția de {{employee.position}}{{#employee.identification}}, {{employee.identification}}{{/employee.identification}}, cu contract individual de muncă având data de începere a activității {{employee.hiredOn}}, denumit în continuare „salariat”,",
+      "în temeiul art. 16 alin. (1¹) și (1⁷) din Legea 53/2003 – Codul muncii, al art. 17 alin. (3) lit. o) din Legea 53/2003, al art. 81 alin. (3²) din H.G. 1425/2006 și al art. 4 alin. (5) lit. c) din Legea 214/2024, convin următoarele:"
+    ],
+    "articles": [
+      {
+        "lead": "Începând cu data semnării prezentului act adițional, fișele individuale de instruire ale salariatului în domeniul securității și sănătății în muncă și în domeniul situațiilor de urgență se semnează cu semnătură electronică avansată, în platforma informatică pusă la dispoziție de {{provider.legalName}}, potrivit anexei la regulamentul intern privind semnarea electronică a fișelor de instruire, de care salariatul a luat cunoștință. Părțile convin ca această semnătură să producă aceleași efecte juridice ca semnătura olografă și confirmă că au înțeles riscurile și sarcina probei privind semnătura electronică avansată."
+      },
+      {
+        "lead": "Salariatul semnează din contul său personal în platformă. La fiecare semnare, platforma trimite un cod de unică folosință pe {{codeChannel}}, iar semnătura se creează numai după introducerea codului; platforma înregistrează numele semnatarului, momentul semnării, adresa sau numărul pe care s-a trimis codul și conținutul semnat, iar rândul semnat al fișei nu mai poate fi modificat."
+      },
+      {
+        "lead": "Salariatul poate reveni oricând la semnarea olografă, printr-o cerere scrisă adresată angajatorului; de la data cererii, fișele salariatului se semnează olograf. Fișele semnate electronic până la acea dată rămân valabile."
+      },
+      {
+        "lead": "Celelalte clauze ale contractului individual de muncă rămân neschimbate. Prezentul act adițional se semnează de ambele părți cu același tip de semnătură: olograf, în două exemplare, câte unul pentru fiecare parte, sau electronic, caz în care fiecare parte primește documentul semnat în format electronic."
+      }
+    ],
+    "signatures": [
+      {
+        "lines": ["Angajator"],
+        "name": "{{client.representativeName}}",
+        "role": "{{client.representativeRole}} al {{client.legalName}}"
+      },
+      {
+        "lines": ["Salariat"],
+        "name": "{{employee.name}}",
+        "role": "{{employee.position}}"
+      }
+    ]
+  }
+}

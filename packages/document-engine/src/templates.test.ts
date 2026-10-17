@@ -40,16 +40,20 @@ const manifestOf = (folder: string) =>
   JSON.parse(readFileSync(new URL(`${folder}manifest.json`, templatesUrl), 'utf8')) as {
     templates: ManifestEntry[];
   };
-// The individual training sheets (ADR 021) sit beside a set's templates and belong to no set.
+// The individual training sheets (ADR 021) and the signing agreement (ADR 023) sit beside a
+// set's templates and belong to no set.
 const setManifest = <Entry>(folder: string) => ({
   templates: manifestOf(folder).templates.filter((entry) => !entry.perEmployee) as Entry[],
 });
-const sheetEntries = ['', 'fire/'].flatMap((folder) =>
+const perEmployeeEntries = ['', 'fire/'].flatMap((folder) =>
   manifestOf(folder)
     .templates.filter((entry) => entry.perEmployee)
     .map((entry) => ({ ...entry, path: `${folder}${entry.file}` }))
 );
-const sheetFiles = sheetEntries.map((entry) => entry.path);
+const perEmployeeFiles = perEmployeeEntries.map((entry) => entry.path);
+const sheetEntries = perEmployeeEntries.filter((entry) =>
+  entry.typeKey.startsWith('training_sheet_')
+);
 
 const decisionFiles = allTemplateFiles.filter((name) => name.includes('_decision_'));
 const templateFiles = allTemplateFiles;
@@ -593,7 +597,7 @@ describe('fire-safety set', () => {
 
   it('are the files of their manifest, named after their numbers and their types', () => {
     expect(manifest.templates.map((entry) => `fire/${entry.file}`).sort()).toEqual(
-      fireFiles.filter((name) => !sheetFiles.includes(name)).sort()
+      fireFiles.filter((name) => !perEmployeeFiles.includes(name)).sort()
     );
     for (const entry of manifest.templates) {
       expect(entry.file).toBe(`${entry.number}_${entry.typeKey}.docx`);
@@ -1443,10 +1447,11 @@ describe('fire-safety set', () => {
 
 // Every original of the provider's pack is listed, ported or not, under its own number, so
 // the folder shows at a glance what is still to do. Decision 1.5 came later, from a third pack.
+// The annex on the electronic signature (13, ADR 023) has no original: its wording is ours.
 describe('manifest', () => {
   const manifest = setManifest<{
     number: string;
-    original: string;
+    original?: string;
     stage: number;
     typeKey: string | null;
     title: string | null;
@@ -1454,9 +1459,12 @@ describe('manifest', () => {
   }>('');
   const ported = manifest.templates.filter((entry) => entry.file);
 
-  it('lists all 24 originals once', () => {
-    expect(manifest.templates).toHaveLength(24);
-    expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(24);
+  it('lists all 24 originals once, and the documents written without one', () => {
+    expect(manifest.templates.filter((entry) => entry.original)).toHaveLength(24);
+    expect(
+      manifest.templates.filter((entry) => !entry.original).map((entry) => entry.typeKey)
+    ).toEqual(['signing_regulation_annex']);
+    expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(25);
   });
 
   it('names each ported template after its original number and its type', () => {
@@ -1470,7 +1478,7 @@ describe('manifest', () => {
 
   it('matches the files in the folder exactly', () => {
     expect(ported.map((entry) => entry.file).sort()).toEqual(
-      templateFiles.filter((name) => !sheetFiles.includes(name)).sort()
+      templateFiles.filter((name) => !perEmployeeFiles.includes(name)).sort()
     );
   });
 });
@@ -2586,13 +2594,14 @@ describe('prevention_plan', () => {
 });
 
 describe('the individual training sheets', () => {
-  it('are the per-employee entries of their manifests, with no number, named after their form', () => {
-    expect(sheetEntries.map(({ typeKey, path }) => [typeKey, path])).toEqual([
+  it('are, with the signing agreement, the per-employee entries of their manifests, with no number', () => {
+    expect(perEmployeeEntries.map(({ typeKey, path }) => [typeKey, path])).toEqual([
       ['training_sheet_ssm', 'fisa_instruire_ssm.docx'],
+      ['signing_agreement', 'act_aditional_semnare_electronica.docx'],
       ['training_sheet_psi', 'fire/fisa_instructaj_psi.docx'],
     ]);
+    for (const entry of perEmployeeEntries) expect(entry).not.toHaveProperty('number');
     for (const entry of sheetEntries) {
-      expect(entry).not.toHaveProperty('number');
       expect(entry.title).toMatch(/^Fișa individuală de (instruire SSM|instructaj PSI)$/);
     }
   });

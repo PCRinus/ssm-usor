@@ -13,6 +13,7 @@ import {
   documentText,
   renderDocument,
   renderTemplate,
+  signingTypeKeys,
 } from '@ssm-usor/document-engine';
 import { describe, expect, it } from 'vitest';
 
@@ -71,8 +72,12 @@ describe('the per-employee templates', () => {
       .map((entry) => entry.typeKey)
   );
 
-  it('are the two individual training sheets', () => {
-    expect(perEmployee).toEqual(Object.values(trainingSheetTypeKeys));
+  it('are the two individual training sheets and the signing agreement', () => {
+    expect(perEmployee).toEqual([
+      trainingSheetTypeKeys.ssm,
+      signingTypeKeys.agreement,
+      trainingSheetTypeKeys.psi,
+    ]);
   });
 
   it('are never part of a set', () => {
@@ -82,8 +87,14 @@ describe('the per-employee templates', () => {
 });
 
 describe('the built-in templates', () => {
+  // ADR 023: the annex is registered with the set before the API generates it, which waits for
+  // the SSM contact's review of its text and for the client's choice of the electronic signature.
   it('are the document types of the contracts, in the same order', () => {
-    expect(manifest.templates.map((entry) => entry.typeKey)).toEqual([...documentTypeKeys]);
+    expect(
+      manifest.templates
+        .map((entry) => entry.typeKey)
+        .filter((typeKey) => typeKey !== signingTypeKeys.regulationAnnex)
+    ).toEqual([...documentTypeKeys]);
   });
 
   const reversed: typeof facts = {
