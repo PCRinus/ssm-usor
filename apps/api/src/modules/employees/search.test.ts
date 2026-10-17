@@ -231,7 +231,7 @@ describe('GET /employees', () => {
     const response = await request('/employees?trainingState=current');
     expect(response.status).toBe(200);
     expect(employeesQuery().get('training_status.or')).toBe(
-      '(ssm_state.eq.current,psi_state.eq.current)'
+      '(and(ssm_state.eq.current,psi_state.eq.current))'
     );
   });
 

@@ -315,7 +315,9 @@ describe('GET /clients/{clientId}/employees', () => {
     const [listUrl] = calls('/rest/v1/employees')[0]!;
     const query = new URL(String(listUrl)).searchParams;
     expect(query.get('select')).toContain('training_status!inner(');
-    expect(query.get('training_status.or')).toBe('(ssm_state.eq.current,psi_state.eq.current)');
+    expect(query.get('training_status.or')).toBe(
+      '(and(ssm_state.eq.current,psi_state.eq.current))'
+    );
   });
 
   it('rejects an unknown training state', async () => {
