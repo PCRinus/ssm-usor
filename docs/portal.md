@@ -89,7 +89,8 @@ Node with an in-memory mailbox on port 8797 and a preview build of the portal on
 creates the fixtures and the invitation through the API; the flow then signs in with the code
 read from the mailbox. `sign-in.spec.ts` follows an employee through their places,
 `administrator.spec.ts` a client administrator through _Acasă_ (the employee count and the
-responsible persons), _Angajați_ and one employee's records and sheets. It shares port 8797 with the app's flows, so run the two one after the other.
+responsible persons), _Angajați_ and one employee's records and sheets. It shares port 8797
+with the app's flows, so run the two one after the other.
 
 ## Structure
 
