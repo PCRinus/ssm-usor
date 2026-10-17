@@ -700,12 +700,12 @@ msgid "Semnături"
 msgstr "Semnături"
 
 #: src/features/my-data/provider-box.tsx
-msgid "Spune-i specialistului SSM: {name}, <0>{phone}</0>."
-msgstr "Spune-i specialistului SSM: {name}, <0>{phone}</0>."
+msgid "Spune-i specialistului SSM: {name}"
+msgstr "Spune-i specialistului SSM: {name}"
 
 #: src/features/my-data/provider-box.tsx
-msgid "Spune-i specialistului SSM: {name}."
-msgstr "Spune-i specialistului SSM: {name}."
+msgid "Spune-i specialistului SSM: {name}, <0>{phone}</0>."
+msgstr "Spune-i specialistului SSM: {name}, <0>{phone}</0>."
 
 #: src/lib/labels.ts
 msgid "SSM"

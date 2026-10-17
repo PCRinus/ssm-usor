@@ -34,7 +34,7 @@ export function ProviderBox({
             .
           </Trans>
         ) : (
-          <Trans>Spune-i specialistului SSM: {name}.</Trans>
+          <Trans>Spune-i specialistului SSM: {name}</Trans>
         )}
       </p>
     </section>
