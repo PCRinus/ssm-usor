@@ -3441,6 +3441,10 @@ export type Database = {
         Args: { p_evaluation_id: string; p_profile_id: string };
         Returns: number;
       };
+      auth_user_id_by_address: {
+        Args: { p_address: string; p_channel: string };
+        Returns: string;
+      };
       can_access_document: { Args: { p_document_id: string }; Returns: boolean };
       change_organization_member_role: {
         Args: {
