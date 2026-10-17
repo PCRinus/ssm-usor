@@ -8,6 +8,7 @@ import {
   responsiblePersonFocus,
   trainingFocus,
 } from '@/features/missing-data/focus';
+import { ClientAdministratorCard } from '@/features/participants/client-administrator-card';
 import { FireSafetySection } from '@/features/training/fire-safety-card';
 import { ResponsiblePersonsCard } from '@/features/training/responsible-persons-card';
 import { TrainingProgramSection } from '@/features/training/training-program-card';
@@ -47,6 +48,7 @@ function TrainingPage() {
         readOnly={client.archivedAt !== null}
         focus={focusAmong(focus, responsiblePersonFocus)}
       />
+      <ClientAdministratorCard client={client} userId={session.user.id} />
     </div>
   );
 }

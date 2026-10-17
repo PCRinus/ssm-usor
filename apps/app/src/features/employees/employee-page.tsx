@@ -6,6 +6,7 @@ import { type ReactNode, useState } from 'react';
 
 import { useAuth } from '@/features/auth/auth-context';
 import { EmployeeFilesCard } from '@/features/client-files/employee-files-card';
+import { EmployeePortalCard } from '@/features/participants/employee-portal-card';
 
 import { formatDate, formatTenure, todayIso } from './employee-format';
 import { EmployeeJobPositionDialog } from './employee-job-position-dialog';
@@ -13,6 +14,7 @@ import { EmployeePending } from './employee-pending';
 import { useEmployee } from './use-employee';
 
 const employeeRoute = getRouteApi('/_authenticated/clients/$clientId/employees/$employeeId');
+const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -60,6 +62,7 @@ function Cnp({ value }: { value: string }) {
 
 export function EmployeePage() {
   const { clientId, employeeId } = employeeRoute.useParams();
+  const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
   const query = useEmployee(clientId, employeeId);
   const [moving, setMoving] = useState(false);
@@ -149,6 +152,14 @@ export function EmployeePage() {
             {employee.notes}
           </Fact>
         </Section>
+
+        {session && (
+          <EmployeePortalCard
+            employee={employee}
+            userId={session.user.id}
+            readOnly={client.archivedAt !== null}
+          />
+        )}
 
         <EmployeeFilesCard employee={employee} />
       </div>
