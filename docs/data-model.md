@@ -1192,7 +1192,8 @@ key, deleted with the employee): `state` is `generated`, `signed_electronically`
 `signed_on_paper`, `withdrawn` (the employee returned to signing by hand: no trainee request goes to
 them while it stands, and setting it voids their pending ones with `withdrawn`) or `in_contract` (a
 new hire whose employment contract carries the clause, which counts as agreed, with no PDF). It
-has `generated_at`, `signed_at` (set exactly when `signed_electronically` or `signed_on_paper`),
+has `generated_at`, `signed_at` (set when `signed_electronically` or `signed_on_paper`, kept by a
+`withdrawn` that follows an electronic signature, else null),
 `marked_by` (only for `signed_on_paper`, `withdrawn` and `in_contract`, and forced to the signed-in
 member by a trigger whenever a member sets the state; kept as it was on any other member update)
 and `client_file_id`, the scan as a client file of the same client, set null when the file is
@@ -1202,9 +1203,11 @@ not deleted, except with its employee (`SIG10`, `agreement_recorded`). The elect
 `storage_path`, the signed PDF's current version in the documents bucket, `employee_signed_at` and
 `employer_signed_at`, which members may neither insert nor update: the employer signs after the
 employee, a signed agreement has its file, `signed_electronically` holds exactly when the employer
-has signed, and the states other than `generated` and `signed_electronically` carry no electronic
-signature (all by checks). Once either party has signed electronically, a member's update or delete
-of the row is refused (`SIG07`), so that a paper mark never contradicts a signed file.
+has signed, and the states other than `generated`, `signed_electronically` and `withdrawn` carry no
+electronic signature (all by checks). Once either party has signed electronically, a member's update or delete
+of the row is refused (`SIG07`), so that a paper mark never contradicts a signed file; the one
+change allowed is `withdrawn` (`20261018150000_agreement_withdrawal.sql`), which keeps
+`signed_at`, the file and both signing times as the evidence of what was signed.
 
 `agreement_signatures` is the evidence of one party's signature on an agreement, written once:
 `employee_id` (restricting the agreement's and the employee's deletion), `party` (`employee` or
