@@ -144,9 +144,17 @@ msgstr "Actele adiționale care așteaptă semnătura angajatorului și instruir
 msgid "Actul adițional la contractul de muncă prin care accepți să semnezi fișele de instruire în portal."
 msgstr "Actul adițional la contractul de muncă prin care accepți să semnezi fișele de instruire în portal."
 
+#: src/features/signing/signing-messages.ts
+msgid "Actul adițional nu poate fi întocmit încă: lipsesc date ale firmei pe care le completează specialistul."
+msgstr "Actul adițional nu poate fi întocmit încă: lipsesc date ale firmei pe care le completează specialistul."
+
 #: src/features/signing/signing-item-text.tsx
 msgid "Actul adițional prin care accepți să semnezi fișele de instruire în portal."
 msgstr "Actul adițional prin care accepți să semnezi fișele de instruire în portal."
+
+#: src/features/signing/signing-messages.ts
+msgid "Actul adițional s-a schimbat de când ai cerut codul. Cere un cod nou și semnează din nou."
+msgstr "Actul adițional s-a schimbat de când ai cerut codul. Cere un cod nou și semnează din nou."
 
 #: src/features/signing/signing-messages.ts
 msgid "Actul nu mai așteaptă semnătura ta: a fost semnat sau schimbat între timp."
@@ -506,6 +514,10 @@ msgstr "Fiecare instruire la care ai participat, cea mai recentă prima. Fișele
 msgid "Fiind și angajat, vezi și instruirile tale, fișele tale și datele tale de identificare."
 msgstr "Fiind și angajat, vezi și instruirile tale, fișele tale și datele tale de identificare."
 
+#: src/features/signing/signing-messages.ts
+msgid "Firma nu mai este activă în aplicație, așa că nu se mai semnează nimic pentru ea."
+msgstr "Firma nu mai este activă în aplicație, așa că nu se mai semnează nimic pentru ea."
+
 #: src/features/training/training-sheets.tsx
 msgid "Fișa {label}"
 msgstr "Fișa {label}"
@@ -528,8 +540,20 @@ msgid "Fișa individuală {label}, semnată electronic, PDF"
 msgstr "Fișa individuală {label}, semnată electronic, PDF"
 
 #: src/features/signing/signing-messages.ts
+msgid "Fișa nu a putut fi certificată. Spune-i specialistului."
+msgstr "Fișa nu a putut fi certificată. Spune-i specialistului."
+
+#: src/features/signing/signing-messages.ts
 msgid "Fișa nu are loc pentru această semnătură. Spune-i specialistului."
 msgstr "Fișa nu are loc pentru această semnătură. Spune-i specialistului."
+
+#: src/features/signing/signing-messages.ts
+msgid "Fișa nu are rubricile așteptate. Spune-i specialistului."
+msgstr "Fișa nu are rubricile așteptate. Spune-i specialistului."
+
+#: src/features/signing/signing-messages.ts
+msgid "Fișa nu mai poate primi această semnătură. Spune-i specialistului."
+msgstr "Fișa nu mai poate primi această semnătură. Spune-i specialistului."
 
 #: src/features/signing/signing-messages.ts
 #: src/features/training/use-sheet-actions.ts
@@ -539,6 +563,10 @@ msgstr "Fișa nu poate fi întocmită încă: lipsesc date pe care le completeaz
 #: src/features/training/use-sheet-actions.ts
 msgid "Fișa nu poate fi pregătită acum. Încearcă din nou peste câteva minute."
 msgstr "Fișa nu poate fi pregătită acum. Încearcă din nou peste câteva minute."
+
+#: src/features/signing/signing-messages.ts
+msgid "Fișa nu poate primi semnătura acum. Spune-i specialistului."
+msgstr "Fișa nu poate primi semnătura acum. Spune-i specialistului."
 
 #: src/features/training/training-sheets.tsx
 msgid "Fișă semnată electronic"
@@ -804,6 +832,10 @@ msgstr "Nu avem o adresă de email sau un telefon la care să-ți trimitem codul
 msgid "Nu mai așteaptă semnătura ta: a fost semnat, anulat sau modificat între timp."
 msgstr "Nu mai așteaptă semnătura ta: a fost semnat, anulat sau modificat între timp."
 
+#: src/features/signing/signing-messages.ts
+msgid "Nu mai poți semna pentru această firmă. Spune-i specialistului."
+msgstr "Nu mai poți semna pentru această firmă. Spune-i specialistului."
+
 #: src/features/signing/signing-page.tsx
 msgid "Nu s-a semnat nimic. Vezi mai jos de ce."
 msgstr "Nu s-a semnat nimic. Vezi mai jos de ce."
@@ -940,6 +972,10 @@ msgstr "Rh negativ"
 #: src/features/my-data/my-data-page.tsx
 msgid "Rh pozitiv"
 msgstr "Rh pozitiv"
+
+#: src/features/signing/signing-messages.ts
+msgid "Rubrica era deja semnată."
+msgstr "Rubrica era deja semnată."
 
 #: src/features/my-data/my-data-page.tsx
 msgid "Ruta"
@@ -1097,6 +1133,10 @@ msgstr "semnezi ca lucrător"
 #: src/features/signing/signing-messages.ts
 msgid "semnezi ca verificator"
 msgstr "semnezi ca verificator"
+
+#: src/features/signing/signing-messages.ts
+msgid "Serviciul de semnare a refuzat documentul. Spune-i specialistului."
+msgstr "Serviciul de semnare a refuzat documentul. Spune-i specialistului."
 
 #: src/features/signing/signing-messages.ts
 msgid "Serviciul de semnare nu a răspuns. Încearcă din nou peste câteva minute."

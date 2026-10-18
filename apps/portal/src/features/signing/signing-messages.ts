@@ -30,6 +30,16 @@ export const itemFailureMessages: Record<SigningItemFailureReason, MessageDescri
   pdf_unavailable: msg`Documentul nu a putut fi pregătit. Încearcă din nou peste câteva minute.`,
   template_missing: msg`Documentul nu poate fi întocmit încă. Spune-i specialistului.`,
   signing_failed: msg`Nu a putut fi semnat. Încearcă din nou; dacă se repetă, spune-i specialistului.`,
+  agreement_changed: msg`Actul adițional s-a schimbat de când ai cerut codul. Cere un cod nou și semnează din nou.`,
+  missing_document_data: msg`Actul adițional nu poate fi întocmit încă: lipsesc date ale firmei pe care le completează specialistul.`,
+  client_archived: msg`Firma nu mai este activă în aplicație, așa că nu se mai semnează nimic pentru ea.`,
+  signer_not_of_client: msg`Nu mai poți semna pentru această firmă. Spune-i specialistului.`,
+  row_locked: msg`Fișa nu poate primi semnătura acum. Spune-i specialistului.`,
+  already_signed: msg`Rubrica era deja semnată.`,
+  locked_field: msg`Fișa nu mai poate primi această semnătură. Spune-i specialistului.`,
+  unknown_fields: msg`Fișa nu are rubricile așteptate. Spune-i specialistului.`,
+  cannot_certify: msg`Fișa nu a putut fi certificată. Spune-i specialistului.`,
+  signer_refused: msg`Serviciul de semnare a refuzat documentul. Spune-i specialistului.`,
 };
 
 type SessionReason = Extract<

@@ -324,6 +324,7 @@ describe('Instruiri', () => {
     expect(getPortalTrainingSheet).toHaveBeenCalledWith(
       participation().participantId,
       'psi',
+      undefined,
       expect.objectContaining({ baseUrl: 'http://localhost:8787' })
     );
     expect(tab.document.title).toBe('Fișa individuală PSI');

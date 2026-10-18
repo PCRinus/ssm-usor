@@ -133,7 +133,7 @@ function OwnTraining({ participantId }: { participantId: string }) {
       records={records.data}
       sheetAccess={{
         sheets: sheets.data,
-        loadSheet: (domain) => getPortalTrainingSheet(participantId, domain, apiRequest),
+        loadSheet: (domain) => getPortalTrainingSheet(participantId, domain, undefined, apiRequest),
         onStale: () =>
           void queryClient.invalidateQueries({
             queryKey: getGetPortalTrainingSheetsQueryKey(participantId),

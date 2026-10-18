@@ -144,9 +144,17 @@ msgstr "The agreements waiting for the employer's signature and the trainings em
 msgid "Actul adițional la contractul de muncă prin care accepți să semnezi fișele de instruire în portal."
 msgstr "The addendum to your employment contract by which you agree to sign your training sheets in the portal."
 
+#: src/features/signing/signing-messages.ts
+msgid "Actul adițional nu poate fi întocmit încă: lipsesc date ale firmei pe care le completează specialistul."
+msgstr "The addendum cannot be drawn up yet: some company details the specialist fills in are missing."
+
 #: src/features/signing/signing-item-text.tsx
 msgid "Actul adițional prin care accepți să semnezi fișele de instruire în portal."
 msgstr "The addendum by which you agree to sign your training sheets in the portal."
+
+#: src/features/signing/signing-messages.ts
+msgid "Actul adițional s-a schimbat de când ai cerut codul. Cere un cod nou și semnează din nou."
+msgstr "The addendum changed since you asked for the code. Ask for a new code and sign again."
 
 #: src/features/signing/signing-messages.ts
 msgid "Actul nu mai așteaptă semnătura ta: a fost semnat sau schimbat între timp."
@@ -506,6 +514,10 @@ msgstr "Every training session you took part in, the most recent first. The shee
 msgid "Fiind și angajat, vezi și instruirile tale, fișele tale și datele tale de identificare."
 msgstr "As you are also an employee, you also see your own training sessions, sheets and identification details."
 
+#: src/features/signing/signing-messages.ts
+msgid "Firma nu mai este activă în aplicație, așa că nu se mai semnează nimic pentru ea."
+msgstr "The company is no longer active in the app, so nothing more is signed for it."
+
 #: src/features/training/training-sheets.tsx
 msgid "Fișa {label}"
 msgstr "{label} sheet"
@@ -528,8 +540,20 @@ msgid "Fișa individuală {label}, semnată electronic, PDF"
 msgstr "Individual {label} sheet, signed electronically, PDF"
 
 #: src/features/signing/signing-messages.ts
+msgid "Fișa nu a putut fi certificată. Spune-i specialistului."
+msgstr "The sheet could not be certified. Tell the specialist."
+
+#: src/features/signing/signing-messages.ts
 msgid "Fișa nu are loc pentru această semnătură. Spune-i specialistului."
 msgstr "The sheet has no place for this signature. Tell your specialist."
+
+#: src/features/signing/signing-messages.ts
+msgid "Fișa nu are rubricile așteptate. Spune-i specialistului."
+msgstr "The sheet does not have the expected fields. Tell the specialist."
+
+#: src/features/signing/signing-messages.ts
+msgid "Fișa nu mai poate primi această semnătură. Spune-i specialistului."
+msgstr "The sheet can no longer take this signature. Tell the specialist."
 
 #: src/features/signing/signing-messages.ts
 #: src/features/training/use-sheet-actions.ts
@@ -539,6 +563,10 @@ msgstr "The sheet cannot be drawn up yet: data the specialist fills in is missin
 #: src/features/training/use-sheet-actions.ts
 msgid "Fișa nu poate fi pregătită acum. Încearcă din nou peste câteva minute."
 msgstr "The sheet cannot be prepared right now. Try again in a few minutes."
+
+#: src/features/signing/signing-messages.ts
+msgid "Fișa nu poate primi semnătura acum. Spune-i specialistului."
+msgstr "The sheet cannot take the signature right now. Tell the specialist."
 
 #: src/features/training/training-sheets.tsx
 msgid "Fișă semnată electronic"
@@ -804,6 +832,10 @@ msgstr "We have no email address or phone number to send your code to. Tell your
 msgid "Nu mai așteaptă semnătura ta: a fost semnat, anulat sau modificat între timp."
 msgstr "It no longer waits for your signature: it was signed, cancelled or changed in the meantime."
 
+#: src/features/signing/signing-messages.ts
+msgid "Nu mai poți semna pentru această firmă. Spune-i specialistului."
+msgstr "You can no longer sign for this company. Tell the specialist."
+
 #: src/features/signing/signing-page.tsx
 msgid "Nu s-a semnat nimic. Vezi mai jos de ce."
 msgstr "Nothing was signed. See why below."
@@ -940,6 +972,10 @@ msgstr "Rh negative"
 #: src/features/my-data/my-data-page.tsx
 msgid "Rh pozitiv"
 msgstr "Rh positive"
+
+#: src/features/signing/signing-messages.ts
+msgid "Rubrica era deja semnată."
+msgstr "The field was already signed."
 
 #: src/features/my-data/my-data-page.tsx
 msgid "Ruta"
@@ -1097,6 +1133,10 @@ msgstr "you sign as the worker"
 #: src/features/signing/signing-messages.ts
 msgid "semnezi ca verificator"
 msgstr "you sign as the verifier"
+
+#: src/features/signing/signing-messages.ts
+msgid "Serviciul de semnare a refuzat documentul. Spune-i specialistului."
+msgstr "The signing service refused the document. Tell the specialist."
 
 #: src/features/signing/signing-messages.ts
 msgid "Serviciul de semnare nu a răspuns. Încearcă din nou peste câteva minute."

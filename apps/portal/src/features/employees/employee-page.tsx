@@ -87,7 +87,7 @@ function EmployeeDetail({
           records={records.isError ? null : records.data?.items}
           failed={sheets.isError}
           loadSheet={(domain) =>
-            getPortalEmployeeTrainingSheet(participantId, employeeId, domain, apiRequest)
+            getPortalEmployeeTrainingSheet(participantId, employeeId, domain, undefined, apiRequest)
           }
           onStale={() =>
             void queryClient.invalidateQueries({
