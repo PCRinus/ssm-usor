@@ -148,6 +148,21 @@ browser flows start, not `pnpm dev`'s. To sign in by hand, point the hooks at 87
 `supabase/config.toml` explains, or read the code from a running flow server's
 `/__e2e/emails?to=…`.
 
+## PostHog
+
+The portal reports to the app's EU PostHog project with the same `VITE_POSTHOG_PROJECT_TOKEN`,
+through the same proxy and with the same masking (`src/app/observability/posthog.ts`). Locally
+it is optional, as in the app ([App](app.md#local-configuration)); without the token no PostHog
+code loads.
+
+PostHog starts in `ParticipantGate`, so never on `/sign-in`. It identifies the Supabase user
+with `name` (the chosen participation's), `email` or `phone` (the sign-in address), groups the
+events under the chosen client as group type `client`, and registers `participant_kind` and
+`organization_name` on every event. The provider's organization id stays out of PostHog
+because `/portal/me` does not send it. Page views, clicks, unhandled errors, failed API calls
+(`api_request_failed`) and sessions are captured; replays mask all text, inputs and element
+attributes. There is no Support widget. Sign-out resets the identity and stops recording.
+
 ## Browser flows
 
 ```bash
@@ -182,7 +197,7 @@ with the committed `routeTree.gen.ts` that `pnpm generate:routes` regenerates fo
 `src/features/`, `src/components/`, `src/lib/`, `src/locales/` and `src/api/`.
 
 `src/api/http.ts` wires the shared adapter `@ssm-usor/api-http` (origin guard, bearer token,
-file downloads, `ApiHttpError`) without the app's PostHog reporting. It is the mutator of the
+file downloads, `ApiHttpError`) and sends a failed request to PostHog, as the app does. It is the mutator of the
 portal's own generated client, `src/api/generated/api.ts`, which orval writes from the
 operations tagged `portal` ([API client](api-client.md#two-clients-from-one-document)) and
 nothing else. Do not edit it; `pnpm generate:api` rewrites it with the app's.

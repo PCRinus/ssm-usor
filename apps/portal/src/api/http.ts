@@ -4,9 +4,13 @@ import {
   type ErrorType as ApiErrorType,
 } from '@ssm-usor/api-http';
 
+import { captureEvent } from '@/app/observability/posthog';
+
 export { ApiHttpError, type ApiRequestOptions } from '@ssm-usor/api-http';
 
-const http = createApiHttp();
+const http = createApiHttp({
+  onFailure: (failure) => captureEvent('api_request_failed', failure),
+});
 
 // Orval reads the declarations of this file, not what it re-exports: without a function
 // named apiFetch it refuses the mutator, and without a type named ErrorType it types every
