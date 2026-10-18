@@ -4,7 +4,7 @@ import { cors } from 'hono/cors';
 import { timing } from 'hono/timing';
 
 import { allowedOrigins, marketingOrigin } from './lib/env';
-import { ApiError, errorStatus } from './lib/errors';
+import { ApiError, errorStatus, fromEngineError } from './lib/errors';
 import { openApiConfig } from './lib/openapi';
 import { authHooksRouter } from './modules/auth-hooks';
 import { clientFilesRouter } from './modules/client-files';
@@ -110,7 +110,8 @@ export function createApp() {
     )
   );
 
-  app.onError((error, c) => {
+  app.onError((thrown, c) => {
+    const error = fromEngineError(thrown);
     if (error instanceof ApiError) {
       if (error.code === 'unauthorized') c.header('WWW-Authenticate', 'Bearer');
       return c.json(

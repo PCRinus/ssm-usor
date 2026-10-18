@@ -1,4 +1,5 @@
 import type { ApiErrorCode, ApiErrorResponse, MissingDocumentData } from '@ssm-usor/contracts';
+import { SigningAgreementDataError } from '@ssm-usor/document-engine';
 
 export const errorStatus = {
   unauthorized: 401,
@@ -36,4 +37,18 @@ export class ApiError extends Error {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+/** A refusal of the document engine as the response the app already knows how to word. */
+export function fromEngineError(error: Error): Error {
+  if (error instanceof SigningAgreementDataError) {
+    return new ApiError(
+      'conflict',
+      `Data the signing agreement prints is missing: ${error.missing.join(', ')}.`,
+      undefined,
+      'missing_document_data',
+      error.missing
+    );
+  }
+  return error;
 }
