@@ -264,7 +264,6 @@ describe('a document generated again while the set lacks data', () => {
         'positions.equipment',
         'positions.instructions',
         'positions.risk_evaluation',
-        'risk_evaluations.sensitive_groups',
         'risk_evaluations.measures',
         'risk_evaluations.plan',
         'documents.own_instructions',

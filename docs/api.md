@@ -1219,9 +1219,9 @@ role nobody holds, `positions.any` for a client without a current position,
 one is undecided about the instruction modules it applies
 ([ADR 012](architecture/adr-012-own-instructions.md)); `undecidedJobPositions` names those,
 so the form can send someone to each. The risk evaluations
-([ADR 015](architecture/adr-015-risk-assessment.md)) add four: `positions.risk_evaluation`
-while a current position has no evaluation or one without a factor,
-`risk_evaluations.sensitive_groups` likewise for the sensitive groups,
+([ADR 015](architecture/adr-015-risk-assessment.md)) add three: `positions.risk_evaluation`
+while a current position has no evaluation or one without a factor (the sensitive groups are
+optional, and their evaluation counts only once it has a factor),
 `risk_evaluations.measures` while an unacceptable factor (level above 3) has no prevention
 measure, and `risk_evaluations.plan` while a factor with measures lacks its deadline or its
 person responsible. `incompleteRiskEvaluations` names the evaluations behind them, each with

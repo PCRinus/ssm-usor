@@ -225,14 +225,18 @@ describe('what is missing', () => {
     ).toContain('client.trainingSchedule');
   });
 
-  it('needs every position and the sensitive groups evaluated, with measures and their plan', () => {
+  it('needs every position evaluated, with measures and their plan, and not the sensitive groups', () => {
     const [groups, sudor, contabil] = facts.riskEvaluations;
     expect(
       missingDocumentData({ ...facts, riskEvaluations: [groups!, { ...sudor!, factors: [] }] })
     ).toEqual(['positions.risk_evaluation']);
-    expect(missingDocumentData({ ...facts, riskEvaluations: [sudor!, contabil!] })).toEqual([
-      'risk_evaluations.sensitive_groups',
-    ]);
+    expect(missingDocumentData({ ...facts, riskEvaluations: [sudor!, contabil!] })).toEqual([]);
+    expect(
+      missingDocumentData({
+        ...facts,
+        riskEvaluations: [{ ...groups!, factors: [] }, sudor!, contabil!],
+      })
+    ).toEqual([]);
     const unmeasured = {
       ...groups!,
       factors: groups!.factors.map((factor) => ({ ...factor, measures: [] })),
@@ -873,7 +877,6 @@ describe('a document generated again', () => {
       'positions.equipment',
       'positions.instructions',
       'positions.risk_evaluation',
-      'risk_evaluations.sensitive_groups',
     ]);
     const context = buildPartialDocumentContext(gapsOutsideTheCover, 'cover_decisions');
     expect(Object.keys(context).sort()).toEqual([

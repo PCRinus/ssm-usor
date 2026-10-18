@@ -21,7 +21,7 @@ Tools were read too. ssm.ro's documentation says posts group the functions with 
 
 A **risk evaluation** is recorded once and both documents are generated from it. The method is the I.N.C.D.P.M. one and is not a choice: the template's static chapters describe it, and its grid and formula are code. A provider who works by another method keeps uploading.
 
-An evaluation belongs to a **job position**, one per position. A client can also hold evaluations that are not posts, each with a name: one for the **sensitive groups**, which the law asks for and readiness requires, and any others the provider wants, such as visitors. Modelling these as job positions was rejected, since they would appear in the positions table, the training themes and the equipment list; a fixed chapter of text on sensitive groups was rejected as weaker than the evaluation art. 12 names.
+An evaluation belongs to a **job position**, one per position. A client can also hold evaluations that are not posts, each with a name: one for the **sensitive groups**, which the law asks for where the client employs them (optional since the amendment of 2026-10-19 below), and any others the provider wants, such as visitors. Modelling these as job positions was rejected, since they would appear in the positions table, the training themes and the equipment list; a fixed chapter of text on sensitive groups was rejected as weaker than the evaluation art. 12 names.
 
 ### What an evaluation records
 
@@ -53,6 +53,8 @@ The organization keeps **evaluation profiles**: a name and a set of risk factors
 ### Readiness
 
 Generation requires: every current position evaluated, with at least one factor; the sensitive groups evaluated; every unacceptable factor with at least one measure; every factor that has measures with a deadline and a person responsible. The generation form names what is missing with a link, as it does for equipment and instructions. A position cannot declare that it needs no evaluation.
+
+(Amended 2026-10-19. The sensitive groups are no longer required. Art. 12 asks for the evaluation of "those" groups, and a client evaluates them only when it employs pregnant or breastfeeding women, workers under 18, people with disabilities, or workers with restrictions from the occupational physician, and most small clients employ none. The sensitive groups' evaluation is now printed, like any other evaluation that is not a post, once it has a factor, and only then can its measures and plan hold generation back. As first built, generation waited for it.)
 
 ### What the assessment prints
 

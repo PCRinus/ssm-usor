@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -102,7 +103,12 @@ export function ClientRiskEvaluationsCard({
           ) : (
             <Row
               title="Grupuri sensibile"
-              state={<DecisionBadge decision={null}>Neevaluat</DecisionBadge>}
+              note="Numai dacă clientul are femei gravide sau care alăptează, tineri sub 18 ani, persoane cu dizabilități sau angajați cu restricții de la medicul de medicina muncii."
+              state={
+                <Badge variant="outline" className="text-muted-foreground">
+                  Opțional
+                </Badge>
+              }
               action={
                 !readOnly && (
                   <Button
@@ -128,13 +134,30 @@ export function ClientRiskEvaluationsCard({
   );
 }
 
-function Row({ title, state, action }: { title: ReactNode; state: ReactNode; action?: ReactNode }) {
+function Row({
+  title,
+  note,
+  state,
+  action,
+}: {
+  title: ReactNode;
+  note?: string;
+  state: ReactNode;
+  action?: ReactNode;
+}) {
   return (
     <li
       data-testid="client-risk-evaluation-row"
       className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3 text-sm"
     >
-      <span className="min-w-0 font-medium wrap-anywhere">{title}</span>
+      <span className="grid min-w-0 flex-1 basis-64 gap-1">
+        <span className="font-medium wrap-anywhere">{title}</span>
+        {note && (
+          <span data-testid="client-risk-evaluation-note" className="text-muted-foreground">
+            {note}
+          </span>
+        )}
+      </span>
       <span className="flex flex-wrap items-center gap-2">
         {state}
         {action}

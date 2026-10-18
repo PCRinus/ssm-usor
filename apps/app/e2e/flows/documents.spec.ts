@@ -52,14 +52,13 @@ test('generating waits for the data the documents print, and says where it is fi
 
   await expect(page.getByTestId('documents-empty')).toBeVisible();
   await page.getByTestId('documents-generate').click();
-  await expect(page.getByTestId('generate-missing-count')).toHaveText('12 date de completat');
+  await expect(page.getByTestId('generate-missing-count')).toHaveText('11 date de completat');
   await expect(page.getByTestId('generate-missing-place').getByRole('heading')).toHaveText([
     'Datele organizației',
     'Profilul tău',
     'Detaliile clientului',
     'Instruire și responsabili',
     'Posturile de lucru',
-    'Evaluarea riscurilor',
   ]);
   const rows = page.getByTestId('generate-missing-row');
   await expect(rows).toHaveText([
@@ -74,7 +73,6 @@ test('generating waits for the data the documents print, and says where it is fi
     /^Echipa de evaluare a riscurilor/,
     /^Pericol grav și iminent/,
     /^Cel puțin un post de lucru/,
-    /^Evaluarea grupurilor sensibile/,
   ]);
   await expect(page.getByTestId('generate-submit')).toHaveCount(0);
 

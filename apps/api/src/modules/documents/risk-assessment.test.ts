@@ -126,6 +126,14 @@ describe('the evaluations printed', () => {
       ).map((evaluation) => evaluation.id)
     ).toEqual([workshopFacts.id, sensitiveGroups.id]);
   });
+
+  it('leave out the sensitive groups until their evaluation has a factor', () => {
+    expect(
+      printedEvaluations([{ ...sensitiveGroups, factors: [] }, workshopFacts], [workshop]).map(
+        (evaluation) => evaluation.id
+      )
+    ).toEqual([workshopFacts.id]);
+  });
 });
 
 describe('what the evaluations lack', () => {
@@ -133,7 +141,7 @@ describe('what the evaluations lack', () => {
     expect(incompleteRiskEvaluations(evaluations, positions)).toEqual([]);
   });
 
-  it('is an evaluation for every current position and for the sensitive groups', () => {
+  it('is an evaluation for every current position, and none for the sensitive groups', () => {
     expect(incompleteRiskEvaluations([{ ...workshopFacts, factors: [] }], positions)).toEqual([
       {
         evaluationId: null,
@@ -149,12 +157,28 @@ describe('what the evaluations lack', () => {
         name: 'Sudor',
         missing: ['factors'],
       },
+    ]);
+    expect(
+      incompleteRiskEvaluations(
+        [...evaluations.slice(1), { ...sensitiveGroups, factors: [] }],
+        positions
+      )
+    ).toEqual([]);
+  });
+
+  it('is the measures and the plan of the sensitive groups once they have a factor', () => {
+    expect(
+      incompleteRiskEvaluations(
+        [...evaluations.slice(1), { ...sensitiveGroups, factors: [factor(5, 2)] }],
+        positions
+      )
+    ).toEqual([
       {
-        evaluationId: null,
+        evaluationId: sensitiveGroups.id,
         kind: 'sensitive_groups',
         jobPositionId: null,
         name: 'Grupuri sensibile la riscuri specifice',
-        missing: ['factors'],
+        missing: ['measures'],
       },
     ]);
   });

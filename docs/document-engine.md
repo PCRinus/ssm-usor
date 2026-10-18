@@ -808,8 +808,8 @@ The API builds the data once per generation and merges every template with it
   instructions revision to cite (`documents.own_instructions`), as the fire-safety themes need
   an IPSU revision (`documents.fire_own_instructions`). The risk evaluations
   ([ADR 015](architecture/adr-015-risk-assessment.md)) need every current position evaluated
-  with at least one factor (`positions.risk_evaluation`), the sensitive groups too
-  (`risk_evaluations.sensitive_groups`), a prevention measure on every factor above level 3
+  with at least one factor (`positions.risk_evaluation`), a prevention measure on every factor
+  above level 3
   (`risk_evaluations.measures`), and a deadline and a person responsible on every factor with
   measures (`risk_evaluations.plan`); readiness names the evaluations behind those codes as
   `incompleteRiskEvaluations`.

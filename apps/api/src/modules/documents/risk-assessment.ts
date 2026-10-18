@@ -148,7 +148,8 @@ export function roman(value: number) {
 /**
  * The evaluations the documents print, in the ADR's order: the current positions in the order
  * of the positions table, the sensitive groups, then the others by name. An evaluation of a
- * position that is no longer current stays out, as does another one without a factor yet.
+ * position that is no longer current stays out, as does one that is not of a position and has
+ * no factor yet: the sensitive groups are evaluated only by a client that employs them.
  */
 export function printedEvaluations(
   evaluations: readonly RiskEvaluationFacts[],
@@ -165,7 +166,7 @@ export function printedEvaluations(
     .filter((evaluation) =>
       evaluation.kind === 'job_position'
         ? positionOrder.has(evaluation.jobPositionId ?? '')
-        : evaluation.kind === 'sensitive_groups' || evaluation.factors.length > 0
+        : evaluation.factors.length > 0
     )
     .sort(
       (a, b) =>
@@ -188,8 +189,8 @@ const levelOf = (factor: Pick<RiskFactorFacts, 'gravityClass' | 'probabilityClas
 
 /**
  * What each evaluation lacks before the documents can be generated (ADR 015): every current
- * position and the sensitive groups evaluated with a factor; every unacceptable factor with a
- * measure; every factor with measures with a deadline and a person responsible.
+ * position evaluated with a factor; every unacceptable factor with a measure; every factor with
+ * measures with a deadline and a person responsible.
  */
 export function incompleteRiskEvaluations(
   evaluations: readonly RiskEvaluationFacts[],
@@ -221,7 +222,6 @@ export function incompleteRiskEvaluations(
       .filter((evaluation) => evaluation.kind === 'job_position')
       .map((evaluation) => [evaluation.jobPositionId, evaluation])
   );
-  const sensitiveGroups = printed.find((evaluation) => evaluation.kind === 'sensitive_groups');
   return [
     ...positions.map((position) => {
       const evaluation = byPosition.get(position.id);
@@ -233,20 +233,14 @@ export function incompleteRiskEvaluations(
         missing: gapsOf(evaluation),
       };
     }),
-    {
-      evaluationId: sensitiveGroups?.id ?? null,
-      kind: 'sensitive_groups' as const,
-      jobPositionId: null,
-      name: sensitiveGroupsName,
-      missing: gapsOf(sensitiveGroups),
-    },
     ...printed
-      .filter((evaluation) => evaluation.kind === 'other')
+      .filter((evaluation) => evaluation.kind !== 'job_position')
       .map((evaluation) => ({
         evaluationId: evaluation.id,
-        kind: 'other' as const,
+        kind: evaluation.kind,
         jobPositionId: null,
-        name: evaluation.name!.trim(),
+        name:
+          evaluation.kind === 'sensitive_groups' ? sensitiveGroupsName : evaluation.name!.trim(),
         missing: gapsOf(evaluation),
       })),
   ].filter((evaluation) => evaluation.missing.length > 0);

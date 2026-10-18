@@ -694,7 +694,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     const response = await request(`/clients/${clientId}/documents/readiness`);
     expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
       ready: false,
-      missing: ['risk_evaluations.sensitive_groups', 'risk_evaluations.measures'],
+      missing: ['risk_evaluations.measures'],
       incompleteRiskEvaluations: [
         {
           evaluationId: sudor!.id,
@@ -702,13 +702,6 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
           jobPositionId: positionRow.id,
           name: 'Sudor',
           missing: ['measures'],
-        },
-        {
-          evaluationId: null,
-          kind: 'sensitive_groups',
-          jobPositionId: null,
-          name: 'Grupuri sensibile la riscuri specifice',
-          missing: ['factors'],
         },
       ],
     });
@@ -1489,7 +1482,6 @@ describe('POST /documents/{documentId}/regenerate', () => {
       'positions.equipment',
       'positions.instructions',
       'positions.risk_evaluation',
-      'risk_evaluations.sensitive_groups',
     ]);
 
     mockUpstream({ ...gapsOutsideTheCover, ...ofType('cover_decisions') });

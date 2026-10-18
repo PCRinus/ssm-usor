@@ -295,12 +295,6 @@ export const documentMissingData: Record<
     detail: 'Fiecare post are nevoie de o evaluare cu cel puțin un factor de risc.',
     target: ({ clientId }) => to.positions(clientId),
   },
-  'risk_evaluations.sensitive_groups': {
-    place: 'riskEvaluations',
-    label: 'Evaluarea grupurilor sensibile',
-    detail: 'Legea o cere pentru fiecare client, cu cel puțin un factor de risc.',
-    target: ({ clientId }) => to.clientEvaluations(clientId),
-  },
   'risk_evaluations.measures': {
     place: 'riskEvaluations',
     label: 'Măsurile pentru riscurile inacceptabile',
@@ -430,14 +424,12 @@ const evaluationGaps: Record<RiskEvaluationGap, { section: string; detail: strin
   },
 };
 
-const gapCode = (kind: RiskEvaluationKind, gap: RiskEvaluationGap): MissingDocumentData =>
+const gapCode = (gap: RiskEvaluationGap): MissingDocumentData =>
   gap === 'measures'
     ? 'risk_evaluations.measures'
     : gap === 'plan'
       ? 'risk_evaluations.plan'
-      : kind === 'job_position'
-        ? 'positions.risk_evaluation'
-        : 'risk_evaluations.sensitive_groups';
+      : 'positions.risk_evaluation';
 
 export function documentMissingGroups({
   missing,
@@ -480,30 +472,24 @@ export function documentMissingGroups({
   );
   const evaluationRows = incompleteRiskEvaluations.flatMap((evaluation) =>
     evaluation.missing
-      .filter((gap) => missing.includes(gapCode(evaluation.kind, gap)))
-      .map((gap): MissingRow => {
-        const code = gapCode(evaluation.kind, gap);
-        return {
-          key: `${evaluation.evaluationId ?? evaluation.jobPositionId ?? evaluation.kind}:${gap}`,
-          label:
-            code === 'risk_evaluations.sensitive_groups'
-              ? documentMissingData[code].label
-              : `${evaluation.name} · ${evaluationGaps[gap].section}`,
-          detail: evaluationGaps[gap].detail,
-          target: evaluation.jobPositionId
-            ? to.positionEvaluation(clientId, evaluation.jobPositionId)
-            : evaluation.evaluationId
-              ? to.clientEvaluation(clientId, evaluation.evaluationId)
-              : to.clientEvaluations(clientId),
-        };
-      })
+      .filter((gap) => missing.includes(gapCode(gap)))
+      .map((gap): MissingRow => ({
+        key: `${evaluation.evaluationId ?? evaluation.jobPositionId ?? evaluation.kind}:${gap}`,
+        label: `${evaluation.name} · ${evaluationGaps[gap].section}`,
+        detail: evaluationGaps[gap].detail,
+        target: evaluation.jobPositionId
+          ? to.positionEvaluation(clientId, evaluation.jobPositionId)
+          : evaluation.evaluationId
+            ? to.clientEvaluation(clientId, evaluation.evaluationId)
+            : to.clientEvaluations(clientId),
+      }))
   );
   const listed = new Set([
     ...undecidedJobPositions.flatMap((position) =>
       position.undecided.map((decision) => decisionRows[decision].code)
     ),
     ...incompleteRiskEvaluations.flatMap((evaluation) =>
-      evaluation.missing.map((gap) => gapCode(evaluation.kind, gap))
+      evaluation.missing.map((gap) => gapCode(gap))
     ),
   ]);
   return (Object.keys(documentPlaces) as DocumentPlace[])
