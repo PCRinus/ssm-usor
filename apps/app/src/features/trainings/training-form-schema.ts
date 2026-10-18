@@ -152,9 +152,14 @@ export function toTrainingForm(
     admittedByJobTitle: admission?.jobTitle ?? '',
     notes: training.notes ?? '',
     themesRevisionId: training.themesRevisionId,
-    ...emptySigners,
+    trainerSignerId: training.signers.trainer ?? '',
+    verifierSignerId: training.signers.verifier ?? '',
+    admitterSignerId: training.signers.admitter ?? '',
   };
 }
+
+export const hasSigners = (training: TrainingResponseTraining) =>
+  Object.values(training.signers).some(Boolean);
 
 export function toTrainingRequest(values: TrainingFormValues): TrainingRequest {
   const verifier =

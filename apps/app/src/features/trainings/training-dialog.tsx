@@ -59,6 +59,7 @@ import { AttendeeChecklist, type AttendeeOption } from './attendee-checklist';
 import {
   emptySigners,
   fieldOfIssue,
+  hasSigners,
   type ProposedField,
   proposedFields,
   proposedValues,
@@ -321,7 +322,15 @@ function TrainingForm({
     name: ['trainerName', 'verifierName', 'admittedByName'],
   });
   // A signer the specialist chose stays; the others follow the names as they are proposed or typed.
-  const [pickedSigners, setPickedSigners] = useState<ReadonlySet<SignerField>>(() => new Set());
+  // A saved training's signers were chosen, paper included, once any slot has one.
+  const [pickedSigners, setPickedSigners] = useState<ReadonlySet<SignerField>>(
+    () => new Set(training && hasSigners(training) ? signerFields : [])
+  );
+  const requestedSigners: Record<SignerField, string | null> = {
+    trainerSignerId: training?.signers.trainer ?? null,
+    verifierSignerId: training?.signers.verifier ?? null,
+    admitterSignerId: training?.signers.admitter ?? null,
+  };
   const pickSigner = (field: SignerField, accountId: string) => {
     setPickedSigners((current) => new Set([...current, field]));
     form.setValue(field, accountId);
@@ -356,6 +365,7 @@ function TrainingForm({
         label={label}
         value={value}
         candidates={signerItems}
+        requested={requestedSigners[field]}
         unavailable={candidates.isError}
         disabled={busy}
         error={errors[field]}

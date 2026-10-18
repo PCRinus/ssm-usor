@@ -156,6 +156,7 @@ const detailOf = (attendees: { id: string; lastName: string; firstName: string }
       occupation: 'Sudor',
       admission: null,
     })),
+    signers: { trainer: null, verifier: null, admitter: null },
   },
 });
 
