@@ -46,7 +46,9 @@ test('an invited employee signs in with an emailed code and finds their places',
   await expect(home.getByRole('heading', { level: 1 })).toHaveText('Pop Ana');
   await expect(home).toContainText('Mobilă Bună E2E S.A.');
   await expect(page.getByTestId('home-position')).toHaveText('Tâmplar');
-  await expect(page.getByTestId('home-todo')).toContainText('Nimic de semnat deocamdată');
+  // The act adițional awaits the employee from the first sign-in; no training is requested yet.
+  await expect(page.getByTestId('home-todo-item')).toHaveCount(1);
+  await expect(page.getByTestId('home-todo-item')).toHaveAttribute('data-kind', 'agreement');
   await expect(page.getByTestId('training-state-ssm')).toHaveText('Neinstruit');
   await expect(page.getByTestId('training-untrained-ssm')).toHaveText(
     'Prima instruire SSM nu a fost încă înregistrată.'
