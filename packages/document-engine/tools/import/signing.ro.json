@@ -81,11 +81,13 @@
     "signatures": [
       {
         "lines": ["Angajator"],
+        "field": "sig_employer",
         "name": "{{client.representativeName}}",
         "role": "{{client.representativeRole}} al {{client.legalName}}"
       },
       {
         "lines": ["Salariat"],
+        "field": "sig_employee",
         "name": "{{employee.name}}",
         "role": "{{employee.position}}"
       }

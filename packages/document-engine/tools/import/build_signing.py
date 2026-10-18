@@ -10,18 +10,45 @@ a list, as in the service contract, so no article refers to another by its numbe
 """
 
 import json
+import re
 import sys
+import zipfile
 
 import uno
 from com.sun.star.style.ParagraphAdjust import CENTER, LEFT
 
 sys.path.insert(0, '/work/tools/import')
 from build_contract import article, article_numbering, plain  # noqa: E402
+from build_sheets import control  # noqa: E402
 from import_templates import (  # noqa: E402
     FONT, MARGINS, SMALL_PRINT, TITLE_SIZE, _elements, add_branding, build_header,
     insert_handover, prop, start_office, sweep, write_paragraph)
 
 DATE_LINE = 'Data: ____________________'
+FIELD_MARK = 'SIGNATURE_FIELD:'
+# Half the text width, from hundredths of a millimetre to twips.
+FIELD_WIDTH = round((21000 - MARGINS['LeftMargin'] - MARGINS['RightMargin']) / 2 * 1440 / 2540)
+
+
+def signature_fields(path):
+    """Turns each marker paragraph into a paragraph holding a plain-text content control named
+    after the field, which LibreOffice exports as a PDF text field the signer makes a signature
+    field (ADR 023), as on the training sheets."""
+    with zipfile.ZipFile(path) as archive:
+        entries = [(item, archive.read(item.filename)) for item in archive.infolist()]
+    with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as archive:
+        for item, data in entries:
+            if item.filename == 'word/document.xml':
+                xml = data.decode('utf8')
+                pattern = re.compile(
+                    r'<w:p\b(?:(?!<w:p\b).)*?' + re.escape(FIELD_MARK) + r'(\w+).*?</w:p>', re.S)
+                while match := pattern.search(xml):
+                    properties = re.search(r'<w:pPr>.*?</w:pPr>', match.group(0), re.S)
+                    drawn = (f'<w:p>{properties.group(0) if properties else ""}'
+                             f'{control(match.group(1), FIELD_WIDTH, 3)}</w:p>')
+                    xml = xml[:match.start()] + drawn + xml[match.end():]
+                data = xml.encode('utf8')
+            archive.writestr(item, data)
 
 
 def set_up_pages(document, with_header):
@@ -44,9 +71,12 @@ def set_up_pages(document, with_header):
 
 def signatures(document, text, cursor, sides):
     plain(text, cursor, '', adjust=LEFT, below=0)
-    # Less room to sign than the set's hand-over blocks, so that the annex keeps to one page.
+    fields = any('field' in side for side in sides)
+    # Less room to sign than the set's hand-over blocks, so that the annex keeps to one page. A
+    # signature field brings its own room.
     table = insert_handover(document, text, cursor, tuple(
-        (side['lines'], side['name'], side['role']) for side in sides), signing_room=34)
+        (side['lines'] + ([FIELD_MARK + side['field']] if 'field' in side else []), side['name'], side['role'])
+        for side in sides), signing_room=4 if fields else 34)
     for cell_name in ('A1', 'B1'):
         cell = table.getCellByName(cell_name)
         cell_cursor = cell.createTextCursor()
@@ -83,6 +113,7 @@ def build(desktop, definition, with_header):
     document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))
     document.close(True)
     sweep(target)
+    signature_fields(target)
     print(definition['file'])
 
 

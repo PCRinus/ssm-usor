@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 
+import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
 import { signingAgreementFacts, signingAgreementSamples } from '../tools/signing-samples';
@@ -154,4 +155,13 @@ describe('the signing agreement', () => {
       expect(text.includes('Document generat cu SSM Ușor')).toBe(data.branding);
     }
   );
+
+  it('has a signature field for each party, the employer first, as its signed copy needs', () => {
+    const xml = new PizZip(agreementTemplate).file('word/document.xml')!.asText();
+    expect([...xml.matchAll(/<w:alias w:val="([^"]+)"\/>/g)].map((match) => match[1])).toEqual([
+      'sig_employer',
+      'sig_employee',
+    ]);
+    expect(xml).not.toContain('SIGNATURE_FIELD');
+  });
 });
