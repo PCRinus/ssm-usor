@@ -48,6 +48,7 @@ export type SigningAgreementFacts = {
     firstName: string;
     employeeNumber: string | null;
     contractTitle: string;
+    contractNumber: string | null;
     /** ISO dates, as the database keeps them. */
     hiredAt: string;
     birthDate: string | null;
@@ -68,6 +69,8 @@ export type SigningAgreementData = {
     /** Empty when the app holds none of it. Never the CNP: the app shows it masked only. */
     identification: string;
     hiredOn: string;
+    /** Null rather than empty, so that a section of the template can switch on it. */
+    contractNumber: string | null;
   };
   codeChannel: string;
 };
@@ -129,6 +132,7 @@ export function buildSigningAgreementData(facts: SigningAgreementFacts): Signing
       position: text(employee.contractTitle),
       identification,
       hiredOn: printedDate(employee.hiredAt),
+      contractNumber: text(employee.contractNumber) || null,
     },
     codeChannel: codeChannels[facts.channel],
   };

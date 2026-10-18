@@ -40,6 +40,7 @@ export const createEmployeeRequestSchema = z
     // The title in the employment contract. Usually the name of the job position, and not the
     // same fact (ADR 006).
     jobTitle: z.string().trim().min(2).max(160),
+    contractNumber: optionalText(1, 50),
     // The post the person fills. Left out, the position named like the contract title, which
     // the client gets if it lacks it.
     jobPositionId: z.uuid().nullish(),
@@ -123,6 +124,7 @@ export const employeeSchema = z.object({
   phone: z.string().nullable(),
   // The title in the employment contract.
   jobTitle: z.string(),
+  contractNumber: z.string().nullable(),
   // The post the person fills; one per employee.
   jobPosition: z.object({ id: z.uuid(), name: z.string() }),
   hiredAt: z.iso.date(),

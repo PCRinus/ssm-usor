@@ -656,7 +656,7 @@ export async function signingAgreementDocx(
     db
       .from('employees')
       .select(
-        'last_name, first_name, employee_number, job_title, hired_at, birth_date, birth_place, home_address, email, phone'
+        'last_name, first_name, employee_number, job_title, contract_number, hired_at, birth_date, birth_place, home_address, email, phone'
       )
       .eq('id', employeeId)
       .eq('client_id', clientId)
@@ -724,6 +724,7 @@ export async function signingAgreementDocx(
       firstName: row.first_name,
       employeeNumber: row.employee_number,
       contractTitle: row.job_title,
+      contractNumber: row.contract_number,
       hiredAt: row.hired_at,
       birthDate: row.birth_date,
       birthPlace: row.birth_place,

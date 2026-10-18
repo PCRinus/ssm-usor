@@ -213,6 +213,22 @@ export function EmployeeForm({
               />
             </Field>
             <Field
+              id="contractNumber"
+              label="Nr. contractului individual de muncă"
+              mark="optional"
+              hint="Se tipărește pe actul adițional privind semnarea electronică."
+              error={errors.contractNumber}
+            >
+              <Input
+                id="contractNumber"
+                data-testid="employee-contract-number"
+                className="h-11"
+                {...register('contractNumber')}
+                autoComplete="off"
+                {...control('contractNumber', true)}
+              />
+            </Field>
+            <Field
               id="hiredAt"
               label="Data angajării"
               mark="required"

@@ -57,6 +57,7 @@ export const employeeFormSchema = z
       .trim()
       .min(2, 'Introdu funcția din contract (cel puțin 2 caractere).')
       .max(160, 'Funcția poate avea cel mult 160 de caractere.'),
+    contractNumber: optionalText(50, 'Numărul contractului poate avea cel mult 50 de caractere.'),
     hiredAt: z.string().regex(isoDate, 'Alege data angajării.'),
     birthDate: z.string().regex(/^([0-9]{4}-[0-9]{2}-[0-9]{2})?$/, 'Alege o dată validă.'),
     birthPlace: optionalText(160, 'Locul nașterii poate avea cel mult 160 de caractere.'),
@@ -118,6 +119,7 @@ export const emptyEmployeeForm: EmployeeFormValues = {
   phone: '',
   jobPosition: '',
   jobTitle: '',
+  contractNumber: '',
   hiredAt: '',
   birthDate: '',
   birthPlace: '',
@@ -145,6 +147,7 @@ export function toEmployeeForm(employee: Employee): EmployeeFormValues {
     phone: employee.phone ?? '',
     jobPosition: employee.jobPosition.id,
     jobTitle: employee.jobTitle,
+    contractNumber: employee.contractNumber ?? '',
     hiredAt: employee.hiredAt,
     birthDate: employee.birthDate ?? '',
     birthPlace: employee.birthPlace ?? '',
@@ -179,6 +182,7 @@ export function toCreateEmployeeRequest(values: EmployeeFormValues): CreateEmplo
     email: textOrNull(values.email),
     phone: textOrNull(values.phone),
     jobTitle: values.jobTitle,
+    contractNumber: textOrNull(values.contractNumber),
     hiredAt: values.hiredAt,
     birthDate: textOrNull(values.birthDate),
     birthPlace: textOrNull(values.birthPlace),
