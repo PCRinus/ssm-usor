@@ -58,6 +58,7 @@ def sheet(titled: bool = False) -> bytes:
 class Identity:
     name: str
     key: ec.EllipticCurvePrivateKey
+    certificate: x509.Certificate
     certificate_pem: str
     chain_pem: list[str]
 
@@ -67,13 +68,16 @@ class Identity:
         return r.to_bytes(32, 'big') + s.to_bytes(32, 'big')
 
 
-def _name(common_name: str) -> x509.Name:
-    return x509.Name(
-        [
-            x509.NameAttribute(NameOID.COMMON_NAME, common_name),
-            x509.NameAttribute(NameOID.ORGANIZATION_NAME, 'SSM Ușor test'),
-        ]
-    )
+def _name(
+    common_name: str, organization: str = 'SSM Ușor test', serial_number: str | None = None
+) -> x509.Name:
+    attributes = [
+        x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization),
+    ]
+    if serial_number:
+        attributes.append(x509.NameAttribute(NameOID.SERIAL_NUMBER, serial_number))
+    return x509.Name(attributes)
 
 
 def _pem(certificate: x509.Certificate) -> str:
@@ -81,13 +85,14 @@ def _pem(certificate: x509.Certificate) -> str:
 
 
 class CertificateAuthority:
-    def __init__(self):
+    def __init__(self, organization: str = 'SSM Ușor test'):
         self.key = ec.generate_private_key(ec.SECP256R1())
         now = datetime.now(UTC)
+        name = _name('SSM Ușor test CA', organization)
         self.certificate = (
             x509.CertificateBuilder()
-            .subject_name(_name('SSM Ușor test CA'))
-            .issuer_name(_name('SSM Ușor test CA'))
+            .subject_name(name)
+            .issuer_name(name)
             .public_key(self.key.public_key())
             .serial_number(x509.random_serial_number())
             .not_valid_before(now - timedelta(days=1))
@@ -110,12 +115,21 @@ class CertificateAuthority:
             .sign(self.key, hashes.SHA256())
         )
 
-    def issue(self, common_name: str) -> Identity:
+    @property
+    def pem(self) -> str:
+        return _pem(self.certificate)
+
+    def issue(
+        self,
+        common_name: str,
+        account_id: str | None = None,
+        digital_signature: bool = True,
+    ) -> Identity:
         key = ec.generate_private_key(ec.SECP256R1())
         now = datetime.now(UTC)
         certificate = (
             x509.CertificateBuilder()
-            .subject_name(_name(common_name))
+            .subject_name(_name(common_name, serial_number=account_id))
             .issuer_name(self.certificate.subject)
             .public_key(key.public_key())
             .serial_number(x509.random_serial_number())
@@ -124,7 +138,7 @@ class CertificateAuthority:
             .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
             .add_extension(
                 x509.KeyUsage(
-                    digital_signature=True,
+                    digital_signature=digital_signature,
                     content_commitment=True,
                     key_encipherment=False,
                     data_encipherment=False,
@@ -138,4 +152,4 @@ class CertificateAuthority:
             )
             .sign(self.key, hashes.SHA256())
         )
-        return Identity(common_name, key, _pem(certificate), [_pem(self.certificate)])
+        return Identity(common_name, key, certificate, _pem(certificate), [self.pem])

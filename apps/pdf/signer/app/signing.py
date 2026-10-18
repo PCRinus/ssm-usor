@@ -1,11 +1,12 @@
 import hashlib
 import secrets
+import threading
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from io import BytesIO
 
-from asn1crypto import algos, cms, pem, x509
+from asn1crypto import algos, cms, x509
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -25,6 +26,12 @@ from pyhanko.sign.validation.pdf_embedded import read_certification_data
 from pyhanko.stamp import TextStampStyle
 from pyhanko_certvalidator.registry import SimpleCertificateStore
 
+from .certificates import (
+    common_name,
+    load_certificate,
+    require_digital_signature,
+    require_issued_by_chain,
+)
 from .errors import SignerError
 from .fonts import SharedSubset
 from .forms import form_fields, open_writer, require_fields
@@ -66,6 +73,8 @@ class Session:
 
 # In memory on purpose: one instance runs, and a session outlives neither a restart nor ten minutes.
 sessions: dict[str, Session] = {}
+# The handlers run in Starlette's threadpool.
+sessions_lock = threading.Lock()
 
 
 def _forget_expired() -> None:
@@ -74,17 +83,13 @@ def _forget_expired() -> None:
         del sessions[token]
 
 
-def _certificate(text: str) -> x509.Certificate:
-    try:
-        data = text.encode('ascii')
-        if pem.detect(data):
-            _, _, data = pem.unarmor(data)
-        certificate = x509.Certificate.load(data)
-        # asn1crypto parses lazily: reading it all here turns a broken certificate into a refusal.
-        _ = certificate.native
-    except Exception as error:
-        raise SignerError('bad_certificate', 'A certificate could not be read.') from error
-    return certificate
+def _session(token: str) -> Session:
+    with sessions_lock:
+        _forget_expired()
+        session = sessions.get(token)
+    if session is None:
+        raise SignerError('unknown_session', 'The signing session is unknown or expired.', 404)
+    return session
 
 
 def _signed_at(text: str) -> datetime:
@@ -97,16 +102,14 @@ def _signed_at(text: str) -> datetime:
     return moment
 
 
-def _signer_name(certificate: x509.Certificate) -> str:
-    return certificate.subject.native.get('common_name') or certificate.subject.human_friendly
-
-
 async def begin_signature(pdf: bytes, options: BeginOptions) -> tuple[bytes, bytes, str]:
-    certificate = _certificate(options.certificate_pem)
-    chain = [_certificate(text) for text in options.chain_pem]
+    certificate = load_certificate(options.certificate_pem)
+    chain = [load_certificate(text) for text in options.chain_pem]
     key = certificate.public_key
     if key.algorithm != 'ec' or key.curve != ('named', 'secp256r1'):
         raise SignerError('bad_certificate', 'The certificate is not for an ECDSA P-256 key.')
+    require_digital_signature(certificate)
+    require_issued_by_chain(certificate, chain)
     signed_at = _signed_at(options.signed_at)
 
     writer = open_writer(pdf)
@@ -117,6 +120,14 @@ async def begin_signature(pdf: bytes, options: BeginOptions) -> tuple[bytes, byt
         raise SignerError('not_a_signature_field', f'{options.field} is not a signature field.')
     if '/V' in target.dictionary:
         raise SignerError('already_signed', f'{options.field} is signed already.')
+    # A locked signature field could never be signed: the lock forbids the signature itself.
+    signature_locks = sorted(
+        name for name in options.lock_fields if fields[name].field_type == '/Sig'
+    )
+    if signature_locks:
+        raise SignerError(
+            'bad_lock_fields', f'Signature fields cannot be locked: {", ".join(signature_locks)}.'
+        )
     already_signed = any(f.field_type == '/Sig' and '/V' in f.dictionary for f in fields.values())
     if options.certify and already_signed:
         raise SignerError('cannot_certify', 'Only the first signature can certify a document.')
@@ -149,7 +160,7 @@ async def begin_signature(pdf: bytes, options: BeginOptions) -> tuple[bytes, byt
             sig_placeholder=SignatureObject(
                 timestamp=signed_at,
                 subfilter=SigSeedSubFilter.PADES,
-                name=_signer_name(certificate),
+                name=common_name(certificate),
                 reason=options.reason or None,
                 bytes_reserved=bytes_reserved,
             ),
@@ -177,17 +188,15 @@ async def begin_signature(pdf: bytes, options: BeginOptions) -> tuple[bytes, byt
     digest, output = embedder.send(SigIOSetup(md_algorithm=DIGEST))
     signed_attrs = await signer.signed_attrs(digest.document_digest, DIGEST, use_pades=True)
 
-    _forget_expired()
     token = secrets.token_urlsafe(32)
-    sessions[token] = Session(digest, signed_attrs.dump(), certificate, chain)
+    with sessions_lock:
+        _forget_expired()
+        sessions[token] = Session(digest, signed_attrs.dump(), certificate, chain)
     return output.getvalue(), signed_attrs.dump(), token
 
 
 async def finish_signature(prepared: bytes, token: str, signature: bytes) -> bytes:
-    _forget_expired()
-    session = sessions.get(token)
-    if session is None:
-        raise SignerError('unknown_session', 'The signing session is unknown or expired.', 404)
+    session = _session(token)
     if len(signature) != 64:
         raise SignerError('bad_signature', 'The signature is not 64 bytes of r||s.')
     der = algos.DSASignature(
@@ -220,7 +229,11 @@ async def finish_signature(prepared: bytes, token: str, signature: bytes) -> byt
     signed_data = await signer.async_sign_prescribed_attributes(
         DIGEST, cms.CMSAttributes.load(session.signed_attrs)
     )
+    # Taken only now, so that a wrong signature leaves the session for another try, and under the
+    # lock, so that of two finishes racing on one session only one returns a signed PDF.
+    with sessions_lock:
+        if sessions.pop(token, None) is None:
+            raise SignerError('unknown_session', 'The signing session is unknown or expired.', 404)
     output = BytesIO(prepared)
     digest.fill_with_cms(output, signed_data)
-    del sessions[token]
     return output.getvalue()

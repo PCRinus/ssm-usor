@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import logging
 
@@ -9,7 +10,7 @@ from pydantic.alias_generators import to_camel
 from pyhanko.pdf_utils.layout import LayoutError
 from pyhanko.pdf_utils.misc import FormFillingError, PdfError
 
-from . import forms, signing, validation
+from . import forms, signing, stamp, validation
 from .errors import SignerError
 
 # An untrusted chain is the expected case here (the app is its own authority), and pyHanko logs
@@ -54,6 +55,12 @@ class FinishSignature(Body):
 
 class Validate(Body):
     pdf: str
+    trust_roots_pem: list[str] | None = None
+
+
+class Stamp(Body):
+    pdf: str
+    text: str = Field(min_length=1)
 
 
 def decode(name: str, value: str) -> bytes:
@@ -94,6 +101,8 @@ async def health() -> dict:
     return {'status': 'ok'}
 
 
+# The routes are plain functions, which Starlette runs in its threadpool, so that pyHanko's CPU
+# work does not hold the event loop; asyncio.run gives pyHanko's coroutines a loop in that thread.
 @app.post('/prepare-sheet')
 def prepare_sheet(body: PrepareSheet) -> dict:
     pdf = forms.prepare_sheet(decode('pdf', body.pdf), body.signature_fields)
@@ -107,33 +116,43 @@ def fill(body: Fill) -> dict:
 
 
 @app.post('/sign/begin')
-async def begin_signature(body: BeginSignature) -> dict:
-    prepared, to_sign, token = await signing.begin_signature(
-        decode('pdf', body.pdf),
-        signing.BeginOptions(
-            field=body.field,
-            certificate_pem=body.certificate_pem,
-            chain_pem=body.chain_pem,
-            reason=body.reason,
-            signed_at=body.signed_at,
-            certify=body.certify,
-            lock_fields=body.lock_fields,
-            appearance_lines=body.appearance_lines,
-        ),
+def begin_signature(body: BeginSignature) -> dict:
+    prepared, to_sign, token = asyncio.run(
+        signing.begin_signature(
+            decode('pdf', body.pdf),
+            signing.BeginOptions(
+                field=body.field,
+                certificate_pem=body.certificate_pem,
+                chain_pem=body.chain_pem,
+                reason=body.reason,
+                signed_at=body.signed_at,
+                certify=body.certify,
+                lock_fields=body.lock_fields,
+                appearance_lines=body.appearance_lines,
+            ),
+        )
     )
     return {'prepared': encode(prepared), 'toSign': encode(to_sign), 'sessionToken': token}
 
 
 @app.post('/sign/finish')
-async def finish_signature(body: FinishSignature) -> dict:
-    pdf = await signing.finish_signature(
-        decode('prepared', body.prepared),
-        body.session_token,
-        decode('signature', body.signature),
+def finish_signature(body: FinishSignature) -> dict:
+    pdf = asyncio.run(
+        signing.finish_signature(
+            decode('prepared', body.prepared),
+            body.session_token,
+            decode('signature', body.signature),
+        )
     )
     return {'pdf': encode(pdf)}
 
 
 @app.post('/validate')
-async def validate(body: Validate) -> dict:
-    return {'signatures': await validation.validate(decode('pdf', body.pdf))}
+def validate(body: Validate) -> dict:
+    signatures = asyncio.run(validation.validate(decode('pdf', body.pdf), body.trust_roots_pem))
+    return {'signatures': signatures}
+
+
+@app.post('/stamp')
+def stamp_pages(body: Stamp) -> dict:
+    return {'pdf': encode(stamp.stamp_pages(decode('pdf', body.pdf), body.text))}

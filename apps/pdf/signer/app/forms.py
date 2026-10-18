@@ -10,6 +10,7 @@ from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.pdf_utils.misc import PdfError
 from pyhanko.pdf_utils.rw_common import PdfHandler
 from pyhanko.pdf_utils.text import TextBoxStyle
+from pyhanko.sign.fields import FieldMDPSpec
 
 from .errors import SignerError
 from .fonts import SharedSubset
@@ -80,6 +81,19 @@ def require_fields(fields: dict[str, Field], names: Iterable[str]) -> None:
     unknown = sorted(set(names) - fields.keys())
     if unknown:
         raise SignerError('unknown_fields', f'No such fields: {", ".join(unknown)}.')
+
+
+def locked_by_signatures(fields: dict[str, Field]) -> set[str]:
+    locks = [
+        FieldMDPSpec.from_pdf_object(reference['/TransformParams'])
+        for field in fields.values()
+        if field.field_type == '/Sig' and '/V' in field.dictionary
+        for reference in (
+            item.get_object() for item in field.dictionary['/V'].get('/Reference', ())
+        )
+        if reference.get('/TransformMethod') == '/FieldMDP'
+    ]
+    return {name for name in fields if any(lock.is_locked(name) for lock in locks)}
 
 
 def prepare_sheet(pdf: bytes, signature_fields: list[str]) -> bytes:
@@ -178,6 +192,9 @@ def fill_fields(pdf: bytes, values: dict[str, str]) -> bytes:
     not_text = sorted(name for name in values if fields[name].field_type != '/Tx')
     if not_text:
         raise SignerError('not_a_text_field', f'Not text fields: {", ".join(not_text)}.')
+    locked = sorted(locked_by_signatures(fields).intersection(values))
+    if locked:
+        raise SignerError('locked_field', ', '.join(locked), 409)
     font = SharedSubset(writer)
     engine = font.create_font_engine(writer)
     for name, value in values.items():
