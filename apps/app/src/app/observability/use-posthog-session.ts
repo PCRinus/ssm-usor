@@ -55,9 +55,10 @@ export function usePostHogSession(me: MeResponse | undefined) {
   useEffect(() => {
     if (!client || !userId || !organizationId) return;
     const impersonating = Boolean(targetMemberId);
+    // PostHog names a person by `email` or `name`; with `$email` it shows the bare user id.
     client.identify(userId, {
-      $name: name,
-      $email: email,
+      name,
+      email,
       role: impersonating ? 'platform_admin' : role,
       ...(!impersonating && { organization_id: organizationId }),
     });
