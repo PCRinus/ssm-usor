@@ -20,6 +20,7 @@ const sampleClient = {
   addressLine: null,
   legalRepresentativeName: 'Maria Popescu',
   declaredEmployeeCount: 6,
+  currentEmployeeCount: 12,
   createdAt: '2026-09-17T10:00:00+00:00',
   updatedAt: '2026-09-17T10:00:00+00:00',
   archivedAt: null as string | null,
@@ -287,13 +288,17 @@ describe('the minimum-extinguisher hint', () => {
   it('rounds the area up by the norm, and counts dwellings by level', () => {
     expect(
       extinguisherHint(2, { kind: fixed, floorAreaM2: 450, extinguisherNorm: 'administrative_300' })
-    ).toBe('2 stingătoare · minim orientativ 2 (anexa 6)');
+    ).toBe(
+      '2 stingătoare · minim orientativ 2 după anexa 6 la Normele generale PSI (OMAI 163/2007)'
+    );
     expect(
       extinguisherHint(1, { kind: fixed, floorAreaM2: 60, extinguisherNorm: 'commercial_200' })
-    ).toBe('1 stingător · minim orientativ 1 (anexa 6)');
+    ).toBe('1 stingător · minim orientativ 1 după anexa 6 la Normele generale PSI (OMAI 163/2007)');
     expect(
       extinguisherHint(0, { kind: fixed, floorAreaM2: 90, extinguisherNorm: 'residential_level' })
-    ).toBe('Niciun stingător · cel puțin unul pe nivel (anexa 6)');
+    ).toBe(
+      'Niciun stingător · cel puțin unul pe nivel după anexa 6 la Normele generale PSI (OMAI 163/2007)'
+    );
     expect(
       extinguisherHint(3, { kind: fixed, floorAreaM2: null, extinguisherNorm: 'other_150' })
     ).toBeNull();
@@ -304,7 +309,7 @@ describe('the minimum-extinguisher hint', () => {
 
   it('gives no minimum for a space with no norm or a mobile site, whatever it kept', () => {
     expect(extinguisherHint(1, { kind: fixed, floorAreaM2: 80, extinguisherNorm: 'none' })).toBe(
-      '1 stingător · fără normă din anexa 6'
+      '1 stingător · fără normă după anexa 6 la Normele generale PSI (OMAI 163/2007)'
     );
     expect(
       extinguisherHint(2, {
@@ -312,10 +317,10 @@ describe('the minimum-extinguisher hint', () => {
         floorAreaM2: 450,
         extinguisherNorm: 'commercial_200',
       })
-    ).toBe('2 stingătoare · fără normă din anexa 6');
+    ).toBe('2 stingătoare · fără normă după anexa 6 la Normele generale PSI (OMAI 163/2007)');
     expect(
       extinguisherHint(0, { kind: 'mobile_site', floorAreaM2: null, extinguisherNorm: null })
-    ).toBe('Niciun stingător · fără normă din anexa 6');
+    ).toBe('Niciun stingător · fără normă după anexa 6 la Normele generale PSI (OMAI 163/2007)');
   });
 });
 
@@ -350,7 +355,7 @@ describe('client fire-safety means', () => {
     expect(rows[0]!.textContent).toContain('Următorul: 12.03.2027');
     expect(within(rows[1]!).getByTestId('fire-service-overdue').textContent).toContain('depășit');
     expect(within(officeCard).getByTestId('fire-equipment-hint').textContent).toBe(
-      '2 stingătoare · minim orientativ 2 (anexa 6)'
+      '2 stingătoare · minim orientativ 2 după anexa 6 la Normele generale PSI (OMAI 163/2007)'
     );
     expect(within(officeCard).getByTestId('fire-installation-row').textContent).toContain(
       'Centrală în holul de la parter'
@@ -534,6 +539,44 @@ describe('client fire-safety means', () => {
     expect(within(shopCard).getByTestId('fire-maintenance-empty').textContent).toContain(
       'cerute de la 10 angajați'
     );
+  });
+
+  it('folds the other periodic checks and the building under a client of fewer than ten employees, and shows them on request', async () => {
+    mockApi({
+      client: { ...sampleClient, currentEmployeeCount: 1 },
+      workplaces: [office, { ...shop, id: 'site', name: 'Șantier', kind: 'mobile_site' }],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    const officeCard = await cardOf('Sediu social');
+    const fold = within(officeCard).getByTestId('fire-from-ten');
+    expect(fold.textContent).toContain('Cerute de la 10 angajați');
+    expect(fold.textContent).toContain(
+      'Clientul are un angajat. Graficele de întreținere și fișa obiectivului nu intră în documentația lui; completezi aici doar dacă vrei.'
+    );
+    expect(within(officeCard).queryByTestId('fire-maintenance-row')).toBeNull();
+    expect(within(officeCard).queryByTestId('fire-building-facts')).toBeNull();
+    expect(within(officeCard).getAllByTestId('fire-equipment-row')).toHaveLength(2);
+
+    await user.click(within(officeCard).getByTestId('fire-from-ten-toggle'));
+    expect(within(officeCard).getByTestId('fire-maintenance-row')).toBeTruthy();
+    expect(within(officeCard).getByTestId('fire-building-facts')).toBeTruthy();
+
+    const siteCard = await cardOf('Șantier');
+    await user.click(within(siteCard).getByTestId('fire-from-ten-toggle'));
+    expect(within(siteCard).getByTestId('fire-maintenance-empty')).toBeTruthy();
+    expect(within(siteCard).queryByTestId('fire-building-edit')).toBeNull();
+  });
+
+  it('shows the other periodic checks and the building unfolded from ten employees', async () => {
+    mockApi({ client: { ...sampleClient, currentEmployeeCount: 10 } });
+    mount();
+
+    const officeCard = await cardOf('Sediu social');
+    expect(within(officeCard).queryByTestId('fire-from-ten')).toBeNull();
+    expect(within(officeCard).getByTestId('fire-maintenance-row')).toBeTruthy();
+    expect(within(officeCard).getByTestId('fire-building-facts')).toBeTruthy();
   });
 
   it('adds a periodic check to the workplace whose card asked, asking all three texts', async () => {
