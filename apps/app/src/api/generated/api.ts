@@ -2091,6 +2091,8 @@ export type EmployeeTrainingRecordListResponseItemsItem = {
   /** @nullable */
   admission: EmployeeTrainingRecordListResponseItemsItemAdmission;
   training: EmployeeTrainingRecordListResponseItemsItemTraining;
+  signed: boolean;
+  hasSignatures: boolean;
 };
 
 export interface EmployeeTrainingRecordListResponse {

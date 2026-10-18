@@ -2733,9 +2733,15 @@
                     "createdAt",
                     "updatedAt"
                   ]
+                },
+                "signed": {
+                  "type": "boolean"
+                },
+                "hasSignatures": {
+                  "type": "boolean"
                 }
               },
-              "required": ["id", "occupation", "admission", "training"]
+              "required": ["id", "occupation", "admission", "training", "signed", "hasSignatures"]
             }
           }
         },

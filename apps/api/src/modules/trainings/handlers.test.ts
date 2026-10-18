@@ -540,7 +540,14 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-records', () =
             admitted_on: null,
             admitted_by_name: null,
             admitted_by_job_title: null,
-            trainings: { ...trainingRow, phase: 'periodic' },
+            trainings: {
+              ...trainingRow,
+              phase: 'periodic',
+              training_records: [
+                { training_signatures: [], signed_sheet_rows: [] },
+                { training_signatures: [], signed_sheet_rows: [] },
+              ],
+            },
           },
         ]),
     });
@@ -553,14 +560,75 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-records', () =
           occupation: 'Sudor',
           admission: null,
           training: { ...training, phase: 'periodic' },
+          signed: false,
+          hasSignatures: false,
         },
       ],
     });
     const query = searchOf('/rest/v1/training_records');
+    expect(query.get('select')).toContain(
+      'trainings!inner(id,client_id,domain,phase,held_on,duration_minutes,material,trainer_name,trainer_job_title,verifier_name,verifier_job_title,supplementary_reason,source,themes_revision_id,notes,created_at,updated_at,training_records(training_signatures(method,voided_at),signed_sheet_rows!signed_sheet_rows_record_of_client(id)))'
+    );
     expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(query.get('trainings.domain')).toBe('eq.ssm');
     expect(query.get('order')).toBe('trainings(held_on).desc,trainings(created_at).desc,id.asc');
     expect(searchOf('/rest/v1/employees').get('client_id')).toBe(`eq.${clientId}`);
+  });
+
+  it.each([
+    [
+      "a live electronic signature on another attendee's record",
+      [
+        { training_signatures: [], signed_sheet_rows: [] },
+        {
+          training_signatures: [{ method: 'electronic', voided_at: null }],
+          signed_sheet_rows: [],
+        },
+      ],
+      { signed: true, hasSignatures: true },
+    ],
+    [
+      'only voided and paper signatures',
+      [
+        {
+          training_signatures: [
+            { method: 'electronic', voided_at: '2026-10-18T09:00:00Z' },
+            { method: 'paper', voided_at: null },
+          ],
+          signed_sheet_rows: [],
+        },
+      ],
+      { signed: false, hasSignatures: true },
+    ],
+    [
+      'a row on a stored sheet',
+      [
+        {
+          training_signatures: [],
+          signed_sheet_rows: [{ id: 'f2f2f2f2-0000-4000-8000-000000000002' }],
+        },
+      ],
+      { signed: false, hasSignatures: true },
+    ],
+  ])("gives each record its training's signing state, with %s", async (_, records, signing) => {
+    mockUpstream({
+      employees: () => Response.json([{ id: employeeId }]),
+      records: () =>
+        Response.json([
+          {
+            id: 'f1f1f1f1-0000-4000-8000-000000000001',
+            occupation: 'Sudor',
+            admitted_on: null,
+            admitted_by_name: null,
+            admitted_by_job_title: null,
+            trainings: { ...trainingRow, training_records: records },
+          },
+        ]),
+    });
+    const response = await request(recordsPath);
+    expect(response.status).toBe(200);
+    const [item] = employeeTrainingRecordListResponseSchema.parse(await response.json()).items;
+    expect(item).toMatchObject(signing);
   });
 
   it('answers 404 for an employee of another client', async () => {

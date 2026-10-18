@@ -282,6 +282,8 @@ export const employeeTrainingRecordSchema = z.object({
   occupation: z.string(),
   admission: trainingAdmissionSchema.nullable(),
   training: trainingSchema,
+  // The training's, over every attendee's record, not this record's alone.
+  ...trainingSigningSchema,
 });
 
 export type EmployeeTrainingRecord = z.infer<typeof employeeTrainingRecordSchema>;

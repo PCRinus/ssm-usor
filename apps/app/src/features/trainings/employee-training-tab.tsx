@@ -17,9 +17,7 @@ import { type ReactNode, useState } from 'react';
 import {
   type EmployeeTrainingRecordListResponse,
   getListEmployeeTrainingRecordsQueryKey,
-  getListTrainingsQueryKey,
   useListEmployeeTrainingRecords,
-  useListTrainings,
 } from '@/api/generated/api';
 import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
@@ -29,11 +27,7 @@ import { EmployeePending } from '@/features/employees/employee-pending';
 import { useEmployee } from '@/features/employees/use-employee';
 import { intervalLabel } from '@/features/job-positions/job-position-schema';
 import { RecordSignatures } from '@/features/signatures/record-signatures';
-import {
-  trainingLocks,
-  type TrainingSigning,
-  useRecordSignatures,
-} from '@/features/signatures/use-record-signatures';
+import { trainingLocks, useRecordSignatures } from '@/features/signatures/use-record-signatures';
 import { TrainingSheetDownload } from '@/features/training-sheets/training-sheet-download';
 import { TrainingSheetReadiness } from '@/features/training-sheets/training-sheet-readiness';
 
@@ -152,16 +146,6 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
       enabled: Boolean(userId && apiRequest.baseUrl),
     },
   });
-  const trainings = useListTrainings(clientId, params, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getListTrainingsQueryKey(clientId, params), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
-    },
-  });
-  const signing = new Map<string, TrainingSigning>(
-    trainings.data?.items.map((training) => [training.id, training]) ?? []
-  );
   const [target, setTarget] = useState<TrainingDialogTarget | null>(null);
   const [deleting, setDeleting] = useState<TrainingToDelete | null>(null);
   if (!employee) return <EmployeePending />;
@@ -278,7 +262,6 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
               userId={userId}
               employeeName={formatEmployeeName(employee)}
               record={item}
-              trainingSigning={signing.get(item.training.id)}
               readOnly={readOnly}
               onEdit={() => setTarget({ kind: 'edit', trainingId: item.training.id })}
               onDelete={() =>
@@ -315,7 +298,6 @@ function RecordItem({
   userId,
   employeeName,
   record,
-  trainingSigning,
   readOnly,
   onEdit,
   onDelete,
@@ -324,8 +306,6 @@ function RecordItem({
   userId: string;
   employeeName: string;
   record: EmployeeTrainingRecord;
-  // Undefined while the client's trainings load; the record's own slots lock it meanwhile.
-  trainingSigning: TrainingSigning | undefined;
   readOnly: boolean;
   onEdit: () => void;
   onDelete: () => void;
@@ -334,7 +314,7 @@ function RecordItem({
   // A training typed from a paper sheet has its signatures on that sheet.
   const signs = training.source === 'app';
   const signatures = useRecordSignatures(clientId, record.id, userId, signs);
-  const locks = trainingLocks(trainingSigning, signatures.data);
+  const locks = trainingLocks(record, signatures.data);
   return (
     <li
       data-testid="training-record-item"

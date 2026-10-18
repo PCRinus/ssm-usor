@@ -348,7 +348,7 @@ export const listEmployeeTrainingRecords: RouteHandler<
   let query = db
     .from('training_records')
     .select(
-      `id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, trainings!inner(${trainingColumns})`
+      `id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, trainings!inner(${trainingColumns}, training_records(${signingColumns}))`
     )
     .eq('employee_id', employeeId);
   if (domain) query = query.eq('trainings.domain', domain);
@@ -359,12 +359,16 @@ export const listEmployeeTrainingRecords: RouteHandler<
   if (error) throw fromDatabaseError(error, 'list employee training records');
   return c.json(
     {
-      items: data.map((record): EmployeeTrainingRecord => ({
-        id: record.id,
-        occupation: record.occupation,
-        admission: toAdmission(record),
-        training: toTraining(record.trainings),
-      })),
+      items: data.map((record): EmployeeTrainingRecord => {
+        const { training_records: records, ...training } = record.trainings;
+        return {
+          id: record.id,
+          occupation: record.occupation,
+          admission: toAdmission(record),
+          training: toTraining(training),
+          ...signingOf(records as unknown as RecordSigning[]),
+        };
+      }),
     },
     200
   );

@@ -146,7 +146,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }` after replacing what was entered about them                                                                                                          |
 | `PATCH /clients/{clientId}/employees/{employeeId}/status`              | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating                                                                                         |
 | `PATCH /clients/{clientId}/employees/{employeeId}/job-position`        | Verified user with a membership       | `{ "employee": { … } }` in the new job position                                                                                                                              |
-| `GET /clients/{clientId}/employees/{employeeId}/training-records`      | Verified user with a membership       | `{ "items": [ … ] }`, each record with its `training`, newest first; `?domain=`                                                                                              |
+| `GET /clients/{clientId}/employees/{employeeId}/training-records`      | Verified user with a membership       | `{ "items": [ … ] }`, each record with its `training`, `signed`, `hasSignatures`, newest first; `?domain=`                                                                   |
 | `GET /clients/{clientId}/employees/{employeeId}/training-sheets`       | Verified user with a membership       | `{ "ssm": { ready, missing, stored, sequences }, "psi": { … } }`: whether each individual training sheet can be drawn up, or is stored                                       |
 | `GET /clients/{clientId}/employees/{employeeId}/training-sheet`        | Verified user with a membership       | `200 application/pdf`, the stored signed sheet, a merged copy, or the sheet built on the spot; `?domain=ssm\|psi&sequence=`; `409 missing_sheet_data`, `503 pdf_unavailable` |
 | `GET /clients/{clientId}/trainings`                                    | Verified user with a membership       | `{ "items": [ … ] }`, newest first, each with `attendeeCount`, `attendees`, `signed`, `hasSignatures`; `?domain=&phase=`                                                     |
@@ -422,7 +422,8 @@ record and its occupation, one left out loses it. The list is not paginated; eac
 carries its attendees ordered by name, `attendees: [{ employeeId, lastName, firstName }]`,
 read in the same query as `attendeeCount`. The detail lists the records by name, each with
 `employee: { id, lastName, firstName }`, `occupation` and `admission` or null; `GET …/employees/{employeeId}/training-records` lists one person's
-records with their training's facts, newest first. An archived client or a lead answers `409`
+records with their training's facts, newest first, each with its training's `signed` and
+`hasSignatures` as the list gives them, over every attendee's record and not the person's alone. An archived client or a lead answers `409`
 as elsewhere. The body's optional `signers: { trainer?, verifier?, admitter? }` names the
 accounts asked to sign the slots electronically, and saving issues their requests; see
 [Signatures](#signatures). A training whose record is signed, or is a record from paper printed
