@@ -768,17 +768,19 @@ jobs:
         run: supabase config push --project-ref "$SUPABASE_PROJECT_ID" --yes
 
       # What config.toml cannot say: how long a texted code works, which the Send SMS hook's
-      # message states (SMS_OTP_EXPIRY_MINUTES in apps/api), and that the first code confirms a
-      # number, which the CLI pushes inverted (supabase/cli#6997). Through the Management API.
-      - name: Apply the phone sign-in settings config.toml cannot hold
+      # message states (SMS_OTP_EXPIRY_MINUTES in apps/api), that the first code confirms a
+      # number, which the CLI pushes inverted (supabase/cli#6997), and the cap on emails an hour,
+      # which `config push` declares unmanaged and leaves at the default of 2 (the hook counts
+      # against it; see [auth.rate_limit] in config.toml). Through the Management API.
+      - name: Apply the sign-in settings config.toml cannot hold
         shell: bash
         run: |
           curl --fail-with-body --silent --show-error \
             -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/config/auth" \
             -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
             -H 'Content-Type: application/json' \
-            -d '{"sms_otp_exp": 600, "sms_autoconfirm": false}' \
-            | jq -e '.sms_otp_exp == 600 and .sms_autoconfirm == false' > /dev/null
+            -d '{"sms_otp_exp": 600, "sms_autoconfirm": false, "rate_limit_email_sent": 60}' \
+            | jq -e '.sms_otp_exp == 600 and .sms_autoconfirm == false and .rate_limit_email_sent == 60' > /dev/null
 
   deploy-app:
     name: Deploy SPA
