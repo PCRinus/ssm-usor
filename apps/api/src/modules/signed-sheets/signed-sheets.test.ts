@@ -12,6 +12,8 @@ import {
   ensureSignedSheet,
   placeRecord,
   type SignedSheetContext,
+  syncRecordRow,
+  syncTrainingRows,
   voidRow,
 } from './signed-sheets';
 import type { RecordOwner, SignedSheetStore, StoredRow, StoredSheet } from './store';
@@ -30,7 +32,10 @@ class MemoryStore implements SignedSheetStore {
   recordList: (SheetTrainingRecord & RecordOwner)[] = [];
   sheetRows: StoredSheet[] = [];
   rows: StoredRow[] = [];
-  signatures: { recordId: string; signedAt: string }[] = [];
+  /** Electronic signatures, `createdAt` on the same clock as a row's `filledAt`. */
+  signatures: { recordId: string; createdAt: string; voided: boolean }[] = [];
+  requested = new Set<string>();
+  private clock = 0;
   /** How many writes to refuse, as if another write had moved the sheet on first. */
   raceAdvances = 0;
   private ids = 0;
@@ -38,6 +43,16 @@ class MemoryStore implements SignedSheetStore {
   private id() {
     this.ids += 1;
     return `00000000-0000-4000-8000-${String(this.ids).padStart(12, '0')}`;
+  }
+
+  /** The database's clock, a second further on each call. */
+  tick() {
+    this.clock += 1;
+    return new Date(Date.UTC(2026, 9, 18, 9, 0, this.clock)).toISOString();
+  }
+
+  sign(recordId: string, voided = false) {
+    this.signatures.push({ recordId, createdAt: this.tick(), voided });
   }
 
   async employee(id: string) {
@@ -67,6 +82,9 @@ class MemoryStore implements SignedSheetStore {
   }
   async liveRowOf(recordId: string) {
     return this.rows.find((row) => row.trainingRecordId === recordId && !row.voidedAt) ?? null;
+  }
+  async rowsOfRecord(recordId: string) {
+    return this.rows.filter((row) => row.trainingRecordId === recordId);
   }
   async createSheet(sheet: Parameters<SignedSheetStore['createSheet']>[0]) {
     if (
@@ -98,11 +116,16 @@ class MemoryStore implements SignedSheetStore {
       );
       if (taken) return null;
     }
-    const added = rows.map((row) => ({
-      ...row,
+    const added: StoredRow[] = rows.map((row) => ({
+      signedSheetId: row.signedSheetId,
+      rowKey: row.rowKey,
+      trainingRecordId: row.trainingRecordId,
       id: this.id(),
-      filledAt: '2026-10-18T09:00:00.000Z',
+      filledAt: this.tick(),
       voidedAt: null,
+      filledDigest: null,
+      printedAsText: row.printedAsText ?? false,
+      voidNotedAt: null,
     }));
     this.rows.push(...added);
     return added;
@@ -125,8 +148,24 @@ class MemoryStore implements SignedSheetStore {
     const row = this.rows.find((each) => each.id === id)!;
     row.voidedAt = at;
   }
+  async setFilledDigest(id: string, digest: string) {
+    this.rows.find((each) => each.id === id)!.filledDigest = digest;
+  }
+  async markVoidNoted(ids: string[], at: string) {
+    for (const row of this.rows) if (ids.includes(row.id)) row.voidNotedAt ??= at;
+  }
+  async signaturesSince(recordId: string, since: string) {
+    const made = this.signatures.filter(
+      (each) => each.recordId === recordId && each.createdAt >= since
+    );
+    const voided = made.filter((each) => each.voided).length;
+    return { live: made.length - voided, voided };
+  }
   async signedSince(recordId: string, since: string) {
-    return this.signatures.some((each) => each.recordId === recordId && each.signedAt >= since);
+    return (await this.signaturesSince(recordId, since)).live > 0;
+  }
+  async electronicRequested(recordId: string) {
+    return this.requested.has(recordId);
   }
 }
 
@@ -138,7 +177,7 @@ const signer = {
   fillFields: vi.fn(async (pdf: ArrayBuffer, values: Record<string, string>) =>
     buffer(`${decode(pdf)}|fill ${JSON.stringify(values)}`)
   ),
-  beginSignature: vi.fn(async (pdf: ArrayBuffer, options: { field: string }) => ({
+  beginSignature: vi.fn(async (pdf: ArrayBuffer, options: { field: string; signedAt: string }) => ({
     prepared: buffer(`${decode(pdf)}|begin ${options.field}`),
     toSign: buffer(`attributes of ${options.field}`),
     sessionToken: 'session',
@@ -147,7 +186,9 @@ const signer = {
     buffer(`${decode(prepared)}|signed ${decode(signature)}`)
   ),
   validate: vi.fn(),
-  stampPages: vi.fn(),
+  stampPages: vi.fn(async (pdf: ArrayBuffer, text: string) =>
+    buffer(`${decode(pdf)}|stamp ${text}`)
+  ),
 } satisfies SignerService;
 
 const pdf: PdfConverter = {
@@ -199,9 +240,9 @@ const add = (record: SheetTrainingRecord) => {
 const stored = async (sheet: StoredSheet) => decode(files.get(sheet.storagePath)!);
 
 describe('ensureSignedSheet', () => {
-  it('stores a new sheet with the paper rows printed and the rest prepared for signing', async () => {
+  it('stores a new sheet with the paper rows printed, and fills every other record into the next rows', async () => {
     const paper = add(sheetRecord('periodic', '2025-04-01', { source: 'paper' }));
-    add(sheetRecord('periodic', '2026-04-01'));
+    const recorded = add(sheetRecord('periodic', '2026-04-01'));
 
     const sheet = await ensureSignedSheet(ctx, employeeId, 'ssm');
 
@@ -210,21 +251,51 @@ describe('ensureSignedSheet', () => {
       employeeId,
       domain: 'ssm',
       sequence: 1,
-      version: 1,
+      version: 2,
       rowCapacity: rowCapacity('ssm'),
-      rowsUsed: 1,
+      rowsUsed: 2,
     });
     expect(sheet.storagePath).toMatch(
-      new RegExp(`^signed-sheets/${owner.clientId}/${employeeId}/ssm-1/v1-[0-9a-f]{8}\\.pdf$`)
+      new RegExp(`^signed-sheets/${owner.clientId}/${employeeId}/ssm-1/v2-[0-9a-f]{8}\\.pdf$`)
     );
-    expect(sheet.digest).toMatch(/^[0-9a-f]{64}$/);
     expect(drawn[0]!.form.rows).toMatchObject({ p1: false, p2: true });
     expect(drawn[0]!.periodic.map((row) => row.heldOn)).toEqual(['01.04.2025']);
     const [, fields] = signer.prepareSheet.mock.calls[0]!;
     expect(fields).toContain('p2_sig_trainee');
     expect(fields).not.toContain('p1_sig_trainee');
-    expect(await stored(sheet)).toBe(`%PDF form|prepared ${fields.length}`);
-    expect(memory.rows).toMatchObject([{ rowKey: 'p1', trainingRecordId: paper.id }]);
+    expect(await stored(sheet)).toMatch(
+      new RegExp(`^%PDF form\\|prepared ${fields.length}\\|fill `)
+    );
+    expect(memory.rows).toMatchObject([
+      { rowKey: 'p1', trainingRecordId: paper.id, printedAsText: true, filledDigest: null },
+      { rowKey: 'p2', trainingRecordId: recorded.id, printedAsText: false },
+    ]);
+    expect(memory.rows[1]!.filledDigest).toMatch(/^[0-9a-f]{64}$/);
+    expect(signer.fillFields.mock.calls[0]![1]).toMatchObject({
+      p2_date: '01.04.2026',
+      p2_note: 'semnat pe hârtie',
+    });
+  });
+
+  it('leaves the note empty for a record somebody is asked to sign electronically', async () => {
+    const record = add(sheetRecord('periodic', '2026-04-01'));
+    memory.requested.add(record.id);
+
+    await ensureSignedSheet(ctx, employeeId, 'ssm');
+
+    expect(signer.fillFields.mock.calls[0]![1]).toMatchObject({ p1_note: '' });
+  });
+
+  it('gives the hiring blocks to the newest training of each phase only', async () => {
+    const older = add(sheetRecord('introductory_general', '2025-01-05'));
+    const newer = add(sheetRecord('introductory_general', '2026-01-05'));
+
+    await ensureSignedSheet(ctx, employeeId, 'ssm');
+
+    expect(memory.rows.map((row) => [row.rowKey, row.trainingRecordId])).toEqual([
+      ['h1', newer.id],
+    ]);
+    expect(await ctx.store.liveRowOf(older.id)).toBeNull();
   });
 
   it('answers the current sheet while it has room, and a continuation once it is full', async () => {
@@ -259,31 +330,58 @@ describe('ensureSignedSheet', () => {
 
 describe('placeRecord', () => {
   it('fills the next periodic row and moves the sheet to its next version', async () => {
-    add(sheetRecord('periodic', '2025-04-01', { source: 'paper' }));
+    await ensureSignedSheet(ctx, employeeId, 'ssm');
     const record = add(
       sheetRecord('periodic', '2026-04-03', { training: { durationMinutes: 90 } })
     );
+    memory.requested.add(record.id);
 
     const placed = await placeRecord(ctx, record.id);
 
-    expect(placed.rowKey).toBe('p2');
-    expect(placed.sheet).toMatchObject({ version: 2, rowsUsed: 2 });
+    expect(placed.rowKey).toBe('p1');
+    expect(placed.sheet).toMatchObject({ version: 2, rowsUsed: 1 });
     const [, values] = signer.fillFields.mock.calls[0]!;
-    expect(values).toMatchObject({ p2_date: '03.04.2026', p2_duration: '1,5', p2_note: '' });
-    expect(await stored(placed.sheet)).toContain('|fill {"p2_date":"03.04.2026"');
+    expect(values).toMatchObject({ p1_date: '03.04.2026', p1_duration: '1,5', p1_note: '' });
+    expect(await stored(placed.sheet)).toContain('|fill {"p1_date":"03.04.2026"');
   });
 
-  it('keeps a placed record on its row, filling it again only while nobody has signed it', async () => {
+  it('keeps a placed record on its row, filling it again only when it changed and nobody has signed it', async () => {
     const record = add(sheetRecord('periodic', '2026-04-03'));
     const placed = await placeRecord(ctx, record.id);
     const again = await placeRecord(ctx, record.id);
     expect(again.id).toBe(placed.id);
-    expect(again.sheet.version).toBe(3);
+    expect(again.sheet.version).toBe(placed.sheet.version);
 
-    memory.signatures.push({ recordId: record.id, signedAt: '2026-10-18T09:30:00.000Z' });
+    memory.recordList[0]!.occupation = 'Lăcătuș';
+    const refilled = await placeRecord(ctx, record.id);
+    expect(refilled.sheet.version).toBe(placed.sheet.version + 1);
+    expect(signer.fillFields.mock.calls.at(-1)![1]).toMatchObject({ p1_occupation: 'Lăcătuș' });
+
+    memory.sign(record.id);
+    memory.recordList[0]!.occupation = 'Sudor';
     const signed = await placeRecord(ctx, record.id);
-    expect(signed.sheet.version).toBe(3);
+    expect(signed.sheet.version).toBe(refilled.sheet.version);
     expect(signer.fillFields).toHaveBeenCalledTimes(2);
+  });
+
+  it("takes a signature's lock refusing a refill as the row filled, when another write filled it so", async () => {
+    const record = add(sheetRecord('periodic', '2026-04-03'));
+    const placed = await placeRecord(ctx, record.id);
+    memory.recordList[0]!.occupation = 'Lăcătuș';
+    const wanted = (await syncRecordRow(ctx, record.id, { create: false }))!.filledDigest;
+    memory.rows[0]!.filledDigest = 'stale';
+    signer.fillFields.mockImplementationOnce(async () => {
+      memory.rows[0]!.filledDigest = wanted;
+      throw new ApiError('conflict', undefined, undefined, 'locked_field');
+    });
+
+    await expect(placeRecord(ctx, record.id)).resolves.toMatchObject({ id: placed.id });
+
+    memory.rows[0]!.filledDigest = 'stale';
+    signer.fillFields.mockRejectedValueOnce(
+      new ApiError('conflict', undefined, undefined, 'locked_field')
+    );
+    await expect(placeRecord(ctx, record.id)).rejects.toMatchObject({ reason: 'row_locked' });
   });
 
   it('puts the hiring trainings on their blocks, the admission with the workplace one', async () => {
@@ -326,12 +424,38 @@ describe('placeRecord', () => {
     expect(placed).toMatchObject({ rowKey: 'p1', sheet: { sequence: 2 } });
   });
 
-  it('gives a corrected hiring record the block of a continuation sheet', async () => {
+  it('moves a record whose electronic signatures were all voided to a new row, and notes the old one anulat', async () => {
     const first = add(sheetRecord('introductory_general', '2026-01-05'));
-    await placeRecord(ctx, first.id);
-    await voidRow(ctx, first.id);
+    const original = await placeRecord(ctx, first.id);
+    memory.sign(first.id, true);
+
     const placed = await placeRecord(ctx, first.id);
+
     expect(placed).toMatchObject({ rowKey: 'h1', sheet: { sequence: 2 } });
+    const old = memory.rows.find((row) => row.id === original.id)!;
+    expect(old.voidedAt).not.toBeNull();
+    expect(old.voidNotedAt).toBeNull();
+
+    await voidRow(ctx, first.id);
+
+    expect(signer.fillFields.mock.calls.at(-1)![1]).toEqual({ h1_note: 'anulat' });
+    expect(old.voidNotedAt).not.toBeNull();
+    expect((await ctx.store.liveRowOf(first.id))?.id).toBe(placed.id);
+  });
+
+  it('moves a record to a row of its kind after its training changed phase', async () => {
+    const record = add(sheetRecord('periodic', '2026-04-03'));
+    const original = await placeRecord(ctx, record.id);
+    memory.recordList[0]!.training = {
+      ...memory.recordList[0]!.training,
+      phase: 'supplementary',
+      supplementaryReason: 'after_accident',
+    };
+
+    const placed = await placeRecord(ctx, record.id);
+
+    expect(placed.rowKey).toBe('s1');
+    expect(memory.rows.find((row) => row.id === original.id)!.voidedAt).not.toBeNull();
   });
 
   it('notes a record from paper placed after its sheet was made as signed on paper', async () => {
@@ -342,6 +466,7 @@ describe('placeRecord', () => {
   });
 
   it('frees the row again when the fill fails', async () => {
+    await ensureSignedSheet(ctx, employeeId, 'ssm');
     const record = add(sheetRecord('periodic', '2026-04-03'));
     signer.fillFields.mockRejectedValueOnce(new ApiError('service_unavailable'));
     await expect(placeRecord(ctx, record.id)).rejects.toBeInstanceOf(ApiError);
@@ -349,15 +474,47 @@ describe('placeRecord', () => {
   });
 });
 
+describe('syncTrainingRows', () => {
+  it('fills the rows of records whose employee has a sheet, leaves the others, and swallows a failure', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await ensureSignedSheet(ctx, employeeId, 'ssm');
+    const onSheet = add(sheetRecord('periodic', '2026-04-03'));
+    const fire = add(sheetRecord('periodic', '2026-04-03', { domain: 'psi' }));
+
+    await syncTrainingRows(ctx, [onSheet.id, fire.id, 'missing']);
+
+    expect((await ctx.store.liveRowOf(onSheet.id))?.rowKey).toBe('p1');
+    expect(await ctx.store.liveRowOf(fire.id)).toBeNull();
+    expect(memory.sheetRows.filter((sheet) => sheet.domain === 'psi')).toEqual([]);
+  });
+});
+
 describe('voidRow', () => {
-  it('writes anulat in the note and keeps the row and the bytes before it', async () => {
+  it('voids the live row of a record whose signatures were voided, writes anulat in its note and keeps the bytes before it', async () => {
     const record = add(sheetRecord('periodic', '2026-04-03'));
     const placed = await placeRecord(ctx, record.id);
-    const voided = await voidRow(ctx, record.id);
-    expect(voided.voidedAt).toBe('2026-10-18T10:00:00.000Z');
+    memory.sign(record.id, true);
+
+    const [voided] = await voidRow(ctx, record.id);
+
+    expect(voided).toMatchObject({ voidedAt: '2026-10-18T10:00:00.000Z' });
+    expect(voided!.voidNotedAt).not.toBeNull();
     expect(signer.fillFields.mock.calls.at(-1)![1]).toEqual({ p1_note: 'anulat' });
     expect(await ctx.store.liveRowOf(record.id)).toBeNull();
     expect(files.get(placed.sheet.storagePath)).toBeDefined();
+  });
+
+  it('notes a row the database voided, and leaves a row nobody voided', async () => {
+    const record = add(sheetRecord('periodic', '2026-04-03'));
+    await placeRecord(ctx, record.id);
+    const calls = signer.fillFields.mock.calls.length;
+
+    await voidRow(ctx, record.id);
+    expect(signer.fillFields).toHaveBeenCalledTimes(calls);
+
+    memory.rows[0]!.voidedAt = '2026-10-18T09:59:00.000Z';
+    await voidRow(ctx, record.id);
+    expect(signer.fillFields.mock.calls.at(-1)![1]).toEqual({ p1_note: 'anulat' });
   });
 
   it('refuses a record that has no row', async () => {
@@ -375,14 +532,15 @@ describe('applySignature', () => {
     name: 'Ana Ștefănescu',
     jobTitle: 'Sudor',
   };
-  const signedAt = new Date('2026-10-18T09:30:00Z');
-  const sign = vi.fn(async (toSign: ArrayBuffer) => buffer(`r||s over ${decode(toSign)}`));
+  const sign = vi.fn<(toSign: ArrayBuffer, prepared: ArrayBuffer) => Promise<ArrayBuffer>>(
+    async (toSign) => buffer(`r||s over ${decode(toSign)}`)
+  );
 
   it('signs the slot on the row in two phases, certifying the sheet with the first signature', async () => {
     const record = add(sheetRecord('periodic', '2026-04-03'));
     const placed = await placeRecord(ctx, record.id);
 
-    const result = await applySignature(ctx, record.id, 'trainee', trainee, signedAt, sign);
+    const result = await applySignature(ctx, record.id, 'trainee', trainee, sign);
 
     const [, options] = signer.beginSignature.mock.calls[0]!;
     expect(options).toMatchObject({
@@ -390,17 +548,19 @@ describe('applySignature', () => {
       certify: true,
       lockFields: ['p1_date', 'p1_duration', 'p1_occupation', 'p1_material'],
       appearanceLines: ['Ana Ștefănescu', 'Sudor', 'semnat electronic', '18.10.2026'],
-      signedAt: '2026-10-18T09:30:00.000Z',
+      signedAt: '2026-10-18T10:00:00.000Z',
       reason: 'Instruirea din 03.04.2026: semnătura celui instruit',
     });
     expect(decode(sign.mock.calls[0]![0])).toBe('attributes of p1_sig_trainee');
+    expect(decode(sign.mock.calls[0]![1])).toMatch(/\|begin p1_sig_trainee$/);
     expect(result.digestBefore).toBe(placed.sheet.digest);
+    expect(result.signedAt.toISOString()).toBe('2026-10-18T10:00:00.000Z');
     const sheet = (await ctx.store.sheet(result.sheetId))!;
     expect(result).toMatchObject({ digestAfter: sheet.digest, version: sheet.version });
-    expect(sheet.certifiedAt).toBe('2026-10-18T09:30:00.000Z');
+    expect(sheet.certifiedAt).toBe('2026-10-18T10:00:00.000Z');
     expect(await stored(sheet)).toMatch(/\|begin p1_sig_trainee\|signed r\|\|s over attributes/);
 
-    await applySignature(ctx, record.id, 'trainer', trainee, signedAt, sign);
+    await applySignature(ctx, record.id, 'trainer', trainee, sign);
     expect(signer.beginSignature.mock.calls[1]![1]).toMatchObject({
       field: 'p1_sig_trainer',
       certify: false,
@@ -414,42 +574,50 @@ describe('applySignature', () => {
       })
     );
     await placeRecord(ctx, record.id);
-    await applySignature(ctx, record.id, 'admitter', trainee, signedAt, sign);
+    await applySignature(ctx, record.id, 'admitter', trainee, sign);
     expect(signer.beginSignature.mock.calls[0]![1]).toMatchObject({
       field: 'adm_sig',
       lockFields: expect.arrayContaining(['h2_material', 'adm_name']),
     });
   });
 
-  it('signs again on the newer bytes when another write moved the sheet on first', async () => {
+  it('signs again on the newer bytes, at a moment taken anew, when another write moved the sheet on first', async () => {
     const record = add(sheetRecord('periodic', '2026-04-03'));
     await placeRecord(ctx, record.id);
+    const files_before = files.size;
     memory.raceAdvances = 1;
-    await applySignature(ctx, record.id, 'trainee', trainee, signedAt, sign);
+    let minute = 0;
+    ctx.now = () => new Date(Date.UTC(2026, 9, 18, 10, minute++));
+
+    const result = await applySignature(ctx, record.id, 'trainee', trainee, sign);
+
     expect(sign).toHaveBeenCalledTimes(2);
-    expect([...files.keys()]).toHaveLength(3);
+    const moments = signer.beginSignature.mock.calls.map(([, options]) => options.signedAt);
+    expect(moments[1]).not.toBe(moments[0]);
+    expect(result.signedAt.toISOString()).toBe(moments[1]);
+    expect(files.size).toBe(files_before + 1);
   });
 
   it('gives up after a second lost race, leaving the sheet as it was', async () => {
     const record = add(sheetRecord('periodic', '2026-04-03'));
     const placed = await placeRecord(ctx, record.id);
     memory.raceAdvances = 2;
-    await expect(
-      applySignature(ctx, record.id, 'trainee', trainee, signedAt, sign)
-    ).rejects.toMatchObject({ reason: 'sheet_busy' });
+    await expect(applySignature(ctx, record.id, 'trainee', trainee, sign)).rejects.toMatchObject({
+      reason: 'sheet_busy',
+    });
     expect((await ctx.store.sheet(placed.sheet.id))!.version).toBe(placed.sheet.version);
   });
 
   it('refuses a slot the form has no signature for, and a record without a row', async () => {
     const fire = add(sheetRecord('periodic', '2026-04-03', { domain: 'psi' }));
     await placeRecord(ctx, fire.id);
-    await expect(
-      applySignature(ctx, fire.id, 'verifier', trainee, signedAt, sign)
-    ).rejects.toMatchObject({ reason: 'slot_not_on_sheet' });
-    const unplaced = add(sheetRecord('periodic', '2026-05-03'));
-    await expect(
-      applySignature(ctx, unplaced.id, 'trainee', trainee, signedAt, sign)
-    ).rejects.toMatchObject({ reason: 'record_not_on_sheet' });
+    await expect(applySignature(ctx, fire.id, 'verifier', trainee, sign)).rejects.toMatchObject({
+      reason: 'slot_not_on_sheet',
+    });
+    const unplaced = add(sheetRecord('periodic', '2026-05-03', { domain: 'psi' }));
+    await expect(applySignature(ctx, unplaced.id, 'trainee', trainee, sign)).rejects.toMatchObject({
+      reason: 'record_not_on_sheet',
+    });
     expect(sign).not.toHaveBeenCalled();
   });
 
@@ -458,21 +626,34 @@ describe('applySignature', () => {
     const record = add(sheetRecord('periodic', '2026-04-03'));
     const placed = await placeRecord(ctx, record.id);
     files.set(placed.sheet.storagePath, encode('tampered'));
-    await expect(
-      applySignature(ctx, record.id, 'trainee', trainee, signedAt, sign)
-    ).rejects.toMatchObject({ code: 'internal_error' });
+    await expect(applySignature(ctx, record.id, 'trainee', trainee, sign)).rejects.toMatchObject({
+      code: 'internal_error',
+    });
   });
 });
 
 describe('currentSheetPdf', () => {
-  it('answers nothing before signing, the stored sheet, then the sheets merged in order', async () => {
+  it('answers nothing before signing, the stored sheet, then the sheets merged into a stamped copy', async () => {
     expect(await currentSheetPdf(ctx, employeeId, 'ssm')).toBeNull();
     await ensureSignedSheet(ctx, employeeId, 'ssm');
-    expect(decode((await currentSheetPdf(ctx, employeeId, 'ssm'))!)).toMatch(/^%PDF form/);
+    const single = (await currentSheetPdf(ctx, employeeId, 'ssm'))!;
+    expect(single).toMatchObject({ copy: false, sequence: 1 });
+    expect(decode(single.pdf)).toMatch(/^%PDF form/);
+
     memory.sheetRows[0]!.rowsUsed = rowCapacity('ssm');
     await ensureSignedSheet(ctx, employeeId, 'ssm');
-    const merged = decode((await currentSheetPdf(ctx, employeeId, 'ssm'))!);
-    expect(merged.split(' + ')).toHaveLength(2);
+    const merged = (await currentSheetPdf(ctx, employeeId, 'ssm'))!;
+    expect(merged).toMatchObject({ copy: true, sequence: null });
+    expect(decode(merged.pdf).split(' + ')).toHaveLength(2);
+    expect(decode(merged.pdf)).toMatch(
+      /\|stamp Copie de citire – semnăturile se verifică pe fișele originale$/
+    );
+
+    const second = (await currentSheetPdf(ctx, employeeId, 'ssm', { sequence: 2 }))!;
+    expect(second).toMatchObject({ copy: false, sequence: 2 });
+    await expect(currentSheetPdf(ctx, employeeId, 'ssm', { sequence: 3 })).rejects.toMatchObject({
+      code: 'not_found',
+    });
     expect(await currentSheetPdf(ctx, employeeId, 'ssm', { clientId: 'another' })).toBeNull();
   });
 });

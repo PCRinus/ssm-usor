@@ -1,6 +1,12 @@
-import { signatureErrorReasons, type SignerSlot, type TrainingRequest } from '@ssm-usor/contracts';
+import {
+  samePerson,
+  signatureErrorReasons,
+  type SignerSlot,
+  type TrainingRequest,
+} from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
+import type { Json } from '../../database.types';
 import { createAdminClient } from '../../lib/admin-db';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
@@ -18,15 +24,30 @@ export type SignaturePlan = {
 
 const assignable = ['trainer', 'verifier', 'admitter'] as const;
 
+const printedName = (body: TrainingRequest, slot: (typeof assignable)[number]) => {
+  switch (slot) {
+    case 'trainer':
+      return body.trainer.name;
+    case 'verifier':
+      return body.verifier?.name ?? '';
+    case 'admitter':
+      return body.admission?.name ?? '';
+  }
+};
+
 /**
  * Checked before the training is saved, so that a signer who cannot sign refuses the save rather
- * than leave a saved training behind a 422. The database checks again on insert.
+ * than leave a saved training behind a 422: the account must be a member of the organization or
+ * a participant of the client, and its own name must be the name the slot prints, in any order,
+ * case or diacritics, since the certificate names the account and the sheet the slot's person.
+ * The database checks the standing again on insert.
  */
 export async function planSignatureRequests(
   db: DataClient,
   clientId: string,
-  signers: SlotSigners
+  body: TrainingRequest
 ): Promise<SignaturePlan> {
+  const { signers } = body;
   if (!signers) return null;
   const directory = await signersOfClient(db, clientId);
   const strangers = assignable.filter((slot) => {
@@ -43,15 +64,54 @@ export async function planSignatureRequests(
       signatureErrorReasons.signerNotOfClient
     );
   }
+  const misnamed = assignable.filter((slot) => {
+    const accountId = signers[slot];
+    if (!accountId) return false;
+    const name = printedName(body, slot);
+    return !directory.some(
+      (signer) => signer.accountId === accountId && samePerson(signer.name, name)
+    );
+  });
+  if (misnamed.length > 0) {
+    throw new ApiError(
+      'unprocessable',
+      'The signer is not the person the slot names.',
+      misnamed.map((slot) => ({
+        path: `signers.${slot}`,
+        message: `The account's name is not ${printedName(body, slot) || 'the name on the slot'}.`,
+      })),
+      signatureErrorReasons.signerNameMismatch
+    );
+  }
   return { signers, directory };
 }
 
 type IssuedRow = { id: string; slot: SignerSlot; signer_account_id: string | null };
 
+type Replacement = {
+  training_record_id: string;
+  slot: SignerSlot;
+  signer_account_id: string | null;
+  replaces: string | null;
+  reason: 'signer_changed' | 'paper' | null;
+};
+
+async function withdrawnEmployees(db: DataClient, employeeIds: string[]) {
+  if (employeeIds.length === 0) return new Set<string>();
+  const { data, error } = await db
+    .from('employee_signing_agreements')
+    .select('employee_id')
+    .in('employee_id', employeeIds)
+    .eq('state', 'withdrawn');
+  if (error) throw fromDatabaseError(error, 'withdrawn signing agreements');
+  return new Set(data.map((row) => row.employee_id));
+}
+
 // A training typed from paper asks nobody: its signatures are on the paper. A slot whose live
 // request is already the one wanted is left alone, so a save after an edit issues only what the
 // edit voided; a pending request to someone else gives way, with `signer_changed`, or with
-// `paper` when the slot is now left to the pen. A signed request is never touched here.
+// `paper` when the slot is now left to the pen, in the same transaction as its replacement. A
+// signed request is never touched here. No trainee is asked while their agreement is withdrawn.
 export async function issueSignatureRequests(
   c: Context<ApiEnv>,
   db: DataClient,
@@ -69,11 +129,17 @@ export async function issueSignatureRequests(
   const recordIds = training.training_records.map((record) => record.id);
   if (recordIds.length === 0) return 0;
 
-  const live = await db
-    .from('signature_requests')
-    .select('id, training_record_id, slot, state, signer_account_id')
-    .in('training_record_id', recordIds)
-    .neq('state', 'void');
+  const [live, withdrawn] = await Promise.all([
+    db
+      .from('signature_requests')
+      .select('id, training_record_id, slot, state, signer_account_id')
+      .in('training_record_id', recordIds)
+      .neq('state', 'void'),
+    withdrawnEmployees(
+      db,
+      training.training_records.map((record) => record.employee_id)
+    ),
+  ]);
   if (live.error) throw fromDatabaseError(live.error, 'live signature requests');
   const liveOf = new Map(live.data.map((row) => [`${row.training_record_id}:${row.slot}`, row]));
 
@@ -81,7 +147,12 @@ export async function issueSignatureRequests(
   const wanted = training.training_records.flatMap((record) =>
     (
       [
-        ['trainee', traineeSignerOf(directory, record.employee_id)?.accountId],
+        [
+          'trainee',
+          withdrawn.has(record.employee_id)
+            ? null
+            : traineeSignerOf(directory, record.employee_id)?.accountId,
+        ],
         ['trainer', signers.trainer],
         ['verifier', training.verifier_name ? signers.verifier : null],
         ['admitter', record.admitted_on ? signers.admitter : null],
@@ -89,54 +160,35 @@ export async function issueSignatureRequests(
     ).map(([slot, accountId]) => ({ record, slot, accountId: accountId ?? null }))
   );
 
-  const replaced = { signer_changed: [] as string[], paper: [] as string[] };
+  const replacements: Replacement[] = [];
   for (const { record, slot, accountId } of wanted) {
     const current = liveOf.get(`${record.id}:${slot}`);
-    if (current?.state !== 'pending' || current.signer_account_id === accountId) continue;
-    replaced[accountId ? 'signer_changed' : 'paper'].push(current.id);
-    liveOf.delete(`${record.id}:${slot}`);
+    if (current && (current.state !== 'pending' || current.signer_account_id === accountId)) {
+      continue;
+    }
+    if (!current && !accountId) continue;
+    replacements.push({
+      training_record_id: record.id,
+      slot,
+      signer_account_id: accountId,
+      replaces: current?.id ?? null,
+      reason: current ? (accountId ? 'signer_changed' : 'paper') : null,
+    });
   }
-  await voidPending(c, replaced);
+  if (replacements.length === 0) return 0;
 
-  const rows = wanted.flatMap(({ record, slot, accountId }) =>
-    accountId && !liveOf.has(`${record.id}:${slot}`)
-      ? [
-          {
-            organization_id: c.get('membership').organizationId,
-            client_id: clientId,
-            training_record_id: record.id,
-            slot,
-            signer_account_id: accountId,
-          },
-        ]
-      : []
-  );
-  if (rows.length === 0) return 0;
+  const issued = await db.rpc('issue_signature_requests', {
+    p_requests: replacements as unknown as Json,
+  });
+  if (issued.error) throw fromDatabaseError(issued.error, 'issue signature requests');
+  const rows: IssuedRow[] = issued.data.map((row) => ({
+    id: row.id,
+    slot: row.slot,
+    signer_account_id: row.signer_account_id,
+  }));
 
-  const inserted = await db
-    .from('signature_requests')
-    .insert(rows)
-    .select('id, slot, signer_account_id');
-  if (inserted.error) throw fromDatabaseError(inserted.error, 'issue signature requests');
-
-  await notifySigners(c, db, directory, inserted.data);
-  return inserted.data.length;
-}
-
-// Members may insert requests but not change them.
-async function voidPending(
-  c: Context<ApiEnv>,
-  byReason: Record<'signer_changed' | 'paper', string[]>
-) {
-  for (const [reason, ids] of Object.entries(byReason)) {
-    if (ids.length === 0) continue;
-    const { error } = await createAdminClient(c)
-      .from('signature_requests')
-      .update({ state: 'void', voided_at: new Date().toISOString(), void_reason: reason })
-      .in('id', ids)
-      .eq('state', 'pending');
-    if (error) throw fromDatabaseError(error, 'void replaced signature requests');
-  }
+  await notifySigners(c, db, directory, rows);
+  return rows.length;
 }
 
 // Best effort: the requests stand without the message, the member sees them unsigned, and a

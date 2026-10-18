@@ -60,7 +60,30 @@ export const signatureErrorReasons = {
   signingItemNotFound: 'signing_item_not_found',
   agreementSignedInPortal: 'agreement_signed_in_portal',
   signerHasNoAddress: 'signer_has_no_address',
+  requestNotPending: 'request_not_pending',
+  sessionMismatch: 'session_mismatch',
+  sessionUsed: 'session_used',
+  agreementNotAwaiting: 'agreement_not_awaiting',
+  agreementSignerNotParty: 'agreement_signer_not_party',
+  agreementRecorded: 'agreement_recorded',
+  agreementWithdrawn: 'agreement_withdrawn',
+  signerNameMismatch: 'signer_name_mismatch',
 } as const;
+
+/**
+ * Why a request was voided, as `voidReason` carries it: these codes, or the member's own words
+ * when they voided the record's signatures.
+ */
+export const signatureVoidReasons = [
+  'record_changed',
+  'signed_on_paper',
+  'signer_changed',
+  'paper',
+  'signer_left',
+  'archived',
+  'withdrawn',
+] as const;
+export type SignatureVoidReason = (typeof signatureVoidReasons)[number];
 
 export type SignatureErrorReason =
   (typeof signatureErrorReasons)[keyof typeof signatureErrorReasons];
@@ -128,10 +151,17 @@ export const voidSignaturesRequestSchema = z.object({
 
 export type VoidSignaturesRequest = z.infer<typeof voidSignaturesRequestSchema>;
 
+/**
+ * `withdrawn`: the employee went back to signing by hand, and no trainee request goes to them
+ * while it stands. `in_contract`: a new hire whose employment contract carries the clause, which
+ * counts as agreed, with no PDF of its own.
+ */
 export const signingAgreementStates = [
   'generated',
   'signed_electronically',
   'signed_on_paper',
+  'withdrawn',
+  'in_contract',
 ] as const;
 export const signingAgreementStateSchema = z.enum(signingAgreementStates);
 export type SigningAgreementState = z.infer<typeof signingAgreementStateSchema>;
@@ -147,6 +177,9 @@ export const signingAgreementSchema = z
     // The electronic signatures: the employee's first, then the employer's.
     employeeSignedAt: z.iso.datetime({ offset: true }).nullable(),
     employerSignedAt: z.iso.datetime({ offset: true }).nullable(),
+    // Whose electronic signature the agreement waits for: the employee's first, then the
+    // employer's; null once settled or recorded otherwise.
+    awaiting: z.enum(['employee', 'employer']).nullable(),
   })
   .nullable();
 
@@ -158,7 +191,7 @@ export type SigningAgreementResponse = z.infer<typeof signingAgreementResponseSc
 
 /** `signed_electronically` is set by the signing flow only. */
 export const signingAgreementStateRequestSchema = z.object({
-  state: z.enum(['generated', 'signed_on_paper']),
+  state: z.enum(['generated', 'signed_on_paper', 'withdrawn', 'in_contract']),
   clientFileId: z.uuid().nullish(),
 });
 
@@ -236,7 +269,8 @@ export const signingAgreementPartySchema = z.enum(signingAgreementParties);
 export type SigningAgreementParty = z.infer<typeof signingAgreementPartySchema>;
 
 // A session signs within one Worker request, a few dozen subrequests per item.
-const idList = z.array(z.uuid()).max(30);
+export const SIGNING_SESSION_MAX_ITEMS = 30;
+const idList = z.array(z.uuid()).max(SIGNING_SESSION_MAX_ITEMS);
 
 export const signingSessionRequestSchema = z
   .object({
@@ -246,8 +280,16 @@ export const signingSessionRequestSchema = z
     agreementEmployeeIds: idList.optional(),
   })
   .superRefine((body, ctx) => {
-    if (body.requestIds.length + (body.agreementEmployeeIds?.length ?? 0) === 0) {
+    const total = body.requestIds.length + (body.agreementEmployeeIds?.length ?? 0);
+    if (total === 0) {
       ctx.addIssue({ code: 'custom', path: ['requestIds'], message: 'Nothing to sign.' });
+    }
+    if (total > SIGNING_SESSION_MAX_ITEMS) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['requestIds'],
+        message: `At most ${SIGNING_SESSION_MAX_ITEMS} items in one session.`,
+      });
     }
     if (new Set(body.requestIds).size !== body.requestIds.length) {
       ctx.addIssue({ code: 'custom', path: ['requestIds'], message: 'Each request once.' });
@@ -299,17 +341,34 @@ export type SignCodeRequest = z.infer<typeof signCodeRequestSchema>;
 /**
  * Why one item of a session was not signed while the others were: `request_not_pending` and
  * `agreement_not_awaiting` when it was signed, voided or changed since the code was asked for,
+ * `agreement_changed` when the agreement no longer says what it said then,
+ * `missing_document_data` for an agreement of a client without its legal representative's name
+ * or role,
+ * `client_archived`, `signer_not_of_client` when the signer left the organization or the client,
  * `sheet_busy` when another write held the sheet, `slot_not_on_sheet` for a slot the sheet has no
  * field for (the fire-safety sheet's verifier and admitter), `missing_sheet_data` when the sheet
- * cannot be drawn up yet, `signer_unavailable` and `pdf_unavailable` when a service failed,
- * `template_missing`, and `signing_failed` for anything else.
+ * cannot be drawn up yet, `row_locked` when the record's row is held by a signature whose evidence
+ * is missing, the signer service's own refusals (`already_signed`, `locked_field`,
+ * `unknown_fields`, `cannot_certify`, `signer_refused` for any other), `signer_unavailable` and
+ * `pdf_unavailable` when a service failed, `template_missing`, and `signing_failed` for anything
+ * else.
  */
 export const signingItemFailureReasons = [
   'request_not_pending',
   'agreement_not_awaiting',
+  'agreement_changed',
+  'missing_document_data',
+  'client_archived',
+  'signer_not_of_client',
   'sheet_busy',
   'slot_not_on_sheet',
   'missing_sheet_data',
+  'row_locked',
+  'already_signed',
+  'locked_field',
+  'unknown_fields',
+  'cannot_certify',
+  'signer_refused',
   'signer_unavailable',
   'pdf_unavailable',
   'template_missing',

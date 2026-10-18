@@ -1,7 +1,7 @@
 import { type ParticipantChannel, signatureErrorReasons } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
-import { type AdminClient, createAdminClient } from '../../lib/admin-db';
+import { type AdminClient, adminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 
@@ -13,6 +13,9 @@ export const SIGNING_CODE_ATTEMPTS = 3;
 export type SigningSession = {
   id: string;
   accountId: string;
+  /** Where the code was asked for: the app for a member, the portal for a participation. */
+  place: 'app' | 'portal';
+  participantId: string | null;
   channel: ParticipantChannel;
   address: string;
   codeSentAt: Date;
@@ -27,9 +30,16 @@ export type NewSigningSession = Omit<SigningSession, 'attempts' | 'verifiedAt'> 
   codeHash: string;
 };
 
+export type InsertedSession =
+  | { inserted: true; codeSentAt: Date; expiresAt: Date }
+  | { inserted: false; retryAfterSeconds: number };
+
 export interface SigningSessionStore {
-  lastCodeSentAt(accountId: string): Promise<Date | null>;
-  insert(session: NewSigningSession): Promise<void>;
+  /**
+   * Inserts the session unless the account had a code sent in the last `intervalSeconds`, which
+   * the store decides atomically; the moments it answers are the ones it recorded.
+   */
+  insert(session: NewSigningSession, intervalSeconds: number): Promise<InsertedSession>;
   remove(sessionId: string): Promise<void>;
   load(
     sessionId: string,
@@ -101,6 +111,8 @@ export async function createSigningSession(
   deps: { store: SigningSessionStore; send: SigningCodeSender },
   input: {
     accountId: string;
+    place: 'app' | 'portal';
+    participantId: string | null;
     channel: ParticipantChannel;
     address: string;
     clientIp: string | null;
@@ -110,19 +122,14 @@ export async function createSigningSession(
   // Runs before the code is sent, so that a code never goes out for a session without its items.
   onCreated?: (sessionId: string) => Promise<void>
 ) {
-  const last = await deps.store.lastCodeSentAt(input.accountId);
-  if (last && now.getTime() - last.getTime() < SIGNING_CODE_INTERVAL_SECONDS * 1000) {
-    throw refused(
-      signatureErrorReasons.codeRateLimited,
-      'A signing code was sent in the last minute; wait before asking for another.'
-    );
-  }
   const id = crypto.randomUUID();
   const code = signingCode();
   const address = normalizedAddress(input.channel, input.address);
   const session = {
     id,
     accountId: input.accountId,
+    place: input.place,
+    participantId: input.participantId,
     channel: input.channel,
     address,
     codeSentAt: now,
@@ -130,7 +137,20 @@ export async function createSigningSession(
     clientIp: input.clientIp,
     userAgent: input.userAgent?.slice(0, 500) ?? null,
   };
-  await deps.store.insert({ ...session, codeHash: await codeHash(id, code) });
+  const inserted = await deps.store.insert(
+    { ...session, codeHash: await codeHash(id, code) },
+    SIGNING_CODE_INTERVAL_SECONDS
+  );
+  if (!inserted.inserted) {
+    throw new ApiError(
+      'conflict',
+      'A signing code was sent in the last minute; wait before asking for another.',
+      undefined,
+      signatureErrorReasons.codeRateLimited,
+      undefined,
+      { retryAfterSeconds: inserted.retryAfterSeconds }
+    );
+  }
   if (onCreated) {
     try {
       await onCreated(id);
@@ -154,16 +174,23 @@ export async function createSigningSession(
     await deps.store.remove(id).catch(() => undefined);
     throw notSent();
   }
-  return { sessionId: id, expiresAt: session.expiresAt };
+  return { sessionId: id, expiresAt: inserted.expiresAt };
 }
 
 export async function verifySigningCode(
   store: SigningSessionStore,
-  input: { sessionId: string; accountId: string; code: string },
+  input: {
+    sessionId: string;
+    accountId: string;
+    code: string;
+    place: 'app' | 'portal';
+    participantId: string | null;
+  },
   now = new Date()
 ): Promise<SigningSession> {
   const session = await store.load(input.sessionId, input.accountId);
-  if (!session) {
+  // A code asked for in one place is typed in the same place, for the same participation.
+  if (!session || session.place !== input.place || session.participantId !== input.participantId) {
     throw new ApiError(
       'not_found',
       'This signing session does not exist.',
@@ -188,11 +215,15 @@ export async function verifySigningCode(
   }
   if (!sameText(await codeHash(session.id, input.code.trim()), session.codeHash)) {
     const left = SIGNING_CODE_ATTEMPTS - session.attempts - 1;
-    throw refused(
-      signatureErrorReasons.codeInvalid,
+    throw new ApiError(
+      'conflict',
       left > 0
         ? `The code is wrong; ${left === 1 ? 'one attempt is' : `${left} attempts are`} left.`
-        : 'The code is wrong, and no attempt is left; ask for a new one.'
+        : 'The code is wrong, and no attempt is left; ask for a new one.',
+      undefined,
+      signatureErrorReasons.codeInvalid,
+      undefined,
+      { attemptsLeft: left }
     );
   }
   const verified = await store.markVerified(session.id, now);
@@ -203,11 +234,13 @@ export async function verifySigningCode(
 }
 
 const sessionColumns =
-  'id, account_id, channel, address, code_hash, code_sent_at, expires_at, attempts, verified_at, client_ip, user_agent';
+  'id, account_id, place, participant_id, channel, address, code_hash, code_sent_at, expires_at, attempts, verified_at, client_ip, user_agent';
 
 type SessionRow = {
   id: string;
   account_id: string;
+  place: string;
+  participant_id: string | null;
   channel: string;
   address: string;
   code_hash: string;
@@ -222,6 +255,8 @@ type SessionRow = {
 const toSession = (row: SessionRow): SigningSession => ({
   id: row.id,
   accountId: row.account_id,
+  place: row.place === 'portal' ? 'portal' : 'app',
+  participantId: row.participant_id,
   channel: row.channel as ParticipantChannel,
   address: row.address,
   codeSentAt: new Date(row.code_sent_at),
@@ -240,30 +275,31 @@ const storeFailed = (context: string, code: string | undefined) => {
 // signing_sessions has no policy at all: only the secret key reads or writes it.
 export function signingSessionStore(admin: AdminClient): SigningSessionStore {
   return {
-    async lastCodeSentAt(accountId) {
+    async insert(session, intervalSeconds) {
       const { data, error } = await admin
-        .from('signing_sessions')
-        .select('code_sent_at')
-        .eq('account_id', accountId)
-        .order('code_sent_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw storeFailed('rate check', error.code);
-      return data ? new Date(data.code_sent_at) : null;
-    },
-    async insert(session) {
-      const { error } = await admin.from('signing_sessions').insert({
-        id: session.id,
-        account_id: session.accountId,
-        channel: session.channel,
-        address: session.address,
-        code_hash: session.codeHash,
-        code_sent_at: session.codeSentAt.toISOString(),
-        expires_at: session.expiresAt.toISOString(),
-        client_ip: session.clientIp,
-        user_agent: session.userAgent,
-      });
+        .rpc('create_signing_session', {
+          p_id: session.id,
+          p_account_id: session.accountId,
+          p_place: session.place,
+          p_participant_id: session.participantId ?? undefined,
+          p_channel: session.channel,
+          p_address: session.address,
+          p_code_hash: session.codeHash,
+          p_valid_minutes: SIGNING_CODE_MINUTES,
+          p_interval_seconds: intervalSeconds,
+          p_client_ip: (session.clientIp ?? undefined) as unknown as string,
+          p_user_agent: session.userAgent ?? undefined,
+        })
+        .single();
       if (error) throw storeFailed('insert', error.code);
+      if (data.retry_after_seconds > 0) {
+        return { inserted: false, retryAfterSeconds: data.retry_after_seconds };
+      }
+      return {
+        inserted: true,
+        codeSentAt: new Date(data.code_sent_at!),
+        expiresAt: new Date(data.expires_at!),
+      };
     },
     async remove(sessionId) {
       const { error } = await admin.from('signing_sessions').delete().eq('id', sessionId);
@@ -317,7 +353,7 @@ export function signingCodeSender(env: ApiEnv['Bindings']): SigningCodeSender {
 }
 
 export function signingSessionsOf(c: Context<ApiEnv>) {
-  const store = signingSessionStore(createAdminClient(c));
+  const store = signingSessionStore(adminClient(c.env));
   return {
     create: (
       input: Parameters<typeof createSigningSession>[1],

@@ -100,6 +100,9 @@ const signingErrors: Record<
     code: 'conflict',
     message: 'An agreement signed electronically is changed only by the signing flow.',
   },
+  SIG08: { code: 'conflict', message: 'The signature request is no longer pending.' },
+  SIG09: { code: 'conflict', message: 'The signing session does not cover this signature.' },
+  SIG10: { code: 'conflict', message: 'The signing agreement does not take this change.' },
 };
 
 // Translate PostgREST/Postgres failures into API errors without leaking details.
@@ -111,6 +114,8 @@ export function fromDatabaseError(error: PostgrestError, context: string): ApiEr
   switch (error.code) {
     case '23505':
       return new ApiError('conflict');
+    case '23503':
+      return new ApiError('conflict', 'Other records depend on this one.');
     case '23514':
     case '22P02':
       return new ApiError('validation_error');

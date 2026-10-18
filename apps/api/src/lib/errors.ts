@@ -30,7 +30,8 @@ export class ApiError extends Error {
     readonly issues?: ApiErrorResponse['issues'],
     // A stable identifier for an error the client words itself.
     readonly reason?: string,
-    readonly missing?: MissingDocumentData[]
+    readonly missing?: MissingDocumentData[],
+    readonly extra?: Pick<ApiErrorResponse, 'attemptsLeft' | 'retryAfterSeconds'>
   ) {
     super(message);
     this.name = 'ApiError';

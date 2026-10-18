@@ -1,7 +1,7 @@
 import { isSheetRowKey, type SheetRowKey, type TrainingDomain } from '@ssm-usor/contracts';
 
 import { type DataClient, fromDatabaseError } from '../../lib/db';
-import { toAdmission, toTraining, trainingColumns } from '../trainings/handlers';
+import { toAdmission, toTraining, trainingColumns } from '../trainings/training-rows';
 import type { SheetTrainingRecord } from './form';
 
 export type StoredSheet = {
@@ -26,8 +26,20 @@ export type StoredRow = {
   signedSheetId: string;
   rowKey: SheetRowKey;
   trainingRecordId: string;
+  /** When the record took the row, on the database's clock; a refill leaves it. */
   filledAt: string;
   voidedAt: string | null;
+  /** SHA-256 of the values last filled into the row's fields; null before the first fill. */
+  filledDigest: string | null;
+  /** The record was printed as text when the sheet was drawn up: no fields to fill. */
+  printedAsText: boolean;
+  /** When "anulat" was written into the voided row's note. */
+  voidNotedAt: string | null;
+};
+
+export type NewRow = Pick<StoredRow, 'signedSheetId' | 'rowKey' | 'trainingRecordId'> & {
+  clientId: string;
+  printedAsText?: boolean;
 };
 
 export type NewSheet = Omit<StoredSheet, 'id' | 'version' | 'certifiedAt' | 'createdAt'>;
@@ -47,24 +59,32 @@ export interface SignedSheetStore {
   sheet(sheetId: string): Promise<StoredSheet | null>;
   rowsOf(sheetId: string): Promise<StoredRow[]>;
   liveRowOf(recordId: string): Promise<StoredRow | null>;
+  /** Every row the record has taken, voided ones included. */
+  rowsOfRecord(recordId: string): Promise<StoredRow[]>;
   /** Null when the employee already has a sheet of that sequence. */
   createSheet(sheet: NewSheet): Promise<StoredSheet | null>;
   /** Null when a key is taken on its sheet or a record already has a live row. */
-  addRows(
-    rows: Pick<StoredRow, 'signedSheetId' | 'rowKey' | 'trainingRecordId'>[]
-  ): Promise<StoredRow[] | null>;
+  addRows(rows: NewRow[]): Promise<StoredRow[] | null>;
   removeRow(rowId: string): Promise<void>;
   /** The next version of the sheet; null when another write moved it on first. */
   advance(sheet: StoredSheet, changes: SheetChanges): Promise<StoredSheet | null>;
   voidRow(rowId: string, at: string): Promise<void>;
-  /** Whether the record has an electronic signature made at or after `since`, voided or not. */
+  setFilledDigest(rowId: string, digest: string): Promise<void>;
+  markVoidNoted(rowIds: string[], at: string): Promise<void>;
+  /**
+   * Whether the record has a live electronic signature made at or after `since`, both sides on
+   * the database's clock.
+   */
   signedSince(recordId: string, since: string): Promise<boolean>;
+  signaturesSince(recordId: string, since: string): Promise<{ live: number; voided: number }>;
+  electronicRequested(recordId: string): Promise<boolean>;
 }
 
 const sheetColumns =
   'id, organization_id, client_id, employee_id, domain, sequence, storage_path, digest, version, row_capacity, rows_used, certified_at, created_at';
 
-const rowColumns = 'id, signed_sheet_id, row_key, training_record_id, filled_at, voided_at';
+const rowColumns =
+  'id, signed_sheet_id, row_key, training_record_id, filled_at, voided_at, filled_digest, printed_as_text, void_noted_at';
 
 const recordColumns = `id, employee_id, client_id, organization_id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, trainings!inner(${trainingColumns})`;
 
@@ -107,6 +127,9 @@ type RowRow = {
   training_record_id: string;
   filled_at: string;
   voided_at: string | null;
+  filled_digest: string | null;
+  printed_as_text: boolean;
+  void_noted_at: string | null;
 };
 
 function toRow(row: RowRow): StoredRow {
@@ -118,6 +141,9 @@ function toRow(row: RowRow): StoredRow {
     trainingRecordId: row.training_record_id,
     filledAt: row.filled_at,
     voidedAt: row.voided_at,
+    filledDigest: row.filled_digest,
+    printedAsText: row.printed_as_text,
+    voidNotedAt: row.void_noted_at,
   };
 }
 
@@ -151,7 +177,23 @@ function toRecord(row: RecordRow): SheetTrainingRecord & RecordOwner {
 const uniqueViolation = '23505';
 
 export function supabaseSheetStore(db: DataClient): SignedSheetStore {
+  async function signaturesSince(recordId: string, since: string) {
+    // `created_at`, not `signed_at`: both sides on the database's clock, the row's `filled_at`
+    // being the database's and a signature's moment the API's.
+    const { data, error } = await db
+      .from('training_signatures')
+      .select('voided_at')
+      .eq('training_record_id', recordId)
+      .eq('method', 'electronic')
+      .gte('created_at', since);
+    if (error) throw fromDatabaseError(error, 'signatures of a record');
+    const voided = data.filter((row) => row.voided_at !== null).length;
+    return { live: data.length - voided, voided };
+  }
+
   return {
+    signaturesSince,
+
     async employee(employeeId) {
       const { data, error } = await db
         .from('employees')
@@ -224,6 +266,15 @@ export function supabaseSheetStore(db: DataClient): SignedSheetStore {
       return data && toRow(data);
     },
 
+    async rowsOfRecord(recordId) {
+      const { data, error } = await db
+        .from('signed_sheet_rows')
+        .select(rowColumns)
+        .eq('training_record_id', recordId);
+      if (error) throw fromDatabaseError(error, 'signed sheet rows of a record');
+      return data.map(toRow);
+    },
+
     async createSheet(sheet) {
       const { data, error } = await db
         .from('signed_sheets')
@@ -251,8 +302,10 @@ export function supabaseSheetStore(db: DataClient): SignedSheetStore {
         .insert(
           rows.map((row) => ({
             signed_sheet_id: row.signedSheetId,
+            client_id: row.clientId,
             row_key: row.rowKey,
             training_record_id: row.trainingRecordId,
+            printed_as_text: row.printedAsText ?? false,
           }))
         )
         .select(rowColumns);
@@ -293,17 +346,36 @@ export function supabaseSheetStore(db: DataClient): SignedSheetStore {
       if (error) throw fromDatabaseError(error, 'void signed sheet row');
     },
 
+    async setFilledDigest(rowId, digest) {
+      const { error } = await db
+        .from('signed_sheet_rows')
+        .update({ filled_digest: digest })
+        .eq('id', rowId);
+      if (error) throw fromDatabaseError(error, 'signed sheet row digest');
+    },
+
+    async markVoidNoted(rowIds, at) {
+      if (rowIds.length === 0) return;
+      const { error } = await db
+        .from('signed_sheet_rows')
+        .update({ void_noted_at: at })
+        .in('id', rowIds)
+        .is('void_noted_at', null);
+      if (error) throw fromDatabaseError(error, 'signed sheet rows noted');
+    },
+
     async signedSince(recordId, since) {
-      // `created_at`, not `signed_at`: both sides on the database's clock. A session's signing
-      // moment is the API's, taken before the row was filled, and a refill under a signature
-      // breaks its lock.
+      return (await signaturesSince(recordId, since)).live > 0;
+    },
+
+    async electronicRequested(recordId) {
       const { count, error } = await db
-        .from('training_signatures')
+        .from('signature_requests')
         .select('id', { count: 'exact', head: true })
         .eq('training_record_id', recordId)
-        .eq('method', 'electronic')
-        .gte('created_at', since);
-      if (error) throw fromDatabaseError(error, 'signatures of a record');
+        .neq('state', 'void')
+        .not('signer_account_id', 'is', null);
+      if (error) throw fromDatabaseError(error, 'requests of a record');
       return (count ?? 0) > 0;
     },
   };

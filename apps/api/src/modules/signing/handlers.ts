@@ -27,6 +27,8 @@ import { participationOf } from '../../lib/participant';
 import { requirePdfConverter } from '../../lib/pdf';
 import { collator } from '../../lib/romanian';
 import { builtInTemplates, merge } from '../documents/documents';
+import { signedSheetContext, voidRow } from '../signed-sheets/signed-sheets';
+import { awaitedParty } from './agreement-state';
 import type {
   getPortalEmployeeSigningAgreementRoute,
   getPortalSigningAgreementRoute,
@@ -52,6 +54,26 @@ const noSuchRecord = () =>
   new ApiError('not_found', 'This training record does not exist under this client.');
 const noSuchEmployee = () =>
   new ApiError('not_found', 'This employee does not exist under this client.');
+// The agreement names the representative who signs it for the employer, as a document would.
+const noRepresentative = (client: {
+  legal_representative_name: string | null;
+  legal_representative_role: string | null;
+}) =>
+  new ApiError(
+    'conflict',
+    "The client's legal representative, who signs the signing agreement for the employer, is not filled in.",
+    undefined,
+    'missing_document_data',
+    [
+      ...(client.legal_representative_name?.trim() ? [] : (['client.representativeName'] as const)),
+      ...(client.legal_representative_role?.trim() ? [] : (['client.representativeRole'] as const)),
+    ]
+  );
+
+const representativeMissing = (client: {
+  legal_representative_name: string | null;
+  legal_representative_role: string | null;
+}) => !client.legal_representative_name?.trim() || !client.legal_representative_role?.trim();
 
 const toIso = (value: string) => new Date(value).toISOString();
 const toIsoOrNull = (value: string | null) => (value ? toIso(value) : null);
@@ -280,12 +302,23 @@ export const voidRecordSignatures: RouteHandler<typeof voidRecordSignaturesRoute
     p_reason: reason,
   });
   if (error) throw fromSigningFunctionError(error, 'void training signatures');
+  // The database has voided the row; the sheet's "anulat" follows here or on its next write.
+  try {
+    await voidRow(signedSheetContext(c), recordId);
+  } catch (failure) {
+    if (!(failure instanceof ApiError && failure.reason === 'record_not_on_sheet')) {
+      console.error(
+        `The voided row of ${recordId} was not marked on its sheet: ${failure instanceof ApiError ? (failure.reason ?? failure.code) : failure instanceof Error ? failure.name : 'unknown'}`
+      );
+    }
+  }
   return c.json(await recordSignatures(db, clientId, recordId), 200);
 };
 
 const listColumns =
   'id, slot, state, signer_account_id, issued_at, notified_at, clients!signature_requests_client_id_fkey(id, legal_name), training_records!signature_requests_record_of_client(id, training_id, employees(id, last_name, first_name, employee_signing_agreements(state)), trainings(domain, phase, held_on))';
 
+// Any embed may come back null when a policy hides its row; such a request is left out.
 type ListRow = {
   id: string;
   slot: SignerSlot;
@@ -293,7 +326,7 @@ type ListRow = {
   signer_account_id: string | null;
   issued_at: string;
   notified_at: string | null;
-  clients: { id: string; legal_name: string };
+  clients: { id: string; legal_name: string } | null;
   training_records: {
     id: string;
     training_id: string;
@@ -301,17 +334,28 @@ type ListRow = {
       id: string;
       last_name: string;
       first_name: string;
-      employee_signing_agreements: { state: string }[];
-    };
-    trainings: { domain: TrainingDomain; phase: TrainingPhase; held_on: string };
+      employee_signing_agreements: { state: string }[] | null;
+    } | null;
+    trainings: { domain: TrainingDomain; phase: TrainingPhase; held_on: string } | null;
+  } | null;
+};
+
+type VisibleListRow = ListRow & {
+  clients: NonNullable<ListRow['clients']>;
+  training_records: NonNullable<ListRow['training_records']> & {
+    employees: NonNullable<NonNullable<ListRow['training_records']>['employees']>;
+    trainings: NonNullable<NonNullable<ListRow['training_records']>['trainings']>;
   };
 };
+
+const visible = (row: ListRow): row is VisibleListRow =>
+  !!row.clients && !!row.training_records?.employees && !!row.training_records.trainings;
 
 const agreementStateOf = (agreements: { state: string }[] | null | undefined) =>
   (agreements?.[0]?.state as SigningAgreementState | undefined) ?? null;
 
 const toListItem = (
-  row: ListRow,
+  row: VisibleListRow,
   signer: SignatureRequestItem['signer']
 ): SignatureRequestItem => ({
   id: row.id,
@@ -340,10 +384,14 @@ export const listMySignatureRequests: RouteHandler<
   typeof listMySignatureRequestsRoute,
   ApiEnv
 > = async (c) => {
+  // The member's own organization, and never a trainee's request, which the account signs in the
+  // portal when it is also an employee somewhere.
   const { data, error } = await createDataClient(c)
     .from('signature_requests')
     .select(listColumns)
     .eq('signer_account_id', c.get('user').id)
+    .eq('organization_id', c.get('membership').organizationId)
+    .neq('slot', 'trainee')
     .eq('state', 'pending')
     .order('issued_at')
     .order('id')
@@ -351,9 +399,9 @@ export const listMySignatureRequests: RouteHandler<
   if (error) throw fromDatabaseError(error, 'my signature requests');
   return c.json(
     {
-      items: (data as unknown as ListRow[]).map((row) =>
-        toListItem(row, { accountId: c.get('user').id, name: null })
-      ),
+      items: (data as unknown as ListRow[])
+        .filter(visible)
+        .map((row) => toListItem(row, { accountId: c.get('user').id, name: null })),
     },
     200
   );
@@ -376,7 +424,7 @@ export const listClientSignatureRequests: RouteHandler<
     .order('id')
     .limit(2000);
   if (error) throw fromDatabaseError(error, 'client signature requests');
-  const rows = data as unknown as ListRow[];
+  const rows = (data as unknown as ListRow[]).filter(visible);
   const directory = rows.some((row) => row.signer_account_id)
     ? await signersOfClient(db, clientId)
     : [];
@@ -545,13 +593,14 @@ export const listPortalClientSignatureRequests: RouteHandler<
 };
 
 export const agreementColumns =
-  'state, generated_at, signed_at, client_file_id, employee_signed_at, employer_signed_at';
+  'state, generated_at, signed_at, client_file_id, storage_path, employee_signed_at, employer_signed_at';
 
 export type AgreementRow = {
   state: string;
   generated_at: string;
   signed_at: string | null;
   client_file_id: string | null;
+  storage_path: string | null;
   employee_signed_at: string | null;
   employer_signed_at: string | null;
 };
@@ -563,6 +612,7 @@ export const toAgreementState = (row: AgreementRow) => ({
   clientFileId: row.client_file_id,
   employeeSignedAt: toIsoOrNull(row.employee_signed_at),
   employerSignedAt: toIsoOrNull(row.employer_signed_at),
+  awaiting: awaitedParty(row),
 });
 
 const toAgreement = (row: AgreementRow | null): SigningAgreementResponse => ({
@@ -622,6 +672,7 @@ export async function signingAgreementDocx(
   if (employee.error) throw fromDatabaseError(employee.error, 'agreement employee');
   if (client.error) throw fromDatabaseError(client.error, 'agreement client');
   if (!employee.data || !client.data) throw noSuchEmployee();
+  if (representativeMissing(client.data)) throw noRepresentative(client.data);
   const organization = await db
     .from('organizations')
     .select('name, legal_name')
@@ -683,6 +734,8 @@ export async function signingAgreementDocx(
   const { bytes } = merge(await readTemplate(template.storagePath), data, typeKey);
   return {
     docx: bytes,
+    data,
+    templatePath: template.storagePath,
     fileName: agreementFileName({ lastName: row.last_name, firstName: row.first_name }),
   };
 }
@@ -760,20 +813,15 @@ export const putSigningAgreementState: RouteHandler<
   const { state, clientFileId } = c.req.valid('json');
   const db = createDataClient(c);
   const { agreement } = await agreementOf(db, clientId, employeeId);
+  if (state === 'generated') await requireRepresentative(db, clientId);
   const now = new Date().toISOString();
+  // marked_by is the database's to set, from the member signed in.
   const change =
     state === 'generated'
-      ? {
-          state,
-          generated_at: now,
-          signed_at: null,
-          marked_by: null,
-          client_file_id: clientFileId ?? null,
-        }
+      ? { state, generated_at: now, signed_at: null, client_file_id: clientFileId ?? null }
       : {
           state,
-          signed_at: now,
-          marked_by: c.get('user').id,
+          signed_at: state === 'signed_on_paper' ? now : null,
           client_file_id: clientFileId ?? null,
         };
   // Not an upsert: members may update only these columns, and an upsert sets them all.
@@ -803,6 +851,16 @@ export const putSigningAgreementState: RouteHandler<
   }
   return c.json(toAgreement(saved.data), 200);
 };
+
+async function requireRepresentative(db: DataClient, clientId: string) {
+  const { data, error } = await db
+    .from('clients')
+    .select('legal_representative_name, legal_representative_role')
+    .eq('id', clientId)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'agreement representative');
+  if (data && representativeMissing(data)) throw noRepresentative(data);
+}
 
 function ownEmployee(c: Context<ApiEnv>, participantId: string) {
   const participation = participationOf(c, participantId);

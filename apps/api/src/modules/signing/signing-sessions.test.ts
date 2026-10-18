@@ -20,13 +20,16 @@ type Stored = SigningSession & { codeHash: string };
 function memoryStore() {
   const sessions = new Map<string, Stored>();
   const store: SigningSessionStore = {
-    lastCodeSentAt: async (account) =>
-      [...sessions.values()]
-        .filter((session) => session.accountId === account)
-        .map((session) => session.codeSentAt)
-        .sort((a, b) => b.getTime() - a.getTime())[0] ?? null,
-    insert: async (session: NewSigningSession) => {
+    insert: async (session: NewSigningSession, intervalSeconds: number) => {
+      const last = [...sessions.values()]
+        .filter((each) => each.accountId === session.accountId)
+        .map((each) => each.codeSentAt.getTime())
+        .sort((a, b) => b - a)[0];
+      const wait =
+        last === undefined ? 0 : last + intervalSeconds * 1000 - session.codeSentAt.getTime();
+      if (wait > 0) return { inserted: false, retryAfterSeconds: Math.ceil(wait / 1000) };
       sessions.set(session.id, { ...session, attempts: 0, verifiedAt: null });
+      return { inserted: true, codeSentAt: session.codeSentAt, expiresAt: session.expiresAt };
     },
     remove: async (id) => {
       sessions.delete(id);
@@ -64,6 +67,8 @@ const start = (overrides: Partial<Parameters<typeof createSigningSession>[1]> = 
     { store: memory.store, send },
     {
       accountId,
+      place: 'app',
+      participantId: null,
       channel: 'email',
       address: ' Ion@Example.RO ',
       clientIp: '203.0.113.7',
@@ -120,7 +125,15 @@ describe('createSigningSession', () => {
     const seen: string[] = [];
     const { sessionId } = await createSigningSession(
       { store: memory.store, send },
-      { accountId, channel: 'email', address: 'ion@example.ro', clientIp: null, userAgent: null },
+      {
+        accountId,
+        place: 'app',
+        participantId: null,
+        channel: 'email',
+        address: 'ion@example.ro',
+        clientIp: null,
+        userAgent: null,
+      },
       now,
       async (id) => {
         seen.push(id);
@@ -131,7 +144,15 @@ describe('createSigningSession', () => {
 
     const failing = createSigningSession(
       { store: memory.store, send },
-      { accountId, channel: 'email', address: 'ion@example.ro', clientIp: null, userAgent: null },
+      {
+        accountId,
+        place: 'app',
+        participantId: null,
+        channel: 'email',
+        address: 'ion@example.ro',
+        clientIp: null,
+        userAgent: null,
+      },
       seconds(61),
       async () => {
         throw new Error('items not kept');
@@ -148,6 +169,7 @@ describe('createSigningSession', () => {
     await expect(start({}, seconds(59))).rejects.toMatchObject({
       code: 'conflict',
       reason: 'code_rate_limited',
+      extra: { retryAfterSeconds: 1 },
     });
     await expect(start({}, seconds(60))).resolves.toBeDefined();
   });
@@ -175,7 +197,11 @@ describe('createSigningSession', () => {
 
 describe('verifySigningCode', () => {
   const verify = (sessionId: string, code: string, at = seconds(30), account = accountId) =>
-    verifySigningCode(memory.store, { sessionId, accountId: account, code }, at);
+    verifySigningCode(
+      memory.store,
+      { sessionId, accountId: account, code, place: 'app', participantId: null },
+      at
+    );
 
   it('verifies the code once and returns the session for the evidence', async () => {
     const { sessionId } = await start();
@@ -204,11 +230,16 @@ describe('verifySigningCode', () => {
     await expect(verify(sessionId, wrong)).rejects.toMatchObject({
       reason: 'code_invalid',
       message: 'The code is wrong; 2 attempts are left.',
+      extra: { attemptsLeft: 2 },
     });
     await expect(verify(sessionId, wrong)).rejects.toMatchObject({
       message: 'The code is wrong; one attempt is left.',
+      extra: { attemptsLeft: 1 },
     });
-    await expect(verify(sessionId, wrong)).rejects.toMatchObject({ reason: 'code_invalid' });
+    await expect(verify(sessionId, wrong)).rejects.toMatchObject({
+      reason: 'code_invalid',
+      extra: { attemptsLeft: 0 },
+    });
     await expect(verify(sessionId, sent[0]!.code)).rejects.toMatchObject({
       reason: 'code_attempts_exceeded',
     });
@@ -230,6 +261,28 @@ describe('verifySigningCode', () => {
     await expect(
       verify(sessionId, sent[0]!.code, seconds(30), '00000000-0000-4000-8000-000000000001')
     ).rejects.toMatchObject({ code: 'not_found', reason: 'signing_session_not_found' });
+  });
+
+  it('answers 404 for a session asked for in another place or participation', async () => {
+    const { sessionId } = await start({
+      place: 'portal',
+      participantId: '88888888-0000-4000-8000-000000000001',
+    });
+    const typedIn = (place: 'app' | 'portal', participantId: string | null) =>
+      verifySigningCode(
+        memory.store,
+        { sessionId, accountId, code: sent[0]!.code, place, participantId },
+        seconds(30)
+      );
+
+    await expect(typedIn('app', null)).rejects.toMatchObject({
+      reason: 'signing_session_not_found',
+    });
+    await expect(typedIn('portal', '88888888-0000-4000-8000-000000000002')).rejects.toMatchObject({
+      reason: 'signing_session_not_found',
+    });
+    expect(memory.sessions.get(sessionId)!.attempts).toBe(0);
+    await expect(typedIn('portal', '88888888-0000-4000-8000-000000000001')).resolves.toBeDefined();
   });
 
   it('refuses when a concurrent attempt counted first', async () => {
@@ -270,6 +323,44 @@ describe('the stores', () => {
     expect(url.searchParams.get('attempts')).toBe('eq.2');
     expect(url.searchParams.get('verified_at')).toBe('is.null');
     expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toEqual({ attempts: 3 });
+  });
+
+  it('inserts through the database function that keeps one code a minute, and passes its wait on', async () => {
+    fetchMock.mockResolvedValueOnce(
+      Response.json({ retry_after_seconds: 42, code_sent_at: null, expires_at: null })
+    );
+    const { createClient } = await import('@supabase/supabase-js');
+    const store = signingSessionStore(
+      createClient('https://example.supabase.co', 'sb_secret_test_key_value') as never
+    );
+
+    const answer = await store.insert(
+      {
+        id: 's1',
+        accountId,
+        place: 'portal',
+        participantId: 'p1',
+        channel: 'email',
+        address: 'ion@example.ro',
+        codeHash: 'h',
+        codeSentAt: now,
+        expiresAt: seconds(600),
+        clientIp: null,
+        userAgent: null,
+      },
+      60
+    );
+
+    expect(answer).toEqual({ inserted: false, retryAfterSeconds: 42 });
+    const url = new URL(String(fetchMock.mock.calls[0]![0]));
+    expect(url.pathname).toBe('/rest/v1/rpc/create_signing_session');
+    expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toMatchObject({
+      p_id: 's1',
+      p_place: 'portal',
+      p_participant_id: 'p1',
+      p_interval_seconds: 60,
+      p_valid_minutes: 10,
+    });
   });
 
   it('sends the code over the binding of its channel', async () => {

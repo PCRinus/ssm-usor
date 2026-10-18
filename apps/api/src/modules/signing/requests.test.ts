@@ -8,7 +8,6 @@ import {
   env,
   fetchMock,
   mockUpstream,
-  organizationId,
   sendSignatureRequestEmail,
   sendSignatureRequestSms,
   type UpstreamRoute,
@@ -113,6 +112,18 @@ const body = {
 
 let nextRequestId = 0;
 
+type Issue = {
+  training_record_id: string;
+  slot: string;
+  signer_account_id: string | null;
+  replaces: string | null;
+  reason: string | null;
+};
+
+const issued = () =>
+  (callsTo('/rest/v1/rpc/issue_signature_requests', 'POST')[0]?.body as { p_requests: Issue[] })
+    ?.p_requests;
+
 function upstream(overrides: Record<string, UpstreamRoute> = {}) {
   mockUpstream({
     '/rest/v1/clients': () => [
@@ -145,13 +156,18 @@ function upstream(overrides: Record<string, UpstreamRoute> = {}) {
           ]
         : [trainingDetail],
     'GET /rest/v1/signature_requests': () => [],
-    'POST /rest/v1/signature_requests': ({ body: rows }) =>
-      (rows as { slot: string; signer_account_id: string }[]).map((row) => ({
-        id: `f0000000-0000-4000-8000-${String((nextRequestId += 1)).padStart(12, '0')}`,
-        slot: row.slot,
-        signer_account_id: row.signer_account_id,
-      })),
+    '/rest/v1/rpc/issue_signature_requests': ({ body: payload }) =>
+      (payload as { p_requests: Issue[] }).p_requests
+        .filter((row) => row.signer_account_id)
+        .map((row) => ({
+          id: `f0000000-0000-4000-8000-${String((nextRequestId += 1)).padStart(12, '0')}`,
+          training_record_id: row.training_record_id,
+          slot: row.slot,
+          signer_account_id: row.signer_account_id,
+        })),
     'PATCH /rest/v1/signature_requests': () => [],
+    '/rest/v1/employee_signing_agreements': () => [],
+    '/rest/v1/training_records': () => [],
     '/rest/v1/organizations': () => [{ name: 'Protect SSM' }],
     ...overrides,
   });
@@ -189,10 +205,10 @@ describe('requests issued when a training is saved', () => {
     const response = await save();
 
     expect(response.status).toBe(201);
-    const [insert] = callsTo('/rest/v1/signature_requests', 'POST');
+    const [insert] = callsTo('/rest/v1/rpc/issue_signature_requests', 'POST');
     expect(insert!.secret).toBe(false);
     expect(insert!.headers.get('Authorization')).toBe('Bearer user-token');
-    expect(insert!.body).toEqual(
+    expect(issued()).toEqual(
       [
         [ionRecord, 'trainee', ionAccount],
         [ionRecord, 'trainer', trainerAccount],
@@ -201,13 +217,38 @@ describe('requests issued when a training is saved', () => {
         [mariaRecord, 'trainer', trainerAccount],
         [mariaRecord, 'admitter', managerAccount],
       ].map(([record, slot, signer]) => ({
-        organization_id: organizationId,
-        client_id: clientId,
         training_record_id: record,
         slot,
         signer_account_id: signer,
+        replaces: null,
+        reason: null,
       }))
     );
+  });
+
+  it('asks no trainee whose agreement is withdrawn', async () => {
+    upstream({ '/rest/v1/employee_signing_agreements': () => [{ employee_id: mariaId }] });
+
+    await save();
+
+    expect(
+      issued()!
+        .filter((row) => row.slot === 'trainee')
+        .map((row) => row.signer_account_id)
+    ).toEqual([ionAccount]);
+  });
+
+  it('refuses a signer whose own name is not the name the slot prints, before saving anything', async () => {
+    upstream();
+
+    const response = await save({ ...body, trainer: { name: 'Ion POP', jobTitle: 'Șef atelier' } });
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      reason: 'signer_name_mismatch',
+      issues: [{ path: 'signers.trainer' }],
+    });
+    expect(callsTo('/rest/v1/rpc/save_training')).toHaveLength(0);
   });
 
   it('tells each signer once, with a count, by email where there is one and in the place they sign', async () => {
@@ -257,15 +298,14 @@ describe('requests issued when a training is saved', () => {
     expect(response.status).toBe(200);
     const [live] = callsTo('/rest/v1/signature_requests', 'GET');
     expect(live!.url.searchParams.get('state')).toBe('neq.void');
-    const [insert] = callsTo('/rest/v1/signature_requests', 'POST');
     expect(
-      (insert!.body as { training_record_id: string; slot: string }[]).map(
+      issued()!.map(
         (row) => `${row.training_record_id === ionRecord ? 'ion' : 'maria'} ${row.slot}`
       )
     ).toEqual(['maria trainee', 'maria admitter']);
   });
 
-  it('voids with the secret key a pending request to another signer and issues it again, and one left to paper', async () => {
+  it('voids a pending request to another signer, or one left to paper, in the same call that issues its replacement', async () => {
     const pending = (id: string, record: string, slot: string, signer: string) => ({
       id: `f0000000-0000-4000-8000-0000000000${id}`,
       training_record_id: record,
@@ -291,31 +331,18 @@ describe('requests issued when a training is saved', () => {
     );
 
     expect(response.status).toBe(200);
-    const voids = callsTo('/rest/v1/signature_requests', 'PATCH').filter(
-      (call) => (call.body as { state?: string }).state === 'void'
-    );
     expect(
-      voids.map((call) => [
-        (call.body as { void_reason: string }).void_reason,
-        call.url.searchParams.get('id'),
-        call.url.searchParams.get('state'),
-        call.secret,
-      ])
+      callsTo('/rest/v1/signature_requests', 'PATCH').filter(
+        (call) => (call.body as { state?: string }).state === 'void'
+      )
+    ).toHaveLength(0);
+    expect(
+      issued()!.map((row) => [row.slot, row.signer_account_id, row.replaces, row.reason])
     ).toEqual([
-      ['signer_changed', 'in.(f0000000-0000-4000-8000-0000000000a2)', 'eq.pending', true],
-      [
-        'paper',
-        'in.(f0000000-0000-4000-8000-0000000000a3,f0000000-0000-4000-8000-0000000000a6)',
-        'eq.pending',
-        true,
-      ],
+      ['trainer', trainerAccount, 'f0000000-0000-4000-8000-0000000000a2', 'signer_changed'],
+      ['admitter', null, 'f0000000-0000-4000-8000-0000000000a3', 'paper'],
+      ['admitter', null, 'f0000000-0000-4000-8000-0000000000a6', 'paper'],
     ]);
-    const [insert] = callsTo('/rest/v1/signature_requests', 'POST');
-    expect(
-      (
-        insert!.body as { training_record_id: string; slot: string; signer_account_id: string }[]
-      ).map((row) => [row.training_record_id, row.slot, row.signer_account_id])
-    ).toEqual([[ionRecord, 'trainer', trainerAccount]]);
   });
 
   it('asks nobody without the signers field, nor for a training typed from paper', async () => {
@@ -334,6 +361,7 @@ describe('requests issued when a training is saved', () => {
     });
     expect((await save({ ...body, source: 'paper' })).status).toBe(201);
     expect(callsTo('/rest/v1/signature_requests')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/issue_signature_requests')).toHaveLength(0);
     expect(sendSignatureRequestEmail).not.toHaveBeenCalled();
   });
 
@@ -354,18 +382,16 @@ describe('requests issued when a training is saved', () => {
     expect(callsTo('/rest/v1/rpc/save_training')).toHaveLength(0);
   });
 
-  it("answers 422 with the database's reason when it refuses a request", async () => {
+  it('keeps the saved training when the database refuses the requests, and tells nobody', async () => {
     upstream({
-      'POST /rest/v1/signature_requests': () => databaseError('SIG05', 'signer_not_of_client'),
+      '/rest/v1/rpc/issue_signature_requests': () => databaseError('SIG05', 'signer_not_of_client'),
     });
 
     const response = await save();
 
-    expect(response.status).toBe(422);
-    expect(await response.json()).toMatchObject({
-      error: 'unprocessable',
-      reason: 'signer_not_of_client',
-    });
+    expect(response.status).toBe(201);
+    expect(sendSignatureRequestEmail).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('signer_not_of_client'));
   });
 
   it('refuses a verifier signer on a training without a verifier', async () => {

@@ -325,8 +325,11 @@ describe('POST …/signatures/paper and …/signatures/void', () => {
     expect(callsTo('/rest/v1/rpc/void_training_signatures')).toHaveLength(0);
   });
 
-  it('voids the signatures with the reason', async () => {
-    recordUpstream({ '/rest/v1/rpc/void_training_signatures': () => 2 });
+  it('voids the signatures with the reason, then marks the row the database struck on its sheet', async () => {
+    recordUpstream({
+      '/rest/v1/rpc/void_training_signatures': () => 2,
+      'GET /rest/v1/signed_sheet_rows': () => [],
+    });
 
     const response = await request(`${signaturesPath}/void`, {
       method: 'POST',
@@ -338,6 +341,9 @@ describe('POST …/signatures/paper and …/signatures/void', () => {
       p_record_id: recordId,
       p_reason: 'Data greșită',
     });
+    const rows = callsTo('/rest/v1/signed_sheet_rows');
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((call) => call.secret)).toBe(true);
   });
 
   it('refuses a blank reason before the database', async () => {
@@ -405,6 +411,24 @@ describe('the members’ request lists', () => {
     const [call] = callsTo('/rest/v1/signature_requests');
     expect(call!.url.searchParams.get('signer_account_id')).toBe(`eq.${user.id}`);
     expect(call!.url.searchParams.get('state')).toBe('eq.pending');
+    expect(call!.url.searchParams.get('organization_id')).toBe(`eq.${organizationId}`);
+    expect(call!.url.searchParams.get('slot')).toBe('neq.trainee');
+  });
+
+  it('GET /me/signature-requests leaves out a request whose record a policy hides', async () => {
+    mockUpstream({
+      '/rest/v1/signature_requests': () => [
+        listRow(),
+        { ...listRow({ id: 'f0000000-0000-4000-8000-000000000002' }), training_records: null },
+        { ...listRow({ id: 'f0000000-0000-4000-8000-000000000003' }), clients: null },
+      ],
+    });
+
+    const response = await request('/me/signature-requests');
+
+    expect(response.status).toBe(200);
+    const { items } = signatureRequestListResponseSchema.parse(await response.json());
+    expect(items.map((item) => item.id)).toEqual(['f0000000-0000-4000-8000-000000000001']);
   });
 
   it("GET /clients/{clientId}/signature-requests lists the client's requests in a state, with the signers' names", async () => {
@@ -826,6 +850,9 @@ describe('the signing agreement state', () => {
   it('inserts a first state as the member, for the organization and the client', async () => {
     mockUpstream({
       '/rest/v1/employees': () => [{ id: employeeId }],
+      '/rest/v1/clients': () => [
+        { legal_representative_name: 'Maria IONESCU', legal_representative_role: 'Administrator' },
+      ],
       'GET /rest/v1/employee_signing_agreements': () => [],
       'POST /rest/v1/employee_signing_agreements': ({ body }) => [
         {
@@ -848,9 +875,47 @@ describe('the signing agreement state', () => {
       client_id: clientId,
       organization_id: organizationId,
       state: 'generated',
-      marked_by: null,
     });
+    expect(insert!.body).not.toHaveProperty('marked_by');
   });
+
+  it('refuses to hand out an agreement of a client without a legal representative', async () => {
+    mockUpstream({
+      '/rest/v1/employees': () => [{ id: employeeId }],
+      '/rest/v1/clients': () => [
+        { legal_representative_name: 'Maria IONESCU', legal_representative_role: null },
+      ],
+      'GET /rest/v1/employee_signing_agreements': () => [],
+    });
+
+    const response = await request(statePath, { method: 'PUT', body: { state: 'generated' } });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      reason: 'missing_document_data',
+      missing: ['client.representativeRole'],
+    });
+    expect(callsTo('/rest/v1/employee_signing_agreements', 'POST')).toHaveLength(0);
+  });
+
+  it.each(['withdrawn', 'in_contract'] as const)(
+    'records an agreement as %s, without a signing moment',
+    async (state) => {
+      mockUpstream({
+        '/rest/v1/employees': () => [{ id: employeeId }],
+        'GET /rest/v1/employee_signing_agreements': () => [],
+        'POST /rest/v1/employee_signing_agreements': ({ body }) => [
+          { ...(body as Record<string, unknown>), generated_at: '2026-10-18T09:00:00+00:00' },
+        ],
+      });
+
+      const response = await request(statePath, { method: 'PUT', body: { state } });
+
+      expect(await response.json()).toMatchObject({
+        agreement: { state, signedAt: null, awaiting: null },
+      });
+    }
+  );
 
   it('updates only the columns members may change when the paper copy comes back', async () => {
     const fileId = 'c0000000-0000-4000-8000-000000000001';
@@ -880,11 +945,9 @@ describe('the signing agreement state', () => {
     const [update] = callsTo('/rest/v1/employee_signing_agreements', 'PATCH');
     expect(Object.keys(update!.body as object).sort()).toEqual([
       'client_file_id',
-      'marked_by',
       'signed_at',
       'state',
     ]);
-    expect(update!.body).toMatchObject({ marked_by: user.id });
   });
 
   it('answers 409 for an agreement signed electronically', async () => {
@@ -897,6 +960,9 @@ describe('the signing agreement state', () => {
           signed_at: '2026-10-02T09:00:00+00:00',
           client_file_id: null,
         },
+      ],
+      '/rest/v1/clients': () => [
+        { legal_representative_name: 'Maria IONESCU', legal_representative_role: 'Administrator' },
       ],
       'PATCH /rest/v1/employee_signing_agreements': () =>
         databaseError('SIG07', 'agreement_signed_electronically'),

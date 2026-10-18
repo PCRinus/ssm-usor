@@ -45,9 +45,14 @@ export type SigningIdentity = {
 };
 
 export interface IdentityStore {
+  /** The account's live identity, the one not superseded. */
   load(accountId: string): Promise<SigningIdentity | null>;
-  /** Replaces the account's identity, if it has one. */
-  save(identity: SigningIdentity): Promise<void>;
+  /**
+   * Supersedes the account's live identity, if it has one, and inserts this one; the old row
+   * stays for the signatures that name its certificate. Answers the live identity, which is
+   * another one when a concurrent issue won.
+   */
+  save(identity: SigningIdentity): Promise<SigningIdentity>;
 }
 
 const unavailable = () =>
@@ -76,11 +81,17 @@ const yearsAfter = (date: Date, years: number) => {
   return later;
 };
 
-export async function loadSigningCa(secrets: SigningCaSecrets): Promise<SigningCa> {
+export async function loadSigningCa(
+  secrets: SigningCaSecrets,
+  now = new Date()
+): Promise<SigningCa> {
   const { SIGNING_CA_KEY, SIGNING_CA_CERT, SIGNING_KEY_ENCRYPTION_KEY } = secrets;
   if (!SIGNING_CA_KEY || !SIGNING_CA_CERT || !SIGNING_KEY_ENCRYPTION_KEY) throw unavailable();
   try {
     const certificate = new x509.X509Certificate(pemOf(SIGNING_CA_CERT));
+    if (certificate.notAfter.getTime() <= now.getTime()) {
+      throw new Error('the authority certificate has expired');
+    }
     const key = await crypto.subtle.importKey(
       'pkcs8',
       x509.PemConverter.decodeFirst(pemOf(SIGNING_CA_KEY)),
@@ -88,6 +99,13 @@ export async function loadSigningCa(secrets: SigningCaSecrets): Promise<SigningC
       false,
       ['sign']
     );
+    // A key and certificate from two different rotations would issue certificates nothing verifies.
+    const probe = crypto.getRandomValues(new Uint8Array(32));
+    const signed = await crypto.subtle.sign(signatureAlgorithm, key, probe);
+    const publicKey = await certificate.publicKey.export(keyAlgorithm, ['verify'], crypto);
+    if (!(await crypto.subtle.verify(signatureAlgorithm, publicKey, signed, probe))) {
+      throw new Error('the authority key does not match its certificate');
+    }
     const kek = fromBase64(SIGNING_KEY_ENCRYPTION_KEY.trim());
     if (kek.length !== 32) throw new Error('the key-encryption key is not 32 bytes');
     const keyEncryptionKey = await crypto.subtle.importKey('raw', kek, 'AES-GCM', false, [
@@ -216,19 +234,11 @@ export async function issueIdentity(
   subjectName: string,
   now = new Date()
 ) {
-  const identity = await createIdentity(ca, accountId, subjectName, now);
-  await store.save(identity);
-  return identity;
+  return store.save(await createIdentity(ca, accountId, subjectName, now));
 }
 
-async function usableUnder(
-  ca: SigningCa,
-  identity: SigningIdentity,
-  subjectName: string,
-  now: Date
-) {
+async function usableUnder(ca: SigningCa, identity: SigningIdentity, now: Date) {
   if (
-    identity.subjectName !== subjectName.trim() ||
     identity.notBefore.getTime() > now.getTime() ||
     identity.notAfter.getTime() - now.getTime() <= REISSUE_WITHIN_DAYS * DAY_MS
   ) {
@@ -248,9 +258,11 @@ async function usableUnder(
 }
 
 /**
- * The account's identity, reissued when it has expired, expires within 30 days, names the person
- * differently, or belongs to an authority or a key-encryption key that has since been replaced.
- * A signature keeps the old certificate's serial in its evidence.
+ * The account's identity, reissued only when it has expired, expires within 30 days, or belongs
+ * to an authority or a key-encryption key that has since been replaced. `subjectName`, the
+ * account's own name, is used only for a new certificate: the name a slot prints goes in the
+ * signature's appearance, never in the certificate. A signature keeps its certificate's serial in
+ * its evidence, and the superseded identity stays.
  */
 export async function identityFor(
   ca: SigningCa,
@@ -260,7 +272,7 @@ export async function identityFor(
   now = new Date()
 ) {
   const current = await store.load(accountId);
-  return current && (await usableUnder(ca, current, subjectName, now))
+  return current && (await usableUnder(ca, current, now))
     ? current
     : issueIdentity(ca, store, accountId, subjectName, now);
 }

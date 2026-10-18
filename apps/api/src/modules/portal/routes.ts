@@ -10,6 +10,7 @@ import {
   portalTrainingRecordsResponseSchema,
   portalTrainingSheetsSchema,
   trainingDomainSchema,
+  trainingSheetSequenceQuerySchema,
 } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
@@ -221,13 +222,13 @@ export const getPortalTrainingSheetRoute = createRoute({
   tags,
   summary: "The participant's individual training sheet of a domain as a PDF",
   description:
-    "As the employee's page in the app has it: the stored signed sheet once signing has started (ADR 023), else drawn up on the spot and not stored.",
+    "As the employee's page in the app has it: the stored signed sheet once signing has started (ADR 023), else drawn up on the spot and not stored. Several stored sheets (a sheet and its continuation sheets) come merged into one flattened copy, stamped on every page as a copy to read and named `…-copie.pdf`, whose signatures do not verify; `?sequence=n` serves the original of sheet n as signed, `sequences` in the readiness listing them. ",
   security: bearerSecurity,
   middleware: [requireAuth, requireParticipant] as const,
-  request: { params: domainParams },
+  request: { params: domainParams, query: trainingSheetSequenceQuerySchema },
   responses: {
     200: { description: 'The sheet, named in `Content-Disposition`', content: pdfContent },
-    400: { description: 'Invalid path or domain', content: errorContent },
+    400: { description: 'Invalid path, domain or sequence', content: errorContent },
     409: missingSheetData,
     ...ownErrors,
     503: sheetUnavailable,
@@ -298,12 +299,14 @@ export const getPortalEmployeeTrainingSheetRoute = createRoute({
   operationId: 'getPortalEmployeeTrainingSheet',
   tags,
   summary: "An employee's individual training sheet as a PDF, for the client administrator",
+  description:
+    'Several stored sheets (a sheet and its continuation sheets) come merged into one flattened copy, stamped on every page as a copy to read and named `…-copie.pdf`, whose signatures do not verify; `?sequence=n` serves the original of sheet n as signed, `sequences` in the readiness listing them.',
   security: bearerSecurity,
   middleware: [requireAuth, requireParticipant] as const,
-  request: { params: employeeDomainParams },
+  request: { params: employeeDomainParams, query: trainingSheetSequenceQuerySchema },
   responses: {
     200: { description: 'The sheet, named in `Content-Disposition`', content: pdfContent },
-    400: { description: 'Invalid path or domain', content: errorContent },
+    400: { description: 'Invalid path, domain or sequence', content: errorContent },
     409: missingSheetData,
     ...administratorErrors,
     503: sheetUnavailable,

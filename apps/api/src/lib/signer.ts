@@ -3,6 +3,7 @@ import {
   signerFailed,
   signerOverHttp,
   type SignerPost,
+  signerRefusalCode,
   type SignerService,
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
@@ -20,6 +21,35 @@ const unavailable = () =>
     undefined,
     'signer_unavailable'
   );
+
+/**
+ * The signer's refusals the API passes on as reasons; any other code is `signer_refused`. A
+ * refusal is about the request, so trying again does not help.
+ */
+export const signerRefusals = [
+  'already_signed',
+  'locked_field',
+  'unknown_fields',
+  'cannot_certify',
+] as const;
+export type SignerRefusal = (typeof signerRefusals)[number] | 'signer_refused';
+
+const refusalMessages: Record<SignerRefusal, string> = {
+  already_signed: 'The signature field is signed already.',
+  locked_field: 'A signature on the sheet locks a field this change would fill.',
+  unknown_fields: 'The sheet has no such field.',
+  cannot_certify: 'The sheet is certified already.',
+  signer_refused: 'The signing service refused the document.',
+};
+
+export function signerRefusalOf(error: unknown): SignerRefusal | null {
+  const code = signerRefusalCode(error);
+  if (!code) return null;
+  return signerRefusals.find((each) => each === code) ?? 'signer_refused';
+}
+
+export const signerRefused = (reason: SignerRefusal) =>
+  new ApiError('conflict', refusalMessages[reason], undefined, reason);
 
 function postTo(url: string): SignerPost {
   return async (route, body) => {
@@ -49,6 +79,8 @@ export function createSigner(c: Context<ApiEnv>): SignerService | null {
     try {
       return await call();
     } catch (error) {
+      const refusal = signerRefusalOf(error);
+      if (refusal) throw signerRefused(refusal);
       // apps/pdf has logged why; here it is enough to know that it was the signer.
       const known = error instanceof Error && error.message === signerFailed;
       console.error(`Signing failed${known ? '' : `: ${String(error)}`}`);

@@ -31,6 +31,7 @@ function memoryStore(initial: SigningIdentity | null = null) {
     load: vi.fn(async () => saved),
     save: vi.fn(async (identity: SigningIdentity) => {
       saved = identity;
+      return identity;
     }),
   };
   return store;
@@ -83,6 +84,23 @@ describe('the authority', () => {
 
     await expect(loadSigningCa({ ...secrets, ...override })).rejects.toMatchObject({
       code: 'service_unavailable',
+      reason: 'signing_unavailable',
+    });
+  });
+
+  it("is unavailable when the key is not the certificate's", async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const other = await generateSigningCa(now);
+
+    await expect(
+      loadSigningCa({ ...secrets, SIGNING_CA_KEY: other.SIGNING_CA_KEY })
+    ).rejects.toMatchObject({ reason: 'signing_unavailable' });
+  });
+
+  it('is unavailable once its certificate has expired', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(loadSigningCa(secrets, new Date('2037-01-01T00:00:00Z'))).rejects.toMatchObject({
       reason: 'signing_unavailable',
     });
   });
@@ -165,10 +183,19 @@ describe('identityFor', () => {
     expect(store.save).not.toHaveBeenCalled();
   });
 
+  it('keeps one whose name differs from the one asked for, which only a new certificate takes', async () => {
+    const current = await createIdentity(ca, accountId, 'Ion Popescu', now);
+    const store = memoryStore(current);
+
+    expect(
+      await identityFor(ca, store, accountId, 'Ion Popescu-Ionescu', new Date('2027-01-01Z'))
+    ).toBe(current);
+    expect(store.save).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['expires within 30 days', 'Ion Popescu', new Date('2028-09-25T00:00:00Z')],
     ['has expired', 'Ion Popescu', new Date('2029-01-01T00:00:00Z')],
-    ['names the person differently', 'Ion Popescu-Ionescu', new Date('2027-01-01T00:00:00Z')],
   ])('reissues one that %s', async (_case, name, at) => {
     const current = await createIdentity(ca, accountId, 'Ion Popescu', now);
     const store = memoryStore(current);

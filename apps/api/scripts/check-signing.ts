@@ -257,6 +257,7 @@ async function cleanUp() {
 }
 
 const secrets = await generateSigningCa();
+const trustRoots = [secrets.SIGNING_CA_CERT];
 
 try {
   await startServer();
@@ -273,11 +274,18 @@ try {
     'employees'
   );
   for (const candidate of candidates) {
-    const [records, participants] = await Promise.all([
+    const [records, participants, client] = await Promise.all([
       admin.from('training_records').select('id').eq('employee_id', candidate.id).limit(1),
       admin.from('client_participants').select('id').eq('employee_id', candidate.id).limit(1),
+      admin
+        .from('clients')
+        .select('legal_representative_name, legal_representative_role')
+        .eq('id', candidate.client_id)
+        .single(),
     ]);
-    if (records.data?.length === 0 && participants.data?.length === 0) {
+    const represented =
+      !!client.data?.legal_representative_name && !!client.data.legal_representative_role;
+    if (records.data?.length === 0 && participants.data?.length === 0 && represented) {
       made.employee = candidate;
       break;
     }
@@ -370,21 +378,29 @@ try {
     }
   );
   const today = new Date().toISOString().slice(0, 10);
+  const trainingBody = {
+    domain: 'ssm',
+    phase: 'periodic',
+    heldOn: today,
+    durationMinutes: 90,
+    material: 'I.P.S.S.M. Art. 61 – 120; utilizarea echipamentului individual de protecție',
+    trainer: { name: 'Ana VERIFICARE', jobTitle: 'Inspector SSM' },
+    verifier: { name: 'Ana VERIFICARE', jobTitle: 'Inspector SSM' },
+    employeeIds: [employee.id],
+    signers: { trainer: member.id, verifier: member.id },
+  };
+  const misnamed = await fetch(`${api}/clients/${clientId}/trainings`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${member.token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...trainingBody, trainer: { name: 'Ion POP', jobTitle: 'Șef' } }),
+  });
+  const misnamedReason = ((await misnamed.json()) as { reason?: string }).reason;
+  console.log(`a signer who is not the trainer named answers ${misnamed.status} ${misnamedReason}`);
   const { training } = await call<{ training: { id: string; records: { id: string }[] } }>(
     member.token,
     'POST',
     `/clients/${clientId}/trainings`,
-    {
-      domain: 'ssm',
-      phase: 'periodic',
-      heldOn: today,
-      durationMinutes: 90,
-      material: 'I.P.S.S.M. Art. 61 – 120; utilizarea echipamentului individual de protecție',
-      trainer: { name: 'Ana VERIFICARE', jobTitle: 'Inspector SSM' },
-      verifier: { name: 'Ana VERIFICARE', jobTitle: 'Inspector SSM' },
-      employeeIds: [employee.id],
-      signers: { trainer: member.id, verifier: member.id },
-    }
+    trainingBody
   );
   made.trainingId = training.id;
   const recordId = training.records[0]!.id;
@@ -455,11 +471,11 @@ try {
     await admin.storage.from('documents').download(sheet.storage_path),
     'sheet file'
   );
-  const sheetValidation = await signer.validate(await sheetBytes.arrayBuffer());
+  const sheetValidation = await signer.validate(await sheetBytes.arrayBuffer(), trustRoots);
   console.log(`sheet v${sheet.version}:`);
   for (const each of sheetValidation) {
     console.log(
-      `  ${each.field}: ${each.signerName}, intact ${each.intact}, permitted ${each.modificationsPermitted}, certified ${each.certified}`
+      `  ${each.field}: ${each.signerName}, intact ${each.intact}, trusted ${each.trusted}, permitted ${each.modificationsPermitted}, certified ${each.certified}`
     );
   }
 
@@ -468,11 +484,11 @@ try {
     'GET',
     `/clients/${clientId}/employees/${employee.id}/signing-agreement`
   );
-  const agreementValidation = await signer.validate(agreementPdf);
+  const agreementValidation = await signer.validate(agreementPdf, trustRoots);
   console.log('agreement, as the member downloads it:');
   for (const each of agreementValidation) {
     console.log(
-      `  ${each.field}: ${each.signerName}, intact ${each.intact}, permitted ${each.modificationsPermitted}, certified ${each.certified}`
+      `  ${each.field}: ${each.signerName}, intact ${each.intact}, trusted ${each.trusted}, permitted ${each.modificationsPermitted}, certified ${each.certified}`
     );
   }
   const state = await call<{ agreement: { state: string } }>(
@@ -506,7 +522,100 @@ try {
   console.log('agreement_signatures:');
   for (const row of agreementEvidence) console.log(`  ${JSON.stringify(row)}`);
 
+  console.log('member voids the record, corrects the training and everyone signs again:');
+  const voided = await call<{
+    slots: { slot: string; state: string; voidReason: string | null }[];
+  }>(member.token, 'POST', `/clients/${clientId}/training-records/${recordId}/signatures/void`, {
+    reason: 'Durata greșită',
+  });
+  console.log(`  slots ${voided.slots.map((slot) => `${slot.slot}=${slot.state}`).join(' ')}`);
+  const struck = must(
+    await admin
+      .from('signed_sheet_rows')
+      .select('row_key, voided_at, void_noted_at')
+      .eq('training_record_id', recordId),
+    'struck row'
+  );
+  console.log(`  rows after the void ${JSON.stringify(struck)}`);
+  await call(member.token, 'PUT', `/clients/${clientId}/trainings/${training.id}`, {
+    ...trainingBody,
+    durationMinutes: 120,
+  });
+  const corrected = must(
+    await admin
+      .from('signed_sheet_rows')
+      .select('row_key, voided_at, filled_digest')
+      .eq('training_record_id', recordId)
+      .is('voided_at', null),
+    'corrected row'
+  );
+  console.log(`  the corrected record's row after the save ${JSON.stringify(corrected)}`);
+  const mineAgain = await call<{ items: { id: string; record: { id: string } }[] }>(
+    member.token,
+    'GET',
+    '/me/signature-requests'
+  );
+  // One code a minute per account: the first round's codes went out moments ago.
+  await new Promise((resolve) => setTimeout(resolve, 61_000));
+  const memberResigned = await signAs(member, '/me', {
+    requestIds: mineAgain.items
+      .filter((item) => item.record.id === recordId)
+      .map((item) => item.id),
+  });
+  const ownAgain = await call<{ items: { id: string }[] }>(
+    worker.token,
+    'GET',
+    `/portal/participants/${workerParticipant.id}/signature-requests`
+  );
+  const workerResigned = await signAs(worker, `/portal/participants/${workerParticipant.id}`, {
+    requestIds: ownAgain.items.map((item) => item.id),
+  });
+  const finalSheet = must(
+    await admin
+      .from('signed_sheets')
+      .select('storage_path, version')
+      .eq('employee_id', employee.id)
+      .eq('domain', 'ssm')
+      .single(),
+    'signed sheet after the correction'
+  );
+  const finalBytes = must(
+    await admin.storage.from('documents').download(finalSheet.storage_path),
+    'sheet file after the correction'
+  );
+  const finalValidation = await signer.validate(await finalBytes.arrayBuffer(), trustRoots);
+  console.log(`sheet v${finalSheet.version} after the correction:`);
+  for (const each of finalValidation) {
+    console.log(
+      `  ${each.field}: ${each.signerName}, intact ${each.intact}, trusted ${each.trusted}, permitted ${each.modificationsPermitted}`
+    );
+  }
+  const rowsAfter = must(
+    await admin
+      .from('signed_sheet_rows')
+      .select('row_key, voided_at, void_noted_at')
+      .eq('training_record_id', recordId)
+      .order('created_at'),
+    'rows after the correction'
+  );
+  console.log(`rows of the record ${JSON.stringify(rowsAfter)}`);
+
   const failures = [
+    !(misnamed.status === 422 && misnamedReason === 'signer_name_mismatch') &&
+      'a signer under another name was not refused',
+    struck.some((row) => !row.voided_at) && 'the void did not strike the row',
+    corrected.length !== 1 && 'the corrected record has no live row of its own',
+    memberResigned.signed.length !== 2 && 'the member did not sign the corrected record',
+    workerResigned.signed.length !== 1 && 'the employee did not sign the corrected record',
+    finalValidation.length !== 6 && 'the sheet does not carry six signatures after the correction',
+    finalValidation.some((each) => !each.intact || !each.modificationsPermitted || !each.trusted) &&
+      'a signature does not validate after the correction',
+    !(
+      rowsAfter.length === 2 &&
+      rowsAfter[0]!.voided_at &&
+      rowsAfter[0]!.void_noted_at &&
+      !rowsAfter[1]!.voided_at
+    ) && 'the old row is not marked anulat beside a new live one',
     memberSigned.signed.length !== 2 && 'the member did not sign both slots',
     workerSigned.signed.length !== 1 && 'the employee did not sign the trainee slot',
     !workerSigned.agreements[0]?.signed && 'the employee did not sign the agreement',
@@ -516,7 +625,7 @@ try {
     sheetValidation.length !== 3 && 'the sheet does not carry three signatures',
     agreementValidation.length !== 2 && 'the agreement does not carry two signatures',
     [...sheetValidation, ...agreementValidation].some(
-      (each) => !each.intact || !each.modificationsPermitted
+      (each) => !each.intact || !each.modificationsPermitted || !each.trusted
     ) && 'a signature does not validate',
     evidence.length !== 3 && 'the record does not have three evidence rows',
     agreementEvidence.length !== 2 && 'the agreement does not have two evidence rows',

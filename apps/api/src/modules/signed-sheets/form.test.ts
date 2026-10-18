@@ -163,6 +163,12 @@ describe('rowValues', () => {
     expect(values.s1_note).toBe('semnat pe hârtie');
     expect(values.s1_material).toContain('(motivul:');
   });
+
+  it('notes a record recorded in the app that nobody is asked to sign electronically', () => {
+    const record = sheetRecord('periodic', '2026-04-03');
+    expect(rowValues('ssm', 'p1', record, '', true).p1_note).toBe('semnat pe hârtie');
+    expect(rowValues('ssm', 'p1', record, '', false).p1_note).toBe('');
+  });
 });
 
 describe('wrapToBox', () => {

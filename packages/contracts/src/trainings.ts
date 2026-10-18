@@ -214,9 +214,18 @@ export const trainingAttendeeSchema = z.object({
 
 export type TrainingAttendee = z.infer<typeof trainingAttendeeSchema>;
 
+// The training's signing state (ADR 023), over all its records: `signed` while any carries a live
+// electronic signature, which freezes the training; `hasSignatures` once any carries a signature
+// row, voided and paper ones included, or sits on a stored sheet, which keeps it from deletion.
+const trainingSigningSchema = {
+  signed: z.boolean(),
+  hasSignatures: z.boolean(),
+};
+
 export const trainingListItemSchema = trainingSchema.extend({
   attendeeCount: z.int().min(0),
   attendees: z.array(trainingAttendeeSchema),
+  ...trainingSigningSchema,
 });
 
 export type TrainingListItem = z.infer<typeof trainingListItemSchema>;
@@ -241,6 +250,7 @@ export type TrainingRecord = z.infer<typeof trainingRecordSchema>;
 
 export const trainingDetailSchema = trainingSchema.extend({
   records: z.array(trainingRecordSchema),
+  ...trainingSigningSchema,
   // The account each slot is addressed to by a live request, pending or signed, on any record;
   // null when none is, a slot on paper among them. The form starts its signer pickers from these.
   signers: z.object({

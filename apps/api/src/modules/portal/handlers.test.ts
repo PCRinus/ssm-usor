@@ -502,8 +502,8 @@ describe('the sheets', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      ssm: { ready: true, missing: [], stored: false },
-      psi: { ready: true, missing: [], stored: false },
+      ssm: { ready: true, missing: [], stored: false, sequences: [] },
+      psi: { ready: true, missing: [], stored: false, sequences: [] },
     });
   });
 
@@ -515,8 +515,8 @@ describe('the sheets', () => {
 
     const readiness = await request(own('/sheets'));
     expect(await readiness.json()).toEqual({
-      ssm: { ready: true, missing: [], stored: true },
-      psi: { ready: true, missing: [], stored: false },
+      ssm: { ready: true, missing: [], stored: true, sequences: [1] },
+      psi: { ready: true, missing: [], stored: false, sequences: [] },
     });
 
     const response = await request(own('/sheets/ssm'));

@@ -11,13 +11,17 @@ import {
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
-import { createAdminClient } from '../../lib/admin-db';
+import { adminClient } from '../../lib/admin-db';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { type Participation, participationOf } from '../../lib/participant';
+import { createPdfConverter } from '../../lib/pdf';
+import { checkToSign } from '../../lib/signed-attributes';
+import { createSigner } from '../../lib/signer';
 import { applySignature, placeRecord, signedSheetContext } from '../signed-sheets/signed-sheets';
-import { awaits, signAgreement } from './agreement-signing';
+import { agreementDigest, signAgreement } from './agreement-signing';
+import { awaits } from './agreement-state';
 import { createSigningIdentities } from './identities';
 import type {
   createMySigningSessionRoute,
@@ -47,18 +51,36 @@ const notFound = (path: string, message: string) =>
     signatureErrorReasons.signingItemNotFound
   );
 
-// On Cloudflare the client's address is this header; elsewhere there is none to trust.
-const clientIpOf = (c: Context<ApiEnv>) => c.req.header('cf-connecting-ip') ?? null;
+const ipv4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
+const ipv6 = /^[0-9a-f:]+(:(\d{1,3}\.){3}\d{1,3})?$/i;
+
+/**
+ * On Cloudflare the client's address is this header; elsewhere there is none to trust. One that
+ * is not an address is dropped, since the evidence column would refuse it after the signature.
+ */
+export function clientIpOf(c: Context<ApiEnv>) {
+  const header = c.req.header('cf-connecting-ip')?.trim();
+  if (!header) return null;
+  if (ipv4.test(header) || (header.includes(':') && ipv6.test(header) && header.length <= 45)) {
+    return header;
+  }
+  return null;
+}
 
 type Item =
   | { kind: 'request'; requestId: string }
-  | { kind: 'agreement'; employeeId: string; party: SigningAgreementParty };
+  | {
+      kind: 'agreement';
+      employeeId: string;
+      party: SigningAgreementParty;
+      digest: string;
+    };
 
 async function pendingRequests(
   db: DataClient,
   accountId: string,
   requestIds: string[],
-  scope: { clientId: string } | { member: true }
+  scope: { clientId: string } | { organizationId: string }
 ) {
   if (requestIds.length === 0) return;
   let query = db
@@ -67,15 +89,13 @@ async function pendingRequests(
     .in('id', requestIds)
     .eq('signer_account_id', accountId)
     .eq('state', 'pending');
-  if ('clientId' in scope) query = query.eq('client_id', scope.clientId);
+  query =
+    'clientId' in scope
+      ? query.eq('client_id', scope.clientId)
+      : query.eq('organization_id', scope.organizationId).neq('slot', 'trainee');
   const { data, error } = await query;
   if (error) throw fromDatabaseError(error, 'signing session requests');
-  // The trainee always signs in the portal, as the employee's own participant.
-  const usable = new Set(
-    data
-      .filter((row) => 'clientId' in scope || (row.slot as SignerSlot) !== 'trainee')
-      .map((row) => row.id)
-  );
+  const usable = new Set(data.map((row) => row.id));
   const missing = requestIds.findIndex((id) => !usable.has(id));
   if (missing >= 0) {
     throw notFound(
@@ -85,14 +105,28 @@ async function pendingRequests(
   }
 }
 
+/**
+ * The party is decided per agreement: the participant's own agreement while it awaits the
+ * employee is theirs as the employee, even for an administrator who is also that employee; any
+ * other, for an administrator, is the employer's.
+ */
+function partyOf(
+  participation: Participation,
+  employeeId: string,
+  row: Parameters<typeof awaits>[0]
+): SigningAgreementParty | null {
+  if (employeeId === participation.employeeId && awaits(row, 'employee')) return 'employee';
+  if (participation.kind === 'client_administrator' && awaits(row, 'employer')) return 'employer';
+  return null;
+}
+
 async function awaitedAgreements(
+  c: Context<ApiEnv>,
   db: DataClient,
   participation: Participation,
   employeeIds: string[]
 ): Promise<Item[]> {
   if (employeeIds.length === 0) return [];
-  const party: SigningAgreementParty =
-    participation.kind === 'client_administrator' ? 'employer' : 'employee';
   const { data, error } = await db
     .from('employee_signing_agreements')
     .select(
@@ -101,28 +135,36 @@ async function awaitedAgreements(
     .eq('client_id', participation.clientId)
     .in('employee_id', employeeIds);
   if (error) throw fromDatabaseError(error, 'signing session agreements');
-  const missing = employeeIds.findIndex(
-    (id) =>
-      (party === 'employee' && id !== participation.employeeId) ||
-      !awaits(data.find((row) => row.employee_id === id) ?? null, party)
-  );
-  if (missing >= 0) {
-    throw notFound(
-      `agreementEmployeeIds.${missing}`,
-      'This signing agreement does not await your signature.'
-    );
+  const items: Item[] = [];
+  for (const [index, employeeId] of employeeIds.entries()) {
+    const row = data.find((each) => each.employee_id === employeeId) ?? null;
+    const party = partyOf(participation, employeeId, row);
+    if (!party) {
+      throw notFound(
+        `agreementEmployeeIds.${index}`,
+        'This signing agreement does not await your signature.'
+      );
+    }
+    const digest = await agreementDigest(c, {
+      clientId: participation.clientId,
+      employeeId,
+      party,
+      storagePath: row!.storage_path,
+    });
+    items.push({ kind: 'agreement', employeeId, party, digest });
   }
-  return employeeIds.map((employeeId) => ({ kind: 'agreement', employeeId, party }));
+  return items;
 }
 
 async function createSession(
   c: Context<ApiEnv>,
   items: Item[],
-  signer: { clientId: string; place: SigningPlace }
+  signer: { clientId: string; place: SigningPlace; participantId: string | null }
 ) {
   const accountId = c.get('user').id;
   await createSigningIdentities(c);
-  const contact = await signerContact(createAdminClient(c), { accountId, ...signer });
+  const admin = adminClient(c.env);
+  const contact = await signerContact(admin, { accountId, ...signer });
   if (!contact) {
     throw new ApiError(
       'conflict',
@@ -134,23 +176,24 @@ async function createSession(
   const { sessionId, expiresAt } = await signingSessionsOf(c).create(
     {
       accountId,
+      place: signer.place,
+      participantId: signer.participantId,
       channel: contact.channel,
       address: contact.address,
       clientIp: clientIpOf(c),
       userAgent: c.req.header('user-agent') ?? null,
     },
     async (id) => {
-      const { error } = await createAdminClient(c)
-        .from('signing_session_items')
-        .insert(
-          items.map((item, position) => ({
-            session_id: id,
-            position,
-            request_id: item.kind === 'request' ? item.requestId : null,
-            agreement_employee_id: item.kind === 'agreement' ? item.employeeId : null,
-            agreement_party: item.kind === 'agreement' ? item.party : null,
-          }))
-        );
+      const { error } = await admin.from('signing_session_items').insert(
+        items.map((item, position) => ({
+          session_id: id,
+          position,
+          request_id: item.kind === 'request' ? item.requestId : null,
+          agreement_employee_id: item.kind === 'agreement' ? item.employeeId : null,
+          agreement_party: item.kind === 'agreement' ? item.party : null,
+          agreement_digest: item.kind === 'agreement' ? item.digest : null,
+        }))
+      );
       if (error) {
         console.error(`Signing session items failed: ${error.code ?? 'no code'}`);
         throw new ApiError('service_unavailable');
@@ -162,7 +205,11 @@ async function createSession(
     channel: contact.channel,
     addressHint: addressHint(contact.channel, contact.address),
     expiresAt: expiresAt.toISOString(),
-    items: items as SigningSessionItem[],
+    items: items.map((item): SigningSessionItem =>
+      item.kind === 'request'
+        ? item
+        : { kind: 'agreement', employeeId: item.employeeId, party: item.party }
+    ),
   };
 }
 
@@ -179,9 +226,14 @@ export const createMySigningSession: RouteHandler<
       signatureErrorReasons.agreementSignedInPortal
     );
   }
-  await pendingRequests(createDataClient(c), c.get('user').id, requestIds, { member: true });
+  await pendingRequests(createDataClient(c), c.get('user').id, requestIds, {
+    organizationId: c.get('membership').organizationId,
+  });
   const items: Item[] = requestIds.map((requestId) => ({ kind: 'request', requestId }));
-  return c.json(await createSession(c, items, { clientId: '', place: 'app' }), 201);
+  return c.json(
+    await createSession(c, items, { clientId: '', place: 'app', participantId: null }),
+    201
+  );
 };
 
 export const createPortalSigningSession: RouteHandler<
@@ -192,21 +244,40 @@ export const createPortalSigningSession: RouteHandler<
   const participation = participationOf(c, participantId);
   const { requestIds, agreementEmployeeIds = [] } = c.req.valid('json');
   const db = createDataClient(c);
-  const agreements = await awaitedAgreements(db, participation, agreementEmployeeIds);
   await pendingRequests(db, c.get('user').id, requestIds, { clientId: participation.clientId });
+  const agreements = await awaitedAgreements(c, db, participation, agreementEmployeeIds);
   const items: Item[] = [
     ...agreements,
     ...requestIds.map((requestId): Item => ({ kind: 'request', requestId })),
   ];
   return c.json(
-    await createSession(c, items, { clientId: participation.clientId, place: 'portal' }),
+    await createSession(c, items, {
+      clientId: participation.clientId,
+      place: 'portal',
+      participantId,
+    }),
     201
   );
 };
 
+const databaseReasons: Record<string, SigningItemFailureReason> = {
+  request_not_pending: 'request_not_pending',
+  signer_not_addressed: 'request_not_pending',
+  signer_not_of_client: 'signer_not_of_client',
+  agreement_not_awaiting: 'agreement_not_awaiting',
+  agreement_signer_not_party: 'agreement_not_awaiting',
+  client_archived: 'client_archived',
+};
+
 const failureReasonOf = (error: unknown): SigningItemFailureReason => {
+  // The document engine's refusal to draw an agreement up without the representative.
+  if (error instanceof Error && error.name === 'SigningAgreementDataError') {
+    return 'missing_document_data';
+  }
   const reason = error instanceof ApiError ? error.reason : undefined;
-  const known = signingItemFailureReasons.find((each) => each === reason);
+  const known =
+    (reason && databaseReasons[reason]) ??
+    signingItemFailureReasons.find((each) => each === reason);
   if (known) return known;
   console.error(
     `A signing session item failed: ${error instanceof Error ? `${error.name} ${error.message}` : 'unknown'}`
@@ -216,6 +287,8 @@ const failureReasonOf = (error: unknown): SigningItemFailureReason => {
 
 const requestNotPending = () =>
   new ApiError('conflict', undefined, undefined, 'request_not_pending');
+
+const clientArchived = () => new ApiError('conflict', undefined, undefined, 'client_archived');
 
 type RecordForSigning = {
   employee_id: string;
@@ -229,9 +302,10 @@ type RecordForSigning = {
     verifier_name: string | null;
     verifier_job_title: string | null;
   };
+  clients: { archived_at: string | null };
 };
 
-function printedSlot(slot: SignerSlot, record: RecordForSigning) {
+export function printedSlot(slot: SignerSlot, record: Omit<RecordForSigning, 'clients'>) {
   switch (slot) {
     case 'trainee':
       return {
@@ -253,14 +327,24 @@ function printedSlot(slot: SignerSlot, record: RecordForSigning) {
 type Signing = {
   session: SigningSession;
   identities: Awaited<ReturnType<typeof createSigningIdentities>>;
+  /** The account's own name, the one its certificate carries. */
+  accountName: string;
   clientIp: string | null;
   userAgent: string | null;
 };
 
+const signedWith =
+  (signing: Signing, identity: Awaited<ReturnType<Signing['identities']['identityFor']>>) =>
+  async (toSign: ArrayBuffer, prepared: ArrayBuffer) => {
+    await checkToSign(prepared, toSign, identity.certificatePem);
+    return signing.identities.signWithIdentity(identity, toSign);
+  };
+
 // The request was checked as the signer's when the code was asked for; from here everything is
-// the secret key's, as no policy lets a signer write a signature.
+// the secret key's, as no policy lets a signer write a signature, and the database's checks on
+// the evidence decide whether it stands.
 async function signRequest(c: Context<ApiEnv>, requestId: string, signing: Signing) {
-  const admin = createAdminClient(c);
+  const admin = adminClient(c.env);
   const { session } = signing;
   const request = await admin
     .from('signature_requests')
@@ -275,24 +359,24 @@ async function signRequest(c: Context<ApiEnv>, requestId: string, signing: Signi
   const record = await admin
     .from('training_records')
     .select(
-      'employee_id, occupation, admitted_by_name, admitted_by_job_title, employees(last_name, first_name), trainings(trainer_name, trainer_job_title, verifier_name, verifier_job_title)'
+      'employee_id, occupation, admitted_by_name, admitted_by_job_title, employees(last_name, first_name), trainings(trainer_name, trainer_job_title, verifier_name, verifier_job_title), clients!training_records_client_id_fkey(archived_at)'
     )
     .eq('id', recordId)
     .maybeSingle();
   if (record.error || !record.data) throw new ApiError('service_unavailable');
-  const printed = printedSlot(slot, record.data as RecordForSigning);
+  const row = record.data as unknown as RecordForSigning;
+  if (row.clients.archived_at) throw clientArchived();
+  const printed = printedSlot(slot, row);
 
   const ctx = signedSheetContext(c);
-  const identity = await signing.identities.identityFor(session.accountId, printed.name);
+  const identity = await signing.identities.identityFor(session.accountId, signing.accountName);
   await placeRecord(ctx, recordId);
-  const signedAt = new Date();
   const result = await applySignature(
     ctx,
     recordId,
     slot,
     { certificatePem: identity.certificatePem, chainPem: signing.identities.chainPem, ...printed },
-    signedAt,
-    (toSign) => signing.identities.signWithIdentity(identity, toSign)
+    signedWith(signing, identity)
   );
 
   const evidence = await admin.from('training_signatures').insert({
@@ -308,8 +392,8 @@ async function signRequest(c: Context<ApiEnv>, requestId: string, signing: Signi
     channel: session.channel,
     address: session.address,
     code_sent_at: session.codeSentAt.toISOString(),
-    code_verified_at: (session.verifiedAt ?? signedAt).toISOString(),
-    signed_at: signedAt.toISOString(),
+    code_verified_at: (session.verifiedAt ?? result.signedAt).toISOString(),
+    signed_at: result.signedAt.toISOString(),
     digest_before: result.digestBefore,
     digest_after: result.digestAfter,
     certificate_serial: identity.certificateSerial,
@@ -319,27 +403,19 @@ async function signRequest(c: Context<ApiEnv>, requestId: string, signing: Signi
   });
   if (evidence.error) {
     // The sheet carries a signature without evidence and its field is spent: the request stays
-    // pending, and only a void moves the record to a fresh row.
+    // as the database left it, and only a void moves the record to a fresh row.
     console.error(
-      `Training signature evidence failed for sheet ${result.sheetId} v${result.version}: ${evidence.error.code ?? 'no code'}`
+      `Training signature evidence failed for sheet ${result.sheetId} v${result.version}: ${evidence.error.code ?? 'no code'} ${evidence.error.message ?? ''}`
     );
-    throw new ApiError('service_unavailable');
+    throw fromDatabaseError(evidence.error, 'training signature evidence');
   }
-  const signed = await admin
-    .from('signature_requests')
-    .update({ state: 'signed', signing_session_id: session.id })
-    .eq('id', requestId)
-    .eq('state', 'pending');
-  if (signed.error) {
-    console.error(`Signature request not marked signed: ${signed.error.code ?? 'no code'}`);
-  }
-  return { employeeId: record.data.employee_id };
+  return { employeeId: row.employee_id };
 }
 
 async function agreementStates(c: Context<ApiEnv>, employeeIds: string[]) {
   const states = new Map<string, SigningAgreementState>();
   if (employeeIds.length === 0) return states;
-  const { data, error } = await createAdminClient(c)
+  const { data, error } = await adminClient(c.env)
     .from('employee_signing_agreements')
     .select('employee_id, state')
     .in('employee_id', [...new Set(employeeIds)]);
@@ -348,22 +424,45 @@ async function agreementStates(c: Context<ApiEnv>, employeeIds: string[]) {
   return states;
 }
 
+async function memberName(c: Context<ApiEnv>, accountId: string) {
+  const { data, error } = await adminClient(c.env)
+    .from('profiles')
+    .select('full_name')
+    .eq('user_id', accountId)
+    .maybeSingle();
+  if (error) throw new ApiError('service_unavailable');
+  return data?.full_name?.trim() || c.get('user').email || accountId;
+}
+
+const signingUnavailable = (reason: 'signer_unavailable' | 'pdf_unavailable') =>
+  new ApiError(
+    'service_unavailable',
+    'Signing is not available right now. Nothing was signed and the code is not spent.',
+    undefined,
+    reason
+  );
+
 async function signSession(
   c: Context<ApiEnv>,
   sessionId: string,
   code: string,
   participation: Participation | null
 ): Promise<SignSessionResponse> {
-  // Before the code is spent: without the authority's secrets nothing can be signed.
+  // Before the code is spent: without the authority's secrets, the signer or the converter
+  // nothing can be signed.
   const identities = await createSigningIdentities(c);
+  if (!createSigner(c)) throw signingUnavailable('signer_unavailable');
+  if (!createPdfConverter(c)) throw signingUnavailable('pdf_unavailable');
   const session = await signingSessionsOf(c).verify({
     sessionId,
     accountId: c.get('user').id,
     code,
+    place: participation ? 'portal' : 'app',
+    participantId: participation?.participantId ?? null,
   });
-  const { data: items, error } = await createAdminClient(c)
+  const { data: items, error } = await adminClient(c.env)
     .from('signing_session_items')
-    .select('request_id, agreement_employee_id, agreement_party')
+    .select('request_id, agreement_employee_id, agreement_party, agreement_digest')
     .eq('session_id', session.id)
     .order('position');
   if (error) throw fromDatabaseError(error, 'signing session items');
@@ -371,6 +470,7 @@ async function signSession(
   const signing: Signing = {
     session,
     identities,
+    accountName: participation?.fullName ?? (await memberName(c, session.accountId)),
     clientIp: clientIpOf(c),
     userAgent: c.req.header('user-agent') ?? null,
   };
@@ -392,14 +492,12 @@ async function signSession(
           clientId: participation.clientId,
           employeeId,
           party,
-          signer: {
-            accountId: session.accountId,
-            name: await agreementSignerName(c, participation, employeeId, party),
-          },
+          signer: { accountId: session.accountId, name: participation.fullName },
+          accountName: signing.accountName,
+          digest: item.agreement_digest,
           session,
           clientIp: signing.clientIp,
           userAgent: signing.userAgent,
-          signedAt: new Date(),
         });
         agreementResults.push({ employeeId, party, reason: null });
       } catch (failure) {
@@ -433,24 +531,6 @@ async function signSession(
     agreementState: states.get(employeeId) ?? null,
   }));
   return answer;
-}
-
-// The employee signs under the name the agreement prints; the administrator under their own.
-async function agreementSignerName(
-  c: Context<ApiEnv>,
-  participation: Participation,
-  employeeId: string,
-  party: SigningAgreementParty
-) {
-  if (party === 'employer') return participation.fullName;
-  const { data, error } = await createAdminClient(c)
-    .from('employees')
-    .select('last_name, first_name')
-    .eq('id', employeeId)
-    .eq('client_id', participation.clientId)
-    .maybeSingle();
-  if (error || !data) throw new ApiError('service_unavailable');
-  return `${data.last_name} ${data.first_name}`;
 }
 
 export const signMySigningSession: RouteHandler<typeof signMySigningSessionRoute, ApiEnv> = async (

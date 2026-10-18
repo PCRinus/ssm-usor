@@ -6,13 +6,15 @@ import {
   signSessionResponseSchema,
   type SmsService,
 } from '@ssm-usor/contracts';
+import type { Context } from 'hono';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { applySignature, placeRecord } from '../signed-sheets/signed-sheets';
-import { addressHint } from './session-signing';
+import { agreementDigest } from './agreement-signing';
+import { addressHint, clientIpOf } from './session-signing';
 import {
   callsTo,
   clientId,
@@ -50,6 +52,8 @@ vi.mock('../signed-sheets/signed-sheets', () => ({
   applySignature: vi.fn(),
 }));
 
+vi.mock('../../lib/signed-attributes', () => ({ checkToSign: vi.fn(async () => undefined) }));
+
 const identityFor = vi.fn(async (_accountId: string, name: string) => ({
   certificatePem: `CERT ${name}`,
   certificateSerial: '0a1b',
@@ -72,11 +76,13 @@ const sendSigningCodeEmail = vi.fn<MailService['sendSigningCode']>();
 const sendSigningCodeSms = vi.fn<SmsService['sendSigningCode']>();
 const signingEnv = {
   ...env,
+  GOTENBERG_URL: 'http://gotenberg.test',
+  SIGNER_URL: 'http://signer.test',
   MAIL: { sendSigningCode: sendSigningCodeEmail } as unknown as MailService,
   SMS: { sendSigningCode: sendSigningCodeSms } as unknown as SmsService,
 } as ApiEnv['Bindings'];
 
-const send = (path: string, body: unknown) =>
+const send = (path: string, body: unknown, bindings: ApiEnv['Bindings'] = signingEnv) =>
   createApp().request(
     path,
     {
@@ -89,7 +95,7 @@ const send = (path: string, body: unknown) =>
       },
       body: JSON.stringify(body),
     },
-    signingEnv
+    bindings
   );
 
 const participation = (kind: string, employee: string | null) => ({
@@ -124,6 +130,8 @@ async function sessionRow(overrides: Record<string, unknown> = {}) {
   return {
     id: sessionId,
     account_id: user.id,
+    place: 'app',
+    participant_id: null,
     channel: 'email',
     address: 'ana@example.ro',
     code_hash: await hashOf('123456'),
@@ -137,15 +145,10 @@ async function sessionRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-/** The session store as PostgREST answers it: a rate check, the row, the attempt and the verification. */
-function sessions(row: Record<string, unknown> | null, lastSent: string | null = null) {
-  return ({ method, url, body }: UpstreamCall) => {
-    if (method === 'GET') {
-      if (url.searchParams.get('select') === 'code_sent_at') {
-        return lastSent ? [{ code_sent_at: lastSent }] : [];
-      }
-      return row ? [row] : [];
-    }
+/** The session store as PostgREST answers it: the row, the attempt and the verification. */
+function sessions(row: Record<string, unknown> | null) {
+  return ({ method, body }: UpstreamCall) => {
+    if (method === 'GET') return row ? [row] : [];
     if (method === 'PATCH') {
       const change = body as Record<string, unknown>;
       if ('attempts' in change) return [{ id: sessionId }];
@@ -154,6 +157,18 @@ function sessions(row: Record<string, unknown> | null, lastSent: string | null =
     return [];
   };
 }
+
+/** The database function that inserts a session unless a code went out in the last minute. */
+const createSessionRpc =
+  (retryAfterSeconds = 0) =>
+  () =>
+    retryAfterSeconds > 0
+      ? { retry_after_seconds: retryAfterSeconds, code_sent_at: null, expires_at: null }
+      : {
+          retry_after_seconds: 0,
+          code_sent_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 600_000).toISOString(),
+        };
 
 const memberAccount = () => ({ ...user, email: 'Ana@Example.ro' });
 
@@ -170,7 +185,13 @@ beforeEach(() => {
     .mockResolvedValue({} as never);
   vi.mocked(applySignature)
     .mockReset()
-    .mockResolvedValue({ digestBefore: 'aa', digestAfter: 'bb', sheetId: 's1', version: 3 });
+    .mockResolvedValue({
+      digestBefore: 'aa',
+      digestAfter: 'bb',
+      sheetId: 's1',
+      version: 3,
+      signedAt: new Date('2026-10-18T09:30:00Z'),
+    });
   for (const mock of [
     ...Object.values(sheetFiles),
     ...Object.values(sheetPdf),
@@ -193,6 +214,20 @@ describe('addressHint', () => {
   });
 });
 
+describe('clientIpOf', () => {
+  const of = (header: string | undefined) =>
+    clientIpOf({ req: { header: () => header } } as unknown as Context<ApiEnv>);
+
+  it('keeps an IPv4 or IPv6 address and drops anything else', () => {
+    expect(of('203.0.113.7')).toBe('203.0.113.7');
+    expect(of('2001:db8::1')).toBe('2001:db8::1');
+    expect(of('203.0.113.7, 10.0.0.1')).toBeNull();
+    expect(of('999.1.1.1')).toBeNull();
+    expect(of('not an address')).toBeNull();
+    expect(of(undefined)).toBeNull();
+  });
+});
+
 describe('POST /me/signing-sessions', () => {
   function memberUpstream(overrides: Record<string, UpstreamRoute> = {}) {
     mockUpstream({
@@ -201,6 +236,7 @@ describe('POST /me/signing-sessions', () => {
         { id: requestB, slot: 'verifier' },
       ],
       [`/auth/v1/admin/users/${user.id}`]: memberAccount,
+      '/rest/v1/rpc/create_signing_session': createSessionRpc(),
       '/rest/v1/signing_sessions': sessions(null),
       '/rest/v1/signing_session_items': () => [],
       ...overrides,
@@ -226,15 +262,21 @@ describe('POST /me/signing-sessions', () => {
     expect(lookup!.secret).toBe(false);
     expect(lookup!.url.searchParams.get('signer_account_id')).toBe(`eq.${user.id}`);
     expect(lookup!.url.searchParams.get('state')).toBe('eq.pending');
-    const [session] = callsTo('/rest/v1/signing_sessions', 'POST');
+    expect(lookup!.url.searchParams.get('organization_id')).toBe(`eq.${organizationId}`);
+    expect(lookup!.url.searchParams.get('slot')).toBe('neq.trainee');
+    const [session] = callsTo('/rest/v1/rpc/create_signing_session', 'POST');
+    expect(session!.secret).toBe(true);
     expect(session!.body).toMatchObject({
-      id: body.sessionId,
-      account_id: user.id,
-      channel: 'email',
-      address: 'ana@example.ro',
-      client_ip: '203.0.113.7',
-      user_agent: 'Firefox',
+      p_id: body.sessionId,
+      p_account_id: user.id,
+      p_place: 'app',
+      p_channel: 'email',
+      p_address: 'ana@example.ro',
+      p_client_ip: '203.0.113.7',
+      p_user_agent: 'Firefox',
+      p_interval_seconds: 60,
     });
+    expect(session!.body).not.toHaveProperty('p_participant_id');
     const [items] = callsTo('/rest/v1/signing_session_items', 'POST');
     expect(items!.secret).toBe(true);
     expect(items!.body).toEqual([
@@ -244,6 +286,7 @@ describe('POST /me/signing-sessions', () => {
         request_id: requestB,
         agreement_employee_id: null,
         agreement_party: null,
+        agreement_digest: null,
       },
       {
         session_id: body.sessionId,
@@ -251,6 +294,7 @@ describe('POST /me/signing-sessions', () => {
         request_id: requestA,
         agreement_employee_id: null,
         agreement_party: null,
+        agreement_digest: null,
       },
     ]);
     expect(sendSigningCodeEmail).toHaveBeenCalledWith({
@@ -270,14 +314,26 @@ describe('POST /me/signing-sessions', () => {
       reason: 'signing_item_not_found',
       issues: [{ path: 'requestIds.1' }],
     });
-    expect(callsTo('/rest/v1/signing_sessions', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/create_signing_session', 'POST')).toHaveLength(0);
     expect(sendSigningCodeEmail).not.toHaveBeenCalled();
   });
 
-  it("refuses a trainee's request, which is signed in the portal", async () => {
-    memberUpstream({ '/rest/v1/signature_requests': () => [{ id: requestA, slot: 'trainee' }] });
+  it("refuses a trainee's request, or one of another organization the account also signs for", async () => {
+    memberUpstream({ '/rest/v1/signature_requests': () => [] });
 
     expect((await send('/me/signing-sessions', { requestIds: [requestA] })).status).toBe(404);
+  });
+
+  it('refuses more than thirty items in one session', async () => {
+    memberUpstream();
+    const many = Array.from(
+      { length: 31 },
+      (_, index) => `f0000000-0000-4000-8000-${String(index).padStart(12, '0')}`
+    );
+
+    const response = await send('/me/signing-sessions', { requestIds: many });
+
+    expect(response.status).toBe(400);
   });
 
   it('refuses an agreement, which is signed in the portal', async () => {
@@ -298,15 +354,17 @@ describe('POST /me/signing-sessions', () => {
     expect((await send('/me/signing-sessions', { requestIds: [] })).status).toBe(400);
   });
 
-  it('answers 409 when a code went out in the last minute', async () => {
-    memberUpstream({
-      '/rest/v1/signing_sessions': sessions(null, new Date(Date.now() - 20_000).toISOString()),
-    });
+  it('answers 409 with the seconds to wait when a code went out in the last minute', async () => {
+    memberUpstream({ '/rest/v1/rpc/create_signing_session': createSessionRpc(40) });
 
     const response = await send('/me/signing-sessions', { requestIds: [requestA] });
 
     expect(response.status).toBe(409);
-    expect(await response.json()).toMatchObject({ reason: 'code_rate_limited' });
+    expect(await response.json()).toMatchObject({
+      reason: 'code_rate_limited',
+      retryAfterSeconds: 40,
+    });
+    expect(sendSigningCodeEmail).not.toHaveBeenCalled();
   });
 
   it('answers 503 and keeps nothing when the code cannot be sent', async () => {
@@ -341,8 +399,65 @@ const agreementRow = (overrides: Record<string, unknown> = {}) => ({
   storage_path: null,
   employee_signed_at: null,
   employer_signed_at: null,
+  clients: { archived_at: null },
   ...overrides,
 });
+
+const templatesUrl = new URL('../../../../../packages/document-engine/templates/', import.meta.url);
+
+/** What drawing the agreement up reads: the employee, the client, the provider and the template. */
+const agreementSources = (client: Record<string, unknown> = {}): Record<string, UpstreamRoute> => ({
+  '/rest/v1/employees': () => [
+    {
+      last_name: 'Popescu',
+      first_name: 'Ion',
+      employee_number: null,
+      job_title: 'Sudor',
+      hired_at: '2024-03-01',
+      birth_date: null,
+      birth_place: null,
+      home_address: null,
+      email: null,
+      phone: '+40722000101',
+    },
+  ],
+  '/rest/v1/clients': () => [
+    {
+      organization_id: organizationId,
+      legal_name: 'Fabrica Sigma SRL',
+      cui: 'RO123456',
+      county_code: 'TM',
+      locality: 'Timișoara',
+      address_line: 'Str. Fabricii 3',
+      legal_representative_name: 'Maria IONESCU',
+      legal_representative_role: 'Administrator',
+      ...client,
+    },
+  ],
+  '/rest/v1/organizations': () => [{ name: 'Protect', legal_name: 'Protect SSM Consult SRL' }],
+  '/rest/v1/document_templates': () => [
+    {
+      type_key: 'signing_agreement',
+      title: 'Act adițional',
+      document_template_versions: [
+        { id: 'v1', version: 1, storage_path: 'built-in/signing_agreement/v1.docx' },
+      ],
+    },
+  ],
+});
+
+const readAgreementTemplate = () =>
+  sheetFiles.readTemplate.mockResolvedValue(
+    new Uint8Array(readFileSync(new URL('act_aditional_semnare_electronica.docx', templatesUrl)))
+  );
+
+const employeeDigest = () =>
+  agreementDigest({ env: signingEnv } as Context<ApiEnv>, {
+    clientId,
+    employeeId,
+    party: 'employee',
+    storagePath: null,
+  });
 
 const participantRow = (kind: string) => ({
   user_id: user.id,
@@ -372,13 +487,16 @@ describe('POST /portal/participants/{participantId}/signing-sessions', () => {
   function participantUpstream(kind: string, overrides: Record<string, UpstreamRoute> = {}) {
     mockUpstream({
       ...portal(kind),
+      ...agreementSources(),
       '/rest/v1/signature_requests': () => [{ id: requestA, slot: 'trainee' }],
       '/rest/v1/employee_signing_agreements': () => [agreementRow()],
       '/rest/v1/client_participants': () => [participantRow(kind)],
+      '/rest/v1/rpc/create_signing_session': createSessionRpc(),
       '/rest/v1/signing_sessions': sessions(null),
       '/rest/v1/signing_session_items': () => [],
       ...overrides,
     });
+    readAgreementTemplate();
   }
 
   it("puts the employee's own agreement first and texts the code to an employee without email", async () => {
@@ -412,8 +530,39 @@ describe('POST /portal/participants/{participantId}/signing-sessions', () => {
     expect((items!.body as unknown[])[0]).toMatchObject({
       agreement_employee_id: employeeId,
       agreement_party: 'employee',
+      agreement_digest: await employeeDigest(),
       request_id: null,
     });
+    const [session] = callsTo('/rest/v1/rpc/create_signing_session', 'POST');
+    expect(session!.body).toMatchObject({ p_place: 'portal', p_participant_id: participantId });
+  });
+
+  it('refuses an agreement of a client without a legal representative, sending nothing', async () => {
+    participantUpstream('employee', agreementSources({ legal_representative_name: null }));
+
+    const response = await send(path, { requestIds: [], agreementEmployeeIds: [employeeId] });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      reason: 'missing_document_data',
+      missing: ['client.representativeName'],
+    });
+    expect(sendSigningCodeSms).not.toHaveBeenCalled();
+  });
+
+  it('decides the party per agreement for an administrator who is also the employee', async () => {
+    participantUpstream('client_administrator', {
+      '/rest/v1/rpc/current_participations': () => [
+        participation('client_administrator', employeeId),
+      ],
+    });
+
+    const own = await send(path, { requestIds: [], agreementEmployeeIds: [employeeId] });
+
+    expect(own.status).toBe(201);
+    expect(signingSessionResponseSchema.parse(await own.json()).items).toEqual([
+      { kind: 'agreement', employeeId, party: 'employee' },
+    ]);
   });
 
   it("refuses an employee another employee's agreement, or their own once they signed it", async () => {
@@ -447,6 +596,8 @@ describe('POST /portal/participants/{participantId}/signing-sessions', () => {
         agreementRow({ employee_signed_at: '2026-10-18T08:00:00Z', storage_path: 'v1.pdf' }),
       ],
     });
+    const stored = new TextEncoder().encode('%PDF employee signed');
+    sheetFiles.readDocument.mockResolvedValue(stored);
     const response = await send(path, { requestIds: [], agreementEmployeeIds: [employeeId] });
     expect(response.status).toBe(201);
     expect(signingSessionResponseSchema.parse(await response.json())).toMatchObject({
@@ -454,6 +605,11 @@ describe('POST /portal/participants/{participantId}/signing-sessions', () => {
       addressHint: 'e***@fabrica.ro',
       items: [{ kind: 'agreement', employeeId, party: 'employer' }],
     });
+    expect(sheetFiles.readDocument).toHaveBeenCalledWith('v1.pdf');
+    const [items] = callsTo('/rest/v1/signing_session_items', 'POST');
+    expect((items!.body as { agreement_digest: string }[])[0]!.agreement_digest).toBe(
+      await sha256Hex(stored)
+    );
   });
 
   it('answers 409 when there is nowhere to send the code', async () => {
@@ -463,9 +619,16 @@ describe('POST /portal/participants/{participantId}/signing-sessions', () => {
 
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({ reason: 'signer_has_no_address' });
-    expect(callsTo('/rest/v1/signing_sessions', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/create_signing_session', 'POST')).toHaveLength(0);
   });
 });
+
+async function sha256Hex(bytes: Uint8Array) {
+  return Array.from(
+    new Uint8Array(await crypto.subtle.digest('SHA-256', new Uint8Array(bytes))),
+    (byte) => byte.toString(16).padStart(2, '0')
+  ).join('');
+}
 
 const requestRow = (id: string, record: string, overrides: Record<string, unknown> = {}) => ({
   id,
@@ -490,6 +653,7 @@ const recordRow = {
     verifier_name: null,
     verifier_job_title: null,
   },
+  clients: { archived_at: null },
 };
 
 describe('POST /me/signing-sessions/{sessionId}/sign', () => {
@@ -507,7 +671,7 @@ describe('POST /me/signing-sessions/{sessionId}/sign', () => {
         url.searchParams.get('id') === `eq.${requestA}`
           ? [requestRow(requestA, recordA)]
           : [requestRow(requestB, recordB)],
-      'PATCH /rest/v1/signature_requests': () => [],
+      '/rest/v1/profiles': () => [{ full_name: 'Ana Specialist' }],
       '/rest/v1/training_records': () => [recordRow],
       '/rest/v1/training_signatures': () => [],
       '/rest/v1/employee_signing_agreements': () => [
@@ -517,7 +681,7 @@ describe('POST /me/signing-sessions/{sessionId}/sign', () => {
     });
   }
 
-  it('signs every item, places the record, writes the evidence and marks the request signed', async () => {
+  it('signs every item, places the record and writes the evidence, which signs the request in the database', async () => {
     await signUpstream();
 
     const response = await send(path, { code: '123456' });
@@ -531,14 +695,14 @@ describe('POST /me/signing-sessions/{sessionId}/sign', () => {
       failed: [],
       agreements: [],
     });
-    expect(identityFor).toHaveBeenCalledWith(user.id, 'Ana SPECIALIST');
+    expect(identityFor).toHaveBeenCalledWith(user.id, 'Ana Specialist');
     expect(vi.mocked(placeRecord).mock.calls.map(([, id]) => id)).toEqual([recordA, recordB]);
     const [, recordId, slot, signer] = vi.mocked(applySignature).mock.calls[0]!;
     expect([recordId, slot, signer]).toEqual([
       recordA,
       'trainer',
       {
-        certificatePem: 'CERT Ana SPECIALIST',
+        certificatePem: 'CERT Ana Specialist',
         chainPem: ['CA'],
         name: 'Ana SPECIALIST',
         jobTitle: 'Inspector SSM',
@@ -560,6 +724,7 @@ describe('POST /me/signing-sessions/{sessionId}/sign', () => {
       address: 'ana@example.ro',
       code_sent_at: expect.any(String),
       code_verified_at: expect.any(String),
+      signed_at: '2026-10-18T09:30:00.000Z',
       digest_before: 'aa',
       digest_after: 'bb',
       certificate_serial: '0a1b',
@@ -567,10 +732,82 @@ describe('POST /me/signing-sessions/{sessionId}/sign', () => {
       user_agent: 'Firefox',
       signing_session_id: sessionId,
     });
-    const [marked] = callsTo('/rest/v1/signature_requests', 'PATCH');
-    expect(marked!.secret).toBe(true);
-    expect(marked!.body).toEqual({ state: 'signed', signing_session_id: sessionId });
-    expect(marked!.url.searchParams.get('state')).toBe('eq.pending');
+    expect(callsTo('/rest/v1/signature_requests', 'PATCH')).toHaveLength(0);
+  });
+
+  it('reports a request the database finds no longer pending when its evidence goes in', async () => {
+    await signUpstream({
+      'POST /rest/v1/training_signatures': () =>
+        Response.json({ code: 'SIG08', message: 'request_not_pending' }, { status: 400 }),
+    });
+
+    const body = signSessionResponseSchema.parse(
+      await (await send(path, { code: '123456' })).json()
+    );
+
+    expect(body.failed).toEqual([
+      { requestId: requestA, reason: 'request_not_pending' },
+      { requestId: requestB, reason: 'request_not_pending' },
+    ]);
+  });
+
+  it('refuses a record of an archived client before touching its sheet', async () => {
+    await signUpstream({
+      '/rest/v1/training_records': () => [
+        { ...recordRow, clients: { archived_at: '2026-10-18T08:00:00Z' } },
+      ],
+    });
+
+    const body = signSessionResponseSchema.parse(
+      await (await send(path, { code: '123456' })).json()
+    );
+
+    expect(body.failed.map((each) => each.reason)).toEqual(['client_archived', 'client_archived']);
+    expect(placeRecord).not.toHaveBeenCalled();
+  });
+
+  it("passes the signer's refusal on as its own reason", async () => {
+    await signUpstream();
+    vi.mocked(applySignature).mockRejectedValueOnce(
+      new ApiError('conflict', undefined, undefined, 'locked_field')
+    );
+
+    const body = signSessionResponseSchema.parse(
+      await (await send(path, { code: '123456' })).json()
+    );
+
+    expect(body.failed).toEqual([{ requestId: requestA, reason: 'locked_field' }]);
+  });
+
+  it('keeps the code unspent when there is no signer or converter to sign with', async () => {
+    await signUpstream();
+
+    const response = await send(path, { code: '123456' }, { ...signingEnv, SIGNER_URL: undefined });
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ reason: 'signer_unavailable' });
+    expect(callsTo('/rest/v1/signing_sessions', 'PATCH')).toHaveLength(0);
+  });
+
+  it('answers 404 for a session asked for in the portal', async () => {
+    await signUpstream({
+      '/rest/v1/signing_sessions': sessions(
+        await sessionRow({ place: 'portal', participant_id: participantId })
+      ),
+    });
+
+    const response = await send(path, { code: '123456' });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ reason: 'signing_session_not_found' });
+  });
+
+  it('carries the attempts left on a wrong code', async () => {
+    await signUpstream();
+
+    const response = await send(path, { code: '654321' });
+
+    expect(await response.json()).toMatchObject({ reason: 'code_invalid', attemptsLeft: 2 });
   });
 
   it('reports an item that fails and signs the others', async () => {
@@ -608,7 +845,7 @@ describe('POST /me/signing-sessions/{sessionId}/sign', () => {
     expect(applySignature).not.toHaveBeenCalled();
   });
 
-  it('signs a trainee under the name and position the row prints', async () => {
+  it("prints the slot's name and position, while the certificate names the account", async () => {
     await signUpstream({
       'GET /rest/v1/signature_requests': () => [requestRow(requestA, recordA, { slot: 'trainee' })],
       '/rest/v1/signing_session_items': () => [
@@ -618,7 +855,7 @@ describe('POST /me/signing-sessions/{sessionId}/sign', () => {
 
     await send(path, { code: '123456' });
 
-    expect(identityFor).toHaveBeenCalledWith(user.id, 'Popescu Ion');
+    expect(identityFor).toHaveBeenCalledWith(user.id, 'Ana Specialist');
     expect(vi.mocked(applySignature).mock.calls[0]![3]).toMatchObject({
       name: 'Popescu Ion',
       jobTitle: 'Sudor',
@@ -651,76 +888,41 @@ describe('POST /me/signing-sessions/{sessionId}/sign', () => {
   });
 });
 
-const templatesUrl = new URL('../../../../../packages/document-engine/templates/', import.meta.url);
-
 describe('the signing agreement signed in a portal session', () => {
   const path = `/portal/participants/${participantId}/signing-sessions/${sessionId}/sign`;
 
   async function agreementUpstream(
     kind: string,
     agreement: Record<string, unknown>,
-    overrides: Record<string, UpstreamRoute> = {}
+    overrides: Record<string, UpstreamRoute> = {},
+    digest: string | null = null
   ) {
-    const row = await sessionRow({ channel: 'sms', address: '+40722000101' });
+    const row = await sessionRow({
+      channel: 'sms',
+      address: '+40722000101',
+      place: 'portal',
+      participant_id: participantId,
+    });
     mockUpstream({
       ...portal(kind),
+      ...agreementSources(),
       '/rest/v1/signing_sessions': sessions(row),
       '/rest/v1/signing_session_items': () => [
         {
           request_id: null,
           agreement_employee_id: employeeId,
           agreement_party: kind === 'employee' ? 'employee' : 'employer',
+          agreement_digest: digest,
         },
       ],
       'GET /rest/v1/employee_signing_agreements': ({ url }) =>
         url.searchParams.get('select') === 'employee_id,state'
           ? [{ employee_id: employeeId, state: agreement.state ?? 'generated' }]
           : [agreementRow(agreement)],
-      'PATCH /rest/v1/employee_signing_agreements': ({ body }) => [
-        { state: (body as { state?: string }).state ?? 'generated' },
-      ],
       'POST /rest/v1/agreement_signatures': () => [],
-      '/rest/v1/employees': () => [
-        {
-          last_name: 'Popescu',
-          first_name: 'Ion',
-          employee_number: null,
-          job_title: 'Sudor',
-          hired_at: '2024-03-01',
-          birth_date: null,
-          birth_place: null,
-          home_address: null,
-          email: null,
-          phone: '+40722000101',
-        },
-      ],
-      '/rest/v1/clients': () => [
-        {
-          organization_id: organizationId,
-          legal_name: 'Fabrica Sigma SRL',
-          cui: 'RO123456',
-          county_code: 'TM',
-          locality: 'Timișoara',
-          address_line: 'Str. Fabricii 3',
-          legal_representative_name: 'Maria IONESCU',
-          legal_representative_role: 'Administrator',
-        },
-      ],
-      '/rest/v1/organizations': () => [{ name: 'Protect', legal_name: 'Protect SSM Consult SRL' }],
-      '/rest/v1/document_templates': () => [
-        {
-          type_key: 'signing_agreement',
-          title: 'Act adițional',
-          document_template_versions: [
-            { id: 'v1', version: 1, storage_path: 'built-in/signing_agreement/v1.docx' },
-          ],
-        },
-      ],
       ...overrides,
     });
-    sheetFiles.readTemplate.mockResolvedValue(
-      new Uint8Array(readFileSync(new URL('act_aditional_semnare_electronica.docx', templatesUrl)))
-    );
+    readAgreementTemplate();
     sheetFiles.writeDocument.mockResolvedValue(undefined);
     sheetFiles.removeDocument.mockResolvedValue(undefined);
     sheetPdf.convertForm.mockResolvedValue(new TextEncoder().encode('%PDF form'));
@@ -735,6 +937,7 @@ describe('the signing agreement signed in a portal session', () => {
 
   it("draws the employee's agreement up as a form, certifies it with their signature and stores it", async () => {
     await agreementUpstream('employee', {});
+    await agreementUpstream('employee', {}, {}, await employeeDigest());
 
     const response = await send(path, { code: '123456' });
 
@@ -770,13 +973,20 @@ describe('the signing agreement signed in a portal session', () => {
       signing_session_id: sessionId,
       digest_before: expect.stringMatching(/^[0-9a-f]{64}$/),
       digest_after: expect.stringMatching(/^[0-9a-f]{64}$/),
-    });
-    const [settled] = callsTo('/rest/v1/employee_signing_agreements', 'PATCH');
-    expect(settled!.body).toEqual({
       storage_path: written,
-      employee_signed_at: expect.any(String),
     });
-    expect(settled!.url.searchParams.get('employee_signed_at')).toBe('is.null');
+    expect(callsTo('/rest/v1/employee_signing_agreements', 'PATCH')).toHaveLength(0);
+  });
+
+  it('refuses an agreement that no longer says what it said when the code was asked for', async () => {
+    await agreementUpstream('employee', {}, {}, 'f'.repeat(64));
+
+    const body = signSessionResponseSchema.parse(
+      await (await send(path, { code: '123456' })).json()
+    );
+
+    expect(body.agreements[0]).toMatchObject({ signed: false, reason: 'agreement_changed' });
+    expect(sheetSigner.beginSignature).not.toHaveBeenCalled();
   });
 
   it('signs the stored file for the employer and settles the agreement', async () => {
@@ -788,7 +998,8 @@ describe('the signing agreement signed in a portal session', () => {
     await agreementUpstream(
       'client_administrator',
       { employee_signed_at: '2026-10-18T08:00:00Z', storage_path: 'v1.pdf' },
-      { 'GET /rest/v1/agreement_signatures': () => [{ digest_after: digest }] }
+      { 'GET /rest/v1/agreement_signatures': () => [{ digest_after: digest }] },
+      digest
     );
     sheetFiles.readDocument.mockResolvedValue(employeeCopy);
 
@@ -805,12 +1016,8 @@ describe('the signing agreement signed in a portal session', () => {
       certificatePem: 'CERT Elena Radu',
       appearanceLines: ['Elena Radu', 'Angajator', 'semnat electronic', expect.any(String)],
     });
-    const [settled] = callsTo('/rest/v1/employee_signing_agreements', 'PATCH');
-    expect(settled!.body).toMatchObject({
-      state: 'signed_electronically',
-      signed_at: expect.any(String),
-      employer_signed_at: expect.any(String),
-    });
+    const [evidence] = callsTo('/rest/v1/agreement_signatures', 'POST');
+    expect(evidence!.body).toMatchObject({ party: 'employer', storage_path: expect.any(String) });
   });
 
   it('refuses the employer a stored file that is not the one the employee signed', async () => {
@@ -830,13 +1037,15 @@ describe('the signing agreement signed in a portal session', () => {
   });
 
   it('reports an agreement the other session signed first, and removes its own copy', async () => {
+    await agreementUpstream('employee', {});
     await agreementUpstream(
       'employee',
       {},
       {
         'POST /rest/v1/agreement_signatures': () =>
-          Response.json({ code: '23505', message: 'duplicate' }, { status: 409 }),
-      }
+          Response.json({ code: 'SIG10', message: 'agreement_not_awaiting' }, { status: 400 }),
+      },
+      await employeeDigest()
     );
 
     const body = signSessionResponseSchema.parse(

@@ -169,15 +169,22 @@ function boxed(values: Record<string, string>, boxes: Record<string, Box>, rowKe
   );
 }
 
-/** `place` is the employee's place of work, which the workplace training prints. */
+/**
+ * `place` is the employee's place of work, which the workplace training prints. `byHand` is true
+ * when nobody is asked to sign the record electronically, which the note then says, as it does for
+ * a record from paper.
+ */
 export function rowValues(
   domain: TrainingDomain,
   rowKey: SheetRowKey,
   record: SheetTrainingRecord,
-  place: string
+  place: string,
+  byHand = false
 ): Record<string, string> {
   const { training } = record;
-  const note = { [`${rowKey}_note`]: record.source === 'paper' ? paperSigned : '' };
+  const note = {
+    [`${rowKey}_note`]: record.source === 'paper' || byHand ? paperSigned : '',
+  };
   if (tableRowOf(rowKey)) {
     return {
       ...boxed(

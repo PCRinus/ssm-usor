@@ -59,7 +59,7 @@ const agreementUnavailable = {
 };
 const noAddress = {
   description:
-    'The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`)',
+    "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`), or the client's legal representative's name or role is not filled in (reason `missing_document_data`, the codes under `missing`)",
   content: errorContent,
 };
 
@@ -147,7 +147,7 @@ export const voidRecordSignaturesRoute = createRoute({
   operationId: 'voidRecordSignatures',
   summary: "Void a training record's signatures, to correct it",
   description:
-    'Every live signature of the record, paper ones included, and every request that is not void, with the reason given. The record is editable again; saving the corrected training with its signers issues the requests again. The evidence rows stay, marked void.',
+    "Every live signature of the record, paper ones included, and every request that is not void, with the reason given and the caller as the void's actor. When an electronic signature was among them, the record's row on its stored sheet is struck: the database voids it and the API writes _anulat_ into its note, then or on the sheet's next write. The record is editable again; saving the corrected training with its signers issues the requests again and gives the record a new row. The evidence rows stay, marked void.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -245,7 +245,7 @@ export const putSigningAgreementStateRoute = createRoute({
   operationId: 'putSigningAgreementState',
   summary: "Record an employee's signing agreement as handed out or signed on paper",
   description:
-    '`generated` when it was handed to the employee, `signed_on_paper` when it came back signed by hand, with the scan as a file of the client in `clientFileId`. `signed_electronically` is set by the signing flow alone, and an agreement in that state is not changed here.',
+    '`generated` when it was handed to the employee, `signed_on_paper` when it came back signed by hand, with the scan as a file of the client in `clientFileId`, `withdrawn` when the employee went back to signing by hand (their pending trainee requests are voided and none is issued while it stands), `in_contract` for a new hire whose contract carries the clause. The database records the member signed in as `marked_by`. `signed_electronically` is set by the signing flow alone, and an agreement in that state is not changed here.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -261,7 +261,7 @@ export const putSigningAgreementStateRoute = createRoute({
     404: noEmployee,
     409: {
       description:
-        'The agreement is signed electronically (reason `agreement_signed_electronically`), the file is not of the client, or the client is archived (reason `client_archived`)',
+        "The agreement is signed electronically (reason `agreement_signed_electronically`), the file is not of the client, the client is archived (reason `client_archived`), or, for `generated`, the client's legal representative is not filled in (reason `missing_document_data`)",
       content: errorContent,
     },
     ...membershipErrors,
@@ -378,7 +378,7 @@ const itemNotFound = {
 };
 const sessionRefused = {
   description:
-    'A code was sent to the account in the last minute (reason `code_rate_limited`), or the account has no address for the code (reason `signer_has_no_address`)',
+    "A code was sent to the account in the last minute (reason `code_rate_limited`, with `retryAfterSeconds`), the account has no address for the code (reason `signer_has_no_address`), or an agreement's client has no legal representative filled in (reason `missing_document_data`)",
   content: errorContent,
 };
 const sessionUnavailable = {
@@ -388,21 +388,22 @@ const sessionUnavailable = {
 };
 const signAnswered = {
   description:
-    "The code was right and the session is spent. Each item is signed or reported failed, independently: `signed` with the trainee's agreement state, `failed` with a reason (`request_not_pending`, `sheet_busy`, `slot_not_on_sheet`, `missing_sheet_data`, `signer_unavailable`, `pdf_unavailable`, `template_missing`, `signing_failed`), `agreements` likewise, with `agreement_not_awaiting` for one signed or settled since",
+    "The code was right and the session is spent. Each item is signed or reported failed, independently: `signed` with the trainee's agreement state, `failed` with a reason (`request_not_pending`, `client_archived`, `signer_not_of_client`, `sheet_busy`, `slot_not_on_sheet`, `missing_sheet_data`, `row_locked`, the signer's `already_signed`, `locked_field`, `unknown_fields`, `cannot_certify`, `signer_refused`, `signer_unavailable`, `pdf_unavailable`, `template_missing`, `signing_failed`), `agreements` likewise, with `agreement_not_awaiting` for one signed or settled since, `agreement_changed` for one that no longer says what it said when the code was asked for, and `missing_document_data`",
   content: signedContent,
 };
 const codeRefused = {
   description:
-    'The code was refused and nothing was signed: `code_invalid` (the attempts left in the message), `code_attempts_exceeded`, `code_expired`, `code_already_used`',
+    'The code was refused and nothing was signed: `code_invalid` (with `attemptsLeft`), `code_attempts_exceeded`, `code_expired`, `code_already_used`',
   content: errorContent,
 };
 const noSession = {
-  description: "The session is not the caller's (reason `signing_session_not_found`)",
+  description:
+    "The session is not the caller's, or was asked for in another place or participation (reason `signing_session_not_found`)",
   content: errorContent,
 };
 const signUnavailable = {
   description:
-    'The signing secrets are not configured (reason `signing_unavailable`); the code is not spent',
+    'The signing secrets are not configured (reason `signing_unavailable`), or there is no signer (`signer_unavailable`) or converter (`pdf_unavailable`); the code is not spent',
   content: errorContent,
 };
 
@@ -412,7 +413,7 @@ export const createMySigningSessionRoute = createRoute({
   operationId: 'createMySigningSession',
   summary: 'Ask for a signing code for the listed requests',
   description:
-    "The member's pending requests to sign in one go with one code (ADR 023), sent to the account's email. A trainee's request is signed in the portal and is refused here, as is any agreement (reason `agreement_signed_in_portal`). The code is valid for ten minutes and three attempts.",
+    "The member's pending requests in the membership's organization, at most 30, to sign in one go with one code (ADR 023), sent to the account's email. A trainee's request is signed in the portal and is refused here, as is any agreement (reason `agreement_signed_in_portal`). The code is valid for ten minutes and three attempts.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { body: sessionBody },
@@ -436,7 +437,7 @@ export const signMySigningSessionRoute = createRoute({
   operationId: 'signMySigningSession',
   summary: 'Type the code and sign everything the session lists',
   description:
-    "Each request's record gets its row on the employee's signed sheet, the slot's signature (PAdES, with the signer's own certificate), the evidence row, and the request marked signed. One item failing does not stop the others.",
+    "Each request's record gets its row on the employee's signed sheet, the slot's signature (PAdES, with the signer's own certificate, naming the account), and the evidence row, which signs the request in the same write. One item failing does not stop the others.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: sessionParams, body: codeBody },
@@ -459,7 +460,7 @@ export const createPortalSigningSessionRoute = createRoute({
   tags: portalTags,
   summary: 'Ask for a signing code for the listed requests and agreements',
   description:
-    "The participant's pending requests under the participation's client and, in `agreementEmployeeIds`, signing agreements: an employee their own, while it awaits them; the client administrator the client's employees' agreements the employee has signed and the employer has not. The code goes to the email the app holds for the person, else by SMS to the phone.",
+    "The participant's pending requests under the participation's client and, in `agreementEmployeeIds`, signing agreements, at most 30 items in all. The party is decided per agreement: the participant's own while it awaits the employee is theirs as the employee, an administrator's who is that employee included; any of the client's that awaits the employer is the administrator's. The code goes to the email the app holds for the person, else by SMS to the phone.",
   security: bearerSecurity,
   middleware: [requireAuth, requireParticipant] as const,
   request: { params: participantParams, body: sessionBody },

@@ -230,7 +230,12 @@ describe('GET /clients/{clientId}/trainings', () => {
         Response.json([
           {
             ...trainingRow,
-            training_records: recordRows.map(({ employees }) => ({ employees })),
+            training_records: recordRows.map(({ employees }, index) => ({
+              employees,
+              training_signatures:
+                index === 0 ? [{ method: 'electronic', voided_at: '2026-10-18T09:00:00Z' }] : [],
+              signed_sheet_rows: [],
+            })),
           },
         ]),
     });
@@ -240,6 +245,8 @@ describe('GET /clients/{clientId}/trainings', () => {
       items: [
         {
           ...training,
+          signed: false,
+          hasSignatures: true,
           attendeeCount: 2,
           attendees: [
             { employeeId, lastName: 'Popescu', firstName: 'Ion' },
@@ -250,7 +257,9 @@ describe('GET /clients/{clientId}/trainings', () => {
     });
     const query = searchOf('/rest/v1/trainings');
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
-    expect(query.get('select')).toContain('training_records(employees(id,last_name,first_name))');
+    expect(query.get('select')).toContain(
+      'training_records(employees(id,last_name,first_name),training_signatures(method,voided_at),signed_sheet_rows!signed_sheet_rows_record_of_client(id))'
+    );
     expect(query.get('order')).toBe('held_on.desc,created_at.desc,id.asc');
     expect(query.get('domain')).toBeNull();
   });

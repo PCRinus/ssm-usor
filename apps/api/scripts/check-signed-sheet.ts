@@ -10,6 +10,7 @@ import type { Context } from 'hono';
 
 import { adminClient } from '../src/lib/admin-db';
 import type { ApiEnv } from '../src/lib/env';
+import { checkToSign } from '../src/lib/signed-attributes';
 import {
   applySignature,
   currentSheetPdf,
@@ -131,6 +132,14 @@ async function signerOf(person: { key: string }) {
 
 type SignerOf = SheetSigner & { sign: (toSign: ArrayBuffer) => Promise<ArrayBuffer> };
 
+let chain = '';
+
+// The API's own check of the signer's bytes, run here against real pyHanko output.
+const checked = (person: SignerOf) => async (toSign: ArrayBuffer, prepared: ArrayBuffer) => {
+  await checkToSign(prepared, toSign, person.certificatePem);
+  return person.sign(toSign);
+};
+
 const made = {
   trainings: [] as string[],
   employees: new Set<string>(),
@@ -211,7 +220,8 @@ async function cleanUp() {
 }
 
 try {
-  const { people, chain } = certificates();
+  const { people, chain: authority } = certificates();
+  chain = authority;
   const [trainee, trainer] = (await Promise.all(
     people.map(async (person) => ({
       certificatePem: person.certificatePem,
@@ -274,7 +284,6 @@ try {
     const placed = await placeRecord(ctx, id);
     console.log(`placed ${placed.rowKey} -> v${placed.sheet.version}`);
   }
-  const signedAt = new Date();
   for (const [id, slot, person] of [
     [periodic, 'trainee', trainee],
     [periodic, 'trainer', trainer],
@@ -282,25 +291,33 @@ try {
     [workplace, 'admitter', trainer],
     [supplementary, 'trainee', trainee],
   ] as const) {
-    const result = await applySignature(ctx, id, slot, person, signedAt, person.sign);
+    const result = await applySignature(ctx, id, slot, person, checked(person));
     console.log(
       `signed ${slot} -> v${result.version} ${result.digestBefore.slice(0, 8)} -> ${result.digestAfter.slice(0, 8)}`
     );
   }
+  // Without evidence rows here, the row is struck as void_training_signatures strikes it.
+  await db
+    .from('signed_sheet_rows')
+    .update({ voided_at: new Date().toISOString() })
+    .eq('training_record_id', periodic)
+    .is('voided_at', null);
   await voidRow(ctx, periodic);
   const corrected = await placeRecord(ctx, periodic);
   console.log(`voided p row, corrected record on ${corrected.rowKey}`);
-  await applySignature(ctx, periodic, 'trainee', trainee, signedAt, trainee.sign);
+  await applySignature(ctx, periodic, 'trainee', trainee, checked(trainee));
 
-  const single = await currentSheetPdf(ctx, employee.id, 'ssm');
-  writeFileSync(join(out, 'ssm-1.pdf'), single!);
-  const validations = await ctx.signer!.validate(new Uint8Array(single!).buffer);
+  const single = (await currentSheetPdf(ctx, employee.id, 'ssm'))!.pdf;
+  writeFileSync(join(out, 'ssm-1.pdf'), single);
+  const validations = await ctx.signer!.validate(new Uint8Array(single).buffer, [chain]);
   for (const each of validations) {
     console.log(
-      `  ${each.field}: ${each.signerName}, intact ${each.intact}, permitted ${each.modificationsPermitted}, certified ${each.certified}`
+      `  ${each.field}: ${each.signerName}, intact ${each.intact}, trusted ${each.trusted}, permitted ${each.modificationsPermitted}, certified ${each.certified}`
     );
   }
-  const failed = validations.filter((each) => !each.intact || !each.modificationsPermitted);
+  const failed = validations.filter(
+    (each) => !each.intact || !each.modificationsPermitted || !each.trusted
+  );
   console.log(
     `paper row p1 printed: ${(await db.from('signed_sheet_rows').select('row_key').eq('training_record_id', paperPeriodic)).data?.[0]?.row_key}`
   );
@@ -309,27 +326,32 @@ try {
   const next = await record(employee, 'ssm', 'periodic', '2026-10-03');
   const continued = await placeRecord(ctx, next);
   console.log(`continuation: ${continued.rowKey} on sheet ${continued.sheet.sequence}`);
-  writeFileSync(join(out, 'ssm-merged.pdf'), (await currentSheetPdf(ctx, employee.id, 'ssm'))!);
+  const merged = (await currentSheetPdf(ctx, employee.id, 'ssm'))!;
+  writeFileSync(join(out, 'ssm-copie.pdf'), merged.pdf);
+  console.log(`merged copy: copy ${merged.copy}`);
+  const second = (await currentSheetPdf(ctx, employee.id, 'ssm', { sequence: 2 }))!;
+  writeFileSync(join(out, 'ssm-2.pdf'), second.pdf);
 
   const fire = await record(employee, 'psi', 'periodic', '2026-04-10');
   await placeRecord(ctx, fire);
-  await applySignature(ctx, fire, 'trainee', trainee, signedAt, trainee.sign);
-  await applySignature(ctx, fire, 'trainer', trainer, signedAt, trainer.sign);
-  const firePdf = (await currentSheetPdf(ctx, employee.id, 'psi'))!;
+  await applySignature(ctx, fire, 'trainee', trainee, checked(trainee));
+  await applySignature(ctx, fire, 'trainer', trainer, checked(trainer));
+  const firePdf = (await currentSheetPdf(ctx, employee.id, 'psi'))!.pdf;
   writeFileSync(join(out, 'psi-1.pdf'), firePdf);
-  const fireValidations = await ctx.signer!.validate(new Uint8Array(firePdf).buffer);
+  const fireValidations = await ctx.signer!.validate(new Uint8Array(firePdf).buffer, [chain]);
   console.log(
-    `psi: ${fireValidations.map((each) => `${each.field} ${each.intact && each.modificationsPermitted}`).join(', ')}`
+    `psi: ${fireValidations.map((each) => `${each.field} ${each.intact && each.modificationsPermitted && each.trusted}`).join(', ')}`
   );
 
   if (
     failed.length > 0 ||
-    fireValidations.some((each) => !each.intact || !each.modificationsPermitted)
+    !merged.copy ||
+    fireValidations.some((each) => !each.intact || !each.modificationsPermitted || !each.trusted)
   ) {
     process.exitCode = 1;
     console.error('Some signatures did not validate.');
   } else {
-    console.log('Every signature validates.');
+    console.log('Every signature validates and chains to the authority.');
   }
 } catch (error) {
   console.error(error);
