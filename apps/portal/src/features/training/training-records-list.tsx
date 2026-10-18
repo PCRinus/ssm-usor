@@ -1,15 +1,18 @@
 import { Trans, useLingui } from '@lingui/react/macro';
-import { GraduationCap } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
+import { GraduationCap, PenLine } from 'lucide-react';
 
 import type { PortalTrainingRecordsResponse } from '@/api/generated/api';
 import { cardClass, SectionLabel } from '@/components/page';
-import { useFormatDate, useFormatDuration } from '@/lib/format';
+import { slotRoleMessages } from '@/features/signing/signing-messages';
+import { useFormatDate, useFormatDuration, useFormatList } from '@/lib/format';
 import {
   supplementaryReasonMessages,
   trainingDomainMessages,
   trainingPhaseMessages,
 } from '@/lib/labels';
 
+import type { PendingSignature, PendingSignatures } from './pending-signatures';
 import { TrainingMaterial } from './training-material';
 
 type TrainingRecord = PortalTrainingRecordsResponse['items'][number];
@@ -23,7 +26,13 @@ function byYear(records: TrainingRecord[]) {
   return [...years];
 }
 
-export function TrainingRecordsList({ records }: { records: TrainingRecord[] }) {
+export function TrainingRecordsList({
+  records,
+  pending,
+}: {
+  records: TrainingRecord[];
+  pending?: PendingSignatures;
+}) {
   if (records.length === 0) {
     return (
       <div
@@ -44,7 +53,11 @@ export function TrainingRecordsList({ records }: { records: TrainingRecord[] }) 
           <SectionLabel id={`training-year-${year}`}>{year}</SectionLabel>
           <ol className={`${cardClass} divide-y overflow-hidden`}>
             {items.map((record) => (
-              <TrainingRecordRow key={record.id} record={record} />
+              <TrainingRecordRow
+                key={record.id}
+                record={record}
+                pending={pending?.get(record.id) ?? []}
+              />
             ))}
           </ol>
         </section>
@@ -53,7 +66,13 @@ export function TrainingRecordsList({ records }: { records: TrainingRecord[] }) 
   );
 }
 
-function TrainingRecordRow({ record }: { record: TrainingRecord }) {
+function TrainingRecordRow({
+  record,
+  pending,
+}: {
+  record: TrainingRecord;
+  pending: PendingSignature[];
+}) {
   const { t, i18n } = useLingui();
   const formatDate = useFormatDate();
   const formatDuration = useFormatDuration();
@@ -91,7 +110,38 @@ function TrainingRecordRow({ record }: { record: TrainingRecord }) {
         )}
         <TrainingMaterial text={record.material} />
         <p className="text-[0.8125rem] text-muted-foreground">{trainer}</p>
+        {pending.length > 0 && <PendingLine pending={pending} />}
       </div>
     </li>
+  );
+}
+
+function PendingLine({ pending }: { pending: PendingSignature[] }) {
+  const { t, i18n } = useLingui();
+  const formatList = useFormatList();
+  const mine = pending.filter((each) => each.mine);
+  const roles = formatList(pending.map((each) => i18n._(slotRoleMessages[each.slot])));
+  const people = formatList(
+    pending.map((each) => `${each.signerName} (${i18n._(slotRoleMessages[each.slot])})`)
+  );
+  return (
+    <p
+      data-testid="training-record-signatures"
+      className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-warning px-2.5 py-1.5 text-[0.8125rem] text-warning-foreground"
+    >
+      <PenLine aria-hidden="true" className="size-3.5 shrink-0" />
+      <span className="min-w-0 flex-1">
+        {mine.length > 0 ? t`Așteaptă semnătura ta (${roles}).` : t`Așteaptă semnătura: ${people}.`}
+      </span>
+      {mine.length > 0 && (
+        <Link
+          to="/semneaza"
+          data-testid="training-record-sign"
+          className="font-semibold underline underline-offset-4"
+        >
+          <Trans>Semnează</Trans>
+        </Link>
+      )}
+    </p>
   );
 }

@@ -3,7 +3,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { type TrainingDomain, trainingDomains } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { FileDown, LoaderCircle } from 'lucide-react';
+import { FileDown, LoaderCircle, ShieldCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type {
@@ -107,6 +107,15 @@ function TrainingSheetCard({
           <span className="lg:hidden">{t`Fișa ${label}`}</span>
           <span className="hidden lg:inline">{t`Fișa individuală ${label}`}</span>
         </h3>
+        {sheet?.stored && (
+          <p
+            data-testid={`training-sheet-${domain}-stored`}
+            className="flex items-center gap-1 text-xs font-medium text-success-foreground lg:text-[0.8125rem]"
+          >
+            <ShieldCheck aria-hidden="true" className="size-3.5 shrink-0" />
+            <Trans>Fișă semnată electronic</Trans>
+          </p>
+        )}
         {openable && updated && (
           <p className="text-xs text-muted-foreground lg:text-[0.8125rem]">
             {t({

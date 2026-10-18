@@ -8,11 +8,13 @@ import {
   getPortalEmployeeTrainingSheet,
   useGetPortalEmployeeTrainingSheets,
   useListPortalClientEmployees,
+  useListPortalClientSignatureRequests,
   useListPortalEmployeeTrainingRecords,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Page, PageGrid, PageHeader } from '@/components/page';
 import { isAdministrator, useParticipation } from '@/features/participation/participation-context';
+import { pendingByRecord } from '@/features/training/pending-signatures';
 import { TrainingRecordsSection } from '@/features/training/training-records-section';
 import { TrainingSheets } from '@/features/training/training-sheets';
 import { useApiRequest } from '@/lib/request';
@@ -53,6 +55,7 @@ function EmployeeDetail({
   const sheets = useGetPortalEmployeeTrainingSheets(participantId, employeeId, {
     request: apiRequest,
   });
+  const requests = useListPortalClientSignatureRequests(participantId, { request: apiRequest });
   const employee = employees.data?.items.find((item) => item.id === employeeId);
 
   if (records.error instanceof ApiHttpError && records.error.status === 404) {
@@ -96,6 +99,13 @@ function EmployeeDetail({
           className="lg:col-span-8 lg:row-start-1"
           title={t`Instruiri`}
           records={records}
+          pending={
+            requests.data &&
+            pendingByRecord(
+              requests.data.items.filter((request) => request.record.employee.id === employeeId),
+              false
+            )
+          }
         />
       </PageGrid>
     </>

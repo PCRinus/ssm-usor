@@ -141,7 +141,11 @@ function SheetLink({
         onClick={() => void open()}
         className="w-fit rounded-sm text-left text-sm font-medium underline underline-offset-4 hover:text-foreground/80 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60"
       >
-        {busy ? t`Se pregătește fișa…` : t`Fișa individuală ${label}, PDF`}
+        {busy
+          ? t`Se pregătește fișa…`
+          : sheetAccess.sheets?.[domain].stored
+            ? t`Fișa individuală ${label}, semnată electronic, PDF`
+            : t`Fișa individuală ${label}, PDF`}
       </button>
       {failure && <Notice variant="destructive">{failure}</Notice>}
     </>
