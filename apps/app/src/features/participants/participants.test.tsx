@@ -428,6 +428,24 @@ describe("the client's administrator in the portal", () => {
     expect(within(card).getByTestId('client-employees-with-access').textContent).toBe(
       '2 angajați au acces la portal.'
     );
+    expect(within(card).queryByTestId('client-portal-missing')).toBeNull();
+  });
+
+  it('gathers who has no portal access yet in one notice', async () => {
+    mockApi();
+    mountTraining();
+    const card = await screen.findByTestId('client-administrator-card');
+    const notice = await within(card).findByTestId('client-portal-missing');
+    expect(within(notice).getByText('Fără acces încă')).toBeTruthy();
+    expect(
+      within(notice)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent)
+    ).toEqual([
+      'Administratorul clientului nu a fost invitat în portal.',
+      'Niciun angajat nu are încă acces la portal. Îi inviți din pagina fiecărui angajat.',
+    ]);
+    expect(within(card).getByTestId('administrator-invite')).toBeTruthy();
   });
 
   it("proposes the representative's name and the contact's address, and invites", async () => {
