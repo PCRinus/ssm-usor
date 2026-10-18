@@ -1,0 +1,875 @@
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { authFixture, makeSession } from '@/test/auth-fixture';
+import { disposeRuntimes, mountApp } from '@/test/mount';
+import { untrained } from '@/test/training-fixture';
+
+import { matchSigner } from './signer-match';
+
+const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
+const otherClientId = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
+const employeeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+const welderId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
+const recordId = '4f5a6b7c-8d9e-4f0a-9b1c-2d3e4f5a6b7c';
+const trainingId = '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f';
+const memberId = 'user-one';
+const managerAccountId = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
+const traineeAccountId = '0f1e2d3c-4b5a-4968-8776-655443322110';
+const fileId = '6b5a4c3d-2e1f-4a0b-9c8d-7e6f5a4b3c2d';
+
+const employeesPath = `/clients/${clientId}/employees`;
+const employeePath = `${employeesPath}/${employeeId}`;
+const trainingsPath = `/clients/${clientId}/trainings`;
+const signaturesPath = `/clients/${clientId}/training-records/${recordId}/signatures`;
+const agreementPath = `${employeePath}/signing-agreement`;
+
+const sampleClient = {
+  id: clientId,
+  legalName: 'VELOCE CAFE SRL',
+  cui: '1590082',
+  vatPayer: false,
+  caenCode: '5630',
+  tradeRegisterNumber: null,
+  countyCode: 'B',
+  locality: 'București',
+  addressLine: null,
+  legalRepresentativeName: 'Maria Pop',
+  declaredEmployeeCount: 6,
+  stage: 'client',
+  createdAt: '2026-09-17T10:00:00+00:00',
+  updatedAt: '2026-09-17T10:00:00+00:00',
+  archivedAt: null,
+};
+
+const employee = {
+  id: employeeId,
+  clientId,
+  lastName: 'Popescu',
+  firstName: 'Ion',
+  cnp: null,
+  employeeNumber: null,
+  email: 'ion.popescu@example.com',
+  phone: null,
+  jobTitle: 'Sudor',
+  jobPosition: { id: welderId, name: 'Sudor' },
+  hiredAt: '2020-03-01',
+  status: 'active',
+  terminatedAt: null,
+  birthDate: null,
+  birthPlace: null,
+  homeAddress: null,
+  bloodGroup: null,
+  rhFactor: null,
+  notes: null,
+  workplace: null,
+  qualification: null,
+  education: null,
+  authorizations: null,
+  commuteRoute: null,
+  commuteMinutes: null,
+  training: untrained,
+  createdAt: '2026-09-17T10:00:00+00:00',
+  updatedAt: '2026-09-17T10:00:00+00:00',
+  archivedAt: null,
+};
+
+const position = {
+  id: welderId,
+  clientId,
+  name: 'Sudor',
+  staffCategory: 'execution',
+  workZone: null,
+  activities: null,
+  trainingIntervalMonths: null,
+  employeeCount: 1,
+  needsProtectiveEquipment: null,
+  equipmentCount: 0,
+  createdAt: '2026-09-20T10:00:00.000Z',
+  updatedAt: '2026-09-20T10:00:00.000Z',
+};
+
+const candidates = [
+  {
+    accountId: memberId,
+    name: 'Dan MARIN',
+    jobTitle: 'Inspector SSM',
+    kind: 'member',
+    employeeId: null,
+  },
+  {
+    accountId: managerAccountId,
+    name: 'Pop Maria',
+    jobTitle: 'Șef atelier',
+    kind: 'employee',
+    employeeId: '8d0f7780-8536-41ef-a55c-f18fd2fa1bf8',
+  },
+  {
+    accountId: traineeAccountId,
+    name: 'Popescu Ion',
+    jobTitle: 'Sudor',
+    kind: 'employee',
+    employeeId,
+  },
+];
+
+const proposal = {
+  durationMinutes: 240,
+  material: 'H.G. 1051/2006; I.P.S.S.M. Art. 1 – 290',
+  trainer: { name: 'Maria Pop', jobTitle: 'Șef atelier' },
+  verifier: { name: 'Dan Marin', jobTitle: null },
+  admittedBy: { name: 'Maria Pop', jobTitle: 'Șef atelier' },
+  themesRevisionId: null,
+};
+
+const record = (overrides: Record<string, unknown> = {}) => ({
+  id: recordId,
+  occupation: 'Sudor',
+  admission: null,
+  training: {
+    id: trainingId,
+    clientId,
+    domain: 'ssm',
+    phase: 'periodic',
+    heldOn: '2026-09-01',
+    durationMinutes: 120,
+    material: 'IPSSM art. 1–40',
+    trainer: { name: 'Maria Pop', jobTitle: 'Șef atelier' },
+    verifier: { name: 'Dan Marin', jobTitle: 'Inspector SSM' },
+    supplementaryReason: null,
+    source: 'app',
+    themesRevisionId: null,
+    notes: null,
+    createdAt: '2026-09-01T10:00:00+00:00',
+    updatedAt: '2026-09-01T10:00:00+00:00',
+  },
+  ...overrides,
+});
+
+const slot = (name: string, state: string, overrides: Record<string, unknown> = {}) => ({
+  slot: name,
+  state,
+  requestId: null,
+  signer: null,
+  issuedAt: null,
+  notifiedAt: null,
+  signedAt: null,
+  signerName: null,
+  signerJobTitle: null,
+  voidedAt: null,
+  voidReason: null,
+  ...overrides,
+});
+
+const pendingTrainee = slot('trainee', 'pending', {
+  requestId: '11111111-2222-4333-8444-555555555555',
+  signer: { accountId: traineeAccountId, name: 'Popescu Ion' },
+  issuedAt: '2026-09-01T10:05:00.000Z',
+});
+
+const request = (overrides: Record<string, unknown> = {}) => ({
+  id: '22222222-3333-4444-8555-666666666666',
+  slot: 'trainer',
+  state: 'pending',
+  issuedAt: '2026-10-15T09:00:00.000Z',
+  notifiedAt: '2026-10-15T09:00:05.000Z',
+  client: { id: clientId, name: 'VELOCE CAFE SRL' },
+  record: {
+    id: recordId,
+    trainingId,
+    employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
+    domain: 'ssm',
+    phase: 'periodic',
+    heldOn: '2026-10-14',
+  },
+  signer: { accountId: memberId, name: 'Dan MARIN' },
+  agreementState: null,
+  ...overrides,
+});
+
+type Handler = (url: URL, init: RequestInit | undefined) => Response | Promise<Response>;
+
+const fetchMock = vi.fn<typeof fetch>();
+const saved: string[] = [];
+
+function mockApi(routes: Partial<Record<string, Handler>> = {}) {
+  fetchMock.mockImplementation(async (input, init) => {
+    const url = new URL(String(input));
+    const key = `${init?.method ?? 'GET'} ${url.pathname}`;
+    const route = routes[key];
+    if (route) return route(url, init);
+    switch (key) {
+      case 'GET /me':
+        return Response.json({ user: { id: memberId, email: 'review@example.test' } });
+      case `GET /clients/${clientId}`:
+        return Response.json({ client: sampleClient });
+      case `GET ${employeesPath}`:
+        return Response.json({ items: [employee], page: 1, pageSize: 100, total: 1 });
+      case `GET ${employeePath}`:
+        return Response.json({ employee });
+      case `GET ${employeePath}/training-records`:
+        return Response.json({ items: [] });
+      case `GET ${employeePath}/training-sheets`:
+        return Response.json({
+          ssm: { ready: true, missing: [] },
+          psi: { ready: true, missing: [] },
+        });
+      case `GET ${employeePath}/participant`:
+        return Response.json({ participant: null, invitation: null });
+      case `GET ${agreementPath}/state`:
+        return Response.json({ agreement: null });
+      case `GET /clients/${clientId}/job-positions`:
+        return Response.json({ items: [position] });
+      case `GET /clients/${clientId}/signer-candidates`:
+        return Response.json({ items: candidates });
+      case `GET /clients/${clientId}/signature-requests`:
+        return Response.json({ items: [] });
+      case `GET /clients/${clientId}/files`:
+        return Response.json({ items: [] });
+      case `GET ${trainingsPath}`:
+        return Response.json({ items: [] });
+      case `GET ${trainingsPath}/proposal`:
+        return Response.json(proposal);
+      case `POST ${trainingsPath}`:
+        return Response.json({ training: {} }, { status: 201 });
+      case `GET ${signaturesPath}`:
+        return Response.json({ recordId, slots: [] });
+      case 'GET /me/signature-requests':
+        return Response.json({ items: [] });
+    }
+    return Response.json({ error: 'not_found', message: 'Not mocked.' }, { status: 404 });
+  });
+}
+
+const requests = (method: string, pathname: string) =>
+  fetchMock.mock.calls
+    .filter(
+      ([input, init]) =>
+        (init?.method ?? 'GET') === method && new URL(String(input)).pathname === pathname
+    )
+    .map(([input, init]) => ({
+      url: new URL(String(input)),
+      body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : undefined,
+    }));
+
+const conflict = (reason: string) =>
+  Response.json({ error: 'conflict', message: reason, reason }, { status: 409 });
+
+const mount = (path: string) => mountApp(authFixture(makeSession()).client, path);
+
+beforeEach(() => {
+  fetchMock.mockReset();
+  vi.stubGlobal('fetch', fetchMock);
+  saved.length = 0;
+  vi.stubGlobal(
+    'URL',
+    Object.assign(URL, { createObjectURL: () => 'blob:agreement', revokeObjectURL: () => {} })
+  );
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+    this: HTMLAnchorElement
+  ) {
+    if (this.download) saved.push(this.download);
+  });
+});
+
+afterEach(() => {
+  disposeRuntimes();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+describe('matchSigner', () => {
+  it('matches a name in either order, case and diacritics', () => {
+    expect(matchSigner('Maria Pop', candidates as never, memberId)).toBe(managerAccountId);
+    expect(matchSigner('dan marin', candidates as never, memberId)).toBe(memberId);
+    expect(matchSigner('Ion POPESCU', candidates as never, memberId)).toBe(traineeAccountId);
+    expect(matchSigner('Ana Ionescu', candidates as never, memberId)).toBeNull();
+    expect(matchSigner('  ', candidates as never, memberId)).toBeNull();
+  });
+
+  it('prefers the signed-in member, then a member, when two people share a name', () => {
+    const twins = [
+      { ...candidates[1]!, name: 'Dan Marin' },
+      { ...candidates[0]!, accountId: 'another-member' },
+      candidates[0]!,
+    ];
+    expect(matchSigner('Dan Marin', twins as never, memberId)).toBe(memberId);
+    expect(matchSigner('Dan Marin', twins as never, 'someone-else')).toBe('another-member');
+  });
+});
+
+describe('signers on the training flow', () => {
+  async function openWorkplaceTraining() {
+    const user = userEvent.setup();
+    mount(`${employeePath}/training/ssm`);
+    await screen.findByTestId('training-records-empty');
+    await user.click(screen.getAllByTestId('training-record')[0]!);
+    const dialog = await screen.findByTestId('training-dialog');
+    await user.selectOptions(within(dialog).getByTestId('training-phase'), 'workplace');
+    await waitFor(() =>
+      expect((within(dialog).getByTestId('training-trainer-name') as HTMLInputElement).value).toBe(
+        'Maria Pop'
+      )
+    );
+    return { user, dialog };
+  }
+
+  it('proposes a signer for each proposed person by name, and sends the ones kept', async () => {
+    mockApi();
+    const { user, dialog } = await openWorkplaceTraining();
+    const value = (testId: string) =>
+      (within(dialog).getByTestId(testId) as HTMLSelectElement).value;
+    await waitFor(() => expect(value('training-trainer-signer')).toBe(managerAccountId));
+    expect(value('training-verifier-signer')).toBe(memberId);
+    expect(value('training-admitter-signer')).toBe(managerAccountId);
+    expect(
+      [...within(dialog).getByTestId('training-trainer-signer').querySelectorAll('optgroup')].map(
+        (group) => group.label
+      )
+    ).toEqual(['Organizația ta', 'Clientul, în portal']);
+    expect(dialog.querySelector('#training-trainer-signer-hint')!.textContent).toBe(
+      'Primește o cerere de semnare pe email sau prin SMS.'
+    );
+
+    await user.selectOptions(within(dialog).getByTestId('training-admitter-signer'), '');
+    expect(dialog.querySelector('#training-admitter-signer-hint')!.textContent).toBe(
+      'Rubrica se semnează de mână, pe fișa tipărită.'
+    );
+    await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
+    await user.click(within(dialog).getByTestId('training-save'));
+
+    expect(await screen.findByText('Instruirea a fost înregistrată.')).toBeTruthy();
+    expect(requests('POST', trainingsPath)[0]!.body).toMatchObject({
+      source: 'app',
+      verifier: { name: 'Dan Marin', jobTitle: 'Inspector SSM' },
+      signers: { trainer: managerAccountId, verifier: memberId, admitter: null },
+    });
+  });
+
+  it('keeps a signer the specialist chose when the name changes', async () => {
+    mockApi();
+    const { user, dialog } = await openWorkplaceTraining();
+    const trainerSigner = within(dialog).getByTestId('training-trainer-signer');
+    await waitFor(() => expect((trainerSigner as HTMLSelectElement).value).toBe(managerAccountId));
+    await user.selectOptions(trainerSigner, memberId);
+    await user.clear(within(dialog).getByTestId('training-trainer-name'));
+    await user.type(within(dialog).getByTestId('training-trainer-name'), 'Ana Ionescu');
+    expect((trainerSigner as HTMLSelectElement).value).toBe(memberId);
+    await user.clear(within(dialog).getByTestId('training-admitted-by-name'));
+    await user.type(within(dialog).getByTestId('training-admitted-by-name'), 'Ana Ionescu');
+    expect(
+      (within(dialog).getByTestId('training-admitter-signer') as HTMLSelectElement).value
+    ).toBe('');
+  });
+
+  it('asks nobody for a training typed from a paper sheet', async () => {
+    mockApi();
+    const { user, dialog } = await openWorkplaceTraining();
+    await user.selectOptions(within(dialog).getByTestId('training-source'), 'paper');
+    expect(within(dialog).queryByTestId('training-trainer-signer')).toBeNull();
+    await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
+    await user.click(within(dialog).getByTestId('training-save'));
+    await screen.findByText('Instruirea a fost înregistrată.');
+    expect(requests('POST', trainingsPath)[0]!.body).not.toHaveProperty('signers');
+  });
+
+  it('puts a signer the API refuses under its picker', async () => {
+    mockApi({
+      [`POST ${trainingsPath}`]: () =>
+        Response.json(
+          {
+            error: 'unprocessable',
+            message: 'The signer is neither a member nor a participant.',
+            reason: 'signer_not_of_client',
+            issues: [{ path: 'signers.trainer', message: 'The signer is neither.' }],
+          },
+          { status: 422 }
+        ),
+    });
+    const { user, dialog } = await openWorkplaceTraining();
+    await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
+    await user.click(within(dialog).getByTestId('training-save'));
+    expect((await within(dialog).findByTestId('training-trainer-signer-error')).textContent).toBe(
+      'Semnatarul ales nu mai este membru al organizației sau participant al clientului. Alege din nou.'
+    );
+  });
+});
+
+describe("a record's signatures", () => {
+  it('shows each slot with its state and freezes a record signed electronically', async () => {
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
+      [`GET ${signaturesPath}`]: () =>
+        Response.json({
+          recordId,
+          slots: [
+            pendingTrainee,
+            slot('trainer', 'signed', {
+              signer: { accountId: managerAccountId, name: 'Pop Maria' },
+              signedAt: '2026-09-02T08:00:00.000Z',
+              signerName: 'Maria Pop',
+              signerJobTitle: 'Șef atelier',
+            }),
+            slot('verifier', 'unassigned'),
+          ],
+        }),
+    });
+    mount(`${employeePath}/training/ssm`);
+    const block = await screen.findByTestId('record-signatures');
+    const slots = within(block).getAllByTestId('signature-slot');
+    expect(slots.map((item) => item.textContent)).toEqual([
+      'InstruitDe semnatPopescu Ion',
+      'InstructorSemnat electronicMaria Pop · 2 sept. 2026',
+      'VerificatFără semnatar',
+    ]);
+    expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', true);
+    expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true);
+    expect(screen.getByTestId('training-record-lock').textContent).toBe(
+      'Semnată electronic: anulează semnăturile ca s-o poți modifica sau șterge.'
+    );
+  });
+
+  it('marks a slot signed on paper with the name the record prints', async () => {
+    let marked = false;
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
+      [`GET ${signaturesPath}`]: () =>
+        Response.json({
+          recordId,
+          slots: [
+            pendingTrainee,
+            slot('trainer', 'unassigned'),
+            marked
+              ? slot('verifier', 'paper', {
+                  signedAt: '2026-10-18T09:00:00.000Z',
+                  signerName: 'Dan Marin',
+                })
+              : slot('verifier', 'unassigned'),
+          ],
+        }),
+      [`POST ${signaturesPath}/paper`]: () => {
+        marked = true;
+        return Response.json({ recordId, slots: [] });
+      },
+    });
+    const user = userEvent.setup();
+    mount(`${employeePath}/training/ssm`);
+    await screen.findByTestId('record-signatures');
+    expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', false);
+    await user.click(screen.getByTestId('record-signatures-paper'));
+    const dialog = await screen.findByTestId('paper-signature-dialog');
+    const slotSelect = within(dialog).getByTestId('paper-signature-slot') as HTMLSelectElement;
+    expect([...slotSelect.options].map((option) => option.textContent)).toEqual([
+      'Instruit',
+      'Instructor',
+      'Verificat',
+    ]);
+    expect((within(dialog).getByTestId('paper-signature-name') as HTMLInputElement).value).toBe(
+      'Popescu Ion'
+    );
+    await user.selectOptions(slotSelect, 'verifier');
+    expect((within(dialog).getByTestId('paper-signature-name') as HTMLInputElement).value).toBe(
+      'Dan Marin'
+    );
+    await user.click(within(dialog).getByTestId('paper-signature-submit'));
+
+    await waitFor(() =>
+      expect(requests('POST', `${signaturesPath}/paper`).map((call) => call.body)).toEqual([
+        { slot: 'verifier', signerName: 'Dan Marin', signerJobTitle: 'Inspector SSM' },
+      ])
+    );
+    const verifier = await waitFor(() => {
+      const item = screen
+        .getAllByTestId('signature-slot')
+        .find((entry) => entry.dataset.slot === 'verifier')!;
+      expect(item.textContent).toContain('Semnat pe hârtie');
+      return item;
+    });
+    expect(verifier.textContent).toContain('Dan Marin');
+    expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true);
+    expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', false);
+  });
+
+  it('asks for a reason before voiding, and words a refusal', async () => {
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
+      [`GET ${signaturesPath}`]: () => Response.json({ recordId, slots: [pendingTrainee] }),
+      [`POST ${signaturesPath}/void`]: () => conflict('client_archived'),
+    });
+    const user = userEvent.setup();
+    mount(`${employeePath}/training/ssm`);
+    await user.click(await screen.findByTestId('record-signatures-void'));
+    const dialog = await screen.findByTestId('void-signatures-dialog');
+    await user.click(within(dialog).getByTestId('void-signatures-confirm'));
+    expect(within(dialog).getByRole('alert').textContent).toBe('Scrie motivul anulării.');
+    expect(requests('POST', `${signaturesPath}/void`)).toHaveLength(0);
+
+    await user.type(within(dialog).getByTestId('void-signatures-reason'), 'Durata greșită');
+    await user.click(within(dialog).getByTestId('void-signatures-confirm'));
+    expect((await within(dialog).findByTestId('void-signatures-error')).textContent).toBe(
+      'Clientul este arhivat; semnăturile lui nu se mai schimbă.'
+    );
+    expect(requests('POST', `${signaturesPath}/void`).map((call) => call.body)).toEqual([
+      { reason: 'Durata greșită' },
+    ]);
+  });
+
+  it('voids the signatures and shows the slots voided', async () => {
+    let voided = false;
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
+      [`GET ${signaturesPath}`]: () =>
+        Response.json({
+          recordId,
+          slots: [
+            voided
+              ? slot('trainee', 'void', {
+                  voidedAt: '2026-10-18T09:00:00.000Z',
+                  voidReason: 'Durata greșită',
+                })
+              : pendingTrainee,
+          ],
+        }),
+      [`POST ${signaturesPath}/void`]: () => {
+        voided = true;
+        return Response.json({ recordId, slots: [] });
+      },
+    });
+    const user = userEvent.setup();
+    mount(`${employeePath}/training/ssm`);
+    await user.click(await screen.findByTestId('record-signatures-void'));
+    const dialog = await screen.findByTestId('void-signatures-dialog');
+    await user.type(within(dialog).getByTestId('void-signatures-reason'), 'Durata greșită');
+    await user.click(within(dialog).getByTestId('void-signatures-confirm'));
+    await waitFor(() => expect(screen.queryByTestId('void-signatures-dialog')).toBeNull());
+    await waitFor(() =>
+      expect(screen.getByTestId('signature-slot').textContent).toBe(
+        'InstruitAnulatMotiv: Durata greșită'
+      )
+    );
+  });
+
+  it('says why a training with signatures cannot be deleted when the API refuses', async () => {
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
+      [`GET ${signaturesPath}`]: () =>
+        Response.json({ recordId, slots: [slot('trainee', 'void')] }),
+      [`DELETE ${trainingsPath}/${trainingId}`]: () => conflict('record_has_signatures'),
+      [`GET ${trainingsPath}/${trainingId}`]: () =>
+        Response.json({ training: { ...record().training, records: [] } }),
+    });
+    const user = userEvent.setup();
+    mount(`${employeePath}/training/ssm`);
+    await screen.findByTestId('record-signatures');
+    await user.click(screen.getByTestId('training-record-delete'));
+    await user.click(await screen.findByTestId('training-delete-confirm'));
+    expect((await screen.findByTestId('training-delete-error')).textContent).toBe(
+      'Instruirea are semnături, pe hârtie sau electronice, care rămân în evidență; nu se mai poate șterge.'
+    );
+  });
+
+  it("says a training cannot change while another attendee's record is signed", async () => {
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
+      [`GET ${trainingsPath}/${trainingId}`]: () =>
+        Response.json({
+          training: {
+            ...record().training,
+            records: [
+              {
+                id: recordId,
+                employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
+                occupation: 'Sudor',
+                admission: null,
+              },
+            ],
+          },
+        }),
+      [`PUT ${trainingsPath}/${trainingId}`]: () => conflict('record_signed'),
+    });
+    const user = userEvent.setup();
+    mount(`${employeePath}/training/ssm`);
+    await screen.findByTestId('record-signatures');
+    await user.click(screen.getByTestId('training-record-edit'));
+    const dialog = await screen.findByTestId('training-dialog');
+    await user.click(await within(dialog).findByTestId('training-save'));
+    expect((await within(dialog).findByTestId('training-error')).textContent).toBe(
+      'Instruirea are semnături electronice și nu se mai poate modifica. Anulează semnăturile, apoi modific-o.'
+    );
+  });
+
+  it('leaves out the slots of a training typed from a paper sheet', async () => {
+    const paper = record();
+    paper.training.source = 'paper';
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [paper] }),
+    });
+    mount(`${employeePath}/training/ssm`);
+    await screen.findByTestId('training-record-item');
+    expect(screen.queryByTestId('record-signatures')).toBeNull();
+    expect(requests('GET', signaturesPath)).toHaveLength(0);
+  });
+});
+
+describe('the Semnături place', () => {
+  it('lists my pending requests by client, ready to be chosen for one code', async () => {
+    mockApi({
+      'GET /me/signature-requests': () =>
+        Response.json({
+          items: [
+            request(),
+            request({
+              id: '33333333-4444-4555-8666-777777777777',
+              slot: 'verifier',
+              client: { id: otherClientId, name: 'ATELIER NORD SRL' },
+            }),
+            request({ id: '44444444-5555-4666-8777-888888888888', slot: 'admitter' }),
+          ],
+        }),
+    });
+    const user = userEvent.setup();
+    mount('/signatures');
+    expect((await screen.findByTestId('nav-signatures')).textContent).toBe('Semnături');
+    const groups = await screen.findAllByTestId('signature-requests-client');
+    expect(groups.map((group) => within(group).getByRole('heading').textContent)).toEqual([
+      'ATELIER NORD SRL',
+      'VELOCE CAFE SRL',
+    ]);
+    const veloce = groups[1]!;
+    const rows = within(veloce).getAllByTestId('signature-request');
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.textContent).toContain('Popescu Ion');
+    expect(rows[0]!.textContent).toContain('Periodică · 14 oct. 2026 · semnezi ca instructor');
+    expect(rows[1]!.textContent).toContain('semnezi ca cel care admite la lucru');
+
+    const sign = screen.getByTestId('signature-requests-sign');
+    expect(sign).toHaveProperty('disabled', true);
+    expect(sign.getAttribute('title')).toBe('Semnarea din aplicație vine în curând.');
+    await user.click(within(veloce).getByTestId('signature-requests-client-select'));
+    expect(sign.textContent).toBe('Semnează (2)');
+    await user.click(within(veloce).getAllByTestId('signature-request-select')[0]!);
+    expect(sign.textContent).toBe('Semnează (1)');
+    expect(
+      within(veloce).getByTestId('signature-requests-client-select').getAttribute('data-state')
+    ).toBe('indeterminate');
+  });
+
+  it('says when there is nothing to sign', async () => {
+    mockApi();
+    mount('/signatures');
+    expect((await screen.findByTestId('signature-requests-empty')).textContent).toContain(
+      'Nu ai nimic de semnat.'
+    );
+    expect(screen.queryByTestId('signature-requests-sign')).toBeNull();
+  });
+});
+
+describe("the client's pending signatures", () => {
+  it('lists who has not signed, by employee, warning of an unsigned agreement', async () => {
+    const ana = {
+      id: '8d0f7780-8536-41ef-a55c-f18fd2fa1bf8',
+      lastName: 'Ionescu',
+      firstName: 'Ana',
+    };
+    mockApi({
+      [`GET /clients/${clientId}/signature-requests`]: (url) => {
+        expect(url.searchParams.get('state')).toBe('pending');
+        return Response.json({
+          items: [
+            request({
+              slot: 'trainee',
+              signer: { accountId: traineeAccountId, name: 'Popescu Ion' },
+            }),
+            request({ id: '33333333-4444-4555-8666-777777777777' }),
+            request({
+              id: '44444444-5555-4666-8777-888888888888',
+              slot: 'trainee',
+              record: { ...request().record, employee: ana },
+              signer: { accountId: managerAccountId, name: 'Ionescu Ana' },
+              agreementState: 'signed_on_paper',
+            }),
+          ],
+        });
+      },
+    });
+    mount(`/clients/${clientId}/trainings`);
+    const card = await screen.findByTestId('client-signature-requests');
+    expect(within(card).getByRole('heading').textContent).toBe('3 semnături în așteptare');
+    const people = within(card).getAllByTestId('client-signature-requests-employee');
+    expect(people.map((person) => person.querySelector('a')!.textContent)).toEqual([
+      'Ionescu Ana',
+      'Popescu Ion',
+    ]);
+    expect(within(people[0]!).queryByTestId('agreement-warning')).toBeNull();
+    expect(within(people[1]!).getByTestId('agreement-warning').textContent).toBe(
+      'Act adițional nesemnat'
+    );
+    expect(
+      within(people[1]!)
+        .getAllByTestId('client-signature-request-signer')
+        .map((signer) => signer.textContent)
+    ).toEqual(['Popescu Ion', 'Dan MARIN']);
+  });
+
+  it('shows nothing while every request is signed', async () => {
+    mockApi();
+    mount(`/clients/${clientId}/trainings`);
+    await screen.findByTestId('trainings-empty');
+    expect(screen.queryByTestId('client-signature-requests')).toBeNull();
+  });
+});
+
+describe("the employee's signing agreement", () => {
+  it('downloads a new agreement and records it as generated', async () => {
+    let generated = false;
+    mockApi({
+      [`GET ${agreementPath}/state`]: () =>
+        Response.json({
+          agreement: generated
+            ? {
+                state: 'generated',
+                generatedAt: '2026-10-18T09:00:00.000Z',
+                signedAt: null,
+                clientFileId: null,
+              }
+            : null,
+        }),
+      [`GET ${agreementPath}`]: () =>
+        new Response(new Uint8Array([37, 80, 68, 70]), {
+          headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': 'attachment; filename="Act-aditional-Popescu-Ion.pdf"',
+          },
+        }),
+      [`PUT ${agreementPath}/state`]: () => {
+        generated = true;
+        return Response.json({ agreement: null });
+      },
+    });
+    const user = userEvent.setup();
+    mount(employeePath);
+    const card = await screen.findByTestId('signing-agreement-card');
+    expect((await within(card).findByTestId('signing-agreement-state')).textContent).toBe(
+      'Negenerat'
+    );
+    await user.click(within(card).getByTestId('signing-agreement-download'));
+    await waitFor(() =>
+      expect(requests('PUT', `${agreementPath}/state`).map((call) => call.body)).toEqual([
+        { state: 'generated' },
+      ])
+    );
+    expect(saved).toEqual(['Act-aditional-Popescu-Ion.pdf']);
+    await waitFor(() =>
+      expect(within(card).getByTestId('signing-agreement-state').textContent).toBe('Generat')
+    );
+    expect(within(card).getByTestId('signing-agreement-detail').textContent).toBe(
+      'Descărcat pe 18 oct. 2026; se semnează de mână sau din portal.'
+    );
+  });
+
+  it('marks a generated agreement signed on paper with its scan', async () => {
+    let signed = false;
+    mockApi({
+      [`GET ${agreementPath}/state`]: () =>
+        Response.json({
+          agreement: {
+            state: signed ? 'signed_on_paper' : 'generated',
+            generatedAt: '2026-10-10T09:00:00.000Z',
+            signedAt: signed ? '2026-10-18T09:00:00.000Z' : null,
+            clientFileId: signed ? fileId : null,
+          },
+        }),
+      [`GET /clients/${clientId}/files`]: () =>
+        Response.json({
+          items: [
+            {
+              id: fileId,
+              name: 'Act adițional semnat',
+              note: null,
+              ownersOnly: false,
+              employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
+              originalFileName: 'act.pdf',
+              mimeType: 'application/pdf',
+              sizeBytes: 1200,
+              sha256: 'a'.repeat(64),
+              uploadedBy: null,
+              canChange: true,
+              createdAt: '2026-10-18T08:00:00.000Z',
+              updatedAt: '2026-10-18T08:00:00.000Z',
+            },
+          ],
+        }),
+      [`PUT ${agreementPath}/state`]: () => {
+        signed = true;
+        return Response.json({ agreement: null });
+      },
+    });
+    const user = userEvent.setup();
+    mount(employeePath);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await user.click(await within(card).findByTestId('signing-agreement-paper'));
+    const dialog = await screen.findByTestId('signing-agreement-paper-dialog');
+    const file = within(dialog).getByTestId('signing-agreement-file');
+    await waitFor(() => expect(file).toHaveProperty('disabled', false));
+    await user.selectOptions(file, fileId);
+    await user.click(within(dialog).getByTestId('signing-agreement-paper-submit'));
+    await waitFor(() =>
+      expect(requests('PUT', `${agreementPath}/state`).map((call) => call.body)).toEqual([
+        { state: 'signed_on_paper', clientFileId: fileId },
+      ])
+    );
+    await waitFor(() =>
+      expect(within(card).getByTestId('signing-agreement-state').textContent).toBe(
+        'Semnat pe hârtie'
+      )
+    );
+    expect(within(card).queryByTestId('signing-agreement-paper')).toBeNull();
+  });
+
+  it('asks for an email or a phone when the agreement cannot name where the codes go', async () => {
+    mockApi({ [`GET ${agreementPath}`]: () => conflict('employee_has_no_address') });
+    const user = userEvent.setup();
+    mount(employeePath);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await user.click(await within(card).findByTestId('signing-agreement-download'));
+    expect((await within(card).findByTestId('signing-agreement-no-address')).textContent).toContain(
+      'Adaugă-i un email sau un telefon'
+    );
+    expect(requests('PUT', `${agreementPath}/state`)).toHaveLength(0);
+  });
+
+  it('warns on the portal card of a participant whose agreement is not signed', async () => {
+    mockApi({
+      [`GET ${employeePath}/participant`]: () =>
+        Response.json({
+          participant: {
+            id: '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
+            clientId,
+            kind: 'employee',
+            employeeId,
+            fullName: 'Popescu Ion',
+            channel: 'email',
+            address: 'ion.popescu@example.com',
+            createdAt: '2026-10-10T09:00:00.000Z',
+            revokedAt: null,
+            noticeVersion: null,
+          },
+          invitation: null,
+        }),
+    });
+    mount(employeePath);
+    const card = await screen.findByTestId('employee-portal-card');
+    expect((await within(card).findByTestId('agreement-warning')).textContent).toBe(
+      'Act adițional nesemnat'
+    );
+  });
+
+  it('does not warn about an employee who has no portal access', async () => {
+    mockApi();
+    mount(employeePath);
+    const card = await screen.findByTestId('employee-portal-card');
+    await within(card).findByTestId('participant-none');
+    expect(within(card).queryByTestId('agreement-warning')).toBeNull();
+  });
+});
