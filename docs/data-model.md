@@ -577,8 +577,9 @@ moves to another client, and a record never to another training or person.
 keep their record and its occupation, the new ones get a record, and the one admission given
 is set on every attendee. It runs as the caller and returns null for a client or a training
 the caller cannot see. Deleting a training deletes its records; until signatures exist a
-record is editable and deletable like any fact entered by hand. The `training_signatures`
-table comes with the electronic signature.
+record is editable and deletable like any fact entered by hand. A signed record is frozen, see
+[Signatures](#signatures); `save_training` clears an admission only when the phase stops being
+`workplace`, so that saving a signed training unchanged changes nothing.
 
 ### Next training due and training state
 
@@ -1094,12 +1095,13 @@ an index can serve it. `is_client_administrator(client)` answers the same for on
 | `client_workplaces`          | every workplace of their clients        |                              |
 | `client_fire_safety`         | their clients' row (training intervals) |                              |
 | `client_responsible_persons` |                                         | the client's                 |
-| `document_templates`         | the built-in training sheet templates   |                              |
+| `document_templates`         | the built-in per-employee templates     |                              |
 | `client_participants`        | their own participations                |                              |
 
 The workplaces are all the client's because a sheet names the workplace only at a client with
 more than one. `employee_training_status` is a security-invoker view, so it follows the rows
-above; `document_template_versions` follows its templates. Storage has no participant policy
+above; `document_template_versions` follows its templates, the two training sheets and the
+signing agreement (`20261018110000_signing_agreement_policy.sql`). Storage has no participant policy
 yet: a template file read for a participant needs the API's secret key or a policy of its own.
 
 ### The phone in E.164
@@ -1112,6 +1114,211 @@ written with `+` or `00` keeps its own country, and the number must be valid for
 (its length and, for the larger countries, its digits), landlines included. Other text around
 the number is refused. `countryOf` names the country of a stored number. The migration normalized existing rows the same way and set
 the rest to null. `clients.contact_phone` and `organizations.phone` stay free text.
+
+## Signatures
+
+The app makes an **advanced electronic signature** on training records
+([ADR 023](architecture/adr-023-advanced-electronic-signature.md)). A record has four
+`signer_slot`s: `trainee`, `trainer`, `verifier` (only when the training has a verifier) and
+`admitter` (only when the record has an admission). Each slot is signed once live, electronically
+by a member or a participant, or marked as signed on paper by a member: one live signature per
+slot, by a partial unique index, and one request that is not void per slot.
+
+Two tables hold secrets and have row-level security with no policy at all: only the API's secret
+key reads and writes them.
+
+| Table                | What it holds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `signing_identities` | The history of each auth account's identities (`account_id`, deleted with it): the `subject_name`, the account's own name when the certificate was made, the `certificate_pem` from the app's own authority with its unique `certificate_serial`, `not_before` and `not_after`, the ECDSA private key as `private_key_encrypted` under the API Worker's key-encryption key, `key_version` naming which, and `superseded_at`. One live identity per account (`superseded_at` null, by a partial unique index). Insert-only: a trigger refuses any update but setting `superseded_at` once, and any delete while the account exists (`SIG06`, `identity_kept`), so the certificate an old signature names stays readable. |
+| `signing_sessions`   | One act of signing (`account_id`): the `place` it was asked for in (`app` or `portal`) and, in the portal, the `participant_id`; the `channel` (`email` or `sms`) and `address` the code went to, checked as on an invitation, the `code_hash`, `code_sent_at`, `expires_at` (ten minutes by default), `attempts`, `verified_at`, `client_ip` and `user_agent`. Not Supabase's one-time passcode, whose verification issues a session and keeps its own record. A session is used once, enforced by the database: once `verified_at` is set, a trigger refuses any change to the row (`SIG09`, `session_used`).                                                                                                         |
+
+`create_signing_session(...)` (service role only) inserts a session unless the account had a code
+sent in the last `p_interval_seconds`, under an advisory lock on the account, and answers
+`retry_after_seconds` (0 when inserted) with the `code_sent_at` and `expires_at` it recorded.
+
+The others carry `client_id` and a denormalized `organization_id` with the composite foreign key
+to the client, as other tables under a client do. A request, a signature and a sheet row reach
+their record through `(training_record_id, client_id)`, and a sheet row its sheet through
+`(signed_sheet_id, client_id)`, so none crosses clients.
+
+`signature_requests` is one slot of one record addressed to one signer.
+
+| Column                       | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `training_record_id`, `slot` | The record, deleted with it, and the slot. One request per slot that is not `void`, by a partial unique index.                                                                                                                                                                                                                                                                                                                                                      |
+| `signer_account_id`          | The account addressed; null for a paper slot. The trainee must be the employee's own active participant; any other slot a member of the organization or an active participant of the client (`SIG05`, `signer_not_of_client`), checked on insert and on any update of the signer, slot, record or client. No pending trainee request goes to an employee whose agreement is `withdrawn` (`SIG05`, `agreement_withdrawn`). The slot must be on the record (`SIG03`). |
+| `issued_by`, `issued_at`     | Who issued it, the real user during an impersonation.                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `notified_at`                | When the signer was told.                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `state`                      | `pending`, `signed` or `void`. Only the evidence row makes it `signed`, by a trigger.                                                                                                                                                                                                                                                                                                                                                                               |
+| `voided_at`, `void_reason`   | Set exactly when `void`. `record_changed` when the record or its training's source changed under a pending request, `signed_on_paper` when a paper mark replaced it, `signer_changed` or `paper` when a save named another signer or none, `signer_left` when the signer lost their standing, `archived` when the client was archived, `withdrawn` when the employee's agreement was withdrawn, otherwise the member's reason.                                      |
+| `voided_by`                  | The account that voided it, from `auth.uid()`; null for a void made with the secret key or by a trigger fired by it.                                                                                                                                                                                                                                                                                                                                                |
+| `signing_session_id`         | The session that signed it.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+
+`training_signatures` is the evidence, one row per slot signed, written once.
+
+| Column                                                                           | Notes                                                                                                                      |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `training_record_id`, `slot`, `request_id`                                       | The request it answers, which must be of the same record and slot; one signature per request, one live signature per slot. |
+| `method`                                                                         | `electronic` or `paper`.                                                                                                   |
+| `signer_account_id`                                                              | The signer, the account the request addressed (`SIG05`); null on paper.                                                    |
+| `signer_name`, `signer_job_title`                                                | As printed.                                                                                                                |
+| `channel`, `address`, `code_sent_at`, `code_verified_at`, `signing_session_id`   | Where the code went and when it was sent and verified; the two moments are copied from the session by the trigger.         |
+| `signed_at`                                                                      | The API's clock; no trusted timestamp yet (#486).                                                                          |
+| `digest_before`, `digest_after`, `certificate_serial`, `client_ip`, `user_agent` | The sheet's digest before and after, the certificate, and the client.                                                      |
+| `marked_by`                                                                      | The member who marked a paper slot.                                                                                        |
+| `voided_at`, `void_reason`, `voided_by`                                          | Set together, once; `voided_by` from `auth.uid()`.                                                                         |
+
+**The evidence and its request are one write.** A trigger locks the request (`for update`) while
+the evidence goes in and refuses it unless the request is `pending` (`SIG08`,
+`request_not_pending`) and addressed to the signer (`SIG05`, `signer_not_addressed`). For an
+electronic row it also requires the session to be the signer's, verified, to list the request
+among its items, and to have sent its code to the row's channel and address (`SIG09`,
+`session_mismatch`), and the signer to still have standing (`SIG05`, `signer_not_of_client`).
+After the insert, a trigger sets the request `signed` with the session; after a void of the
+signature, it sets the request `void` with the same reason and actor. A paper mark goes in the same
+way, as a pending request without a signer that its evidence then signs.
+
+An electronic row has the signer, the channel, the address, both code moments, the session, both
+digests and the certificate serial; a paper row has `marked_by` and none of those. The accounts a
+signature names are kept: their foreign keys restrict deletion. A trigger refuses any update except
+setting `voided_at`, `void_reason` and `voided_by` on a live row, and any delete or truncate
+(`SIG06`). The database row is the record of a void; the PDF's _anulat_ note follows it and is a
+field no signature locks, by design, since a void comes after the signatures. The written-once
+rules are triggers: a superuser in replica mode (`session_replication_role = replica`), as the
+local check scripts clean up with, is not bound by them.
+
+`employee_signing_agreements` is the _act adițional_ of one employee (`employee_id`, the primary
+key, deleted with the employee): `state` is `generated`, `signed_electronically`,
+`signed_on_paper`, `withdrawn` (the employee returned to signing by hand: no trainee request goes to
+them while it stands, and setting it voids their pending ones with `withdrawn`) or `in_contract` (a
+new hire whose employment contract carries the clause, which counts as agreed, with no PDF). It
+has `generated_at`, `signed_at` (set when `signed_electronically` or `signed_on_paper`, kept by a
+`withdrawn` that follows an electronic signature, else null),
+`marked_by` (only for `signed_on_paper`, `withdrawn` and `in_contract`, and forced to the signed-in
+member by a trigger whenever a member sets the state; kept as it was on any other member update)
+and `client_file_id`, the scan as a client file of the same client, set null when the file is
+deleted. Members read and write it with the four usual policies, without `TRUNCATE`; only the secret
+key sets or undoes `signed_electronically` (`SIG07`). An agreement in any state but `generated` is
+not deleted, except with its employee (`SIG10`, `agreement_recorded`). The electronic signing adds
+`storage_path`, the signed PDF's current version in the documents bucket, `employee_signed_at` and
+`employer_signed_at`, which members may neither insert nor update: the employer signs after the
+employee, a signed agreement has its file, `signed_electronically` holds exactly when the employer
+has signed, and the states other than `generated`, `signed_electronically` and `withdrawn` carry no
+electronic signature (all by checks). Once either party has signed electronically, a member's update or delete
+of the row is refused (`SIG07`), so that a paper mark never contradicts a signed file; the one
+change allowed is `withdrawn` (`20261018150000_agreement_withdrawal.sql`), which keeps
+`signed_at`, the file and both signing times as the evidence of what was signed.
+
+`agreement_signatures` is the evidence of one party's signature on an agreement, written once:
+`employee_id` (restricting the agreement's and the employee's deletion), `party` (`employee` or
+`employer`, one row each by a unique key), the signer's account and printed name, the code's
+`channel`, `address`, `code_sent_at` and `code_verified_at`, `signed_at`, both digests of the file,
+the certificate serial, `client_ip`, `user_agent`, the `signing_session_id` and `storage_path`, the
+file this signature produced, all required but the client's. Before the insert a trigger locks the
+agreement and requires it `generated` and awaiting this party, the employee's evidence existing
+before the employer's (`SIG10`, `agreement_not_awaiting`); the signer to be the employee's own
+active participant for `employee` and an active client administrator of the client for `employer`
+(`SIG10`, `agreement_signer_not_party`); and the session as for a training signature (`SIG09`).
+After the insert a trigger moves the agreement on: `storage_path` and `employee_signed_at`, or
+`storage_path`, `employer_signed_at`, `signed_at` and `signed_electronically`. Any update, delete
+or truncate raises `SIG06`. Members read their organization's, participants the ones on their own
+agreement, administrators the client's; nobody but the secret key writes.
+
+**The evidence columns participants cannot read.** On `training_signatures` and
+`agreement_signatures`, `authenticated` has `SELECT` on the columns that say who signed what and
+when (the ids, the slot or party, the method, the signer's account and printed name and function,
+`signed_at`, `marked_by`, the void columns and `created_at`), not on `address`, `channel`,
+`code_sent_at`, `code_verified_at`, the digests, `certificate_serial`, `client_ip`, `user_agent`,
+`signing_session_id` or `storage_path`: members, participants and administrators alike get `42501`
+for those, which the API reads with the secret key only.
+
+`signing_session_items` says what one signing session signs, in `position` order: a
+`request_id`, or an `agreement_employee_id` with the `agreement_party` and the `agreement_digest`,
+what the agreement was when the code was asked for, never both kinds, each once per session. It has
+row-level security and no policy: the API writes it with the session and reads it back when the
+code is typed.
+
+`signed_sheets` is an individual training sheet stored as a PDF form for signing: one per
+`employee_id`, `domain` and `sequence`, the continuation sheets counting up, with its
+`storage_path`, the `digest` (SHA-256, hex) and `version` of the current bytes, the `row_capacity`
+of periodic rows and the `rows_used`, the highest `p` row taken (a voided row's key is never
+reused), and `certified_at` from its first signature. `signed_sheet_rows` says which
+`training_record_id` fills which `row_key` of a sheet: `h1` and `h2` for the hiring trainings, `adm`
+for the admission, `p1` and onward for the periodic rows, and `s1` and onward for the occupational
+safety sheet's supplementary table; one row per key and sheet, and one live row per record,
+`voided_at` marking a row _anulat_ and `void_noted_at` when the PDF's note said so. Each row has
+the `client_id` of its sheet and record, and a trigger requires its record to be of the sheet's
+employee and domain (`23514`, `row_not_of_sheet`). `printed_as_text` marks a record from paper the
+sheet printed as text when it was drawn up, which has no fields to fill; `filled_digest` is the
+SHA-256 of the values last filled into the other rows' fields. The workplace training's record
+takes `h2` and fills the admission block with it, so the API never writes `adm`. Only the secret key
+writes either. What the rows' fields are, and how the API fills them, is in
+[the document engine's Sheets section](document-engine.md#the-signed-sheet).
+
+### The freeze and the void
+
+A record with a live electronic signature (`method = 'electronic'`, `voided_at` null), or a record
+from paper printed on a sheet whose `certified_at` is set, is **frozen**: an update of its
+training's `domain`, `phase`, `held_on`, `duration_minutes`, `material`, `trainer_name`,
+`trainer_job_title`, `verifier_name`, `verifier_job_title`, `supplementary_reason` or `source`, or
+of its own `occupation`, `admitted_on`, `admitted_by_name`, `admitted_by_job_title`,
+`employee_id`, `training_id` or `client_id`, raises `SIG01` (`record_signed`), whoever makes it,
+`save_training` included. A paper signature does not freeze. A training or record with any
+signature row, paper or void included, or with a row on a stored sheet, is not deleted (`SIG01`,
+`record_has_signatures`), since the evidence and the printed row are kept. The same columns
+changing set the record's `pending` requests to `void` with `record_changed`, a source switched to
+paper among them, for the API to issue again; signed requests stay.
+
+**Standing lost.** When a participant is revoked or removed, or a member leaves the organization,
+their pending requests that they may no longer sign are voided with `signer_left`; a request the
+account still has standing for, as a member and a participant at once, stays. Archiving a client
+voids its pending requests with `archived`, in a trigger that runs before the client's own
+archiving checks.
+
+| Function                                              | Caller | What it does                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `void_training_signatures(record, reason)`            | member | Voids every live signature of the record, paper ones included, with the trimmed reason and the caller as `voided_by`, and every request that is not void, so that the slots can be requested again; when an electronic signature was among them, voids the record's live sheet row too. Returns the signatures voided. The record is then editable. |
+| `mark_paper_signature(record, slot, name, job_title)` | member | Voids a pending request of the slot with `signed_on_paper`, inserts a request without a signer and the paper evidence, which signs it, and returns the signature. Refuses a slot with a live signature (`SIG02`) or one the record lacks (`SIG03`).                                                                                                 |
+| `issue_signature_requests(requests)`                  | member | A save's requests in one transaction: each element `{ training_record_id, slot, signer_account_id, replaces, reason }` voids the pending request `replaces` with `reason` and inserts the new one, so that a request is voided only together with its replacement. Answers the inserted rows.                                                       |
+
+All three take `p_`-prefixed arguments and refuse a caller without a membership (`42501`) and a
+record of another organization (`P0002`, `record_not_found`); the first two also an archived
+client (`CLA01`) and a blank reason or name (`SIG04`, `reason_required` or
+`signer_name_required`).
+
+### Who reads what
+
+Members read the requests, signatures, agreements, sheets and sheet rows of their organization.
+They insert requests naming only `organization_id`, `client_id`, `training_record_id`, `slot` and
+`signer_account_id` (the column grant), `pending` and issued by themselves, for an active client,
+write the agreements, and change the rest only through the functions above.
+
+| Table                         | Anyone reads                   | An employee participant reads | An administrator also reads |
+| ----------------------------- | ------------------------------ | ----------------------------- | --------------------------- |
+| `signature_requests`          | the requests addressed to them | those on their own records    | the client's                |
+| `training_signatures`         | their own signatures           | those on their own records    | the client's                |
+| `employee_signing_agreements` |                                | their own                     | the client's                |
+| `agreement_signatures`        | their own signatures           | those on their own agreement  | the client's                |
+| `signed_sheets`               |                                | their own                     | the client's                |
+| `signed_sheet_rows`           |                                | the rows of their own sheets  | the client's                |
+
+"Them" is the real signed-in user, as in the other participant policies; the two evidence tables
+only in the columns above. Errors, raised with these SQLSTATEs:
+
+- `SIG01` the record is signed: `record_signed` for a change to what it prints,
+  `record_has_signatures` for a delete
+- `SIG02` the slot already has a live signature
+- `SIG03` the slot is not on the record
+- `SIG04` the request does not hold together: `reason_required`, `signer_name_required`
+- `SIG05` the signer cannot sign this slot: `signer_not_of_client`, `signer_not_addressed`,
+  `agreement_withdrawn`
+- `SIG06` a signature or an identity is written once: `signature_written_once`, `identity_kept`
+- `SIG07` only the signing flow sets or undoes an electronic agreement
+- `SIG08` the request is not pending: `request_not_pending`
+- `SIG09` the session does not cover the signature, or was used: `session_mismatch`,
+  `session_used`
+- `SIG10` the agreement does not take it: `agreement_not_awaiting`,
+  `agreement_signer_not_party`, `agreement_recorded`
 
 ## Waitlist subscribers
 

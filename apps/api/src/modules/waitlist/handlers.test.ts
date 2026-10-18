@@ -23,6 +23,8 @@ const env: ApiEnv['Bindings'] = {
     sendSignedCopyReceived: vi.fn(),
     sendParticipantInvitation: vi.fn(),
     sendSignInCode: vi.fn(),
+    sendSigningCode: vi.fn(),
+    sendSignatureRequest: vi.fn(),
   },
 };
 

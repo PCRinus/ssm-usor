@@ -15,13 +15,21 @@ const pdfBytes = new TextEncoder().encode('%PDF-1.7 sheet');
 const convertDocx = vi.fn<(docx: ArrayBuffer) => Promise<ArrayBuffer>>(
   async () => pdfBytes.slice().buffer
 );
+const mergePdfs = vi.fn<(files: ArrayBuffer[]) => Promise<ArrayBuffer>>(
+  async () => new TextEncoder().encode('%PDF-1.7 merged').buffer as ArrayBuffer
+);
 
 const env = {
   SUPABASE_URL: 'https://example.supabase.co',
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
   SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
   PDF_CONVERSION: 'service',
-  PDF: { convertDocx, convertDocuments: (files: ArrayBuffer[]) => convertDocx(files[0]!) },
+  PDF: {
+    convertDocx,
+    convertDocuments: (files: ArrayBuffer[]) => convertDocx(files[0]!),
+    convertForm: convertDocx,
+    mergePdfs,
+  },
 } as ApiEnv['Bindings'];
 
 const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ion@example.ro' };
@@ -134,7 +142,32 @@ const upstreamDefaults = {
   employees: () => Response.json([employeeRow]),
   records: () => Response.json([recordRow]),
   responsiblePersons: () => Response.json([responsiblePersonRow]),
+  signedSheets: (url: URL): Response => {
+    void url;
+    return Response.json([]);
+  },
 };
+
+const storedSheetBytes = new TextEncoder().encode('%PDF-1.7 signed sheet');
+const storedSheetRow = {
+  id: '5d5d5d5d-0000-4000-8000-000000000001',
+  organization_id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10',
+  client_id: clientId,
+  employee_id: employeeId,
+  domain: 'ssm',
+  sequence: 1,
+  storage_path: `signed-sheets/${clientId}/${employeeId}/ssm-1/v3-abcdef12.pdf`,
+  digest: 'd'.repeat(64),
+  version: 3,
+  row_capacity: 17,
+  rows_used: 1,
+  certified_at: '2026-10-18T09:30:00+00:00',
+  created_at: '2026-10-18T09:00:00+00:00',
+};
+const withStoredSheet = (url: URL) =>
+  Response.json(
+    [url.searchParams.get('domain') ?? 'eq.ssm'].includes('eq.ssm') ? [storedSheetRow] : []
+  );
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -143,6 +176,12 @@ function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     const method = init?.method ?? 'GET';
+    if (url.pathname.startsWith('/storage/v1/object/sign/documents/')) {
+      if (method === 'POST') {
+        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+      }
+      return new Response(storedSheetBytes);
+    }
     if (url.pathname.startsWith('/storage/v1/object/sign/document-templates/')) {
       if (method === 'POST') {
         return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
@@ -166,6 +205,8 @@ function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
         return upstream.records();
       case '/rest/v1/client_responsible_persons':
         return upstream.responsiblePersons();
+      case '/rest/v1/signed_sheets':
+        return upstream.signedSheets(url);
       case '/rest/v1/organizations':
         return Response.json({ name: 'Protect SSM', phone: '+40256000000' });
       case '/rest/v1/clients':
@@ -461,9 +502,32 @@ describe('the sheets', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      ssm: { ready: true, missing: [] },
-      psi: { ready: true, missing: [] },
+      ssm: { ready: true, missing: [], stored: false, sequences: [] },
+      psi: { ready: true, missing: [], stored: false, sequences: [] },
     });
+  });
+
+  it('answers the stored signed sheet once signing has started, read with the secret key', async () => {
+    mockUpstream({
+      employees: () => Response.json([{ ...employeeRow, commute_route: null }]),
+      signedSheets: withStoredSheet,
+    });
+
+    const readiness = await request(own('/sheets'));
+    expect(await readiness.json()).toEqual({
+      ssm: { ready: true, missing: [], stored: true, sequences: [1] },
+      psi: { ready: true, missing: [], stored: false, sequences: [] },
+    });
+
+    const response = await request(own('/sheets/ssm'));
+    expect(response.status).toBe(200);
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(storedSheetBytes);
+    const [signed] = calls(`/storage/v1/object/sign/documents/${storedSheetRow.storage_path}`);
+    expect(signed?.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
+    expect(calls('/rest/v1/signed_sheets')[0]?.headers.get('Authorization')).toBe(
+      'Bearer user-token'
+    );
+    expect(convertDocx).not.toHaveBeenCalled();
   });
 
   it('draws their sheet, reading the template with the secret key', async () => {

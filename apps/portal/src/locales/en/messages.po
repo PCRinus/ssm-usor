@@ -7,6 +7,40 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
+#. placeholder {0}: error.attemptsLeft
+#: src/features/signing/signing-page.tsx
+msgid "{0, plural, one {Codul nu este corect. Mai ai o încercare.} few {Codul nu este corect. Mai ai # încercări.} other {Codul nu este corect. Mai ai # de încercări.}}"
+msgstr "{0, plural, one {The code is wrong. You have one attempt left.} other {The code is wrong. You have # attempts left.}}"
+
+#. placeholder {0}: signed.length
+#: src/features/signing/client-signatures-page.tsx
+msgid "{0, plural, one {Un act adițional semnat electronic de ambele părți} few {# acte adiționale semnate electronic de ambele părți} other {# de acte adiționale semnate electronic de ambele părți}}"
+msgstr "{0, plural, one {One addendum signed electronically by both parties} other {# addenda signed electronically by both parties}}"
+
+#. placeholder {0}: item.employeeName
+#. placeholder {1}: formatDate(item.employeeSignedAt.slice(0, 10), 'short')
+#: src/features/signing/signing-item-text.tsx
+msgid "{0}, semnat de angajat pe {1}; semnezi ca angajator."
+msgstr "{0}, signed by the employee on {1}; you sign as the employer."
+
+#. placeholder {0}: item.employeeName
+#: src/features/signing/signing-item-text.tsx
+msgid "{0}; semnezi ca angajator."
+msgstr "{0}; you sign as the employer."
+
+#. placeholder {0}: formatDuration(record.durationMinutes)
+#. placeholder {1}: record.trainer.name
+#. placeholder {2}: record.trainer.jobTitle
+#: src/features/signing/signing-page.tsx
+msgid "{0}. Instructor {1}, {2}."
+msgstr "{0}. Trainer {1}, {2}."
+
+#. placeholder {0}: formatDuration(record.durationMinutes)
+#. placeholder {1}: record.trainer.name
+#: src/features/signing/signing-page.tsx
+msgid "{0}. Instructor {1}."
+msgstr "{0}. Trainer {1}."
+
 #: src/features/training/training-sheets.tsx
 msgid "{count, plural, one {# instruire, actualizată {updated}} few {# instruiri, actualizată {updated}} other {# de instruiri, actualizată {updated}}}"
 msgstr "{count, plural, one {# session, updated {updated}} other {# sessions, updated {updated}}}"
@@ -15,9 +49,17 @@ msgstr "{count, plural, one {# session, updated {updated}} other {# sessions, up
 msgid "{count, plural, one {angajat} few {angajați} other {de angajați}}"
 msgstr "{count, plural, one {employee} other {employees}}"
 
+#: src/features/signing/signing-page.tsx
+msgid "{count, plural, one {Codul e valabil 10 minute și semnează documentul ales.} few {Codul e valabil 10 minute și semnează cele # documente alese.} other {Codul e valabil 10 minute și semnează cele # de documente alese.}}"
+msgstr "{count, plural, one {The code is valid for 10 minutes and signs the document you chose.} other {The code is valid for 10 minutes and signs the # documents you chose.}}"
+
 #: src/features/training/missing-sheet-data.ts
 msgid "{count, plural, one {Fișa nu poate fi întocmită încă: lipsește {items}; spune-i specialistului.} few {Fișa nu poate fi întocmită încă: lipsesc {items}; spune-i specialistului.} other {Fișa nu poate fi întocmită încă: lipsesc {items}; spune-i specialistului.}}"
 msgstr "{count, plural, one {The sheet cannot be drawn up yet: the {items} is missing; tell the specialist.} other {The sheet cannot be drawn up yet: the {items} are missing; tell the specialist.}}"
+
+#: src/features/signing/signatures-panel.tsx
+msgid "{count, plural, one {O semnătură așteaptă la angajați} few {# semnături așteaptă la angajați} other {# de semnături așteaptă la angajați}}"
+msgstr "{count, plural, one {One signature still due from employees} other {# signatures still due from employees}}"
 
 #: src/lib/format.ts
 msgid "{hours, plural, one {# oră} few {# ore} other {# de ore}}"
@@ -31,6 +73,15 @@ msgstr "{hoursText} and {minutesText}"
 msgid "{minutes, plural, one {# minut} few {# minute} other {# de minute}}"
 msgstr "{minutes, plural, one {# minute} other {# minutes}}"
 
+#: src/features/signing/signing-item-text.tsx
+msgid "{other}: {phase} {domain}"
+msgstr "{other}: {phase}, {domain}"
+
+#: src/features/signing/client-signatures-page.tsx
+#: src/features/signing/signing-item-text.tsx
+msgid "{phase} {domain}"
+msgstr "{phase}, {domain}"
+
 #: src/features/training/training-records-list.tsx
 msgid "{phase}, admis la lucru"
 msgstr "{phase}, cleared to work"
@@ -38,6 +89,10 @@ msgstr "{phase}, cleared to work"
 #: src/lib/format.ts
 msgid "{rest, plural, one {# minut} few {# minute} other {# de minute}}"
 msgstr "{rest, plural, one {# minute} other {# minutes}}"
+
+#: src/features/signing/signing-page.tsx
+msgid "{signed, plural, one {Ai semnat documentul.} few {Ai semnat cele # documente.} other {Ai semnat cele # de documente.}}"
+msgstr "{signed, plural, one {You signed the document.} other {You signed the # documents.}}"
 
 #: src/features/participation/privacy-notice.tsx
 msgid "<0>{clientName}</0> este angajatorul tău."
@@ -59,9 +114,55 @@ msgstr "Home"
 msgid "Accesul la portal nu este încă configurat. Revino puțin mai târziu."
 msgstr "Access to the portal is not set up yet. Please come back a little later."
 
+#: src/features/signing/signing-item-text.tsx
+msgid "act adițional nesemnat"
+msgstr "addendum not signed"
+
+#: src/features/signing/client-signatures-page.tsx
+msgid "Acte adiționale de semnat de angajator"
+msgstr "Addenda for the employer to sign"
+
+#: src/features/employees/employees-page.tsx
+msgid "Acte adiționale de semnat și instruiri nesemnate"
+msgstr "Addenda to sign and unsigned trainings"
+
+#: src/features/signing/client-signatures-page.tsx
+msgid "Actele adiționale care așteaptă semnătura angajatorului și instruirile pe care angajații nu le-au semnat încă."
+msgstr "The addenda waiting for the employer's signature and the trainings employees have not signed yet."
+
+#: src/features/signing/agreement-section.tsx
+msgid "Actul adițional la contractul de muncă prin care accepți să semnezi fișele de instruire în portal."
+msgstr "The addendum to your employment contract by which you agree to sign your training sheets in the portal."
+
+#: src/features/signing/signing-messages.ts
+msgid "Actul adițional nu mai așteaptă semnătura ta: a fost semnat sau schimbat între timp."
+msgstr "The addendum no longer waits for your signature: it was signed or changed in the meantime."
+
+#: src/features/signing/signing-messages.ts
+msgid "Actul adițional nu poate fi întocmit încă: lipsesc date ale firmei pe care le completează specialistul."
+msgstr "The addendum cannot be drawn up yet: some company details the specialist fills in are missing."
+
+#: src/features/signing/signing-item-text.tsx
+msgid "Actul adițional prin care accepți să semnezi fișele de instruire în portal."
+msgstr "The addendum by which you agree to sign your training sheets in the portal."
+
+#: src/features/signing/agreement-pdf-button.tsx
+#: src/features/signing/agreement-section.tsx
+#: src/features/signing/signing-item-text.tsx
+msgid "Actul adițional privind semnarea electronică"
+msgstr "Electronic signing addendum"
+
+#: src/features/signing/signing-messages.ts
+msgid "Actul adițional s-a schimbat de când ai cerut codul. Cere un cod nou și semnează din nou."
+msgstr "The addendum changed since you asked for the code. Ask for a new code and sign again."
+
 #: src/lib/labels.ts
 msgid "Administratorul clientului"
 msgstr "Client administrator"
+
+#: src/features/signing/signing-messages.ts
+msgid "admite la lucru"
+msgstr "admits to work"
 
 #: src/features/account/account-page.tsx
 msgid "Adresa cu care intri în portal și clientul pe care îl vezi."
@@ -79,6 +180,36 @@ msgstr "This address does not lead anywhere in the portal."
 msgid "Ai acces la portal pentru <0>{clientName}</0>."
 msgstr "You have access to the portal for <0>{clientName}</0>."
 
+#. placeholder {0}: selected.length
+#. placeholder {1}: items.length
+#: src/features/signing/signing-page.tsx
+msgid "Ai bifat {0} din {1}."
+msgstr "You ticked {0} of {1}."
+
+#: src/features/signing/signing-page.tsx
+msgid "Ai cerut un cod acum mai puțin de un minut."
+msgstr "You asked for a code less than a minute ago."
+
+#: src/features/signing/agreement-section.tsx
+msgid "Ai revenit la semnarea de mână: fișele tale se semnează pe hârtie."
+msgstr "You went back to signing by hand: your sheets are signed on paper."
+
+#: src/features/signing/signing-page.tsx
+msgid "Ai semnat actul adițional ca angajator."
+msgstr "You signed the addendum for the employer."
+
+#: src/features/signing/signing-page.tsx
+msgid "Ai semnat actul adițional. Specialistul îl vede semnat de tine."
+msgstr "You signed the addendum. Your specialist sees it signed by you."
+
+#: src/features/signing/signing-page.tsx
+msgid "Ai semnat instruirea. Semnătura e pe fișa angajatului."
+msgstr "You signed the training. The signature is on the employee's sheet."
+
+#: src/features/signing/signing-page.tsx
+msgid "Ai semnat instruirea. Semnătura e pe fișa ta."
+msgstr "You signed the training. The signature is on your sheet."
+
 #: src/features/participation/privacy-notice.tsx
 msgid "Aici vezi instruirile tale, fișele tale individuale de instruire și datele tale de identificare, așa cum sunt trecute pe fișe."
 msgstr "Here you see your training sessions, your individual training sheets and your identification details, as they appear on the sheets."
@@ -91,6 +222,10 @@ msgstr "Here you see, on the employer's behalf, the company's employees with the
 msgid "Alege clientul"
 msgstr "Choose the client"
 
+#: src/features/signing/signing-page.tsx
+msgid "Alegi"
+msgstr "Choose"
+
 #: src/features/auth/sign-in-page.tsx
 msgid "Am cerut un cod nou. Folosește-l pe cel mai recent."
 msgstr "We asked for a new code. Use the most recent one."
@@ -98,6 +233,18 @@ msgstr "We asked for a new code. Use the most recent one."
 #: src/features/participation/privacy-notice.tsx
 msgid "Am înțeles"
 msgstr "Got it"
+
+#: src/features/signing/signing-page.tsx
+msgid "Am trimis un cod la <0>{hint}</0>."
+msgstr "We sent a code to <0>{hint}</0>."
+
+#: src/features/signing/signing-page.tsx
+msgid "Am trimis un cod nou. Folosește-l pe cel mai recent."
+msgstr "We sent a new code. Use the most recent one."
+
+#: src/features/signing/signing-page.tsx
+msgid "Am trimis un cod prin SMS la <0>{hint}</0>."
+msgstr "We sent a code by text message to <0>{hint}</0>."
 
 #: src/features/employees/employee-page.tsx
 #: src/lib/labels.ts
@@ -113,8 +260,13 @@ msgstr "Employed since"
 #: src/features/employees/employee-page.tsx
 #: src/features/employees/employees-page.tsx
 #: src/features/home/home-page.tsx
+#: src/features/signing/client-signatures-page.tsx
 msgid "Angajați"
 msgstr "Employees"
+
+#: src/features/signing/signatures-panel.tsx
+msgid "Angajații nu au nimic de semnat."
+msgstr "Employees have nothing to sign."
 
 #: src/features/participation/privacy-notice.tsx
 msgid "Angajatorul este obligat să țină aceste evidențe de Legea nr. 319/2006 a securității și sănătății în muncă, de HG nr. 1425/2006 și de OMAI nr. 712/2005. Datele sunt prelucrate pentru aceste obligații legale, nu pe baza unui acord pe care să ți-l cerem, iar portalul doar ți le arată. Dacă ceva nu este corect, spune-i specialistului {organizationName}."
@@ -124,13 +276,34 @@ msgstr "The employer must keep these records under Legea nr. 319/2006 (Law 319/2
 msgid "Angajatul nu a fost găsit"
 msgstr "Employee not found"
 
+#: src/features/training/training-records-list.tsx
+msgid "Așteaptă semnătura ta ({roles})."
+msgstr "Waiting for your signature ({roles})."
+
+#: src/features/signing/agreement-section.tsx
+msgid "Așteaptă semnătura ta."
+msgstr "Waiting for your signature."
+
+#: src/features/signing/client-signatures-page.tsx
+#: src/features/training/training-records-list.tsx
+msgid "Așteaptă semnătura: {people}."
+msgstr "Waiting for: {people}."
+
 #: src/features/my-data/my-data-page.tsx
 msgid "Autorizații"
 msgstr "Authorizations"
 
+#: src/features/signing/signing-page.tsx
+msgid "Bifează ce vrei să semnezi. Îți trimitem un cod, iar codul semnează doar ce ai bifat."
+msgstr "Tick what you want to sign. We send you a code, and the code signs only what you ticked."
+
 #: src/features/training/use-sheet-actions.ts
 msgid "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal sau descarcă fișa."
 msgstr "The browser blocked the new window. Allow pop-up windows for the portal or download the sheet."
+
+#: src/features/signing/agreement-pdf-button.tsx
+msgid "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal."
+msgstr "The browser blocked the new window. Allow new windows for the portal."
 
 #. placeholder {0}: participation.fullName
 #: src/features/participation/privacy-notice.tsx
@@ -149,6 +322,14 @@ msgstr "Search by name"
 msgid "Caută un angajat după nume"
 msgstr "Search for an employee by name"
 
+#: src/features/signing/signing-page.tsx
+msgid "Ce semnează codul"
+msgstr "What the code signs"
+
+#: src/features/signing/signing-page.tsx
+msgid "Ce semnezi"
+msgstr "What you sign"
+
 #: src/features/participation/privacy-notice-page.tsx
 msgid "Ce ți-am spus la prima intrare în portal."
 msgstr "What we told you the first time you signed in to the portal."
@@ -157,25 +338,66 @@ msgstr "What we told you the first time you signed in to the portal."
 msgid "Ce tipăresc fișele tale de instruire, așa cum le ține angajatorul."
 msgstr "What your training sheets print, as your employer keeps it."
 
+#: src/features/signing/signing-page.tsx
+msgid "Cere un cod nou"
+msgstr "Ask for a new code"
+
+#: src/features/signing/signing-page.tsx
+msgid "Cere un cod nou în {secondsLeft} s"
+msgstr "Ask for a new code in {secondsLeft} s"
+
 #: src/features/auth/sign-in-page.tsx
+#: src/features/signing/signing-messages.ts
 msgid "Cererea nu a putut fi trimisă. Verifică conexiunea la internet și încearcă din nou."
 msgstr "The request could not be sent. Check your internet connection and try again."
+
+#: src/features/signing/signing-messages.ts
+msgid "Ceva din listă nu mai așteaptă semnătura ta. Am actualizat lista; verifică-o și cere din nou codul."
+msgstr "Something on the list no longer waits for your signature. We updated the list; check it and ask for the code again."
 
 #: src/features/my-data/provider-box.tsx
 msgid "Ceva nu e corect?"
 msgstr "Something not right?"
 
+#: src/features/signing/agreement-section.tsx
+msgid "Clauza este în contractul tău de muncă."
+msgstr "The clause is in your employment contract."
+
 #: src/features/account/account-page.tsx
 msgid "Clientul"
 msgstr "Client"
+
+#: src/features/signing/signing-page.tsx
+msgid "Codul"
+msgstr "Code"
+
+#: src/features/signing/signing-messages.ts
+msgid "Codul a expirat: e valabil 10 minute. Cere un cod nou."
+msgstr "The code has expired: it is valid for 10 minutes. Ask for a new code."
+
+#: src/features/signing/signing-messages.ts
+msgid "Codul a fost deja folosit. Cere un cod nou."
+msgstr "The code was already used. Ask for a new code."
+
+#: src/features/signing/signing-messages.ts
+msgid "Codul a fost greșit de trei ori. Cere un cod nou."
+msgstr "The code was typed wrong three times. Ask for a new code."
 
 #: src/features/auth/sign-in-page.tsx
 msgid "Codul de intrare"
 msgstr "Sign-in code"
 
+#: src/features/signing/signing-page.tsx
+msgid "Codul de semnare"
+msgstr "Signing code"
+
 #: src/features/auth/sign-in-page.tsx
 msgid "Codul nu este corect sau a expirat. Verifică-l sau cere un cod nou."
 msgstr "The code is not correct or has expired. Check it or ask for a new code."
+
+#: src/features/signing/signing-page.tsx
+msgid "Codul nu este corect. Verifică-l și scrie-l din nou."
+msgstr "The code is wrong. Check it and type it again."
 
 #: src/lib/labels.ts
 msgid "Conducător al locului de muncă"
@@ -212,6 +434,15 @@ msgstr "with training overdue"
 #: src/features/home/home-page.tsx
 msgid "cu instruirea scadentă"
 msgstr "with training due"
+
+#. placeholder {0}: selected.length - signingLimit
+#: src/features/signing/signing-page.tsx
+msgid "Cu un cod semnezi cel mult {signingLimit} de documente. Debifează {0}; pe celelalte le semnezi apoi cu alt cod."
+msgstr "One code signs at most {signingLimit} documents. Untick {0}; you sign the others afterwards with another code."
+
+#: src/features/signing/signing-messages.ts
+msgid "Cu un cod semnezi cel mult 30 de documente. Debifează câteva și cere din nou codul."
+msgstr "One code signs at most 30 documents. Untick a few and ask for the code again."
 
 #: src/app/portal-footer.tsx
 #: src/features/account/account-page.tsx
@@ -255,6 +486,7 @@ msgstr "Download"
 msgid "Descarcă fișa {label}"
 msgstr "Download the {label} sheet"
 
+#: src/features/signing/agreement-pdf-button.tsx
 #: src/features/training/training-sheets.tsx
 msgid "Deschide PDF"
 msgstr "Open PDF"
@@ -262,6 +494,14 @@ msgstr "Open PDF"
 #: src/features/employees/employee-training-states.tsx
 msgid "din {due}"
 msgstr "since {due}"
+
+#: src/features/signing/signing-messages.ts
+msgid "Documentul nu a putut fi pregătit. Încearcă din nou peste câteva minute."
+msgstr "The document could not be prepared. Try again in a few minutes."
+
+#: src/features/signing/signing-messages.ts
+msgid "Documentul nu poate fi întocmit încă. Spune-i specialistului."
+msgstr "The document cannot be drawn up yet. Tell your specialist."
 
 #: src/features/my-data/my-data-page.tsx
 msgid "Domiciliu"
@@ -291,6 +531,10 @@ msgstr "The records of occupational safety (SSM) and fire safety (PSI) training 
 msgid "Executarea unor lucrări speciale"
 msgstr "Carrying out special works"
 
+#: src/features/signing/signing-page.tsx
+msgid "Fiecare document se semnează pe rând; poate dura câteva secunde."
+msgstr "Each document is signed in turn; this can take a few seconds."
+
 #: src/features/training/training-page.tsx
 msgid "Fiecare instruire la care ai participat, cea mai recentă prima. Fișele adună aceste rânduri."
 msgstr "Every training session you took part in, the most recent first. The sheets gather these rows."
@@ -299,9 +543,25 @@ msgstr "Every training session you took part in, the most recent first. The shee
 msgid "Fiind și angajat, vezi și instruirile tale, fișele tale și datele tale de identificare."
 msgstr "As you are also an employee, you also see your own training sessions, sheets and identification details."
 
+#: src/features/signing/signing-messages.ts
+msgid "Firma nu mai este activă în aplicație, așa că nu se mai semnează nimic pentru ea."
+msgstr "The company is no longer active in the app, so nothing more is signed for it."
+
 #: src/features/training/training-sheets.tsx
 msgid "Fișa {label}"
 msgstr "{label} sheet"
+
+#: src/features/training/training-sheets.tsx
+msgid "Fișa {sequence} (continuare)"
+msgstr "Sheet {sequence} (continued)"
+
+#: src/features/training/training-sheets.tsx
+msgid "Fișa 1"
+msgstr "Sheet 1"
+
+#: src/features/signing/signing-messages.ts
+msgid "Fișa era folosită chiar atunci de altă semnătură. Încearcă din nou peste un minut."
+msgstr "The sheet was taking another signature at that moment. Try again in a minute."
 
 #: src/features/training/training-sheets.tsx
 #: src/features/training/use-sheet-actions.ts
@@ -312,6 +572,27 @@ msgstr "Individual training sheet, {label}"
 msgid "Fișa individuală {label}, PDF"
 msgstr "{label} training sheet (PDF)"
 
+#: src/features/training/training-summary.tsx
+msgid "Fișa individuală {label}, semnată electronic, PDF"
+msgstr "Individual {label} sheet, signed electronically, PDF"
+
+#: src/features/signing/signing-messages.ts
+msgid "Fișa nu a putut fi certificată. Spune-i specialistului."
+msgstr "The sheet could not be certified. Tell the specialist."
+
+#: src/features/signing/signing-messages.ts
+msgid "Fișa nu are loc pentru această semnătură. Spune-i specialistului."
+msgstr "The sheet has no place for this signature. Tell your specialist."
+
+#: src/features/signing/signing-messages.ts
+msgid "Fișa nu are rubricile așteptate. Spune-i specialistului."
+msgstr "The sheet does not have the expected fields. Tell the specialist."
+
+#: src/features/signing/signing-messages.ts
+msgid "Fișa nu mai poate primi această semnătură. Spune-i specialistului."
+msgstr "The sheet can no longer take this signature. Tell the specialist."
+
+#: src/features/signing/signing-messages.ts
 #: src/features/training/use-sheet-actions.ts
 msgid "Fișa nu poate fi întocmită încă: lipsesc date pe care le completează specialistul."
 msgstr "The sheet cannot be drawn up yet: data the specialist fills in is missing."
@@ -319,6 +600,18 @@ msgstr "The sheet cannot be drawn up yet: data the specialist fills in is missin
 #: src/features/training/use-sheet-actions.ts
 msgid "Fișa nu poate fi pregătită acum. Încearcă din nou peste câteva minute."
 msgstr "The sheet cannot be prepared right now. Try again in a few minutes."
+
+#: src/features/signing/signing-messages.ts
+msgid "Fișa nu poate primi semnătura acum. Spune-i specialistului."
+msgstr "The sheet cannot take the signature right now. Tell the specialist."
+
+#: src/features/training/training-sheets.tsx
+msgid "Fișă semnată electronic"
+msgstr "Signed electronically"
+
+#: src/features/training/use-sheet-actions.ts
+msgid "Fisa-individuala-{label}-{sequence}.pdf"
+msgstr "Individual-training-sheet-{label}-{sequence}.pdf"
 
 #: src/features/training/use-sheet-actions.ts
 msgid "Fisa-individuala-{label}.pdf"
@@ -340,6 +633,10 @@ msgstr "Use another address"
 msgid "Funcția din contract"
 msgstr "Contract title"
 
+#: src/features/signing/signing-page.tsx
+msgid "Gata"
+msgstr "Done"
+
 #: src/features/my-data/my-data-page.tsx
 msgid "Grupa sanguină"
 msgstr "Blood group"
@@ -349,11 +646,21 @@ msgstr "Blood group"
 msgid "Ieși din cont"
 msgstr "Sign out"
 
+#: src/features/signing/signing-page.tsx
+msgid "Înapoi la Acasă"
+msgstr "Back to Home"
+
 #: src/app/App.tsx
 #: src/components/page.tsx
 #: src/features/participation/participant-gate.tsx
+#: src/features/signing/signatures-panel.tsx
+#: src/features/signing/signing-page.tsx
 msgid "Încearcă din nou"
 msgstr "Try again"
+
+#: src/features/signing/signing-messages.ts
+msgid "instructor"
+msgstr "trainer"
 
 #: src/features/training/training-records-list.tsx
 msgid "Instructor {name}, {jobTitle}. {duration}."
@@ -396,6 +703,10 @@ msgstr "Training"
 msgid "Instruirile tale"
 msgstr "Your training sessions"
 
+#: src/features/signing/signing-messages.ts
+msgid "instruit"
+msgstr "trainee"
+
 #: src/features/auth/sign-in-page.tsx
 msgid "Intră"
 msgstr "Sign in"
@@ -415,6 +726,11 @@ msgstr "Introduction of a new technology or work procedure"
 #: src/lib/labels.ts
 msgid "Introducerea unui echipament de muncă sau modificarea celui existent"
 msgstr "Introduction of new work equipment or a change to existing equipment"
+
+#. placeholder {0}: day(agreement.employeeSignedAt)
+#: src/features/signing/agreement-section.tsx
+msgid "L-ai semnat pe {0}. Așteaptă semnătura angajatorului."
+msgstr "You signed it on {0}. Waiting for the employer's signature."
 
 #: src/features/my-data/my-data-page.tsx
 msgid "La locul de muncă"
@@ -465,6 +781,10 @@ msgstr "Not filled in"
 msgid "Neinstruit"
 msgstr "Not trained"
 
+#: src/features/signing/signing-page.tsx
+msgid "Nesemnat"
+msgstr "Not signed"
+
 #: src/features/training/training-summary.tsx
 msgid "Nestabilită"
 msgstr "Not set"
@@ -477,6 +797,10 @@ msgstr "No training recorded yet."
 msgid "Nicio persoană responsabilă desemnată încă."
 msgstr "No responsible person appointed yet."
 
+#: src/features/signing/client-signatures-page.tsx
+msgid "Niciun act adițional nu așteaptă semnătura ta."
+msgstr "No addendum waits for your signature."
+
 #: src/features/employees/employees-page.tsx
 msgid "Niciun angajat cu acest nume."
 msgstr "No employee with this name."
@@ -485,9 +809,25 @@ msgstr "No employee with this name."
 msgid "Niciun angajat înregistrat încă."
 msgstr "No employees recorded yet."
 
-#: src/features/home/home-page.tsx
+#: src/features/signing/signatures-panel.tsx
 msgid "Nimic de semnat deocamdată. Când o instruire va avea nevoie de semnătura ta, apare aici."
 msgstr "Nothing to sign for now. When a training needs your signature, it shows up here."
+
+#: src/features/signing/signing-page.tsx
+msgid "Nimic nu mai așteaptă semnătura ta."
+msgstr "Nothing waits for your signature any more."
+
+#: src/features/signing/signing-messages.ts
+msgid "Nu a putut fi semnat. Încearcă din nou; dacă se repetă, spune-i specialistului."
+msgstr "It could not be signed. Try again; if it happens again, tell your specialist."
+
+#: src/features/signing/signing-page.tsx
+msgid "Nu ai bifat nimic."
+msgstr "You have not ticked anything."
+
+#: src/features/signing/agreement-pdf-button.tsx
+msgid "Nu am putut deschide documentul. Încearcă din nou."
+msgstr "We could not open the document. Try again."
 
 #: src/features/training/use-sheet-actions.ts
 msgid "Nu am putut deschide fișa. Verifică conexiunea la internet și încearcă din nou."
@@ -513,9 +853,33 @@ msgstr "We could not restore the session. Check your connection and try again."
 msgid "Nu am putut salva. Verifică conexiunea la internet și încearcă din nou."
 msgstr "We could not save. Check your internet connection and try again."
 
+#: src/features/signing/signing-messages.ts
+msgid "Nu am putut trimite codul. Încearcă din nou peste câteva minute."
+msgstr "We could not send the code. Try again in a few minutes."
+
+#: src/features/signing/signatures-panel.tsx
+msgid "Nu am putut verifica ce ai de semnat."
+msgstr "We could not check what you have to sign."
+
 #: src/features/training/training-sheets.tsx
 msgid "Nu am putut verifica fișele. Reîncarcă pagina."
 msgstr "We could not check the sheets. Reload the page."
+
+#: src/features/signing/signing-messages.ts
+msgid "Nu avem o adresă de email sau un telefon la care să-ți trimitem codul. Spune-i specialistului."
+msgstr "We have no email address or phone number to send your code to. Tell your specialist."
+
+#: src/features/signing/signing-messages.ts
+msgid "Nu mai așteaptă semnătura ta: a fost semnat, anulat sau modificat între timp."
+msgstr "It no longer waits for your signature: it was signed, cancelled or changed in the meantime."
+
+#: src/features/signing/signing-messages.ts
+msgid "Nu mai poți semna pentru această firmă. Spune-i specialistului."
+msgstr "You can no longer sign for this company. Tell the specialist."
+
+#: src/features/signing/signing-page.tsx
+msgid "Nu s-a semnat nimic. Vezi mai jos de ce."
+msgstr "Nothing was signed. See why below."
 
 #: src/features/auth/sign-in-address.ts
 msgid "Numărul nu pare scris corect. Scrie-l cu 0 în față, de exemplu 0721 234 567, sau cu prefixul țării, de exemplu +373 69 123 456."
@@ -540,6 +904,14 @@ msgstr "The page could not be loaded"
 #: src/features/employees/employee-training-states.tsx
 msgid "până la {due}"
 msgstr "until {due}"
+
+#: src/features/signing/signing-page.tsx
+msgid "Pașii semnării"
+msgstr "Signing steps"
+
+#: src/features/training/training-sheets.tsx
+msgid "PDF-ul de mai sus e o copie de citire. Semnăturile se verifică pe fișele originale:"
+msgstr "The PDF above is a reading copy. The signatures are verified on the original sheets:"
 
 #: src/lib/labels.ts
 msgid "Pericol grav și iminent"
@@ -577,6 +949,14 @@ msgstr "SSM Ușor portal"
 #: src/features/my-data/my-data-page.tsx
 msgid "Post de lucru"
 msgstr "Job position"
+
+#: src/features/signing/signing-page.tsx
+msgid "Poți cere altul în {secondsLeft} s."
+msgstr "You can ask for another in {secondsLeft} s."
+
+#: src/features/signing/signing-page.tsx
+msgid "Poți semna instruirile și fără actul adițional, dar specialistul le va vedea cu mențiunea „act adițional nesemnat” până îl semnezi."
+msgstr "You can sign the trainings without the addendum, but your specialist will see them marked \"addendum not signed\" until you sign it."
 
 #: src/features/auth/sign-in-page.tsx
 msgid "Prea multe încercări. Așteaptă puțin și încearcă din nou."
@@ -626,6 +1006,10 @@ msgstr "Return to work after a work accident"
 msgid "Reprezentantul lucrătorilor"
 msgstr "Workers' representative"
 
+#: src/features/signing/signing-page.tsx
+msgid "Rezultatul"
+msgstr "Result"
+
 #: src/features/my-data/my-data-page.tsx
 msgid "Rh negativ"
 msgstr "Rh negative"
@@ -634,13 +1018,26 @@ msgstr "Rh negative"
 msgid "Rh pozitiv"
 msgstr "Rh positive"
 
+#: src/features/signing/signing-messages.ts
+msgid "Rubrica era deja semnată."
+msgstr "The field was already signed."
+
 #: src/features/my-data/my-data-page.tsx
 msgid "Ruta"
 msgstr "Route"
 
+#. placeholder {0}: outcomes.length
+#: src/features/signing/signing-page.tsx
+msgid "S-au semnat {signed} din {0}. Vezi mai jos ce a rămas nesemnat și de ce."
+msgstr "{signed} of {0} were signed. See below what is still unsigned and why."
+
 #: src/lib/labels.ts
 msgid "Scadentă"
 msgstr "Due"
+
+#: src/features/signing/signing-page.tsx
+msgid "Schimbă ce semnezi"
+msgstr "Change what you sign"
 
 #: src/app/account-menu.tsx
 #: src/features/account/account-page.tsx
@@ -655,9 +1052,17 @@ msgstr "Enter the email address or phone number your invitation was sent to. We 
 msgid "Scrie adresa de email sau numărul de telefon."
 msgstr "Enter your email address or phone number."
 
+#: src/features/signing/signing-page.tsx
+msgid "Scrie codul"
+msgstr "Type the code"
+
 #: src/features/auth/sign-in-page.tsx
 msgid "Scrie codul primit"
 msgstr "Enter the code you received"
+
+#: src/features/signing/signing-page.tsx
+msgid "Scrie toate cele 6 cifre din cod."
+msgstr "Type all 6 digits of the code."
 
 #: src/features/auth/sign-in-page.tsx
 msgid "Scrie toate cifrele din cod."
@@ -673,6 +1078,10 @@ msgstr "Loading…"
 msgid "Se întocmește după prima instruire {label}."
 msgstr "Drawn up after the first {label} training."
 
+#: src/features/signing/agreement-pdf-button.tsx
+msgid "Se pregătește documentul…"
+msgstr "Preparing the document…"
+
 #: src/features/training/training-summary.tsx
 #: src/features/training/use-sheet-actions.ts
 msgid "Se pregătește fișa…"
@@ -682,11 +1091,17 @@ msgstr "Preparing the sheet…"
 msgid "Se salvează…"
 msgstr "Saving…"
 
+#: src/features/signing/signing-page.tsx
+msgid "Se semnează…"
+msgstr "Signing…"
+
 #: src/features/auth/sign-in-page.tsx
+#: src/features/signing/signing-page.tsx
 msgid "Se trimite…"
 msgstr "Sending…"
 
 #: src/features/auth/sign-in-page.tsx
+#: src/features/signing/signatures-panel.tsx
 #: src/features/training/training-sheets.tsx
 msgid "Se verifică…"
 msgstr "Checking…"
@@ -695,9 +1110,94 @@ msgstr "Checking…"
 msgid "Șef echipă de primă intervenție"
 msgstr "First-intervention team leader"
 
-#: src/features/home/home-page.tsx
+#: src/features/signing/signing-messages.ts
+msgid "Semnarea nu este disponibilă acum. Încearcă din nou mai târziu."
+msgstr "Signing is not available right now. Try again later."
+
+#: src/features/signing/signing-page.tsx
+msgid "Semnat"
+msgstr "Signed"
+
+#. placeholder {0}: day(agreement.employeeSignedAt)
+#: src/features/signing/client-signatures-page.tsx
+msgid "Semnat de angajat pe {0}; așteaptă semnătura ta."
+msgstr "Signed by the employee on {0}; waiting for your signature."
+
+#. placeholder {0}: day(agreement.employerSignedAt ?? agreement.signedAt)
+#: src/features/signing/agreement-section.tsx
+msgid "Semnat electronic de ambele părți pe {0}."
+msgstr "Signed electronically by both parties on {0}."
+
+#. placeholder {0}: day(agreement.employerSignedAt ?? agreement.signedAt)
+#: src/features/signing/client-signatures-page.tsx
+msgid "Semnat electronic pe {0}."
+msgstr "Signed electronically on {0}."
+
+#: src/features/signing/agreement-section.tsx
+msgid "Semnat pe hârtie."
+msgstr "Signed on paper."
+
+#: src/features/employees/employees-page.tsx
+#: src/features/signing/client-signatures-page.tsx
+#: src/features/signing/signatures-panel.tsx
 msgid "Semnături"
 msgstr "Signatures"
+
+#: src/features/signing/client-signatures-page.tsx
+msgid "Semnături în așteptare"
+msgstr "Pending signatures"
+
+#: src/features/signing/agreement-section.tsx
+#: src/features/signing/client-signatures-page.tsx
+#: src/features/signing/signing-page.tsx
+#: src/features/training/training-records-list.tsx
+msgid "Semnează"
+msgstr "Sign"
+
+#: src/features/signing/signatures-panel.tsx
+msgid "Semnează ({count})"
+msgstr "Sign ({count})"
+
+#. placeholder {0}: awaiting.length
+#: src/features/signing/client-signatures-page.tsx
+msgid "Semnează toate ({0})"
+msgstr "Sign all ({0})"
+
+#: src/features/signing/signing-messages.ts
+msgid "semnezi ca instructor"
+msgstr "you sign as the trainer"
+
+#: src/features/signing/signing-messages.ts
+msgid "semnezi ca instruit"
+msgstr "you sign as the trainee"
+
+#: src/features/signing/signing-messages.ts
+msgid "semnezi ca verificator"
+msgstr "you sign as the verifier"
+
+#: src/features/signing/signing-messages.ts
+msgid "semnezi la „Admite la lucru”"
+msgstr "you sign under \"Admits to work\""
+
+#: src/features/signing/signing-messages.ts
+msgid "Serviciul de semnare a refuzat documentul. Spune-i specialistului."
+msgstr "The signing service refused the document. Tell the specialist."
+
+#: src/features/signing/signing-messages.ts
+msgid "Serviciul de semnare nu a răspuns. Încearcă din nou peste câteva minute."
+msgstr "The signing service did not answer. Try again in a few minutes."
+
+#: src/features/signing/signing-messages.ts
+msgid "Sesiunea de semnare a expirat. Cere un cod nou."
+msgstr "The signing session has expired. Ask for a new code."
+
+#: src/features/signing/signing-messages.ts
+msgid "Sesiunea ta în portal a expirat. Ieși din cont și intră din nou."
+msgstr "Your portal session has expired. Sign out and sign in again."
+
+#: src/features/signing/agreement-section.tsx
+msgid "Specialistul nu l-a pregătit încă."
+msgstr "Your specialist has not prepared it yet."
 
 #: src/features/my-data/provider-box.tsx
 msgid "Spune-i specialistului SSM: {name}"
@@ -722,6 +1222,10 @@ msgstr "The training state of each employee; open one for their training session
 #: src/features/my-data/my-data-page.tsx
 msgid "Studii"
 msgstr "Education"
+
+#: src/features/signing/client-signatures-page.tsx
+msgid "Toate instruirile trimise spre semnare sunt semnate."
+msgstr "Every training sent for signing is signed."
 
 #: src/features/training/training-material.tsx
 msgid "Tot textul"
@@ -748,6 +1252,7 @@ msgid "Trimite alt cod în {secondsLeft} s"
 msgstr "Send another code in {secondsLeft} s"
 
 #: src/features/auth/sign-in-page.tsx
+#: src/features/signing/signing-page.tsx
 msgid "Trimite codul"
 msgstr "Send the code"
 
@@ -767,6 +1272,10 @@ msgstr "Next due"
 msgid "Verifică conexiunea la internet și încearcă din nou."
 msgstr "Check your internet connection and try again."
 
+#: src/features/signing/signing-messages.ts
+msgid "verificator"
+msgstr "verifier"
+
 #: src/app/commit-version.tsx
 msgid "Versiune <0>{shortCommitSha}</0>"
 msgstr "Version <0>{shortCommitSha}</0>"
@@ -775,6 +1284,7 @@ msgstr "Version <0>{shortCommitSha}</0>"
 msgid "Versiunea portalului: commit {commitSha}"
 msgstr "Portal version: commit {commitSha}"
 
+#: src/features/signing/signing-page.tsx
 #: src/features/training/training-summary.tsx
 msgid "Vezi instruirile"
 msgstr "See your training"

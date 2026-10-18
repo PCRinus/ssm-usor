@@ -46,6 +46,7 @@ import {
   MessageSquareWarning,
   Scale,
   ShieldAlert,
+  Signature,
   UserRound,
   UsersRound,
 } from 'lucide-react';
@@ -69,6 +70,7 @@ const navigation = [
   { to: '/leads', label: 'Clienți potențiali', icon: Handshake, ownerOnly: true },
   { to: '/clients', label: 'Clienți', icon: Briefcase, ownerOnly: false },
   { to: '/employees', label: 'Angajați', icon: UsersRound, ownerOnly: false },
+  { to: '/signatures', label: 'Semnături', icon: Signature, ownerOnly: false },
   {
     to: '/instructions',
     label: 'Instrucțiuni',

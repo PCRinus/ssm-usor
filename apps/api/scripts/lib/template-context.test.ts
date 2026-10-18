@@ -13,6 +13,7 @@ import {
   documentText,
   renderDocument,
   renderTemplate,
+  signingTypeKeys,
 } from '@ssm-usor/document-engine';
 import { describe, expect, it } from 'vitest';
 
@@ -71,8 +72,12 @@ describe('the per-employee templates', () => {
       .map((entry) => entry.typeKey)
   );
 
-  it('are the two individual training sheets', () => {
-    expect(perEmployee).toEqual(Object.values(trainingSheetTypeKeys));
+  it('are the two individual training sheets and the signing agreement', () => {
+    expect(perEmployee).toEqual([
+      trainingSheetTypeKeys.ssm,
+      signingTypeKeys.agreement,
+      trainingSheetTypeKeys.psi,
+    ]);
   });
 
   it('are never part of a set', () => {

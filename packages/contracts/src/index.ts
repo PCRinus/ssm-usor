@@ -26,12 +26,17 @@ export * from './organization-employees';
 export * from './organizations';
 export * from './participants';
 export * from './pdf';
+export * from './person-names';
 export * from './phone';
 export * from './profile';
 export * from './protective-equipment';
 export * from './risk-evaluations';
 export * from './risk-levels';
 export * from './service-contracts';
+export * from './signatures';
+export * from './signed-sheet';
+export * from './signer';
+export * from './signer-http';
 export * from './sms';
 export * from './training-sheets';
 export * from './trainings';
@@ -89,6 +94,7 @@ export const apiErrorCodeSchema = z.enum([
   'validation_error',
   'not_found',
   'conflict',
+  'unprocessable',
   'service_unavailable',
   'internal_error',
 ]);
@@ -104,6 +110,10 @@ export const apiErrorResponseSchema = z.object({
   reason: z.string().optional(),
   // With the reason `missing_document_data`: what is missing, in the order of the readiness list.
   missing: z.array(missingDocumentDataSchema).optional(),
+  // With `code_invalid`: how many more tries the signing code has.
+  attemptsLeft: z.int().min(0).optional(),
+  // With `code_rate_limited`: how long until another code may be asked for.
+  retryAfterSeconds: z.int().min(1).optional(),
 });
 
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;

@@ -26,13 +26,48 @@ export async function convertDocuments(
   pauseMs = 2000
 ): Promise<ArrayBuffer> {
   if (files.length === 0) throw new Error(pdfConversionFailed);
+  return withRetry(() => convertOnce(fetcher, files, true), pauseMs);
+}
+
+/**
+ * The signed sheet's PDF: its content controls as form fields, without PDF/A. LibreOffice tags
+ * a PDF/A export, and the structure tree then references every field, so a validator counts each
+ * later fill as an unexplained change to the certified revision (docs/pdf.md).
+ */
+export async function convertForm(
+  fetcher: Fetcher,
+  docx: ArrayBuffer,
+  pauseMs = 2000
+): Promise<ArrayBuffer> {
+  return withRetry(() => convertOnce(fetcher, [docx], false), pauseMs);
+}
+
+/** One PDF of several, in the order given, its fields flattened into the pages. */
+export async function mergePdfs(
+  fetcher: Fetcher,
+  files: ArrayBuffer[],
+  pauseMs = 2000
+): Promise<ArrayBuffer> {
+  if (files.length === 0) throw new Error(pdfConversionFailed);
+  const form = new FormData();
+  files.forEach((file, index) => {
+    form.append('files', new Blob([file], { type: 'application/pdf' }), `${numbered(index)}.pdf`);
+  });
+  form.append('flatten', 'true');
+  return withRetry(() => post(fetcher, '/forms/pdfengines/merge', form), pauseMs);
+}
+
+async function withRetry(
+  attempt: () => Promise<ArrayBuffer>,
+  pauseMs: number
+): Promise<ArrayBuffer> {
   try {
-    return await convertOnce(fetcher, files);
+    return await attempt();
   } catch (error) {
     if (!(error instanceof RetryableFailure)) throw error;
     await new Promise((resolve) => setTimeout(resolve, pauseMs));
     try {
-      return await convertOnce(fetcher, files);
+      return await attempt();
     } catch {
       throw new Error(pdfConversionFailed);
     }
@@ -41,24 +76,32 @@ export async function convertDocuments(
 
 class RetryableFailure extends Error {}
 
-async function convertOnce(fetcher: Fetcher, files: ArrayBuffer[]): Promise<ArrayBuffer> {
+// Gotenberg picks the converter by the file's extension and merges in the alphanumeric order of
+// the names, so the names count from one with leading zeros.
+const numbered = (index: number) => String(index + 1).padStart(4, '0');
+
+function convertOnce(
+  fetcher: Fetcher,
+  files: ArrayBuffer[],
+  archival: boolean
+): Promise<ArrayBuffer> {
   const form = new FormData();
   files.forEach((file, index) => {
-    // Gotenberg picks the converter by the file's extension and merges in the alphanumeric
-    // order of the names, so the names count from one with leading zeros.
-    const name = `${String(index + 1).padStart(4, '0')}.docx`;
-    form.append('files', new Blob([file], { type: docxType }), name);
+    form.append('files', new Blob([file], { type: docxType }), `${numbered(index)}.docx`);
   });
   if (files.length > 1) form.append('merge', 'true');
   // The archival flavour: fonts embedded, nothing fetched from outside when it is opened,
   // which is what a copy kept as evidence, and later signed, should be.
-  form.append('pdfa', 'PDF/A-2b');
+  if (archival) form.append('pdfa', 'PDF/A-2b');
+  return post(fetcher, '/forms/libreoffice/convert', form);
+}
 
+async function post(fetcher: Fetcher, route: string, form: FormData): Promise<ArrayBuffer> {
   let response: Response;
   try {
     // The host is ignored: the request goes to the container's port.
     response = await fetcher(
-      new Request('http://gotenberg/forms/libreoffice/convert', { method: 'POST', body: form })
+      new Request(`http://gotenberg${route}`, { method: 'POST', body: form })
     );
   } catch (cause) {
     console.error(JSON.stringify({ event: 'pdf_conversion_unreachable', cause: String(cause) }));

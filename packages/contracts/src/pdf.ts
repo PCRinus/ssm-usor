@@ -14,4 +14,12 @@ export interface PdfService {
    * files it annexes (ADR 012). Rejects when any of them cannot be converted.
    */
   convertDocuments(files: ArrayBuffer[]): Promise<ArrayBuffer>;
+  /**
+   * The signed sheet's template as a PDF form, its content controls as text fields named by
+   * their titles once the signer prepares it (ADR 023). Not PDF/A: LibreOffice would tag the
+   * fields into a structure tree that makes every later fill look like an unpermitted change.
+   */
+  convertForm(docx: ArrayBuffer): Promise<ArrayBuffer>;
+  /** Several PDFs as one, in the order given, their form fields flattened into the pages. */
+  mergePdfs(files: ArrayBuffer[]): Promise<ArrayBuffer>;
 }

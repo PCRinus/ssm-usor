@@ -23,6 +23,7 @@ import {
   useParticipation,
 } from '@/features/participation/participation-context';
 import { ResponsiblePersonsSection } from '@/features/responsible-persons/responsible-persons-section';
+import { SignaturesPanel } from '@/features/signing/signatures-panel';
 import { TrainingSummary } from '@/features/training/training-summary';
 import { useFormatDate } from '@/lib/format';
 import { participationKindMessages } from '@/lib/labels';
@@ -53,7 +54,7 @@ function EmployeeHome({ participation }: { participation: Participation }) {
       </PageHeader>
       <PageGrid>
         <div className="grid gap-6 sm:gap-7 lg:col-span-7">
-          <Signatures />
+          <SignaturesPanel participation={participation} />
           <OwnTraining participantId={participation.participantId} />
         </div>
         {data.data && (
@@ -95,7 +96,7 @@ function AdministratorHome({ participation }: { participation: Participation }) 
       />
       <PageGrid>
         <div className="grid gap-6 sm:gap-7 lg:col-span-7">
-          <Signatures />
+          <SignaturesPanel participation={participation} />
           <EmployeesCard participantId={participation.participantId} />
           {employee && <OwnTraining participantId={participation.participantId} />}
         </div>
@@ -120,25 +121,6 @@ function AdministratorOwnData({ participantId }: { participantId: string }) {
   );
 }
 
-function Signatures() {
-  return (
-    <section
-      aria-labelledby="todo-title"
-      data-testid="home-todo"
-      className="grid gap-1.5 rounded-xl border border-dashed border-input px-4.5 py-4 sm:gap-2 sm:px-5.5 sm:py-5"
-    >
-      <h2 id="todo-title" className="text-base font-semibold sm:text-[1.0625rem]">
-        <Trans>Semnături</Trans>
-      </h2>
-      <p className="text-sm leading-relaxed text-foreground/80 sm:text-[0.9375rem]">
-        <Trans>
-          Nimic de semnat deocamdată. Când o instruire va avea nevoie de semnătura ta, apare aici.
-        </Trans>
-      </p>
-    </section>
-  );
-}
-
 function OwnTraining({ participantId }: { participantId: string }) {
   const apiRequest = useApiRequest();
   const queryClient = useQueryClient();
@@ -151,7 +133,13 @@ function OwnTraining({ participantId }: { participantId: string }) {
       records={records.data}
       sheetAccess={{
         sheets: sheets.data,
-        loadSheet: (domain) => getPortalTrainingSheet(participantId, domain, apiRequest),
+        loadSheet: (domain, sequence) =>
+          getPortalTrainingSheet(
+            participantId,
+            domain,
+            sequence ? { sequence } : undefined,
+            apiRequest
+          ),
         onStale: () =>
           void queryClient.invalidateQueries({
             queryKey: getGetPortalTrainingSheetsQueryKey(participantId),

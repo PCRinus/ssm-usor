@@ -328,6 +328,26 @@ describe('client documents', () => {
     expect(summaryOf('1')).toBe('5 ciorne');
   });
 
+  const sectionNumbers = async () =>
+    (await screen.findAllByTestId('document-section-trigger')).map(
+      (trigger) => trigger.textContent?.split('.')[0]
+    );
+
+  it('leaves the annex on the electronic signature out for a client without participants', async () => {
+    mockApi({ items: [report], notApplicable: ['signing_regulation_annex'] });
+    mount();
+    const numbers = await sectionNumbers();
+    expect(numbers).toContain('12');
+    expect(numbers).not.toContain('13');
+  });
+
+  it('lists the annex on the electronic signature for a client with participants', async () => {
+    mockApi({ items: [report] });
+    mount();
+    expect(await sectionNumbers()).toContain('13');
+    expect(summaryOf('13')).toBe('negenerat');
+  });
+
   it.each([
     [
       6,

@@ -139,11 +139,12 @@ async function decidePositions(
     const { error } = await db.from('job_position_instructions').insert(rows);
     if (error) throw new Error(`Could not seed applied instructions: ${error.message}`);
   }
-  if (needNone.length > 0) {
+  // In chunks: the ids go in the query string, and a few hundred overflow the URI limit.
+  for (let start = 0; start < needNone.length; start += 100) {
     const { error } = await db
       .from('job_positions')
       .update(domain === 'psi' ? { needs_fire_instructions: false } : { needs_instructions: false })
-      .in('id', needNone);
+      .in('id', needNone.slice(start, start + 100));
     if (error) throw new Error(`Could not decide seeded job positions: ${error.message}`);
   }
   return { applied: rows.length, decided: needNone.length };

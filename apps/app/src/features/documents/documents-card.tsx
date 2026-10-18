@@ -285,11 +285,16 @@ export function DocumentsCard<Set extends DocumentSet>({
       document,
     }));
   const sections = [
-    ...setSectionList.map((section) => ({
-      id: section.id,
-      title: `${section.number}. ${section.title}`,
-      rows: packRows.filter((row) => section.typeKeys.includes(row.key)),
-    })),
+    ...setSectionList
+      .map((section) => ({
+        id: section.id,
+        title: `${section.number}. ${section.title}`,
+        rows: packRows.filter((row) => section.typeKeys.includes(row.key)),
+        applies: !section.typeKeys.every((key) => notApplicable.has(key)),
+      }))
+      // A section with nothing to show for a client it does not apply to, such as the annex on
+      // the electronic signature without participants, is no part of that client's binder.
+      .filter((section) => section.rows.length > 0 || section.applies),
     ...(otherRows.length > 0 ? [{ ...other, rows: otherRows }] : []),
   ];
 

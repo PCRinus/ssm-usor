@@ -8,6 +8,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { ParticipantLanguageSwitch } from '@/features/language/language-switch';
 import { useParticipations } from '@/features/participation/participation-context';
 import { SignOutButton } from '@/features/participation/sign-out-button';
+import { AgreementSection } from '@/features/signing/agreement-section';
 import { formatSignInAddress } from '@/lib/format';
 import { participationKindMessages } from '@/lib/labels';
 
@@ -62,6 +63,7 @@ export function AccountPage() {
               </dd>
             </div>
           </dl>
+          <AgreementSection participation={participation} />
           <Link
             to="/informare"
             data-testid="account-privacy-notice"

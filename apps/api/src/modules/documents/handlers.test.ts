@@ -47,6 +47,7 @@ vi.mock('@ssm-usor/document-engine', () => {
   }
   return {
     TemplateError,
+    SigningAgreementDataError: class SigningAgreementDataError extends Error {},
     annexTitlePage: (domain: string) => new TextEncoder().encode(`annex_title_page:${domain}`),
     documentText: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
     renderTemplate: (template: Uint8Array, data: Record<string, unknown>) => {
@@ -374,7 +375,8 @@ type Upstream =
   | 'fireInstallations'
   | 'fireSubstances'
   | 'fireMaintenanceItems'
-  | 'fireBuildings';
+  | 'fireBuildings'
+  | 'participants';
 
 const fetchMock = vi.fn<typeof fetch>();
 const confirmedCopy = {
@@ -421,6 +423,13 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return handlers.profile?.() ?? Response.json(profileRow);
       case '/rest/v1/client_responsible_persons':
         return handlers.persons?.() ?? Response.json([personRow]);
+      case '/rest/v1/client_participants':
+        return (
+          handlers.participants?.(init, url) ??
+          new Response(null, { headers: { 'content-range': '*/0' } })
+        );
+      case '/rest/v1/participant_invitations':
+        return new Response(null, { headers: { 'content-range': '*/0' } });
       case '/rest/v1/employees':
         return (
           handlers.employees?.(init, url) ??
@@ -799,7 +808,10 @@ describe('GET /clients/{clientId}/documents', () => {
     expect(body.lastGeneration).toEqual({ issueDate: '2026-01-19', firstDecisionNumber: 3 });
     expect(body.items).toHaveLength(1);
     expect(body.currentEmployeeCount).toBe(1);
-    expect(body.notApplicable).toEqual(['decision_workers_representative']);
+    expect(body.notApplicable).toEqual([
+      'decision_workers_representative',
+      'signing_regulation_annex',
+    ]);
     // The documentation set only: the service contract has its own routes.
     expect(
       new URL(String(calls('/rest/v1/client_documents')[0]![0])).searchParams.get('document_group')
@@ -1040,6 +1052,32 @@ describe('POST /clients/{clientId}/documents/generate', () => {
         '/storage/v1/object/document-templates/built-in/decision_workers_representative/one.docx'
       )
     ).toHaveLength(0);
+  });
+
+  it('makes the annex on the electronic signature only for a client with participants', async () => {
+    const annexTemplate = {
+      type_key: 'signing_regulation_annex',
+      title: 'Anexă la Regulamentul intern privind semnarea electronică a fișelor de instruire',
+      document_template_versions: [
+        { id: 'v5', version: 1, storage_path: 'built-in/signing_regulation_annex/one.docx' },
+      ],
+    };
+    const generateWith = async (participants: number) => {
+      fetchMock.mockReset();
+      mockUpstream({
+        templates: () => Response.json([annexTemplate, templateRows[1]]),
+        documents: (init) =>
+          init?.method === 'POST' ? Response.json({ id: documentId }) : Response.json([]),
+        participants: () =>
+          new Response(null, { headers: { 'content-range': `*/${participants}` } }),
+      });
+      expect((await generate()).status).toBe(201);
+      return calls('/rest/v1/client_documents', 'POST').map(
+        ([, init]) => (JSON.parse(String(init?.body)) as { type_key: string }).type_key
+      );
+    };
+    expect(await generateWith(0)).toEqual(['control_report']);
+    expect(await generateWith(1)).toContain('signing_regulation_annex');
   });
 
   it('leaves the documents the client already has', async () => {
@@ -1975,7 +2013,16 @@ describe('POST /documents/{documentId}/issue', () => {
     createApp().request(
       `/documents/${documentId}/issue`,
       { method: 'POST', headers: { Authorization: 'Bearer test-access-token' } },
-      { ...env, PDF_CONVERSION: 'service', PDF: { convertDocx, convertDocuments } }
+      {
+        ...env,
+        PDF_CONVERSION: 'service',
+        PDF: {
+          convertDocx,
+          convertDocuments,
+          convertForm: convertDocx,
+          mergePdfs: convertDocuments,
+        },
+      }
     );
 
   it('makes the PDF first, stores it beside the Word file, and issues both', async () => {
@@ -2105,7 +2152,15 @@ describe('POST /documents/{documentId}/issue', () => {
     const local = await createApp().request(
       `/documents/${documentId}/issue`,
       { method: 'POST', headers: { Authorization: 'Bearer test-access-token' } },
-      { ...env, PDF: { convertDocx, convertDocuments: convertDocx } }
+      {
+        ...env,
+        PDF: {
+          convertDocx,
+          convertDocuments: convertDocx,
+          convertForm: convertDocx,
+          mergePdfs: convertDocx,
+        },
+      }
     );
     expect(local.status).toBe(200);
     expect(convertDocx).not.toHaveBeenCalled();
@@ -2561,6 +2616,8 @@ describe('POST /documents/{documentId}/print', () => {
   const service = (convertDocx: (source: ArrayBuffer) => Promise<ArrayBuffer>) => ({
     convertDocx,
     convertDocuments: (files: ArrayBuffer[]) => convertDocx(files[0]!),
+    convertForm: convertDocx,
+    mergePdfs: (files: ArrayBuffer[]) => convertDocx(files[0]!),
   });
 
   it('answers with the PDF of the file it is sent, and stores nothing', async () => {
@@ -2588,7 +2645,10 @@ describe('POST /documents/{documentId}/print', () => {
       return pdfBytes.slice().buffer;
     });
     const convertDocx = converter();
-    const bindings = { PDF_CONVERSION: 'service', PDF: { convertDocx, convertDocuments } } as const;
+    const bindings = {
+      PDF_CONVERSION: 'service',
+      PDF: { convertDocx, convertDocuments, convertForm: convertDocx, mergePdfs: convertDocuments },
+    } as const;
 
     mockUpstream({
       documents: ownInstructions(ownInstructionsSnapshot),

@@ -13,10 +13,12 @@ import { contentDisposition } from '../../lib/content-disposition';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import { createFileStore } from '../../lib/files';
-import { requirePdfConverter } from '../../lib/pdf';
+import { adminFileStore, createFileStore } from '../../lib/files';
+import { createPdfConverter, requirePdfConverter } from '../../lib/pdf';
+import { createSigner } from '../../lib/signer';
 import { builtInTemplates, merge } from '../documents/documents';
-import { toAdmission, toTraining, trainingColumns } from './handlers';
+import { supabaseSheetStore } from '../signed-sheets/store';
+import { currentSheetPdf } from '../signed-sheets/stored';
 import {
   buildTrainingSheetData,
   missingSheetDataOf,
@@ -25,6 +27,7 @@ import {
   trainingSheetFileName,
 } from './sheet';
 import type { getTrainingSheetRoute, getTrainingSheetsRoute } from './sheet-routes';
+import { toAdmission, toTraining, trainingColumns } from './training-rows';
 
 const noSuchEmployee = () =>
   new ApiError('not_found', 'This employee does not exist under this client.');
@@ -101,15 +104,35 @@ export async function loadSheetFacts(
   };
 }
 
+async function storedSequences(db: DataClient, clientId: string, employeeId: string) {
+  const { data, error } = await db
+    .from('signed_sheets')
+    .select('domain, sequence')
+    .eq('employee_id', employeeId)
+    .eq('client_id', clientId)
+    .order('sequence');
+  if (error) throw fromDatabaseError(error, 'stored sheets');
+  const sequences = new Map<TrainingDomain, number[]>();
+  for (const row of data) {
+    sequences.set(row.domain, [...(sequences.get(row.domain) ?? []), row.sequence]);
+  }
+  return sequences;
+}
+
 export async function trainingSheetReadiness(
   db: DataClient,
   clientId: string,
   employeeId: string
 ): Promise<TrainingSheetsResponse> {
-  const facts = await loadSheetFacts(db, clientId, employeeId);
+  const [facts, stored] = await Promise.all([
+    loadSheetFacts(db, clientId, employeeId),
+    storedSequences(db, clientId, employeeId),
+  ]);
   const readiness = (domain: TrainingDomain) => {
+    const sequences = stored.get(domain) ?? [];
+    if (sequences.length > 0) return { ready: true, missing: [], stored: true, sequences };
     const missing = missingSheetDataOf({ ...facts, domain, records: [] });
-    return { ready: missing.length === 0, missing };
+    return { ready: missing.length === 0, missing, stored: false, sequences };
   };
   return Object.fromEntries(
     trainingDomains.map((domain) => [domain, readiness(domain)])
@@ -126,16 +149,49 @@ export const missingSheetDataResponse = (missing: MissingSheetData[]) =>
 
 export type DrawnSheet = { missing: MissingSheetData[] } | { pdf: Uint8Array; fileName: string };
 
-/** The caller reads the template, since who may read Storage differs between them. */
+function storedFileName(base: string, stored: { copy: boolean; sequence: number | null }) {
+  if (stored.copy) return base.replace(/\.pdf$/, '-copie.pdf');
+  if (stored.sequence && stored.sequence > 1)
+    return base.replace(/\.pdf$/, `-${stored.sequence}.pdf`);
+  return base;
+}
+
+/**
+ * The stored signed sheet once signing has started (ADR 023), the original of `sequence` or the
+ * copy merged from all, else the sheet drawn up on the spot. The caller reads the template, since
+ * who may read Storage differs between them.
+ */
 export async function drawTrainingSheet(
   c: Context<ApiEnv>,
   db: DataClient,
-  sheet: { clientId: string; employeeId: string; domain: TrainingDomain },
+  sheet: { clientId: string; employeeId: string; domain: TrainingDomain; sequence?: number },
   readTemplate: (storagePath: string) => Promise<Uint8Array>
 ): Promise<DrawnSheet> {
-  const { clientId, employeeId, domain } = sheet;
+  const { clientId, employeeId, domain, sequence } = sheet;
+  const identity = await loadSheetFacts(db, clientId, employeeId);
+  const stored = await currentSheetPdf(
+    {
+      // The caller's own policies have shown the sheet's row, so its file is one they may read.
+      store: supabaseSheetStore(db),
+      files: { readDocument: (path) => adminFileStore(c.env, c.req.raw.signal).readDocument(path) },
+      pdf: createPdfConverter(c),
+      signer: createSigner(c),
+    },
+    employeeId,
+    domain,
+    { clientId, sequence }
+  );
+  if (stored) {
+    return {
+      pdf: stored.pdf,
+      fileName: storedFileName(trainingSheetFileName(domain, identity.employee), stored),
+    };
+  }
+  if (sequence !== undefined) {
+    throw new ApiError('not_found', 'The employee has no signed sheet of this number.');
+  }
   const facts: TrainingSheetFacts = {
-    ...(await loadSheetFacts(db, clientId, employeeId)),
+    ...identity,
     domain,
     records: await loadRecords(db, employeeId, domain),
   };
@@ -171,11 +227,11 @@ export const getTrainingSheets: RouteHandler<typeof getTrainingSheetsRoute, ApiE
 
 export const getTrainingSheet: RouteHandler<typeof getTrainingSheetRoute, ApiEnv> = async (c) => {
   const { clientId, employeeId } = c.req.valid('param');
-  const { domain } = c.req.valid('query');
+  const { domain, sequence } = c.req.valid('query');
   const sheet = await drawTrainingSheet(
     c,
     createDataClient(c),
-    { clientId, employeeId, domain },
+    { clientId, employeeId, domain, sequence },
     createFileStore(c).readTemplate
   );
   if ('missing' in sheet) return c.json(missingSheetDataResponse(sheet.missing), 409);

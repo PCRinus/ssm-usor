@@ -121,7 +121,8 @@ type Upstream =
   | 'profiles'
   | 'organizations'
   | 'persons'
-  | 'fireSafety';
+  | 'fireSafety'
+  | 'requests';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -145,6 +146,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>>) {
     organizations: () => Response.json([{ fire_safety_technician_name: 'Radu STAN' }]),
     persons: () => Response.json([{ full_name: 'Ion POP', job_title: 'Șef atelier' }]),
     fireSafety: () => Response.json([{ periodic_training_hours: 2 }]),
+    requests: () => Response.json([]),
   };
   const paths: Record<string, Upstream> = {
     '/auth/v1/user': 'auth',
@@ -160,6 +162,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>>) {
     '/rest/v1/organizations': 'organizations',
     '/rest/v1/client_responsible_persons': 'persons',
     '/rest/v1/client_fire_safety': 'fireSafety',
+    '/rest/v1/signature_requests': 'requests',
   };
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
@@ -227,7 +230,12 @@ describe('GET /clients/{clientId}/trainings', () => {
         Response.json([
           {
             ...trainingRow,
-            training_records: recordRows.map(({ employees }) => ({ employees })),
+            training_records: recordRows.map(({ employees }, index) => ({
+              employees,
+              training_signatures:
+                index === 0 ? [{ method: 'electronic', voided_at: '2026-10-18T09:00:00Z' }] : [],
+              signed_sheet_rows: [],
+            })),
           },
         ]),
     });
@@ -237,6 +245,8 @@ describe('GET /clients/{clientId}/trainings', () => {
       items: [
         {
           ...training,
+          signed: false,
+          hasSignatures: true,
           attendeeCount: 2,
           attendees: [
             { employeeId, lastName: 'Popescu', firstName: 'Ion' },
@@ -247,7 +257,9 @@ describe('GET /clients/{clientId}/trainings', () => {
     });
     const query = searchOf('/rest/v1/trainings');
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
-    expect(query.get('select')).toContain('training_records(employees(id,last_name,first_name))');
+    expect(query.get('select')).toContain(
+      'training_records(employees(id,last_name,first_name),training_signatures(method,voided_at),signed_sheet_rows!signed_sheet_rows_record_of_client(id))'
+    );
     expect(query.get('order')).toBe('held_on.desc,created_at.desc,id.asc');
     expect(query.get('domain')).toBeNull();
   });
@@ -432,6 +444,32 @@ describe('GET /clients/{clientId}/trainings/{trainingId}', () => {
     const query = searchOf('/rest/v1/trainings');
     expect(query.get('id')).toBe(`eq.${trainingId}`);
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
+    expect(body.training.signers).toEqual({ trainer: null, verifier: null, admitter: null });
+  });
+
+  it("gives each slot's signer from the live requests, the first issued", async () => {
+    const trainerAccount = 'a0000000-0000-4000-8000-000000000003';
+    const managerAccount = 'a0000000-0000-4000-8000-000000000004';
+    mockUpstream({
+      requests: () =>
+        Response.json([
+          { slot: 'trainer', signer_account_id: trainerAccount },
+          { slot: 'admitter', signer_account_id: managerAccount },
+          { slot: 'trainer', signer_account_id: managerAccount },
+        ]),
+    });
+
+    const body = trainingResponseSchema.parse(await (await request(trainingPath)).json());
+
+    expect(body.training.signers).toEqual({
+      trainer: trainerAccount,
+      verifier: null,
+      admitter: managerAccount,
+    });
+    const query = searchOf('/rest/v1/signature_requests');
+    expect(query.get('state')).toBe('neq.void');
+    expect(query.get('slot')).toBe('in.(trainer,verifier,admitter)');
+    expect(query.get('signer_account_id')).toBe('not.is.null');
   });
 
   it('answers 404 for a training of another client', async () => {

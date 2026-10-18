@@ -16,11 +16,26 @@
       "instance_type": "standard-1",
       "max_instances": 1,
     },
+    // pyHanko for the signatures (ADR 023). One instance, because a signature's second phase must
+    // reach the session its first phase left in memory. `lite` takes some forty seconds to start
+    // the service on its sixteenth of a CPU; `basic` takes about four.
+    {
+      "class_name": "Signer",
+      "image": "./signer/Dockerfile",
+      "instance_type": "basic",
+      "max_instances": 1,
+    },
   ],
   "durable_objects": {
-    "bindings": [{ "name": "GOTENBERG", "class_name": "Gotenberg" }],
+    "bindings": [
+      { "name": "GOTENBERG", "class_name": "Gotenberg" },
+      { "name": "SIGNER", "class_name": "Signer" },
+    ],
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Gotenberg"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Gotenberg"] },
+    { "tag": "v2", "new_sqlite_classes": ["Signer"] },
+  ],
   "observability": {
     "enabled": true,
   },

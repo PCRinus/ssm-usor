@@ -4,7 +4,8 @@ import { riskEvaluationKindSchema } from './risk-evaluations';
 
 /**
  * The built-in documents of the occupational safety set, in the order of the provider's pack.
- * Mirrors the manifest of `packages/document-engine/templates`.
+ * Mirrors the manifest of `packages/document-engine/templates`. The last, document 13, is ours,
+ * not the provider's (ADR 023).
  */
 export const documentTypeKeys = [
   'cover_decisions',
@@ -31,6 +32,7 @@ export const documentTypeKeys = [
   'cover_employer_briefing',
   'employer_briefing',
   'control_regulation',
+  'signing_regulation_annex',
 ] as const;
 
 export const documentTypeKeySchema = z.enum(documentTypeKeys);

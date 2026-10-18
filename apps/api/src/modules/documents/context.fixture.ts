@@ -203,6 +203,7 @@ export const facts: DocumentFacts = {
   ],
   staffCategoriesInUse: ['technical_administrative', 'execution'],
   currentEmployeeCount: 6,
+  hasParticipants: true,
   workersRepresentativeDecisionGenerated: false,
   ownInstructions: {
     revisionId: 'd0d0d0d0-0000-4000-8000-000000000001',

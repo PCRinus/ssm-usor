@@ -11,6 +11,8 @@ methods are described by the `SmsService` interface in `packages/contracts/src/s
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `sendParticipantInvitation` | Who invited the participant (the organization and the client), the portal's address, and to sign in with this number. |
 | `sendSignInCode`            | The portal's one-time code, how long it works, and that nobody from SSM Ușor will ask for it.                         |
+| `sendSigningCode`           | The code that signs (ADR 023), the API's own and not Supabase's, how long it works, and that nobody will ask for it.  |
+| `sendSignatureRequest`      | How many trainings wait for the person's signature, in words that agree with the number, and where to sign them.      |
 
 Each method validates its input, writes the text, hands it to the provider and resolves with
 `{ id }`, Twilio's message SID. It rejects when Twilio refuses the message, so the caller decides
@@ -18,7 +20,7 @@ how to report the failure.
 
 ## The text
 
-`src/messages.ts` writes both messages, and its tests hold them to two rules:
+`src/messages.ts` writes the messages, and its tests hold them to two rules:
 
 - **One GSM-7 segment.** No diacritics and nothing outside GSM-7's basic set, at most 160
   characters. A single `ș` sends the whole message as UCS-2, 70 characters a segment, at two or

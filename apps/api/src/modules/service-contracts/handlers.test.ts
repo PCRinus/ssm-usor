@@ -7,6 +7,7 @@ import { createApp } from '../../app';
 // the data holds, which is what the snapshot then records.
 vi.mock('@ssm-usor/document-engine', () => ({
   TemplateError: class TemplateError extends Error {},
+  SigningAgreementDataError: class SigningAgreementDataError extends Error {},
   documentText: (bytes: Uint8Array) => new TextDecoder().decode(bytes),
   renderTemplate: (_template: Uint8Array, data: Record<string, unknown>) => ({
     document: new Uint8Array([80, 75, 3, 4]),

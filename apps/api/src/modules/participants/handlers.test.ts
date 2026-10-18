@@ -22,8 +22,15 @@ const env: ApiEnv['Bindings'] = {
     sendSignedCopyReceived: vi.fn(),
     sendParticipantInvitation: sendInvitationEmail,
     sendSignInCode: vi.fn(),
+    sendSigningCode: vi.fn(),
+    sendSignatureRequest: vi.fn(),
   },
-  SMS: { sendParticipantInvitation: sendInvitationSms, sendSignInCode: vi.fn() },
+  SMS: {
+    sendParticipantInvitation: sendInvitationSms,
+    sendSignInCode: vi.fn(),
+    sendSigningCode: vi.fn(),
+    sendSignatureRequest: vi.fn(),
+  },
 };
 
 const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ana@example.ro' };

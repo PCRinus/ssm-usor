@@ -596,6 +596,138 @@ template apply to them as well. `apps/api/src/modules/trainings/sheet-handlers.t
 the real files with the data the API builds. `pnpm --filter @ssm-usor/document-engine preview`
 renders each sheet for an employee with every training recorded and for a new hire with none.
 
+### The signed sheet
+
+Each sheet template is also the form of the signed sheet
+([ADR 023](architecture/adr-023-advanced-electronic-signature.md)): the PDF stored once signing
+starts, filled one row per training record and signed row by row
+(`apps/api/src/modules/signed-sheets`, [PDF](pdf.md#the-signed-sheet)). The merge data's `form`
+chooses the variant of each part:
+
+| `form`         | What it holds                                                                                                                                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `on`           | False on the paper sheet, which prints exactly as before the form existed: `paperForm(domain)` in `sheet.ts` gives every flag false. True on the signed sheet                                                                  |
+| `continuation` | "Fișa nr. 2, în continuarea fișei nr. 1" under the title of a continuation sheet; empty on the first                                                                                                                           |
+| `h1`, `h2`     | `{ paper }`: the hiring block prints as text, each signature box saying _semnat pe hârtie_, for a training recorded from a paper sheet (`source` paper); else every value and signature is a field. The admission follows `h2` |
+| `rows`         | `p1`… (and `s1`… on the occupational safety sheet): true where the table row prints as fields; the rows taken by trainings from paper print as text above them, from `periodic` and `supplementary` as on paper                |
+
+On the signed sheet every cell a training or a signature fills is a Word plain-text content
+control (`w:sdt`) titled with the field's name. LibreOffice exports a content control as a PDF
+text field over the space its placeholder takes, so the builder fills each with lines of en
+spaces across its cell: one line for a date or a duration, three for an occupation, a material
+and a signature. LibreOffice names the fields `Widget`, `_2`, `_3`… and puts the title in the
+tooltip, and the signer's `prepareSheet` names each by its tooltip ([PDF](pdf.md#signer)). Word's
+legacy form fields (`FORMTEXT`) were the first choice and are not exported at all.
+
+The names, in `packages/contracts/src/signed-sheet.ts` (`sheetFieldNames`), are the row key and
+the column:
+
+| Row                                | Text fields                                                                   | Note      | Signature fields                                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------- |
+| `h1` introductory general          | `h1_date`, `h1_duration`, `h1_trainer`, `h1_trainer_job_title`, `h1_material` | `h1_note` | SSM `h1_sig_trainee`, `h1_sig_trainer`, `h1_sig_verifier`; PSI `h1_sig_trainer`, `h1_sig_trainee` |
+| `h2` workplace                     | as `h1`, with `h2_place`, and on the fire-safety sheet `h2_occupation`        | `h2_note` | as `h1`                                                                                           |
+| `adm` admission, filled by `h2`    | `adm_name`, `adm_job_title`, `adm_date`                                       |           | SSM `adm_sig`; the fire-safety form's admission has no signature                                  |
+| `p1`…`p17` periodic                | `p1_date`, `p1_duration`, `p1_occupation`, `p1_material`                      | `p1_note` | SSM trainee, trainer, verifier; PSI trainee, trainer (`p1_sig_trainee`, …)                        |
+| `s1`…`s17` supplementary, SSM only | as `p`                                                                        | `s1_note` | as `p` on the SSM sheet                                                                           |
+
+On the fire-safety sheet the box beside the trainee's is the trainer's slot, as ADR 021 has the
+record name the person who verified as its trainer, and a supplementary training is a `p` row.
+A table holds 17 rows, a page (`rowCapacity`), which the form's rows fit at their minimum
+height. The note, under the date, takes _anulat_ when a row is voided and _semnat pe hârtie_
+for a record from paper placed after its sheet was made; a signature never locks it. The API's
+`form.test.ts` holds the templates' titles to `sheetFieldNames`.
+
+## The signing templates
+
+Two templates give the employer's choice of the electronic signature its footing
+([ADR 023](architecture/adr-023-advanced-electronic-signature.md)). Neither is one of the
+provider's originals: the wording is ours, kept in `tools/import/signing.ro.json` and typeset by
+`tools/import/build_signing.py` through LibreOffice, as the service contract is, with its articles
+a list, so no article refers to another by number:
+
+```sh
+pnpm --filter @ssm-usor/document-engine build-signing
+```
+
+Both carry new legal text, which the provider's SSM contact reviews before it is used; what is
+still theirs to decide is [below](#what-the-ssm-contact-must-decide).
+
+| `type_key`                 | Template                                           | Form                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `signing_regulation_annex` | `templates/13_signing_regulation_annex.docx`       | Document 13 of the occupational safety set, one page with the set's box of document details (code `R.I.S.E.`, prepared by the specialist): the legal basis in one sentence, the sheets signed row by row (three signatures on the occupational safety sheet and the admission, two on the fire-safety one), the advanced signature and how the platform meets eIDAS art. 26, the signer's account, the code and what is recorded, corrections, keeping and archiving, the agreement by contract or act adițional and the way back to paper, and the consultation and taking effect; signed by the employer and by the specialist as its drafter, with a line for the employees' representative or the union under the signatures. Its `compact` setting leaves less room between articles and to sign, and no date lines, so that it keeps to one page at the body size under a box of long names |
+| `signing_agreement`        | `templates/act_aditional_semnare_electronica.docx` | _Actul adițional privind semnarea electronică_, per employee like the sheets (`perEmployee`, no number): a line for its paper number and date under the title, with the note that the electronic copy is dated by its last signature; the parties, the employee's contract with a blank number and the start date; four articles; the employer's block, "Pentru angajator, reprezentant legal sau împuternicit:" with a name line, and the employee's, each with a date line, so that it reads right signed by hand or electronically                                                                                                                                                                                                                                                                                                                                                             |
+
+The annex asks only for names the set's context already has, `issueDate`, `branding`,
+`client.legalName`, `client.representativeName`, `client.representativeRole`,
+`provider.legalName` and `specialist`; `signingRegulationAnnexData(context)` in `src/signing.ts`
+picks them. It is the last of `documentTypeKeys` and applies only to a client with participants,
+someone not revoked or an invitation still open, as ADR 010's conditional documents do
+(`documentApplies` in the API): a client without the portal sees no new document, not even an
+empty section 13.
+
+The agreement's data is built by `buildSigningAgreementData(facts)` from the client's legal
+name, CUI, registered office and representative, the provider's name, the employee's name, job
+title, start date, employee number, birth and home address, and the channel the codes go to. It
+throws `SigningAgreementDataError` with the missing names when the client's representative's name
+or role is empty, since the parties name them, and the API answers `409 missing_document_data`
+with `client.representativeName` or `client.representativeRole`:
+
+| Name          | What it holds                                                                                                                                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `branding`    | The footer line, as on every template                                                                                                                                                                             |
+| `client`      | `legalName`, `cui`, `address`, `representativeName`, `representativeRole`                                                                                                                                         |
+| `provider`    | `legalName`, whose platform the signature is made in                                                                                                                                                              |
+| `employee`    | `name` ("POPESCU Ion", as on the sheets), `position`, `hiredOn` (`dd.mm.yyyy`), and `identification`: the employee number, birth date and place and home address the app holds, in words, or empty; never the CNP |
+| `codeChannel` | "adresa de e-mail comunicată angajatorului" or "numărul de telefon mobil comunicat angajatorului": the channel, not the address, since nothing masks one yet                                                      |
+
+The JSON's `contract_clause` is the agreement's first three articles as the clause of a new
+hire's employment contract, which then needs no agreement: no parties, no signatures, the code
+channel in general words. It is no template. `signingContractClauseText(providerLegalName)` gives
+it as paragraphs with the provider's name filled in, for the app to show and copy; the subpath
+`@ssm-usor/document-engine/signing` has it without the rendering code.
+
+`src/signing.test.ts` merges both templates with sample data (`tools/signing-samples.ts`, which
+`preview` uses too) and checks their key sentences, that nothing is left unmerged, that the
+agreement names the representative only among the parties, and the clause; the typesetting
+checks of every template apply to both. A page count is not tested: after changing the text,
+convert the previews and look (`pnpm --filter @ssm-usor/document-engine preview`), the annex with
+the longest names you can think of.
+
+### What the SSM contact must decide
+
+The review of 2026-10-18 changed the texts and left these to the provider's SSM contact. Until
+each is answered the texts say what the app does, and the app does what the ADR decided.
+
+1. **The agreement's footing.** Law 214/2024 art. 4(5)(c) gives a prior agreement its effect only
+   when it is itself signed by hand or with a qualified signature, unless both parties are
+   professionals. The agreement no longer claims it: it rests on Labour Code art. 16(1¹) and (1⁷),
+   the recognition of art. 4(5)(b) and the burden of proof of art. 5(3). Is that enough, or should
+   the first agreement always be signed by hand?
+2. **Who countersigns for the employer.** The client administrator in the portal, under "Pentru
+   angajator, reprezentant legal sau împuternicit". When that person is not the legal
+   representative, does the client need a written mandate, and should the app keep it?
+3. **Warn, not block, before an agreement.** An employee whose agreement is not signed can still
+   sign records, with a warning. Acceptable, or should the app refuse until the agreement is
+   signed?
+4. **Keys held by the platform.** Each signer's key is kept encrypted by the platform and used
+   only after the code (eIDAS art. 26(c), data under the signer's sole control "with a high level
+   of confidence"). Is that acceptable, or must the key sit on the signer's own device?
+5. **The fire-safety sheet's footing.** HG 1425/2006 art. 81 speaks of the occupational safety
+   sheet. What footing does the fire-safety sheet of OMAI 712/2005 have for an electronic
+   signature, and is the annex covering both enough?
+6. **Trainings held online.** HG 1425/2006 art. 81¹ has a training held electronically signed
+   electronically by everyone involved. The app does not tell an online training apart: should
+   it, and then refuse paper slots for it?
+7. **Keeping the sheets.** The annex has the employer keep the signed sheet until the employment
+   ends and download it at any time. What happens to the signed sheets when the client leaves the
+   provider, and does the sheet need the copy of the medical fitness certificate (#467)?
+8. **The workplace manager's consent.** A workplace manager signs other employees' admissions as
+   an employee participant. Do they need an agreement of their own, and does signing as admitter
+   fall under it?
+9. **Withdrawal and the new hire's clause.** The withdrawal takes effect when the employer
+   registers the written request, and the sheets signed until then stay valid; a new hire's
+   contract holds the clause instead of an agreement. Are both worded right?
+
 ## Registering the templates
 
 Three manifests are registered: the pack's, `templates/other/manifest.json`, and the
@@ -870,6 +1002,7 @@ same test.
 | `decision_risk_evaluation_team`   | Decision no. 2: the risk evaluation team                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | `evaluationTeam[]`, `specialist` (`name`, `professionalTitle`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `decision_first_aid`              | Decision no. 3: who gives first aid, with its two acknowledgement tables                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | `firstAiders[]`, `firstAiderNames`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `control_regulation`              | The internal regulation on the employer's own checks, with its schedule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | `issueYear`, `followingYear` for the schedule's heading                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `signing_regulation_annex`        | Document 13: the annex to the regulament intern on the electronic signature of the training sheets, one page ([ADR 023](architecture/adr-023-advanced-electronic-signature.md)); registered with the set, not yet generated with it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | `specialist` (`name`, `professionalTitle`); see "The signing templates"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `test_hiring`                     | The test after the general introductory training, with its specimen                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | None                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `test_periodic`                   | The periodic test, with its specimen; under the title of both copies, a line saying a question may have more than one correct answer (13 and 14 have)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | None                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `event_registers`                 | The four registers of accidents and dangerous incidents, A4 landscape                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | None                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |

@@ -71,6 +71,7 @@ export const ApiErrorResponseError = {
   validation_error: 'validation_error',
   not_found: 'not_found',
   conflict: 'conflict',
+  unprocessable: 'unprocessable',
   service_unavailable: 'service_unavailable',
   internal_error: 'internal_error',
 } as const;
@@ -128,6 +129,10 @@ export interface ApiErrorResponse {
   issues?: ApiErrorResponseIssuesItem[];
   reason?: string;
   missing?: ApiErrorResponseMissingItem[];
+  /** @minimum 0 */
+  attemptsLeft?: number;
+  /** @minimum 1 */
+  retryAfterSeconds?: number;
 }
 
 export interface PortalNoticeRequest {
@@ -493,6 +498,9 @@ export const PortalTrainingSheetsResponseSsmMissingItem = {
 export type PortalTrainingSheetsResponseSsm = {
   ready: boolean;
   missing: PortalTrainingSheetsResponseSsmMissingItem[];
+  stored: boolean;
+  /** @items.minimum 1 */
+  sequences: number[];
 };
 
 export type PortalTrainingSheetsResponsePsiMissingItem =
@@ -506,6 +514,9 @@ export const PortalTrainingSheetsResponsePsiMissingItem = {
 export type PortalTrainingSheetsResponsePsi = {
   ready: boolean;
   missing: PortalTrainingSheetsResponsePsiMissingItem[];
+  stored: boolean;
+  /** @items.minimum 1 */
+  sequences: number[];
 };
 
 export interface PortalTrainingSheetsResponse {
@@ -674,6 +685,398 @@ export type PortalResponsiblePersonsResponseItemsItem = {
 export interface PortalResponsiblePersonsResponse {
   items: PortalResponsiblePersonsResponseItemsItem[];
 }
+
+export type PortalSignatureRequestsResponseItemsItemSlot =
+  (typeof PortalSignatureRequestsResponseItemsItemSlot)[keyof typeof PortalSignatureRequestsResponseItemsItemSlot];
+
+export const PortalSignatureRequestsResponseItemsItemSlot = {
+  trainee: 'trainee',
+  trainer: 'trainer',
+  verifier: 'verifier',
+  admitter: 'admitter',
+} as const;
+
+export type PortalSignatureRequestsResponseItemsItemRecordEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
+};
+
+export type PortalSignatureRequestsResponseItemsItemRecordDomain =
+  (typeof PortalSignatureRequestsResponseItemsItemRecordDomain)[keyof typeof PortalSignatureRequestsResponseItemsItemRecordDomain];
+
+export const PortalSignatureRequestsResponseItemsItemRecordDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type PortalSignatureRequestsResponseItemsItemRecordPhase =
+  (typeof PortalSignatureRequestsResponseItemsItemRecordPhase)[keyof typeof PortalSignatureRequestsResponseItemsItemRecordPhase];
+
+export const PortalSignatureRequestsResponseItemsItemRecordPhase = {
+  introductory_general: 'introductory_general',
+  workplace: 'workplace',
+  periodic: 'periodic',
+  supplementary: 'supplementary',
+} as const;
+
+export type PortalSignatureRequestsResponseItemsItemRecordTrainer = {
+  name: string;
+  jobTitle: string;
+};
+
+/**
+ * @nullable
+ */
+export type PortalSignatureRequestsResponseItemsItemRecordVerifier = {
+  name: string;
+  jobTitle: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type PortalSignatureRequestsResponseItemsItemRecordSupplementaryReason =
+  | (typeof PortalSignatureRequestsResponseItemsItemRecordSupplementaryReason)[keyof typeof PortalSignatureRequestsResponseItemsItemRecordSupplementaryReason]
+  | null;
+
+export const PortalSignatureRequestsResponseItemsItemRecordSupplementaryReason = {
+  absence_over_thirty_days: 'absence_over_thirty_days',
+  rules_changed: 'rules_changed',
+  after_accident: 'after_accident',
+  special_works: 'special_works',
+  new_equipment: 'new_equipment',
+  changed_procedure: 'changed_procedure',
+  new_technology: 'new_technology',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PortalSignatureRequestsResponseItemsItemRecordAdmission = {
+  admittedOn: string;
+  name: string;
+  jobTitle: string;
+} | null;
+
+export type PortalSignatureRequestsResponseItemsItemRecord = {
+  id: string;
+  employee: PortalSignatureRequestsResponseItemsItemRecordEmployee;
+  domain: PortalSignatureRequestsResponseItemsItemRecordDomain;
+  phase: PortalSignatureRequestsResponseItemsItemRecordPhase;
+  heldOn: string;
+  durationMinutes: number;
+  material: string;
+  trainer: PortalSignatureRequestsResponseItemsItemRecordTrainer;
+  /** @nullable */
+  verifier: PortalSignatureRequestsResponseItemsItemRecordVerifier;
+  /** @nullable */
+  supplementaryReason: PortalSignatureRequestsResponseItemsItemRecordSupplementaryReason;
+  occupation: string;
+  /** @nullable */
+  admission: PortalSignatureRequestsResponseItemsItemRecordAdmission;
+};
+
+/**
+ * @nullable
+ */
+export type PortalSignatureRequestsResponseItemsItemAgreementState =
+  | (typeof PortalSignatureRequestsResponseItemsItemAgreementState)[keyof typeof PortalSignatureRequestsResponseItemsItemAgreementState]
+  | null;
+
+export const PortalSignatureRequestsResponseItemsItemAgreementState = {
+  generated: 'generated',
+  signed_electronically: 'signed_electronically',
+  signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
+} as const;
+
+export type PortalSignatureRequestsResponseItemsItem = {
+  id: string;
+  slot: PortalSignatureRequestsResponseItemsItemSlot;
+  issuedAt: string;
+  signerName: string;
+  record: PortalSignatureRequestsResponseItemsItemRecord;
+  /** @nullable */
+  agreementState: PortalSignatureRequestsResponseItemsItemAgreementState;
+};
+
+export interface PortalSignatureRequestsResponse {
+  items: PortalSignatureRequestsResponseItemsItem[];
+}
+
+export type PortalSigningAgreementsResponseItemsItemEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
+};
+
+export type PortalSigningAgreementsResponseItemsItemAgreementState =
+  (typeof PortalSigningAgreementsResponseItemsItemAgreementState)[keyof typeof PortalSigningAgreementsResponseItemsItemAgreementState];
+
+export const PortalSigningAgreementsResponseItemsItemAgreementState = {
+  generated: 'generated',
+  signed_electronically: 'signed_electronically',
+  signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PortalSigningAgreementsResponseItemsItemAgreementAwaiting =
+  | (typeof PortalSigningAgreementsResponseItemsItemAgreementAwaiting)[keyof typeof PortalSigningAgreementsResponseItemsItemAgreementAwaiting]
+  | null;
+
+export const PortalSigningAgreementsResponseItemsItemAgreementAwaiting = {
+  employee: 'employee',
+  employer: 'employer',
+} as const;
+
+export type PortalSigningAgreementsResponseItemsItemAgreement = {
+  state: PortalSigningAgreementsResponseItemsItemAgreementState;
+  generatedAt: string;
+  /** @nullable */
+  signedAt: string | null;
+  /** @nullable */
+  clientFileId: string | null;
+  /** @nullable */
+  employeeSignedAt: string | null;
+  /** @nullable */
+  employerSignedAt: string | null;
+  /** @nullable */
+  awaiting: PortalSigningAgreementsResponseItemsItemAgreementAwaiting;
+};
+
+export type PortalSigningAgreementsResponseItemsItem = {
+  employee: PortalSigningAgreementsResponseItemsItemEmployee;
+  agreement: PortalSigningAgreementsResponseItemsItemAgreement;
+  awaitingEmployer: boolean;
+};
+
+export interface PortalSigningAgreementsResponse {
+  items: PortalSigningAgreementsResponseItemsItem[];
+}
+
+export type SigningAgreementResponseAgreementState =
+  (typeof SigningAgreementResponseAgreementState)[keyof typeof SigningAgreementResponseAgreementState];
+
+export const SigningAgreementResponseAgreementState = {
+  generated: 'generated',
+  signed_electronically: 'signed_electronically',
+  signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SigningAgreementResponseAgreementAwaiting =
+  | (typeof SigningAgreementResponseAgreementAwaiting)[keyof typeof SigningAgreementResponseAgreementAwaiting]
+  | null;
+
+export const SigningAgreementResponseAgreementAwaiting = {
+  employee: 'employee',
+  employer: 'employer',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SigningAgreementResponseAgreement = {
+  state: SigningAgreementResponseAgreementState;
+  generatedAt: string;
+  /** @nullable */
+  signedAt: string | null;
+  /** @nullable */
+  clientFileId: string | null;
+  /** @nullable */
+  employeeSignedAt: string | null;
+  /** @nullable */
+  employerSignedAt: string | null;
+  /** @nullable */
+  awaiting: SigningAgreementResponseAgreementAwaiting;
+} | null;
+
+export interface SigningAgreementResponse {
+  /** @nullable */
+  agreement: SigningAgreementResponseAgreement;
+}
+
+export interface SigningSessionRequest {
+  /** @maxItems 30 */
+  requestIds: string[];
+  /** @maxItems 30 */
+  agreementEmployeeIds?: string[];
+}
+
+export type SigningSessionResponseChannel =
+  (typeof SigningSessionResponseChannel)[keyof typeof SigningSessionResponseChannel];
+
+export const SigningSessionResponseChannel = {
+  email: 'email',
+  sms: 'sms',
+} as const;
+
+export type SigningSessionResponseItemsItem =
+  | {
+      kind: 'request';
+      requestId: string;
+    }
+  | {
+      kind: 'agreement';
+      employeeId: string;
+      party: 'employee' | 'employer';
+    };
+
+export interface SigningSessionResponse {
+  sessionId: string;
+  channel: SigningSessionResponseChannel;
+  addressHint: string;
+  expiresAt: string;
+  items: SigningSessionResponseItemsItem[];
+}
+
+export interface SignCodeRequest {
+  /** @pattern ^\d{6}$ */
+  code: string;
+}
+
+/**
+ * @nullable
+ */
+export type SignSessionResponseSignedItemAgreementState =
+  | (typeof SignSessionResponseSignedItemAgreementState)[keyof typeof SignSessionResponseSignedItemAgreementState]
+  | null;
+
+export const SignSessionResponseSignedItemAgreementState = {
+  generated: 'generated',
+  signed_electronically: 'signed_electronically',
+  signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
+} as const;
+
+export type SignSessionResponseSignedItem = {
+  requestId: string;
+  /** @nullable */
+  agreementState: SignSessionResponseSignedItemAgreementState;
+};
+
+export type SignSessionResponseFailedItemReason =
+  (typeof SignSessionResponseFailedItemReason)[keyof typeof SignSessionResponseFailedItemReason];
+
+export const SignSessionResponseFailedItemReason = {
+  request_not_pending: 'request_not_pending',
+  agreement_not_awaiting: 'agreement_not_awaiting',
+  agreement_changed: 'agreement_changed',
+  missing_document_data: 'missing_document_data',
+  client_archived: 'client_archived',
+  signer_not_of_client: 'signer_not_of_client',
+  sheet_busy: 'sheet_busy',
+  slot_not_on_sheet: 'slot_not_on_sheet',
+  missing_sheet_data: 'missing_sheet_data',
+  row_locked: 'row_locked',
+  already_signed: 'already_signed',
+  locked_field: 'locked_field',
+  unknown_fields: 'unknown_fields',
+  cannot_certify: 'cannot_certify',
+  signer_refused: 'signer_refused',
+  signer_unavailable: 'signer_unavailable',
+  pdf_unavailable: 'pdf_unavailable',
+  template_missing: 'template_missing',
+  signing_failed: 'signing_failed',
+} as const;
+
+export type SignSessionResponseFailedItem = {
+  requestId: string;
+  reason: SignSessionResponseFailedItemReason;
+};
+
+export type SignSessionResponseAgreementsItemParty =
+  (typeof SignSessionResponseAgreementsItemParty)[keyof typeof SignSessionResponseAgreementsItemParty];
+
+export const SignSessionResponseAgreementsItemParty = {
+  employee: 'employee',
+  employer: 'employer',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SignSessionResponseAgreementsItemReason =
+  | (typeof SignSessionResponseAgreementsItemReason)[keyof typeof SignSessionResponseAgreementsItemReason]
+  | null;
+
+export const SignSessionResponseAgreementsItemReason = {
+  request_not_pending: 'request_not_pending',
+  agreement_not_awaiting: 'agreement_not_awaiting',
+  agreement_changed: 'agreement_changed',
+  missing_document_data: 'missing_document_data',
+  client_archived: 'client_archived',
+  signer_not_of_client: 'signer_not_of_client',
+  sheet_busy: 'sheet_busy',
+  slot_not_on_sheet: 'slot_not_on_sheet',
+  missing_sheet_data: 'missing_sheet_data',
+  row_locked: 'row_locked',
+  already_signed: 'already_signed',
+  locked_field: 'locked_field',
+  unknown_fields: 'unknown_fields',
+  cannot_certify: 'cannot_certify',
+  signer_refused: 'signer_refused',
+  signer_unavailable: 'signer_unavailable',
+  pdf_unavailable: 'pdf_unavailable',
+  template_missing: 'template_missing',
+  signing_failed: 'signing_failed',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SignSessionResponseAgreementsItemAgreementState =
+  | (typeof SignSessionResponseAgreementsItemAgreementState)[keyof typeof SignSessionResponseAgreementsItemAgreementState]
+  | null;
+
+export const SignSessionResponseAgreementsItemAgreementState = {
+  generated: 'generated',
+  signed_electronically: 'signed_electronically',
+  signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
+} as const;
+
+export type SignSessionResponseAgreementsItem = {
+  employeeId: string;
+  party: SignSessionResponseAgreementsItemParty;
+  signed: boolean;
+  /** @nullable */
+  reason: SignSessionResponseAgreementsItemReason;
+  /** @nullable */
+  agreementState: SignSessionResponseAgreementsItemAgreementState;
+};
+
+export interface SignSessionResponse {
+  signed: SignSessionResponseSignedItem[];
+  failed: SignSessionResponseFailedItem[];
+  agreements: SignSessionResponseAgreementsItem[];
+}
+
+export type GetPortalTrainingSheetParams = {
+  /**
+   * @minimum 1
+   */
+  sequence?: number;
+};
+
+export type GetPortalEmployeeTrainingSheetParams = {
+  /**
+   * @minimum 1
+   */
+  sequence?: number;
+};
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -1312,7 +1715,7 @@ export const getGetPortalTrainingSheetsUrl = (participantId: string) => {
 };
 
 /**
- * For each domain, `ready` and the codes of what the client's specialist still has to fill.
+ * For each domain, `ready` and the codes of what the client's specialist still has to fill, and `stored` once the sheet is the stored signed sheet (ADR 023).
  * @summary Whether the participant's two individual training sheets can be opened
  */
 export const getPortalTrainingSheets = async (
@@ -1445,27 +1848,51 @@ export function useGetPortalTrainingSheets<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export const getGetPortalTrainingSheetUrl = (participantId: string, domain: 'ssm' | 'psi') => {
-  return `/portal/participants/${participantId}/sheets/${domain}`;
+export const getGetPortalTrainingSheetUrl = (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/portal/participants/${participantId}/sheets/${domain}?${stringifiedParams}`
+    : `/portal/participants/${participantId}/sheets/${domain}`;
 };
 
 /**
- * Drawn up on the spot, as the employee's page in the app does; nothing is stored.
+ * As the employee's page in the app has it: the stored signed sheet once signing has started (ADR 023), else drawn up on the spot and not stored. Several stored sheets (a sheet and its continuation sheets) come merged into one flattened copy, stamped on every page as a copy to read and named `…-copie.pdf`, whose signatures do not verify; `?sequence=n` serves the original of sheet n as signed, `sequences` in the readiness listing them.
  * @summary The participant's individual training sheet of a domain as a PDF
  */
 export const getPortalTrainingSheet = async (
   participantId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<Blob> => {
-  return apiFetch<Blob>(getGetPortalTrainingSheetUrl(participantId, domain), {
+  return apiFetch<Blob>(getGetPortalTrainingSheetUrl(participantId, domain, params), {
     ...options,
     method: 'GET',
   });
 };
 
-export const getGetPortalTrainingSheetQueryKey = (participantId: string, domain: 'ssm' | 'psi') => {
-  return [`/portal/participants/${participantId}/sheets/${domain}`] as const;
+export const getGetPortalTrainingSheetQueryKey = (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams
+) => {
+  return [
+    `/portal/participants/${participantId}/sheets/${domain}`,
+    ...(params ? [params] : []),
+  ] as const;
 };
 
 export const getGetPortalTrainingSheetQueryOptions = <
@@ -1474,6 +1901,7 @@ export const getGetPortalTrainingSheetQueryOptions = <
 >(
   participantId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheet>>, TError, TData>
@@ -1484,10 +1912,10 @@ export const getGetPortalTrainingSheetQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getGetPortalTrainingSheetQueryKey(participantId, domain);
+    queryOptions?.queryKey ?? getGetPortalTrainingSheetQueryKey(participantId, domain, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalTrainingSheet>>> = ({ signal }) =>
-    getPortalTrainingSheet(participantId, domain, { signal, ...requestOptions });
+    getPortalTrainingSheet(participantId, domain, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -1516,6 +1944,7 @@ export function useGetPortalTrainingSheet<
 >(
   participantId: string,
   domain: 'ssm' | 'psi',
+  params: undefined | GetPortalTrainingSheetParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheet>>, TError, TData>
@@ -1538,6 +1967,7 @@ export function useGetPortalTrainingSheet<
 >(
   participantId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheet>>, TError, TData>
@@ -1560,6 +1990,7 @@ export function useGetPortalTrainingSheet<
 >(
   participantId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheet>>, TError, TData>
@@ -1578,6 +2009,7 @@ export function useGetPortalTrainingSheet<
 >(
   participantId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheet>>, TError, TData>
@@ -1586,7 +2018,12 @@ export function useGetPortalTrainingSheet<
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetPortalTrainingSheetQueryOptions(participantId, domain, options);
+  const queryOptions = getGetPortalTrainingSheetQueryOptions(
+    participantId,
+    domain,
+    params,
+    options
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -2065,33 +2502,53 @@ export function useGetPortalEmployeeTrainingSheets<
 export const getGetPortalEmployeeTrainingSheetUrl = (
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi'
+  domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams
 ) => {
-  return `/portal/participants/${participantId}/employees/${employeeId}/sheets/${domain}`;
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/portal/participants/${participantId}/employees/${employeeId}/sheets/${domain}?${stringifiedParams}`
+    : `/portal/participants/${participantId}/employees/${employeeId}/sheets/${domain}`;
 };
 
 /**
+ * Several stored sheets (a sheet and its continuation sheets) come merged into one flattened copy, stamped on every page as a copy to read and named `…-copie.pdf`, whose signatures do not verify; `?sequence=n` serves the original of sheet n as signed, `sequences` in the readiness listing them.
  * @summary An employee's individual training sheet as a PDF, for the client administrator
  */
 export const getPortalEmployeeTrainingSheet = async (
   participantId: string,
   employeeId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<Blob> => {
-  return apiFetch<Blob>(getGetPortalEmployeeTrainingSheetUrl(participantId, employeeId, domain), {
-    ...options,
-    method: 'GET',
-  });
+  return apiFetch<Blob>(
+    getGetPortalEmployeeTrainingSheetUrl(participantId, employeeId, domain, params),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
 };
 
 export const getGetPortalEmployeeTrainingSheetQueryKey = (
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi'
+  domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams
 ) => {
   return [
     `/portal/participants/${participantId}/employees/${employeeId}/sheets/${domain}`,
+    ...(params ? [params] : []),
   ] as const;
 };
 
@@ -2102,6 +2559,7 @@ export const getGetPortalEmployeeTrainingSheetQueryOptions = <
   participantId: string,
   employeeId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheet>>, TError, TData>
@@ -2113,12 +2571,12 @@ export const getGetPortalEmployeeTrainingSheetQueryOptions = <
 
   const queryKey =
     queryOptions?.queryKey ??
-    getGetPortalEmployeeTrainingSheetQueryKey(participantId, employeeId, domain);
+    getGetPortalEmployeeTrainingSheetQueryKey(participantId, employeeId, domain, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheet>>> = ({
     signal,
   }) =>
-    getPortalEmployeeTrainingSheet(participantId, employeeId, domain, {
+    getPortalEmployeeTrainingSheet(participantId, employeeId, domain, params, {
       signal,
       ...requestOptions,
     });
@@ -2155,6 +2613,7 @@ export function useGetPortalEmployeeTrainingSheet<
   participantId: string,
   employeeId: string,
   domain: 'ssm' | 'psi',
+  params: undefined | GetPortalEmployeeTrainingSheetParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheet>>, TError, TData>
@@ -2178,6 +2637,7 @@ export function useGetPortalEmployeeTrainingSheet<
   participantId: string,
   employeeId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheet>>, TError, TData>
@@ -2201,6 +2661,7 @@ export function useGetPortalEmployeeTrainingSheet<
   participantId: string,
   employeeId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheet>>, TError, TData>
@@ -2220,6 +2681,7 @@ export function useGetPortalEmployeeTrainingSheet<
   participantId: string,
   employeeId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheet>>, TError, TData>
@@ -2232,6 +2694,7 @@ export function useGetPortalEmployeeTrainingSheet<
     participantId,
     employeeId,
     domain,
+    params,
     options
   );
 
@@ -2382,3 +2845,1103 @@ export function useListPortalResponsiblePersons<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getListPortalSignatureRequestsUrl = (participantId: string) => {
+  return `/portal/participants/${participantId}/signature-requests`;
+};
+
+/**
+ * Under the participation's client, oldest first, each with the record as its row of the sheet prints it: the trainee's own records, and for a trainer, a verifier or a workplace manager the other employees' records they sign.
+ * @summary The pending signature requests addressed to the participant
+ */
+export const listPortalSignatureRequests = async (
+  participantId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<PortalSignatureRequestsResponse> => {
+  return apiFetch<PortalSignatureRequestsResponse>(
+    getListPortalSignatureRequestsUrl(participantId),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getListPortalSignatureRequestsQueryKey = (participantId: string) => {
+  return [`/portal/participants/${participantId}/signature-requests`] as const;
+};
+
+export const getListPortalSignatureRequestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPortalSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalSignatureRequests>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListPortalSignatureRequestsQueryKey(participantId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPortalSignatureRequests>>> = ({
+    signal,
+  }) => listPortalSignatureRequests(participantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: participantId !== null && participantId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listPortalSignatureRequests>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListPortalSignatureRequestsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPortalSignatureRequests>>
+>;
+export type ListPortalSignatureRequestsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListPortalSignatureRequests<
+  TData = Awaited<ReturnType<typeof listPortalSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalSignatureRequests>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPortalSignatureRequests>>,
+          TError,
+          Awaited<ReturnType<typeof listPortalSignatureRequests>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListPortalSignatureRequests<
+  TData = Awaited<ReturnType<typeof listPortalSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalSignatureRequests>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPortalSignatureRequests>>,
+          TError,
+          Awaited<ReturnType<typeof listPortalSignatureRequests>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListPortalSignatureRequests<
+  TData = Awaited<ReturnType<typeof listPortalSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalSignatureRequests>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The pending signature requests addressed to the participant
+ */
+
+export function useListPortalSignatureRequests<
+  TData = Awaited<ReturnType<typeof listPortalSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalSignatureRequests>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListPortalSignatureRequestsQueryOptions(participantId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListPortalClientSignatureRequestsUrl = (participantId: string) => {
+  return `/portal/participants/${participantId}/employees/signature-requests`;
+};
+
+/**
+ * Oldest first, each with the name of the person its slot prints.
+ * @summary The client's pending signature requests, for the client administrator
+ */
+export const listPortalClientSignatureRequests = async (
+  participantId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<PortalSignatureRequestsResponse> => {
+  return apiFetch<PortalSignatureRequestsResponse>(
+    getListPortalClientSignatureRequestsUrl(participantId),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getListPortalClientSignatureRequestsQueryKey = (participantId: string) => {
+  return [`/portal/participants/${participantId}/employees/signature-requests`] as const;
+};
+
+export const getListPortalClientSignatureRequestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPortalClientSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalClientSignatureRequests>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPortalClientSignatureRequestsQueryKey(participantId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPortalClientSignatureRequests>>> = ({
+    signal,
+  }) => listPortalClientSignatureRequests(participantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: participantId !== null && participantId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPortalClientSignatureRequests>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListPortalClientSignatureRequestsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPortalClientSignatureRequests>>
+>;
+export type ListPortalClientSignatureRequestsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListPortalClientSignatureRequests<
+  TData = Awaited<ReturnType<typeof listPortalClientSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalClientSignatureRequests>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPortalClientSignatureRequests>>,
+          TError,
+          Awaited<ReturnType<typeof listPortalClientSignatureRequests>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListPortalClientSignatureRequests<
+  TData = Awaited<ReturnType<typeof listPortalClientSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalClientSignatureRequests>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPortalClientSignatureRequests>>,
+          TError,
+          Awaited<ReturnType<typeof listPortalClientSignatureRequests>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListPortalClientSignatureRequests<
+  TData = Awaited<ReturnType<typeof listPortalClientSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalClientSignatureRequests>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The client's pending signature requests, for the client administrator
+ */
+
+export function useListPortalClientSignatureRequests<
+  TData = Awaited<ReturnType<typeof listPortalClientSignatureRequests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalClientSignatureRequests>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListPortalClientSignatureRequestsQueryOptions(participantId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListPortalSigningAgreementsUrl = (participantId: string) => {
+  return `/portal/participants/${participantId}/employees/signing-agreements`;
+};
+
+/**
+ * Those the employee has signed and the employer has not (`awaitingEmployer`) first, then those signed electronically by both, each by employee name.
+ * @summary The client's signing agreements the employer signs, for the client administrator
+ */
+export const listPortalSigningAgreements = async (
+  participantId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<PortalSigningAgreementsResponse> => {
+  return apiFetch<PortalSigningAgreementsResponse>(
+    getListPortalSigningAgreementsUrl(participantId),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getListPortalSigningAgreementsQueryKey = (participantId: string) => {
+  return [`/portal/participants/${participantId}/employees/signing-agreements`] as const;
+};
+
+export const getListPortalSigningAgreementsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPortalSigningAgreements>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalSigningAgreements>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListPortalSigningAgreementsQueryKey(participantId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPortalSigningAgreements>>> = ({
+    signal,
+  }) => listPortalSigningAgreements(participantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: participantId !== null && participantId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listPortalSigningAgreements>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListPortalSigningAgreementsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPortalSigningAgreements>>
+>;
+export type ListPortalSigningAgreementsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListPortalSigningAgreements<
+  TData = Awaited<ReturnType<typeof listPortalSigningAgreements>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalSigningAgreements>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPortalSigningAgreements>>,
+          TError,
+          Awaited<ReturnType<typeof listPortalSigningAgreements>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListPortalSigningAgreements<
+  TData = Awaited<ReturnType<typeof listPortalSigningAgreements>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalSigningAgreements>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPortalSigningAgreements>>,
+          TError,
+          Awaited<ReturnType<typeof listPortalSigningAgreements>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListPortalSigningAgreements<
+  TData = Awaited<ReturnType<typeof listPortalSigningAgreements>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalSigningAgreements>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The client's signing agreements the employer signs, for the client administrator
+ */
+
+export function useListPortalSigningAgreements<
+  TData = Awaited<ReturnType<typeof listPortalSigningAgreements>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPortalSigningAgreements>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListPortalSigningAgreementsQueryOptions(participantId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetPortalEmployeeSigningAgreementUrl = (
+  participantId: string,
+  employeeId: string
+) => {
+  return `/portal/participants/${participantId}/employees/${employeeId}/signing-agreement`;
+};
+
+/**
+ * The stored, signed file once the employee has signed; else drawn up on the spot.
+ * @summary An employee's signing agreement as a PDF, for the client administrator
+ */
+export const getPortalEmployeeSigningAgreement = async (
+  participantId: string,
+  employeeId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getGetPortalEmployeeSigningAgreementUrl(participantId, employeeId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetPortalEmployeeSigningAgreementQueryKey = (
+  participantId: string,
+  employeeId: string
+) => {
+  return [
+    `/portal/participants/${participantId}/employees/${employeeId}/signing-agreement`,
+  ] as const;
+};
+
+export const getGetPortalEmployeeSigningAgreementQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetPortalEmployeeSigningAgreementQueryKey(participantId, employeeId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>> = ({
+    signal,
+  }) => getPortalEmployeeSigningAgreement(participantId, employeeId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      participantId !== null &&
+      participantId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetPortalEmployeeSigningAgreementQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>
+>;
+export type GetPortalEmployeeSigningAgreementQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetPortalEmployeeSigningAgreement<
+  TData = Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalEmployeeSigningAgreement<
+  TData = Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalEmployeeSigningAgreement<
+  TData = Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary An employee's signing agreement as a PDF, for the client administrator
+ */
+
+export function useGetPortalEmployeeSigningAgreement<
+  TData = Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeSigningAgreement>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPortalEmployeeSigningAgreementQueryOptions(
+    participantId,
+    employeeId,
+    options
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetPortalSigningAgreementUrl = (participantId: string) => {
+  return `/portal/participants/${participantId}/signing-agreement`;
+};
+
+/**
+ * Drawn up on the spot, as the employee's page in the app does.
+ * @summary The participant's own signing agreement as a PDF
+ */
+export const getPortalSigningAgreement = async (
+  participantId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getGetPortalSigningAgreementUrl(participantId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetPortalSigningAgreementQueryKey = (participantId: string) => {
+  return [`/portal/participants/${participantId}/signing-agreement`] as const;
+};
+
+export const getGetPortalSigningAgreementQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreement>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPortalSigningAgreementQueryKey(participantId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalSigningAgreement>>> = ({
+    signal,
+  }) => getPortalSigningAgreement(participantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: participantId !== null && participantId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreement>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetPortalSigningAgreementQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPortalSigningAgreement>>
+>;
+export type GetPortalSigningAgreementQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetPortalSigningAgreement<
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreement>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalSigningAgreement>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalSigningAgreement>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalSigningAgreement<
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreement>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalSigningAgreement>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalSigningAgreement>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalSigningAgreement<
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreement>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The participant's own signing agreement as a PDF
+ */
+
+export function useGetPortalSigningAgreement<
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreement>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreement>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPortalSigningAgreementQueryOptions(participantId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetPortalSigningAgreementStateUrl = (participantId: string) => {
+  return `/portal/participants/${participantId}/signing-agreement/state`;
+};
+
+/**
+ * `agreement` is null until the specialist records one; the portal shows "act adițional nesemnat" until it is signed.
+ * @summary The participant's own signing agreement state
+ */
+export const getPortalSigningAgreementState = async (
+  participantId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SigningAgreementResponse> => {
+  return apiFetch<SigningAgreementResponse>(getGetPortalSigningAgreementStateUrl(participantId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetPortalSigningAgreementStateQueryKey = (participantId: string) => {
+  return [`/portal/participants/${participantId}/signing-agreement/state`] as const;
+};
+
+export const getGetPortalSigningAgreementStateQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreementState>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreementState>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPortalSigningAgreementStateQueryKey(participantId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalSigningAgreementState>>> = ({
+    signal,
+  }) => getPortalSigningAgreementState(participantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: participantId !== null && participantId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPortalSigningAgreementState>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetPortalSigningAgreementStateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPortalSigningAgreementState>>
+>;
+export type GetPortalSigningAgreementStateQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetPortalSigningAgreementState<
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreementState>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreementState>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalSigningAgreementState>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalSigningAgreementState>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalSigningAgreementState<
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreementState>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreementState>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalSigningAgreementState>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalSigningAgreementState>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalSigningAgreementState<
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreementState>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreementState>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The participant's own signing agreement state
+ */
+
+export function useGetPortalSigningAgreementState<
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreementState>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreementState>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPortalSigningAgreementStateQueryOptions(participantId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCreatePortalSigningSessionUrl = (participantId: string) => {
+  return `/portal/participants/${participantId}/signing-sessions`;
+};
+
+/**
+ * The participant's pending requests under the participation's client and, in `agreementEmployeeIds`, signing agreements, at most 30 items in all. The party is decided per agreement: the participant's own while it awaits the employee is theirs as the employee, an administrator's who is that employee included; any of the client's that awaits the employer is the administrator's. The code goes to the email the app holds for the person, else by SMS to the phone.
+ * @summary Ask for a signing code for the listed requests and agreements
+ */
+export const createPortalSigningSession = async (
+  participantId: string,
+  signingSessionRequest: SigningSessionRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SigningSessionResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<SigningSessionResponse>(getCreatePortalSigningSessionUrl(participantId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(signingSessionRequest),
+  });
+};
+
+export const getCreatePortalSigningSessionMutationKey = () =>
+  ['createPortalSigningSession'] as const;
+
+export const getCreatePortalSigningSessionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPortalSigningSession>>,
+    TError,
+    CreatePortalSigningSessionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPortalSigningSession>>,
+  TError,
+  CreatePortalSigningSessionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreatePortalSigningSessionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPortalSigningSession>>,
+    CreatePortalSigningSessionMutationVariables
+  > = (props) => {
+    const { participantId, data } = props ?? {};
+
+    return createPortalSigningSession(participantId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreatePortalSigningSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createPortalSigningSession>>
+>;
+export type CreatePortalSigningSessionMutationBody = SigningSessionRequest;
+export type CreatePortalSigningSessionMutationError = ErrorType<ApiErrorResponse>;
+export type CreatePortalSigningSessionMutationVariables = {
+  participantId: string;
+  data: SigningSessionRequest;
+};
+
+/**
+ * @summary Ask for a signing code for the listed requests and agreements
+ */
+export const useCreatePortalSigningSession = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createPortalSigningSession>>,
+      TError,
+      CreatePortalSigningSessionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createPortalSigningSession>>,
+  TError,
+  CreatePortalSigningSessionMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreatePortalSigningSessionMutationOptions(options), queryClient);
+};
+
+export const getSignPortalSigningSessionUrl = (participantId: string, sessionId: string) => {
+  return `/portal/participants/${participantId}/signing-sessions/${sessionId}/sign`;
+};
+
+/**
+ * As the member's route, with the agreements first: the employee's signature draws the agreement up, certifies it and stores it; the administrator's signs the stored file, after which the agreement is `signed_electronically`. A record is signed whatever its trainee's agreement state; `agreementState` says it, so the screen keeps warning.
+ * @summary Type the code and sign everything the session lists
+ */
+export const signPortalSigningSession = async (
+  participantId: string,
+  sessionId: string,
+  signCodeRequest: SignCodeRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SignSessionResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<SignSessionResponse>(getSignPortalSigningSessionUrl(participantId, sessionId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(signCodeRequest),
+  });
+};
+
+export const getSignPortalSigningSessionMutationKey = () => ['signPortalSigningSession'] as const;
+
+export const getSignPortalSigningSessionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof signPortalSigningSession>>,
+    TError,
+    SignPortalSigningSessionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof signPortalSigningSession>>,
+  TError,
+  SignPortalSigningSessionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSignPortalSigningSessionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof signPortalSigningSession>>,
+    SignPortalSigningSessionMutationVariables
+  > = (props) => {
+    const { participantId, sessionId, data } = props ?? {};
+
+    return signPortalSigningSession(participantId, sessionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SignPortalSigningSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof signPortalSigningSession>>
+>;
+export type SignPortalSigningSessionMutationBody = SignCodeRequest;
+export type SignPortalSigningSessionMutationError = ErrorType<ApiErrorResponse>;
+export type SignPortalSigningSessionMutationVariables = {
+  participantId: string;
+  sessionId: string;
+  data: SignCodeRequest;
+};
+
+/**
+ * @summary Type the code and sign everything the session lists
+ */
+export const useSignPortalSigningSession = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof signPortalSigningSession>>,
+      TError,
+      SignPortalSigningSessionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof signPortalSigningSession>>,
+  TError,
+  SignPortalSigningSessionMutationVariables,
+  TContext
+> => {
+  return useMutation(getSignPortalSigningSessionMutationOptions(options), queryClient);
+};

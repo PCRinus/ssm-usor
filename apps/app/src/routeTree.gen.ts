@@ -27,6 +27,7 @@ import { Route as AuthenticatedLegislatieRouteImport } from './routes/_authentic
 import { Route as AuthenticatedOrganizationRouteImport } from './routes/_authenticated/organization';
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile';
 import { Route as AuthenticatedRisksRouteImport } from './routes/_authenticated/risks';
+import { Route as AuthenticatedSignaturesRouteImport } from './routes/_authenticated/signatures';
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients/index';
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients/$clientId';
 import { Route as AuthenticatedClientsNewRouteImport } from './routes/_authenticated/clients/new';
@@ -177,6 +178,11 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
 const AuthenticatedRisksRoute = AuthenticatedRisksRouteImport.update({
   id: '/risks',
   path: '/risks',
+  getParentRoute: () => AuthenticatedRoute,
+} as any);
+const AuthenticatedSignaturesRoute = AuthenticatedSignaturesRouteImport.update({
+  id: '/signatures',
+  path: '/signatures',
   getParentRoute: () => AuthenticatedRoute,
 } as any);
 const AuthenticatedClientsIndexRoute =
@@ -562,6 +568,7 @@ export interface FileRoutesByFullPath {
   '/organization': typeof AuthenticatedOrganizationRouteWithChildren;
   '/profile': typeof AuthenticatedProfileRoute;
   '/risks': typeof AuthenticatedRisksRouteWithChildren;
+  '/signatures': typeof AuthenticatedSignaturesRoute;
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRouteWithChildren;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
@@ -634,6 +641,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute;
   '/dashboard': typeof AuthenticatedDashboardRoute;
   '/profile': typeof AuthenticatedProfileRoute;
+  '/signatures': typeof AuthenticatedSignaturesRoute;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
   '/instructions': typeof AuthenticatedInstructionsIndexRoute;
@@ -704,6 +712,7 @@ export interface FileRoutesById {
   '/_authenticated/organization': typeof AuthenticatedOrganizationRouteWithChildren;
   '/_authenticated/profile': typeof AuthenticatedProfileRoute;
   '/_authenticated/risks': typeof AuthenticatedRisksRouteWithChildren;
+  '/_authenticated/signatures': typeof AuthenticatedSignaturesRoute;
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRouteWithChildren;
   '/_authenticated/clients/new': typeof AuthenticatedClientsNewRoute;
   '/_authenticated/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
@@ -785,6 +794,7 @@ export interface FileRouteTypes {
     | '/organization'
     | '/profile'
     | '/risks'
+    | '/signatures'
     | '/clients/$clientId'
     | '/clients/new'
     | '/instructions/$moduleId'
@@ -857,6 +867,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/profile'
+    | '/signatures'
     | '/clients/new'
     | '/instructions/$moduleId'
     | '/instructions'
@@ -926,6 +937,7 @@ export interface FileRouteTypes {
     | '/_authenticated/organization'
     | '/_authenticated/profile'
     | '/_authenticated/risks'
+    | '/_authenticated/signatures'
     | '/_authenticated/clients/$clientId'
     | '/_authenticated/clients/new'
     | '/_authenticated/instructions/$moduleId'
@@ -1127,6 +1139,13 @@ declare module '@tanstack/react-router' {
       path: '/risks';
       fullPath: '/risks';
       preLoaderRoute: typeof AuthenticatedRisksRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    '/_authenticated/signatures': {
+      id: '/_authenticated/signatures';
+      path: '/signatures';
+      fullPath: '/signatures';
+      preLoaderRoute: typeof AuthenticatedSignaturesRouteImport;
       parentRoute: typeof AuthenticatedRoute;
     };
     '/_authenticated/clients/': {
@@ -1919,6 +1938,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedOrganizationRoute: typeof AuthenticatedOrganizationRouteWithChildren;
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute;
   AuthenticatedRisksRoute: typeof AuthenticatedRisksRouteWithChildren;
+  AuthenticatedSignaturesRoute: typeof AuthenticatedSignaturesRoute;
   AuthenticatedEmployeesIndexRoute: typeof AuthenticatedEmployeesIndexRoute;
 }
 
@@ -1931,6 +1951,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedOrganizationRoute: AuthenticatedOrganizationRouteWithChildren,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRisksRoute: AuthenticatedRisksRouteWithChildren,
+  AuthenticatedSignaturesRoute: AuthenticatedSignaturesRoute,
   AuthenticatedEmployeesIndexRoute: AuthenticatedEmployeesIndexRoute,
 };
 

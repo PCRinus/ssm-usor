@@ -16,13 +16,13 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
 import { type Participation, participationOf } from '../../lib/participant';
-import { toAdmission } from '../trainings/handlers';
 import {
   drawTrainingSheet,
   missingSheetDataResponse,
   trainingSheetReadiness,
 } from '../trainings/sheet-handlers';
 import { toEmployeeTraining } from '../trainings/status';
+import { toAdmission } from '../trainings/training-rows';
 import type {
   getPortalEmployeeDataRoute,
   getPortalEmployeeTrainingSheetRoute,
@@ -137,11 +137,16 @@ const sheets = (c: Context<ApiEnv>, { clientId, employeeId }: EmployeeRef) =>
 
 // Storage lets only members read the templates. The participant reads the template's registry
 // row through their own policy, so the path the secret key reads is one they may use.
-const sheet = (c: Context<ApiEnv>, employee: EmployeeRef, domain: TrainingDomain) =>
+const sheet = (
+  c: Context<ApiEnv>,
+  employee: EmployeeRef,
+  domain: TrainingDomain,
+  sequence: number | undefined
+) =>
   drawTrainingSheet(
     c,
     createDataClient(c),
-    { ...employee, domain },
+    { ...employee, domain, sequence },
     createAdminFileStore(c).readTemplate
   );
 
@@ -263,7 +268,8 @@ export const getPortalTrainingSheet: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { participantId, domain } = c.req.valid('param');
-  const drawn = await sheet(c, ownEmployee(participationOf(c, participantId)), domain);
+  const { sequence } = c.req.valid('query');
+  const drawn = await sheet(c, ownEmployee(participationOf(c, participantId)), domain, sequence);
   if ('missing' in drawn) return c.json(missingSheetDataResponse(drawn.missing), 409);
   return c.body(new Uint8Array(drawn.pdf), 200, {
     'Content-Type': 'application/pdf',
@@ -354,7 +360,13 @@ export const getPortalEmployeeTrainingSheet: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { participantId, employeeId, domain } = c.req.valid('param');
-  const drawn = await sheet(c, administeredEmployee(c, participantId, employeeId), domain);
+  const { sequence } = c.req.valid('query');
+  const drawn = await sheet(
+    c,
+    administeredEmployee(c, participantId, employeeId),
+    domain,
+    sequence
+  );
   if ('missing' in drawn) return c.json(missingSheetDataResponse(drawn.missing), 409);
   return c.body(new Uint8Array(drawn.pdf), 200, {
     'Content-Type': 'application/pdf',

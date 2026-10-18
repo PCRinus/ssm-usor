@@ -29,6 +29,13 @@ export const missingSheetDataLabels: Record<MissingSheetData, string> = {
 export const trainingSheetReadinessSchema = z.object({
   ready: z.boolean(),
   missing: z.array(missingSheetDataSchema),
+  /** The sheet is the stored signed sheet (ADR 023), not drawn up on the spot. */
+  stored: z.boolean(),
+  /**
+   * The stored sheet and its continuation sheets, by sequence; empty before signing starts. Each
+   * is served as signed with `sequence`; without it, several come merged into a copy to read.
+   */
+  sequences: z.array(z.int().min(1)),
 });
 
 export type TrainingSheetReadiness = z.infer<typeof trainingSheetReadinessSchema>;
@@ -40,7 +47,14 @@ export const trainingSheetsResponseSchema = z.object({
 
 export type TrainingSheetsResponse = z.infer<typeof trainingSheetsResponseSchema>;
 
-export const trainingSheetQuerySchema = z.object({ domain: trainingDomainSchema });
+export const trainingSheetQuerySchema = z.object({
+  domain: trainingDomainSchema,
+  sequence: z.coerce.number().int().min(1).optional(),
+});
+
+export const trainingSheetSequenceQuerySchema = z.object({
+  sequence: z.coerce.number().int().min(1).optional(),
+});
 
 export type TrainingSheetQuery = z.infer<typeof trainingSheetQuerySchema>;
 

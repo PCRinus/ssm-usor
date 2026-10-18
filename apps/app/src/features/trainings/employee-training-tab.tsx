@@ -1,4 +1,5 @@
 import {
+  formatEmployeeName,
   supplementaryTrainingReasonLabels,
   type TrainingDomain,
   trainingDomainLabels,
@@ -10,13 +11,15 @@ import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
-import { ClipboardCheck, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ClipboardCheck, Lock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import {
   type EmployeeTrainingRecordListResponse,
   getListEmployeeTrainingRecordsQueryKey,
+  getListTrainingsQueryKey,
   useListEmployeeTrainingRecords,
+  useListTrainings,
 } from '@/api/generated/api';
 import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
@@ -25,6 +28,12 @@ import { formatDate } from '@/features/employees/employee-format';
 import { EmployeePending } from '@/features/employees/employee-pending';
 import { useEmployee } from '@/features/employees/use-employee';
 import { intervalLabel } from '@/features/job-positions/job-position-schema';
+import { RecordSignatures } from '@/features/signatures/record-signatures';
+import {
+  trainingLocks,
+  type TrainingSigning,
+  useRecordSignatures,
+} from '@/features/signatures/use-record-signatures';
 import { TrainingSheetDownload } from '@/features/training-sheets/training-sheet-download';
 import { TrainingSheetReadiness } from '@/features/training-sheets/training-sheet-readiness';
 
@@ -143,6 +152,16 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
       enabled: Boolean(userId && apiRequest.baseUrl),
     },
   });
+  const trainings = useListTrainings(clientId, params, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getListTrainingsQueryKey(clientId, params), userId],
+      enabled: Boolean(userId && apiRequest.baseUrl),
+    },
+  });
+  const signing = new Map<string, TrainingSigning>(
+    trainings.data?.items.map((training) => [training.id, training]) ?? []
+  );
   const [target, setTarget] = useState<TrainingDialogTarget | null>(null);
   const [deleting, setDeleting] = useState<TrainingToDelete | null>(null);
   if (!employee) return <EmployeePending />;
@@ -255,7 +274,11 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
           {items.map((item) => (
             <RecordItem
               key={item.id}
+              clientId={clientId}
+              userId={userId}
+              employeeName={formatEmployeeName(employee)}
               record={item}
+              trainingSigning={signing.get(item.training.id)}
               readOnly={readOnly}
               onEdit={() => setTarget({ kind: 'edit', trainingId: item.training.id })}
               onDelete={() =>
@@ -288,17 +311,30 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
 }
 
 function RecordItem({
+  clientId,
+  userId,
+  employeeName,
   record,
+  trainingSigning,
   readOnly,
   onEdit,
   onDelete,
 }: {
+  clientId: string;
+  userId: string;
+  employeeName: string;
   record: EmployeeTrainingRecord;
+  // Undefined while the client's trainings load; the record's own slots lock it meanwhile.
+  trainingSigning: TrainingSigning | undefined;
   readOnly: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const { training, admission } = record;
+  // A training typed from a paper sheet has its signatures on that sheet.
+  const signs = training.source === 'app';
+  const signatures = useRecordSignatures(clientId, record.id, userId, signs);
+  const locks = trainingLocks(trainingSigning, signatures.data);
   return (
     <li
       data-testid="training-record-item"
@@ -326,20 +362,41 @@ function RecordItem({
           </p>
         </div>
         {!readOnly && (
-          <div className="flex gap-1">
-            <Button variant="ghost" size="sm" data-testid="training-record-edit" onClick={onEdit}>
-              <Pencil aria-hidden="true" />
-              Modifică
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              data-testid="training-record-delete"
-              onClick={onDelete}
-            >
-              <Trash2 aria-hidden="true" />
-              Șterge
-            </Button>
+          <div className="grid justify-items-end gap-1">
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                data-testid="training-record-edit"
+                disabled={locks.edit !== null}
+                aria-describedby={locks.edit ? `training-record-lock-${record.id}` : undefined}
+                onClick={onEdit}
+              >
+                <Pencil aria-hidden="true" />
+                Modifică
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                data-testid="training-record-delete"
+                disabled={locks.delete !== null}
+                aria-describedby={locks.delete ? `training-record-lock-${record.id}` : undefined}
+                onClick={onDelete}
+              >
+                <Trash2 aria-hidden="true" />
+                Șterge
+              </Button>
+            </div>
+            {(locks.edit ?? locks.delete) && (
+              <p
+                id={`training-record-lock-${record.id}`}
+                data-testid="training-record-lock"
+                className="max-w-72 text-right text-xs text-muted-foreground"
+              >
+                <Lock aria-hidden="true" className="mr-1 inline size-3.5 align-[-2px]" />
+                {locks.edit ?? locks.delete}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -367,6 +424,20 @@ function RecordItem({
           </RecordFact>
         )}
       </dl>
+      {signs && (
+        <RecordSignatures
+          clientId={clientId}
+          recordId={record.id}
+          query={signatures}
+          readOnly={readOnly}
+          people={{
+            trainee: { name: employeeName, jobTitle: record.occupation },
+            trainer: training.trainer,
+            verifier: training.verifier,
+            admitter: admission,
+          }}
+        />
+      )}
     </li>
   );
 }

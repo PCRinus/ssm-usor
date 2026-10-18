@@ -126,6 +126,16 @@ export const trainingRequestSchema = z
     // Any status: a record typed from paper may belong to someone who has left.
     employeeIds: z.array(z.uuid()).min(1).max(500),
     admission: trainingAdmissionRequestSchema.nullish(),
+    // The accounts asked to sign each slot electronically (ADR 023); a slot left out or null is
+    // signed on paper. The trainee's signer is the employee's own participant, found by the API.
+    // Without the field nothing is requested.
+    signers: z
+      .object({
+        trainer: z.uuid().nullish(),
+        verifier: z.uuid().nullish(),
+        admitter: z.uuid().nullish(),
+      })
+      .nullish(),
   })
   .superRefine((body, ctx) => {
     if (body.phase === 'supplementary' && !body.supplementaryReason) {
@@ -147,6 +157,20 @@ export const trainingRequestSchema = z
         code: 'custom',
         path: ['admission'],
         message: 'Only a workplace training admits to work.',
+      });
+    }
+    if (body.signers?.verifier && !body.verifier) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['signers', 'verifier'],
+        message: 'Only a training with a verifier has a verifier to sign.',
+      });
+    }
+    if (body.signers?.admitter && !body.admission) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['signers', 'admitter'],
+        message: 'Only a training that admits to work has an admitter to sign.',
       });
     }
     if (new Set(body.employeeIds).size !== body.employeeIds.length) {
@@ -190,9 +214,18 @@ export const trainingAttendeeSchema = z.object({
 
 export type TrainingAttendee = z.infer<typeof trainingAttendeeSchema>;
 
+// The training's signing state (ADR 023), over all its records: `signed` while any carries a live
+// electronic signature, which freezes the training; `hasSignatures` once any carries a signature
+// row, voided and paper ones included, or sits on a stored sheet, which keeps it from deletion.
+const trainingSigningSchema = {
+  signed: z.boolean(),
+  hasSignatures: z.boolean(),
+};
+
 export const trainingListItemSchema = trainingSchema.extend({
   attendeeCount: z.int().min(0),
   attendees: z.array(trainingAttendeeSchema),
+  ...trainingSigningSchema,
 });
 
 export type TrainingListItem = z.infer<typeof trainingListItemSchema>;
@@ -217,6 +250,14 @@ export type TrainingRecord = z.infer<typeof trainingRecordSchema>;
 
 export const trainingDetailSchema = trainingSchema.extend({
   records: z.array(trainingRecordSchema),
+  ...trainingSigningSchema,
+  // The account each slot is addressed to by a live request, pending or signed, on any record;
+  // null when none is, a slot on paper among them. The form starts its signer pickers from these.
+  signers: z.object({
+    trainer: z.uuid().nullable(),
+    verifier: z.uuid().nullable(),
+    admitter: z.uuid().nullable(),
+  }),
 });
 
 export type TrainingDetail = z.infer<typeof trainingDetailSchema>;

@@ -393,10 +393,11 @@ jobs:
         id: metadata
         uses: ./.github/actions/deployment-message
 
-      # Besides the Worker, this builds the container image from apps/pdf/Dockerfile with the
-      # runner's Docker and pushes it to Cloudflare's registry, which the API token must be
+      # Besides the Worker, this builds an image for every container class in wrangler.jsonc,
+      # Gotenberg from apps/pdf/Dockerfile and the signer from apps/pdf/signer/Dockerfile, with the
+      # runner's Docker and pushes them to Cloudflare's registry, which the API token must be
       # allowed to do (docs/pdf.md).
-      - name: Deploy validated PDF bundle and its container image
+      - name: Deploy validated PDF bundle and its container images
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -628,11 +629,14 @@ jobs:
           SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
           SUPABASE_AUTH_SMS_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_SMS_HOOK_SECRET }}
           POSTHOG_SUPPORT_SECRET_KEY: ${{ secrets.POSTHOG_SUPPORT_SECRET_KEY }}
+          SIGNING_CA_KEY: ${{ secrets.SIGNING_CA_KEY }}
+          SIGNING_CA_CERT: ${{ secrets.SIGNING_CA_CERT }}
+          SIGNING_KEY_ENCRYPTION_KEY: ${{ secrets.SIGNING_KEY_ENCRYPTION_KEY }}
         shell: bash
         run: |
           {
             echo 'names<<EOF'
-            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET SUPABASE_AUTH_SMS_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY; do
+            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET SUPABASE_AUTH_SMS_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY SIGNING_CA_KEY SIGNING_CA_CERT SIGNING_KEY_ENCRYPTION_KEY; do
               if [[ -n "${!name}" ]]; then
                 echo "$name"
               else
@@ -671,6 +675,9 @@ jobs:
           SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
           SUPABASE_AUTH_SMS_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_SMS_HOOK_SECRET }}
           POSTHOG_SUPPORT_SECRET_KEY: ${{ secrets.POSTHOG_SUPPORT_SECRET_KEY }}
+          SIGNING_CA_KEY: ${{ secrets.SIGNING_CA_KEY }}
+          SIGNING_CA_CERT: ${{ secrets.SIGNING_CA_CERT }}
+          SIGNING_KEY_ENCRYPTION_KEY: ${{ secrets.SIGNING_KEY_ENCRYPTION_KEY }}
           # Issued documents get their PDF from apps/pdf. Set here and not in wrangler.jsonc,
           # so that `wrangler dev`, where nothing answers that binding, issues without one.
           PDF_CONVERSION: service

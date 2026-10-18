@@ -1,7 +1,7 @@
 import { pdfConversionFailed } from '@ssm-usor/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { convertDocuments, convertDocx } from './convert';
+import { convertDocuments, convertDocx, convertForm, mergePdfs } from './convert';
 
 const docx = new TextEncoder().encode('PK word/document.xml').buffer as ArrayBuffer;
 const pdf = new TextEncoder().encode('%PDF-1.7 …');
@@ -66,5 +66,45 @@ describe('convertDocx', () => {
     const refusing = vi.fn(async () => new Response('bad file', { status: 400 }));
     await expect(convertDocx(refusing, docx, 0)).rejects.toThrow(pdfConversionFailed);
     expect(refusing).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('convertForm', () => {
+  it('converts without PDF/A, which would tag the fields into the structure tree', async () => {
+    const fetcher = vi.fn<(request: Request) => Promise<Response>>(async () => new Response(pdf));
+    await convertForm(fetcher, docx);
+    const request = fetcher.mock.calls[0]![0];
+    expect(new URL(request.url).pathname).toBe('/forms/libreoffice/convert');
+    const form = await request.formData();
+    expect(form.get('pdfa')).toBeNull();
+    expect((form.get('files') as File).name).toBe('0001.docx');
+  });
+});
+
+describe('mergePdfs', () => {
+  it('merges PDFs in the order given and flattens their fields', async () => {
+    const fetcher = vi.fn<(request: Request) => Promise<Response>>(async () => new Response(pdf));
+    const second = new TextEncoder().encode('%PDF-1.7 second').buffer as ArrayBuffer;
+    expect(new Uint8Array(await mergePdfs(fetcher, [pdf.buffer as ArrayBuffer, second]))).toEqual(
+      pdf
+    );
+    const request = fetcher.mock.calls[0]![0];
+    expect(new URL(request.url).pathname).toBe('/forms/pdfengines/merge');
+    const form = await request.formData();
+    expect((form.getAll('files') as File[]).map((file) => file.name)).toEqual([
+      '0001.pdf',
+      '0002.pdf',
+    ]);
+    expect(form.get('flatten')).toBe('true');
+  });
+
+  it('tries once more when the container fails to start', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const waking = vi
+      .fn<(request: Request) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response('Failed to start container', { status: 503 }))
+      .mockResolvedValueOnce(new Response(pdf));
+    await mergePdfs(waking, [pdf.buffer as ArrayBuffer], 0);
+    expect(waking).toHaveBeenCalledTimes(2);
   });
 });

@@ -344,8 +344,21 @@ pnpm stop:pdf
 
 `pnpm dev:pdf` starts the converter from `compose.yaml`, the same image the deployment runs
 ([PDF Worker](pdf.md)); `pnpm dev` runs it first and only warns when Docker is not up, since the
-container stays running on its own and the API calls it only when it converts. The variable is
-not needed on the command line when `apps/api/.dev.vars` already has it.
+container stays running on its own and the API calls it only when it converts. The variable
+must be in the environment of the command that runs the flows: the API they start reads its
+environment, not `apps/api/.dev.vars`.
+
+The signing flow (`e2e/flows/signatures.spec.ts`, a member signing two requests with one code)
+also needs the signer and a signing authority: `GOTENBERG_URL`, `SIGNER_URL` and the three
+`SIGNING_*` values exported, and is skipped otherwise. With the lines of
+[Signing locally](local-development.md#signing-locally) in `apps/api/.dev.vars`, from the
+repository root:
+
+```sh
+pnpm dev:pdf
+set -a; . <(grep -E '^(GOTENBERG_URL|SIGNER_URL|SIGNING_)' apps/api/.dev.vars); set +a
+pnpm --filter @ssm-usor/app test:e2e:flows
+```
 
 `playwright.flows.config.ts` starts everything else itself, on ports of its own so
 `pnpm dev` can keep running: the API served by Node from `apps/api/scripts/e2e-server.ts`,

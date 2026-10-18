@@ -4,7 +4,7 @@ import { cors } from 'hono/cors';
 import { timing } from 'hono/timing';
 
 import { allowedOrigins, marketingOrigin } from './lib/env';
-import { ApiError, errorStatus } from './lib/errors';
+import { ApiError, errorStatus, fromEngineError } from './lib/errors';
 import { openApiConfig } from './lib/openapi';
 import { authHooksRouter } from './modules/auth-hooks';
 import { clientFilesRouter } from './modules/client-files';
@@ -29,6 +29,7 @@ import { portalRouter } from './modules/portal';
 import { protectiveEquipmentRouter } from './modules/protective-equipment';
 import { riskEvaluationsRouter } from './modules/risk-evaluations';
 import { serviceContractsRouter } from './modules/service-contracts';
+import { signingRouter } from './modules/signing';
 import { trainingsRouter } from './modules/trainings';
 import { waitlistRouter } from './modules/waitlist';
 import { createRouter } from './router';
@@ -87,6 +88,7 @@ export function createApp() {
   app.route('/', invitationsRouter);
   app.route('/', participantsRouter);
   app.route('/', portalRouter);
+  app.route('/', signingRouter);
   app.route('/', waitlistRouter);
   app.route('/', authHooksRouter);
 
@@ -108,7 +110,8 @@ export function createApp() {
     )
   );
 
-  app.onError((error, c) => {
+  app.onError((thrown, c) => {
+    const error = fromEngineError(thrown);
     if (error instanceof ApiError) {
       if (error.code === 'unauthorized') c.header('WWW-Authenticate', 'Bearer');
       return c.json(
@@ -118,6 +121,7 @@ export function createApp() {
           ...(error.issues ? { issues: error.issues } : {}),
           ...(error.reason ? { reason: error.reason } : {}),
           ...(error.missing ? { missing: error.missing } : {}),
+          ...error.extra,
         } satisfies ApiErrorResponse,
         errorStatus[error.code]
       );

@@ -25,15 +25,18 @@ const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const employeeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const employeePath = `/clients/${clientId}/employees/${employeeId}`;
 
-type Readiness = { ready: boolean; missing: string[] };
+type Readiness = { ready: boolean; missing: string[]; stored?: boolean; sequences?: number[] };
 const ready: Readiness = { ready: true, missing: [] };
+
+const sheetStatus = (readiness: Readiness) => ({ stored: false, sequences: [], ...readiness });
 
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi({ ssm = ready, psi = ready }: { ssm?: Readiness; psi?: Readiness } = {}) {
   fetchMock.mockImplementation(async (input) => {
     const url = new URL(String(input));
-    if (url.pathname === `${employeePath}/training-sheets`) return Response.json({ ssm, psi });
+    if (url.pathname === `${employeePath}/training-sheets`)
+      return Response.json({ ssm: sheetStatus(ssm), psi: sheetStatus(psi) });
     throw new Error(`Unexpected request: ${url}`);
   });
 }

@@ -183,7 +183,7 @@ const mountEmployee = () => mountApp(authFixture(makeSession()).client, employee
 const portalCard = () => screen.findByTestId('employee-portal-card');
 
 describe("the employee's portal access", () => {
-  it('shows both addresses, proposes neither, and invites at the one picked', async () => {
+  it('shows both addresses, proposes the email, and invites at the phone when picked', async () => {
     let invited = false;
     mockApi({
       state: () => Response.json({ participant: null, invitation: invited ? invitation() : null }),
@@ -205,11 +205,13 @@ describe("the employee's portal access", () => {
     const dialog = await screen.findByTestId('participant-invite-dialog');
     const options = within(dialog).getAllByRole('radio');
     expect(options).toHaveLength(2);
-    expect(options.every((option) => !(option as HTMLInputElement).checked)).toBe(true);
-
-    await user.click(within(dialog).getByTestId('participant-invite-submit'));
-    expect(within(dialog).getByRole('alert').textContent).toContain('Alege adresa');
-    expect(requests(invitePath, 'POST')).toHaveLength(0);
+    expect(
+      (within(dialog).getByRole('radio', { name: /ion\.popescu@example\.com/ }) as HTMLInputElement)
+        .checked
+    ).toBe(true);
+    expect(
+      (within(dialog).getByRole('radio', { name: /\+40721000000/ }) as HTMLInputElement).checked
+    ).toBe(false);
 
     await user.click(within(dialog).getByRole('radio', { name: /\+40721000000/ }));
     await user.click(within(dialog).getByTestId('participant-invite-submit'));
@@ -220,6 +222,21 @@ describe("the employee's portal access", () => {
     expect(await screen.findByText('Invitația a fost trimisă pe +40721000000.')).toBeTruthy();
     expect((await within(card).findByTestId('participant-invitation-text')).textContent).toContain(
       'Invitat pe ion.popescu@example.com prin email la'
+    );
+  });
+
+  it('invites at the proposed email without a pick', async () => {
+    mockApi();
+    const user = userEvent.setup();
+    mountEmployee();
+    const card = await portalCard();
+    await user.click(await within(card).findByTestId('participant-invite'));
+    const dialog = await screen.findByTestId('participant-invite-dialog');
+    await user.click(within(dialog).getByTestId('participant-invite-submit'));
+    await waitFor(() =>
+      expect(requests(invitePath, 'POST')).toEqual([
+        { channel: 'email', address: 'ion.popescu@example.com' },
+      ])
     );
   });
 

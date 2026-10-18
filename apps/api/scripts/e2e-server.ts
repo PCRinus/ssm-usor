@@ -53,11 +53,17 @@ const mail: MailService = {
   sendSignedCopyReceived: ({ to, leadUrl }) => record('signed-copy-received', to, leadUrl),
   sendParticipantInvitation: ({ to, portalUrl }) => record('participant-invitation', to, portalUrl),
   sendSignInCode: ({ to, code }) => record('sign-in-code', to, `code=${code}`),
+  sendSigningCode: ({ to, code }) => record('signing-code', to, `code=${code}`),
+  sendSignatureRequest: ({ to, signUrl, count }) =>
+    record('signature-request', to, `${signUrl} count=${count}`),
 };
 const sms: SmsService = {
   sendParticipantInvitation: ({ to, portalUrl }) =>
     record('participant-invitation-sms', to, portalUrl),
   sendSignInCode: ({ to, code }) => record('sign-in-code-sms', to, `code=${code}`),
+  sendSigningCode: ({ to, code }) => record('signing-code-sms', to, `code=${code}`),
+  sendSignatureRequest: ({ to, signUrl, count }) =>
+    record('signature-request-sms', to, `${signUrl} count=${count}`),
 };
 
 // Every message arrives as its last delivery: an error fails its item instead of waiting for a
@@ -87,6 +93,10 @@ const env: ApiEnv['Bindings'] = {
   APP_ORIGIN: process.env.APP_ORIGIN,
   PORTAL_ORIGIN: process.env.PORTAL_ORIGIN,
   GOTENBERG_URL: process.env.GOTENBERG_URL || undefined,
+  SIGNER_URL: process.env.SIGNER_URL || undefined,
+  SIGNING_CA_KEY: process.env.SIGNING_CA_KEY || undefined,
+  SIGNING_CA_CERT: process.env.SIGNING_CA_CERT || undefined,
+  SIGNING_KEY_ENCRYPTION_KEY: process.env.SIGNING_KEY_ENCRYPTION_KEY || undefined,
   MAIL: mail,
   SMS: sms,
   REGENERATION_QUEUE: regenerationQueue,

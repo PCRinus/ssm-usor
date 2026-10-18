@@ -17,6 +17,9 @@ test-results/
 test-results-flows/
 dist-e2e/
 .claude/worktrees/
+.venv/
+__pycache__/
+.pytest_cache/
 
 # TanStack Router generator scratch files
 .tanstack/

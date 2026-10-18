@@ -7,10 +7,14 @@ import {
   useGetPortalEmployeeData,
   useGetPortalEmployeeTrainingSheets,
   useGetPortalMe,
+  useGetPortalSigningAgreementState,
   useGetPortalTrainingSheets,
   useListPortalClientEmployees,
+  useListPortalClientSignatureRequests,
   useListPortalEmployeeTrainingRecords,
   useListPortalResponsiblePersons,
+  useListPortalSignatureRequests,
+  useListPortalSigningAgreements,
   useListPortalTrainingRecords,
 } from '@/api/generated/api';
 import {
@@ -28,6 +32,10 @@ import {
 
 vi.mock('@/api/generated/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/generated/api')>()),
+  useGetPortalSigningAgreementState: vi.fn(),
+  useListPortalClientSignatureRequests: vi.fn(),
+  useListPortalSignatureRequests: vi.fn(),
+  useListPortalSigningAgreements: vi.fn(),
   useGetPortalMe: vi.fn(),
   useListPortalTrainingRecords: vi.fn(),
   useGetPortalEmployeeData: vi.fn(),
@@ -39,9 +47,16 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   useListPortalResponsiblePersons: vi.fn(),
 }));
 
-const sheetsReady = { ssm: { ready: true, missing: [] }, psi: { ready: true, missing: [] } };
+const sheetsReady = {
+  ssm: { ready: true, missing: [], stored: false, sequences: [] },
+  psi: { ready: true, missing: [], stored: false, sequences: [] },
+};
 
 beforeEach(() => {
+  vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
+  vi.mocked(useListPortalClientSignatureRequests).mockReturnValue(queryResult({ items: [] }));
+  vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
+  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(queryResult({ agreement: null }));
   vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
@@ -275,8 +290,13 @@ describe('Instruiri', () => {
   it('says what a sheet that is not ready lacks, for the specialist to fill', async () => {
     vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
       queryResult({
-        ssm: { ready: false, missing: ['employee.commute_route', 'employee.workplace'] },
-        psi: { ready: false, missing: ['employee.workplace'] },
+        ssm: {
+          ready: false,
+          missing: ['employee.commute_route', 'employee.workplace'],
+          stored: false,
+          sequences: [],
+        },
+        psi: { ready: false, missing: ['employee.workplace'], stored: false, sequences: [] },
       })
     );
     mountPortal(signedIn(), '/instruiri');
@@ -309,6 +329,7 @@ describe('Instruiri', () => {
     expect(getPortalTrainingSheet).toHaveBeenCalledWith(
       participation().participantId,
       'psi',
+      undefined,
       expect.objectContaining({ baseUrl: 'http://localhost:8787' })
     );
     expect(tab.document.title).toBe('Fișa individuală PSI');

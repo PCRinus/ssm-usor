@@ -120,6 +120,29 @@ export const signInCodeEmailSchema = z.object({
 
 export type SignInCodeEmail = z.infer<typeof signInCodeEmailSchema>;
 
+/** The code a signer types to sign (ADR 023): the API's own, not Supabase Auth's. */
+export const signingCodeEmailSchema = z.object({
+  to: z.email(),
+  code: z.string().regex(/^\d{6}$/),
+  expiresInMinutes: z.int().min(1).max(60),
+});
+
+export type SigningCodeEmail = z.infer<typeof signingCodeEmailSchema>;
+
+/**
+ * Tells a signer that trainings wait for their signature (ADR 023): a count, never the list, and
+ * the place they sign in, the portal for a participant or the app for a member.
+ */
+export const signatureRequestEmailSchema = z.object({
+  to: z.email(),
+  count: z.int().min(1).max(10_000),
+  organizationName: z.string().trim().min(2).max(200),
+  signUrl: z.url(),
+  place: z.enum(['portal', 'app']),
+});
+
+export type SignatureRequestEmail = z.infer<typeof signatureRequestEmailSchema>;
+
 /** `id` is the provider's message id, or null when the email was only logged. */
 export type MailReceipt = { id: string | null };
 
@@ -138,4 +161,6 @@ export interface MailService {
   sendSignedCopyReceived(input: SignedCopyReceivedEmail): Promise<MailReceipt>;
   sendParticipantInvitation(input: ParticipantInvitationEmail): Promise<MailReceipt>;
   sendSignInCode(input: SignInCodeEmail): Promise<MailReceipt>;
+  sendSigningCode(input: SigningCodeEmail): Promise<MailReceipt>;
+  sendSignatureRequest(input: SignatureRequestEmail): Promise<MailReceipt>;
 }

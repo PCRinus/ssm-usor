@@ -5,6 +5,7 @@ import {
   buildDocumentContext,
   buildPartialDocumentContext,
   documentApplies,
+  documentationProgress,
   documentData,
   type DocumentFacts,
   documentGapConcerns,
@@ -745,13 +746,10 @@ describe('decision 1.5', () => {
   };
 
   it('belongs in the set from 10 current employees', () => {
-    expect(documentApplies({ currentEmployeeCount: 9 }, 'decision_workers_representative')).toBe(
-      false
-    );
-    expect(documentApplies({ currentEmployeeCount: 10 }, 'decision_workers_representative')).toBe(
-      true
-    );
-    expect(documentApplies({ currentEmployeeCount: 0 }, 'decision_training')).toBe(true);
+    const at = (currentEmployeeCount: number) => ({ currentEmployeeCount, hasParticipants: false });
+    expect(documentApplies(at(9), 'decision_workers_representative')).toBe(false);
+    expect(documentApplies(at(10), 'decision_workers_representative')).toBe(true);
+    expect(documentApplies(at(0), 'decision_training')).toBe(true);
   });
 
   it('names the representatives who are still employees, and the cover lists it', () => {
@@ -917,5 +915,27 @@ describe('a document generated again', () => {
     expect(documentGapConcerns('client.trainingSchedule', ['client', 'positions'])).toBe(true);
     expect(documentGapConcerns('risk_evaluations.plan', ['riskAssessment'])).toBe(true);
     expect(documentGapConcerns('documents.own_instructions', ['client', 'positions'])).toBe(false);
+  });
+});
+
+describe('the annex on the electronic signature', () => {
+  it('belongs in the set once the client has someone who signs in the portal', () => {
+    const typeKey = 'signing_regulation_annex';
+    expect(documentApplies({ currentEmployeeCount: 40, hasParticipants: false }, typeKey)).toBe(
+      false
+    );
+    expect(documentApplies({ currentEmployeeCount: 1, hasParticipants: true }, typeKey)).toBe(true);
+  });
+
+  it('counts towards the documentation only where it applies or exists', () => {
+    const progress = (hasParticipants: boolean, generatedTypeKeys: string[] = []) =>
+      documentationProgress('occupational_safety', {
+        currentEmployeeCount: 5,
+        hasParticipants,
+        generatedTypeKeys,
+        issuedCount: 0,
+      }).totalCount;
+    expect(progress(true) - progress(false)).toBe(1);
+    expect(progress(false, ['signing_regulation_annex'])).toBe(progress(true));
   });
 });

@@ -4,9 +4,16 @@ import {
   trainingDomainLabels,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@ssm-usor/ui/components/dropdown-menu';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
-import { Eye, FileDown, LoaderCircle } from 'lucide-react';
+import { ChevronDown, Eye, FileDown, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 
 import { getGetTrainingSheetsQueryKey, getTrainingSheet } from '@/api/generated/api';
@@ -42,14 +49,22 @@ export function TrainingSheetDownload({
 }: TrainingSheetDownloadProps) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const readiness = useTrainingSheets(clientId, employeeId);
-  const [busy, setBusy] = useState<'download' | 'preview' | null>(null);
+  const [busy, setBusy] = useState<'download' | 'preview' | 'original' | null>(null);
   const sheet = readiness.data?.[domain];
   const domainLabel = trainingDomainLabels[domain];
   const disabled = !sheet?.ready || busy !== null;
+  // Several sheets are served merged into a copy whose signatures no longer verify.
+  const originals = sheet && sheet.sequences.length > 1 ? sheet.sequences : [];
 
-  const loadSheet = () => getTrainingSheet(clientId, employeeId, { domain }, apiRequest);
+  const loadSheet = (sequence?: number) =>
+    getTrainingSheet(
+      clientId,
+      employeeId,
+      sequence ? { domain, sequence } : { domain },
+      apiRequest
+    );
 
-  async function run(kind: 'download' | 'preview', action: () => Promise<void>) {
+  async function run(kind: 'download' | 'preview' | 'original', action: () => Promise<void>) {
     setBusy(kind);
     try {
       await action();
@@ -71,7 +86,13 @@ export function TrainingSheetDownload({
       saveFile(file, file instanceof File ? file.name : `Fisa-${domainLabel}.pdf`);
     });
 
-  const preview = () => run('preview', () => openPreview(loadSheet, `Fișa ${domainLabel}`));
+  const preview = () => run('preview', () => openPreview(() => loadSheet(), `Fișa ${domainLabel}`));
+
+  const downloadOriginal = (sequence: number) =>
+    run('original', async () => {
+      const file = await loadSheet(sequence);
+      saveFile(file, file instanceof File ? file.name : `Fisa-${domainLabel}-${sequence}.pdf`);
+    });
 
   return (
     <>
@@ -86,8 +107,44 @@ export function TrainingSheetDownload({
         ) : (
           <FileDown aria-hidden="true" />
         )}
-        {`Descarcă fișa ${domainLabel}`}
+        {originals.length > 0
+          ? `Descarcă fișa ${domainLabel} (copie de citire)`
+          : `Descarcă fișa ${domainLabel}`}
       </Button>
+      {originals.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              data-testid={`training-sheet-${domain}-originals`}
+              disabled={busy !== null}
+            >
+              {busy === 'original' ? (
+                <LoaderCircle aria-hidden="true" className="animate-spin" />
+              ) : (
+                <ShieldCheck aria-hidden="true" />
+              )}
+              Originalele
+              <ChevronDown aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="max-w-72">
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+              Fișele semnate, fiecare cu semnăturile ei verificabile
+            </DropdownMenuLabel>
+            {originals.map((sequence) => (
+              <DropdownMenuItem
+                key={sequence}
+                data-testid={`training-sheet-${domain}-original`}
+                onSelect={() => void downloadOriginal(sequence)}
+              >
+                <FileDown aria-hidden="true" />
+                {sequence === 1 ? 'Fișa 1' : `Fișa ${sequence} (continuare)`}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
       <Button
         data-testid={`training-sheet-${domain}-preview`}
         variant="outline"

@@ -79,6 +79,12 @@ export const documentSections = [
     title: 'Regulament intern privind controlul propriu',
     typeKeys: ['control_regulation'],
   },
+  {
+    id: 'signing-regulation-annex',
+    number: '13',
+    title: 'Anexă la Regulamentul intern privind semnarea electronică',
+    typeKeys: ['signing_regulation_annex'],
+  },
 ] as const satisfies readonly {
   id: string;
   number: string;

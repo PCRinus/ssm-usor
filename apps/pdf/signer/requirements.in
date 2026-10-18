@@ -1,0 +1,5 @@
+# requirements.txt pins the whole tree with hashes, so that an image built later runs what was
+# tested. Regenerate both files with pip-tools in the image's Python (docs/pdf.md#the-container-1).
+fastapi==0.143.3
+pyHanko[opentype]==0.38.0
+uvicorn==0.54.0

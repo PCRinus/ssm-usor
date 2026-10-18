@@ -27,6 +27,7 @@ jobs:
       portal: ${{ steps.filter.outputs.portal }}
       api: ${{ steps.filter.outputs.api }}
       database: ${{ steps.filter.outputs.database }}
+      pdf: ${{ steps.filter.outputs.pdf }}
       code: ${{ steps.filter.outputs.code }}
       projects: ${{ steps.projects.outputs.projects }}
     steps:
@@ -67,6 +68,23 @@ jobs:
           mode: ${{ needs.changes.outputs.code == 'true' && 'full' || 'light' }}
           database: ${{ needs.changes.outputs.database == 'true' || needs.changes.outputs.api == 'true' }}
           projects: ${{ needs.changes.outputs.projects }}
+
+      # The signer container's Python service (apps/pdf/signer), which pnpm test does not reach.
+      - name: Set up Python for the signer
+        if: needs.changes.outputs.pdf == 'true'
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: apps/pdf/signer/requirements-dev.txt
+
+      - name: Lint and test the signer
+        if: needs.changes.outputs.pdf == 'true'
+        run: |
+          pnpm --filter @ssm-usor/pdf setup:signer
+          apps/pdf/signer/.venv/bin/ruff format --check apps/pdf/signer
+          apps/pdf/signer/.venv/bin/ruff check apps/pdf/signer
+          pnpm --filter @ssm-usor/pdf test:signer
 
   # Browser flows that create users: invitations, member management, passwords, documents.
   # They run against a throwaway local stack (local Supabase, the API served by Node with an

@@ -1,4 +1,5 @@
 import type { ApiErrorCode, ApiErrorResponse, MissingDocumentData } from '@ssm-usor/contracts';
+import { SigningAgreementDataError } from '@ssm-usor/document-engine';
 
 export const errorStatus = {
   unauthorized: 401,
@@ -6,6 +7,7 @@ export const errorStatus = {
   validation_error: 400,
   not_found: 404,
   conflict: 409,
+  unprocessable: 422,
   service_unavailable: 503,
   internal_error: 500,
 } as const satisfies Record<ApiErrorCode, number>;
@@ -16,6 +18,7 @@ export const defaultMessages = {
   validation_error: 'The request is invalid.',
   not_found: 'The requested resource does not exist.',
   conflict: 'The request conflicts with existing data.',
+  unprocessable: 'The request is well formed but cannot be carried out.',
   service_unavailable: 'The service is temporarily unavailable.',
   internal_error: 'An unexpected error occurred.',
 } as const satisfies Record<ApiErrorCode, string>;
@@ -28,9 +31,24 @@ export class ApiError extends Error {
     readonly issues?: ApiErrorResponse['issues'],
     // A stable identifier for an error the client words itself.
     readonly reason?: string,
-    readonly missing?: MissingDocumentData[]
+    readonly missing?: MissingDocumentData[],
+    readonly extra?: Pick<ApiErrorResponse, 'attemptsLeft' | 'retryAfterSeconds'>
   ) {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+/** A refusal of the document engine as the response the app already knows how to word. */
+export function fromEngineError(error: Error): Error {
+  if (error instanceof SigningAgreementDataError) {
+    return new ApiError(
+      'conflict',
+      `Data the signing agreement prints is missing: ${error.missing.join(', ')}.`,
+      undefined,
+      'missing_document_data',
+      error.missing
+    );
+  }
+  return error;
 }

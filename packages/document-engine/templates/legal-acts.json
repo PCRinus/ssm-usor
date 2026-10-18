@@ -10,6 +10,15 @@
       "portalId": 6350
     },
     {
+      "id": "lege-16-1996",
+      "kind": "lege",
+      "number": "16",
+      "year": 1996,
+      "name": "Legea 16/1996",
+      "title": "Legea Arhivelor Naționale nr. 16 din 2 aprilie 1996",
+      "portalId": 7937
+    },
+    {
       "id": "lege-459-2001",
       "kind": "lege",
       "number": "459",
@@ -136,6 +145,15 @@
       "portalId": 76513
     },
     {
+      "id": "lege-135-2007",
+      "kind": "lege",
+      "number": "135",
+      "year": 2007,
+      "name": "Legea 135/2007",
+      "title": "Legea nr. 135 din 15 mai 2007 privind arhivarea documentelor electronice",
+      "portalId": 82217
+    },
+    {
       "id": "lege-286-2009",
       "kind": "lege",
       "number": "286",
@@ -161,6 +179,15 @@
       "name": "Legea 227/2015",
       "title": "Legea nr. 227 din 8 septembrie 2015 privind Codul fiscal",
       "portalId": 171280
+    },
+    {
+      "id": "lege-214-2024",
+      "kind": "lege",
+      "number": "214",
+      "year": 2024,
+      "name": "Legea 214/2024",
+      "title": "Legea nr. 214 din 5 iulie 2024 privind utilizarea semnăturii electronice, a mărcii temporale și prestarea serviciilor de încredere bazate pe acestea",
+      "portalId": 285178
     },
     {
       "id": "oug-99-2000",

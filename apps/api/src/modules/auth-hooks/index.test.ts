@@ -27,10 +27,14 @@ const env: ApiEnv['Bindings'] = {
     sendPasswordChanged,
     sendParticipantInvitation: vi.fn(),
     sendSignInCode: sendSignInCodeEmail,
+    sendSigningCode: vi.fn(),
+    sendSignatureRequest: vi.fn(),
   },
   SMS: {
     sendParticipantInvitation: vi.fn(),
     sendSignInCode: sendSignInCodeSms,
+    sendSigningCode: vi.fn(),
+    sendSignatureRequest: vi.fn(),
   },
 };
 

@@ -1,0 +1,6 @@
+-c requirements.txt
+-r requirements.in
+httpx2==2.13.1
+pytest==9.1.1
+reportlab==5.0.1
+ruff==0.17.1

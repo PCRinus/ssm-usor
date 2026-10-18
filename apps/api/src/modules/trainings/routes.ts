@@ -30,6 +30,11 @@ const refusedClient = {
   description: 'The client is archived (reason `client_archived`) or a lead (`client_is_lead`)',
   content: errorContent,
 };
+const refusedSigners = {
+  description:
+    'A signer who is neither a member of the organization nor an active participant of the client (reason `signer_not_of_client`), or whose own name is not the name the slot prints, compared without order, case or diacritics (`signer_name_mismatch`), each with an issue on the slot; checked before anything is saved',
+  content: errorContent,
+};
 const invalidBody = {
   description:
     'Invalid path or body, a day after today, an attendee who is not an employee of this client (an issue on `employeeIds`), or a themes revision of another client (on `themesRevisionId`)',
@@ -111,6 +116,7 @@ export const createTrainingRoute = createRoute({
     400: invalidBody,
     404: noSuchClient,
     409: refusedClient,
+    422: refusedSigners,
     ...membershipErrors,
   },
 });
@@ -146,7 +152,12 @@ export const updateTrainingRoute = createRoute({
     200: { description: 'The training after the change', content: trainingContent },
     400: invalidBody,
     404: noSuchTraining,
-    409: refusedClient,
+    409: {
+      description:
+        'The client is archived (reason `client_archived`) or a lead (`client_is_lead`), a record of the training carries a live electronic signature, or is a record from paper printed on a certified sheet, and a fact it prints changed (`record_signed`), or an attendee left out has a signature or a row on a sheet (`record_has_signatures`). The requests and the sheet rows the save brings are best effort after it: a failure there is logged and the save answers 200',
+      content: errorContent,
+    },
+    422: refusedSigners,
     ...membershipErrors,
   },
 });
@@ -163,7 +174,11 @@ export const deleteTrainingRoute = createRoute({
     204: { description: 'Deleted' },
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchTraining,
-    409: refusedClient,
+    409: {
+      description:
+        'The client is archived (reason `client_archived`) or a lead (`client_is_lead`), or a record of the training has a signature, voided and paper ones included, or a row on a stored sheet (`record_has_signatures`)',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });

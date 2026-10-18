@@ -1,4 +1,9 @@
-import type { ParticipantInvitationSms, SignInCodeSms } from '@ssm-usor/contracts';
+import type {
+  ParticipantInvitationSms,
+  SignatureRequestSms,
+  SignInCodeSms,
+  SigningCodeSms,
+} from '@ssm-usor/contracts';
 
 // One GSM-7 segment. A single character outside GSM-7's basic set, such as "ș", switches the
 // whole message to UCS-2: 70 characters a segment, and two or three times the price (ADR 022).
@@ -103,4 +108,30 @@ export function signInCodeText({ to, code, expiresInMinutes }: SignInCodeSms) {
   return language === 'ro'
     ? `Codul tau SSM Usor: ${code}. Este valabil ${valid}. Nu il da nimanui: nimeni de la SSM Usor nu ti-l va cere.`
     : `Your SSM Usor code: ${code}. It is valid for ${valid}. Do not share it: nobody from SSM Usor will ask you for it.`;
+}
+
+export function signingCodeText({ to, code, expiresInMinutes }: SigningCodeSms) {
+  const language = languageOf(to);
+  const valid = validity(expiresInMinutes, language);
+  return language === 'ro'
+    ? `Codul tau de semnare este ${code}. E valabil ${valid}. Nu il da nimanui: nimeni de la SSM Usor nu ti-l va cere.`
+    : `Your signing code is ${code}. It is valid for ${valid}. Do not share it: nobody from SSM Usor will ask you for it.`;
+}
+
+function trainings(count: number, language: Language) {
+  if (language === 'en') return count === 1 ? '1 training' : `${count} trainings`;
+  if (count === 1) return 'o instruire';
+  const tail = count % 100;
+  return tail === 0 || tail >= 20 ? `${count} de instruiri` : `${count} instruiri`;
+}
+
+export function signatureRequestText({ to, count, signUrl, place }: SignatureRequestSms) {
+  const language = languageOf(to);
+  const what = trainings(count, language);
+  if (language === 'ro') {
+    const where = place === 'portal' ? 'in portalul SSM Usor' : 'in SSM Usor';
+    return `Ai ${what} de semnat ${where}: ${signUrl}`;
+  }
+  const where = place === 'portal' ? 'in the SSM Usor portal' : 'in SSM Usor';
+  return `You have ${what} to sign ${where}: ${signUrl}`;
 }

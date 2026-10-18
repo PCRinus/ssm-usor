@@ -3,7 +3,9 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { fileURLToPath } from 'node:url';
 
 import { renderDocument, TemplateError } from '../src/render';
-import { type SheetDomain, trainingSheetSamples } from './training-sheet-samples';
+import { signingTypeKeys } from '../src/signing';
+import { signingAgreementSamples } from './signing-samples';
+import { trainingSheetSamples } from './training-sheet-samples';
 
 // The PDFs land in `originals/preview/`, which git ignores. Two sample clients: one person in
 // every role and short names, then three people and names long enough to test the layout. Only
@@ -1468,8 +1470,8 @@ const files = [templates, `${templates}fire/`]
       .filter((file) => file.endsWith('.docx'))
       .map((name) => ({ folder, name }))
   );
-// The sheets are merged with an employee's data, not a client's.
-const sheetDomains = new Map<string, SheetDomain>(
+// The per-employee templates are merged with an employee's data, not a client's.
+const employeeSamples = new Map<string, { label: string; data: Record<string, unknown> }[]>(
   [templates, `${templates}fire/`]
     .filter((folder) => existsSync(`${folder}manifest.json`))
     .flatMap((folder) =>
@@ -1479,13 +1481,17 @@ const sheetDomains = new Map<string, SheetDomain>(
         }
       ).templates
         .filter((entry) => entry.perEmployee)
-        .map((entry) => [`${folder}${entry.file}`, entry.typeKey.endsWith('_psi') ? 'psi' : 'ssm'])
+        .map((entry) => [
+          `${folder}${entry.file}`,
+          entry.typeKey === signingTypeKeys.agreement
+            ? signingAgreementSamples()
+            : trainingSheetSamples(entry.typeKey.endsWith('_psi') ? 'psi' : 'ssm'),
+        ])
     )
 );
 for (const { folder, name } of files) {
   const template = new Uint8Array(readFileSync(`${folder}${name}`));
-  const domain = sheetDomains.get(`${folder}${name}`);
-  for (const { label, data } of domain ? trainingSheetSamples(domain) : samples) {
+  for (const { label, data } of employeeSamples.get(`${folder}${name}`) ?? samples) {
     try {
       writeFileSync(
         `${output}${name.replace(/\.docx$/, '')}.${label}.docx`,

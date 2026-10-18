@@ -2,7 +2,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { searchTerms } from '@ssm-usor/contracts';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Link, Navigate } from '@tanstack/react-router';
-import { ChevronRight, Search, UsersRound } from 'lucide-react';
+import { ChevronRight, PenLine, Search, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 
 import { useListPortalClientEmployees } from '@/api/generated/api';
@@ -57,6 +57,22 @@ function EmployeeList({ participantId }: { participantId: string }) {
   return (
     <PageGrid>
       <div className="grid gap-4 lg:col-span-8">
+        <Link
+          to="/angajati/semnaturi"
+          data-testid="employees-signatures"
+          className={`${cardClass} flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:px-5`}
+        >
+          <PenLine aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
+          <span className="grid flex-1 gap-0.5">
+            <span className="font-medium">
+              <Trans>Semnături</Trans>
+            </span>
+            <span className="text-sm text-muted-foreground">
+              <Trans>Acte adiționale de semnat și instruiri nesemnate</Trans>
+            </span>
+          </span>
+          <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
+        </Link>
         <label className="relative block">
           <span className="sr-only">
             <Trans>Caută un angajat după nume</Trans>

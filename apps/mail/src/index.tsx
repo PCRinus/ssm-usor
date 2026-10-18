@@ -11,10 +11,14 @@ import {
   passwordResetEmailSchema,
   type ServiceContractEmail,
   serviceContractEmailSchema,
+  type SignatureRequestEmail,
+  signatureRequestEmailSchema,
   type SignedCopyReceivedEmail,
   signedCopyReceivedEmailSchema,
   type SignInCodeEmail,
   signInCodeEmailSchema,
+  type SigningCodeEmail,
+  signingCodeEmailSchema,
   type SignupConfirmationEmail,
   signupConfirmationEmailSchema,
   type WaitlistConfirmationEmail,
@@ -32,9 +36,11 @@ import PasswordChanged, { subject as passwordChangedSubject } from './emails/pas
 import PasswordReset, { subject as passwordResetSubject } from './emails/password-reset';
 import ServiceContract, { subject as serviceContractSubject } from './emails/service-contract';
 import SignInCode, { subject as signInCodeSubject } from './emails/sign-in-code';
+import SignatureRequest, { subject as signatureRequestSubject } from './emails/signature-request';
 import SignedCopyReceived, {
   subject as signedCopyReceivedSubject,
 } from './emails/signed-copy-received';
+import SigningCode, { subject as signingCodeSubject } from './emails/signing-code';
 import SignupConfirmation, {
   subject as signupConfirmationSubject,
 } from './emails/signup-confirmation';
@@ -133,6 +139,26 @@ export class Mail extends WorkerEntrypoint<MailEnv> implements MailService {
       to,
       subject: signInCodeSubject(code.code),
       body: <SignInCode {...code} />,
+    });
+  }
+
+  async sendSigningCode(input: SigningCodeEmail): Promise<MailReceipt> {
+    const { to, ...code } = signingCodeEmailSchema.parse(input);
+
+    return sendEmail(this.env, {
+      to,
+      subject: signingCodeSubject(code.code),
+      body: <SigningCode {...code} />,
+    });
+  }
+
+  async sendSignatureRequest(input: SignatureRequestEmail): Promise<MailReceipt> {
+    const { to, ...request } = signatureRequestEmailSchema.parse(input);
+
+    return sendEmail(this.env, {
+      to,
+      subject: signatureRequestSubject(request.count),
+      body: <SignatureRequest {...request} />,
     });
   }
 }

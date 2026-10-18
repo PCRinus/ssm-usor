@@ -7,6 +7,8 @@ import { useState } from 'react';
 import { getGetEmployeeParticipantQueryKey, useGetEmployeeParticipant } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 import { Fact, FactList, SectionCard } from '@/components/section-card';
+import { AgreementWarning } from '@/features/signatures/agreement-warning';
+import { useSigningAgreement } from '@/features/signatures/use-signing-agreement';
 
 import { type InvitedEmployee, InviteEmployeeDialog } from './invite-employee-dialog';
 import {
@@ -37,11 +39,19 @@ export function EmployeePortalCard({
   const participant = state.data?.participant;
   const invitation = state.data?.invitation;
   const uninvited = state.isSuccess && !participant && !invitation;
+  const agreement = useSigningAgreement(employee.clientId, employee.id, userId);
+  // Only someone who signs in the portal is asked to sign; the warning is for them.
+  const warnAgreement = Boolean(participant ?? invitation) && agreement.isSuccess;
 
   return (
     <SectionCard
       data-testid="employee-portal-card"
-      title="Acces la portal"
+      title={
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          Acces la portal
+          {warnAgreement && <AgreementWarning state={agreement.data?.agreement?.state ?? null} />}
+        </span>
+      }
       description="În portal angajatul își vede instruirile, fișele și datele. Intră cu un cod primit pe email sau prin SMS, fără parolă."
       action={
         uninvited &&

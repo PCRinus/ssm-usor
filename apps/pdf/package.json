@@ -8,6 +8,8 @@
     "start": "wrangler dev --port 8791 --inspector-port 9240",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "setup:signer": "python3 -m venv signer/.venv && signer/.venv/bin/pip install --require-hashes --requirement signer/requirements-dev.txt",
+    "test:signer": "cd signer && .venv/bin/python -m pytest",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
     "deploy": "wrangler deploy"
   },
