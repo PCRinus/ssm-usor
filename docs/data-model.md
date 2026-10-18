@@ -1235,9 +1235,11 @@ for those, which the API reads with the secret key only.
 
 `signing_session_items` says what one signing session signs, in `position` order: a
 `request_id`, or an `agreement_employee_id` with the `agreement_party` and the `agreement_digest`,
-what the agreement was when the code was asked for, never both kinds, each once per session. It has
-row-level security and no policy: the API writes it with the session and reads it back when the
-code is typed.
+what the agreement was when the code was asked for, never both kinds, each once per session. The
+agreement column names the employee, not an `employee_signing_agreements` row: the employee's
+first session precedes their row, which their signature writes (ADR 023). It has row-level
+security and no policy: the API writes it with the session and reads it back when the code is
+typed.
 
 `signed_sheets` is an individual training sheet stored as a PDF form for signing: one per
 `employee_id`, `domain` and `sequence`, the continuation sheets counting up, with its
