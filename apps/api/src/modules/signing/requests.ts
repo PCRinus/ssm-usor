@@ -48,8 +48,10 @@ export async function planSignatureRequests(
 
 type IssuedRow = { id: string; slot: SignerSlot; signer_account_id: string | null };
 
-// A training typed from paper asks nobody: its signatures are on the paper. A slot with a live
-// request is left alone, so a save after an edit issues only what the edit voided.
+// A training typed from paper asks nobody: its signatures are on the paper. A slot whose live
+// request is already the one wanted is left alone, so a save after an edit issues only what the
+// edit voided; a pending request to someone else gives way, with `signer_changed`, or with
+// `paper` when the slot is now left to the pen. A signed request is never touched here.
 export async function issueSignatureRequests(
   c: Context<ApiEnv>,
   db: DataClient,
@@ -69,34 +71,46 @@ export async function issueSignatureRequests(
 
   const live = await db
     .from('signature_requests')
-    .select('training_record_id, slot')
+    .select('id, training_record_id, slot, state, signer_account_id')
     .in('training_record_id', recordIds)
     .neq('state', 'void');
   if (live.error) throw fromDatabaseError(live.error, 'live signature requests');
-  const taken = new Set(live.data.map((row) => `${row.training_record_id}:${row.slot}`));
+  const liveOf = new Map(live.data.map((row) => [`${row.training_record_id}:${row.slot}`, row]));
 
   const { signers, directory } = plan;
-  const rows = training.training_records.flatMap((record) => {
-    const wanted: [SignerSlot, string | null | undefined][] = [
-      ['trainee', traineeSignerOf(directory, record.employee_id)?.accountId],
-      ['trainer', signers.trainer],
-      ['verifier', training.verifier_name ? signers.verifier : null],
-      ['admitter', record.admitted_on ? signers.admitter : null],
-    ];
-    return wanted.flatMap(([slot, accountId]) =>
-      accountId && !taken.has(`${record.id}:${slot}`)
-        ? [
-            {
-              organization_id: c.get('membership').organizationId,
-              client_id: clientId,
-              training_record_id: record.id,
-              slot,
-              signer_account_id: accountId,
-            },
-          ]
-        : []
-    );
-  });
+  const wanted = training.training_records.flatMap((record) =>
+    (
+      [
+        ['trainee', traineeSignerOf(directory, record.employee_id)?.accountId],
+        ['trainer', signers.trainer],
+        ['verifier', training.verifier_name ? signers.verifier : null],
+        ['admitter', record.admitted_on ? signers.admitter : null],
+      ] as [SignerSlot, string | null | undefined][]
+    ).map(([slot, accountId]) => ({ record, slot, accountId: accountId ?? null }))
+  );
+
+  const replaced = { signer_changed: [] as string[], paper: [] as string[] };
+  for (const { record, slot, accountId } of wanted) {
+    const current = liveOf.get(`${record.id}:${slot}`);
+    if (current?.state !== 'pending' || current.signer_account_id === accountId) continue;
+    replaced[accountId ? 'signer_changed' : 'paper'].push(current.id);
+    liveOf.delete(`${record.id}:${slot}`);
+  }
+  await voidPending(c, replaced);
+
+  const rows = wanted.flatMap(({ record, slot, accountId }) =>
+    accountId && !liveOf.has(`${record.id}:${slot}`)
+      ? [
+          {
+            organization_id: c.get('membership').organizationId,
+            client_id: clientId,
+            training_record_id: record.id,
+            slot,
+            signer_account_id: accountId,
+          },
+        ]
+      : []
+  );
   if (rows.length === 0) return 0;
 
   const inserted = await db
@@ -107,6 +121,22 @@ export async function issueSignatureRequests(
 
   await notifySigners(c, db, directory, inserted.data);
   return inserted.data.length;
+}
+
+// Members may insert requests but not change them.
+async function voidPending(
+  c: Context<ApiEnv>,
+  byReason: Record<'signer_changed' | 'paper', string[]>
+) {
+  for (const [reason, ids] of Object.entries(byReason)) {
+    if (ids.length === 0) continue;
+    const { error } = await createAdminClient(c)
+      .from('signature_requests')
+      .update({ state: 'void', voided_at: new Date().toISOString(), void_reason: reason })
+      .in('id', ids)
+      .eq('state', 'pending');
+    if (error) throw fromDatabaseError(error, 'void replaced signature requests');
+  }
 }
 
 // Best effort: the requests stand without the message, the member sees them unsigned, and a

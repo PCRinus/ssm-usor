@@ -265,6 +265,59 @@ describe('requests issued when a training is saved', () => {
     ).toEqual(['maria trainee', 'maria admitter']);
   });
 
+  it('voids with the secret key a pending request to another signer and issues it again, and one left to paper', async () => {
+    const pending = (id: string, record: string, slot: string, signer: string) => ({
+      id: `f0000000-0000-4000-8000-0000000000${id}`,
+      training_record_id: record,
+      slot,
+      state: 'pending',
+      signer_account_id: signer,
+    });
+    upstream({
+      'GET /rest/v1/signature_requests': () => [
+        pending('a1', ionRecord, 'trainee', ionAccount),
+        pending('a2', ionRecord, 'trainer', managerAccount),
+        pending('a3', ionRecord, 'admitter', managerAccount),
+        pending('a4', mariaRecord, 'trainee', mariaAccount),
+        { ...pending('a5', mariaRecord, 'trainer', managerAccount), state: 'signed' },
+        pending('a6', mariaRecord, 'admitter', managerAccount),
+      ],
+    });
+
+    const response = await save(
+      { ...body, signers: { trainer: trainerAccount, admitter: null } },
+      `/clients/${clientId}/trainings/${trainingId}`,
+      'PUT'
+    );
+
+    expect(response.status).toBe(200);
+    const voids = callsTo('/rest/v1/signature_requests', 'PATCH').filter(
+      (call) => (call.body as { state?: string }).state === 'void'
+    );
+    expect(
+      voids.map((call) => [
+        (call.body as { void_reason: string }).void_reason,
+        call.url.searchParams.get('id'),
+        call.url.searchParams.get('state'),
+        call.secret,
+      ])
+    ).toEqual([
+      ['signer_changed', 'in.(f0000000-0000-4000-8000-0000000000a2)', 'eq.pending', true],
+      [
+        'paper',
+        'in.(f0000000-0000-4000-8000-0000000000a3,f0000000-0000-4000-8000-0000000000a6)',
+        'eq.pending',
+        true,
+      ],
+    ]);
+    const [insert] = callsTo('/rest/v1/signature_requests', 'POST');
+    expect(
+      (
+        insert!.body as { training_record_id: string; slot: string; signer_account_id: string }[]
+      ).map((row) => [row.training_record_id, row.slot, row.signer_account_id])
+    ).toEqual([[ionRecord, 'trainer', trainerAccount]]);
+  });
+
   it('asks nobody without the signers field, nor for a training typed from paper', async () => {
     upstream();
 

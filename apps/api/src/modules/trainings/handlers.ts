@@ -105,6 +105,10 @@ async function loadTraining(db: DataClient, clientId: string, trainingId: string
   const { training_records: records, ...training } = data;
   return {
     ...toTraining(training),
+    signers: await slotSignersOf(
+      db,
+      records.map((record) => record.id)
+    ),
     records: records
       .map((record) => ({
         id: record.id,
@@ -122,6 +126,24 @@ async function loadTraining(db: DataClient, clientId: string, trainingId: string
           collator.compare(a.employee.firstName, b.employee.firstName)
       ),
   } satisfies TrainingDetail;
+}
+
+async function slotSignersOf(db: DataClient, recordIds: string[]) {
+  const signers: TrainingDetail['signers'] = { trainer: null, verifier: null, admitter: null };
+  if (recordIds.length === 0) return signers;
+  const { data, error } = await db
+    .from('signature_requests')
+    .select('slot, signer_account_id')
+    .in('training_record_id', recordIds)
+    .in('slot', ['trainer', 'verifier', 'admitter'])
+    .neq('state', 'void')
+    .not('signer_account_id', 'is', null)
+    .order('issued_at');
+  if (error) throw fromDatabaseError(error, 'training signers');
+  for (const { slot, signer_account_id: accountId } of data) {
+    if (slot !== 'trainee') signers[slot] ??= accountId;
+  }
+  return signers;
 }
 
 const invalid = (path: string, message: string) =>
