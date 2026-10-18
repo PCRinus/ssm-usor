@@ -16,6 +16,7 @@ import { getGetTrainingQueryKey, useDeleteTraining, useGetTraining } from '@/api
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 import { formatDate } from '@/features/employees/employee-format';
+import { signingMessage } from '@/features/signatures/signature-format';
 
 import { invalidateTrainings } from './training-queries';
 
@@ -85,9 +86,10 @@ function DeleteTrainingContent({
     } catch (cause) {
       if (!(cause instanceof ApiHttpError && cause.status === 404)) {
         setError(
-          cause instanceof ApiHttpError && cause.status === 409
-            ? 'Clientul este arhivat; instruirile lui nu mai pot fi șterse.'
-            : 'Nu am putut șterge instruirea. Verifică conexiunea și încearcă din nou.'
+          signingMessage(cause) ??
+            (cause instanceof ApiHttpError && cause.status === 409
+              ? 'Clientul este arhivat; instruirile lui nu mai pot fi șterse.'
+              : 'Nu am putut șterge instruirea. Verifică conexiunea și încearcă din nou.')
         );
         return;
       }
