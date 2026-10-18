@@ -6,7 +6,9 @@ Neither is one of the provider's originals: the wording is ours, in `signing.ro.
 to the provider's SSM contact before it ships. The annex to the regulament intern is document 13
 of the occupational safety set, with the set's box of document details; the signing agreement
 is a per-employee act adițional, with no box, like the individual training sheets. Articles are
-a list, as in the service contract, so no article refers to another by its number.
+a list, as in the service contract, so no article refers to another by its number. The JSON's
+`contract_clause`, the agreement's terms for a new hire's contract, is no template: the engine
+reads it as text (`signingContractClauseText`).
 """
 
 import json
@@ -21,7 +23,7 @@ sys.path.insert(0, '/work/tools/import')
 from build_contract import article, article_numbering, plain  # noqa: E402
 from build_sheets import control  # noqa: E402
 from import_templates import (  # noqa: E402
-    FONT, MARGINS, SMALL_PRINT, TITLE_SIZE, _elements, add_branding, build_header,
+    FONT, MARGINS, POINT, SMALL_PRINT, TITLE_SIZE, _elements, add_branding, build_header,
     insert_handover, prop, start_office, sweep, write_paragraph)
 
 DATE_LINE = 'Data: ____________________'
@@ -69,26 +71,43 @@ def set_up_pages(document, with_header):
         add_branding(style)
 
 
-def signatures(document, text, cursor, sides):
+def signatures(document, text, cursor, definition):
+    sides = definition['signatures']
+    compact = definition.get('compact')
     plain(text, cursor, '', adjust=LEFT, below=0)
     fields = any('field' in side for side in sides)
-    # Less room to sign than the set's hand-over blocks, so that the annex keeps to one page. A
-    # signature field brings its own room.
+    # A signature field brings its own room; the annex has less than the set's hand-over blocks,
+    # to keep to one page.
+    room = 4 if fields else compact['signingRoom'] if compact else 34
     table = insert_handover(document, text, cursor, tuple(
         (side['lines'] + ([FIELD_MARK + side['field']] if 'field' in side else []), side['name'], side['role'])
-        for side in sides), signing_room=4 if fields else 34)
-    for cell_name in ('A1', 'B1'):
-        cell = table.getCellByName(cell_name)
-        cell_cursor = cell.createTextCursor()
-        cell_cursor.gotoEnd(False)
-        write_paragraph(cell, cell_cursor, DATE_LINE, above=6, below=0)
+        for side in sides), signing_room=room)
+    if compact:
+        table.BottomMargin = round(compact['spacing'] * POINT)
+    else:
+        for cell_name in ('A1', 'B1'):
+            cell = table.getCellByName(cell_name)
+            cell_cursor = cell.createTextCursor()
+            cell_cursor.gotoEnd(False)
+            write_paragraph(cell, cell_cursor, DATE_LINE, above=6, below=0)
 
     tail = text.createTextCursor()
     tail.gotoEnd(False)
     tail.NumberingStyleName = ''
+    if 'after' in definition:
+        write_paragraph(text, tail, definition['after'], adjust=LEFT, below=0, first=True)
+        return
     tail.CharHeight = 1.0
     tail.ParaTopMargin = 0
     tail.ParaBottomMargin = 0
+
+
+def tighten(text, compact):
+    # The annex keeps to one page under a box of document details as tall as long names make it.
+    for paragraph in _elements(text):
+        if (paragraph.supportsService('com.sun.star.text.Paragraph')
+                and paragraph.ParaBottomMargin == round(6 * POINT)):
+            paragraph.ParaBottomMargin = round(compact['spacing'] * POINT)
 
 
 def build(desktop, definition, with_header):
@@ -102,12 +121,20 @@ def build(desktop, definition, with_header):
 
     write_paragraph(text, cursor, definition['title'], size=TITLE_SIZE, bold=True, adjust=CENTER,
                     below=3, keep=True, first=True)
-    write_paragraph(text, cursor, definition['subtitle'], bold=True, adjust=CENTER, below=12)
+    if 'number' in definition:
+        write_paragraph(text, cursor, definition['subtitle'], bold=True, adjust=CENTER, below=3)
+        write_paragraph(text, cursor, definition['number'], adjust=CENTER, below=0)
+        write_paragraph(text, cursor, definition['numberNote'], italic=True, adjust=CENTER,
+                        below=12)
+    else:
+        write_paragraph(text, cursor, definition['subtitle'], bold=True, adjust=CENTER, below=12)
     for content in definition.get('parties', []):
         plain(text, cursor, content, adjust=LEFT, below=6)
     for item in definition['articles']:
         article(text, cursor, item)
-    signatures(document, text, cursor, definition['signatures'])
+    if 'compact' in definition:
+        tighten(text, definition['compact'])
+    signatures(document, text, cursor, definition)
 
     target = f'/work/templates/{definition["file"]}'
     document.storeToURL(uno.systemPathToFileUrl(target), (prop('FilterName', 'MS Word 2007 XML'),))

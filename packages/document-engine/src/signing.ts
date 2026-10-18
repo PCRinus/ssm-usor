@@ -1,3 +1,5 @@
+import texts from '../tools/import/signing.ro.json' with { type: 'json' };
+
 export const signingTypeKeys = {
   regulationAnnex: 'signing_regulation_annex',
   agreement: 'signing_agreement',
@@ -82,8 +84,27 @@ const printedDate = (isoDate: string) => {
   return `${day}.${month}.${year}`;
 };
 
+/**
+ * The agreement names the client's representative in its parties, as the merge data's
+ * `client.representativeName` and `client.representativeRole` (the readiness codes of the same
+ * name), and is not drawn up without them.
+ */
+export class SigningAgreementDataError extends Error {
+  constructor(readonly missing: ('client.representativeName' | 'client.representativeRole')[]) {
+    super(`The signing agreement lacks ${missing.join(', ')}.`);
+    this.name = 'SigningAgreementDataError';
+  }
+}
+
 export function buildSigningAgreementData(facts: SigningAgreementFacts): SigningAgreementData {
   const { client, employee } = facts;
+  const missing = (
+    [
+      ['client.representativeName', client.representativeName],
+      ['client.representativeRole', client.representativeRole],
+    ] as const
+  ).flatMap(([name, value]) => (text(value) ? [] : [name]));
+  if (missing.length > 0) throw new SigningAgreementDataError(missing);
   const birthPlace = text(employee.birthPlace);
   const identification = [
     text(employee.employeeNumber) && `marca ${text(employee.employeeNumber)}`,
@@ -111,4 +132,14 @@ export function buildSigningAgreementData(facts: SigningAgreementFacts): Signing
     },
     codeChannel: codeChannels[facts.channel],
   };
+}
+
+/**
+ * The agreement's terms as a clause of a new hire's employment contract, which then needs no
+ * agreement (ADR 023): one paragraph per clause, the provider's name filled in.
+ */
+export function signingContractClauseText(providerLegalName: string): string[] {
+  return texts.contract_clause.articles.map((paragraph) =>
+    paragraph.replaceAll('{{provider.legalName}}', providerLegalName.trim())
+  );
 }

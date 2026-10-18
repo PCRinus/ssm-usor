@@ -15,8 +15,10 @@ export * from './render';
 export {
   buildSigningAgreementData,
   type SigningAgreementData,
+  SigningAgreementDataError,
   type SigningAgreementFacts,
   type SigningCodeChannel,
+  signingContractClauseText,
   type SigningRegulationAnnexData,
   signingRegulationAnnexData,
   signingTypeKeys,

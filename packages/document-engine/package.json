@@ -11,6 +11,10 @@
     "./citations": {
       "types": "./dist/citation-index.d.ts",
       "import": "./dist/citation-index.js"
+    },
+    "./signing": {
+      "types": "./dist/signing.d.ts",
+      "import": "./dist/signing.js"
     }
   },
   "scripts": {
