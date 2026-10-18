@@ -26,6 +26,7 @@ export function SearchCombobox({
   id,
   testId,
   items,
+  section,
   value,
   onChange,
   onBlur,
@@ -46,6 +47,7 @@ export function SearchCombobox({
   id: string;
   testId: string;
   items: readonly ComboboxItem[];
+  section?: { heading: string; items: readonly ComboboxItem[] };
   value: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
@@ -80,13 +82,41 @@ export function SearchCombobox({
   // portaled out of it. A modal popover takes that lock over, so its list scrolls again.
   const trigger = useRef<HTMLButtonElement>(null);
   const [insideDialog, setInsideDialog] = useState(false);
-  const selected = items.find((item) => item.value === value);
+  const selected = [...items, ...(section?.items ?? [])].find((item) => item.value === value);
   const candidate = unknownValue?.(search) ?? null;
 
   function choose(next: string) {
     onChange(next);
     setOpen(false);
     setSearch('');
+  }
+
+  function renderItem(item: ComboboxItem) {
+    return (
+      <CommandItem
+        key={item.value}
+        value={item.search ?? `${item.value} ${item.label} ${item.description ?? ''}`}
+        onSelect={() => choose(item.value)}
+      >
+        <span
+          className={cn(
+            'font-medium tabular-nums',
+            item.description ? 'shrink-0' : 'min-w-0 flex-1'
+          )}
+        >
+          {item.label}
+        </span>
+        {item.description && (
+          <span className={cn('min-w-0 flex-1 leading-snug', descriptionClassName)}>
+            {item.description}
+          </span>
+        )}
+        <Check
+          className={cn('ml-auto size-4 shrink-0', item.value === value ? '' : 'invisible')}
+          aria-hidden="true"
+        />
+      </CommandItem>
+    );
   }
 
   return (
@@ -173,35 +203,11 @@ export function SearchCombobox({
                   <span className="text-muted-foreground">{renderUnknown?.(candidate)}</span>
                 </CommandItem>
               )}
-              {items.map((item) => (
-                <CommandItem
-                  key={item.value}
-                  value={item.search ?? `${item.value} ${item.label} ${item.description ?? ''}`}
-                  onSelect={() => choose(item.value)}
-                >
-                  <span
-                    className={cn(
-                      'font-medium tabular-nums',
-                      item.description ? 'shrink-0' : 'min-w-0 flex-1'
-                    )}
-                  >
-                    {item.label}
-                  </span>
-                  {item.description && (
-                    <span className={cn('min-w-0 flex-1 leading-snug', descriptionClassName)}>
-                      {item.description}
-                    </span>
-                  )}
-                  <Check
-                    className={cn(
-                      'ml-auto size-4 shrink-0',
-                      item.value === value ? '' : 'invisible'
-                    )}
-                    aria-hidden="true"
-                  />
-                </CommandItem>
-              ))}
+              {items.map(renderItem)}
             </CommandGroup>
+            {section && section.items.length > 0 && (
+              <CommandGroup heading={section.heading}>{section.items.map(renderItem)}</CommandGroup>
+            )}
             {action && (
               <>
                 <CommandSeparator alwaysRender />

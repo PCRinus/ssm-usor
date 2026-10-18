@@ -615,7 +615,15 @@ describe("a position's risk evaluation page", () => {
   });
 
   it('adds a factor with its measures, showing what the classes mean and the level they give', async () => {
-    mockApi();
+    mockApi({
+      suggestions: (_init, url) =>
+        Response.json({
+          items:
+            url.searchParams.get('field') === 'group'
+              ? ['Factori de risc mecanic', 'Alte riscuri', 'factori de risc FIZIC']
+              : ['Permanent'],
+        }),
+    });
     mount(welderEvaluationPath);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-factor-add'));
@@ -641,11 +649,18 @@ describe("a position's risk evaluation page", () => {
 
     await user.selectOptions(screen.getByTestId('risk-factor-component'), 'work_environment');
     await user.click(screen.getByTestId('risk-factor-group'));
+    const own = await screen.findByRole('group', { name: 'Folosite de tine' });
+    expect(
+      within(own)
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+    ).toEqual(['Alte riscuri']);
     expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
       'Factori de risc fizic',
       'Factori de risc chimic',
       'Factori de risc biologic',
       'Caracterul special al mediului',
+      'Alte riscuri',
     ]);
     await user.click(screen.getByRole('option', { name: 'Factori de risc fizic' }));
     await user.type(screen.getByTestId('risk-factor-description'), 'Zgomot peste limită');

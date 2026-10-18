@@ -36,7 +36,7 @@ A client-level evaluation also records its **work task** and the **persons expos
 And its **risk factors**. Each records:
 
 - the **component** of the work system it belongs to: executant, work task, means of production, or work environment;
-- a **group** under the component, free text with suggestions: "Factori de risc mecanic", "Acțiuni greșite";
+- a **group** under the component, free text with suggestions: "Factori de risc mecanic", "Acțiuni greșite" (Amended 2026-10-19: the picker lists the method's groups for the chosen component, from `workSystemComponentGroups` in the contracts, then the groups the organization typed before; any text is still accepted and the group is still stored as a string);
 - its **description**, the concrete form it takes: "Electrocutare prin atingere indirectă – deteriorarea sau inexistența instalațiilor de împământare";
 - a **gravity class**, 1 to 7, and a **probability class**, 1 to 6, chosen by the evaluator;
 - its **prevention measures**, each a text of one of four kinds: technical, organizational, hygienic-sanitary, other;
