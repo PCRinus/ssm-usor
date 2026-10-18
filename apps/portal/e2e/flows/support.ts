@@ -61,6 +61,7 @@ export async function createProvider(
       legal_name: clientName,
       cui: '1590082',
       legal_representative_name: 'Maria Popescu',
+      legal_representative_role: 'Administrator',
       contact_name: contact?.name ?? null,
       contact_email: contact?.email ?? null,
     })

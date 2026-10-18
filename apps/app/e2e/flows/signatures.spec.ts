@@ -45,6 +45,8 @@ test('a specialist records a training with signers, marks a slot on paper and vo
   // The verifier is the specialist, a member; the legal representative has no account.
   await expect(dialog.getByTestId('training-verifier-signer')).toHaveValue(owner.id);
   await expect(dialog.getByTestId('training-trainer-signer')).toHaveValue('');
+  // The certificate names the account, so the slot must print the signer's own name.
+  await dialog.getByTestId('training-trainer-name').fill('Dan MARIN');
   await dialog.getByTestId('training-trainer-signer').selectOption(owner.id);
   await expect(dialog.locator('#training-trainer-signer-hint')).toHaveText(
     'Primește o cerere de semnare pe email sau prin SMS.'
