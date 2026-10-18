@@ -120,6 +120,18 @@ The text of a cell is broken into lines by the API (`wrapToBox`) in the field's 
 and the signer sets a text too long for its field in a smaller size, never below what keeps every
 line inside it.
 
+Apple's PDF viewer (Preview, Safari, every iPhone) ignores a text field's appearance and draws
+the value itself, from the field's `/DA` font size and its multiline flag: top-aligned in a
+multiline field, where it drops every line that does not fit whole, a single short line
+included. LibreOffice exports every cell as multiline at the template's size, so on an iPhone the
+short cells showed half a line and a long one lost its last lines. A fill therefore writes the
+size it drew into `/DA`, sets the multiline flag only for a value with several lines, and sizes a
+multiline value so that Apple's layout fits it too: about 1.2 times the size plus 1.2 pt a line,
+and 3.5 pt for the field, measured with PDFKit on the real sheet. Both keys are among those a
+form fill may change after a certification, and only the filled fields are touched, so earlier
+signatures stay intact and permitted. A later fill of the same unsigned row starts from the size
+the previous one left.
+
 `pnpm --filter @ssm-usor/api signed-sheet:check:local -- --out <folder>`, with `GOTENBERG_URL`
 and `SIGNER_URL` set, runs all of it on the local stack with a throwaway certificate authority:
 it records trainings for a seeded employee, places, signs, voids and continues, validates every

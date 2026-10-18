@@ -14,7 +14,7 @@ from pyhanko.sign.validation.pdf_embedded import async_validate_pdf_signature
 from pyhanko_certvalidator import ValidationContext
 
 from app import forms
-from app.forms import Field, form_fields, locked_by_signatures
+from app.forms import MULTILINE, Field, form_fields, locked_by_signatures
 from app.main import app
 
 from .fixtures import CertificateAuthority, Identity, row_fields, sheet, signature_fields
@@ -157,7 +157,22 @@ def test_fill_sets_a_text_too_long_for_its_field_smaller_so_that_every_line_show
         return int(stream.split(b' Tf')[0].split()[-1])
 
     assert size('row1_date') == 9
-    assert size('row1_theme') == 5
+    assert size('row1_theme') == 3
+
+
+def test_fill_tells_apple_the_size_it_drew_and_whether_the_value_has_several_lines():
+    pdf = fill(prepared_sheet(), {'row1_theme': 'Instruire\nperiodică', 'row1_date': '11.10.2026'})
+    fields = form_fields(PdfFileReader(BytesIO(pdf)))
+    for name, multiline in (('row1_theme', True), ('row1_date', False)):
+        field = fields[name]
+        stream = field.widgets[0]['/AP']['/N'].get_object().data
+        drawn = stream.split(b' Tf')[0].split()[-1].decode()
+        assert f' {drawn} Tf' in str(field.dictionary['/DA']), name
+        assert bool(int(field.dictionary.get('/Ff', 0)) & MULTILINE) is multiline, name
+
+    pdf = fill(pdf, {'row1_theme': 'Instruire periodică'})
+    theme = form_fields(PdfFileReader(BytesIO(pdf)))['row1_theme']
+    assert not int(theme.dictionary.get('/Ff', 0)) & MULTILINE
 
 
 def test_a_two_phase_signature_validates():

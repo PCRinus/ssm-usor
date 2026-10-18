@@ -22,6 +22,14 @@ TEXT_FIELD_LAYOUT = layout.SimpleBoxLayoutRule(
     inner_content_scaling=layout.InnerScaling.SHRINK_TO_FIT,
 )
 DEFAULT_FONT_SIZE = 9
+MULTILINE = 1 << 12
+# Apple's PDFKit (Preview, Safari, iOS) ignores a text field's appearance and draws /V itself in
+# /DA's font size, a multiline field's text from the top, dropping every line that does not fit
+# whole, a single line in a short field too. Measured on the sheet: a line takes about 1.2 times
+# the size plus 1.2 pt, and the field 3.5 pt more.
+APPLE_PADDING = 3.5
+APPLE_LINE_GAP = 1.2
+APPLE_LEADING = 1.2
 TEXT_FIELD_KEYS = ('/V', '/DV', '/DA', '/Ff', '/MaxLen', '/Q', '/AA', '/RV', '/DS')
 
 
@@ -200,14 +208,12 @@ def fill_fields(pdf: bytes, values: dict[str, str]) -> bytes:
     for name, value in values.items():
         field = fields[name]
         field.dictionary[pdf_name('/V')] = generic.TextStringObject(value)
+        _set_multiline(field, '\n' in value)
         writer.update_container(field.dictionary)
         for widget in field.widgets:
             width, height = annot_width_height(widget)
-            style = TextBoxStyle(
-                font=font,
-                font_size=_fitting_size(engine, value, width, height, _font_size(field, widget)),
-                box_layout_rule=TEXT_FIELD_LAYOUT,
-            )
+            size = _fitting_size(engine, value, width, height, _font_size(field, widget))
+            style = TextBoxStyle(font=font, font_size=size, box_layout_rule=TEXT_FIELD_LAYOUT)
             content = TextFieldContent(
                 writer=writer,
                 text_content=value,
@@ -215,8 +221,29 @@ def fill_fields(pdf: bytes, values: dict[str, str]) -> bytes:
                 box=layout.BoxConstraints(width=width, height=height),
             )
             content.apply_appearance(widget)
+            _set_font_size(field, widget, size)
             writer.update_container(widget)
+            if widget is not field.dictionary:
+                writer.update_container(field.dictionary)
     return written(writer)
+
+
+def _set_multiline(field: Field, multiline: bool) -> None:
+    flags = int(field.dictionary.get('/Ff', 0))
+    wanted = flags | MULTILINE if multiline else flags & ~MULTILINE
+    if wanted != flags:
+        field.dictionary[pdf_name('/Ff')] = generic.NumberObject(wanted)
+
+
+def _set_font_size(field: Field, widget: generic.DictionaryObject, size: int) -> None:
+    # Apple draws with /DA's size, so it must be the appearance's. A later fill of the same field
+    # starts from it, and can only come out smaller than the template's size, never larger.
+    holder = widget if '/DA' in widget else field.dictionary
+    appearance = str(holder.get('/DA', ''))
+    if re.search(r'[\d.]+\s+Tf', appearance):
+        holder[pdf_name('/DA')] = generic.TextStringObject(
+            re.sub(r'[\d.]+(\s+Tf)', f'{size}\\1', appearance, count=1)
+        )
 
 
 def _fitting_size(engine, value: str, width: float, height: float, size: float) -> int:
@@ -227,6 +254,9 @@ def _fitting_size(engine, value: str, width: float, height: float, size: float) 
     widest = max((engine.shape(line).x_advance for line in lines), default=0)
     margins = TEXT_FIELD_LAYOUT.margins
     room = [(float(height) - margins.top - margins.bottom) / len(lines)]
+    if len(lines) > 1:
+        per_line = (float(height) - APPLE_PADDING) / len(lines)
+        room.append((per_line - APPLE_LINE_GAP) / APPLE_LEADING)
     if widest > 0:
         room.append((float(width) - margins.left - margins.right) / widest)
     return max(1, int(min(size, *room)))
