@@ -36,7 +36,12 @@ import { useMe } from '@/features/account/use-me';
 import { formatDay } from '@/features/participants/participant-format';
 import { saveFile } from '@/lib/save-file';
 
-import { agreementStateLabels, hasSigningReason, signingFailure } from './signature-format';
+import {
+  agreementAwaitsEmployer,
+  agreementStateLabels,
+  hasSigningReason,
+  signingFailure,
+} from './signature-format';
 import { invalidateSigningAgreement, useSigningAgreement } from './use-signing-agreement';
 
 export interface AgreementEmployee {
@@ -60,7 +65,7 @@ const stateClasses = {
 function stateDetail(agreement: Agreement) {
   switch (agreement.state) {
     case 'generated':
-      return agreement.employeeSignedAt
+      return agreementAwaitsEmployer(agreement)
         ? `Semnat de angajat pe ${formatDay(agreement.employeeSignedAt)}, așteaptă semnătura administratorului în portal.`
         : `Descărcat pe ${formatDay(agreement.generatedAt)}; se semnează de mână sau din portal.`;
     case 'signed_electronically':
@@ -105,13 +110,13 @@ export function SigningAgreementCard({
   const [showingClause, setShowingClause] = useState(false);
   const agreement = query.data?.agreement ?? null;
   const state = agreement?.state ?? 'none';
-  const employeeSigned = Boolean(agreement?.employeeSignedAt);
-  const unsigned = state === 'none' || (state === 'generated' && !employeeSigned);
+  const awaitsEmployer = agreementAwaitsEmployer(agreement);
+  const unsigned = state === 'none' || (state === 'generated' && !awaitsEmployer);
   const agreed =
     state === 'signed_electronically' ||
     state === 'signed_on_paper' ||
     state === 'in_contract' ||
-    (state === 'generated' && employeeSigned);
+    awaitsEmployer;
   const annexIssued = documents.data
     ? documents.data.notApplicable.includes('signing_regulation_annex') ||
       documents.data.items.some(
@@ -330,7 +335,7 @@ export function SigningAgreementCard({
       <AgreementChangeDialog
         employee={employee}
         change={confirming}
-        electronic={state === 'signed_electronically' || employeeSigned}
+        electronic={state === 'signed_electronically' || awaitsEmployer}
         onClose={() => setConfirming(null)}
       />
       <ContractClauseDialog

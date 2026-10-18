@@ -67,6 +67,19 @@ export const agreementStateLabels: Record<SigningAgreementState | 'none', string
 export const agreementSigned = (state: SigningAgreementState | null | undefined) =>
   state === 'signed_electronically' || state === 'signed_on_paper' || state === 'in_contract';
 
+interface AgreementSignatures {
+  state: SigningAgreementState;
+  employeeSignedAt: string | null;
+  employerSignedAt: string | null;
+}
+
+export const agreementAwaitsEmployer = <T extends AgreementSignatures>(
+  agreement: T | null | undefined
+): agreement is T & { employeeSignedAt: string } =>
+  agreement?.state === 'generated' &&
+  Boolean(agreement.employeeSignedAt) &&
+  !agreement.employerSignedAt;
+
 export const reasonOf = (cause: unknown) =>
   cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse> | null)?.reason : null;
 
