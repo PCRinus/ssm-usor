@@ -25,6 +25,7 @@ import { useJobPositionOptions } from '@/features/job-positions/use-job-position
 import { useFocusRequest } from '@/features/missing-data/focus';
 
 import { intervalOptions, monthList, monthNames, notApplicable } from './document-details-schema';
+import { ExcludedCategoryWarning } from './excluded-category-warning';
 import {
   type ClientSummary,
   describedBy,
@@ -166,7 +167,7 @@ function TrainingProgramCard({
   return (
     <SectionCard
       data-testid="training-program-card"
-      title="Programul de instruire periodică"
+      title="Instruire SSM"
       action={
         !readOnly &&
         !editing && (
@@ -236,22 +237,20 @@ function TrainingProgramSummary({
         ? program.workerTrainingIntervalMonths !== null
         : program.administrativeTrainingIntervalMonths !== null)
   );
-  const hasExcludedEmployees = (positions.data?.items ?? []).some(
-    (position) =>
-      position.employeeCount > 0 &&
-      (position.staffCategory === 'execution'
-        ? program.workerTrainingIntervalMonths === null
-        : program.administrativeTrainingIntervalMonths === null)
-  );
+  const excludedCategories = [
+    ...(program.workerTrainingIntervalMonths === null ? (['execution'] as const) : []),
+    ...(program.administrativeTrainingIntervalMonths === null
+      ? (['technical_administrative'] as const)
+      : []),
+  ];
 
   return (
     <div className="grid gap-4">
-      {hasExcludedEmployees && (
-        <Notice variant="warning" data-testid="training-program-category-warning">
-          Există angajați într-o categorie marcată „Nu se aplică”. Modifică programul înainte de a
-          genera documentele.
-        </Notice>
-      )}
+      <ExcludedCategoryWarning
+        excluded={excludedCategories}
+        positions={positions.data?.items ?? []}
+        action={() => 'Modifică programul înainte de a genera documentele.'}
+      />
       <div
         className={`grid gap-3 ${
           program.workerTrainingIntervalMonths !== null &&
@@ -442,17 +441,10 @@ function TrainingProgramForm({
     ],
   });
   const positions = useJobPositionOptions(client.id, userId);
-  const conflictingCategories = new Set(
-    (positions.data?.items ?? [])
-      .filter(
-        (position) =>
-          position.employeeCount > 0 &&
-          (position.staffCategory === 'execution'
-            ? workerInterval === notApplicable
-            : administrativeInterval === notApplicable)
-      )
-      .map((position) => position.staffCategory)
-  );
+  const excludedCategories = [
+    ...(administrativeInterval === notApplicable ? (['technical_administrative'] as const) : []),
+    ...(workerInterval === notApplicable ? (['execution'] as const) : []),
+  ];
   const preview = (interval: string) =>
     firstMonth && interval && interval !== notApplicable
       ? monthList(Number(firstMonth), Number(interval))
@@ -545,12 +537,15 @@ function TrainingProgramForm({
               />
             </Field>
           </div>
-          {conflictingCategories.size > 0 && (
-            <Notice variant="warning" data-testid="training-program-category-warning">
-              Există angajați în categoria marcată „Nu se aplică”. Alege un interval pentru acea
-              categorie înainte de a genera documentele.
-            </Notice>
-          )}
+          <ExcludedCategoryWarning
+            excluded={excludedCategories}
+            positions={positions.data?.items ?? []}
+            action={(categories) =>
+              categories === 1
+                ? 'Alege un interval pentru această categorie înainte de a genera documentele.'
+                : 'Alege un interval pentru aceste categorii înainte de a genera documentele.'
+            }
+          />
         </section>
 
         <section
@@ -612,43 +607,59 @@ function TrainingProgramForm({
                 )}
               />
             </Field>
-            <Field
-              id="details-day-from"
-              label="Din ziua"
-              mark="required"
-              error={errors.trainingDayFrom}
-            >
-              <Input
-                id="details-day-from"
-                data-testid="details-day-from"
-                inputMode="numeric"
-                autoComplete="off"
-                disabled={locked}
-                aria-invalid={Boolean(errors.trainingDayFrom)}
-                aria-describedby={describedBy('details-day-from', errors.trainingDayFrom)}
-                className="w-full"
-                {...form.register('trainingDayFrom')}
-              />
-            </Field>
-            <Field
-              id="details-day-to"
-              label="Până în ziua"
-              mark="required"
-              error={errors.trainingDayTo}
-            >
-              <Input
-                id="details-day-to"
-                data-testid="details-day-to"
-                inputMode="numeric"
-                autoComplete="off"
-                disabled={locked}
-                aria-invalid={Boolean(errors.trainingDayTo)}
-                aria-describedby={describedBy('details-day-to', errors.trainingDayTo)}
-                className="w-full"
-                {...form.register('trainingDayTo')}
-              />
-            </Field>
           </div>
+          <fieldset className="grid gap-2">
+            <legend className="mb-2 text-sm font-medium">
+              Zilele lunii în care are loc instruirea
+            </legend>
+            <div className="grid grid-cols-2 gap-4">
+              <Field
+                id="details-day-from"
+                label="De la ziua"
+                mark="required"
+                error={errors.trainingDayFrom}
+              >
+                <Input
+                  id="details-day-from"
+                  data-testid="details-day-from"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="10"
+                  disabled={locked}
+                  aria-invalid={Boolean(errors.trainingDayFrom)}
+                  aria-describedby={
+                    errors.trainingDayFrom ? 'details-day-from-error' : 'details-days-hint'
+                  }
+                  className="w-full"
+                  {...form.register('trainingDayFrom')}
+                />
+              </Field>
+              <Field
+                id="details-day-to"
+                label="Până la ziua"
+                mark="required"
+                error={errors.trainingDayTo}
+              >
+                <Input
+                  id="details-day-to"
+                  data-testid="details-day-to"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="15"
+                  disabled={locked}
+                  aria-invalid={Boolean(errors.trainingDayTo)}
+                  aria-describedby={
+                    errors.trainingDayTo ? 'details-day-to-error' : 'details-days-hint'
+                  }
+                  className="w-full"
+                  {...form.register('trainingDayTo')}
+                />
+              </Field>
+            </div>
+            <p id="details-days-hint" className="text-xs text-muted-foreground">
+              Numai ziua din lună (1–31); lunile vin din interval și prima lună.
+            </p>
+          </fieldset>
         </section>
       </div>
 
