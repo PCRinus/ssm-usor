@@ -25,14 +25,10 @@ export function useRecordSignatures(
 export type TrainingSigning = { signed: boolean; hasSignatures: boolean };
 
 // Any record of a training freezes all of it, so one record's own slots cannot lock it alone.
-export function trainingLocks(
-  training: TrainingSigning | undefined,
-  signatures?: RecordSignaturesResponse
-) {
+export function trainingLocks(training: TrainingSigning, signatures?: RecordSignaturesResponse) {
   const signed =
-    (training?.signed ?? false) ||
-    (signatures?.slots.some((slot) => slot.state === 'signed') ?? false);
-  const kept = (training?.hasSignatures ?? false) || (signatures?.hasSignatures ?? false);
+    training.signed || (signatures?.slots.some((slot) => slot.state === 'signed') ?? false);
+  const kept = training.hasSignatures || (signatures?.hasSignatures ?? false);
   const frozen =
     'Instruirea este semnată electronic. Anulează semnăturile ca să o poți modifica sau șterge.';
   return {

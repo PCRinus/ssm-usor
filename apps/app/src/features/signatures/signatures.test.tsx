@@ -144,6 +144,8 @@ const record = (overrides: Record<string, unknown> = {}) => ({
     createdAt: '2026-09-01T10:00:00+00:00',
     updatedAt: '2026-09-01T10:00:00+00:00',
   },
+  signed: false,
+  hasSignatures: false,
   ...overrides,
 });
 
@@ -494,33 +496,30 @@ describe("a record's signatures", () => {
     );
   });
 
-  it("locks a record whose training another attendee's record signed", async () => {
-    mockApi({
-      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
-      [`GET ${signaturesPath}`]: () => Response.json({ recordId, slots: [pendingTrainee] }),
-      [`GET ${trainingsPath}`]: () =>
-        Response.json({
-          items: [
-            {
-              ...record().training,
-              attendeeCount: 2,
-              attendees: [],
-              signed: true,
-              hasSignatures: true,
-            },
-          ],
-        }),
-    });
-    mount(`${employeePath}/training/ssm`);
-    await screen.findByTestId('record-signatures');
-    await waitFor(() =>
-      expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', true)
-    );
-    expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true);
-    expect(screen.getByTestId('training-record-lock').textContent).toBe(
-      'Instruirea este semnată electronic. Anulează semnăturile ca să o poți modifica sau șterge.'
-    );
-  });
+  it.each([
+    [
+      { signed: true, hasSignatures: true },
+      'Instruirea este semnată electronic. Anulează semnăturile ca să o poți modifica sau șterge.',
+    ],
+    [
+      { signed: false, hasSignatures: true },
+      'Instruirea are semnături, chiar anulate sau pe hârtie, care rămân în evidență, așa că nu se mai poate șterge.',
+    ],
+  ])(
+    "locks a record by its training's signing state from other attendees' records, %o",
+    async (signing, lock) => {
+      mockApi({
+        [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record(signing)] }),
+        [`GET ${signaturesPath}`]: () => Response.json({ recordId, slots: [pendingTrainee] }),
+      });
+      mount(`${employeePath}/training/ssm`);
+      await screen.findByTestId('record-signatures');
+      expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', signing.signed);
+      expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true);
+      expect(screen.getByTestId('training-record-lock').textContent).toBe(lock);
+      expect(requests('GET', trainingsPath)).toHaveLength(0);
+    }
+  );
 
   it("words the reasons the app voids a request for, and keeps a member's own words", async () => {
     mockApi({

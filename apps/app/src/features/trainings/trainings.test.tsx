@@ -138,6 +138,8 @@ const workplaceRecord = {
     material: 'H.G. 1051/2006; I.P.S.S.M. Art. 1 – 290',
     source: 'paper',
   }),
+  signed: false,
+  hasSignatures: false,
 };
 
 const periodicRecord = {
@@ -145,6 +147,8 @@ const periodicRecord = {
   occupation: 'Sudor',
   admission: null,
   training: training(),
+  signed: false,
+  hasSignatures: false,
 };
 
 const detailOf = (attendees: { id: string; lastName: string; firstName: string }[]) => ({
@@ -292,6 +296,7 @@ describe("an employee's training tabs", () => {
     expect(
       requests('GET', `${employeePath}/training-records`)[0]!.url.searchParams.get('domain')
     ).toBe('ssm');
+    expect(requests('GET', trainingsPath)).toHaveLength(0);
     expect(screen.getByTestId('training-state').textContent).toBe('La zi');
     expect(screen.getByTestId('training-due-on').textContent).toBe('1 mar. 2027');
     expect(screen.getByTestId('training-last-periodic').textContent).toBe('1 sept. 2026');
