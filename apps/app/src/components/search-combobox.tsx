@@ -43,6 +43,7 @@ export function SearchCombobox({
   invalid,
   describedBy,
   descriptionClassName,
+  note,
 }: {
   id: string;
   testId: string;
@@ -75,6 +76,9 @@ export function SearchCombobox({
   invalid?: boolean;
   describedBy?: string;
   descriptionClassName?: string;
+  // A row above the items until something is typed, for an entry that cannot be chosen yet and
+  // says where to complete it.
+  note?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -194,6 +198,14 @@ export function SearchCombobox({
                   <X aria-hidden="true" />
                   {clearLabel}
                 </CommandItem>
+              )}
+              {note && !search && (
+                <div
+                  data-testid={`${testId}-note`}
+                  className="px-2 py-1.5 text-sm text-muted-foreground"
+                >
+                  {note}
+                </div>
               )}
               {candidate && (
                 <CommandItem value={candidate} onSelect={() => choose(candidate)}>

@@ -1,5 +1,5 @@
 import { formatEmployeeName, maxPageSize } from '@ssm-usor/contracts';
-import { useRouteContext } from '@tanstack/react-router';
+import { Link, useRouteContext } from '@tanstack/react-router';
 
 import {
   type EmployeeListResponse,
@@ -10,6 +10,13 @@ import { type ComboboxItem, SearchCombobox } from '@/components/search-combobox'
 import { normalizeSearch } from '@/lib/normalize-search';
 
 export type EmployeeOption = EmployeeListResponse['items'][number];
+
+export interface Administrator {
+  fullName: string;
+  jobTitle: string;
+}
+
+export const administratorValue = 'administrator';
 
 // Item search text is "<last name> <first name>|<job title>|<id>". Any word of the name or
 // the job title may start the match; the id only keeps two namesakes apart.
@@ -24,13 +31,16 @@ function employeeFilter(value: string, search: string) {
 const listParams = { page: 1, pageSize: maxPageSize, sort: 'name', order: 'asc' } as const;
 
 // The first page by name is enough for the handful of people a client designates; anyone else
-// is typed in by hand.
+// is typed in by hand. A responsible person may be the client's legal representative, who holds
+// most of the roles at a small client and is often not an employee, so they can come first.
 export function EmployeeCombobox({
   id,
   clientId,
   userId,
   value,
+  administrator,
   onSelect,
+  onSelectAdministrator,
   disabled,
   invalid,
   describedBy,
@@ -39,7 +49,10 @@ export function EmployeeCombobox({
   clientId: string;
   userId: string;
   value: string;
+  // Null when the client has no legal representative recorded; undefined offers no entry.
+  administrator?: Administrator | null;
   onSelect: (employee: EmployeeOption | null) => void;
+  onSelectAdministrator?: () => void;
   disabled?: boolean;
   invalid?: boolean;
   describedBy?: string;
@@ -56,6 +69,14 @@ export function EmployeeCombobox({
     description: employee.jobTitle,
     search: `${formatEmployeeName(employee)}|${employee.jobTitle}|${employee.id}`,
   }));
+  if (administrator) {
+    items.unshift({
+      value: administratorValue,
+      label: administrator.fullName,
+      description: administrator.jobTitle,
+      search: `${administrator.fullName}|${administrator.jobTitle}|${administratorValue}`,
+    });
+  }
 
   return (
     <SearchCombobox
@@ -63,9 +84,10 @@ export function EmployeeCombobox({
       testId="responsible-employee"
       items={items}
       value={value}
-      onChange={(employeeId) =>
-        onSelect(options.find((employee) => employee.id === employeeId) ?? null)
-      }
+      onChange={(choice) => {
+        if (choice === administratorValue) onSelectAdministrator?.();
+        else onSelect(options.find((employee) => employee.id === choice) ?? null);
+      }}
       filter={employeeFilter}
       placeholder={employees.isPending ? 'Se încarcă angajații…' : 'Alege un angajat'}
       searchPlaceholder="Numele sau funcția"
@@ -74,6 +96,22 @@ export function EmployeeCombobox({
       disabled={disabled || employees.isPending}
       invalid={invalid}
       describedBy={describedBy}
+      note={
+        administrator === null && (
+          <>
+            Administratorul nu este completat în Detalii.{' '}
+            <Link
+              to="/clients/$clientId/details"
+              params={{ clientId }}
+              search={{ focus: 'legal-representative-name' }}
+              data-testid="responsible-employee-administrator-missing"
+              className="font-medium text-foreground underline underline-offset-4"
+            >
+              Completează
+            </Link>
+          </>
+        )
+      }
     />
   );
 }

@@ -1,5 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { responsiblePersonConflictReasons, type ResponsiblePersonRole } from '@ssm-usor/contracts';
+import {
+  requiredWorkersRepresentatives,
+  responsiblePersonConflictReasons,
+  type ResponsiblePersonRole,
+  samePersonName,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
@@ -12,15 +17,18 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
   type ApiErrorResponse,
   getGetClientDocumentDetailsQueryKey,
+  getGetClientQueryKey,
   getListResponsiblePersonsQueryKey,
   getListWorkplacesQueryKey,
   useCreateResponsiblePerson,
+  useGetClient,
   useGetClientDocumentDetails,
   useListWorkplaces,
   useUpdateResponsiblePerson,
@@ -29,9 +37,10 @@ import { ApiHttpError } from '@/api/http';
 import { Field, FieldMessage } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import { employeeCountLabel } from '@/features/job-positions/job-position-schema';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
-import { EmployeeCombobox } from './employee-combobox';
+import { type Administrator, administratorValue, EmployeeCombobox } from './employee-combobox';
 import {
   emptyResponsiblePersonForm,
   type ResponsiblePerson,
@@ -99,6 +108,12 @@ function ResponsiblePersonForm({
     request: apiRequest,
     query: { queryKey: [...getGetClientDocumentDetailsQueryKey(clientId), userId] },
   });
+  // The client page loaded it; refetched because adding employees does not invalidate it, and
+  // its count is the one generation goes by (ADR 010).
+  const client = useGetClient(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getGetClientQueryKey(clientId), userId], refetchOnMount: 'always' },
+  });
   const workplaces = useListWorkplaces(clientId, {
     request: apiRequest,
     query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId] },
@@ -113,7 +128,28 @@ function ResponsiblePersonForm({
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
   const contractTitle = person?.employeeJobTitle;
-  const typedTitle = useWatch({ control: form.control, name: 'jobTitle' });
+  const [typedTitle, employeeId, typedName] = useWatch({
+    control: form.control,
+    name: ['jobTitle', 'employeeId', 'fullName'],
+  });
+  const savedDetails = details.data?.documentDetails;
+  const legalRepresentativeName = savedDetails?.legalRepresentativeName?.trim();
+  const administrator: Administrator | null | undefined = !savedDetails
+    ? undefined
+    : legalRepresentativeName
+      ? {
+          fullName: legalRepresentativeName,
+          jobTitle: savedDetails.legalRepresentativeRole?.trim() || 'Administrator',
+        }
+      : null;
+  const administratorChosen =
+    administrator != null && !employeeId && samePersonName(typedName, administrator.fullName);
+  const representativeBlock = workersRepresentativeBlock({
+    administratorChosen,
+    employeeCount: client.data?.client.currentEmployeeCount,
+    holdsRole: person?.roles.includes('workers_representative') ?? false,
+    pointedRole,
+  });
   const contractTitleHint =
     contractTitle && contractTitle !== typedTitle.trim()
       ? `În contractul angajatului este acum „${contractTitle}”.`
@@ -205,7 +241,7 @@ function ResponsiblePersonForm({
             id="responsible-employee"
             label="Angajat"
             mark="optional"
-            hint="Completează numele și funcția. Administratorul poate fi adăugat fără a fi angajat."
+            hint="Alege un angajat sau administratorul, ori completează numele și funcția."
             error={errors.employeeId}
             className="sm:col-span-2"
           >
@@ -217,16 +253,36 @@ function ResponsiblePersonForm({
                   id="responsible-employee"
                   clientId={clientId}
                   userId={userId}
-                  value={field.value}
+                  value={administratorChosen ? administratorValue : field.value}
+                  administrator={administrator}
                   disabled={busy}
                   invalid={Boolean(errors.employeeId)}
                   describedBy={
                     errors.employeeId ? 'responsible-employee-error' : 'responsible-employee-hint'
                   }
+                  onSelectAdministrator={() => {
+                    if (!administrator) return;
+                    field.onChange('');
+                    form.clearErrors('employeeId');
+                    const fill = { shouldDirty: true, shouldValidate: true };
+                    form.setValue('fullName', administrator.fullName, fill);
+                    form.setValue('jobTitle', administrator.jobTitle, fill);
+                    form.setValue(
+                      'roles',
+                      form.getValues('roles').filter((role) => role !== 'workers_representative'),
+                      { shouldDirty: true }
+                    );
+                  }}
                   onSelect={(employee) => {
                     field.onChange(employee?.id ?? '');
                     form.clearErrors('employeeId');
-                    if (!employee) return;
+                    if (!employee) {
+                      if (administratorChosen) {
+                        form.setValue('fullName', '', { shouldDirty: true });
+                        form.setValue('jobTitle', '', { shouldDirty: true });
+                      }
+                      return;
+                    }
                     // Documents print the first names, then the family name.
                     const fill = { shouldDirty: true, shouldValidate: true };
                     form.setValue('fullName', `${employee.firstName} ${employee.lastName}`, fill);
@@ -330,6 +386,10 @@ function ResponsiblePersonForm({
                 <>
                   {responsibleRoleOrder.map((role) => {
                     const id = `responsible-role-${role}`;
+                    const blocked =
+                      role === 'workers_representative' &&
+                      representativeBlock !== null &&
+                      !field.value.includes(role);
                     return (
                       <div key={role} className="flex items-start gap-3">
                         <Checkbox
@@ -337,7 +397,7 @@ function ResponsiblePersonForm({
                           data-testid={id}
                           className="mt-0.5"
                           checked={field.value.includes(role)}
-                          disabled={busy}
+                          disabled={busy || blocked}
                           aria-describedby={`${id}-description`}
                           onCheckedChange={(checked) =>
                             field.onChange(
@@ -348,11 +408,19 @@ function ResponsiblePersonForm({
                           }
                         />
                         <div className="grid gap-0.5">
-                          <label htmlFor={id} className="text-sm font-medium">
+                          <label
+                            htmlFor={id}
+                            className={cn(
+                              'text-sm font-medium',
+                              blocked && 'text-muted-foreground'
+                            )}
+                          >
                             {responsibleRoleLabels[role].label}
                           </label>
                           <p id={`${id}-description`} className="text-xs text-muted-foreground">
-                            {responsibleRoleLabels[role].description}
+                            {blocked
+                              ? representativeBlock
+                              : responsibleRoleLabels[role].description}
                           </p>
                         </div>
                       </div>
@@ -383,4 +451,36 @@ function ResponsiblePersonForm({
       </form>
     </DialogContent>
   );
+}
+
+// Why the workers' representative cannot be ticked, or null when it can. Below 10 employees the
+// role does not exist (H.G. 1425/2006 art. 53), unless the person already holds it, to be
+// unticked, or a decision 1.5 generated earlier asks for it through a row of missing data.
+function workersRepresentativeBlock({
+  administratorChosen,
+  employeeCount,
+  holdsRole,
+  pointedRole,
+}: {
+  administratorChosen: boolean;
+  employeeCount: number | undefined;
+  holdsRole: boolean;
+  pointedRole: ResponsiblePersonRole | null;
+}) {
+  if (administratorChosen) {
+    return 'Nu poate fi reprezentantul legal. Se alege dintre angajații clientului.';
+  }
+  if (
+    employeeCount === undefined ||
+    requiredWorkersRepresentatives(employeeCount) > 0 ||
+    holdsRole ||
+    pointedRole === 'workers_representative'
+  ) {
+    return null;
+  }
+  const headcount =
+    employeeCount === 0
+      ? 'Clientul nu are angajați'
+      : `Clientul are ${employeeCountLabel(employeeCount).toLocaleLowerCase('ro')}`;
+  return `${headcount}; reprezentantul lucrătorilor se alege de la 10.`;
 }
