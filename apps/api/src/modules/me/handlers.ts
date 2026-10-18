@@ -38,14 +38,19 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
   const user = c.get('user');
   const db = createDataClient(c);
 
-  // Row-level security shows a member exactly one organization: their own.
-  const [profile, membership, organization] = await Promise.all([
+  const [profile, membership] = await Promise.all([
     db.from('profiles').select(profileColumns).eq('user_id', user.id).maybeSingle(),
     db.rpc('current_membership'),
-    db.from('organizations').select('id, name').maybeSingle(),
   ]);
   if (profile.error) throw fromDatabaseError(profile.error, 'me profile');
   if (membership.error) throw fromDatabaseError(membership.error, 'me membership');
+
+  // By the membership's id, not whatever the policies show: a member who is also a participant
+  // of another organization's client sees that organization too (ADR 022).
+  const organizationId = membership.data[0]?.organization_id;
+  const organization = organizationId
+    ? await db.from('organizations').select('id, name').eq('id', organizationId).maybeSingle()
+    : { data: null, error: null };
   if (organization.error) throw fromDatabaseError(organization.error, 'me organization');
 
   const role = membership.data[0]?.role;
