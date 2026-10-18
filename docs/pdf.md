@@ -50,8 +50,9 @@ under PDF/A-2b too, but a PDF/A export is tagged, and the structure tree referen
 widget, so pyHanko's analysis of what changed after a signature counts each later fill as an
 unexplained change to the signed revision, and every signature but the newest stops validating.
 Without PDF/A the PDF is untagged and every fill is a permitted change. The fonts are embedded
-either way. PDF/A for the signed sheet waits for the archiving of #487; every other PDF stays
-PDF/A-2b. `mergePdfs` is Gotenberg's `/forms/pdfengines/merge` with `flatten=true`: one PDF of
+either way. The signed sheet is therefore never PDF/A, and cannot become PDF/A later either:
+converting it rewrites the file, and every signature on it stops verifying. The archiving of #487
+keeps it as it is, beside its metadata; every other PDF stays PDF/A-2b. `mergePdfs` is Gotenberg's `/forms/pdfengines/merge` with `flatten=true`: one PDF of
 several, in the order given, their fields drawn into the pages.
 
 ## How the API uses it
@@ -188,7 +189,8 @@ prepareSheet(pdf: ArrayBuffer, signatureFields: string[]): Promise<ArrayBuffer>;
 fillFields(pdf: ArrayBuffer, values: Record<string, string>): Promise<ArrayBuffer>;
 beginSignature(pdf: ArrayBuffer, options: BeginSignatureOptions): Promise<BeginSignatureResult>;
 finishSignature(prepared: ArrayBuffer, sessionToken: string, signature: ArrayBuffer): Promise<ArrayBuffer>;
-validate(pdf: ArrayBuffer): Promise<SignatureValidation[]>;
+validate(pdf: ArrayBuffer, trustRootsPem?: string[]): Promise<SignatureValidation[]>;
+stampPages(pdf: ArrayBuffer, text: string): Promise<ArrayBuffer>;
 ```
 
 `prepareSheet` first names every field by its tooltip, where LibreOffice puts the title of the
@@ -196,7 +198,15 @@ content control it exported, since it names the fields themselves `Widget`, `_2`
 empties the blank placeholder LibreOffice exports as a field's value. It then turns the named
 text fields, the signature cells, into signature fields of the same rectangle. `fillFields` writes values as an incremental update,
 each with its appearance drawn in an embedded Liberation Sans, so no viewer needs to redraw
-fields and earlier signatures stay valid. Unknown field names are refused.
+fields and earlier signatures stay valid. Unknown field names are refused, and so is a field that
+a signature locks (below), with `409 locked_field` and the locked names as the detail: the
+service reads every signature's `/Reference` for a `/FieldMDP` and applies its action, `Include`,
+`Exclude` or `All`, so that a fill which would break a signature never reaches the file.
+
+`stampPages` draws a line of text in small grey letters in the top margin of every page, in the
+same embedded font, as an incremental update that adds page content and touches no field or
+signature. It is meant for a copy whose signatures no longer count, such as the flattened merge
+of several sheets (`mergePdfs`): there the line says what the copy is.
 
 ### The two phases
 
@@ -217,18 +227,50 @@ The private key never leaves the API, so a signature takes two calls.
    certificate and its chain, and writes it into the placeholder.
 
 A session is kept in memory for ten minutes and finishes once; a restart of the container
-loses it, and the caller begins again. That is why the class runs one instance.
+loses it, and then the item being signed fails and the person signs it again, with a new code.
+That is why the class runs one instance.
+
+`beginSignature` refuses with `bad_certificate` a certificate that is not for an ECDSA P-256 key,
+whose key usage lacks digitalSignature, or that no certificate of `chainPem` issued, and with
+`bad_lock_fields` a `lockFields` entry that names a signature field.
+
+The routes that call pyHanko run in Starlette's threadpool, each with an event loop of its own
+for pyHanko's coroutines, so that one long validation does not hold the others, and the session
+store is locked: two signatures begun at once both get a session.
 
 `lockFields`, the row's text fields, become the signature's `/FieldMDP` reference, which is
 what validators read. They are not written as a `/Lock` into the field: after the certification
 that would itself be a change the document does not permit. A row's signature fields still to
 be signed must not be in the list, or they could not be signed.
 
-`validate` trusts no root, the app being its own authority, and reports per signature whether
-the signed bytes are intact and the signature verifies, and whether every later change was
-form filling or signing that touched no locked field. pyHanko's own default policy wrongly
-counts an appearance written before a signed revision as changed after it, so the service
-validates without in-place appearance updates, which it never makes.
+`validate` reports per signature, as `SignatureValidation`:
+
+| Field                    | Meaning                                                                                                                                  |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `intact`                 | The signed bytes are unchanged and the signature verifies against its certificate                                                        |
+| `modificationsPermitted` | Every later change was form filling or signing that touched no locked field                                                              |
+| `certified`              | The signature certified the document                                                                                                     |
+| `trusted`                | The certificate chains to one of `trustRootsPem`, the app's CA in practice; false when none is given                                     |
+| `certificateSerial`      | The certificate's serial in lowercase hex, as `@peculiar/x509` gives it, to compare with the evidence row                                |
+| `issuer`                 | The issuer's name as RFC 4514 writes it, `CN=SSM Ușor Signing CA`                                                                        |
+| `subjectSerialNumber`    | The subject's serialNumber attribute (2.5.4.5), the account the certificate was issued to; null without one                              |
+| `coverage`               | `entire` when the signature covers the whole file, as the newest does while nothing follows it; `partial` when a later update follows it |
+
+The chain is checked at the signing time the signature states (`/M`), as Adobe Acrobat does by
+default: until the timestamps of #486, a certificate that has expired since would otherwise fail
+a signature that was sound when it was made. Revocation is not checked; the app publishes no
+lists. A chain to another authority, even one whose name copies ours, is not `trusted`, and its
+issuer and serial show it.
+
+pyHanko's default diff policy refuses a valid sheet: its in-place appearance check
+(`get_last_change(ref) == old_rev` in `pyhanko/sign/diff_analysis/rules/form_field_rules.py`)
+counts an appearance written before a signed revision as changed after it, so every signature
+that locks a row reads as followed by a change to a locked field. The service validates with its
+own policy, the default without in-place appearance updates, which it never makes; the test
+`test_pyhanko_default_policy_still_refuses_the_valid_sheet` fails on the day pyHanko fixes it.
+The bug should be reported upstream. Until it is fixed, anyone checking a signed sheet outside
+the app, a court's expert or an inspector, should use Adobe Acrobat or the EU's DSS validator,
+not pyHanko's command line with its defaults.
 
 ### Over HTTP
 
@@ -241,25 +283,45 @@ The container answers JSON, every PDF and signature in base64, on port 3301. The
 | `POST /fill`          | `pdf`, `values`                                                                                                | `pdf`                                 |
 | `POST /sign/begin`    | `pdf`, `field`, `certificatePem`, `chainPem`, `reason`, `signedAt`, `certify`, `lockFields`, `appearanceLines` | `prepared`, `toSign`, `sessionToken`  |
 | `POST /sign/finish`   | `prepared`, `sessionToken`, `signature`                                                                        | `pdf`                                 |
-| `POST /validate`      | `pdf`                                                                                                          | `signatures`: `SignatureValidation[]` |
+| `POST /validate`      | `pdf`, `trustRootsPem` (optional)                                                                              | `signatures`: `SignatureValidation[]` |
+| `POST /stamp`         | `pdf`, `text`                                                                                                  | `pdf`                                 |
 | `GET /health`         |                                                                                                                | `{ "status": "ok" }`                  |
 
 A refusal is `{ "error", "detail" }`: 400 for the request or the PDF (`unknown_fields`,
-`already_signed`, `cannot_certify`, `bad_signature`, `prepared_changed`, …), 404 for an unknown
-or expired session, 422 for a malformed body. `apps/pdf` rejects every failure with the message
-`signer_failed` and logs the reason as one JSON line (`signer_refused`, `signer_unreachable`,
-`signer_timeout`, `signer_not_json`). A container that did not start, or answered 5xx, is
-tried once more after two seconds; a request still unanswered after 60 seconds is not.
+`already_signed`, `cannot_certify`, `bad_certificate`, `bad_lock_fields`, `bad_signature`,
+`prepared_changed`, …), 404 for an unknown or expired session, 409 `locked_field` for a fill of a
+locked field, 422 for a malformed body. `apps/pdf` rejects a refusal with the message
+`signer_failed:<error>`, `signer_failed:locked_field` for instance, which the service binding
+carries to the API, and every other failure, an unreachable container, a timeout, a 5xx or an
+answer that is not the service's JSON, with `signer_failed` alone; `signerRefusalCode` in the
+contracts reads the code back, and `signerAnswerError` makes the same error from an answer, for a
+signer reached by URL. The reason is logged as one JSON line (`signer_refused`,
+`signer_unreachable`, `signer_timeout`, `signer_not_json`). A container that did not start, or
+answered 5xx, is tried once more after two seconds; a request still unanswered after 60 seconds
+is not, since the service may still be working on it.
 
 ### The container
 
-| Setting         | Value                                | Why                                                                               |
-| --------------- | ------------------------------------ | --------------------------------------------------------------------------------- |
-| Image           | `python:3.12.15-slim-trixie`, 229 MB | `apps/pdf/signer/Dockerfile`; every Python package pinned in `requirements.txt`   |
-| Instance type   | `basic`                              | A quarter of a vCPU: the service starts in about 4 s. On `lite` it took some 40 s |
-| `max_instances` | 1                                    | A signature's second phase must find the session its first phase left             |
-| `sleepAfter`    | 10 minutes                           | The session's lifetime                                                            |
-| Internet        | off                                  | Nothing is fetched: no revocation lists, no timestamps                            |
+| Setting         | Value                                | Why                                                                                                               |
+| --------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| Image           | `python:3.12.15-slim-trixie`, 256 MB | `apps/pdf/signer/Dockerfile`; the base pinned by digest, the font by Debian version, every Python package by hash |
+| Instance type   | `basic`                              | A quarter of a vCPU: the service starts in about 4 s. On `lite` it took some 40 s                                 |
+| `max_instances` | 1                                    | A signature's second phase must find the session its first phase left                                             |
+| `sleepAfter`    | 10 minutes                           | The session's lifetime                                                                                            |
+| Internet        | off                                  | Nothing is fetched: no revocation lists, no timestamps                                                            |
+
+`requirements.txt` and `requirements-dev.txt` are generated from the `.in` files beside them,
+with pip-tools in the image's Python:
+
+```sh
+docker run --rm -v "$PWD/apps/pdf/signer:/work" -w /work python:3.12.15-slim-trixie sh -c \
+  'pip install -q pip-tools \
+   && pip-compile -q --generate-hashes --allow-unsafe -o requirements.txt requirements.in \
+   && pip-compile -q --generate-hashes --allow-unsafe -o requirements-dev.txt requirements-dev.in'
+```
+
+The image installs them with `--require-hashes`, and so does `setup:signer`. pip-compile keeps the
+pins already in the files; `--upgrade-package <name>` moves one.
 
 Liberation Sans comes from Debian and is rescaled to 1,000 units per em when the image is
 built: pyHanko writes a subset's widths in the font's own units, and PDF reads them as
@@ -276,7 +338,9 @@ the `SIGNER` binding (the same `Pdf` entrypoint) where `PDF_CONVERSION=service`,
 signer at `SIGNER_URL`, else nothing, and `requireSigner` answers `503` with the reason
 `signer_unavailable`. Any failure of a method answers the same.
 
-Locally, `pnpm dev:pdf` starts the signer beside Gotenberg, from the same Dockerfile, on port 3301. Set `SIGNER_URL=http://localhost:3301` in `apps/api/.dev.vars` and restart `pnpm dev`.
+Locally, `pnpm dev:pdf` starts the signer beside Gotenberg, from the same Dockerfile, on port 3301. Set `SIGNER_URL=http://localhost:3301` in `apps/api/.dev.vars` and restart `pnpm dev`. Both
+containers publish their ports on 127.0.0.1 only: they take any document they are handed,
+without authentication.
 
 The service's tests are Python and need Python 3.12 or newer, once:
 
@@ -286,8 +350,12 @@ pnpm --filter @ssm-usor/pdf test:signer    # pytest
 ```
 
 They make a throwaway certificate authority and sheet, and sign, fill and validate it as the
-sheet will be. CI does not run them yet. `src/sign.test.ts` covers the forwarding in the
-Worker without a container.
+sheet will be, and do the same on `tests/fixtures/sheet-ssm-form.pdf`, the occupational safety
+sheet as LibreOffice exports it: the template merged with the sample employee of
+`apps/api/src/modules/signed-sheets/form.fixture.ts` and converted through Gotenberg with
+`convertForm`'s request. Make it again the same way when the template's fields change. The pull
+request workflow runs ruff and the tests whenever `apps/pdf` or the signer's contracts change.
+`src/sign.test.ts` covers the forwarding in the Worker without a container.
 
 ## Deployment
 
