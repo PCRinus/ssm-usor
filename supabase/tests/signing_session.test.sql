@@ -32,9 +32,13 @@ insert into public.client_participants (organization_id, client_id, kind, employ
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'client_administrator', null, 'Elena Radu', 'dddddddd-0000-4000-8000-000000000002'),
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'employee', 'e1e1e1e1-0000-4000-8000-000000000002', null, 'dddddddd-0000-4000-8000-000000000004');
 
-insert into public.signing_sessions (id, account_id, channel, address, code_hash, verified_at) values
-  ('5e5e5e5e-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000001', 'email', 'ion@example.com', 'hash', now()),
-  ('5e5e5e5e-0000-4000-8000-000000000002', 'dddddddd-0000-4000-8000-000000000002', 'email', 'hr@client.test', 'hash', now());
+insert into public.signing_sessions (id, account_id, place, participant_id, channel, address, code_hash, verified_at)
+select v.id::uuid, p.user_id, 'portal', p.id, 'email', v.address, 'hash', now()
+from (values
+  ('5e5e5e5e-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000001', 'ion@example.com'),
+  ('5e5e5e5e-0000-4000-8000-000000000002', 'dddddddd-0000-4000-8000-000000000002', 'hr@client.test')
+) as v (id, user_id, address)
+join public.client_participants p on p.user_id = v.user_id::uuid;
 
 insert into public.employee_signing_agreements (employee_id, organization_id, client_id) values
   ('e1e1e1e1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001'),
@@ -53,14 +57,20 @@ $$;
 
 create or replace function pg_temp.agreement_signature(employee text, party text, account text, session text)
 returns void language sql as $$
+  insert into public.signing_session_items (session_id, position, agreement_employee_id, agreement_party)
+  select session::uuid, coalesce(max(i.position) + 1, 0), employee::uuid, party
+  from public.signing_session_items i where i.session_id = session::uuid
+  on conflict (session_id, agreement_employee_id) do nothing;
   insert into public.agreement_signatures (
     organization_id, client_id, employee_id, party, signer_account_id, signer_name, channel, address,
-    code_sent_at, code_verified_at, digest_before, digest_after, certificate_serial, signing_session_id
+    code_sent_at, code_verified_at, digest_before, digest_after, certificate_serial, signing_session_id,
+    storage_path
   )
-  values (
+  select
     '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', employee::uuid, party,
-    account::uuid, 'Popescu Ion', 'email', 'ion@example.com', now(), now(), 'a', 'b', '01', session::uuid
-  );
+    account::uuid, 'Popescu Ion', s.channel, s.address, now(), now(), 'a', 'b', '01', s.id,
+    'v-' || party || '.pdf'
+  from public.signing_sessions s where s.id = session::uuid;
 $$;
 
 select has_column('public', 'employee_signing_agreements', 'storage_path', 'the agreement keeps its stored file');
@@ -125,15 +135,13 @@ select lives_ok(
 );
 
 select pg_temp.act_as_postgres();
-update public.employee_signing_agreements set storage_path = 'v1.pdf', employee_signed_at = now()
-where employee_id = 'e1e1e1e1-0000-4000-8000-000000000001';
 select lives_ok(
   $$ select pg_temp.agreement_signature('e1e1e1e1-0000-4000-8000-000000000001', 'employee', 'dddddddd-0000-4000-8000-000000000001', '5e5e5e5e-0000-4000-8000-000000000001') $$,
   'the secret key writes the employee''s evidence'
 );
 select throws_ok(
   $$ select pg_temp.agreement_signature('e1e1e1e1-0000-4000-8000-000000000001', 'employee', 'dddddddd-0000-4000-8000-000000000001', '5e5e5e5e-0000-4000-8000-000000000001') $$,
-  '23505', null, 'once per party'
+  'SIG10', 'agreement_not_awaiting', 'once per party'
 );
 select throws_ok(
   $$ update public.agreement_signatures set signer_name = 'Altcineva' $$,
@@ -183,9 +191,7 @@ select is(
 );
 
 select pg_temp.act_as_postgres();
-update public.employee_signing_agreements
-set storage_path = 'v2.pdf', employer_signed_at = now(), state = 'signed_electronically', signed_at = now()
-where employee_id = 'e1e1e1e1-0000-4000-8000-000000000001';
+select pg_temp.agreement_signature('e1e1e1e1-0000-4000-8000-000000000001', 'employer', 'dddddddd-0000-4000-8000-000000000002', '5e5e5e5e-0000-4000-8000-000000000002');
 select is(
   (select state from public.employee_signing_agreements where employee_id = 'e1e1e1e1-0000-4000-8000-000000000001'),
   'signed_electronically', 'the secret key settles the agreement once both have signed'

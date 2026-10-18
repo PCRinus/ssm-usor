@@ -23,6 +23,7 @@ export type Database = {
           signer_account_id: string;
           signer_name: string;
           signing_session_id: string;
+          storage_path: string;
           user_agent: string | null;
         };
         Insert: {
@@ -44,6 +45,7 @@ export type Database = {
           signer_account_id: string;
           signer_name: string;
           signing_session_id: string;
+          storage_path: string;
           user_agent?: string | null;
         };
         Update: {
@@ -65,6 +67,7 @@ export type Database = {
           signer_account_id?: string;
           signer_name?: string;
           signing_session_id?: string;
+          storage_path?: string;
           user_agent?: string | null;
         };
         Relationships: [
@@ -3292,6 +3295,7 @@ export type Database = {
           updated_at: string;
           void_reason: string | null;
           voided_at: string | null;
+          voided_by: string | null;
         };
         Insert: {
           client_id: string;
@@ -3309,6 +3313,7 @@ export type Database = {
           updated_at?: string;
           void_reason?: string | null;
           voided_at?: string | null;
+          voided_by?: string | null;
         };
         Update: {
           client_id?: string;
@@ -3326,6 +3331,7 @@ export type Database = {
           updated_at?: string;
           void_reason?: string | null;
           voided_at?: string | null;
+          voided_by?: string | null;
         };
         Relationships: [
           {
@@ -3374,46 +3380,58 @@ export type Database = {
       };
       signed_sheet_rows: {
         Row: {
+          client_id: string;
           created_at: string;
           filled_at: string;
+          filled_digest: string | null;
           id: string;
+          printed_as_text: boolean;
           row_key: string;
           signed_sheet_id: string;
           training_record_id: string;
+          void_noted_at: string | null;
           voided_at: string | null;
         };
         Insert: {
+          client_id: string;
           created_at?: string;
           filled_at?: string;
+          filled_digest?: string | null;
           id?: string;
+          printed_as_text?: boolean;
           row_key: string;
           signed_sheet_id: string;
           training_record_id: string;
+          void_noted_at?: string | null;
           voided_at?: string | null;
         };
         Update: {
+          client_id?: string;
           created_at?: string;
           filled_at?: string;
+          filled_digest?: string | null;
           id?: string;
+          printed_as_text?: boolean;
           row_key?: string;
           signed_sheet_id?: string;
           training_record_id?: string;
+          void_noted_at?: string | null;
           voided_at?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: 'signed_sheet_rows_signed_sheet_id_fkey';
-            columns: ['signed_sheet_id'];
-            isOneToOne: false;
-            referencedRelation: 'signed_sheets';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'signed_sheet_rows_training_record_id_fkey';
-            columns: ['training_record_id'];
+            foreignKeyName: 'signed_sheet_rows_record_of_client';
+            columns: ['training_record_id', 'client_id'];
             isOneToOne: false;
             referencedRelation: 'training_records';
-            referencedColumns: ['id'];
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'signed_sheet_rows_sheet_of_client';
+            columns: ['signed_sheet_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'signed_sheets';
+            referencedColumns: ['id', 'client_id'];
           },
         ];
       };
@@ -3523,6 +3541,7 @@ export type Database = {
           not_before: string;
           private_key_encrypted: string;
           subject_name: string;
+          superseded_at: string | null;
         };
         Insert: {
           account_id: string;
@@ -3535,6 +3554,7 @@ export type Database = {
           not_before: string;
           private_key_encrypted: string;
           subject_name: string;
+          superseded_at?: string | null;
         };
         Update: {
           account_id?: string;
@@ -3547,11 +3567,13 @@ export type Database = {
           not_before?: string;
           private_key_encrypted?: string;
           subject_name?: string;
+          superseded_at?: string | null;
         };
         Relationships: [];
       };
       signing_session_items: {
         Row: {
+          agreement_digest: string | null;
           agreement_employee_id: string | null;
           agreement_party: string | null;
           created_at: string;
@@ -3561,6 +3583,7 @@ export type Database = {
           session_id: string;
         };
         Insert: {
+          agreement_digest?: string | null;
           agreement_employee_id?: string | null;
           agreement_party?: string | null;
           created_at?: string;
@@ -3570,6 +3593,7 @@ export type Database = {
           session_id: string;
         };
         Update: {
+          agreement_digest?: string | null;
           agreement_employee_id?: string | null;
           agreement_party?: string | null;
           created_at?: string;
@@ -3614,6 +3638,8 @@ export type Database = {
           created_at: string;
           expires_at: string;
           id: string;
+          participant_id: string | null;
+          place: string;
           user_agent: string | null;
           verified_at: string | null;
         };
@@ -3628,6 +3654,8 @@ export type Database = {
           created_at?: string;
           expires_at?: string;
           id?: string;
+          participant_id?: string | null;
+          place: string;
           user_agent?: string | null;
           verified_at?: string | null;
         };
@@ -3642,10 +3670,20 @@ export type Database = {
           created_at?: string;
           expires_at?: string;
           id?: string;
+          participant_id?: string | null;
+          place?: string;
           user_agent?: string | null;
           verified_at?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'signing_sessions_participant_id_fkey';
+            columns: ['participant_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_participants';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       training_records: {
         Row: {
@@ -3772,6 +3810,7 @@ export type Database = {
           user_agent: string | null;
           void_reason: string | null;
           voided_at: string | null;
+          voided_by: string | null;
         };
         Insert: {
           address?: string | null;
@@ -3799,6 +3838,7 @@ export type Database = {
           user_agent?: string | null;
           void_reason?: string | null;
           voided_at?: string | null;
+          voided_by?: string | null;
         };
         Update: {
           address?: string | null;
@@ -3826,6 +3866,7 @@ export type Database = {
           user_agent?: string | null;
           void_reason?: string | null;
           voided_at?: string | null;
+          voided_by?: string | null;
         };
         Relationships: [
           {
@@ -4252,6 +4293,26 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      create_signing_session: {
+        Args: {
+          p_account_id: string;
+          p_address: string;
+          p_channel: string;
+          p_client_ip?: unknown;
+          p_code_hash: string;
+          p_id: string;
+          p_interval_seconds: number;
+          p_participant_id?: string;
+          p_place: string;
+          p_user_agent?: string;
+          p_valid_minutes: number;
+        };
+        Returns: {
+          code_sent_at: string;
+          expires_at: string;
+          retry_after_seconds: number;
+        }[];
+      };
       current_employee_count: {
         Args: { '': Database['public']['Tables']['clients']['Row'] };
         Returns: {
@@ -4338,6 +4399,15 @@ export type Database = {
         };
         Returns: undefined;
       };
+      issue_signature_requests: {
+        Args: { p_requests: Json };
+        Returns: {
+          id: string;
+          signer_account_id: string;
+          slot: Database['public']['Enums']['signer_slot'];
+          training_record_id: string;
+        }[];
+      };
       lock_members_as_owner: { Args: never; Returns: string };
       mark_paper_signature: {
         Args: {
@@ -4372,6 +4442,7 @@ export type Database = {
           user_agent: string | null;
           void_reason: string | null;
           voided_at: string | null;
+          voided_by: string | null;
         };
         SetofOptions: {
           from: '*';
@@ -4560,6 +4631,16 @@ export type Database = {
         Args: { p_language: string; p_participant_id: string };
         Returns: boolean;
       };
+      signer_has_standing: {
+        Args: {
+          p_account_id: string;
+          p_client_id: string;
+          p_organization_id: string;
+          p_record_id: string;
+          p_slot: Database['public']['Enums']['signer_slot'];
+        };
+        Returns: boolean;
+      };
       start_regeneration_job: {
         Args: {
           p_client_ids: string[];
@@ -4597,6 +4678,10 @@ export type Database = {
         };
         Returns: boolean;
       };
+      training_record_is_printed: {
+        Args: { p_record_id: string };
+        Returns: boolean;
+      };
       training_record_is_signed: {
         Args: { p_record_id: string };
         Returns: boolean;
@@ -4630,6 +4715,14 @@ export type Database = {
         };
       };
       unaccent_immutable: { Args: { '': string }; Returns: string };
+      void_requests_without_standing: {
+        Args: {
+          p_account_id: string;
+          p_client_id: string;
+          p_organization_id: string;
+        };
+        Returns: undefined;
+      };
       void_training_signatures: {
         Args: { p_reason: string; p_record_id: string };
         Returns: number;

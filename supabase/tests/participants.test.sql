@@ -336,9 +336,10 @@ select results_eq(
   'the fire-safety intervals of their clients'
 );
 select is((select count(*)::int from public.client_responsible_persons), 0, 'no responsible persons');
-select results_eq(
-  $$ select type_key from public.document_templates order by type_key $$,
-  $$ values ('signing_agreement'), ('training_sheet_ssm') $$,
+select ok(
+  (select bool_and(type_key in ('signing_agreement', 'training_sheet_ssm', 'training_sheet_psi'))
+     and count(distinct type_key) filter (where type_key in ('signing_agreement', 'training_sheet_ssm')) = 2
+   from public.document_templates),
   'the per-employee templates, the sheets and the signing agreement, and no other'
 );
 select results_eq(

@@ -56,9 +56,11 @@ insert into public.client_participants (organization_id, client_id, kind, employ
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'client_administrator', null, 'Elena Radu', 'dddddddd-0000-4000-8000-000000000002'),
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'employee', 'e1e1e1e1-0000-4000-8000-000000000002', null, 'dddddddd-0000-4000-8000-000000000004');
 
-insert into public.signing_sessions (id, account_id, channel, address, code_hash, verified_at) values
-  ('5e5e5e5e-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000001', 'email', 'ion@example.com', 'hash', now()),
-  ('5e5e5e5e-0000-4000-8000-000000000002', 'aaaaaaaa-0000-4000-8000-000000000001', 'email', 'owner-a@test', 'hash', now());
+insert into public.signing_sessions (id, account_id, place, participant_id, channel, address, code_hash, verified_at)
+select '5e5e5e5e-0000-4000-8000-000000000001', p.user_id, 'portal', p.id, 'email', 'ion@example.com', 'hash', now()
+from public.client_participants p where p.user_id = 'dddddddd-0000-4000-8000-000000000001';
+insert into public.signing_sessions (id, account_id, place, channel, address, code_hash, verified_at) values
+  ('5e5e5e5e-0000-4000-8000-000000000002', 'aaaaaaaa-0000-4000-8000-000000000001', 'app', 'email', 'owner-a@test', 'hash', now());
 
 insert into public.signature_requests (id, organization_id, client_id, training_record_id, slot, signer_account_id) values
   ('9a9a9a9a-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000001', 'trainee', 'dddddddd-0000-4000-8000-000000000001'),
@@ -79,17 +81,21 @@ $$;
 
 create or replace function pg_temp.sign(p_request uuid, p_record uuid, p_slot public.signer_slot, p_signer uuid, p_session uuid)
 returns void language sql as $$
+  insert into public.signing_session_items (session_id, position, request_id)
+  select p_session, coalesce(max(i.position) + 1, 0), p_request
+  from public.signing_session_items i where i.session_id = p_session
+  on conflict (session_id, request_id) do nothing;
   insert into public.training_signatures (
     organization_id, client_id, training_record_id, slot, request_id, method, signer_account_id,
     signer_name, signer_job_title, channel, address, code_sent_at, code_verified_at,
     digest_before, digest_after, certificate_serial, client_ip, user_agent, signing_session_id
   )
   select r.organization_id, r.client_id, r.id, p_slot, p_request, 'electronic', p_signer,
-    'Popescu Ion', 'Sudor', 'email', 'ion@example.com', now(), now(),
+    'Popescu Ion', 'Sudor', s.channel, s.address, now(), now(),
     repeat('a', 64), repeat('b', 64), '01AB', '127.0.0.1', 'pgTAP', p_session
-  from public.training_records r where r.id = p_record;
-  update public.signature_requests set state = 'signed', signing_session_id = p_session where id = p_request;
+  from public.training_records r, public.signing_sessions s where r.id = p_record and s.id = p_session;
 $$;
+
 
 create or replace function pg_temp.request_state(p_record uuid, p_slot public.signer_slot)
 returns text language sql security definer as $$
@@ -149,6 +155,8 @@ select throws_ok(
   'SIG05', 'signer_not_of_client', 'nor a member of another organization'
 );
 
+insert into public.signing_session_items (session_id, position, request_id)
+values ('5e5e5e5e-0000-4000-8000-000000000002', 0, '9a9a9a9a-0000-4000-8000-000000000002');
 select throws_ok(
   $$ insert into public.training_signatures (organization_id, client_id, training_record_id, slot, request_id, method, signer_account_id, signer_name, channel, address, code_sent_at, code_verified_at, certificate_serial, signing_session_id)
      values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000001', 'trainer', '9a9a9a9a-0000-4000-8000-000000000002', 'electronic', 'aaaaaaaa-0000-4000-8000-000000000001', 'Ion POP', 'email', 'owner-a@test', now(), now(), '02', '5e5e5e5e-0000-4000-8000-000000000002') $$,
@@ -251,8 +259,8 @@ select lives_ok(
 );
 
 select lives_ok(
-  $$ insert into public.signature_requests (id, organization_id, client_id, training_record_id, slot, signer_account_id)
-     values ('9a9a9a9a-0000-4000-8000-000000000006', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000003', 'trainer', 'aaaaaaaa-0000-4000-8000-000000000001') $$,
+  $$ insert into public.signature_requests (organization_id, client_id, training_record_id, slot, signer_account_id)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000003', 'trainer', 'aaaaaaaa-0000-4000-8000-000000000001') $$,
   'a member issues a request'
 );
 select throws_ok(
@@ -261,7 +269,7 @@ select throws_ok(
   '42501', null, 'but never one already signed'
 );
 select throws_ok(
-  $$ update public.signature_requests set notified_at = now() where id = '9a9a9a9a-0000-4000-8000-000000000006' $$,
+  $$ update public.signature_requests set notified_at = now() where training_record_id = '7a7a7a7a-0000-4000-8000-000000000003' $$,
   '42501', null, 'nor changes one'
 );
 select throws_ok(
@@ -357,8 +365,8 @@ select lives_ok(
   'the voided record is editable again'
 );
 select lives_ok(
-  $$ insert into public.signature_requests (id, organization_id, client_id, training_record_id, slot, signer_account_id)
-     values ('9a9a9a9a-0000-4000-8000-000000000007', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000001', 'trainee', 'dddddddd-0000-4000-8000-000000000001') $$,
+  $$ insert into public.signature_requests (organization_id, client_id, training_record_id, slot, signer_account_id)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000001', 'trainee', 'dddddddd-0000-4000-8000-000000000001') $$,
   'and its slots are requested again'
 );
 select throws_ok(
@@ -407,23 +415,23 @@ insert into public.signed_sheets (id, organization_id, client_id, employee_id, d
   ('5d5d5d5d-0000-4000-8000-000000000002', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', 'e2e2e2e2-0000-4000-8000-000000000001', 'ssm', 'sheets/bogdan-ssm-1.pdf', repeat('d', 64), 8);
 
 select lives_ok(
-  $$ insert into public.signed_sheet_rows (signed_sheet_id, row_key, training_record_id)
-     values ('5d5d5d5d-0000-4000-8000-000000000001', 'h2', '7a7a7a7a-0000-4000-8000-000000000001') $$,
+  $$ insert into public.signed_sheet_rows (signed_sheet_id, client_id, row_key, training_record_id)
+     values ('5d5d5d5d-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'h2', '7a7a7a7a-0000-4000-8000-000000000001') $$,
   'the API places a record on a row of a signed sheet'
 );
 select throws_ok(
-  $$ insert into public.signed_sheet_rows (signed_sheet_id, row_key, training_record_id)
-     values ('5d5d5d5d-0000-4000-8000-000000000001', 'p1', '7a7a7a7a-0000-4000-8000-000000000001') $$,
+  $$ insert into public.signed_sheet_rows (signed_sheet_id, client_id, row_key, training_record_id)
+     values ('5d5d5d5d-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'p1', '7a7a7a7a-0000-4000-8000-000000000001') $$,
   '23505', null, 'a record fills one live row'
 );
 select throws_ok(
-  $$ insert into public.signed_sheet_rows (signed_sheet_id, row_key, training_record_id)
-     values ('5d5d5d5d-0000-4000-8000-000000000001', 'x1', '7a7a7a7a-0000-4000-8000-000000000003') $$,
+  $$ insert into public.signed_sheet_rows (signed_sheet_id, client_id, row_key, training_record_id)
+     values ('5d5d5d5d-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'x1', '7a7a7a7a-0000-4000-8000-000000000003') $$,
   '23514', null, 'a row key is one of the form''s prefixes'
 );
 select lives_ok(
-  $$ insert into public.signed_sheet_rows (signed_sheet_id, row_key, training_record_id)
-     values ('5d5d5d5d-0000-4000-8000-000000000001', 's1', '7a7a7a7a-0000-4000-8000-000000000003') $$,
+  $$ insert into public.signed_sheet_rows (signed_sheet_id, client_id, row_key, training_record_id)
+     values ('5d5d5d5d-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 's1', '7a7a7a7a-0000-4000-8000-000000000003') $$,
   'the occupational safety sheet''s supplementary table has rows of its own'
 );
 delete from public.signed_sheet_rows where row_key = 's1';
@@ -453,8 +461,8 @@ select throws_ok(
 );
 
 select pg_temp.act_as_postgres();
-insert into public.employee_signing_agreements (employee_id, organization_id, client_id, state, signed_at) values
-  ('e1e1e1e1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'signed_electronically', now());
+insert into public.employee_signing_agreements (employee_id, organization_id, client_id, state, signed_at, storage_path, employee_signed_at, employer_signed_at) values
+  ('e1e1e1e1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'signed_electronically', now(), 'v2.pdf', now(), now());
 select throws_ok(
   $$ update public.employee_signing_agreements set client_file_id = 'cfcfcfcf-0000-4000-8000-000000000002' where employee_id = 'e1e1e1e1-0000-4000-8000-000000000001' $$,
   '23503', null, 'an agreement''s scan is a file of its own client'
@@ -484,8 +492,8 @@ select throws_ok(
   '42501', null, 'nor writes a signed sheet'
 );
 select throws_ok(
-  $$ insert into public.signed_sheet_rows (signed_sheet_id, row_key, training_record_id)
-     values ('5d5d5d5d-0000-4000-8000-000000000001', 'p1', '7a7a7a7a-0000-4000-8000-000000000003') $$,
+  $$ insert into public.signed_sheet_rows (signed_sheet_id, client_id, row_key, training_record_id)
+     values ('5d5d5d5d-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'p1', '7a7a7a7a-0000-4000-8000-000000000003') $$,
   '42501', null, 'nor a row of one'
 );
 
@@ -548,9 +556,9 @@ select results_eq(
 
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 select results_eq(
-  $$ select count(*)::integer from public.signature_requests where signer_account_id = 'aaaaaaaa-0000-4000-8000-000000000001' and state = 'pending' $$,
-  $$ values (1) $$,
-  'a member signer finds their pending requests'
+  $$ select state || ':' || void_reason from public.signature_requests where id = '9a9a9a9a-0000-4000-8000-000000000005' $$,
+  $$ values ('void:archived') $$,
+  'a member''s pending request under a client archived since is void'
 );
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
