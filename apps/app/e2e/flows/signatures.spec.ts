@@ -8,6 +8,8 @@ import {
   createEmployee,
   createJobPosition,
   createOrganization,
+  createWorkplace,
+  emailsTo,
   signIn,
 } from './support';
 
@@ -97,4 +99,84 @@ test('a specialist records a training with signers, marks a slot on paper and vo
 
   await page.getByTestId('nav-signatures').click();
   await expect(page.getByTestId('signature-requests-empty')).toBeVisible();
+});
+
+test('a member signs two requests with one code from Semnături', async ({ page }) => {
+  test.skip(
+    !process.env.GOTENBERG_URL || !process.env.SIGNER_URL || !process.env.SIGNING_CA_KEY,
+    'Signing needs the PDF converter, the signer container and the signing secrets (docs/api.md).'
+  );
+  const owner = await createAccount('signing-session', 'Dan MARIN');
+  const organizationId = await createOrganization('Semnare E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'S.C. CLIENT SEMNARE E2E S.R.L.');
+  await createWorkplace(organizationId, clientId, {
+    name: 'Sediu Str. Fabricii 3',
+    is_registered_office: true,
+    county_code: 'CJ',
+    locality: 'Cluj-Napoca',
+  });
+  const positionId = await createJobPosition(organizationId, clientId, 'Sudor');
+  const token = await accessTokenOf(owner.email);
+  const call = async (path: string, body: unknown) => {
+    const response = await fetch(new URL(`/clients/${clientId}${path}`, process.env.E2E_API_URL), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    expect(response.status).toBe(201);
+    return response.json();
+  };
+  const { employee } = await call('/employees', {
+    lastName: 'Semnatu',
+    firstName: 'Ion',
+    jobTitle: 'Sudor',
+    jobPositionId: positionId,
+    hiredAt: '2026-01-05',
+    commuteRoute: 'Str. Lungă – Str. Fabricii, cu autobuzul 33',
+    commuteMinutes: 25,
+  });
+  await call('/trainings', {
+    domain: 'ssm',
+    phase: 'periodic',
+    heldOn: new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest' }).format(new Date()),
+    durationMinutes: 60,
+    material: 'IPSSM art. 1–40',
+    trainer: { name: 'Dan MARIN', jobTitle: 'Inspector SSM' },
+    verifier: { name: 'Dan MARIN', jobTitle: 'Inspector SSM' },
+    employeeIds: [employee.id],
+    signers: { trainer: owner.id, verifier: owner.id },
+  });
+
+  await signIn(page, owner.email);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.getByTestId('nav-signatures').click();
+  await expect(page.getByTestId('signature-request')).toHaveCount(2);
+  await page.getByTestId('signature-requests-client-select').click();
+  await page.getByTestId('signature-requests-sign').click();
+
+  const dialog = page.getByTestId('signing-dialog');
+  await expect(dialog.getByTestId('signing-item')).toHaveCount(2);
+  await dialog.getByTestId('signing-send').click();
+  await expect(dialog.getByTestId('signing-address')).toContainText('***@');
+  const [message] = (await emailsTo(owner.email, 'signing-code')).slice(-1);
+  const code = message?.url.match(/code=(\d{6})/)?.[1];
+  expect(code).toBeDefined();
+  await dialog.getByTestId('signing-code').fill(code!);
+  await dialog.getByTestId('signing-submit').click();
+  await expect(dialog.getByTestId('signing-result-summary')).toHaveText(
+    'Ai semnat 2 instruiri. Semnăturile sunt pe fișele angajaților.',
+    { timeout: 30_000 }
+  );
+  await expect(dialog.getByTestId('signing-signed')).toHaveCount(2);
+  await dialog.getByTestId('signing-close').click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByTestId('signature-requests-empty')).toBeVisible();
+
+  await page.goto(`/clients/${clientId}/employees/${employee.id}/training/ssm`);
+  const record = page.getByTestId('training-record-item').first();
+  await expect(record.locator('[data-testid="signature-slot"][data-slot="trainer"]')).toContainText(
+    'Semnat electronic'
+  );
+  await expect(record.getByTestId('training-record-edit')).toBeDisabled();
+  await expect(record.getByTestId('training-record-delete')).toBeDisabled();
 });

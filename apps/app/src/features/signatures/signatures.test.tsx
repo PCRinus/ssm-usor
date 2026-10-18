@@ -437,6 +437,7 @@ describe("a record's signatures", () => {
       [`GET ${signaturesPath}`]: () =>
         Response.json({
           recordId,
+          hasSignatures: marked,
           slots: [
             pendingTrainee,
             slot('trainer', 'unassigned'),
@@ -584,6 +585,7 @@ describe("a record's signatures", () => {
                 admission: null,
               },
             ],
+            signers: { trainer: null, verifier: null, admitter: null },
           },
         }),
       [`PUT ${trainingsPath}/${trainingId}`]: () => conflict('record_signed'),
@@ -645,9 +647,9 @@ describe('the Semnături place', () => {
 
     const sign = screen.getByTestId('signature-requests-sign');
     expect(sign).toHaveProperty('disabled', true);
-    expect(sign.getAttribute('title')).toBe('Semnarea din aplicație vine în curând.');
     await user.click(within(veloce).getByTestId('signature-requests-client-select'));
     expect(sign.textContent).toBe('Semnează (2)');
+    expect(sign).toHaveProperty('disabled', false);
     await user.click(within(veloce).getAllByTestId('signature-request-select')[0]!);
     expect(sign.textContent).toBe('Semnează (1)');
     expect(
@@ -871,5 +873,287 @@ describe("the employee's signing agreement", () => {
     const card = await screen.findByTestId('employee-portal-card');
     await within(card).findByTestId('participant-none');
     expect(within(card).queryByTestId('agreement-warning')).toBeNull();
+  });
+});
+
+describe('signing from the Semnături place', () => {
+  const firstId = '22222222-3333-4444-8555-666666666666';
+  const secondId = '44444444-5555-4666-8777-888888888888';
+  const sessionId = '55555555-6666-4777-8888-999999999999';
+  const sessionPath = '/me/signing-sessions';
+  const signPath = `${sessionPath}/${sessionId}/sign`;
+  const pending = [request(), request({ id: secondId, slot: 'verifier' })];
+  const session = () =>
+    Response.json(
+      {
+        sessionId,
+        channel: 'email',
+        addressHint: 'r***@example.test',
+        expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+        items: pending.map((item) => ({ kind: 'request', requestId: item.id })),
+      },
+      { status: 201 }
+    );
+
+  async function openSigning(routes: Partial<Record<string, Handler>>) {
+    mockApi({ 'GET /me/signature-requests': () => Response.json({ items: pending }), ...routes });
+    const user = userEvent.setup();
+    mount('/signatures');
+    await user.click(await screen.findByTestId('signature-requests-client-select'));
+    await user.click(screen.getByTestId('signature-requests-sign'));
+    return { user, dialog: await screen.findByTestId('signing-dialog') };
+  }
+
+  async function askForCode(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement) {
+    await user.click(within(dialog).getByTestId('signing-send'));
+    return within(dialog).findByTestId('signing-code');
+  }
+
+  it('lists the batch, sends a code, signs with it and shows what was signed and what failed', async () => {
+    let listed = pending;
+    const { user, dialog } = await openSigning({
+      'GET /me/signature-requests': () => Response.json({ items: listed }),
+      [`POST ${sessionPath}`]: session,
+      [`POST ${signPath}`]: () => {
+        listed = [pending[1]!];
+        return Response.json({
+          signed: [{ requestId: firstId, agreementState: null }],
+          failed: [{ requestId: secondId, reason: 'missing_sheet_data' }],
+          agreements: [],
+        });
+      },
+    });
+    expect(within(dialog).getByRole('heading').textContent).toBe('Semnezi 2 instruiri');
+    expect(
+      within(dialog)
+        .getAllByTestId('signing-item')
+        .map((item) => item.textContent)
+    ).toEqual([
+      'Popescu IonSSMPeriodică · 14 oct. 2026 · semnezi ca instructorVELOCE CAFE SRL',
+      'Popescu IonSSMPeriodică · 14 oct. 2026 · semnezi ca cel care a verificatVELOCE CAFE SRL',
+    ]);
+
+    const code = await askForCode(user, dialog);
+    expect(requests('POST', sessionPath).map((call) => call.body)).toEqual([
+      { requestIds: [firstId, secondId] },
+    ]);
+    expect(within(dialog).getByTestId('signing-address').textContent).toContain(
+      'Am trimis un cod la r***@example.test. Cu el semnezi 2 instruiri.'
+    );
+    await user.click(within(dialog).getByTestId('signing-submit'));
+    expect(within(dialog).getByRole('alert').textContent).toBe('Scrie codul de 6 cifre primit.');
+    expect(requests('POST', signPath)).toHaveLength(0);
+
+    await user.type(code, '12a3456');
+    expect((code as HTMLInputElement).value).toBe('123456');
+    await user.click(within(dialog).getByTestId('signing-submit'));
+    expect((await within(dialog).findByTestId('signing-result-summary')).textContent).toBe(
+      'Ai semnat 1 din 2 instruiri. Celelalte rămân în listă.'
+    );
+    expect(requests('POST', signPath).map((call) => call.body)).toEqual([{ code: '123456' }]);
+    expect(within(dialog).getAllByTestId('signing-signed')).toHaveLength(1);
+    const failed = within(dialog).getByTestId('signing-failed');
+    expect(failed.textContent).toContain('semnezi ca cel care a verificat');
+    expect(within(failed).getByTestId('signing-failed-reason').textContent).toBe(
+      'Fișa angajatului nu are toate datele (locul de muncă, traseul). Completează-le, apoi semnează din nou.'
+    );
+
+    await user.click(within(dialog).getByTestId('signing-close'));
+    await waitFor(() => expect(screen.queryByTestId('signing-dialog')).toBeNull());
+    await waitFor(() => expect(screen.getAllByTestId('signature-request')).toHaveLength(1));
+  });
+
+  it('counts the attempts left on a wrong code, then asks for a new code and starts over', async () => {
+    const { user, dialog } = await openSigning({
+      [`POST ${sessionPath}`]: session,
+      [`POST ${signPath}`]: () => conflict('code_invalid'),
+    });
+    await askForCode(user, dialog);
+    const attempt = async () => {
+      await user.type(within(dialog).getByTestId('signing-code'), '000000');
+      await user.click(within(dialog).getByTestId('signing-submit'));
+    };
+    await attempt();
+    expect((await within(dialog).findByTestId('signing-code-error')).textContent).toBe(
+      'Codul nu este corect. Mai ai 2 încercări.'
+    );
+    await attempt();
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('signing-code-error').textContent).toBe(
+        'Codul nu este corect. Mai ai o singură încercare.'
+      )
+    );
+    await attempt();
+    expect((await within(dialog).findByTestId('signing-renewal')).textContent).toContain(
+      'Codul a fost greșit de prea multe ori. Cere un cod nou.'
+    );
+    expect(within(dialog).queryByTestId('signing-code')).toBeNull();
+    expect(within(dialog).queryByTestId('signing-submit')).toBeNull();
+
+    await user.click(within(dialog).getByTestId('signing-renew'));
+    const code = await within(dialog).findByTestId('signing-code');
+    expect((code as HTMLInputElement).value).toBe('');
+    expect(within(dialog).queryByTestId('signing-code-error')).toBeNull();
+    expect(requests('POST', sessionPath)).toHaveLength(2);
+  });
+
+  it.each([
+    ['code_expired', 'Codul a expirat. Cere un cod nou.'],
+    ['code_already_used', 'Codul a fost folosit deja. Cere un cod nou.'],
+    ['code_attempts_exceeded', 'Codul a fost greșit de prea multe ori. Cere un cod nou.'],
+  ])('asks for a new code after %s', async (reason, message) => {
+    const { user, dialog } = await openSigning({
+      [`POST ${sessionPath}`]: session,
+      [`POST ${signPath}`]: () => conflict(reason),
+    });
+    await user.type(await askForCode(user, dialog), '123456');
+    await user.click(within(dialog).getByTestId('signing-submit'));
+    expect((await within(dialog).findByTestId('signing-renewal')).textContent).toContain(message);
+  });
+
+  it('says how long to wait when a new code is asked for within the minute', async () => {
+    let sent = 0;
+    const { user, dialog } = await openSigning({
+      [`POST ${sessionPath}`]: () => (sent++ === 0 ? session() : conflict('code_rate_limited')),
+    });
+    await askForCode(user, dialog);
+    await user.click(within(dialog).getByTestId('signing-resend'));
+    expect((await within(dialog).findByTestId('signing-error')).textContent).toMatch(
+      /^Ți-am trimis un cod acum mai puțin de un minut\. Poți cere altul peste (\d+ de )?secunde\.$/
+    );
+  });
+
+  it.each([
+    [
+      'code_rate_limited',
+      409,
+      'Ți-am trimis un cod în ultimul minut. Așteaptă un minut de la el, apoi cere altul.',
+    ],
+    [
+      'signing_unavailable',
+      503,
+      'Semnarea nu este disponibilă acum. Nu s-a semnat nimic; încearcă mai târziu.',
+    ],
+    [
+      'signing_code_not_sent',
+      503,
+      'Codul nu a putut fi trimis. Nu s-a semnat nimic; încearcă din nou.',
+    ],
+    [
+      'signing_item_not_found',
+      404,
+      'O instruire din listă nu mai așteaptă semnătura ta: a fost semnată, anulată sau modificată între timp. Închide și alege din nou.',
+    ],
+  ])('words a refused code request, %s', async (reason, status, message) => {
+    const { user, dialog } = await openSigning({
+      [`POST ${sessionPath}`]: () =>
+        Response.json({ error: 'refused', message: reason, reason }, { status }),
+    });
+    await user.click(within(dialog).getByTestId('signing-send'));
+    expect((await within(dialog).findByTestId('signing-send-error')).textContent).toBe(message);
+    expect(within(dialog).queryByTestId('signing-code')).toBeNull();
+  });
+
+  it('refuses more than one code can sign', async () => {
+    const many = Array.from({ length: 32 }, (_, index) =>
+      request({ id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}` })
+    );
+    mockApi({ 'GET /me/signature-requests': () => Response.json({ items: many }) });
+    const user = userEvent.setup();
+    mount('/signatures');
+    await user.click(await screen.findByTestId('signature-requests-client-select'));
+    expect(screen.getByTestId('signature-requests-limit').textContent).toBe(
+      'Ai ales 32 de instruiri. Cu un cod semnezi cel mult 30; debifează 2, iar pe celelalte le semnezi apoi cu alt cod.'
+    );
+    expect(screen.getByTestId('signature-requests-sign')).toHaveProperty('disabled', true);
+    await user.click(screen.getAllByTestId('signature-request-select')[0]!);
+    await user.click(screen.getAllByTestId('signature-request-select')[1]!);
+    expect(screen.queryByTestId('signature-requests-limit')).toBeNull();
+    expect(screen.getByTestId('signature-requests-sign')).toHaveProperty('disabled', false);
+  });
+});
+
+describe('a saved training and its signers', () => {
+  const detail = (signers: Record<string, string | null>) => () =>
+    Response.json({
+      training: {
+        ...record().training,
+        records: [
+          {
+            id: recordId,
+            employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
+            occupation: 'Sudor',
+            admission: null,
+          },
+        ],
+        signers,
+      },
+    });
+
+  async function editTraining(signers: Record<string, string | null>) {
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
+      [`GET ${trainingsPath}/${trainingId}`]: detail(signers),
+    });
+    const user = userEvent.setup();
+    mount(`${employeePath}/training/ssm`);
+    await screen.findByTestId('record-signatures');
+    await user.click(screen.getByTestId('training-record-edit'));
+    return { user, dialog: await screen.findByTestId('training-dialog') };
+  }
+
+  const valueOf = (dialog: HTMLElement, testId: string) =>
+    (within(dialog).getByTestId(testId) as HTMLSelectElement).value;
+
+  it('starts from the signers the requests went to, not from the names', async () => {
+    const { user, dialog } = await editTraining({
+      trainer: memberId,
+      verifier: null,
+      admitter: null,
+    });
+    const trainer = await within(dialog).findByTestId('training-trainer-signer');
+    await waitFor(() => expect(valueOf(dialog, 'training-trainer-signer')).toBe(memberId));
+    expect(valueOf(dialog, 'training-verifier-signer')).toBe('');
+    expect(within(dialog).getByTestId('training-trainer-signer-requested').textContent).toBe(
+      'cerere trimisă'
+    );
+    expect(within(dialog).queryByTestId('training-verifier-signer-requested')).toBeNull();
+
+    await user.selectOptions(trainer, managerAccountId);
+    expect(within(dialog).queryByTestId('training-trainer-signer-requested')).toBeNull();
+    expect(dialog.querySelector('#training-trainer-signer-hint')!.textContent).toBe(
+      'La salvare, cererea trimisă se anulează și pleacă una nouă către persoana aleasă.'
+    );
+    await user.selectOptions(trainer, '');
+    expect(dialog.querySelector('#training-trainer-signer-hint')!.textContent).toBe(
+      'La salvare, cererea trimisă se anulează; rubrica se semnează de mână, pe fișa tipărită.'
+    );
+  });
+
+  it('matches the names as before when no request went out', async () => {
+    const { dialog } = await editTraining({ trainer: null, verifier: null, admitter: null });
+    await waitFor(() => expect(valueOf(dialog, 'training-trainer-signer')).toBe(managerAccountId));
+    expect(valueOf(dialog, 'training-verifier-signer')).toBe(memberId);
+  });
+
+  it('keeps delete closed once the record has a signature, voided ones included', async () => {
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
+      [`GET ${signaturesPath}`]: () =>
+        Response.json({
+          recordId,
+          hasSignatures: true,
+          slots: [slot('trainee', 'void'), slot('trainer', 'void')],
+        }),
+    });
+    mount(`${employeePath}/training/ssm`);
+    await screen.findByTestId('record-signatures');
+    await waitFor(() =>
+      expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true)
+    );
+    expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', false);
+    expect(screen.getByTestId('training-record-lock').textContent).toBe(
+      'Are semnături, chiar anulate sau pe hârtie, care rămân în evidență: nu se mai poate șterge.'
+    );
   });
 });
