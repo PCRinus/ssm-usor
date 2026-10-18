@@ -53,11 +53,23 @@ const sheetsReady = {
   psi: { ready: true, missing: [], stored: false, sequences: [] },
 };
 
+const agreementSignedOnPaper = {
+  state: 'signed_on_paper' as const,
+  generatedAt: '2026-10-01T08:00:00Z',
+  signedAt: '2026-10-02T08:00:00Z',
+  clientFileId: null,
+  employeeSignedAt: null,
+  employerSignedAt: null,
+  awaiting: null,
+};
+
 beforeEach(() => {
   vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
   vi.mocked(useListPortalClientSignatureRequests).mockReturnValue(queryResult({ items: [] }));
   vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(queryResult({ agreement: null }));
+  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+    queryResult({ agreement: agreementSignedOnPaper, unavailable: null })
+  );
   vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));

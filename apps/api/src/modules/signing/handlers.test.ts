@@ -405,7 +405,7 @@ describe('the members’ request lists', () => {
           heldOn: '2026-10-01',
         },
         signer: { accountId: user.id, name: null },
-        agreementState: null,
+        agreement: null,
       },
     ]);
     const [call] = callsTo('/rest/v1/signature_requests');
@@ -440,7 +440,9 @@ describe('the members’ request lists', () => {
             ...listRow().training_records,
             employees: {
               ...listRow().training_records.employees,
-              employee_signing_agreements: [{ state: 'signed_on_paper' }],
+              employee_signing_agreements: [
+                { state: 'signed_on_paper', employee_signed_at: null, employer_signed_at: null },
+              ],
             },
           },
         }),
@@ -454,7 +456,7 @@ describe('the members’ request lists', () => {
     const { items } = signatureRequestListResponseSchema.parse(await response.json());
     expect(items[0]).toMatchObject({
       signer: { accountId: trainerAccount, name: 'Dan Marin' },
-      agreementState: 'signed_on_paper',
+      agreement: { state: 'signed_on_paper', employeeSignedAt: null, employerSignedAt: null },
     });
     const [call] = callsTo('/rest/v1/signature_requests');
     expect(call!.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
@@ -485,7 +487,9 @@ const portalRecord = {
     id: employeeId,
     last_name: 'Popescu',
     first_name: 'Ion',
-    employee_signing_agreements: [{ state: 'generated' }],
+    employee_signing_agreements: [
+      { state: 'generated', employee_signed_at: null, employer_signed_at: null },
+    ],
   },
   trainings: {
     domain: 'ssm',
@@ -532,7 +536,7 @@ describe('the portal’s request lists', () => {
     expect(items[0]).toMatchObject({
       slot: 'admitter',
       signerName: 'Vasile ȘEF',
-      agreementState: 'generated',
+      agreement: { state: 'generated', employeeSignedAt: null, employerSignedAt: null },
       record: {
         heldOn: '2026-10-01',
         admission: { admittedOn: '2026-10-01', name: 'Vasile ȘEF', jobTitle: 'Șef atelier' },
@@ -729,6 +733,74 @@ describe('the signing agreement', () => {
     expect(read!.secret).toBe(true);
   });
 
+  const stateSources = (
+    client: Record<string, unknown> = {},
+    employee: Record<string, unknown> = {}
+  ): Record<string, UpstreamRoute> => ({
+    '/rest/v1/employees': () => [
+      { id: employeeId, email: 'ion@example.ro', phone: null, ...employee },
+    ],
+    '/rest/v1/employee_signing_agreements': () => [],
+    '/rest/v1/clients': () => [
+      {
+        legal_representative_name: 'Maria IONESCU',
+        legal_representative_role: 'Administrator',
+        ...client,
+      },
+    ],
+  });
+  const memberStatePath = `/clients/${clientId}/employees/${employeeId}/signing-agreement/state`;
+  const portalStatePath = `/portal/participants/${participantId}/signing-agreement/state`;
+
+  it('awaits the employee before any member records it, in the app and in the portal', async () => {
+    mockUpstream(stateSources());
+    expect(await (await request(memberStatePath)).json()).toEqual({
+      agreement: null,
+      unavailable: null,
+    });
+
+    portalUpstream('employee', stateSources());
+    expect(await (await request(portalStatePath)).json()).toEqual({
+      agreement: null,
+      unavailable: null,
+    });
+  });
+
+  it("says why the employee cannot sign it yet: the client's representative, or their own address", async () => {
+    portalUpstream('employee', stateSources({ legal_representative_role: null }));
+    expect(await (await request(portalStatePath)).json()).toEqual({
+      agreement: null,
+      unavailable: { reason: 'missing_document_data', missing: ['client.representativeRole'] },
+    });
+
+    mockUpstream(stateSources({}, { email: null }));
+    expect(await (await request(memberStatePath)).json()).toEqual({
+      agreement: null,
+      unavailable: { reason: 'employee_has_no_address', missing: [] },
+    });
+  });
+
+  it('says nothing once the agreement no longer awaits the employee', async () => {
+    mockUpstream({
+      ...stateSources({ legal_representative_role: null }),
+      '/rest/v1/employee_signing_agreements': () => [
+        {
+          state: 'signed_on_paper',
+          generated_at: '2026-10-01T08:00:00+00:00',
+          signed_at: '2026-10-02T08:00:00+00:00',
+          client_file_id: null,
+          storage_path: null,
+          employee_signed_at: null,
+          employer_signed_at: null,
+        },
+      ],
+    });
+    expect(await (await request(memberStatePath)).json()).toMatchObject({
+      agreement: { state: 'signed_on_paper', awaiting: null },
+      unavailable: null,
+    });
+  });
+
   it('answers 404 to a client administrator who is not an employee', async () => {
     portalUpstream('client_administrator');
 
@@ -841,18 +913,21 @@ describe("the client's signing agreements for the administrator", () => {
 describe('the signing agreement state', () => {
   const statePath = `${agreementPath}/state`;
 
-  it('is null until one is recorded', async () => {
+  it('is null until one is recorded or the employee signs it', async () => {
     mockUpstream({
-      '/rest/v1/employees': () => [{ id: employeeId }],
+      '/rest/v1/employees': () => [{ id: employeeId, email: 'ion@example.ro', phone: null }],
+      '/rest/v1/clients': () => [
+        { legal_representative_name: 'Maria IONESCU', legal_representative_role: 'Administrator' },
+      ],
       '/rest/v1/employee_signing_agreements': () => [],
     });
 
-    expect(await (await request(statePath)).json()).toEqual({ agreement: null });
+    expect(await (await request(statePath)).json()).toEqual({ agreement: null, unavailable: null });
   });
 
   it('inserts a first state as the member, for the organization and the client', async () => {
     mockUpstream({
-      '/rest/v1/employees': () => [{ id: employeeId }],
+      '/rest/v1/employees': () => [{ id: employeeId, email: 'ion@example.ro', phone: null }],
       '/rest/v1/clients': () => [
         { legal_representative_name: 'Maria IONESCU', legal_representative_role: 'Administrator' },
       ],
@@ -884,7 +959,7 @@ describe('the signing agreement state', () => {
 
   it('refuses to hand out an agreement of a client without a legal representative', async () => {
     mockUpstream({
-      '/rest/v1/employees': () => [{ id: employeeId }],
+      '/rest/v1/employees': () => [{ id: employeeId, email: 'ion@example.ro', phone: null }],
       '/rest/v1/clients': () => [
         { legal_representative_name: 'Maria IONESCU', legal_representative_role: null },
       ],
@@ -905,7 +980,13 @@ describe('the signing agreement state', () => {
     'records an agreement as %s, without a signing moment',
     async (state) => {
       mockUpstream({
-        '/rest/v1/employees': () => [{ id: employeeId }],
+        '/rest/v1/employees': () => [{ id: employeeId, email: 'ion@example.ro', phone: null }],
+        '/rest/v1/clients': () => [
+          {
+            legal_representative_name: 'Maria IONESCU',
+            legal_representative_role: 'Administrator',
+          },
+        ],
         'GET /rest/v1/employee_signing_agreements': () => [],
         'POST /rest/v1/employee_signing_agreements': ({ body }) => [
           { ...(body as Record<string, unknown>), generated_at: '2026-10-18T09:00:00+00:00' },
@@ -923,7 +1004,10 @@ describe('the signing agreement state', () => {
   it('updates only the columns members may change when the paper copy comes back', async () => {
     const fileId = 'c0000000-0000-4000-8000-000000000001';
     mockUpstream({
-      '/rest/v1/employees': () => [{ id: employeeId }],
+      '/rest/v1/employees': () => [{ id: employeeId, email: 'ion@example.ro', phone: null }],
+      '/rest/v1/clients': () => [
+        { legal_representative_name: 'Maria IONESCU', legal_representative_role: 'Administrator' },
+      ],
       'GET /rest/v1/employee_signing_agreements': () => [
         {
           state: 'generated',
@@ -955,7 +1039,10 @@ describe('the signing agreement state', () => {
 
   it('answers 409 for an agreement signed electronically', async () => {
     mockUpstream({
-      '/rest/v1/employees': () => [{ id: employeeId }],
+      '/rest/v1/employees': () => [{ id: employeeId, email: 'ion@example.ro', phone: null }],
+      '/rest/v1/clients': () => [
+        { legal_representative_name: 'Maria IONESCU', legal_representative_role: 'Administrator' },
+      ],
       'GET /rest/v1/employee_signing_agreements': () => [
         {
           state: 'signed_electronically',
@@ -963,9 +1050,6 @@ describe('the signing agreement state', () => {
           signed_at: '2026-10-02T09:00:00+00:00',
           client_file_id: null,
         },
-      ],
-      '/rest/v1/clients': () => [
-        { legal_representative_name: 'Maria IONESCU', legal_representative_role: 'Administrator' },
       ],
       'PATCH /rest/v1/employee_signing_agreements': () =>
         databaseError('SIG07', 'agreement_signed_electronically'),

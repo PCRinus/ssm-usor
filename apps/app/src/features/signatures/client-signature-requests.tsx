@@ -22,7 +22,7 @@ type SignatureRequest = SignatureRequestListResponseItemsItem;
 
 interface EmployeeGroup {
   employee: SignatureRequest['record']['employee'];
-  agreementState: SignatureRequest['agreementState'];
+  agreement: SignatureRequest['agreement'];
   requests: SignatureRequest[];
 }
 
@@ -32,7 +32,7 @@ function byEmployee(items: readonly SignatureRequest[]): EmployeeGroup[] {
     const { employee } = item.record;
     const group = groups.get(employee.id) ?? {
       employee,
-      agreementState: item.agreementState,
+      agreement: item.agreement,
       requests: [],
     };
     group.requests.push(item);
@@ -87,7 +87,7 @@ export function ClientSignatureRequests({
               >
                 {formatEmployeeName(group.employee)}
               </Link>
-              <AgreementWarning state={group.agreementState} />
+              <AgreementWarning agreement={group.agreement} />
             </p>
             <ul className="grid gap-1.5 text-sm">
               {group.requests.map((request) => (

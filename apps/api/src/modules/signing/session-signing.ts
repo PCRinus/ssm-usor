@@ -149,7 +149,7 @@ async function awaitedAgreements(
       clientId: participation.clientId,
       employeeId,
       party,
-      storagePath: row!.storage_path,
+      storagePath: row?.storage_path ?? null,
     });
     items.push({ kind: 'agreement', employeeId, party, digest });
   }

@@ -233,7 +233,7 @@ function RequestRow({
             {name}
           </Link>
           <Badge variant="secondary">{trainingDomainLabels[record.domain]}</Badge>
-          <AgreementWarning state={request.agreementState} />
+          <AgreementWarning agreement={request.agreement} />
         </p>
         <p className="mt-0.5 text-sm text-muted-foreground">
           {trainingPhaseLabels[record.phase]} ·{' '}

@@ -227,7 +227,8 @@ export const getSigningAgreementStateRoute = createRoute({
   path: '/clients/{clientId}/employees/{employeeId}/signing-agreement/state',
   operationId: 'getSigningAgreementState',
   summary: "An employee's signing agreement state",
-  description: '`agreement` is null until one is recorded.',
+  description:
+    '`agreement` is null until the employee signs it in the portal, which it awaits from their first sign-in, or a member records one; `unavailable` says why the employee cannot sign it yet.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: employeeParams },
@@ -343,7 +344,7 @@ export const getPortalSigningAgreementStateRoute = createRoute({
   tags: portalTags,
   summary: "The participant's own signing agreement state",
   description:
-    '`agreement` is null until the specialist records one; the portal shows "act adițional nesemnat" until it is signed.',
+    '`agreement` is null until the participant signs it or the specialist records one; it awaits the participant\'s signature from their first sign-in, unless `unavailable` says why it cannot be drawn up yet. The portal shows "act adițional nesemnat" on their records until it is signed.',
   security: bearerSecurity,
   middleware: [requireAuth, requireParticipant] as const,
   request: { params: participantParams },

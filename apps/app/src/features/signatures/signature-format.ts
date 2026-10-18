@@ -56,7 +56,7 @@ export const signerKindLabels: Record<SignerKind, string> = {
 };
 
 export const agreementStateLabels: Record<SigningAgreementState | 'none', string> = {
-  none: 'Negenerat',
+  none: 'Nesemnat',
   generated: 'Generat',
   signed_electronically: 'Semnat electronic',
   signed_on_paper: 'Semnat pe hârtie',

@@ -178,7 +178,10 @@ export const signingAgreementStates = [
 export const signingAgreementStateSchema = z.enum(signingAgreementStates);
 export type SigningAgreementState = z.infer<typeof signingAgreementStateSchema>;
 
-/** Null until a member records the agreement as generated or signed. */
+/**
+ * Null until the employee signs it in the portal, which it awaits from their first sign-in, or a
+ * member records it as handed out, signed or settled otherwise.
+ */
 export const signingAgreementSchema = z
   .object({
     state: signingAgreementStateSchema,
@@ -197,7 +200,24 @@ export const signingAgreementSchema = z
 
 export type SigningAgreement = z.infer<typeof signingAgreementSchema>;
 
-export const signingAgreementResponseSchema = z.object({ agreement: signingAgreementSchema });
+/**
+ * Why the agreement cannot be drawn up for the employee to sign in the portal: the client's legal
+ * representative is not filled in (`missing` names what), or the employee has no email or phone
+ * for the codes. Null when it can be, and once it is signed by the employee or recorded otherwise.
+ */
+export const signingAgreementUnavailableSchema = z
+  .object({
+    reason: z.enum(['missing_document_data', 'employee_has_no_address']),
+    missing: z.array(z.enum(['client.representativeName', 'client.representativeRole'])),
+  })
+  .nullable();
+
+export type SigningAgreementUnavailable = z.infer<typeof signingAgreementUnavailableSchema>;
+
+export const signingAgreementResponseSchema = z.object({
+  agreement: signingAgreementSchema,
+  unavailable: signingAgreementUnavailableSchema,
+});
 
 export type SigningAgreementResponse = z.infer<typeof signingAgreementResponseSchema>;
 
@@ -208,6 +228,20 @@ export const signingAgreementStateRequestSchema = z.object({
 });
 
 export type SigningAgreementStateRequest = z.infer<typeof signingAgreementStateRequestSchema>;
+
+/**
+ * The employee's signing agreement beside a request: null when none is recorded, which the lists
+ * warn about, and with the signatures so far, so a list can tell the employer's turn from unsigned.
+ */
+export const signingAgreementSummarySchema = z
+  .object({
+    state: signingAgreementStateSchema,
+    employeeSignedAt: z.iso.datetime({ offset: true }).nullable(),
+    employerSignedAt: z.iso.datetime({ offset: true }).nullable(),
+  })
+  .nullable();
+
+export type SigningAgreementSummary = z.infer<typeof signingAgreementSummarySchema>;
 
 const requestRecordSchema = z.object({
   id: z.uuid(),
@@ -227,8 +261,7 @@ export const signatureRequestItemSchema = z.object({
   client: z.object({ id: z.uuid(), name: z.string() }),
   record: requestRecordSchema,
   signer: z.object({ accountId: z.uuid(), name: z.string().nullable() }).nullable(),
-  // The employee's signing agreement; null when none is recorded, which the lists warn about.
-  agreementState: signingAgreementStateSchema.nullable(),
+  agreement: signingAgreementSummarySchema,
 });
 
 export type SignatureRequestItem = z.infer<typeof signatureRequestItemSchema>;
@@ -265,7 +298,7 @@ export const portalSignatureRequestSchema = z.object({
     occupation: z.string(),
     admission: trainingAdmissionSchema.nullable(),
   }),
-  agreementState: signingAgreementStateSchema.nullable(),
+  agreement: signingAgreementSummarySchema,
 });
 
 export type PortalSignatureRequest = z.infer<typeof portalSignatureRequestSchema>;

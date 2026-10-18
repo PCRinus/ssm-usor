@@ -42,7 +42,11 @@ export const settledAgreementStates: ReadonlySet<SigningAgreementState> = new Se
   'in_contract',
 ]);
 
-export const awaitsEmployee = (agreement: OwnAgreement) => agreement?.awaiting === 'employee';
+export type OwnAgreementState = SigningAgreementResponse;
+
+// The agreement awaits the employee from their first sign-in, before any member records it.
+export const awaitsEmployee = (agreement: OwnAgreement) =>
+  agreement === null || agreement.awaiting === 'employee';
 
 export const employeeNameOf = (employee: { lastName: string; firstName: string }) =>
   `${employee.lastName} ${employee.firstName}`;
@@ -68,7 +72,7 @@ export function useSigningItems(participation: Participation) {
 
   const items: SigningItem[] = [];
   const own = ownAgreement.data?.agreement ?? null;
-  if (employeeId && awaitsEmployee(own)) {
+  if (employeeId && ownAgreement.data && awaitsEmployee(own) && !ownAgreement.data.unavailable) {
     items.push({
       kind: 'agreement',
       key: agreementKey(employeeId),
@@ -109,7 +113,7 @@ function employerItem({ employee, agreement }: AwaitedAgreement): SigningItem {
 }
 
 export const unsettledAgreement = (request: PortalSignatureRequest) =>
-  request.agreementState === null || !settledAgreementStates.has(request.agreementState);
+  request.agreement === null || !settledAgreementStates.has(request.agreement.state);
 
 // The employees whose agreement the warning on a record no longer applies to: those signed along
 // with it, and the participant's own once they signed it, while the employer's signature waits.

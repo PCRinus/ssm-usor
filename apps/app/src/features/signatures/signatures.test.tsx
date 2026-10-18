@@ -186,7 +186,7 @@ const request = (overrides: Record<string, unknown> = {}) => ({
     heldOn: '2026-10-14',
   },
   signer: { accountId: memberId, name: 'Dan MARIN' },
-  agreementState: null,
+  agreement: null,
   ...overrides,
 });
 
@@ -220,7 +220,7 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
       case `GET ${employeePath}/participant`:
         return Response.json({ participant: null, invitation: null });
       case `GET ${agreementPath}/state`:
-        return Response.json({ agreement: null });
+        return Response.json({ agreement: null, unavailable: null });
       case `GET /clients/${clientId}/job-positions`:
         return Response.json({ items: [position] });
       case `GET /clients/${clientId}/signer-candidates`:
@@ -809,7 +809,11 @@ describe("the client's pending signatures", () => {
               slot: 'trainee',
               record: { ...request().record, employee: ana },
               signer: { accountId: managerAccountId, name: 'Ionescu Ana' },
-              agreementState: 'signed_on_paper',
+              agreement: {
+                state: 'signed_on_paper',
+                employeeSignedAt: null,
+                employerSignedAt: null,
+              },
             }),
           ],
         });
@@ -866,14 +870,14 @@ describe("the employee's signing agreement", () => {
         }),
       [`PUT ${agreementPath}/state`]: () => {
         generated = true;
-        return Response.json({ agreement: null });
+        return Response.json({ agreement: null, unavailable: null });
       },
     });
     const user = userEvent.setup();
     mount(employeePath);
     const card = await screen.findByTestId('signing-agreement-card');
     expect((await within(card).findByTestId('signing-agreement-state')).textContent).toBe(
-      'Negenerat'
+      'Nesemnat'
     );
     await user.click(within(card).getByTestId('signing-agreement-download'));
     await waitFor(() =>
@@ -924,7 +928,7 @@ describe("the employee's signing agreement", () => {
         }),
       [`PUT ${agreementPath}/state`]: () => {
         signed = true;
-        return Response.json({ agreement: null });
+        return Response.json({ agreement: null, unavailable: null });
       },
     });
     const user = userEvent.setup();
@@ -1120,7 +1124,7 @@ describe("the employee's signing agreement", () => {
         Response.json({ companyDetails: { legalName: 'PREVENȚIA PLUS SRL' } }),
       [`PUT ${agreementPath}/state`]: () => {
         inContract = true;
-        return Response.json({ agreement: null });
+        return Response.json({ agreement: null, unavailable: null });
       },
     });
     const user = userEvent.setup();

@@ -826,7 +826,7 @@ no route outside the prefix has the tag.
 | `GET …/{participantId}/signature-requests`                       | Participant          | `{ items }`: the pending requests addressed to them                                 |
 | `GET …/{participantId}/employees/signature-requests`             | Client administrator | `{ items }`: the client's pending requests                                          |
 | `GET …/{participantId}/signing-agreement`                        | Employee             | `200 application/pdf`, their own signing agreement                                  |
-| `GET …/{participantId}/signing-agreement/state`                  | Employee             | `{ agreement }`, null until the specialist records one                              |
+| `GET …/{participantId}/signing-agreement/state`                  | Employee             | `{ agreement, unavailable }`: null until they sign it or the specialist records one |
 | `GET …/{participantId}/employees/signing-agreements`             | Client administrator | `{ items }`: agreements awaiting the employer, then those signed electronically     |
 | `GET …/{participantId}/employees/{employeeId}/signing-agreement` | Client administrator | `200 application/pdf`, as the employee's own                                        |
 | `POST …/{participantId}/signing-sessions`                        | Participant          | `201 { sessionId, channel, addressHint, expiresAt, items }`; the code is sent       |
@@ -888,7 +888,7 @@ routes below, the signing sessions among them; the signed sheet they sign on is 
 | `GET /me/signature-requests`                                             | `{ items }`: the caller's own pending requests across clients, oldest first   |
 | `GET /clients/{clientId}/signature-requests`                             | `{ items }`: the client's requests in `?state=` (`pending` by default)        |
 | `GET /clients/{clientId}/employees/{employeeId}/signing-agreement`       | `200 application/pdf`, the act adițional drawn up on the spot                 |
-| `GET /clients/{clientId}/employees/{employeeId}/signing-agreement/state` | `{ agreement }`: `state`, `generatedAt`, `signedAt`, `clientFileId`, or null  |
+| `GET /clients/{clientId}/employees/{employeeId}/signing-agreement/state` | `{ agreement, unavailable }`: the state, or null, and why it cannot be signed |
 | `PUT /clients/{clientId}/employees/{employeeId}/signing-agreement/state` | The agreement after `{ state: generated \| signed_on_paper, clientFileId? }`  |
 | `POST /me/signing-sessions`                                              | `201 { sessionId, channel, addressHint, expiresAt, items }`; the code is sent |
 | `POST /me/signing-sessions/{sessionId}/sign`                             | `{ signed, failed, agreements }` after `{ code }`                             |
@@ -955,9 +955,10 @@ the API: `code_rate_limited` (a second code within 60 seconds, with `retryAfterS
 `attemptsLeft`).
 
 **Lists.** An item carries the request, the client, the record (its training, employee, day,
-domain and phase) and `agreementState`, the employee's signing agreement, null when none is
-recorded, which the app and the portal show as "act adițional nesemnat" unless it is
-`signed_electronically`, `signed_on_paper` or `in_contract`. `GET /me/signature-requests` is the
+domain and phase) and `agreement`, the employee's signing agreement with its state and the two
+signing moments, null when none is recorded, which the app and the portal show as "act adițional
+nesemnat" unless it is `signed_electronically`, `signed_on_paper` or `in_contract`, and as
+"așteaptă angajatorul" once the employee has signed. `GET /me/signature-requests` is the
 member's own pending requests in the membership's organization, never a trainee's, which an
 account that is also an employee signs in the portal. A request whose client, record, employee or
 training a policy hides is left out of a list rather than failing it. The portal's items carry
@@ -984,7 +985,13 @@ the columns members may change, and never sends `marked_by`, which the database 
 member signed in; `signed_electronically` is the signing session's. An agreement recorded in any
 state but `generated` cannot be deleted. Every agreement state answer carries `awaiting`,
 `employee` or `employer` while the agreement waits for that party's electronic signature, else
-null.
+null. The employee's signature is awaited from their first sign-in, before any member records
+the agreement (ADR 023: the act is the first thing the portal offers), so `agreement` null means
+the employee may sign it; the answer's `unavailable` says when they cannot yet, with the same
+reasons drawing it up would refuse (`missing_document_data` with `missing`, or
+`employee_has_no_address`), and is null once the agreement no longer awaits the employee. An
+employee who signs before any member recorded the agreement records it as `generated`
+themselves, with the secret key, just before the evidence row.
 
 **The authority and the identities.** The app is its own certificate authority. Its secrets
 are `SIGNING_CA_KEY` (P-256, PKCS#8 PEM), `SIGNING_CA_CERT` (PEM) and

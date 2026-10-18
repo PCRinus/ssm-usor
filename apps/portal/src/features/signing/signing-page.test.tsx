@@ -60,7 +60,7 @@ function request(id: string, overrides: Partial<Request> = {}): Request {
     issuedAt: '2026-10-17T08:00:00Z',
     signerName: 'Pop Ana',
     record: { ...record, employee: { id: employeeId, lastName: 'Pop', firstName: 'Ana' } },
-    agreementState: 'generated',
+    agreement: { state: 'generated', employeeSignedAt: null, employerSignedAt: null },
     ...overrides,
   };
 }
@@ -92,6 +92,18 @@ const agreementAwaitingEmployer = {
   awaiting: 'employer' as const,
 };
 
+const agreementSignedOnPaper = {
+  ...agreementAwaitingEmployee,
+  state: 'signed_on_paper' as const,
+  signedAt: '2026-10-10T08:00:00Z',
+  awaiting: null,
+};
+
+const missingRepresentative = {
+  reason: 'missing_document_data' as const,
+  missing: ['client.representativeRole' as const],
+};
+
 const session = {
   sessionId,
   channel: 'email' as const,
@@ -121,7 +133,7 @@ beforeEach(() => {
   vi.mocked(useListPortalClientSignatureRequests).mockReturnValue(queryResult({ items: [] }));
   vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
   vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-    queryResult({ agreement: agreementAwaitingEmployee })
+    queryResult({ unavailable: null, agreement: agreementAwaitingEmployee })
   );
   vi.mocked(createPortalSigningSession).mockResolvedValue(session);
 });
@@ -156,9 +168,22 @@ describe('Acasă', () => {
     expect(screen.getByTestId('home-sign').textContent).toBe('Semnează (3)');
   });
 
+  it('offers the agreement first, before any member recorded it', async () => {
+    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+      queryResult({ unavailable: null, agreement: null })
+    );
+    mountPortal(signedIn());
+    const panel = await screen.findByTestId('home-todo');
+    const items = within(panel).getAllByTestId('home-todo-item');
+    expect(items.map((item) => item.dataset.kind)).toEqual(['agreement', 'request', 'request']);
+    expect(within(panel).queryByTestId('signing-item-agreement-warning')).toBeNull();
+  });
+
   it('keeps the empty text when nothing waits', async () => {
     vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(queryResult({ agreement: null }));
+    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+      queryResult({ unavailable: null, agreement: agreementSignedOnPaper })
+    );
     mountPortal(signedIn());
     expect((await screen.findByTestId('home-todo')).textContent).toContain(
       'Nimic de semnat deocamdată'
@@ -166,16 +191,19 @@ describe('Acasă', () => {
     expect(screen.queryByTestId('home-sign')).toBeNull();
   });
 
-  it('warns about the unsigned agreement on a record when the agreement is not to be signed here', async () => {
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(queryResult({ agreement: null }));
+  it('warns about the unsigned agreement on a record when the agreement cannot be signed yet', async () => {
+    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+      queryResult({ agreement: null, unavailable: missingRepresentative })
+    );
     mountPortal(signedIn());
     const panel = await screen.findByTestId('home-todo');
+    expect(within(panel).getAllByTestId('home-todo-item')).toHaveLength(2);
     expect(within(panel).getAllByTestId('signing-item-agreement-warning')).toHaveLength(2);
   });
 
   it('stops warning on the own records once the employee signed the agreement', async () => {
     vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-      queryResult({ agreement: agreementAwaitingEmployer })
+      queryResult({ unavailable: null, agreement: agreementAwaitingEmployer })
     );
     mountPortal(signedIn());
     const panel = await screen.findByTestId('home-todo');
@@ -438,7 +466,9 @@ describe('the signing screen', () => {
 
   it('says nothing waits when the lists are empty', async () => {
     vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(queryResult({ agreement: null }));
+    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+      queryResult({ unavailable: null, agreement: agreementSignedOnPaper })
+    );
     mountPortal(signedIn(), '/semneaza');
     expect(await screen.findByTestId('signing-nothing')).toBeTruthy();
   });
@@ -577,6 +607,7 @@ describe('Instruiri and Contul meu', () => {
   });
 
   it.each([
+    [null, 'Așteaptă semnătura ta.', true],
     [agreementAwaitingEmployee, 'Așteaptă semnătura ta.', true],
     [
       agreementAwaitingEmployer,
@@ -600,10 +631,24 @@ describe('Instruiri and Contul meu', () => {
       false,
     ],
   ])('shows the agreement %#', async (agreement, text, signable) => {
-    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(queryResult({ agreement }));
+    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+      queryResult({ unavailable: null, agreement })
+    );
     mountPortal(signedIn(), '/contul-meu');
     expect((await screen.findByTestId('account-agreement-state')).textContent).toBe(text);
     expect(screen.queryByTestId('account-agreement-sign') !== null).toBe(signable);
     expect(screen.getByTestId('agreement-pdf')).toBeTruthy();
+  });
+
+  it('tells the employee what the specialist must fill in before the agreement can be signed', async () => {
+    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+      queryResult({ agreement: null, unavailable: missingRepresentative })
+    );
+    mountPortal(signedIn(), '/contul-meu');
+    expect((await screen.findByTestId('account-agreement-state')).textContent).toBe(
+      'Specialistul trebuie să completeze mai întâi reprezentantul legal al angajatorului în datele firmei.'
+    );
+    expect(screen.queryByTestId('account-agreement-sign')).toBeNull();
+    expect(screen.queryByTestId('agreement-pdf')).toBeNull();
   });
 });

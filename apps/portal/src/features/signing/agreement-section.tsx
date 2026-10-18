@@ -11,7 +11,7 @@ import { useFormatDate } from '@/lib/format';
 import { useApiRequest } from '@/lib/request';
 
 import { AgreementPdfButton } from './agreement-pdf-button';
-import { awaitsEmployee, type OwnAgreement } from './signing-items';
+import { awaitsEmployee, type OwnAgreementState } from './signing-items';
 
 export function AgreementSection({ participation }: { participation: Participation }) {
   const apiRequest = useApiRequest();
@@ -21,8 +21,8 @@ export function AgreementSection({ participation }: { participation: Participati
     query: { enabled: employeeId !== null },
   });
   if (employeeId === null || !state.data) return null;
-  const agreement = state.data.agreement;
-  const canSign = awaitsEmployee(agreement);
+  const { agreement, unavailable } = state.data;
+  const canSign = awaitsEmployee(agreement) && unavailable === null;
 
   return (
     <section
@@ -42,8 +42,8 @@ export function AgreementSection({ participation }: { participation: Participati
           </Trans>
         </p>
       </div>
-      <AgreementState agreement={agreement} />
-      {agreement && (
+      <AgreementState agreement={agreement} unavailable={unavailable} />
+      {(agreement !== null || unavailable === null) && (
         <div className="flex flex-wrap gap-2">
           {canSign && (
             <Button asChild className="h-10 px-4">
@@ -64,23 +64,27 @@ export function AgreementSection({ participation }: { participation: Participati
   );
 }
 
-function AgreementState({ agreement }: { agreement: OwnAgreement }) {
+function AgreementState({ agreement, unavailable }: OwnAgreementState) {
   const { t } = useLingui();
   const formatDate = useFormatDate();
   const day = (iso: string | null) => (iso ? formatDate(iso.slice(0, 10)) : '');
-  const text = !agreement
-    ? t`Specialistul nu l-a pregătit încă.`
-    : agreement.state === 'signed_on_paper'
-      ? t`Semnat pe hârtie.`
-      : agreement.state === 'in_contract'
-        ? t`Clauza este în contractul tău de muncă.`
-        : agreement.state === 'withdrawn'
-          ? t`Ai revenit la semnarea de mână: fișele tale se semnează pe hârtie.`
-          : agreement.state === 'signed_electronically'
-            ? t`Semnat electronic de ambele părți pe ${day(agreement.employerSignedAt ?? agreement.signedAt)}.`
-            : agreement.employeeSignedAt
-              ? t`L-ai semnat pe ${day(agreement.employeeSignedAt)}. Așteaptă semnătura angajatorului.`
-              : t`Așteaptă semnătura ta.`;
+  const text = unavailable
+    ? unavailable.reason === 'employee_has_no_address'
+      ? t`Specialistul trebuie să-ți adauge mai întâi un email sau un telefon, unde primești codurile de semnare.`
+      : t`Specialistul trebuie să completeze mai întâi reprezentantul legal al angajatorului în datele firmei.`
+    : !agreement
+      ? t`Așteaptă semnătura ta.`
+      : agreement.state === 'signed_on_paper'
+        ? t`Semnat pe hârtie.`
+        : agreement.state === 'in_contract'
+          ? t`Clauza este în contractul tău de muncă.`
+          : agreement.state === 'withdrawn'
+            ? t`Ai revenit la semnarea de mână: fișele tale se semnează pe hârtie.`
+            : agreement.state === 'signed_electronically'
+              ? t`Semnat electronic de ambele părți pe ${day(agreement.employerSignedAt ?? agreement.signedAt)}.`
+              : agreement.employeeSignedAt
+                ? t`L-ai semnat pe ${day(agreement.employeeSignedAt)}. Așteaptă semnătura angajatorului.`
+                : t`Așteaptă semnătura ta.`;
   const done =
     agreement?.state === 'signed_electronically' ||
     agreement?.state === 'signed_on_paper' ||

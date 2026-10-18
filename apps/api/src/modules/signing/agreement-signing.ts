@@ -102,10 +102,32 @@ export type AgreementSigning = {
   userAgent: string | null;
 };
 
+type ClientOfAgreement = { organization_id: string; archived_at: string | null };
+
+// Before the employee signs, there may be no agreement row: the client is read through the
+// employee, which also checks the employee is the client's.
+async function clientOfEmployee(
+  admin: ReturnType<typeof adminClient>,
+  clientId: string,
+  employeeId: string
+): Promise<ClientOfAgreement> {
+  const read = await admin
+    .from('employees')
+    .select('clients(organization_id, archived_at)')
+    .eq('id', employeeId)
+    .eq('client_id', clientId)
+    .maybeSingle();
+  if (read.error) throw new ApiError('service_unavailable');
+  const client = (read.data as { clients: ClientOfAgreement | null } | null)?.clients;
+  if (!client) throw agreementNotAwaiting();
+  return client;
+}
+
 /**
  * Signs one party's field of the employee's signing agreement. The employee's signature renders
  * the agreement as a form and certifies it; the employer's goes on the stored file. Each version
- * is a file of its own; the evidence row, which the database checks, moves the agreement on.
+ * is a file of its own; the evidence row, which the database checks, moves the agreement on. An
+ * employee signing before any member recorded the agreement records it as generated themselves.
  */
 export async function signAgreement(
   c: Context<ApiEnv>,
@@ -126,8 +148,11 @@ export async function signAgreement(
   const row = read.data as
     | (AgreementStateRow & { organization_id: string; clients: { archived_at: string | null } })
     | null;
-  if (!row || !awaits(row, party)) throw agreementNotAwaiting();
-  if (row.clients.archived_at) {
+  if (!awaits(row, party)) throw agreementNotAwaiting();
+  const client: ClientOfAgreement = row
+    ? { organization_id: row.organization_id, archived_at: row.clients.archived_at }
+    : await clientOfEmployee(admin, clientId, employeeId);
+  if (client.archived_at) {
     throw new ApiError('conflict', undefined, undefined, 'client_archived');
   }
 
@@ -145,7 +170,7 @@ export async function signAgreement(
       await signerService.prepareSheet(buffer(form), Object.values(agreementSignatureFields))
     );
   } else {
-    before = await ctx.files.readDocument(row.storage_path!);
+    before = await ctx.files.readDocument(row!.storage_path!);
     const employeeSignature = await admin
       .from('agreement_signatures')
       .select('digest_after')
@@ -189,8 +214,22 @@ export async function signAgreement(
   const path = `signing-agreements/${clientId}/${employeeId}/v${version}-${crypto.randomUUID().slice(0, 8)}.pdf`;
   await ctx.files.writeDocument(path, signed, { replace: false });
 
+  if (!row) {
+    const recorded = await admin.from('employee_signing_agreements').insert({
+      employee_id: employeeId,
+      client_id: clientId,
+      organization_id: client.organization_id,
+      state: 'generated',
+    });
+    // A member recorded it meanwhile: the evidence's check decides whether it still awaits.
+    if (recorded.error && recorded.error.code !== '23505') {
+      await ctx.files.removeDocument(path).catch(() => undefined);
+      throw fromDatabaseError(recorded.error, 'record signing agreement');
+    }
+  }
+
   const evidence = await admin.from('agreement_signatures').insert({
-    organization_id: row.organization_id,
+    organization_id: client.organization_id,
     client_id: clientId,
     employee_id: employeeId,
     party,
