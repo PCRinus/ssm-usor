@@ -15,5 +15,5 @@ signer/.venv/bin/ruff format signer && signer/.venv/bin/ruff check signer
 The tests embed Liberation Sans, rescaled to 1,000 units per em on the way: from `SIGNER_FONT`
 when it is set, else Debian's copy, else the one `pnpm install` brings with the editor's fonts.
 
-Run the image on its own with `docker build -t signer . && docker run -p 3301:3301 signer`,
+Run the image on its own with `docker build -t signer . && docker run -p 127.0.0.1:3301:3301 signer`,
 or beside Gotenberg with `pnpm dev:pdf` at the root.

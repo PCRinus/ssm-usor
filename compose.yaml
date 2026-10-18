@@ -5,8 +5,9 @@ services:
   gotenberg:
     build: apps/pdf
     container_name: ssm-usor-gotenberg
+    # Loopback only: the services take any document they are handed, unauthenticated.
     ports:
-      - '3300:3000'
+      - '127.0.0.1:3300:3000'
     healthcheck:
       test: ['CMD', 'curl', '-sf', 'http://localhost:3000/health']
       interval: 5s
@@ -16,7 +17,7 @@ services:
     build: apps/pdf/signer
     container_name: ssm-usor-signer
     ports:
-      - '3301:3301'
+      - '127.0.0.1:3301:3301'
     healthcheck:
       # The image has no curl.
       test:
