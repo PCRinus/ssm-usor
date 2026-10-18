@@ -962,23 +962,37 @@ describe("the employee's signing agreement", () => {
     expect(requests('PUT', `${agreementPath}/state`)).toHaveLength(0);
   });
 
+  const portalParticipant = () =>
+    Response.json({
+      participant: {
+        id: '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
+        clientId,
+        kind: 'employee',
+        employeeId,
+        fullName: 'Popescu Ion',
+        channel: 'email',
+        address: 'ion.popescu@example.com',
+        createdAt: '2026-10-10T09:00:00.000Z',
+        revokedAt: null,
+        noticeVersion: null,
+      },
+      invitation: null,
+    });
+
   it('warns on the portal card of a participant whose agreement is not signed', async () => {
     mockApi({
-      [`GET ${employeePath}/participant`]: () =>
+      [`GET ${employeePath}/participant`]: portalParticipant,
+      [`GET ${agreementPath}/state`]: () =>
         Response.json({
-          participant: {
-            id: '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
-            clientId,
-            kind: 'employee',
-            employeeId,
-            fullName: 'Popescu Ion',
-            channel: 'email',
-            address: 'ion.popescu@example.com',
-            createdAt: '2026-10-10T09:00:00.000Z',
-            revokedAt: null,
-            noticeVersion: null,
+          agreement: {
+            state: 'generated',
+            generatedAt: '2026-10-01T09:00:00.000Z',
+            signedAt: null,
+            clientFileId: null,
+            employeeSignedAt: null,
+            employerSignedAt: null,
+            awaiting: 'employee',
           },
-          invitation: null,
         }),
     });
     mount(employeePath);
@@ -1005,6 +1019,26 @@ describe("the employee's signing agreement", () => {
     employerSignedAt: '2026-10-02T09:00:00.000Z',
     awaiting: null,
     ...overrides,
+  });
+
+  it('says on the portal card that an agreement the employee signed waits for the employer', async () => {
+    mockApi({
+      [`GET ${employeePath}/participant`]: portalParticipant,
+      [`GET ${agreementPath}/state`]: () =>
+        Response.json({
+          agreement: electronic({
+            state: 'generated',
+            signedAt: null,
+            employerSignedAt: null,
+            awaiting: 'employer',
+          }),
+        }),
+    });
+    mount(employeePath);
+    const card = await screen.findByTestId('employee-portal-card');
+    expect((await within(card).findByTestId('agreement-warning')).textContent).toBe(
+      'Act adițional așteaptă angajatorul'
+    );
   });
 
   it('says an agreement the employee signed waits for the administrator, and offers no paper mark', async () => {
