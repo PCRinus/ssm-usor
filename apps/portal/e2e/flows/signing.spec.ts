@@ -17,9 +17,13 @@ import {
   lastSigningCode,
 } from './support';
 
-// Signing needs the signer container and Gotenberg, which CI's flow job does not start: without
-// SIGNER_URL the flow checks what the lists show and stops before asking for a code.
-const signing = Boolean(process.env.SIGNER_URL);
+// Signing needs Gotenberg, the signer container and the signing authority, which CI's flow job
+// does not have: without GOTENBERG_URL, SIGNER_URL and the SIGNING_* values exported
+// (docs/local-development.md#signing-locally) the flow checks what the lists show and stops
+// before asking for a code.
+const signing = Boolean(
+  process.env.GOTENBERG_URL && process.env.SIGNER_URL && process.env.SIGNING_CA_KEY
+);
 
 const made = { organizationId: '', clientId: '', employeeId: '', emails: [] as string[] };
 

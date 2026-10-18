@@ -106,7 +106,7 @@ test('a specialist records a training with signers, marks a slot on paper and vo
 test('a member signs two requests with one code from Semnături', async ({ page }) => {
   test.skip(
     !process.env.GOTENBERG_URL || !process.env.SIGNER_URL || !process.env.SIGNING_CA_KEY,
-    'Signing needs the PDF converter, the signer container and the signing secrets (docs/api.md).'
+    'Signing needs GOTENBERG_URL, SIGNER_URL and the SIGNING_* values exported (docs/local-development.md#signing-locally).'
   );
   const owner = await createAccount('signing-session', 'Dan MARIN');
   const organizationId = await createOrganization('Semnare E2E', owner.id);
