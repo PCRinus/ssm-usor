@@ -8,7 +8,10 @@
     },
     "title": "ANEXĂ LA REGULAMENTUL INTERN",
     "subtitle": "privind semnarea electronică a fișelor de instruire",
-    "compact": { "spacing": 3, "signingRoom": 18 },
+    "compact": {
+      "spacing": 3,
+      "signingRoom": 18
+    },
     "articles": [
       {
         "lead": "Prezenta anexă la regulamentul intern al {{client.legalName}} stabilește modul de semnare electronică a fișelor de instruire, în temeiul art. 81 alin. (3¹)–(3³) din H.G. 1425/2006, al art. 16 alin. (1²), (1³) și (1⁶)–(1⁸) din Legea 53/2003 – Codul muncii, al art. 17 alin. (3) lit. o) din Legea 53/2003, al art. 4 din Legea 214/2024 privind utilizarea semnăturii electronice și al art. 26 din Regulamentul (UE) nr. 910/2014 (eIDAS)."
@@ -56,9 +59,9 @@
     "number": "Nr. ________ din ______________",
     "numberNote": "Exemplarul semnat electronic poartă data ultimei semnături.",
     "parties": [
-      "{{client.legalName}}, cu sediul în {{client.address}}, cod de înregistrare fiscală {{client.cui}}, reprezentată prin {{client.representativeName}}, în calitate de {{client.representativeRole}}, denumită în continuare „angajator”,",
+      "**{{client.legalName}}**, cu sediul în {{client.address}}, cod de înregistrare fiscală {{client.cui}}, reprezentată prin **{{client.representativeName}}**, în calitate de {{client.representativeRole}}, denumită în continuare „angajator”,",
       "și",
-      "{{employee.name}}, salariat în funcția de {{employee.position}}{{#employee.identification}}, {{employee.identification}}{{/employee.identification}}, cu contract individual de muncă nr. ______ din data de {{employee.hiredOn}}, denumit în continuare „salariat”,",
+      "**{{employee.name}}**, salariat în funcția de {{employee.position}}{{#employee.identification}}, {{employee.identification}}{{/employee.identification}}, cu contract individual de muncă nr. {{#employee.contractNumber}}{{employee.contractNumber}}{{/employee.contractNumber}}{{^employee.contractNumber}}______{{/employee.contractNumber}} din data de {{employee.hiredOn}}, denumit în continuare „salariat”,",
       "în temeiul art. 16 alin. (1¹) și (1⁷) din Legea 53/2003 – Codul muncii, al art. 17 alin. (3) lit. o) din Legea 53/2003, al art. 81 alin. (3²) din H.G. 1425/2006, al art. 3 din Legea 214/2024 și al art. 5 alin. (3) din aceeași lege, convin următoarele:"
     ],
     "articles": [
@@ -79,16 +82,19 @@
       {
         "lines": ["Pentru angajator, reprezentant legal sau împuternicit:"],
         "field": "sig_employer",
-        "name": "Nume: ______________________________",
-        "role": "{{client.legalName}}"
+        "dateField": "date_employer",
+        "name": "{{client.representativeName}}",
+        "role": "{{client.representativeRole}}, {{client.legalName}}"
       },
       {
-        "lines": ["Salariat"],
+        "lines": ["Salariat:"],
         "field": "sig_employee",
+        "dateField": "date_employee",
         "name": "{{employee.name}}",
         "role": "{{employee.position}}"
       }
-    ]
+    ],
+    "spacingAfterHeading": 20
   },
   "contract_clause": {
     "articles": [

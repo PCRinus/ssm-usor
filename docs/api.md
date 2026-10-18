@@ -1077,10 +1077,12 @@ _anulat_ with the sheet's next write, whatever that write is.
 
 **The signing agreement, signed.** The agreement's template has two signature cells, content
 controls named `sig_employer` and `sig_employee` that LibreOffice exports as text fields named
-by their tooltip, as on the sheets. The employee signs first: the agreement is drawn up as on
-demand, its digest compared with the one the session item kept (`agreement_changed` when it
-differs), converted with `convertForm`, the two fields made signature fields by `prepareSheet`,
-and `sig_employee` signed with `certify: true` and nothing locked; the file is stored at
+by their tooltip, as on the sheets, and beside each a "Data:" field, `date_employer` and
+`date_employee`, which `fillFields` writes the day of that party's signature into just before
+it is given (a paper copy keeps them blank). The employee signs first: the agreement is drawn up
+as on demand, its digest compared with the one the session item kept (`agreement_changed` when
+it differs), converted with `convertForm`, the two fields made signature fields by
+`prepareSheet`, and `sig_employee` signed with `certify: true` and nothing locked; the file is stored at
 `signing-agreements/{clientId}/{employeeId}/v1-{nonce}.pdf` in the documents bucket and the
 `agreement_signatures` row written with it as `storage_path`, which moves the agreement on in the
 database. The administrator then signs `sig_employer` on that file, whose digest must match the

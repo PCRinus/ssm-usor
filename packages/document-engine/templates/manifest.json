@@ -306,7 +306,7 @@
       "file": "fisa_instruire_ssm.docx",
       "change": {
         "kind": "layout",
-        "note": "Fișa poate fi și formularul fișei semnate electronic: câmpurile de completat și de semnat ale fiecărui rând sunt câmpuri de formular. Fișa tipărită pentru semnarea pe hârtie rămâne aceeași."
+        "note": "Semnăturile de la instruirile la angajare au casete mai înalte, fiecare cu linia ei, iar semnătura electronică se tipărește mai mare, pe trei rânduri."
       }
     },
     {
@@ -315,8 +315,8 @@
       "title": "Act adițional privind semnarea electronică",
       "file": "act_aditional_semnare_electronica.docx",
       "change": {
-        "kind": "correction",
-        "note": "Versiunea inițială: actul adițional la contractul individual de muncă prin care salariatul semnează fișele de instruire cu semnătură electronică avansată, după Codul muncii art. 16 și 17 și H.G. 1425/2006 art. 81 alin. (3²)."
+        "kind": "layout",
+        "note": "Numele părților apar îngroșat, numărul contractului se completează când este cunoscut, blocurile de semnătură sunt aliniate, cu numele reprezentantului și câmpuri de dată completate la semnarea electronică."
       }
     }
   ]

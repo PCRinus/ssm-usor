@@ -36,6 +36,9 @@ const sheetFiles = {
 const sheetPdf = { convertForm: vi.fn<(docx: Uint8Array) => Promise<Uint8Array>>() };
 const sheetSigner = {
   prepareSheet: vi.fn<(pdf: ArrayBuffer, fields: string[]) => Promise<ArrayBuffer>>(),
+  fillFields: vi.fn<(pdf: ArrayBuffer, values: Record<string, string>) => Promise<ArrayBuffer>>(
+    async (pdf) => pdf
+  ),
   beginSignature:
     vi.fn<
       (
@@ -947,13 +950,20 @@ describe('the signing agreement signed in a portal session', () => {
       { employeeId, party: 'employee', signed: true, reason: null, agreementState: 'generated' },
     ]);
     expect(sheetSigner.prepareSheet.mock.calls[0]![1]).toEqual(['sig_employee', 'sig_employer']);
+    expect(sheetSigner.fillFields.mock.calls[0]![1]).toEqual({
+      date_employee: expect.stringMatching(/^\d{2}\.\d{2}\.\d{4}$/),
+    });
     expect(sheetSigner.beginSignature.mock.calls[0]![1]).toMatchObject({
       field: 'sig_employee',
       certify: true,
       lockFields: [],
       certificatePem: 'CERT Popescu Ion',
       chainPem: ['CA'],
-      appearanceLines: ['Popescu Ion', 'Salariat', 'semnat electronic', expect.any(String)],
+      appearanceLines: [
+        'Popescu Ion',
+        'semnat electronic',
+        expect.stringMatching(/^\d{2}\.\d{2}\.\d{4}$/),
+      ],
     });
     const [written, bytes] = sheetFiles.writeDocument.mock.calls[0]!;
     expect(written).toMatch(
@@ -1011,11 +1021,18 @@ describe('the signing agreement signed in a portal session', () => {
     expect(body.agreements[0]).toMatchObject({ party: 'employer', signed: true });
     expect(sheetFiles.readDocument).toHaveBeenCalledWith('v1.pdf');
     expect(sheetPdf.convertForm).not.toHaveBeenCalled();
+    expect(sheetSigner.fillFields.mock.calls[0]![1]).toEqual({
+      date_employer: expect.stringMatching(/^\d{2}\.\d{2}\.\d{4}$/),
+    });
     expect(sheetSigner.beginSignature.mock.calls[0]![1]).toMatchObject({
       field: 'sig_employer',
       certify: false,
       certificatePem: 'CERT Elena Radu',
-      appearanceLines: ['Elena Radu', 'Angajator', 'semnat electronic', expect.any(String)],
+      appearanceLines: [
+        'Elena Radu',
+        'semnat electronic',
+        expect.stringMatching(/^\d{2}\.\d{2}\.\d{4}$/),
+      ],
     });
     const [evidence] = callsTo('/rest/v1/agreement_signatures', 'POST');
     expect(evidence!.body).toMatchObject({ party: 'employer', storage_path: expect.any(String) });

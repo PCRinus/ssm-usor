@@ -25,6 +25,10 @@ PACKAGE = os.path.join(TEMPLATES, 'fire', '7.2_fire_annual_report.docx')
 
 TEXT_WIDTH = 11906 - 1417 - 1134
 SIGNATURE_HEIGHT = 680
+# A hiring block's signature boxes: three lines of a signature's appearance at a readable size.
+HIRING_SIGNATURE_HEIGHT = 960
+# Between two signature boxes, so each line under a signature is its own.
+SIGNATURE_GUTTER = 240
 LINE = '<w:{side} w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
 # The rows of a periodic table the signed sheet holds, those of a page (rowCapacity in contracts).
 ROW_CAPACITY = 17
@@ -141,19 +145,42 @@ def fields(rows, label_width=3400, height=360):
 
 
 def signatures(slots):
-    width = TEXT_WIDTH // len(slots)
-    widths = [width] * (len(slots) - 1) + [TEXT_WIDTH - width * (len(slots) - 1)]
-    room = [
-        cell(each, [cell_paragraph()], borders=('bottom',))
-        for each in widths
-    ]
+    widths = signature_widths(len(slots))
+    room = [cell(each, [cell_paragraph()], borders=('bottom',)) for each in widths]
+    return signature_table(widths, room, signature_captions(widths, slots))
+
+
+def signature_widths(count):
+    """The boxes' widths, a gutter between each two."""
+    width = (TEXT_WIDTH - SIGNATURE_GUTTER * (count - 1)) // count
+    return [width] * (count - 1) + [TEXT_WIDTH - SIGNATURE_GUTTER * (count - 1) - width * (count - 1)]
+
+
+def signature_captions(widths, slots):
     captions = []
     for each, (caption, name) in zip(widths, slots):
         content = [cell_paragraph(caption, size=8, align='center')]
         if name:
             content.append(cell_paragraph(name, size=7, align='center'))
         captions.append(cell(each, content))
-    return table(widths, [row(room, height=SIGNATURE_HEIGHT), row(captions)])
+    return captions
+
+
+def with_gutters(widths, cells):
+    spaced, grid = [], []
+    for index, (width, each) in enumerate(zip(widths, cells)):
+        if index:
+            spaced.append(cell(SIGNATURE_GUTTER, [cell_paragraph()]))
+            grid.append(SIGNATURE_GUTTER)
+        spaced.append(each)
+        grid.append(width)
+    return grid, spaced
+
+
+def signature_table(widths, room, captions):
+    grid, room = with_gutters(widths, room)
+    _, captions = with_gutters(widths, captions)
+    return table(grid, [row(room, height=HIRING_SIGNATURE_HEIGHT), row(captions)])
 
 
 def grid_table(columns, loops, *, blank_rows=0, size=8, row_height=SIGNATURE_HEIGHT, extra_rows=()):
@@ -255,11 +282,11 @@ def boxes(title, closing, count, footnote=None):
     return table(widths, rows)
 
 
-def control(name, width, lines=1):
+def control(name, width, lines=1, size=FIELD_SIZE):
     """A plain-text content control titled `name`. LibreOffice exports it as a text field as wide
     and as tall as its placeholder, so the placeholder is lines of en spaces across the cell."""
-    r = rpr(FIELD_SIZE)
-    count = max(1, (width - 110 - 60) // (FIELD_SIZE * 10))
+    r = rpr(size)
+    count = max(1, int((width - 110 - 60) // (size * 10)))
     filler = f'<w:r>{r}<w:t xml:space="preserve">{chr(0x2002) * count}</w:t></w:r>'
     content = f'<w:r>{r}<w:br/></w:r>'.join([filler] * lines)
     multiline = ' w:multiLine="1"' if lines > 1 else ''
@@ -319,23 +346,15 @@ def control_fields(rows, label_width=3400, height=360):
     return table([label_width, value_width], drawn)
 
 
-def signature_widths(count):
-    width = TEXT_WIDTH // count
-    return [width] * (count - 1) + [TEXT_WIDTH - width * (count - 1)]
-
-
 def signature_controls(slots):
     """`signatures` with a signature field in each box: `slots` are `(caption, name)`."""
     widths = signature_widths(len(slots))
     room = [
-        cell(each, [inline_paragraph(control(name, each, 3))], borders=('bottom',))
+        cell(each, [inline_paragraph(control(name, each, 4, 10))], borders=('bottom',))
         for each, (_, name) in zip(widths, slots)
     ]
-    captions = [
-        cell(each, [cell_paragraph(caption, size=8, align='center')])
-        for each, (caption, _) in zip(widths, slots)
-    ]
-    return table(widths, [row(room, height=SIGNATURE_HEIGHT), row(captions)])
+    captions = [(caption, None) for caption, _ in slots]
+    return signature_table(widths, room, signature_captions(widths, captions))
 
 
 def signed_on_paper(slots):
@@ -346,13 +365,7 @@ def signed_on_paper(slots):
              valign='bottom')
         for each in widths
     ]
-    captions = []
-    for each, (caption, name) in zip(widths, slots):
-        content = [cell_paragraph(caption, size=8, align='center')]
-        if name:
-            content.append(cell_paragraph(name, size=7, align='center'))
-        captions.append(cell(each, content))
-    return table(widths, [row(room, height=SIGNATURE_HEIGHT), row(captions)])
+    return signature_table(widths, room, signature_captions(widths, slots))
 
 
 def form_rows(prefix, columns):

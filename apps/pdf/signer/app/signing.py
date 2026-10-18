@@ -42,12 +42,12 @@ MECHANISM = algos.SignedDigestAlgorithm({'algorithm': 'sha256_ecdsa'})
 # An ECDSA P-256 signature in DER is at most 72 bytes; the placeholder only has to be as long.
 PLACEHOLDER_SIGNATURE = bytes(72)
 APPEARANCE_LAYOUT = layout.SimpleBoxLayoutRule(
-    x_align=layout.AxisAlignment.ALIGN_MIN,
+    x_align=layout.AxisAlignment.ALIGN_MID,
     y_align=layout.AxisAlignment.ALIGN_MID,
     margins=layout.Margins.uniform(2),
     inner_content_scaling=layout.InnerScaling.SHRINK_TO_FIT,
 )
-APPEARANCE_FONT_SIZE = 7
+APPEARANCE_FONT_SIZE = 10
 
 
 @dataclass

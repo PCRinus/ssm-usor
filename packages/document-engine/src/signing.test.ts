@@ -165,7 +165,7 @@ describe('the signing agreement', () => {
         'Exemplarul semnat electronic poartă data ultimei semnături.',
         `${data.client.legalName}, cu sediul în ${data.client.address}, cod de înregistrare fiscală ${data.client.cui}, reprezentată prin ${data.client.representativeName}, în calitate de ${data.client.representativeRole}`,
         `${data.employee.name}, salariat în funcția de ${data.employee.position}`,
-        `cu contract individual de muncă nr. ______ din data de ${data.employee.hiredOn}`,
+        `cu contract individual de muncă nr. ${data.employee.contractNumber ?? '______'} din data de ${data.employee.hiredOn}`,
         'art. 16 alin. (1¹) și (1⁷) din Legea 53/2003',
         'al art. 3 din Legea 214/2024 și al art. 5 alin. (3) din aceeași lege',
         'Începând cu data la care prezentul act adițional este semnat de ambele părți',
@@ -184,7 +184,8 @@ describe('the signing agreement', () => {
         expect(text).toContain(sentence);
       }
       expect(text).not.toMatch(/lit\. c\)|aceleași efecte juridice ca semnătura olografă/);
-      expect(text.split(data.client.representativeName)).toHaveLength(2);
+      expect(text.split(data.client.representativeName)).toHaveLength(3);
+      expect(text.split('Data:')).toHaveLength(3);
       expect(text.includes('marca')).toBe(data.employee.identification !== '');
       expect(text.includes('Document generat cu SSM Ușor')).toBe(data.branding);
     }
@@ -202,13 +203,16 @@ describe('the signing agreement', () => {
     );
   });
 
-  it('has a signature field for each party, the employer first, as its signed copy needs', () => {
+  it('has a signature field and a date field for each party, the employer first, as its signed copy needs', () => {
     const xml = new PizZip(agreementTemplate).file('word/document.xml')!.asText();
     expect([...xml.matchAll(/<w:alias w:val="([^"]+)"\/>/g)].map((match) => match[1])).toEqual([
       'sig_employer',
       'sig_employee',
+      'date_employer',
+      'date_employee',
     ]);
     expect(xml).not.toContain('SIGNATURE_FIELD');
+    expect(xml).not.toContain('DATE_FIELD');
   });
 });
 

@@ -18,6 +18,12 @@ export const agreementSignatureFields = {
   employer: 'sig_employer',
 } as const satisfies Record<SigningAgreementParty, string>;
 
+/** The "Data:" field beside each party's signature, filled with the day of that signature. */
+export const agreementDateFields = {
+  employee: 'date_employee',
+  employer: 'date_employer',
+} as const satisfies Record<SigningAgreementParty, string>;
+
 const partyLabels: Record<SigningAgreementParty, string> = {
   employee: 'Salariat',
   employer: 'Angajator',
@@ -157,6 +163,11 @@ export async function signAgreement(
 
   const identity = await identities.identityFor(signer.accountId, input.accountName);
   const signedAt = new Date();
+  before = new Uint8Array(
+    await signerService.fillFields(buffer(before), {
+      [agreementDateFields[party]]: signedOn(signedAt),
+    })
+  );
   const begun = await signerService.beginSignature(buffer(before), {
     field: agreementSignatureFields[party],
     certificatePem: identity.certificatePem,
@@ -165,7 +176,8 @@ export async function signAgreement(
     signedAt: signedAt.toISOString(),
     certify: party === 'employee',
     lockFields: [],
-    appearanceLines: [signer.name, partyLabels[party], 'semnat electronic', signedOn(signedAt)],
+    // No party label: the heading over the box says it, and a fourth line would shrink the rest.
+    appearanceLines: [signer.name, 'semnat electronic', signedOn(signedAt)],
   });
   await checkToSign(begun.prepared, begun.toSign, identity.certificatePem);
   const signature = await identities.signWithIdentity(identity, begun.toSign);
