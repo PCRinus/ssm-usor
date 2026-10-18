@@ -3,6 +3,129 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      agreement_signatures: {
+        Row: {
+          address: string;
+          certificate_serial: string;
+          channel: string;
+          client_id: string;
+          client_ip: unknown;
+          code_sent_at: string;
+          code_verified_at: string;
+          created_at: string;
+          digest_after: string;
+          digest_before: string;
+          employee_id: string;
+          id: string;
+          organization_id: string;
+          party: string;
+          signed_at: string;
+          signer_account_id: string;
+          signer_name: string;
+          signing_session_id: string;
+          user_agent: string | null;
+        };
+        Insert: {
+          address: string;
+          certificate_serial: string;
+          channel: string;
+          client_id: string;
+          client_ip?: unknown;
+          code_sent_at: string;
+          code_verified_at: string;
+          created_at?: string;
+          digest_after: string;
+          digest_before: string;
+          employee_id: string;
+          id?: string;
+          organization_id: string;
+          party: string;
+          signed_at?: string;
+          signer_account_id: string;
+          signer_name: string;
+          signing_session_id: string;
+          user_agent?: string | null;
+        };
+        Update: {
+          address?: string;
+          certificate_serial?: string;
+          channel?: string;
+          client_id?: string;
+          client_ip?: unknown;
+          code_sent_at?: string;
+          code_verified_at?: string;
+          created_at?: string;
+          digest_after?: string;
+          digest_before?: string;
+          employee_id?: string;
+          id?: string;
+          organization_id?: string;
+          party?: string;
+          signed_at?: string;
+          signer_account_id?: string;
+          signer_name?: string;
+          signing_session_id?: string;
+          user_agent?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'agreement_signatures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'agreement_signatures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'agreement_signatures_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'agreement_signatures_employee_id_fkey';
+            columns: ['employee_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_signing_agreements';
+            referencedColumns: ['employee_id'];
+          },
+          {
+            foreignKeyName: 'agreement_signatures_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'agreement_signatures_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'agreement_signatures_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'agreement_signatures_signing_session_id_fkey';
+            columns: ['signing_session_id'];
+            isOneToOne: false;
+            referencedRelation: 'signing_sessions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       client_documents: {
         Row: {
           client_id: string;
@@ -1002,11 +1125,14 @@ export type Database = {
           client_id: string;
           created_at: string;
           employee_id: string;
+          employee_signed_at: string | null;
+          employer_signed_at: string | null;
           generated_at: string;
           marked_by: string | null;
           organization_id: string;
           signed_at: string | null;
           state: string;
+          storage_path: string | null;
           updated_at: string;
         };
         Insert: {
@@ -1014,11 +1140,14 @@ export type Database = {
           client_id: string;
           created_at?: string;
           employee_id: string;
+          employee_signed_at?: string | null;
+          employer_signed_at?: string | null;
           generated_at?: string;
           marked_by?: string | null;
           organization_id: string;
           signed_at?: string | null;
           state?: string;
+          storage_path?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -1026,11 +1155,14 @@ export type Database = {
           client_id?: string;
           created_at?: string;
           employee_id?: string;
+          employee_signed_at?: string | null;
+          employer_signed_at?: string | null;
           generated_at?: string;
           marked_by?: string | null;
           organization_id?: string;
           signed_at?: string | null;
           state?: string;
+          storage_path?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -3417,6 +3549,58 @@ export type Database = {
           subject_name?: string;
         };
         Relationships: [];
+      };
+      signing_session_items: {
+        Row: {
+          agreement_employee_id: string | null;
+          agreement_party: string | null;
+          created_at: string;
+          id: string;
+          position: number;
+          request_id: string | null;
+          session_id: string;
+        };
+        Insert: {
+          agreement_employee_id?: string | null;
+          agreement_party?: string | null;
+          created_at?: string;
+          id?: string;
+          position: number;
+          request_id?: string | null;
+          session_id: string;
+        };
+        Update: {
+          agreement_employee_id?: string | null;
+          agreement_party?: string | null;
+          created_at?: string;
+          id?: string;
+          position?: number;
+          request_id?: string | null;
+          session_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'signing_session_items_agreement_employee_id_fkey';
+            columns: ['agreement_employee_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_signing_agreements';
+            referencedColumns: ['employee_id'];
+          },
+          {
+            foreignKeyName: 'signing_session_items_request_id_fkey';
+            columns: ['request_id'];
+            isOneToOne: false;
+            referencedRelation: 'signature_requests';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'signing_session_items_session_id_fkey';
+            columns: ['session_id'];
+            isOneToOne: false;
+            referencedRelation: 'signing_sessions';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       signing_sessions: {
         Row: {
