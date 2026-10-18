@@ -87,7 +87,7 @@ test('an employee signs the agreement and a training with one code, and the clie
     body: {
       domain: 'ssm',
       phase: 'periodic',
-      heldOn: new Date().toISOString().slice(0, 10),
+      heldOn: new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest' }).format(new Date()),
       durationMinutes: 90,
       material: 'Instrucțiuni proprii pentru utilizarea ghilotinei de hârtie.',
       trainer: { name: 'Ana Ionescu', jobTitle: 'Inspector SSM' },
@@ -101,9 +101,9 @@ test('an employee signs the agreement and a training with one code, and the clie
   const items = panel.getByTestId('home-todo-item');
   await expect(items).toHaveCount(2);
   await expect(items.nth(0)).toHaveAttribute('data-kind', 'agreement');
-  await expect(items.nth(0)).toContainText('Acordul de semnare electronică');
+  await expect(items.nth(0)).toContainText('Actul adițional privind semnarea electronică');
   await expect(items.nth(1)).toContainText('Instruire periodică SSM');
-  await expect(items.nth(1)).toContainText('semnezi ca lucrător');
+  await expect(items.nth(1)).toContainText('semnezi ca instruit');
   await expect(page.getByTestId('home-sign')).toHaveText('Semnează (2)');
 
   await page.getByTestId('home-sign').click();

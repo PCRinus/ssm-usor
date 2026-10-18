@@ -48,6 +48,13 @@ test('a specialist records a training with signers, marks a slot on paper and vo
   // The certificate names the account, so the slot must print the signer's own name.
   await dialog.getByTestId('training-trainer-name').fill('Dan MARIN');
   await dialog.getByTestId('training-trainer-signer').selectOption(owner.id);
+  // The certificate names the account, so the slot must print the signer's own name.
+  await expect(dialog.getByTestId('training-trainer-signer-mismatch')).toContainText(
+    'Rubrica tipărește „Maria Popescu”, dar semnează Dan MARIN.'
+  );
+  await dialog.getByTestId('training-trainer-signer-use-name').click();
+  await expect(dialog.getByTestId('training-trainer-name')).toHaveValue('Dan MARIN');
+  await expect(dialog.getByTestId('training-trainer-signer-mismatch')).toBeHidden();
   await expect(dialog.locator('#training-trainer-signer-hint')).toHaveText(
     'Primește o cerere de semnare pe email sau prin SMS.'
   );
