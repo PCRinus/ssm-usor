@@ -41,164 +41,164 @@ access token in the Authorization header; the publishable API key is not a user 
 
 ## Routes and authentication
 
-| Route                                                                  | Access                                | Response                                                                                                                                           |
-| ---------------------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /openapi.json`                                                    | Public                                | Generated OpenAPI contract                                                                                                                         |
-| `GET /health`                                                          | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }`                                                                                                    |
-| `POST /waitlist`                                                       | Public, behind Turnstile              | `202 { "status": "confirmation_pending" }` and a confirmation email                                                                                |
-| `GET /waitlist/confirm`                                                | Public, by emailed token              | `303` to the marketing site's confirmed or invalid-link page                                                                                       |
-| `POST /hooks/supabase/send-email`                                      | Supabase Auth, by signature           | `200 {}` after handing the recovery, signup, password-changed or sign-in code email to the mail Worker                                             |
-| `POST /hooks/supabase/send-sms`                                        | Supabase Auth, by signature           | `200 {}` after handing the portal's sign-in code to the SMS Worker                                                                                 |
-| `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership" }`; the last two are null when absent                                                                           |
-| `PATCH /me/profile`                                                    | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                                                                            |
-| `GET /me/invitations`                                                  | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token                                                               |
-| `POST /organization`                                                   | Verified user without a membership    | `201` with the new membership, after creating the organization                                                                                     |
-| `GET /organization/members`                                            | Verified user with a membership       | `{ "items": [ … ] }` with names, emails, and roles                                                                                                 |
-| `PATCH /organization/members/{userId}`                                 | Owner                                 | `204` after changing the member's role                                                                                                             |
-| `DELETE /organization/members/{userId}`                                | Owner                                 | `204` after removing the membership; the account stays                                                                                             |
-| `GET /organization/invitations`                                        | Owner                                 | `{ "items": [ … ] }`, open and expired invitations                                                                                                 |
-| `POST /organization/invitations`                                       | Owner                                 | `201` with the invitation, after emailing the link                                                                                                 |
-| `POST /organization/invitations/{invitationId}/resend`                 | Owner                                 | The renewed invitation, after emailing a fresh link                                                                                                |
-| `POST /organization/invitations/{invitationId}/revoke`                 | Owner                                 | `204`                                                                                                                                              |
-| `POST /invitations/lookup`                                             | Public, by emailed token              | What the accept page shows, including `accountExists`                                                                                              |
-| `POST /invitations/accept`                                             | Public, by emailed token              | `201` after creating the account and the membership                                                                                                |
-| `POST /invitations/join`                                               | Verified user, by emailed token       | The signed-in account joins the organization                                                                                                       |
-| `GET /clients`                                                         | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`, active clients, or `?status=archived`; `?page=&pageSize=&sort=&order=`                          |
-| `POST /clients`                                                        | Verified user with a membership       | `201 { "client": { … } }`                                                                                                                          |
-| `GET /clients/{clientId}`                                              | Verified user with a membership       | `{ \"client\": { … } }`, archived or not                                                                                                           |
-| `PUT /clients/{clientId}`                                              | Verified user with a membership       | `{ "client": { … } }` after replacing what was entered about it                                                                                    |
-| `POST /clients/{clientId}/archive`                                     | Owner                                 | `{ "client": { … } }`, archived; nothing under the client changes                                                                                  |
-| `POST /clients/{clientId}/restore`                                     | Owner                                 | `{ "client": { … } }`, active again                                                                                                                |
-| `POST /clients/{clientId}/promote`                                     | Owner                                 | `{ "client": { … } }`, a client from then on; one way                                                                                              |
-| `GET /clients/{clientId}/service-contract`                             | Owner                                 | `{ "contract", "suggestedNumber", "clientRepresentative", "readiness", "document" }`                                                               |
-| `PUT /clients/{clientId}/service-contract`                             | Owner                                 | The same, after saving the contract's details                                                                                                      |
-| `POST /clients/{clientId}/service-contract/generate`                   | Owner                                 | The same, with the contract generated or generated again                                                                                           |
-| `POST /clients/{clientId}/service-contract/send`                       | Owner                                 | The same, after emailing the issued PDF to `to`                                                                                                    |
-| `GET /clients/{clientId}/owner-notes`                                  | Owner                                 | `{ "notes": { "body", "updatedAt" } }`; an empty body when none were written                                                                       |
-| `PUT /clients/{clientId}/owner-notes`                                  | Owner                                 | The notes after replacing them                                                                                                                     |
-| `GET /clients/{clientId}/files`                                        | Verified user with a membership       | `{ "items": [ … ] }`, the client's own files, newest first; not paginated; `?employeeId=` for one employee's instead                               |
-| `POST /clients/{clientId}/files`                                       | Verified user with a membership       | `201 { "file": { … } }` from the bytes in the body; `?fileName=&name=&note=&ownersOnly=&employeeId=`                                               |
-| `PATCH /clients/{clientId}/files/{fileId}`                             | Uploader or owner                     | `{ "file": { … } }` after renaming or annotating it                                                                                                |
-| `PUT /clients/{clientId}/files/{fileId}/owners-only`                   | Owner                                 | `{ "file": { … } }` after keeping it for owners or opening it to the team                                                                          |
-| `GET /clients/{clientId}/files/{fileId}/download`                      | Verified user with a membership       | `{ "url", "fileName", "disposition", "expiresInSeconds" }`, a link valid for a minute                                                              |
-| `DELETE /clients/{clientId}/files/{fileId}`                            | Uploader or owner                     | `204` after deleting the stored file and the row                                                                                                   |
-| `GET /files/download`                                                  | Public, by signed Storage link        | The file behind `?source=`, named `?name=`; `?disposition=inline` shows a PDF, a JPEG or a PNG                                                     |
-| `GET /organization/company-details`                                    | Verified user with a membership       | `{ "companyDetails": { … } }`: what documents print about the provider as a company                                                                |
-| `PUT /organization/company-details`                                    | Owner                                 | The company details after replacing them                                                                                                           |
-| `GET /organization/authorizations`                                     | Verified user with a membership       | `{ "authorizations": { … } }`: the certificate of authorization, the fire-safety technician and authorization                                      |
-| `PUT /organization/authorizations`                                     | Owner                                 | The authorizations after replacing them                                                                                                            |
-| `GET /legislation/acts`                                                | Verified user with a membership       | `{ "items": [ … ] }`, the watched acts by name with what the portal showed; not paginated                                                          |
-| `GET /legislation/changes`                                             | Verified user with a membership       | `{ "items": [ … ] }`, legal changes newest first, each with its `act`; not paginated                                                               |
-| `GET /legislation/runs/latest`                                         | Verified user with a membership       | `{ "run": { … } }`, the run of the daily check that started last, or `{ "run": null }`                                                             |
-| `GET /clients/{clientId}/document-details`                             | Verified user with a membership       | `{ "documentDetails": { … } }`: the representative's name and role, and the training schedule                                                      |
-| `PUT /clients/{clientId}/document-details`                             | Verified user with a membership       | The document details after replacing them                                                                                                          |
-| `GET /clients/{clientId}/workplaces`                                   | Verified user with a membership       | `{ "items": [ … ] }`, registered office first; not paginated                                                                                       |
-| `POST /clients/{clientId}/workplaces`                                  | Verified user with a membership       | `201 { "workplace": { … } }`                                                                                                                       |
-| `PUT /clients/{clientId}/workplaces/{workplaceId}`                     | Verified user with a membership       | `{ "workplace": { … } }` after replacing it                                                                                                        |
-| `DELETE /clients/{clientId}/workplaces/{workplaceId}`                  | Verified user with a membership       | `204` after archiving it                                                                                                                           |
-| `GET /clients/{clientId}/responsible-persons`                          | Verified user with a membership       | `{ "items": [ … ] }` by name; not paginated                                                                                                        |
-| `POST /clients/{clientId}/responsible-persons`                         | Verified user with a membership       | `201 { "responsiblePerson": { … } }`                                                                                                               |
-| `PUT /clients/{clientId}/responsible-persons/{responsiblePersonId}`    | Verified user with a membership       | `{ "responsiblePerson": { … } }` after replacing it                                                                                                |
-| `DELETE /clients/{clientId}/responsible-persons/{responsiblePersonId}` | Verified user with a membership       | `204` after archiving it                                                                                                                           |
-| `GET /clients/{clientId}/fire-safety`                                  | Verified user with a membership       | `{ "fireSafety": { … }, "exists" }`: the fire-safety training schedule, smoking rule and waste                                                     |
-| `PUT /clients/{clientId}/fire-safety`                                  | Verified user with a membership       | The same after replacing them; the first save creates them                                                                                         |
-| `GET /clients/{clientId}/fire-equipment`                               | Verified user with a membership       | `{ "items": [ … ] }` on active workplaces, by workplace, kind, agent, capacity and label                                                           |
-| `POST /clients/{clientId}/fire-equipment`                              | Verified user with a membership       | `201 { "equipment": { … } }`                                                                                                                       |
-| `PUT /clients/{clientId}/fire-equipment/{equipmentId}`                 | Verified user with a membership       | `{ "equipment": { … } }` after replacing it                                                                                                        |
-| `DELETE /clients/{clientId}/fire-equipment/{equipmentId}`              | Verified user with a membership       | `204` after deleting it                                                                                                                            |
-| `GET /clients/{clientId}/fire-installations`                           | Verified user with a membership       | `{ "items": [ … ] }` on active workplaces, by workplace and kind                                                                                   |
-| `POST /clients/{clientId}/fire-installations`                          | Verified user with a membership       | `201 { "installation": { … } }`                                                                                                                    |
-| `PUT /clients/{clientId}/fire-installations/{installationId}`          | Verified user with a membership       | `{ "installation": { … } }` after replacing it                                                                                                     |
-| `DELETE /clients/{clientId}/fire-installations/{installationId}`       | Verified user with a membership       | `204` after deleting it                                                                                                                            |
-| `GET /clients/{clientId}/fire-substances`                              | Verified user with a membership       | `{ "state", "items": [ … ] }`: whether the client uses dangerous substances, and the list in its order                                             |
-| `PUT /clients/{clientId}/fire-substances/state`                        | Verified user with a membership       | `{ "state" }` after setting `undecided`, `none` or `listed`; `none` is `409` while entries exist                                                   |
-| `POST /clients/{clientId}/fire-substances`                             | Verified user with a membership       | `201 { "substance": { … } }`; `409` unless the state is `listed`                                                                                   |
-| `PUT /clients/{clientId}/fire-substances/{substanceId}`                | Verified user with a membership       | `{ "substance": { … } }` after replacing it                                                                                                        |
-| `DELETE /clients/{clientId}/fire-substances/{substanceId}`             | Verified user with a membership       | `204` after deleting it                                                                                                                            |
-| `GET /clients/{clientId}/fire-maintenance-items`                       | Verified user with a membership       | `{ "items": [ … ] }`: the free rows of the schedules 5.4, by workplace, in their order                                                             |
-| `POST /clients/{clientId}/fire-maintenance-items`                      | Verified user with a membership       | `201 { "item": { … } }`, after the workplace's last row                                                                                            |
-| `PUT /clients/{clientId}/fire-maintenance-items/{itemId}`              | Verified user with a membership       | `{ "item": { … } }` after replacing it                                                                                                             |
-| `DELETE /clients/{clientId}/fire-maintenance-items/{itemId}`           | Verified user with a membership       | `204` after deleting it                                                                                                                            |
-| `GET /clients/{clientId}/fire-buildings`                               | Verified user with a membership       | `{ "items": [ … ] }`: the buildings of the active fixed spaces, in workplace order                                                                 |
-| `PUT /clients/{clientId}/fire-buildings/{workplaceId}`                 | Verified user with a membership       | `{ "building": { … } }`, created the first time; `409` for a mobile site                                                                           |
-| `DELETE /clients/{clientId}/fire-buildings/{workplaceId}`              | Verified user with a membership       | `204`, the building cleared, whether or not there was one                                                                                          |
-| `GET /clients/{clientId}/documents/readiness?set=`                     | Verified user with a membership       | `{ "ready", "missing": [ … ] }`: what generating the set is waiting for                                                                            |
-| `GET /clients/{clientId}/documents?set=`                               | Verified user with a membership       | `{ "items": [ … ], "lastGeneration" }` of one set, in its order; not paginated                                                                     |
-| `POST /clients/{clientId}/documents/generate?set=`                     | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                                                                       |
-| `GET /documents/{documentId}/revisions/{revisionId}/download`          | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a link valid for a minute                                                                             |
-| `POST /documents/{documentId}/regenerate`                              | Verified user with a membership       | `{ "document": { … } }` with its new draft                                                                                                         |
-| `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision; the PDF annexes either set's own instructions' modules                                           |
-| `POST /documents/{documentId}/draft`                                   | Verified user with a membership       | `{ "document": { … } }` with a draft copied from its issued revision                                                                               |
-| `DELETE /documents/{documentId}/draft`                                 | Verified user with a membership       | `204` after deleting the draft and its file                                                                                                        |
-| `PUT /documents/{documentId}/signed-copy`                              | Verified user with a membership       | `{ "document": { … } }` after attaching or replacing the signed copy of the issued revision                                                        |
-| `DELETE /documents/{documentId}/signed-copy`                           | Verified user with a membership       | `204` after removing the signed copy and its file                                                                                                  |
-| `POST /documents/{documentId}/signed-copy/confirm`                     | Verified user with a membership       | `{ "document": { … } }` after accepting the copy received through the return link as the signed copy                                               |
-| `POST /contract-returns/lookup`                                        | Public, by emailed token              | What the return page shows: the contract, the parties, and whether the link still takes a copy                                                     |
-| `POST /contract-returns/download`                                      | Public, by emailed token              | A short-lived link to the PDF that was sent                                                                                                        |
-| `POST /contract-returns/upload`                                        | Public, by emailed token              | The same as lookup, `received`, after keeping the uploaded PDF as the received copy                                                                |
-| `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                                                                      |
-| `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                                                        |
-| `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                                                                       |
-| `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=&trainingState=&q=`                                       |
-| `GET /employees`                                                       | Verified user with a membership       | The organization's employees across its active clients, each with `client`; `?clientId=&status=&trainingState=&q=`                                 |
-| `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                                                                        |
-| `GET /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                                                                        |
-| `PUT /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }` after replacing what was entered about them                                                                                |
-| `PATCH /clients/{clientId}/employees/{employeeId}/status`              | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating                                                               |
-| `PATCH /clients/{clientId}/employees/{employeeId}/job-position`        | Verified user with a membership       | `{ "employee": { … } }` in the new job position                                                                                                    |
-| `GET /clients/{clientId}/employees/{employeeId}/training-records`      | Verified user with a membership       | `{ "items": [ … ] }`, each record with its `training`, newest first; `?domain=`                                                                    |
-| `GET /clients/{clientId}/employees/{employeeId}/training-sheets`       | Verified user with a membership       | `{ "ssm": { ready, missing, stored }, "psi": { … } }`: whether each individual training sheet can be drawn up, or is stored                        |
-| `GET /clients/{clientId}/employees/{employeeId}/training-sheet`        | Verified user with a membership       | `200 application/pdf`, the stored signed sheet or the sheet built on the spot; `?domain=ssm\|psi`; `409 missing_sheet_data`, `503 pdf_unavailable` |
-| `GET /clients/{clientId}/trainings`                                    | Verified user with a membership       | `{ "items": [ … ] }`, newest first, each with `attendeeCount` and `attendees`; `?domain=&phase=`                                                   |
-| `GET /clients/{clientId}/trainings/proposal`                           | Verified user with a membership       | `{ durationMinutes, material, trainer, … }`; `?domain=&phase=&heldOn=&jobPositionId=`                                                              |
-| `POST /clients/{clientId}/trainings`                                   | Verified user with a membership       | `201 { "training": { …, "records": [ … ] } }`                                                                                                      |
-| `GET /clients/{clientId}/trainings/{trainingId}`                       | Verified user with a membership       | `{ "training": { …, "records": [ … ] } }`                                                                                                          |
-| `PUT /clients/{clientId}/trainings/{trainingId}`                       | Verified user with a membership       | `{ "training": { … } }` after replacing its facts and attendees                                                                                    |
-| `DELETE /clients/{clientId}/trainings/{trainingId}`                    | Verified user with a membership       | `204`, the records deleted with it                                                                                                                 |
-| `GET /clients/{clientId}/job-positions`                                | Verified user with a membership       | `{ "items": [ … ] }`, by name, each with `employeeCount`                                                                                           |
-| `POST /clients/{clientId}/job-positions`                               | Verified user with a membership       | `201 { "jobPosition": { … } }`                                                                                                                     |
-| `PUT /clients/{clientId}/job-positions/{jobPositionId}`                | Verified user with a membership       | `{ "jobPosition": { … } }` after the change                                                                                                        |
-| `DELETE /clients/{clientId}/job-positions/{jobPositionId}`             | Verified user with a membership       | `204`: deleted, or archived when people who left still point at it                                                                                 |
-| `GET /clients/{clientId}/job-positions/{jobPositionId}/equipment`      | Verified user with a membership       | `{ "items": [ … ], "needsProtectiveEquipment" }`, the position's entries and its decision                                                          |
-| `POST /clients/{clientId}/job-positions/{jobPositionId}/equipment`     | Verified user with a membership       | `201 { "entry": { … } }`                                                                                                                           |
-| `POST …/job-positions/{jobPositionId}/equipment/copy`                  | Verified user with a membership       | `{ "items": [ … ], "needsProtectiveEquipment" }` after copying another position's entries                                                          |
-| `PUT …/job-positions/{jobPositionId}/equipment/{entryId}`              | Verified user with a membership       | `{ "entry": { … } }` after the change                                                                                                              |
-| `DELETE …/job-positions/{jobPositionId}/equipment/{entryId}`           | Verified user with a membership       | `204`                                                                                                                                              |
-| `PATCH …/job-positions/{jobPositionId}/protective-equipment`           | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                                                 |
-| `GET /equipment-suggestions`                                           | Verified user with a membership       | `{ "items": [ … ] }`, risks or items typed before; `?field=risk                                                                                    | item&query=` |
-| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, by domain, group and title; `?archived=true` lists the archived ones instead; `?domain=`                                     |
-| `POST /instruction-modules`                                            | Verified user with a membership       | `201 { "module": { … } }`, started from the skeleton                                                                                               |
-| `POST /instruction-modules/upload`                                     | Verified user with a membership       | `201 { "module": { … } }` from the `.docx` in the body; `?title=&group=&domain=`                                                                   |
-| `GET /instruction-modules/{moduleId}`                                  | Verified user with a membership       | `{ "module": { … } }`                                                                                                                              |
-| `PATCH /instruction-modules/{moduleId}`                                | Verified user with a membership       | `{ "module": { … } }` after renaming, regrouping, moving domain, archiving or restoring                                                            |
-| `GET /instruction-modules/{moduleId}/file-link`                        | Verified user with a membership       | `{ "url", "fileName", "expiresAt" }`, a one-minute link to the current file                                                                        |
-| `PUT /instruction-modules/{moduleId}/file`                             | Verified user with a membership       | `{ "module": { … } }` with the body stored as the next version                                                                                     |
-| `GET …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | `{ "domain", "items": [ … ], "needsInstructions" }`, one domain's modules and decision; `?domain=`                                                 |
-| `PUT …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | The same, after replacing the set of `domain` with `moduleIds`                                                                                     |
-| `POST …/job-positions/{jobPositionId}/instructions/copy`               | Verified user with a membership       | The same, after adding another position's modules of `domain`                                                                                      |
-| `PATCH …/job-positions/{jobPositionId}/instructions-decision`          | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none of `domain` (`false`) or taking back (`null`)                                          |
-| `GET /clients/{clientId}/risk-evaluations`                             | Verified user with a membership       | `{ "items": [ … ] }`, the client's evaluations without factors, with counts and global levels                                                      |
-| `POST /clients/{clientId}/risk-evaluations`                            | Verified user with a membership       | `201 { "evaluation": { … } }` for a position, the sensitive groups or another named one                                                            |
-| `GET …/risk-evaluations/{evaluationId}`                                | Verified user with a membership       | `{ "evaluation": { … } }` with its factors, measures, levels and global level                                                                      |
-| `PATCH …/risk-evaluations/{evaluationId}`                              | Verified user with a membership       | `{ "evaluation": { … } }` after changing its work system texts or name                                                                             |
-| `DELETE …/risk-evaluations/{evaluationId}`                             | Verified user with a membership       | `204`, with its factors                                                                                                                            |
-| `POST …/risk-evaluations/{evaluationId}/factors`                       | Verified user with a membership       | `201 { "evaluation": { … } }` after adding a factor with its measures                                                                              |
-| `PUT …/risk-evaluations/{evaluationId}/factors/{factorId}`             | Verified user with a membership       | `{ "evaluation": { … } }` after replacing a factor and its measures                                                                                |
-| `DELETE …/risk-evaluations/{evaluationId}/factors/{factorId}`          | Verified user with a membership       | `{ "evaluation": { … } }` after removing a factor                                                                                                  |
-| `PUT …/risk-evaluations/{evaluationId}/factor-order`                   | Verified user with a membership       | `{ "evaluation": { … } }` after reordering the factors by `factorIds`                                                                              |
-| `POST …/risk-evaluations/{evaluationId}/factors/copy`                  | Verified user with a membership       | `{ "evaluation": { … } }` after adding another evaluation's factors                                                                                |
-| `GET …/job-positions/{jobPositionId}/risk-evaluation`                  | Verified user with a membership       | `{ "evaluation": { … } }`, the position's evaluation, or `null`                                                                                    |
-| `GET /risk-factor-suggestions`                                         | Verified user with a membership       | `{ "items": [ … ] }`, groups, plan fields or observations typed before; `?field=&query=`                                                           |
-| `POST …/risk-evaluations/{evaluationId}/save-as-profile`               | Verified user with a membership       | `201 { "profile": { … } }`, a new profile of the library with copies of the evaluation's factors                                                   |
-| `POST …/risk-evaluations/{evaluationId}/factors/apply-profile`         | Verified user with a membership       | `{ "evaluation": { … }, "addedFactorCount" }` after adding copies of a profile's factors                                                           |
-| `GET /evaluation-profiles`                                             | Verified user with a membership       | `{ "items": [ … ] }`, the risk library by name, with counts and global levels                                                                      |
-| `POST /evaluation-profiles`                                            | Verified user with a membership       | `201 { "profile": { … } }`, an empty profile by `name`                                                                                             |
-| `GET /evaluation-profiles/{profileId}`                                 | Verified user with a membership       | `{ "profile": { … } }` with its factors, measures, levels and global level                                                                         |
-| `PATCH /evaluation-profiles/{profileId}`                               | Verified user with a membership       | `{ "profile": { … } }` after renaming it                                                                                                           |
-| `DELETE /evaluation-profiles/{profileId}`                              | Verified user with a membership       | `204`, with its factors; the copies in evaluations stay                                                                                            |
-| `POST /evaluation-profiles/{profileId}/factors`                        | Verified user with a membership       | `201 { "profile": { … } }` after adding a factor with its measures                                                                                 |
-| `PUT /evaluation-profiles/{profileId}/factors/{factorId}`              | Verified user with a membership       | `{ "profile": { … } }` after replacing a factor and its measures                                                                                   |
-| `DELETE /evaluation-profiles/{profileId}/factors/{factorId}`           | Verified user with a membership       | `{ "profile": { … } }` after removing a factor                                                                                                     |
+| Route                                                                  | Access                                | Response                                                                                                                                                                     |
+| ---------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /openapi.json`                                                    | Public                                | Generated OpenAPI contract                                                                                                                                                   |
+| `GET /health`                                                          | Public                                | `{ "status": "ok", "service": "ssm-usor-api" }`                                                                                                                              |
+| `POST /waitlist`                                                       | Public, behind Turnstile              | `202 { "status": "confirmation_pending" }` and a confirmation email                                                                                                          |
+| `GET /waitlist/confirm`                                                | Public, by emailed token              | `303` to the marketing site's confirmed or invalid-link page                                                                                                                 |
+| `POST /hooks/supabase/send-email`                                      | Supabase Auth, by signature           | `200 {}` after handing the recovery, signup, password-changed or sign-in code email to the mail Worker                                                                       |
+| `POST /hooks/supabase/send-sms`                                        | Supabase Auth, by signature           | `200 {}` after handing the portal's sign-in code to the SMS Worker                                                                                                           |
+| `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership" }`; the last two are null when absent                                                                                                     |
+| `PATCH /me/profile`                                                    | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                                                                                                      |
+| `GET /me/invitations`                                                  | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token                                                                                         |
+| `POST /organization`                                                   | Verified user without a membership    | `201` with the new membership, after creating the organization                                                                                                               |
+| `GET /organization/members`                                            | Verified user with a membership       | `{ "items": [ … ] }` with names, emails, and roles                                                                                                                           |
+| `PATCH /organization/members/{userId}`                                 | Owner                                 | `204` after changing the member's role                                                                                                                                       |
+| `DELETE /organization/members/{userId}`                                | Owner                                 | `204` after removing the membership; the account stays                                                                                                                       |
+| `GET /organization/invitations`                                        | Owner                                 | `{ "items": [ … ] }`, open and expired invitations                                                                                                                           |
+| `POST /organization/invitations`                                       | Owner                                 | `201` with the invitation, after emailing the link                                                                                                                           |
+| `POST /organization/invitations/{invitationId}/resend`                 | Owner                                 | The renewed invitation, after emailing a fresh link                                                                                                                          |
+| `POST /organization/invitations/{invitationId}/revoke`                 | Owner                                 | `204`                                                                                                                                                                        |
+| `POST /invitations/lookup`                                             | Public, by emailed token              | What the accept page shows, including `accountExists`                                                                                                                        |
+| `POST /invitations/accept`                                             | Public, by emailed token              | `201` after creating the account and the membership                                                                                                                          |
+| `POST /invitations/join`                                               | Verified user, by emailed token       | The signed-in account joins the organization                                                                                                                                 |
+| `GET /clients`                                                         | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`, active clients, or `?status=archived`; `?page=&pageSize=&sort=&order=`                                                    |
+| `POST /clients`                                                        | Verified user with a membership       | `201 { "client": { … } }`                                                                                                                                                    |
+| `GET /clients/{clientId}`                                              | Verified user with a membership       | `{ \"client\": { … } }`, archived or not                                                                                                                                     |
+| `PUT /clients/{clientId}`                                              | Verified user with a membership       | `{ "client": { … } }` after replacing what was entered about it                                                                                                              |
+| `POST /clients/{clientId}/archive`                                     | Owner                                 | `{ "client": { … } }`, archived; nothing under the client changes                                                                                                            |
+| `POST /clients/{clientId}/restore`                                     | Owner                                 | `{ "client": { … } }`, active again                                                                                                                                          |
+| `POST /clients/{clientId}/promote`                                     | Owner                                 | `{ "client": { … } }`, a client from then on; one way                                                                                                                        |
+| `GET /clients/{clientId}/service-contract`                             | Owner                                 | `{ "contract", "suggestedNumber", "clientRepresentative", "readiness", "document" }`                                                                                         |
+| `PUT /clients/{clientId}/service-contract`                             | Owner                                 | The same, after saving the contract's details                                                                                                                                |
+| `POST /clients/{clientId}/service-contract/generate`                   | Owner                                 | The same, with the contract generated or generated again                                                                                                                     |
+| `POST /clients/{clientId}/service-contract/send`                       | Owner                                 | The same, after emailing the issued PDF to `to`                                                                                                                              |
+| `GET /clients/{clientId}/owner-notes`                                  | Owner                                 | `{ "notes": { "body", "updatedAt" } }`; an empty body when none were written                                                                                                 |
+| `PUT /clients/{clientId}/owner-notes`                                  | Owner                                 | The notes after replacing them                                                                                                                                               |
+| `GET /clients/{clientId}/files`                                        | Verified user with a membership       | `{ "items": [ … ] }`, the client's own files, newest first; not paginated; `?employeeId=` for one employee's instead                                                         |
+| `POST /clients/{clientId}/files`                                       | Verified user with a membership       | `201 { "file": { … } }` from the bytes in the body; `?fileName=&name=&note=&ownersOnly=&employeeId=`                                                                         |
+| `PATCH /clients/{clientId}/files/{fileId}`                             | Uploader or owner                     | `{ "file": { … } }` after renaming or annotating it                                                                                                                          |
+| `PUT /clients/{clientId}/files/{fileId}/owners-only`                   | Owner                                 | `{ "file": { … } }` after keeping it for owners or opening it to the team                                                                                                    |
+| `GET /clients/{clientId}/files/{fileId}/download`                      | Verified user with a membership       | `{ "url", "fileName", "disposition", "expiresInSeconds" }`, a link valid for a minute                                                                                        |
+| `DELETE /clients/{clientId}/files/{fileId}`                            | Uploader or owner                     | `204` after deleting the stored file and the row                                                                                                                             |
+| `GET /files/download`                                                  | Public, by signed Storage link        | The file behind `?source=`, named `?name=`; `?disposition=inline` shows a PDF, a JPEG or a PNG                                                                               |
+| `GET /organization/company-details`                                    | Verified user with a membership       | `{ "companyDetails": { … } }`: what documents print about the provider as a company                                                                                          |
+| `PUT /organization/company-details`                                    | Owner                                 | The company details after replacing them                                                                                                                                     |
+| `GET /organization/authorizations`                                     | Verified user with a membership       | `{ "authorizations": { … } }`: the certificate of authorization, the fire-safety technician and authorization                                                                |
+| `PUT /organization/authorizations`                                     | Owner                                 | The authorizations after replacing them                                                                                                                                      |
+| `GET /legislation/acts`                                                | Verified user with a membership       | `{ "items": [ … ] }`, the watched acts by name with what the portal showed; not paginated                                                                                    |
+| `GET /legislation/changes`                                             | Verified user with a membership       | `{ "items": [ … ] }`, legal changes newest first, each with its `act`; not paginated                                                                                         |
+| `GET /legislation/runs/latest`                                         | Verified user with a membership       | `{ "run": { … } }`, the run of the daily check that started last, or `{ "run": null }`                                                                                       |
+| `GET /clients/{clientId}/document-details`                             | Verified user with a membership       | `{ "documentDetails": { … } }`: the representative's name and role, and the training schedule                                                                                |
+| `PUT /clients/{clientId}/document-details`                             | Verified user with a membership       | The document details after replacing them                                                                                                                                    |
+| `GET /clients/{clientId}/workplaces`                                   | Verified user with a membership       | `{ "items": [ … ] }`, registered office first; not paginated                                                                                                                 |
+| `POST /clients/{clientId}/workplaces`                                  | Verified user with a membership       | `201 { "workplace": { … } }`                                                                                                                                                 |
+| `PUT /clients/{clientId}/workplaces/{workplaceId}`                     | Verified user with a membership       | `{ "workplace": { … } }` after replacing it                                                                                                                                  |
+| `DELETE /clients/{clientId}/workplaces/{workplaceId}`                  | Verified user with a membership       | `204` after archiving it                                                                                                                                                     |
+| `GET /clients/{clientId}/responsible-persons`                          | Verified user with a membership       | `{ "items": [ … ] }` by name; not paginated                                                                                                                                  |
+| `POST /clients/{clientId}/responsible-persons`                         | Verified user with a membership       | `201 { "responsiblePerson": { … } }`                                                                                                                                         |
+| `PUT /clients/{clientId}/responsible-persons/{responsiblePersonId}`    | Verified user with a membership       | `{ "responsiblePerson": { … } }` after replacing it                                                                                                                          |
+| `DELETE /clients/{clientId}/responsible-persons/{responsiblePersonId}` | Verified user with a membership       | `204` after archiving it                                                                                                                                                     |
+| `GET /clients/{clientId}/fire-safety`                                  | Verified user with a membership       | `{ "fireSafety": { … }, "exists" }`: the fire-safety training schedule, smoking rule and waste                                                                               |
+| `PUT /clients/{clientId}/fire-safety`                                  | Verified user with a membership       | The same after replacing them; the first save creates them                                                                                                                   |
+| `GET /clients/{clientId}/fire-equipment`                               | Verified user with a membership       | `{ "items": [ … ] }` on active workplaces, by workplace, kind, agent, capacity and label                                                                                     |
+| `POST /clients/{clientId}/fire-equipment`                              | Verified user with a membership       | `201 { "equipment": { … } }`                                                                                                                                                 |
+| `PUT /clients/{clientId}/fire-equipment/{equipmentId}`                 | Verified user with a membership       | `{ "equipment": { … } }` after replacing it                                                                                                                                  |
+| `DELETE /clients/{clientId}/fire-equipment/{equipmentId}`              | Verified user with a membership       | `204` after deleting it                                                                                                                                                      |
+| `GET /clients/{clientId}/fire-installations`                           | Verified user with a membership       | `{ "items": [ … ] }` on active workplaces, by workplace and kind                                                                                                             |
+| `POST /clients/{clientId}/fire-installations`                          | Verified user with a membership       | `201 { "installation": { … } }`                                                                                                                                              |
+| `PUT /clients/{clientId}/fire-installations/{installationId}`          | Verified user with a membership       | `{ "installation": { … } }` after replacing it                                                                                                                               |
+| `DELETE /clients/{clientId}/fire-installations/{installationId}`       | Verified user with a membership       | `204` after deleting it                                                                                                                                                      |
+| `GET /clients/{clientId}/fire-substances`                              | Verified user with a membership       | `{ "state", "items": [ … ] }`: whether the client uses dangerous substances, and the list in its order                                                                       |
+| `PUT /clients/{clientId}/fire-substances/state`                        | Verified user with a membership       | `{ "state" }` after setting `undecided`, `none` or `listed`; `none` is `409` while entries exist                                                                             |
+| `POST /clients/{clientId}/fire-substances`                             | Verified user with a membership       | `201 { "substance": { … } }`; `409` unless the state is `listed`                                                                                                             |
+| `PUT /clients/{clientId}/fire-substances/{substanceId}`                | Verified user with a membership       | `{ "substance": { … } }` after replacing it                                                                                                                                  |
+| `DELETE /clients/{clientId}/fire-substances/{substanceId}`             | Verified user with a membership       | `204` after deleting it                                                                                                                                                      |
+| `GET /clients/{clientId}/fire-maintenance-items`                       | Verified user with a membership       | `{ "items": [ … ] }`: the free rows of the schedules 5.4, by workplace, in their order                                                                                       |
+| `POST /clients/{clientId}/fire-maintenance-items`                      | Verified user with a membership       | `201 { "item": { … } }`, after the workplace's last row                                                                                                                      |
+| `PUT /clients/{clientId}/fire-maintenance-items/{itemId}`              | Verified user with a membership       | `{ "item": { … } }` after replacing it                                                                                                                                       |
+| `DELETE /clients/{clientId}/fire-maintenance-items/{itemId}`           | Verified user with a membership       | `204` after deleting it                                                                                                                                                      |
+| `GET /clients/{clientId}/fire-buildings`                               | Verified user with a membership       | `{ "items": [ … ] }`: the buildings of the active fixed spaces, in workplace order                                                                                           |
+| `PUT /clients/{clientId}/fire-buildings/{workplaceId}`                 | Verified user with a membership       | `{ "building": { … } }`, created the first time; `409` for a mobile site                                                                                                     |
+| `DELETE /clients/{clientId}/fire-buildings/{workplaceId}`              | Verified user with a membership       | `204`, the building cleared, whether or not there was one                                                                                                                    |
+| `GET /clients/{clientId}/documents/readiness?set=`                     | Verified user with a membership       | `{ "ready", "missing": [ … ] }`: what generating the set is waiting for                                                                                                      |
+| `GET /clients/{clientId}/documents?set=`                               | Verified user with a membership       | `{ "items": [ … ], "lastGeneration" }` of one set, in its order; not paginated                                                                                               |
+| `POST /clients/{clientId}/documents/generate?set=`                     | Verified user with a membership       | `201 { "created": [ … ], "skipped": [ … ] }`                                                                                                                                 |
+| `GET /documents/{documentId}/revisions/{revisionId}/download`          | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a link valid for a minute                                                                                                       |
+| `POST /documents/{documentId}/regenerate`                              | Verified user with a membership       | `{ "document": { … } }` with its new draft                                                                                                                                   |
+| `POST /documents/{documentId}/issue`                                   | Verified user with a membership       | `{ "document": { … } }` with its issued revision; the PDF annexes either set's own instructions' modules                                                                     |
+| `POST /documents/{documentId}/draft`                                   | Verified user with a membership       | `{ "document": { … } }` with a draft copied from its issued revision                                                                                                         |
+| `DELETE /documents/{documentId}/draft`                                 | Verified user with a membership       | `204` after deleting the draft and its file                                                                                                                                  |
+| `PUT /documents/{documentId}/signed-copy`                              | Verified user with a membership       | `{ "document": { … } }` after attaching or replacing the signed copy of the issued revision                                                                                  |
+| `DELETE /documents/{documentId}/signed-copy`                           | Verified user with a membership       | `204` after removing the signed copy and its file                                                                                                                            |
+| `POST /documents/{documentId}/signed-copy/confirm`                     | Verified user with a membership       | `{ "document": { … } }` after accepting the copy received through the return link as the signed copy                                                                         |
+| `POST /contract-returns/lookup`                                        | Public, by emailed token              | What the return page shows: the contract, the parties, and whether the link still takes a copy                                                                               |
+| `POST /contract-returns/download`                                      | Public, by emailed token              | A short-lived link to the PDF that was sent                                                                                                                                  |
+| `POST /contract-returns/upload`                                        | Public, by emailed token              | The same as lookup, `received`, after keeping the uploaded PDF as the received copy                                                                                          |
+| `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                                                                                                |
+| `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                                                                                  |
+| `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                                                                                                 |
+| `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=&trainingState=&q=`                                                                 |
+| `GET /employees`                                                       | Verified user with a membership       | The organization's employees across its active clients, each with `client`; `?clientId=&status=&trainingState=&q=`                                                           |
+| `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                                                                                                  |
+| `GET /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                                                                                                  |
+| `PUT /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }` after replacing what was entered about them                                                                                                          |
+| `PATCH /clients/{clientId}/employees/{employeeId}/status`              | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating                                                                                         |
+| `PATCH /clients/{clientId}/employees/{employeeId}/job-position`        | Verified user with a membership       | `{ "employee": { … } }` in the new job position                                                                                                                              |
+| `GET /clients/{clientId}/employees/{employeeId}/training-records`      | Verified user with a membership       | `{ "items": [ … ] }`, each record with its `training`, newest first; `?domain=`                                                                                              |
+| `GET /clients/{clientId}/employees/{employeeId}/training-sheets`       | Verified user with a membership       | `{ "ssm": { ready, missing, stored, sequences }, "psi": { … } }`: whether each individual training sheet can be drawn up, or is stored                                       |
+| `GET /clients/{clientId}/employees/{employeeId}/training-sheet`        | Verified user with a membership       | `200 application/pdf`, the stored signed sheet, a merged copy, or the sheet built on the spot; `?domain=ssm\|psi&sequence=`; `409 missing_sheet_data`, `503 pdf_unavailable` |
+| `GET /clients/{clientId}/trainings`                                    | Verified user with a membership       | `{ "items": [ … ] }`, newest first, each with `attendeeCount`, `attendees`, `signed`, `hasSignatures`; `?domain=&phase=`                                                     |
+| `GET /clients/{clientId}/trainings/proposal`                           | Verified user with a membership       | `{ durationMinutes, material, trainer, … }`; `?domain=&phase=&heldOn=&jobPositionId=`                                                                                        |
+| `POST /clients/{clientId}/trainings`                                   | Verified user with a membership       | `201 { "training": { …, "records": [ … ] } }`                                                                                                                                |
+| `GET /clients/{clientId}/trainings/{trainingId}`                       | Verified user with a membership       | `{ "training": { …, "records": [ … ] } }`                                                                                                                                    |
+| `PUT /clients/{clientId}/trainings/{trainingId}`                       | Verified user with a membership       | `{ "training": { … } }` after replacing its facts and attendees                                                                                                              |
+| `DELETE /clients/{clientId}/trainings/{trainingId}`                    | Verified user with a membership       | `204`, the records deleted with it                                                                                                                                           |
+| `GET /clients/{clientId}/job-positions`                                | Verified user with a membership       | `{ "items": [ … ] }`, by name, each with `employeeCount`                                                                                                                     |
+| `POST /clients/{clientId}/job-positions`                               | Verified user with a membership       | `201 { "jobPosition": { … } }`                                                                                                                                               |
+| `PUT /clients/{clientId}/job-positions/{jobPositionId}`                | Verified user with a membership       | `{ "jobPosition": { … } }` after the change                                                                                                                                  |
+| `DELETE /clients/{clientId}/job-positions/{jobPositionId}`             | Verified user with a membership       | `204`: deleted, or archived when people who left still point at it                                                                                                           |
+| `GET /clients/{clientId}/job-positions/{jobPositionId}/equipment`      | Verified user with a membership       | `{ "items": [ … ], "needsProtectiveEquipment" }`, the position's entries and its decision                                                                                    |
+| `POST /clients/{clientId}/job-positions/{jobPositionId}/equipment`     | Verified user with a membership       | `201 { "entry": { … } }`                                                                                                                                                     |
+| `POST …/job-positions/{jobPositionId}/equipment/copy`                  | Verified user with a membership       | `{ "items": [ … ], "needsProtectiveEquipment" }` after copying another position's entries                                                                                    |
+| `PUT …/job-positions/{jobPositionId}/equipment/{entryId}`              | Verified user with a membership       | `{ "entry": { … } }` after the change                                                                                                                                        |
+| `DELETE …/job-positions/{jobPositionId}/equipment/{entryId}`           | Verified user with a membership       | `204`                                                                                                                                                                        |
+| `PATCH …/job-positions/{jobPositionId}/protective-equipment`           | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none (`false`) or taking that back (`null`)                                                                           |
+| `GET /equipment-suggestions`                                           | Verified user with a membership       | `{ "items": [ … ] }`, risks or items typed before; `?field=risk                                                                                                              | item&query=` |
+| `GET /instruction-modules`                                             | Verified user with a membership       | `{ "items": [ … ] }`, by domain, group and title; `?archived=true` lists the archived ones instead; `?domain=`                                                               |
+| `POST /instruction-modules`                                            | Verified user with a membership       | `201 { "module": { … } }`, started from the skeleton                                                                                                                         |
+| `POST /instruction-modules/upload`                                     | Verified user with a membership       | `201 { "module": { … } }` from the `.docx` in the body; `?title=&group=&domain=`                                                                                             |
+| `GET /instruction-modules/{moduleId}`                                  | Verified user with a membership       | `{ "module": { … } }`                                                                                                                                                        |
+| `PATCH /instruction-modules/{moduleId}`                                | Verified user with a membership       | `{ "module": { … } }` after renaming, regrouping, moving domain, archiving or restoring                                                                                      |
+| `GET /instruction-modules/{moduleId}/file-link`                        | Verified user with a membership       | `{ "url", "fileName", "expiresAt" }`, a one-minute link to the current file                                                                                                  |
+| `PUT /instruction-modules/{moduleId}/file`                             | Verified user with a membership       | `{ "module": { … } }` with the body stored as the next version                                                                                                               |
+| `GET …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | `{ "domain", "items": [ … ], "needsInstructions" }`, one domain's modules and decision; `?domain=`                                                                           |
+| `PUT …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | The same, after replacing the set of `domain` with `moduleIds`                                                                                                               |
+| `POST …/job-positions/{jobPositionId}/instructions/copy`               | Verified user with a membership       | The same, after adding another position's modules of `domain`                                                                                                                |
+| `PATCH …/job-positions/{jobPositionId}/instructions-decision`          | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none of `domain` (`false`) or taking back (`null`)                                                                    |
+| `GET /clients/{clientId}/risk-evaluations`                             | Verified user with a membership       | `{ "items": [ … ] }`, the client's evaluations without factors, with counts and global levels                                                                                |
+| `POST /clients/{clientId}/risk-evaluations`                            | Verified user with a membership       | `201 { "evaluation": { … } }` for a position, the sensitive groups or another named one                                                                                      |
+| `GET …/risk-evaluations/{evaluationId}`                                | Verified user with a membership       | `{ "evaluation": { … } }` with its factors, measures, levels and global level                                                                                                |
+| `PATCH …/risk-evaluations/{evaluationId}`                              | Verified user with a membership       | `{ "evaluation": { … } }` after changing its work system texts or name                                                                                                       |
+| `DELETE …/risk-evaluations/{evaluationId}`                             | Verified user with a membership       | `204`, with its factors                                                                                                                                                      |
+| `POST …/risk-evaluations/{evaluationId}/factors`                       | Verified user with a membership       | `201 { "evaluation": { … } }` after adding a factor with its measures                                                                                                        |
+| `PUT …/risk-evaluations/{evaluationId}/factors/{factorId}`             | Verified user with a membership       | `{ "evaluation": { … } }` after replacing a factor and its measures                                                                                                          |
+| `DELETE …/risk-evaluations/{evaluationId}/factors/{factorId}`          | Verified user with a membership       | `{ "evaluation": { … } }` after removing a factor                                                                                                                            |
+| `PUT …/risk-evaluations/{evaluationId}/factor-order`                   | Verified user with a membership       | `{ "evaluation": { … } }` after reordering the factors by `factorIds`                                                                                                        |
+| `POST …/risk-evaluations/{evaluationId}/factors/copy`                  | Verified user with a membership       | `{ "evaluation": { … } }` after adding another evaluation's factors                                                                                                          |
+| `GET …/job-positions/{jobPositionId}/risk-evaluation`                  | Verified user with a membership       | `{ "evaluation": { … } }`, the position's evaluation, or `null`                                                                                                              |
+| `GET /risk-factor-suggestions`                                         | Verified user with a membership       | `{ "items": [ … ] }`, groups, plan fields or observations typed before; `?field=&query=`                                                                                     |
+| `POST …/risk-evaluations/{evaluationId}/save-as-profile`               | Verified user with a membership       | `201 { "profile": { … } }`, a new profile of the library with copies of the evaluation's factors                                                                             |
+| `POST …/risk-evaluations/{evaluationId}/factors/apply-profile`         | Verified user with a membership       | `{ "evaluation": { … }, "addedFactorCount" }` after adding copies of a profile's factors                                                                                     |
+| `GET /evaluation-profiles`                                             | Verified user with a membership       | `{ "items": [ … ] }`, the risk library by name, with counts and global levels                                                                                                |
+| `POST /evaluation-profiles`                                            | Verified user with a membership       | `201 { "profile": { … } }`, an empty profile by `name`                                                                                                                       |
+| `GET /evaluation-profiles/{profileId}`                                 | Verified user with a membership       | `{ "profile": { … } }` with its factors, measures, levels and global level                                                                                                   |
+| `PATCH /evaluation-profiles/{profileId}`                               | Verified user with a membership       | `{ "profile": { … } }` after renaming it                                                                                                                                     |
+| `DELETE /evaluation-profiles/{profileId}`                              | Verified user with a membership       | `204`, with its factors; the copies in evaluations stay                                                                                                                      |
+| `POST /evaluation-profiles/{profileId}/factors`                        | Verified user with a membership       | `201 { "profile": { … } }` after adding a factor with its measures                                                                                                           |
+| `PUT /evaluation-profiles/{profileId}/factors/{factorId}`              | Verified user with a membership       | `{ "profile": { … } }` after replacing a factor and its measures                                                                                                             |
+| `DELETE /evaluation-profiles/{profileId}/factors/{factorId}`           | Verified user with a membership       | `{ "profile": { … } }` after removing a factor                                                                                                                               |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns the user's ID and email
 (nullable), their profile, and their organization with their role. It answers an account
@@ -421,8 +421,13 @@ read in the same query as `attendeeCount`. The detail lists the records by name,
 records with their training's facts, newest first. An archived client or a lead answers `409`
 as elsewhere. The body's optional `signers: { trainer?, verifier?, admitter? }` names the
 accounts asked to sign the slots electronically, and saving issues their requests; see
-[Signatures](#signatures). A training whose record is signed answers `409` with
-`record_signed` to an edit that changes what the record prints.
+[Signatures](#signatures). A training whose record is signed, or is a record from paper printed
+on a certified sheet, answers `409` with `record_signed` to an edit that changes what the record
+prints; an edit that leaves out an attendee whose record has a signature or a sheet row, and a
+delete of such a training, `409` with `record_has_signatures`. The list items and the detail
+carry `signed`, true while any record has a live electronic signature, when the app locks the
+training's edit and delete, and `hasSignatures`, true once any record has a signature row, voided
+and paper ones included, or a row on a stored sheet, when the app locks its delete.
 
 `GET …/trainings/proposal` proposes what the flow pre-fills, every value the specialist may
 change and null where nothing can be proposed. A periodic training takes the content line and
@@ -449,7 +454,8 @@ The two individual training sheets
 and never stored, until signing starts: from then on the sheet of that employee and domain is
 the stored signed sheet ([ADR 023](architecture/adr-023-advanced-electronic-signature.md),
 [PDF](pdf.md#the-signed-sheet)), and both routes answer it instead.
-`GET …/employees/{employeeId}/training-sheets` answers for both domains `stored`, and whether
+`GET …/employees/{employeeId}/training-sheets` answers for both domains `stored`, `sequences`
+(the stored sheet and its continuation sheets by number, empty before signing), and whether
 the sheet can be drawn up and, when not, the codes of what is missing:
 `employee.commute_route` on the occupational safety sheet while the route is empty, and
 `employee.workplace` on both while the employee has no workplace at a client with more than one
@@ -462,7 +468,11 @@ uses, and answers the PDF as an attachment named in ASCII after the domain and t
 `Fisa-SSM-Popescu-Ion.pdf`. A stored sheet is `ready`, with nothing `missing`, whatever the
 employee lacks now, and the route answers its file as it is, its signatures verifiable; a sheet
 with continuation sheets is answered as one PDF merged by Gotenberg with its fields flattened, a
-copy to read, in which the signatures no longer verify. The row of the stored sheet is read
+copy to read, in which the signatures no longer verify: the signer stamps every page of it with
+"Copie de citire – semnăturile se verifică pe fișele originale" (`stampPages`) and it is named
+`…-copie.pdf`. `?sequence=n` answers the original of sheet n as stored, signatures verifiable,
+named `…-n.pdf` from the second on; a number the employee has no stored sheet of is `404`. The
+portal's two sheet routes take the same `?sequence=`. The row of the stored sheet is read
 with the caller's token, so its policies decide who sees it, and its file with the secret key,
 since Storage's policies on the documents bucket know only the members' own folders. Missing data answers `409` with the reason `missing_sheet_data`
 and the codes under `missing`, before anything is merged; no converter, `503` with the reason
@@ -801,7 +811,7 @@ no route outside the prefix has the tag.
 | `PUT /portal/participants/{participantId}/language`              | Participant          | `204` after saving `{ language }`, `ro` or `en`                                     |
 | `GET …/{participantId}/training-records`                         | Employee             | `{ items, training }`: own records newest first, the states                         |
 | `GET …/{participantId}/data`                                     | Employee             | _Datele mele_: what the sheets print, and the provider                              |
-| `GET …/{participantId}/sheets`                                   | Employee             | `{ ssm, psi }`, each `{ ready, missing, stored }`                                   |
+| `GET …/{participantId}/sheets`                                   | Employee             | `{ ssm, psi }`, each `{ ready, missing, stored, sequences }`                        |
 | `GET …/{participantId}/sheets/{domain}`                          | Employee             | `200 application/pdf`, as stored once signing has started; `409 missing_sheet_data` |
 | `GET …/{participantId}/employees`                                | Client administrator | `{ items }`: current employees with their training states                           |
 | `GET …/{participantId}/employees/{employeeId}/training-records`  | Client administrator | As the employee's own                                                               |
@@ -871,24 +881,30 @@ Every member route takes a membership; the four portal routes are in the [Portal
 table, with the `portal` tag.
 
 **Requests at save.** `POST` and `PUT …/trainings` with `signers` first read the signer
-candidates and refuse, before saving, an account that is neither a member of the organization
-nor an active participant of the client: `422` with `signer_not_of_client` and the slot in
-`issues`. After the save, for every record of the training and every slot it has (the verifier
-only with a verifier, the admitter only with an admission), a pending request goes in as the
-member, row-level security and the database's checks applying: the trainee's to the employee's
-own active participant, found by the API; the trainer's, verifier's and admitter's to the
-accounts named. A slot left out or null is signed on paper, and a body without `signers`, or a
-training whose `source` is `paper`, asks nobody. A slot whose live request is already addressed
-to the signer wanted, pending or signed, is left alone, so a save after an edit issues only what
-the edit voided (the database voids the pending requests of a record whose printed facts
-change). A pending request addressed to someone else is voided with the secret key, with
-`signer_changed`, and issued again to the new signer; one whose slot is now null or left out is
-voided with `paper`. A signed request is never touched by a save. `GET …/trainings/{trainingId}`
-answers `signers: { trainer, verifier, admitter }`, the account each slot's live request (pending
-or signed) is addressed to on any of the records, the first issued, null when none is, for the
-form to start from. A request the
-database refuses answers `422` with its reason (`SIG05`, `signer_not_of_client`; `SIG03`,
-`slot_not_on_record`).
+candidates and refuse, before saving: an account that is neither a member of the organization
+nor an active participant of the client, `422` with `signer_not_of_client`, and an account whose
+own name (a member's profile name, an employee participant's `last first`, an administrator's
+name) is not the name the slot prints, compared without order, case, hyphens or diacritics by
+`samePerson` of the contracts, `422` with `signer_name_mismatch`, each with the slot in `issues`.
+An edit that changes a slot's printed name while keeping its signer is checked the same way. After
+the save, best effort, for every record of the training and every slot it has (the verifier only
+with a verifier, the admitter only with an admission): the trainee's to the employee's own active
+participant, found by the API, unless the employee's agreement is `withdrawn`; the trainer's,
+verifier's and admitter's to the accounts named. A slot left out or null is signed on paper, and
+a body without `signers`, or a training whose `source` is `paper`, asks nobody. A slot whose live
+request is already addressed to the signer wanted, pending or signed, is left alone, so a save
+after an edit issues only what the edit voided (the database voids the pending requests of a
+record whose printed facts or source change). A pending request addressed to someone else gives
+way with `signer_changed`, and one whose slot is now null or left out with `paper`. All of it is
+one call to `issue_signature_requests`, as the member, so a request is voided only together with
+its replacement; a refusal there (the database's `SIG05`, `SIG03`) is logged and the save still
+answers `201` or `200`, the next save issuing what is missing. A signed request is never touched by
+a save. Then the rows: for each record whose employee has a stored sheet of the domain, the record
+takes a row if it has none and its row is filled again from the record as it is now while no live
+electronic signature holds it (see the signed sheet below), also best effort.
+`GET …/trainings/{trainingId}` answers `signers: { trainer, verifier, admitter }`, the account
+each slot's live request (pending or signed) is addressed to on any of the records, the first
+issued, null when none is, for the form to start from.
 
 Each signer is then told once per save, with the number of requests issued to them and never
 the list: by email whenever the person has one (a member's account email; an employee's email
@@ -900,120 +916,189 @@ with the secret key on the requests whose signer was told.
 
 **Slots.** A slot is `pending` (with `signer: { accountId, name }`), `signed` electronically or
 `paper`, with `signedAt`, `signerName` and `signerJobTitle` as printed, `void` when its request
-or signature was voided and nothing replaced it (`voidedAt`, `voidReason`), or `unassigned`.
-`hasSignatures` is true once the record has any signature row, voided and paper ones included,
-which is when the database refuses to delete the record or its training (`record_has_signatures`).
-`…/paper` calls `mark_paper_signature`; `…/void` calls `void_training_signatures`. Both answer
-`404` for a record outside the client in the path, checked before the function runs.
+or signature was voided and nothing replaced it (`voidedAt`, `voidReason`, a code the app labels:
+`record_changed`, `signed_on_paper`, `signer_changed`, `paper`, `signer_left`, `archived`,
+`withdrawn`, or the member's own words), or `unassigned`. `hasSignatures` is true once the record
+has any signature row, voided and paper ones included, which is when the database refuses to
+delete the record or its training (`record_has_signatures`). `…/paper` calls
+`mark_paper_signature`; `…/void` calls `void_training_signatures`, which also strikes the
+record's live sheet row when an electronic signature was voided, and then writes _anulat_ into
+that row's note on the PDF (`voidRow`; a record never placed on a sheet is fine, and a failure
+here leaves the note for the sheet's next write). Both answer `404` for a record outside the
+client in the path, checked before the function runs.
 
 **Errors.** The database's codes become API errors in `fromDatabaseError`, the raise's message
 being the `reason`: `SIG01` (`record_signed`, `record_has_signatures`), `SIG02`
-(`slot_signed`), `SIG06` and `SIG07` (`agreement_signed_electronically`) are `409`; `SIG03` and
-`SIG05` are `422`; `SIG04` (`reason_required`, `signer_name_required`) is `400`. The signing
-code's own refusals are `409` too, from the API: `code_rate_limited` (a second code within 60
-seconds), `code_attempts_exceeded`, `code_expired`, `code_already_used` and `code_invalid`.
+(`slot_signed`), `SIG06`, `SIG07` (`agreement_signed_electronically`), `SIG08`
+(`request_not_pending`), `SIG09` (`session_mismatch`, `session_used`) and `SIG10`
+(`agreement_not_awaiting`, `agreement_signer_not_party`, `agreement_recorded`) are `409`; `SIG03`
+and `SIG05` are `422`; `SIG04` (`reason_required`, `signer_name_required`) is `400`; any other
+foreign-key refusal (`23503`) is a plain `409`. The signing code's own refusals are `409` too, from
+the API: `code_rate_limited` (a second code within 60 seconds, with `retryAfterSeconds`),
+`code_attempts_exceeded`, `code_expired`, `code_already_used` and `code_invalid` (with
+`attemptsLeft`).
 
 **Lists.** An item carries the request, the client, the record (its training, employee, day,
 domain and phase) and `agreementState`, the employee's signing agreement, null when none is
-recorded, which the app and the portal show as "act adițional nesemnat". The portal's items
-carry the record as its row of the sheet prints it and `signerName`, the person the slot prints.
-The participant's own list reads the requests addressed to them as themselves, then those
-records, by id and client, with the secret key: a workplace manager signs other employees'
-admissions, whose records the participant policies do not show. The administrator's list is
-read as the administrator and refused to an employee with `403`.
+recorded, which the app and the portal show as "act adițional nesemnat" unless it is
+`signed_electronically`, `signed_on_paper` or `in_contract`. `GET /me/signature-requests` is the
+member's own pending requests in the membership's organization, never a trainee's, which an
+account that is also an employee signs in the portal. A request whose client, record, employee or
+training a policy hides is left out of a list rather than failing it. The portal's items carry
+the record as its row of the sheet prints it and `signerName`, the person the slot prints. The
+participant's own list reads the requests addressed to them as themselves, then those records, by
+id and client, with the secret key: a workplace manager signs other employees' admissions, whose
+records the participant policies do not show. The administrator's list is read as the
+administrator and refused to an employee with `403`.
 
 **The signing agreement** is drawn up like an individual training sheet: merged from the
 `signing_agreement` template with `buildSigningAgreementData` (the employee, the client's legal
 name, CUI, registered office and representative, the provider's legal name) and converted, never
-stored. It names the channel the codes go to, email when the employee's row has one, else the
-phone; with neither it answers `409` with `employee_has_no_address`. The portal reads its
-template with the secret key, as the sheets do, after the participant's own policy has shown the
-registry row (`20261018110000_signing_agreement_policy.sql`). `PUT …/state` inserts the row or
-updates only the columns members may change; `signed_electronically` is the signing session's.
+stored until it is signed. It names the channel the codes go to, email when the employee's row
+has one, else the phone; with neither it answers `409` with `employee_has_no_address`. Without
+the client's legal representative's name or role it answers `409` with `missing_document_data`
+and `client.representativeName` or `client.representativeRole` under `missing`, as the documents
+do; `PUT …/state` with `generated` refuses the same way. The portal reads its template with the
+secret key, as the sheets do, after the participant's own policy has shown the registry row
+(`20261018110000_signing_agreement_policy.sql`). `PUT …/state` takes `generated`,
+`signed_on_paper`, `withdrawn` (the employee went back to signing by hand: the database voids
+their pending trainee requests and no new one is issued while it stands) or `in_contract` (a new
+hire whose contract carries the clause, which counts as agreed), inserts the row or updates only
+the columns members may change, and never sends `marked_by`, which the database sets to the
+member signed in; `signed_electronically` is the signing session's. An agreement recorded in any
+state but `generated` cannot be deleted. Every agreement state answer carries `awaiting`,
+`employee` or `employer` while the agreement waits for that party's electronic signature, else
+null.
 
 **The authority and the identities.** The app is its own certificate authority. Its secrets
 are `SIGNING_CA_KEY` (P-256, PKCS#8 PEM), `SIGNING_CA_CERT` (PEM) and
 `SIGNING_KEY_ENCRYPTION_KEY` (32 bytes, base64), made by
 `pnpm --filter @ssm-usor/api signing:ca`, which prints the three `.dev.vars` lines; a PEM may
-carry its line breaks as `\n`. Without them signing answers `503` with `signing_unavailable`.
-`src/lib/signing-ca.ts` issues an identity: a P-256 key from WebCrypto, stored as PKCS#8 under
-AES-256-GCM with a random IV and the account id as additional data, and a two-year certificate
-signed by the authority whose subject is the person's name (CN, cut to 64 characters) and the
-account id (the `serialNumber` attribute), with key usage `digitalSignature` and
-`nonRepudiation` and a random serial. `identityFor` reissues an identity that has expired,
-expires within 30 days, names the person differently, or was made under an authority or a
-key-encryption key since replaced; the row is replaced, and a signature keeps its certificate's
-serial in its evidence. `signWithIdentity` signs the signer container's `toSign` as raw r‖s.
+carry its line breaks as `\n`. `loadSigningCa` refuses a certificate that has expired and a key
+that is not the certificate's (it signs a random probe and verifies it with the certificate's
+public key); without the secrets, or with either refusal, signing answers `503` with
+`signing_unavailable`. `src/lib/signing-ca.ts` issues an identity: a P-256 key from WebCrypto,
+stored as PKCS#8 under AES-256-GCM with a random IV and the account id as additional data, and a
+two-year certificate signed by the authority whose subject is the account's own name (CN, cut to
+64 characters: a member's profile name, a participant's name as the participation carries it,
+`last first` for an employee), never the name a slot prints, which goes only in the signature's
+appearance and reason, and the account id (the `serialNumber` attribute), with key usage
+`digitalSignature` and `nonRepudiation` and a random serial. `identityFor` reissues an identity
+only when it has expired, expires within 30 days, or was made under an authority or a
+key-encryption key since replaced; the store supersedes the old row and inserts the new one, so
+the identities are a history and the certificate an old signature names stays. A signature keeps
+its certificate's serial in its evidence. `signWithIdentity` signs the signer container's
+`toSign` as raw r‖s, after `checkToSign` (`src/lib/signed-attributes.ts`) has read those bytes as
+CMS signed attributes and found their `messageDigest` equal to the SHA-256 of the prepared PDF
+outside its newest `/ByteRange` hole and their `signingCertificateV2` naming the identity's
+certificate; anything else is refused with `503 signer_unavailable` and nothing is signed.
 `src/lib/x509.ts` is the only importer of `@peculiar/x509`, whose dependency needs
 `reflect-metadata` loaded first. `src/modules/signing/identities.ts` keeps the identities in
 `signing_identities` with the secret key.
 
+**The signer's refusals.** A 4xx of the signer container crosses the binding as
+`signer_failed:<code>`; `createSigner` passes `already_signed`, `locked_field`, `unknown_fields`
+and `cannot_certify` on as `409` with that reason, and any other code as `409 signer_refused`; a
+signer that cannot be reached or fails is `503 signer_unavailable`.
+
 **The signing code.** `src/modules/signing/signing-sessions.ts`: six digits, its SHA-256 salted
 with the session id kept in `signing_sessions` and the code never, ten minutes, three attempts
-counted with a compare-and-set, one code per account a minute, sent by `sendSigningCode` of the
+counted with a compare-and-set, one code per account a minute decided by the database
+(`create_signing_session`, which answers the seconds to wait), sent by `sendSigningCode` of the
 mail or SMS Worker. A code that could not be sent removes its session and answers `503` with
-`signing_code_not_sent`.
+`signing_code_not_sent`. A session records the `place` it was asked for in and, in the portal, the
+participation; the code is typed in the same place for the same participation, else `404
+signing_session_not_found`.
 
 **The signing session.** `src/modules/signing/session-signing.ts`. `POST …/signing-sessions`
-takes `{ requestIds, agreementEmployeeIds? }`, up to 30 of each and at least one item, each
-once. Every request must be `pending`, addressed to the caller and, in the portal, under the
-participation's client, read as the caller; the member's route also refuses a trainee's request,
-which is signed in the portal. In the portal, `agreementEmployeeIds` is an employee's own
-agreement while it awaits them, or for a client administrator the client's agreements the
-employee has signed and the employer has not; the member's route refuses any with `422
-agreement_signed_in_portal`. Anything else answers `404 signing_item_not_found` with the item in
-`issues`, before a code is sent. The code goes where `signerContact` says, the email whenever
-there is one, else the phone (`409 signer_has_no_address` with neither), and the answer masks it
-in `addressHint` (`i***@example.ro`, `+40 7** *** *12`). The items, the agreements first and then
-the requests in the order given, go into `signing_session_items` with the secret key before the
-code leaves, so a code never goes out for a session without them. `code_rate_limited` (`409`) and
-`signing_code_not_sent` (`503`) are the code's, above; without the three signing secrets both
-routes answer `503 signing_unavailable` before a code is sent or spent.
+takes `{ requestIds, agreementEmployeeIds? }`, at least one item, at most 30 in all, each once.
+Every request must be `pending` and addressed to the caller, in the portal under the
+participation's client, in the app in the membership's organization and never a trainee's (which
+is signed in the portal), read as the caller. In the portal, `agreementEmployeeIds` takes, per
+agreement, the participant's own while it awaits the employee (as the employee, even for an
+administrator who is that employee), and for a client administrator any of the client's that awaits
+the employer; the member's route refuses any with `422 agreement_signed_in_portal`. Anything else
+answers `404 signing_item_not_found` with the item in `issues`, before a code is sent. Each
+agreement item keeps the digest of what the signer is shown: the employee's of the agreement's
+template and merge data, the employer's of the stored file the employee signed. The code goes
+where `signerContact` says, the email whenever there is one, else the phone (`409
+signer_has_no_address` with neither), and the answer masks it in `addressHint` (`i***@example.ro`,
+`+40 7** *** *12`). The items, the agreements first and then the requests in the order given, go
+into `signing_session_items` with the secret key before the code leaves, so a code never goes out
+for a session without them. `code_rate_limited` (`409`) and `signing_code_not_sent` (`503`) are
+the code's, above; without the three signing secrets both routes answer `503
+signing_unavailable` before a code is sent or spent.
 
-`POST …/signing-sessions/{sessionId}/sign` with `{ code }` verifies the code (`404
-signing_session_not_found` for another account's session, `409` with the code's reasons), which
-spends the session, then signs each item in turn with the secret key; one that fails is reported
-and the others go on. For a request: the request is read again and skipped as
-`request_not_pending` unless it is still pending and the caller's; the signer's identity is
-`identityFor(account, printed name)`, the name the slot prints (the employee's `last first` for
-the trainee, else the training's trainer or verifier or the record's admitter); `placeRecord`
-gives the record its row and `applySignature` signs the slot on it, with the moment taken just
-before; the `training_signatures` row records the session's channel, address and code times, the
-moment, both digests, the certificate's serial, the request's client address
-(`CF-Connecting-IP`) and user agent; the request becomes `signed` with the session. The answer is
-`{ signed: [{ requestId, agreementState }], failed: [{ requestId, reason }], agreements: [{
-employeeId, party, signed, reason, agreementState }] }`. `agreementState` is the trainee's
-agreement after the session: a record is signed whatever it is (ADR 023), and the screen keeps
-warning. The failure reasons are `request_not_pending`, `agreement_not_awaiting`, `sheet_busy`,
-`slot_not_on_sheet` (the fire-safety sheet's verifier and admitter), `missing_sheet_data`,
-`signer_unavailable`, `pdf_unavailable`, `template_missing` and `signing_failed` for anything
-else, which is logged. A signature whose evidence cannot be written after the sheet took it
-leaves its field spent and its request pending; only a void moves the record to a new row.
+`POST …/signing-sessions/{sessionId}/sign` with `{ code }` first checks that the authority, the
+signer and the converter are there (`503` with `signing_unavailable`, `signer_unavailable` or
+`pdf_unavailable`, the code not spent), then verifies the code (`404 signing_session_not_found`
+for another account's session or one asked for elsewhere, `409` with the code's reasons), which
+spends the session, then signs each item in turn with the secret key, none of it tied to the
+request's abort signal, so that a signature the signer has made reaches its evidence; one that
+fails is reported and the others go on. For a request: the request is read again and skipped as
+`request_not_pending` unless it is still pending and the caller's, and as `client_archived` under
+an archived client, before the sheet is touched; the signer's identity is `identityFor(account,
+the account's own name)`; `placeRecord` gives the record its row, and `applySignature` signs the
+slot on it under the name and function the slot prints, the moment taken inside the sheet's write
+so that a write retried after losing a race signs at its own moment; the `training_signatures` row
+goes in right after, with the session's channel and address, the moment, both digests, the
+certificate's serial, the request's client address (`CF-Connecting-IP`, dropped when it is not an
+IP address) and user agent, and the database's checks on it make the request `signed` in the same
+write or refuse it (`request_not_pending`, `signer_not_of_client` when the signer has lost their
+standing). The answer is `{ signed: [{ requestId, agreementState }], failed: [{ requestId, reason
+}], agreements: [{ employeeId, party, signed, reason, agreementState }] }`. `agreementState` is
+the trainee's agreement after the session: a record is signed whatever it is (ADR 023), and the
+screen keeps warning. The failure reasons are `request_not_pending`, `agreement_not_awaiting`,
+`agreement_changed`, `missing_document_data`, `client_archived`, `signer_not_of_client`,
+`sheet_busy`, `slot_not_on_sheet` (the fire-safety sheet's verifier and admitter),
+`missing_sheet_data`, `row_locked`, the signer's `already_signed`, `locked_field`,
+`unknown_fields`, `cannot_certify` and `signer_refused`, `signer_unavailable`, `pdf_unavailable`,
+`template_missing`, and `signing_failed` for anything else, which is logged. A signature whose
+evidence cannot be written after the sheet took it leaves its field spent and its request as the
+database left it; only a void moves the record to a new row.
+
+**The signed sheet's rows.** A sheet is drawn up at the first signature of an employee in a
+domain: the records from paper are printed as text in the first rows, as before, and every other
+record of the domain then takes the next rows as filled fields, the hiring blocks going to the
+newest training of each phase; a record nobody is asked to sign electronically prints _semnat pe
+hârtie_ in its note. A record of an employee with a sheet takes its row when a training is saved,
+or at its first signature. A row is filled again, when the values it was last filled with
+(`filled_digest`) differ from the record's, only while no live electronic signature made since
+the row was taken holds it; the signer refuses to fill a field a signature locks
+(`locked_field`), which is taken as the row filled when another write filled it with these values
+meanwhile, else refused as `row_locked`. A row is voided and the record takes a new one when all
+its electronic signatures were voided (the database does this on a void; `placeRecord` heals a
+row it finds so), or when the record's training changed domain or phase. A voided row's note gets
+_anulat_ with the sheet's next write, whatever that write is.
 
 **The signing agreement, signed.** The agreement's template has two signature cells, content
 controls named `sig_employer` and `sig_employee` that LibreOffice exports as text fields named
 by their tooltip, as on the sheets. The employee signs first: the agreement is drawn up as on
-demand, converted with `convertForm`, the two fields made signature fields by `prepareSheet`, and
-`sig_employee` signed with `certify: true` and nothing locked; the file is stored at
-`signing-agreements/{clientId}/{employeeId}/v1-{nonce}.pdf` in the documents bucket, the
-`agreement_signatures` row written, and the agreement gets `storage_path` and
-`employee_signed_at`. The administrator then signs `sig_employer` on that file, whose digest must
-match the employee's evidence, without certifying, into `v2-{nonce}.pdf`; the agreement becomes
-`signed_electronically` with `signed_at` and `employer_signed_at`. The employee signs under their
-`last first` name, the administrator under the participation's name. The evidence row's unique
-`(employee_id, party)` settles two sessions racing for one signature: the loser removes its file
-and reports `agreement_not_awaiting`. The agreement routes of members, the employee and the
+demand, its digest compared with the one the session item kept (`agreement_changed` when it
+differs), converted with `convertForm`, the two fields made signature fields by `prepareSheet`,
+and `sig_employee` signed with `certify: true` and nothing locked; the file is stored at
+`signing-agreements/{clientId}/{employeeId}/v1-{nonce}.pdf` in the documents bucket and the
+`agreement_signatures` row written with it as `storage_path`, which moves the agreement on in the
+database. The administrator then signs `sig_employer` on that file, whose digest must match the
+employee's evidence and the session item, without certifying, into `v2-{nonce}.pdf`; the evidence
+makes the agreement `signed_electronically`. Each party's appearance prints the participation's
+name; the certificate names the account. The database's checks on the evidence settle two sessions
+racing for one signature and a signer who is not the party: the loser removes its file and
+reports `agreement_not_awaiting`. The agreement routes of members, the employee and the
 administrator answer the stored file once it exists, else the on-demand render.
 `GET …/employees/signing-agreements` lists for the administrator the agreements awaiting the
 employer (`awaitingEmployer`) and then those signed electronically, by name, each with the
-agreement state, which now carries `employeeSignedAt` and `employerSignedAt` everywhere.
+agreement state.
 
 `pnpm --filter @ssm-usor/api signing:check:local`, with `GOTENBERG_URL` and `SIGNER_URL` set,
 runs all of it on the local stack over HTTP: it starts `scripts/e2e-server.ts` on port 8797
 with a throwaway authority, whose mailbox holds the codes, makes a member, an employee
 participant and a client administrator, records a training with signers, signs it in the three
-places with the agreement, validates the stored sheet and agreement with the signer, prints the
-evidence and removes everything, the evidence included, as the local database's superuser.
+places with the agreement, validates the stored sheet and agreement with the signer against the
+throwaway authority as the trust root, then voids the record, corrects the training and signs it
+again on a new row beside the old one marked _anulat_, validates the sheet's six signatures,
+prints the evidence and removes everything, the evidence included, as the local database's
+superuser.
 
 ## What the documents print
 
