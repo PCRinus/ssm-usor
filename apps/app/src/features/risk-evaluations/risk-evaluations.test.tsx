@@ -640,9 +640,14 @@ describe("a position's risk evaluation page", () => {
     ).toContain('1 – Extrem de rare, o dată la peste 10 ani');
 
     await user.selectOptions(screen.getByTestId('risk-factor-component'), 'work_environment');
-    const group = screen.getByTestId('risk-factor-group');
-    await user.clear(group);
-    await user.type(group, 'Factori de risc fizic');
+    await user.click(screen.getByTestId('risk-factor-group'));
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Factori de risc fizic',
+      'Factori de risc chimic',
+      'Factori de risc biologic',
+      'Caracterul special al mediului',
+    ]);
+    await user.click(screen.getByRole('option', { name: 'Factori de risc fizic' }));
     await user.type(screen.getByTestId('risk-factor-description'), 'Zgomot peste limită');
     await user.selectOptions(screen.getByTestId('risk-factor-gravity'), '3');
     await user.selectOptions(screen.getByTestId('risk-factor-probability'), '6');
@@ -850,9 +855,10 @@ describe('the factor editor', () => {
     await user.click(within(editor).getByTestId('risk-factor-add-another'));
 
     await user.selectOptions(screen.getByTestId('risk-factor-component'), 'work_environment');
-    const group = screen.getByTestId('risk-factor-group');
-    await user.clear(group);
-    await user.type(group, 'Fizici');
+    await user.click(screen.getByTestId('risk-factor-group'));
+    await user.click(screen.getByTestId('risk-factor-group-search'));
+    await user.paste('Fizici');
+    await user.click(screen.getByRole('option', { name: 'Folosește „Fizici”' }));
     await fillFactor(user, 'Zgomot');
     await user.click(screen.getByTestId('risk-factor-measure-add'));
     await user.type(screen.getByTestId('risk-factor-measure-description'), 'Căști');
@@ -869,7 +875,7 @@ describe('the factor editor', () => {
     expect(screen.getByTestId<HTMLSelectElement>('risk-factor-component').value).toBe(
       'work_environment'
     );
-    expect(screen.getByTestId<HTMLInputElement>('risk-factor-group').value).toBe('Fizici');
+    expect(screen.getByTestId('risk-factor-group').textContent).toBe('Fizici');
     expect(description.value).toBe('');
     expect(screen.getByTestId<HTMLSelectElement>('risk-factor-gravity').value).toBe('');
     expect(screen.queryAllByTestId('risk-factor-measure')).toHaveLength(0);

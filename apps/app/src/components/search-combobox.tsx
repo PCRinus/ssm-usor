@@ -123,7 +123,14 @@ export function SearchCombobox({
         >
           {value ? (
             <span className="flex min-w-0 items-baseline gap-2">
-              <span className="shrink-0 font-medium tabular-nums">{selected?.label ?? value}</span>
+              <span
+                className={cn(
+                  'font-medium tabular-nums',
+                  selected?.description || renderUnknown ? 'shrink-0' : 'truncate'
+                )}
+              >
+                {selected?.label ?? value}
+              </span>
               {(selected ? selected.description : renderUnknown?.(value)) && (
                 <span className="truncate text-muted-foreground">
                   {selected ? selected.description : renderUnknown?.(value)}
@@ -172,7 +179,14 @@ export function SearchCombobox({
                   value={item.search ?? `${item.value} ${item.label} ${item.description ?? ''}`}
                   onSelect={() => choose(item.value)}
                 >
-                  <span className="shrink-0 font-medium tabular-nums">{item.label}</span>
+                  <span
+                    className={cn(
+                      'font-medium tabular-nums',
+                      item.description ? 'shrink-0' : 'min-w-0 flex-1'
+                    )}
+                  >
+                    {item.label}
+                  </span>
                   {item.description && (
                     <span className={cn('min-w-0 flex-1 leading-snug', descriptionClassName)}>
                       {item.description}
