@@ -13,7 +13,11 @@ export const addressOf = (name: string) => `${name}-${run}@e2e.test`;
 // Spec files share this module in a worker, so one run makes several providers.
 const created = { providers: 0, users: [] as string[], organizations: [] as string[] };
 
-async function api<T>(path: string, token: string, init: { method: string; body?: unknown }) {
+export async function api<T>(
+  path: string,
+  token: string,
+  init: { method: string; body?: unknown }
+) {
   const response = await fetch(new URL(path, process.env.E2E_API_URL), {
     method: init.method,
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -71,12 +75,24 @@ export async function createProvider(
   );
   const signedIn = await session.auth.signInWithPassword({ email, password });
   if (signedIn.error) throw signedIn.error;
-  return { token: signedIn.data.session.access_token, clientId: client.data.id as string };
+  return {
+    token: signedIn.data.session.access_token,
+    clientId: client.data.id as string,
+    organizationId: organization.data.id as string,
+    userId: user.data.user.id,
+  };
 }
 
 export async function addEmployee(
   provider: { token: string; clientId: string },
-  employee: { lastName: string; firstName: string; email: string; jobTitle: string }
+  employee: {
+    lastName: string;
+    firstName: string;
+    email: string;
+    jobTitle: string;
+    workplaceId?: string;
+    commuteRoute?: string;
+  }
 ) {
   const created = await api<{ employee: { id: string } }>(
     `/clients/${provider.clientId}/employees`,
@@ -117,6 +133,31 @@ export async function inviteAdministratorByEmail(
     method: 'POST',
     body: { fullName, channel: 'email', address: email },
   });
+}
+
+export async function addWorkplace(
+  provider: { clientId: string; organizationId: string },
+  name: string
+) {
+  const workplace = await admin
+    .from('client_workplaces')
+    .insert({ organization_id: provider.organizationId, client_id: provider.clientId, name })
+    .select('id')
+    .single();
+  if (workplace.error) throw workplace.error;
+  return workplace.data.id as string;
+}
+
+export async function lastSigningCode(to: string) {
+  const url = new URL('/__e2e/emails', process.env.E2E_API_URL);
+  url.searchParams.set('to', to);
+  const messages = (await (await fetch(url)).json()) as { kind: string; url: string }[];
+  const code = messages
+    .filter((message) => message.kind === 'signing-code')
+    .at(-1)
+    ?.url.match(/code=(\d+)/)?.[1];
+  if (!code) throw new Error(`No signing code was sent to ${to}.`);
+  return code;
 }
 
 export async function lastSignInCode(to: string) {
