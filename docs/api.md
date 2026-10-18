@@ -1474,12 +1474,14 @@ any other answers `403`, so a stranger's number costs nothing. It answers `503` 
 or the `SMS` binding is missing and `500` when the Worker fails.
 
 Declared in `supabase/config.toml` and pushed by CI: phone sign-in on, phone confirmation on, one
-code per number per minute, the hook, and a cap of 100 SMS an hour for the project. Two settings
-the file cannot hold are set by the configuration job through the Management API after the push:
-the code's expiry, 10 minutes (`sms_otp_exp`, which `SMS_OTP_EXPIRY_MINUTES` in the auth-hooks
-module repeats to the reader), and `sms_autoconfirm` off, because the CLI pushes
-`enable_confirmations` inverted ([supabase/cli#6997](https://github.com/supabase/cli/issues/6997));
-`[remotes.production.auth.sms]` compensates so the push itself does not flip it. Locally the
+code per number per minute, the hook, and a cap of 100 SMS an hour for the project. Three
+settings the file cannot hold are set by the configuration job through the Management API after
+the push: the code's expiry, 10 minutes (`sms_otp_exp`, which `SMS_OTP_EXPIRY_MINUTES` in the
+auth-hooks module repeats to the reader), `sms_autoconfirm` off, because the CLI pushes
+`enable_confirmations` inverted ([supabase/cli#6997](https://github.com/supabase/cli/issues/6997)),
+and the cap of 60 auth emails an hour (`rate_limit_email_sent`, which `config push` declares
+unmanaged); `[remotes.production.auth.sms]` compensates so the push itself does not flip the
+confirmation. Locally the
 code works 100 minutes, which the CLI fixes. Nothing has to be clicked in the dashboard. After
 the first deployment, check that **Authentication → Sign In / Providers → Phone** is on with the
 Send SMS hook as its provider and phone confirmations on; if the push is refused for want of an

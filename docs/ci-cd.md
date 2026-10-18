@@ -109,9 +109,10 @@ does not ask for confirmation in CI, so the job prints `supabase config diff` fi
 refuses to run when the file has no `[remotes]` block for the project. It needs
 `SUPABASE_AUTH_HOOK_SECRET` and `SUPABASE_AUTH_SMS_HOOK_SECRET`, which the API deployment uploads
 too, and so does the migrations job, whose `supabase link` reads the file. After the push it
-sets through the Management API the two phone sign-in settings the file cannot hold: the texted
-code's expiry, and phone confirmation, which the CLI pushes inverted
-([supabase/cli#6997](https://github.com/supabase/cli/issues/6997)).
+sets through the Management API the three sign-in settings the file cannot hold: the texted
+code's expiry, phone confirmation, which the CLI pushes inverted
+([supabase/cli#6997](https://github.com/supabase/cli/issues/6997)), and the cap of 60 auth
+emails an hour, which `config push` leaves unmanaged.
 
 Selection compares a push with the last run on `main` that succeeded, so what a failed,
 cancelled or superseded run carried is selected again by the next push, whatever that push
