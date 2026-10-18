@@ -294,12 +294,15 @@ export function supabaseSheetStore(db: DataClient): SignedSheetStore {
     },
 
     async signedSince(recordId, since) {
+      // `created_at`, not `signed_at`: both sides on the database's clock. A session's signing
+      // moment is the API's, taken before the row was filled, and a refill under a signature
+      // breaks its lock.
       const { count, error } = await db
         .from('training_signatures')
         .select('id', { count: 'exact', head: true })
         .eq('training_record_id', recordId)
         .eq('method', 'electronic')
-        .gte('signed_at', since);
+        .gte('created_at', since);
       if (error) throw fromDatabaseError(error, 'signatures of a record');
       return (count ?? 0) > 0;
     },
