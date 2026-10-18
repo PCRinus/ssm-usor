@@ -24,7 +24,7 @@ export function formatDate(isoDate: string) {
 
 // Romanian counted nouns: "1 an", "2 ani", "20 de ani" (from 20 up, except 101–119 style
 // endings, the noun takes "de").
-function roCount(value: number, one: string, many: string) {
+export function roCount(value: number, one: string, many: string) {
   if (value === 1) return `1 ${one}`;
   const tail = value % 100;
   return tail === 0 || tail >= 20 ? `${value} de ${many}` : `${value} ${many}`;

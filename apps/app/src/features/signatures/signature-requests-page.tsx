@@ -19,7 +19,8 @@ import { useAuth } from '@/features/auth/auth-context';
 import { formatDate } from '@/features/employees/employee-format';
 import { formatDay } from '@/features/participants/participant-format';
 
-import { signerRoleLabels } from './signature-format';
+import { signerRoleLabels, signingBatchLimit, trainingCount } from './signature-format';
+import { SigningDialog } from './signing-dialog';
 
 type SignatureRequest = SignatureRequestListResponseItemsItem;
 
@@ -38,8 +39,7 @@ function byClient(items: readonly SignatureRequest[]): ClientGroup[] {
   return [...groups.values()].sort((a, b) => a.client.name.localeCompare(b.client.name, 'ro'));
 }
 
-const countLabel = (count: number) =>
-  count === 1 ? '1 instruire de semnat' : `${count} instruiri de semnat`;
+const countLabel = (count: number) => `${trainingCount(count)} de semnat`;
 
 export function SignatureRequestsPage() {
   const { session } = useAuth();
@@ -56,6 +56,8 @@ export function SignatureRequestsPage() {
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   const items = requests.data?.items ?? [];
   const chosen = items.filter((item) => selected.has(item.id));
+  const overLimit = chosen.length > signingBatchLimit;
+  const [signing, setSigning] = useState(false);
 
   function toggle(ids: string[], on: boolean) {
     setSelected((current) => {
@@ -80,21 +82,29 @@ export function SignatureRequestsPage() {
           </p>
         </div>
         {items.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" data-testid="signature-requests-soon">
-              În curând
-            </Badge>
-            <Button
-              data-testid="signature-requests-sign"
-              disabled
-              title="Semnarea din aplicație vine în curând."
-            >
-              <PenLine aria-hidden="true" />
-              {chosen.length > 0 ? `Semnează (${chosen.length})` : 'Semnează'}
-            </Button>
-          </div>
+          <Button
+            data-testid="signature-requests-sign"
+            disabled={chosen.length === 0 || overLimit}
+            aria-describedby={overLimit ? 'signature-requests-limit' : undefined}
+            onClick={() => setSigning(true)}
+          >
+            <PenLine aria-hidden="true" />
+            {chosen.length > 0 ? `Semnează (${chosen.length})` : 'Semnează'}
+          </Button>
         )}
       </div>
+
+      {overLimit && (
+        <Notice
+          variant="warning"
+          id="signature-requests-limit"
+          data-testid="signature-requests-limit"
+        >
+          Ai ales {trainingCount(chosen.length)}. Cu un cod semnezi cel mult {signingBatchLimit};
+          debifează {chosen.length - signingBatchLimit}, iar pe celelalte le semnezi apoi cu alt
+          cod.
+        </Notice>
+      )}
 
       {requests.isError || !apiRequest.baseUrl ? (
         <Notice
@@ -176,6 +186,11 @@ export function SignatureRequestsPage() {
           })}
         </div>
       )}
+      <SigningDialog
+        requests={byClient(chosen).flatMap((group) => group.requests)}
+        open={signing}
+        onClose={() => setSigning(false)}
+      />
     </div>
   );
 }

@@ -8,7 +8,9 @@ import {
   type SigningAgreementState,
 } from '@ssm-usor/contracts';
 
+import type { SignSessionResponseFailedItemReason } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { roCount } from '@/features/employees/employee-format';
 
 export const slotStateLabels: Record<SignatureSlotState, string> = {
   pending: 'De semnat',
@@ -49,7 +51,7 @@ export const agreementStateLabels: Record<SigningAgreementState | 'none', string
 export const agreementSigned = (state: SigningAgreementState | null | undefined) =>
   state === 'signed_electronically' || state === 'signed_on_paper';
 
-const reasonOf = (cause: unknown) =>
+export const reasonOf = (cause: unknown) =>
   cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse> | null)?.reason : null;
 
 const signingMessages: Partial<Record<string, string>> = {
@@ -85,3 +87,66 @@ export function signingFailure(cause: unknown, fallback: string) {
 }
 
 export const hasSigningReason = (cause: unknown, reason: string) => reasonOf(cause) === reason;
+
+const sessionMessages: Partial<Record<string, string>> = {
+  [signatureErrorReasons.codeRateLimited]:
+    'Ți-am trimis un cod în ultimul minut. Așteaptă un minut de la el, apoi cere altul.',
+  [signatureErrorReasons.signerHasNoAddress]:
+    'Contul tău nu are o adresă la care să trimitem codul. Nu s-a semnat nimic.',
+  [signatureErrorReasons.signingCodeNotSent]:
+    'Codul nu a putut fi trimis. Nu s-a semnat nimic; încearcă din nou.',
+  [signatureErrorReasons.signingUnavailable]:
+    'Semnarea nu este disponibilă acum. Nu s-a semnat nimic; încearcă mai târziu.',
+  [signatureErrorReasons.signingItemNotFound]:
+    'O instruire din listă nu mai așteaptă semnătura ta: a fost semnată, anulată sau modificată între timp. Închide și alege din nou.',
+};
+
+export function signingSessionFailure(cause: unknown) {
+  const reason = reasonOf(cause);
+  return (
+    (reason && sessionMessages[reason]) ??
+    signingFailure(cause, 'Nu am putut trimite codul. Verifică conexiunea și încearcă din nou.')
+  );
+}
+
+// The code is spent or dead: only a new one goes on.
+export const codeNeedsRenewal: ReadonlySet<string> = new Set([
+  signatureErrorReasons.codeExpired,
+  signatureErrorReasons.codeAlreadyUsed,
+  signatureErrorReasons.codeAttemptsExceeded,
+  signatureErrorReasons.signingSessionNotFound,
+]);
+
+export const renewalMessages: Partial<Record<string, string>> = {
+  [signatureErrorReasons.codeExpired]: 'Codul a expirat. Cere un cod nou.',
+  [signatureErrorReasons.codeAlreadyUsed]: 'Codul a fost folosit deja. Cere un cod nou.',
+  [signatureErrorReasons.codeAttemptsExceeded]:
+    'Codul a fost greșit de prea multe ori. Cere un cod nou.',
+  [signatureErrorReasons.signingSessionNotFound]:
+    'Sesiunea de semnare nu mai există. Cere un cod nou.',
+};
+
+export const wrongCodeMessage = (attemptsLeft: number) =>
+  attemptsLeft > 1
+    ? `Codul nu este corect. Mai ai ${attemptsLeft} încercări.`
+    : 'Codul nu este corect. Mai ai o singură încercare.';
+
+export const signingItemFailures: Record<SignSessionResponseFailedItemReason, string> = {
+  request_not_pending:
+    'Nu mai aștepta semnătura ta: a fost semnată, anulată sau instruirea s-a modificat.',
+  agreement_not_awaiting: 'Actul adițional nu mai aștepta semnătura.',
+  sheet_busy: 'Fișa angajatului primea în același timp altă semnătură. Semnează din nou.',
+  slot_not_on_sheet:
+    'Fișa nu are o rubrică pentru această semnătură; marcheaz-o semnată pe hârtie.',
+  missing_sheet_data:
+    'Fișa angajatului nu are toate datele (locul de muncă, traseul). Completează-le, apoi semnează din nou.',
+  signer_unavailable: 'Serviciul de semnare nu a răspuns. Încearcă din nou mai târziu.',
+  pdf_unavailable: 'Fișa nu a putut fi făcută PDF acum. Încearcă din nou mai târziu.',
+  template_missing: 'Modelul fișei de instruire lipsește. Scrie-ne, ca să-l punem la loc.',
+  signing_failed: 'Semnătura nu a reușit. Încearcă din nou; dacă se repetă, scrie-ne.',
+};
+
+// The API's limit on one signing session.
+export const signingBatchLimit = 30;
+
+export const trainingCount = (count: number) => roCount(count, 'instruire', 'instruiri');
