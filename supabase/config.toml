@@ -107,7 +107,9 @@ secrets = "v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXNtcy1ob29rLW9ubHk="
 # employees in one afternoon needs, and the cap is what bounds the cost of misuse (ADR 022).
 # Emails go through the Send Email hook, which the default of 2 still applies to: the third
 # sign-in code of an hour was silently never sent (2026-10-19). One a minute is a floor of
-# employees signing in on the same afternoon.
+# employees signing in on the same afternoon. `config push` does not manage `email_sent`, so
+# the deploy workflow sets it through the Management API (rate_limit_email_sent); the value
+# here keeps the local stack the same and documents the choice.
 [auth.rate_limit]
 sms_sent = 100
 email_sent = 60
