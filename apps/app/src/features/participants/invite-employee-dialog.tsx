@@ -40,7 +40,7 @@ export function InviteEmployeeDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      {/* Mounted per opening, so a reopened dialog starts with no address picked. */}
+      {/* Mounted per opening, so a reopened dialog starts again from the proposed address. */}
       {open && <InviteEmployeeForm employee={employee} onClose={onClose} onMessage={onMessage} />}
     </Dialog>
   );
@@ -64,20 +64,14 @@ function InviteEmployeeForm({
       ['sms', employee.phone],
     ] as const
   ).flatMap(([channel, address]) => (address ? [{ channel, address }] : []));
-  // ADR 022: with both addresses the member picks; neither is proposed first.
-  const [channel, setChannel] = useState<ParticipantChannel | null>(
-    options.length === 1 ? options[0]!.channel : null
-  );
+  // ADR 023: email first, since every signing code sent by SMS is paid for.
+  const [channel, setChannel] = useState<ParticipantChannel | null>(options[0]?.channel ?? null);
   const [error, setError] = useState<string | null>(null);
-  const [unpicked, setUnpicked] = useState(false);
   const busy = invite.isPending;
 
   async function send() {
     const picked = options.find((option) => option.channel === channel);
-    if (!picked) {
-      setUnpicked(true);
-      return;
-    }
+    if (!picked) return;
     setError(null);
     onMessage(null);
     try {
@@ -136,10 +130,7 @@ function InviteEmployeeForm({
             Angajatul nu are email sau telefon. Adaugă unul în datele lui, apoi trimite invitația.
           </Notice>
         ) : (
-          <fieldset
-            className="mt-5 grid gap-2"
-            aria-describedby={unpicked && !channel ? 'participant-invite-channel-error' : undefined}
-          >
+          <fieldset className="mt-5 grid gap-2">
             <legend className="mb-2 text-sm font-medium">Trimite invitația pe</legend>
             {options.map((option) => (
               <label
@@ -164,15 +155,6 @@ function InviteEmployeeForm({
                 </span>
               </label>
             ))}
-            {unpicked && !channel && (
-              <p
-                id="participant-invite-channel-error"
-                role="alert"
-                className="text-sm text-destructive"
-              >
-                Alege adresa la care trimitem invitația.
-              </p>
-            )}
           </fieldset>
         )}
         {error && (
