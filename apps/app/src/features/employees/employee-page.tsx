@@ -7,6 +7,7 @@ import { type ReactNode, useState } from 'react';
 import { useAuth } from '@/features/auth/auth-context';
 import { EmployeeFilesCard } from '@/features/client-files/employee-files-card';
 import { EmployeePortalCard } from '@/features/participants/employee-portal-card';
+import { SigningAgreementCard } from '@/features/signatures/signing-agreement-card';
 
 import { formatDate, formatTenure, todayIso } from './employee-format';
 import { EmployeeJobPositionDialog } from './employee-job-position-dialog';
@@ -155,6 +156,14 @@ export function EmployeePage() {
 
         {session && (
           <EmployeePortalCard
+            employee={employee}
+            userId={session.user.id}
+            readOnly={client.archivedAt !== null}
+          />
+        )}
+
+        {session && (
+          <SigningAgreementCard
             employee={employee}
             userId={session.user.id}
             readOnly={client.archivedAt !== null}
