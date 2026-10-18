@@ -91,6 +91,14 @@ export const signerFields = ['trainerSignerId', 'verifierSignerId', 'admitterSig
 
 export type SignerField = (typeof signerFields)[number];
 
+export type SlotNameField = 'trainerName' | 'verifierName' | 'admittedByName';
+
+export const signerOfName: Record<SlotNameField, SignerField> = {
+  trainerName: 'trainerSignerId',
+  verifierName: 'verifierSignerId',
+  admittedByName: 'admitterSignerId',
+};
+
 export const emptySigners: Pick<TrainingFormValues, SignerField> = {
   trainerSignerId: '',
   verifierSignerId: '',
@@ -158,9 +166,6 @@ export function toTrainingForm(
   };
 }
 
-export const hasSigners = (training: TrainingResponseTraining) =>
-  Object.values(training.signers).some(Boolean);
-
 export function toTrainingRequest(values: TrainingFormValues): TrainingRequest {
   const verifier =
     values.domain === 'ssm' && values.verifierName.trim()
@@ -198,7 +203,9 @@ export function toTrainingRequest(values: TrainingFormValues): TrainingRequest {
           signers: {
             trainer: values.trainerSignerId || null,
             ...(verifier ? { verifier: values.verifierSignerId || null } : {}),
-            ...(admission ? { admitter: values.admitterSignerId || null } : {}),
+            ...(admission && values.domain === 'ssm'
+              ? { admitter: values.admitterSignerId || null }
+              : {}),
           },
         }
       : {}),

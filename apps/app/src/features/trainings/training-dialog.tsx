@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   formatEmployeeName,
+  signerSlotLabels,
   supplementaryTrainingReasonLabels,
   supplementaryTrainingReasons,
   type TrainingDomain,
@@ -59,12 +60,13 @@ import { AttendeeChecklist, type AttendeeOption } from './attendee-checklist';
 import {
   emptySigners,
   fieldOfIssue,
-  hasSigners,
   type ProposedField,
   proposedFields,
   proposedValues,
   type SignerField,
   signerFields,
+  signerOfName,
+  type SlotNameField,
   toTrainingForm,
   toTrainingRequest,
   trainingFormSchema,
@@ -321,10 +323,10 @@ function TrainingForm({
     control: form.control,
     name: ['trainerName', 'verifierName', 'admittedByName'],
   });
-  // A signer the specialist chose stays; the others follow the names as they are proposed or typed.
-  // A saved training's signers were chosen, paper included, once any slot has one.
+  // A signer the specialist chose stays until the slot's name is typed again; the others follow
+  // the names as they are proposed or typed. A saved training's signers were chosen, paper too.
   const [pickedSigners, setPickedSigners] = useState<ReadonlySet<SignerField>>(
-    () => new Set(training && hasSigners(training) ? signerFields : [])
+    () => new Set(training ? signerFields : [])
   );
   const requestedSigners: Record<SignerField, string | null> = {
     trainerSignerId: training?.signers.trainer ?? null,
@@ -333,7 +335,27 @@ function TrainingForm({
   };
   const pickSigner = (field: SignerField, accountId: string) => {
     setPickedSigners((current) => new Set([...current, field]));
+    form.clearErrors(field);
     form.setValue(field, accountId);
+  };
+  const unpickSigner = (field: SignerField) =>
+    setPickedSigners((current) => {
+      if (!current.has(field)) return current;
+      const next = new Set(current);
+      next.delete(field);
+      return next;
+    });
+  const typingName = (field: SlotNameField) => ({
+    onChange: () => {
+      markTyped(field);
+      unpickSigner(signerOfName[field]);
+      form.clearErrors(signerOfName[field]);
+    },
+  });
+  const applySignerName = (field: SlotNameField, name: string) => {
+    markTyped(field);
+    form.setValue(field, name, { shouldValidate: form.formState.isSubmitted });
+    form.clearErrors(signerOfName[field]);
   };
   useEffect(() => {
     if (!signerItems) return;
@@ -352,27 +374,37 @@ function TrainingForm({
     control: form.control,
     name: [...signerFields],
   });
-  const signerSelect = (field: SignerField, id: string, label: string, value: string) => (
-    <div
-      className={
-        field === 'admitterSignerId'
-          ? 'grid gap-5 sm:col-span-3 sm:grid-cols-3'
-          : 'grid gap-5 sm:col-span-2 sm:grid-cols-2'
-      }
-    >
-      <SignerSelect
-        id={id}
-        label={label}
-        value={value}
-        candidates={signerItems}
-        requested={requestedSigners[field]}
-        unavailable={candidates.isError}
-        disabled={busy}
-        error={errors[field]}
-        onChange={(accountId) => pickSigner(field, accountId)}
-      />
-    </div>
-  );
+  const slotNames: Record<SlotNameField, string> = {
+    trainerName,
+    verifierName,
+    admittedByName,
+  };
+  const signerSelect = (nameField: SlotNameField, id: string, label: string, value: string) => {
+    const field = signerOfName[nameField];
+    return (
+      <div
+        className={
+          field === 'admitterSignerId'
+            ? 'grid gap-5 sm:col-span-3 sm:grid-cols-3'
+            : 'grid gap-5 sm:col-span-2 sm:grid-cols-2'
+        }
+      >
+        <SignerSelect
+          id={id}
+          label={label}
+          value={value}
+          slotName={slotNames[nameField]}
+          candidates={signerItems}
+          requested={requestedSigners[field]}
+          unavailable={candidates.isError}
+          disabled={busy}
+          error={errors[field]}
+          onChange={(accountId) => pickSigner(field, accountId)}
+          onUseSignerName={(name) => applySignerName(nameField, name)}
+        />
+      </div>
+    );
+  };
   const signing = source === 'app';
 
   const position = positions.find((item) => item.id === jobPositionId);
@@ -748,7 +780,7 @@ function TrainingForm({
               disabled={busy}
               aria-invalid={Boolean(errors.trainerName)}
               aria-describedby={errors.trainerName ? 'training-trainer-name-error' : undefined}
-              {...form.register('trainerName', typing('trainerName'))}
+              {...form.register('trainerName', typingName('trainerName'))}
             />
           </Field>
           <Field
@@ -771,9 +803,9 @@ function TrainingForm({
           </Field>
           {signing &&
             signerSelect(
-              'trainerSignerId',
+              'trainerName',
               'training-trainer-signer',
-              'Semnătura instructorului',
+              `Semnatar la „${signerSlotLabels.trainer}”`,
               trainerSignerId
             )}
           {domain === 'ssm' && (
@@ -793,7 +825,7 @@ function TrainingForm({
                   aria-describedby={
                     errors.verifierName ? 'training-verifier-name-error' : undefined
                   }
-                  {...form.register('verifierName', typing('verifierName'))}
+                  {...form.register('verifierName', typingName('verifierName'))}
                 />
               </Field>
               <Field
@@ -817,9 +849,9 @@ function TrainingForm({
               {signing &&
                 verifierName.trim() &&
                 signerSelect(
-                  'verifierSignerId',
+                  'verifierName',
                   'training-verifier-signer',
-                  'Semnătura celui care a verificat',
+                  `Semnatar la „${signerSlotLabels.verifier}”`,
                   verifierSignerId
                 )}
             </>
@@ -858,7 +890,7 @@ function TrainingForm({
                   aria-describedby={
                     errors.admittedByName ? 'training-admitted-by-name-error' : undefined
                   }
-                  {...form.register('admittedByName', typing('admittedByName'))}
+                  {...form.register('admittedByName', typingName('admittedByName'))}
                 />
               </Field>
               <Field
@@ -879,11 +911,12 @@ function TrainingForm({
                 />
               </Field>
               {signing &&
+                domain === 'ssm' &&
                 admittedByName.trim() &&
                 signerSelect(
-                  'admitterSignerId',
+                  'admittedByName',
                   'training-admitter-signer',
-                  'Semnătura celui care admite',
+                  `Semnatar la „${signerSlotLabels.admitter}”`,
                   admitterSignerId
                 )}
             </fieldset>
