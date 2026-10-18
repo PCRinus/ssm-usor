@@ -314,7 +314,7 @@ function RecordItem({
   // A training typed from a paper sheet has its signatures on that sheet.
   const signs = training.source === 'app';
   const signatures = useRecordSignatures(clientId, record.id, userId, signs);
-  const locks = recordLocks(signatures.data?.slots);
+  const locks = recordLocks(signatures.data);
   return (
     <li
       data-testid="training-record-item"

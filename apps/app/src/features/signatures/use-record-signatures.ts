@@ -2,7 +2,7 @@ import { useRouteContext } from '@tanstack/react-router';
 
 import {
   getGetRecordSignaturesQueryKey,
-  type RecordSignaturesResponseSlotsItem,
+  type RecordSignaturesResponse,
   useGetRecordSignatures,
 } from '@/api/generated/api';
 
@@ -22,14 +22,15 @@ export function useRecordSignatures(
   });
 }
 
-// A voided signature also keeps a record from being deleted, which the slots cannot show; the
-// API's refusal stays the last word.
-export function recordLocks(slots: readonly RecordSignaturesResponseSlotsItem[] | undefined) {
-  const signed = slots?.some((slot) => slot.state === 'signed') ?? false;
-  const paper = slots?.some((slot) => slot.state === 'paper') ?? false;
+export function recordLocks(signatures: RecordSignaturesResponse | undefined) {
+  const signed = signatures?.slots.some((slot) => slot.state === 'signed') ?? false;
   const frozen = 'Semnată electronic: anulează semnăturile ca s-o poți modifica sau șterge.';
   return {
     edit: signed ? frozen : null,
-    delete: signed ? frozen : paper ? 'Are semnături pe hârtie, care rămân în evidență.' : null,
+    delete: signed
+      ? frozen
+      : signatures?.hasSignatures
+        ? 'Are semnături, chiar anulate sau pe hârtie, care rămân în evidență: nu se mai poate șterge.'
+        : null,
   };
 }
