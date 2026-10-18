@@ -961,7 +961,6 @@ describe('the signing agreement signed in a portal session', () => {
       chainPem: ['CA'],
       appearanceLines: [
         'Popescu Ion',
-        'Salariat',
         'semnat electronic',
         expect.stringMatching(/^\d{2}\.\d{2}\.\d{4}$/),
       ],
@@ -1031,7 +1030,6 @@ describe('the signing agreement signed in a portal session', () => {
       certificatePem: 'CERT Elena Radu',
       appearanceLines: [
         'Elena Radu',
-        'Angajator',
         'semnat electronic',
         expect.stringMatching(/^\d{2}\.\d{2}\.\d{4}$/),
       ],

@@ -176,7 +176,8 @@ export async function signAgreement(
     signedAt: signedAt.toISOString(),
     certify: party === 'employee',
     lockFields: [],
-    appearanceLines: [signer.name, partyLabels[party], 'semnat electronic', signedOn(signedAt)],
+    // No party label: the heading over the box says it, and a fourth line would shrink the rest.
+    appearanceLines: [signer.name, 'semnat electronic', signedOn(signedAt)],
   });
   await checkToSign(begun.prepared, begun.toSign, identity.certificatePem);
   const signature = await identities.signWithIdentity(identity, begun.toSign);

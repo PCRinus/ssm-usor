@@ -118,23 +118,24 @@ def signature_table(document, text, cursor, sides):
     for edge in ('TopLine', 'BottomLine', 'LeftLine', 'RightLine', 'HorizontalLine', 'VerticalLine'):
         setattr(border, edge, BorderLine2())
     table.TableBorder2 = border
-    table.TopMargin = round(14 * POINT)
     table.BottomMargin = round(12 * POINT)
     for row_index, values in enumerate(rows):
         for column, value in enumerate(values):
             cell = table.getCellByName(f'{chr(ord("A") + column)}{row_index + 1}')
             cell_cursor = cell.createTextCursor()
-            write_paragraph(cell, cell_cursor, value, bold=row_index == 2, above=0,
-                            below=6 if row_index == 0 else 0, first=True)
+            write_paragraph(cell, cell_cursor, value, bold=row_index == 2,
+                            above=6 if row_index == 2 else 0, below=0, first=True)
     return table
 
 
 def signatures(document, text, cursor, definition):
     sides = definition['signatures']
     compact = definition.get('compact')
-    plain(text, cursor, '', adjust=LEFT, below=0)
     fields = any('field' in side for side in sides)
     if fields:
+        # The table's own top margin is lost on export; the last article keeps the room above
+        # the block. The blank paragraph the table leaves after itself becomes the tail.
+        cursor.ParaBottomMargin = round(18 * POINT)
         signature_table(document, text, cursor, sides)
         tail = text.createTextCursor()
         tail.gotoEnd(False)
@@ -143,6 +144,7 @@ def signatures(document, text, cursor, definition):
         tail.ParaTopMargin = 0
         tail.ParaBottomMargin = 0
         return
+    plain(text, cursor, '', adjust=LEFT, below=0)
     # A signature field brings its own room; the annex has less than the set's hand-over blocks,
     # to keep to one page.
     room = 4 if fields else compact['signingRoom'] if compact else 34
