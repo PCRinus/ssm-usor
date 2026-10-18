@@ -14,7 +14,7 @@ import {
   type SlotPeople,
   VoidSignaturesDialog,
 } from './record-signature-dialogs';
-import { slotStateBadgeClasses, slotStateLabels } from './signature-format';
+import { slotStateBadgeClasses, slotStateLabels, voidReasonLabel } from './signature-format';
 import type { useRecordSignatures } from './use-record-signatures';
 
 type Slot = RecordSignaturesResponseSlotsItem;
@@ -33,7 +33,7 @@ function SlotDetail({ slot }: { slot: Slot }) {
     case 'paper':
       return <>{slot.signerName}</>;
     case 'void':
-      return slot.voidReason ? <>Motiv: {slot.voidReason}</> : null;
+      return slot.voidReason ? <>Motiv: {voidReasonLabel(slot.voidReason)}</> : null;
     case 'unassigned':
       return null;
   }

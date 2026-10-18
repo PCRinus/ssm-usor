@@ -13,7 +13,7 @@ import {
   useListClientSignatureRequests,
 } from '@/api/generated/api';
 import { SectionCard } from '@/components/section-card';
-import { formatDate } from '@/features/employees/employee-format';
+import { formatDate, roCount } from '@/features/employees/employee-format';
 import { formatDay } from '@/features/participants/participant-format';
 
 import { AgreementWarning } from './agreement-warning';
@@ -43,8 +43,7 @@ function byEmployee(items: readonly SignatureRequest[]): EmployeeGroup[] {
   );
 }
 
-const pendingLabel = (count: number) =>
-  count === 1 ? '1 semnătură în așteptare' : `${count} semnături în așteptare`;
+const pendingLabel = (count: number) => `${roCount(count, 'semnătură', 'semnături')} în așteptare`;
 
 // Nothing is shown while every request is signed: the page is about the trainings held.
 export function ClientSignatureRequests({

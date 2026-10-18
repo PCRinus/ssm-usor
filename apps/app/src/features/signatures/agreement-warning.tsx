@@ -11,7 +11,7 @@ export function AgreementWarning({ state }: { state: SigningAgreementState | nul
     <Badge
       variant="outline"
       data-testid="agreement-warning"
-      title="Angajatul nu a semnat actul adițional de semnare electronică."
+      title="Angajatul nu a semnat actul adițional privind semnarea electronică."
       className="border-warning-border bg-warning text-warning-foreground"
     >
       <TriangleAlert aria-hidden="true" />

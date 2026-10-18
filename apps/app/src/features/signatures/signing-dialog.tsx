@@ -29,13 +29,15 @@ import {
 } from '@/api/generated/api';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
-import { formatDate, roCount } from '@/features/employees/employee-format';
+import { formatDate } from '@/features/employees/employee-format';
 
+import { AgreementWarning } from './agreement-warning';
 import {
+  attemptsLeftOf,
   codeNeedsRenewal,
   reasonOf,
   renewalMessages,
-  signerRoleLabels,
+  signAsLabel,
   signingFailure,
   signingItemFailures,
   signingSessionFailure,
@@ -46,18 +48,9 @@ import { invalidateSignatures } from './signature-queries';
 
 type SignatureRequest = SignatureRequestListResponseItemsItem;
 
-const codeAttempts = 3;
 const codeLength = 6;
-const codeMinutes = 10;
-const codeIntervalSeconds = 60;
 
 const timeFormat = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit' });
-
-// The API answers a code too soon without saying when the next may go; the last one's expiry does.
-function secondsUntilNextCode(expiresAt: string) {
-  const sentAt = new Date(expiresAt).getTime() - codeMinutes * 60_000;
-  return Math.ceil((sentAt + codeIntervalSeconds * 1000 - Date.now()) / 1000);
-}
 
 type Step =
   | { kind: 'review' }
@@ -96,12 +89,19 @@ function SigningFlow({
   const [sendError, setSendError] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
-  const [attemptsLeft, setAttemptsLeft] = useState(codeAttempts);
   const [renewal, setRenewal] = useState<string | null>(null);
   const [signError, setSignError] = useState<string | null>(null);
   const touched = useRef(false);
   const codeInput = useRef<HTMLInputElement>(null);
+  const wantsFocus = useRef(false);
   const busy = create.isPending || sign.isPending;
+
+  // The field exists, and is no longer busy, only in the render that follows the request.
+  useEffect(() => {
+    if (busy || !wantsFocus.current) return;
+    wantsFocus.current = false;
+    codeInput.current?.focus();
+  });
 
   // On unmount, so that the close button and Escape refresh the lists as well.
   useEffect(
@@ -125,20 +125,10 @@ function SigningFlow({
       setCodeError(null);
       setRenewal(null);
       setSignError(null);
-      setAttemptsLeft(codeAttempts);
-      requestAnimationFrame(() => codeInput.current?.focus());
+      wantsFocus.current = true;
     } catch (cause) {
-      const reason = reasonOf(cause);
-      if (reason === signatureErrorReasons.signingItemNotFound) touched.current = true;
-      const wait =
-        reason === signatureErrorReasons.codeRateLimited && step.kind === 'code'
-          ? secondsUntilNextCode(step.session.expiresAt)
-          : 0;
-      setSendError(
-        wait > 0
-          ? `Ți-am trimis un cod acum mai puțin de un minut. Poți cere altul peste ${roCount(wait, 'secundă', 'secunde')}.`
-          : signingSessionFailure(cause)
-      );
+      if (reasonOf(cause) === signatureErrorReasons.signingItemNotFound) touched.current = true;
+      setSendError(signingSessionFailure(cause));
     }
   }
 
@@ -157,14 +147,17 @@ function SigningFlow({
     } catch (cause) {
       const reason = reasonOf(cause);
       if (reason === signatureErrorReasons.codeInvalid) {
-        const left = attemptsLeft - 1;
-        setAttemptsLeft(left);
-        if (left > 0) {
-          setCodeError(wrongCodeMessage(left));
-          setCode('');
-          codeInput.current?.focus();
-        } else {
+        const left = attemptsLeftOf(cause);
+        if (left === 0) {
           setRenewal(renewalMessages[signatureErrorReasons.codeAttemptsExceeded]!);
+        } else {
+          setCodeError(
+            left === null
+              ? 'Codul nu este corect. Verifică-l și scrie-l din nou.'
+              : wrongCodeMessage(left)
+          );
+          setCode('');
+          wantsFocus.current = true;
         }
       } else if (reason && codeNeedsRenewal.has(reason)) {
         setRenewal(renewalMessages[reason]!);
@@ -241,6 +234,14 @@ function SigningFlow({
               .
             </DialogDescription>
           </DialogHeader>
+          <details data-testid="signing-code-items" className="group text-sm">
+            <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+              Ce semnează codul
+            </summary>
+            <div className="mt-2">
+              <RequestList requests={requests} />
+            </div>
+          </details>
           {renewal ? (
             <Notice
               variant="warning"
@@ -278,8 +279,8 @@ function SigningFlow({
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 pattern={`[0-9]{${codeLength}}`}
-                maxLength={codeLength}
-                disabled={busy}
+                readOnly={busy}
+                aria-busy={busy}
                 aria-invalid={Boolean(codeError)}
                 aria-describedby={codeError ? 'signing-code-error' : undefined}
               />
@@ -439,11 +440,12 @@ function RequestItem({
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-medium">{formatEmployeeName(record.employee)}</span>
           <Badge variant="secondary">{trainingDomainLabels[record.domain]}</Badge>
+          <AgreementWarning state={request.agreementState} />
         </p>
         <p className="mt-0.5 text-sm text-muted-foreground">
           {trainingPhaseLabels[record.phase]} ·{' '}
-          <span className="tabular-nums">{formatDate(record.heldOn)}</span> · semnezi ca{' '}
-          {signerRoleLabels[request.slot]}
+          <span className="tabular-nums">{formatDate(record.heldOn)}</span> ·{' '}
+          {signAsLabel(request.slot)}
         </p>
         <p className="text-xs text-muted-foreground">{request.client.name}</p>
         {children}

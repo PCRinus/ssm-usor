@@ -19,7 +19,8 @@ import { useAuth } from '@/features/auth/auth-context';
 import { formatDate } from '@/features/employees/employee-format';
 import { formatDay } from '@/features/participants/participant-format';
 
-import { signerRoleLabels, signingBatchLimit, trainingCount } from './signature-format';
+import { AgreementWarning } from './agreement-warning';
+import { signAsLabel, signingBatchLimit, trainingCount } from './signature-format';
 import { SigningDialog } from './signing-dialog';
 
 type SignatureRequest = SignatureRequestListResponseItemsItem;
@@ -76,9 +77,8 @@ export function SignatureRequestsPage() {
         <div className="grid gap-2">
           <h1 className="text-3xl font-semibold tracking-tight">Semnături</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Instruirile pe care le ai de semnat ca instructor, ca cel care a verificat sau ca cel
-            care admite la lucru. Alegi rândurile, ceri un cod pe email și le semnezi pe toate
-            odată.
+            Instruirile pe care le ai de semnat ca instructor, ca verificator sau la „Admite la
+            lucru”. Alegi rândurile, ceri un cod și le semnezi pe toate odată.
           </p>
         </div>
         {items.length > 0 && (
@@ -233,11 +233,12 @@ function RequestRow({
             {name}
           </Link>
           <Badge variant="secondary">{trainingDomainLabels[record.domain]}</Badge>
+          <AgreementWarning state={request.agreementState} />
         </p>
         <p className="mt-0.5 text-sm text-muted-foreground">
           {trainingPhaseLabels[record.phase]} ·{' '}
-          <span className="tabular-nums">{formatDate(record.heldOn)}</span> · semnezi ca{' '}
-          {signerRoleLabels[request.slot]}
+          <span className="tabular-nums">{formatDate(record.heldOn)}</span> ·{' '}
+          {signAsLabel(request.slot)}
         </p>
       </div>
       <p className="col-start-2 text-sm text-muted-foreground sm:col-start-auto sm:text-right">

@@ -3,8 +3,10 @@ import {
   clientConflictReasons,
   signatureErrorReasons,
   type SignatureSlotState,
+  type SignatureVoidReason,
   type SignerKind,
   type SignerSlot,
+  signerSlotLabels,
   type SigningAgreementState,
 } from '@ssm-usor/contracts';
 
@@ -24,16 +26,28 @@ export const slotStateBadgeClasses: Record<SignatureSlotState, string> = {
   pending: 'border-warning-border bg-warning text-warning-foreground',
   signed: 'border-success-border bg-success text-success-foreground',
   paper: 'border-border bg-secondary text-secondary-foreground',
-  void: 'border-border text-muted-foreground line-through',
+  void: 'border-border text-muted-foreground',
   unassigned: 'border-dashed border-border text-muted-foreground',
 };
 
-export const signerRoleLabels: Record<SignerSlot, string> = {
-  trainee: 'instruit',
-  trainer: 'instructor',
-  verifier: 'cel care a verificat',
-  admitter: 'cel care admite la lucru',
+export const signAsLabel = (slot: SignerSlot) =>
+  slot === 'admitter'
+    ? `semnezi la „${signerSlotLabels.admitter}”`
+    : `semnezi ca ${signerSlotLabels[slot].toLowerCase()}`;
+
+const voidReasonLabels: Record<SignatureVoidReason, string> = {
+  record_changed: 'instruirea a fost modificată',
+  signer_changed: 'semnatarul a fost schimbat',
+  paper: 'trecută pe hârtie',
+  signer_left: 'semnatarul nu mai face parte din client sau din organizație',
+  archived: 'clientul a fost arhivat',
+  withdrawn: 'salariatul a revenit la semnarea olografă',
+  signed_on_paper: 'semnată pe hârtie',
 };
+
+// A void reason is one of the app's codes, or the member's own words when they voided it.
+export const voidReasonLabel = (reason: string) =>
+  (voidReasonLabels as Partial<Record<string, string>>)[reason] ?? reason;
 
 export const signerKindLabels: Record<SignerKind, string> = {
   member: 'organizația ta',
@@ -47,18 +61,18 @@ export const agreementStateLabels: Record<SigningAgreementState | 'none', string
   signed_electronically: 'Semnat electronic',
   signed_on_paper: 'Semnat pe hârtie',
   withdrawn: 'Revenire la semnarea olografă',
-  in_contract: 'Clauză în contract',
+  in_contract: 'Clauza în contract',
 };
 
 export const agreementSigned = (state: SigningAgreementState | null | undefined) =>
-  state === 'signed_electronically' || state === 'signed_on_paper';
+  state === 'signed_electronically' || state === 'signed_on_paper' || state === 'in_contract';
 
 export const reasonOf = (cause: unknown) =>
   cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse> | null)?.reason : null;
 
 const signingMessages: Partial<Record<string, string>> = {
   [signatureErrorReasons.recordSigned]:
-    'Instruirea are semnături electronice și nu se mai poate modifica. Anulează semnăturile, apoi modific-o.',
+    'Instruirea are semnături electronice și nu se mai poate modifica. Anulează semnăturile, apoi modifică instruirea.',
   [signatureErrorReasons.recordHasSignatures]:
     'Instruirea are semnături, pe hârtie sau electronice, care rămân în evidență; nu se mai poate șterge.',
   [signatureErrorReasons.slotSigned]: 'Rubrica este deja semnată.',
@@ -67,6 +81,10 @@ const signingMessages: Partial<Record<string, string>> = {
   [signatureErrorReasons.signerNameRequired]: 'Completează numele celui care a semnat.',
   [signatureErrorReasons.signerNotOfClient]:
     'Semnatarul ales nu mai este membru al organizației sau participant al clientului. Alege din nou.',
+  [signatureErrorReasons.signerNameMismatch]:
+    'Contul ales nu poartă numele tipărit în rubrică. Alege persoana cu acest nume sau folosește numele semnatarului.',
+  [signatureErrorReasons.agreementRecorded]:
+    'Actul adițional are o stare înregistrată și rămâne în dosarul angajatului.',
   [signatureErrorReasons.agreementSignedElectronically]:
     'Actul adițional este semnat electronic; starea lui nu se mai schimbă de aici.',
   [signatureErrorReasons.employeeHasNoAddress]:
@@ -91,8 +109,6 @@ export function signingFailure(cause: unknown, fallback: string) {
 export const hasSigningReason = (cause: unknown, reason: string) => reasonOf(cause) === reason;
 
 const sessionMessages: Partial<Record<string, string>> = {
-  [signatureErrorReasons.codeRateLimited]:
-    'Ți-am trimis un cod în ultimul minut. Așteaptă un minut de la el, apoi cere altul.',
   [signatureErrorReasons.signerHasNoAddress]:
     'Contul tău nu are o adresă la care să trimitem codul. Nu s-a semnat nimic.',
   [signatureErrorReasons.signingCodeNotSent]:
@@ -101,15 +117,32 @@ const sessionMessages: Partial<Record<string, string>> = {
     'Semnarea nu este disponibilă acum. Nu s-a semnat nimic; încearcă mai târziu.',
   [signatureErrorReasons.signingItemNotFound]:
     'O instruire din listă nu mai așteaptă semnătura ta: a fost semnată, anulată sau modificată între timp. Închide și alege din nou.',
+  [signatureErrorReasons.agreementSignedInPortal]:
+    'Actul adițional se semnează în portal, de angajat și de administratorul clientului.',
 };
 
+const errorBody = (cause: unknown) =>
+  cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse> | null) : null;
+
 export function signingSessionFailure(cause: unknown) {
-  const reason = reasonOf(cause);
+  const body = errorBody(cause);
+  if (body?.reason === signatureErrorReasons.codeRateLimited) {
+    const wait = body.retryAfterSeconds;
+    return wait
+      ? `Ți-am trimis un cod acum mai puțin de un minut. Poți cere altul peste ${roCount(wait, 'secundă', 'secunde')}.`
+      : 'Ți-am trimis un cod acum mai puțin de un minut. Așteaptă puțin, apoi cere altul.';
+  }
+  if (cause instanceof ApiHttpError && cause.status === 400) {
+    return `Cu un cod semnezi cel mult ${signingBatchLimit} de instruiri. Alege mai puține și încearcă din nou.`;
+  }
   return (
-    (reason && sessionMessages[reason]) ??
+    (body?.reason && sessionMessages[body.reason]) ??
     signingFailure(cause, 'Nu am putut trimite codul. Verifică conexiunea și încearcă din nou.')
   );
 }
+
+// Null when the refusal carries no count.
+export const attemptsLeftOf = (cause: unknown) => errorBody(cause)?.attemptsLeft ?? null;
 
 // The code is spent or dead: only a new one goes on.
 export const codeNeedsRenewal: ReadonlySet<string> = new Set([
@@ -124,8 +157,7 @@ export const renewalMessages: Partial<Record<string, string>> = {
   [signatureErrorReasons.codeAlreadyUsed]: 'Codul a fost folosit deja. Cere un cod nou.',
   [signatureErrorReasons.codeAttemptsExceeded]:
     'Codul a fost greșit de prea multe ori. Cere un cod nou.',
-  [signatureErrorReasons.signingSessionNotFound]:
-    'Sesiunea de semnare nu mai există. Cere un cod nou.',
+  [signatureErrorReasons.signingSessionNotFound]: 'Sesiunea de semnare a expirat. Cere un cod nou.',
 };
 
 export const wrongCodeMessage = (attemptsLeft: number) =>
@@ -139,7 +171,7 @@ export const signingItemFailures: Record<SignSessionResponseFailedItemReason, st
   agreement_not_awaiting: 'Actul adițional nu mai aștepta semnătura.',
   sheet_busy: 'Fișa angajatului primea în același timp altă semnătură. Semnează din nou.',
   slot_not_on_sheet:
-    'Fișa nu are o rubrică pentru această semnătură; marcheaz-o semnată pe hârtie.',
+    'Fișa nu are o rubrică pentru această semnătură; marchează rubrica semnată pe hârtie.',
   missing_sheet_data:
     'Fișa angajatului nu are toate datele (locul de muncă, traseul). Completează-le, apoi semnează din nou.',
   signer_unavailable: 'Serviciul de semnare nu a răspuns. Încearcă din nou mai târziu.',
