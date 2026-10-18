@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { useGetPortalMe } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { PublicFrame } from '@/app/public-frame';
 import { deviceLocale, useActiveLocale } from '@/features/language/locale';
 import { useApiRequest } from '@/lib/request';
@@ -24,6 +25,7 @@ export function ParticipantGate({ userId }: { userId: string }) {
       ? participations[0]!
       : (participations.find((item) => item.participantId === chosenId) ?? null);
   useActiveLocale(participation?.language ?? deviceLocale());
+  usePostHogSession(participation);
 
   if (me.isPending) {
     return (

@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Politica de confidențialitate"
   description="Cum prelucrează SSM Ușor datele personale ale vizitatorilor, ale furnizorilor și ale angajaților clienților lor."
-  updated="12 octombrie 2026"
+  updated="18 octombrie 2026"
 >
   {!legalEntity.filled && (
     <p class="note">
@@ -93,6 +93,17 @@ const M = legalEntity.filled ? 'span' : 'mark';
       conține informații pe care le-ai inclus acolo. Temei: interesul legitim de a menține și
       îmbunătăți serviciul și de a acorda asistență.
     </li>
+    <li>
+      <strong>Analiză și erori în portalul angajaților.</strong> După ce un angajat sau un
+      reprezentant al unei firme client se conectează în portal (portal.ssmusor.ro), folosim PostHog
+      pentru paginile accesate, clicuri, erori JavaScript, detalii tehnice despre cererile eșuate și
+      înregistrări ale sesiunii. Le asociem cu numele persoanei, cu adresa de email sau numărul de
+      telefon cu care s-a conectat, cu firma client și cu serviciul extern, ca să putem diagnostica
+      probleme și îmbunătăți portalul. În înregistrări mascăm conținutul text, câmpurile introduse
+      și atributele elementelor, așa că datele de pe fișe nu ajung în ele, iar adresele URL ale
+      portalului nu conțin nume. Portalul nu folosește asistența PostHog. Temei: interesul legitim
+      de a menține și îmbunătăți serviciul.
+    </li>
   </ul>
   <p>
     Nu folosim datele din platformă pentru publicitate și nu le folosim pentru antrenarea unor
@@ -106,7 +117,8 @@ const M = legalEntity.filled ? 'span' : 'mark';
     <code>?analytics=off</code> la sfârșitul adresei; alegerea se reține în stocarea locală a
     browserului și se șterge cu <code>?analytics=auto</code>. Platforma folosește stocarea locală
     pentru autentificare și, după autentificare, pentru PostHog: identificarea sesiunii, analiza
-    utilizării, înregistrări ale sesiunii și conversațiile de asistență. PostHog nu se încarcă pe
+    utilizării, înregistrări ale sesiunii și conversațiile de asistență. Portalul angajaților
+    folosește stocarea locală la fel, fără conversațiile de asistență. PostHog nu se încarcă pe
     paginile de autentificare.
   </p>
   <p>
@@ -128,8 +140,9 @@ const M = legalEntity.filled ? 'span' : 'mark';
       email tranzacțional: <M>{legalEntity.emailProvider}</M>.
     </li>
     <li>
-      analiză a site-ului de prezentare și a platformei, înregistrări de sesiune (doar în
-      platformă), urmărirea erorilor și asistență: PostHog, cu proiect găzduit în Uniunea Europeană.
+      analiză a site-ului de prezentare, a platformei și a portalului, înregistrări de sesiune (doar
+      în platformă și în portal), urmărirea erorilor și asistență: PostHog, cu proiect găzduit în
+      Uniunea Europeană.
     </li>
   </ul>
   <p>

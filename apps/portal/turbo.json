@@ -13,7 +13,9 @@
         "GIT_COMMIT_SHA",
         "VITE_SUPABASE_URL",
         "VITE_SUPABASE_PUBLISHABLE_KEY",
-        "VITE_API_URL"
+        "VITE_API_URL",
+        "POSTHOG_PROJECT_ID",
+        "POSTHOG_PERSONAL_API_KEY"
       ]
     },
     "dev": {
