@@ -1,18 +1,13 @@
-import type { SigningAgreementState } from '@ssm-usor/contracts';
+import type { SigningAgreementSummary } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { TriangleAlert } from 'lucide-react';
 
-import { agreementSigned } from './signature-format';
+import { agreementAwaitsEmployer, agreementSigned } from './signature-format';
 
 // ADR 023: an unsigned agreement warns and never blocks a signature.
-export function AgreementWarning({
-  state,
-  awaitsEmployer = false,
-}: {
-  state: SigningAgreementState | null;
-  awaitsEmployer?: boolean;
-}) {
-  if (agreementSigned(state)) return null;
+export function AgreementWarning({ agreement }: { agreement: SigningAgreementSummary }) {
+  if (agreementSigned(agreement?.state)) return null;
+  const awaitsEmployer = agreementAwaitsEmployer(agreement);
   return (
     <Badge
       variant="outline"

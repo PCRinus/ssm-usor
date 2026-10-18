@@ -569,6 +569,17 @@ describe('POST /portal/participants/{participantId}/signing-sessions', () => {
     ]);
   });
 
+  it('offers the employee their agreement before any member records it', async () => {
+    participantUpstream('employee', { '/rest/v1/employee_signing_agreements': () => [] });
+
+    const response = await send(path, { requestIds: [], agreementEmployeeIds: [employeeId] });
+
+    expect(response.status).toBe(201);
+    expect(signingSessionResponseSchema.parse(await response.json()).items).toEqual([
+      { kind: 'agreement', employeeId, party: 'employee' },
+    ]);
+  });
+
   it("refuses an employee another employee's agreement, or their own once they signed it", async () => {
     participantUpstream('employee');
     const other = '7c9e6679-7425-40de-944b-e07fc1f90ae8';
@@ -987,6 +998,40 @@ describe('the signing agreement signed in a portal session', () => {
       storage_path: written,
     });
     expect(callsTo('/rest/v1/employee_signing_agreements', 'PATCH')).toHaveLength(0);
+  });
+
+  it('records the agreement as generated when the employee signs it before any member did', async () => {
+    const employeeRow = agreementSources()['/rest/v1/employees'] as () => Record<string, unknown>[];
+    const unrecorded: Record<string, UpstreamRoute> = {
+      // No row until the signature records one: the reads before it find nothing.
+      'GET /rest/v1/employee_signing_agreements': ({ url }) =>
+        url.searchParams.get('select')?.includes('storage_path')
+          ? []
+          : [{ employee_id: employeeId, state: 'generated' }],
+      'POST /rest/v1/employee_signing_agreements': () => [],
+      '/rest/v1/employees': () => [
+        { ...employeeRow()[0], clients: { organization_id: organizationId, archived_at: null } },
+      ],
+    };
+    await agreementUpstream('employee', {}, unrecorded);
+    await agreementUpstream('employee', {}, unrecorded, await employeeDigest());
+
+    const response = await send(path, { code: '123456' });
+
+    expect(response.status).toBe(200);
+    expect(signSessionResponseSchema.parse(await response.json()).agreements).toEqual([
+      { employeeId, party: 'employee', signed: true, reason: null, agreementState: 'generated' },
+    ]);
+    const [recorded] = callsTo('/rest/v1/employee_signing_agreements', 'POST');
+    expect(recorded!.secret).toBe(true);
+    expect(recorded!.body).toEqual({
+      employee_id: employeeId,
+      client_id: clientId,
+      organization_id: organizationId,
+      state: 'generated',
+    });
+    const [evidence] = callsTo('/rest/v1/agreement_signatures', 'POST');
+    expect(evidence!.body).toMatchObject({ party: 'employee', organization_id: organizationId });
   });
 
   it('refuses an agreement that no longer says what it said when the code was asked for', async () => {

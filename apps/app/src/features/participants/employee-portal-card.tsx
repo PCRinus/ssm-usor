@@ -8,7 +8,6 @@ import { getGetEmployeeParticipantQueryKey, useGetEmployeeParticipant } from '@/
 import { Notice } from '@/components/notice';
 import { Fact, FactList, SectionCard } from '@/components/section-card';
 import { AgreementWarning } from '@/features/signatures/agreement-warning';
-import { agreementAwaitsEmployer } from '@/features/signatures/signature-format';
 import { useSigningAgreement } from '@/features/signatures/use-signing-agreement';
 
 import { type InvitedEmployee, InviteEmployeeDialog } from './invite-employee-dialog';
@@ -50,12 +49,7 @@ export function EmployeePortalCard({
       title={
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
           Acces la portal
-          {warnAgreement && (
-            <AgreementWarning
-              state={agreement.data?.agreement?.state ?? null}
-              awaitsEmployer={agreementAwaitsEmployer(agreement.data?.agreement)}
-            />
-          )}
+          {warnAgreement && <AgreementWarning agreement={agreement.data?.agreement ?? null} />}
         </span>
       }
       description="În portal angajatul își vede instruirile, fișele și datele. Intră cu un cod primit pe email sau prin SMS, fără parolă."

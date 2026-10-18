@@ -810,12 +810,8 @@ export type PortalSignatureRequestsResponseItemsItemRecord = {
   admission: PortalSignatureRequestsResponseItemsItemRecordAdmission;
 };
 
-/**
- * @nullable
- */
 export type PortalSignatureRequestsResponseItemsItemAgreementState =
-  | (typeof PortalSignatureRequestsResponseItemsItemAgreementState)[keyof typeof PortalSignatureRequestsResponseItemsItemAgreementState]
-  | null;
+  (typeof PortalSignatureRequestsResponseItemsItemAgreementState)[keyof typeof PortalSignatureRequestsResponseItemsItemAgreementState];
 
 export const PortalSignatureRequestsResponseItemsItemAgreementState = {
   generated: 'generated',
@@ -825,6 +821,17 @@ export const PortalSignatureRequestsResponseItemsItemAgreementState = {
   in_contract: 'in_contract',
 } as const;
 
+/**
+ * @nullable
+ */
+export type PortalSignatureRequestsResponseItemsItemAgreement = {
+  state: PortalSignatureRequestsResponseItemsItemAgreementState;
+  /** @nullable */
+  employeeSignedAt: string | null;
+  /** @nullable */
+  employerSignedAt: string | null;
+} | null;
+
 export type PortalSignatureRequestsResponseItemsItem = {
   id: string;
   slot: PortalSignatureRequestsResponseItemsItemSlot;
@@ -832,7 +839,7 @@ export type PortalSignatureRequestsResponseItemsItem = {
   signerName: string;
   record: PortalSignatureRequestsResponseItemsItemRecord;
   /** @nullable */
-  agreementState: PortalSignatureRequestsResponseItemsItemAgreementState;
+  agreement: PortalSignatureRequestsResponseItemsItemAgreement;
 };
 
 export interface PortalSignatureRequestsResponse {
@@ -934,9 +941,35 @@ export type SigningAgreementResponseAgreement = {
   awaiting: SigningAgreementResponseAgreementAwaiting;
 } | null;
 
+export type SigningAgreementResponseUnavailableReason =
+  (typeof SigningAgreementResponseUnavailableReason)[keyof typeof SigningAgreementResponseUnavailableReason];
+
+export const SigningAgreementResponseUnavailableReason = {
+  missing_document_data: 'missing_document_data',
+  employee_has_no_address: 'employee_has_no_address',
+} as const;
+
+export type SigningAgreementResponseUnavailableMissingItem =
+  (typeof SigningAgreementResponseUnavailableMissingItem)[keyof typeof SigningAgreementResponseUnavailableMissingItem];
+
+export const SigningAgreementResponseUnavailableMissingItem = {
+  clientrepresentativeName: 'client.representativeName',
+  clientrepresentativeRole: 'client.representativeRole',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SigningAgreementResponseUnavailable = {
+  reason: SigningAgreementResponseUnavailableReason;
+  missing: SigningAgreementResponseUnavailableMissingItem[];
+} | null;
+
 export interface SigningAgreementResponse {
   /** @nullable */
   agreement: SigningAgreementResponseAgreement;
+  /** @nullable */
+  unavailable: SigningAgreementResponseUnavailable;
 }
 
 export interface SigningSessionRequest {
@@ -3612,7 +3645,7 @@ export const getGetPortalSigningAgreementStateUrl = (participantId: string) => {
 };
 
 /**
- * `agreement` is null until the specialist records one; the portal shows "act adițional nesemnat" until it is signed.
+ * `agreement` is null until the participant signs it or the specialist records one; it awaits the participant's signature from their first sign-in, unless `unavailable` says why it cannot be drawn up yet. The portal shows "act adițional nesemnat" on their records until it is signed.
  * @summary The participant's own signing agreement state
  */
 export const getPortalSigningAgreementState = async (

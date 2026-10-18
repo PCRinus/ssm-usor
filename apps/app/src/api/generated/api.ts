@@ -7384,12 +7384,8 @@ export type SignatureRequestListResponseItemsItemSigner = {
   name: string | null;
 } | null;
 
-/**
- * @nullable
- */
 export type SignatureRequestListResponseItemsItemAgreementState =
-  | (typeof SignatureRequestListResponseItemsItemAgreementState)[keyof typeof SignatureRequestListResponseItemsItemAgreementState]
-  | null;
+  (typeof SignatureRequestListResponseItemsItemAgreementState)[keyof typeof SignatureRequestListResponseItemsItemAgreementState];
 
 export const SignatureRequestListResponseItemsItemAgreementState = {
   generated: 'generated',
@@ -7398,6 +7394,17 @@ export const SignatureRequestListResponseItemsItemAgreementState = {
   withdrawn: 'withdrawn',
   in_contract: 'in_contract',
 } as const;
+
+/**
+ * @nullable
+ */
+export type SignatureRequestListResponseItemsItemAgreement = {
+  state: SignatureRequestListResponseItemsItemAgreementState;
+  /** @nullable */
+  employeeSignedAt: string | null;
+  /** @nullable */
+  employerSignedAt: string | null;
+} | null;
 
 export type SignatureRequestListResponseItemsItem = {
   id: string;
@@ -7411,7 +7418,7 @@ export type SignatureRequestListResponseItemsItem = {
   /** @nullable */
   signer: SignatureRequestListResponseItemsItemSigner;
   /** @nullable */
-  agreementState: SignatureRequestListResponseItemsItemAgreementState;
+  agreement: SignatureRequestListResponseItemsItemAgreement;
 };
 
 export interface SignatureRequestListResponse {
@@ -7459,9 +7466,35 @@ export type SigningAgreementResponseAgreement = {
   awaiting: SigningAgreementResponseAgreementAwaiting;
 } | null;
 
+export type SigningAgreementResponseUnavailableReason =
+  (typeof SigningAgreementResponseUnavailableReason)[keyof typeof SigningAgreementResponseUnavailableReason];
+
+export const SigningAgreementResponseUnavailableReason = {
+  missing_document_data: 'missing_document_data',
+  employee_has_no_address: 'employee_has_no_address',
+} as const;
+
+export type SigningAgreementResponseUnavailableMissingItem =
+  (typeof SigningAgreementResponseUnavailableMissingItem)[keyof typeof SigningAgreementResponseUnavailableMissingItem];
+
+export const SigningAgreementResponseUnavailableMissingItem = {
+  clientrepresentativeName: 'client.representativeName',
+  clientrepresentativeRole: 'client.representativeRole',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SigningAgreementResponseUnavailable = {
+  reason: SigningAgreementResponseUnavailableReason;
+  missing: SigningAgreementResponseUnavailableMissingItem[];
+} | null;
+
 export interface SigningAgreementResponse {
   /** @nullable */
   agreement: SigningAgreementResponseAgreement;
+  /** @nullable */
+  unavailable: SigningAgreementResponseUnavailable;
 }
 
 export type SigningAgreementStateRequestState =
@@ -28643,7 +28676,7 @@ export const getGetSigningAgreementStateUrl = (clientId: string, employeeId: str
 };
 
 /**
- * `agreement` is null until one is recorded.
+ * `agreement` is null until the employee signs it in the portal, which it awaits from their first sign-in, or a member records one; `unavailable` says why the employee cannot sign it yet.
  * @summary An employee's signing agreement state
  */
 export const getSigningAgreementState = async (

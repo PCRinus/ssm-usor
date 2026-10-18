@@ -8,6 +8,8 @@ import {
   type SignerSlot,
   type SigningAgreementResponse,
   type SigningAgreementState,
+  type SigningAgreementSummary,
+  type SigningAgreementUnavailable,
   type SupplementaryTrainingReason,
   type TrainingDomain,
   type TrainingPhase,
@@ -27,7 +29,7 @@ import { requirePdfConverter } from '../../lib/pdf';
 import { collator } from '../../lib/romanian';
 import { builtInTemplates, merge } from '../documents/documents';
 import { signedSheetContext, voidRow } from '../signed-sheets/signed-sheets';
-import { awaitedParty } from './agreement-state';
+import { awaitedParty, awaits } from './agreement-state';
 import {
   nameIn,
   recordSlots,
@@ -71,16 +73,21 @@ const noRepresentative = (client: {
     "The client's legal representative, who signs the signing agreement for the employer, is not filled in.",
     undefined,
     'missing_document_data',
-    [
-      ...(client.legal_representative_name?.trim() ? [] : (['client.representativeName'] as const)),
-      ...(client.legal_representative_role?.trim() ? [] : (['client.representativeRole'] as const)),
-    ]
+    missingRepresentative(client)
   );
 
-const representativeMissing = (client: {
+type RepresentativeColumns = {
   legal_representative_name: string | null;
   legal_representative_role: string | null;
-}) => !client.legal_representative_name?.trim() || !client.legal_representative_role?.trim();
+};
+
+const missingRepresentative = (client: RepresentativeColumns) => [
+  ...(client.legal_representative_name?.trim() ? [] : (['client.representativeName'] as const)),
+  ...(client.legal_representative_role?.trim() ? [] : (['client.representativeRole'] as const)),
+];
+
+const representativeMissing = (client: RepresentativeColumns) =>
+  missingRepresentative(client).length > 0;
 
 const toIso = (value: string) => new Date(value).toISOString();
 const toIsoOrNull = (value: string | null) => (value ? toIso(value) : null);
@@ -227,7 +234,7 @@ export const voidRecordSignatures: RouteHandler<typeof voidRecordSignaturesRoute
 };
 
 const listColumns =
-  'id, slot, state, signer_account_id, issued_at, notified_at, clients!signature_requests_client_id_fkey(id, legal_name), training_records!signature_requests_record_of_client(id, training_id, employees(id, last_name, first_name, employee_signing_agreements(state)), trainings(domain, phase, held_on))';
+  'id, slot, state, signer_account_id, issued_at, notified_at, clients!signature_requests_client_id_fkey(id, legal_name), training_records!signature_requests_record_of_client(id, training_id, employees(id, last_name, first_name, employee_signing_agreements(state, employee_signed_at, employer_signed_at)), trainings(domain, phase, held_on))';
 
 // Any embed may come back null when a policy hides its row; such a request is left out.
 type ListRow = {
@@ -245,7 +252,7 @@ type ListRow = {
       id: string;
       last_name: string;
       first_name: string;
-      employee_signing_agreements: { state: string }[] | null;
+      employee_signing_agreements: AgreementSummaryRow[] | null;
     } | null;
     trainings: { domain: TrainingDomain; phase: TrainingPhase; held_on: string } | null;
   } | null;
@@ -262,8 +269,24 @@ type VisibleListRow = ListRow & {
 const visible = (row: ListRow): row is VisibleListRow =>
   !!row.clients && !!row.training_records?.employees && !!row.training_records.trainings;
 
-const agreementStateOf = (agreements: { state: string }[] | null | undefined) =>
-  (agreements?.[0]?.state as SigningAgreementState | undefined) ?? null;
+type AgreementSummaryRow = {
+  state: string;
+  employee_signed_at: string | null;
+  employer_signed_at: string | null;
+};
+
+const agreementSummaryOf = (
+  agreements: AgreementSummaryRow[] | null | undefined
+): SigningAgreementSummary => {
+  const row = agreements?.[0];
+  return row
+    ? {
+        state: row.state as SigningAgreementState,
+        employeeSignedAt: toIsoOrNull(row.employee_signed_at),
+        employerSignedAt: toIsoOrNull(row.employer_signed_at),
+      }
+    : null;
+};
 
 const toListItem = (
   row: VisibleListRow,
@@ -288,7 +311,7 @@ const toListItem = (
     heldOn: row.training_records.trainings.held_on,
   },
   signer,
-  agreementState: agreementStateOf(row.training_records.employees.employee_signing_agreements),
+  agreement: agreementSummaryOf(row.training_records.employees.employee_signing_agreements),
 });
 
 export const listMySignatureRequests: RouteHandler<
@@ -348,7 +371,7 @@ export const listClientSignatureRequests: RouteHandler<
 // Policies choose the rows a participant reads, not the columns: every portal select names its
 // columns, so the CNP and the notes never leave.
 const portalRecordColumns =
-  'id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, employees(id, last_name, first_name, employee_signing_agreements(state)), trainings(domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, verifier_name, verifier_job_title, supplementary_reason)';
+  'id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, employees(id, last_name, first_name, employee_signing_agreements(state, employee_signed_at, employer_signed_at)), trainings(domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, verifier_name, verifier_job_title, supplementary_reason)';
 
 type PortalRecordRow = {
   id: string;
@@ -360,7 +383,7 @@ type PortalRecordRow = {
     id: string;
     last_name: string;
     first_name: string;
-    employee_signing_agreements: { state: string }[];
+    employee_signing_agreements: AgreementSummaryRow[];
   };
   trainings: {
     domain: TrainingDomain;
@@ -427,7 +450,7 @@ function toPortalRequest(
             }
           : null,
     },
-    agreementState: agreementStateOf(record.employees.employee_signing_agreements),
+    agreement: agreementSummaryOf(record.employees.employee_signing_agreements),
   };
 }
 
@@ -526,25 +549,64 @@ export const toAgreementState = (row: AgreementRow) => ({
   awaiting: awaitedParty(row),
 });
 
-const toAgreement = (row: AgreementRow | null): SigningAgreementResponse => ({
+// What drawing the agreement up would refuse, told before the employee tries.
+const unavailableFor = (
+  client: RepresentativeColumns | null,
+  employee: { email: string | null; phone: string | null }
+): SigningAgreementUnavailable => {
+  if (client && representativeMissing(client)) {
+    return { reason: 'missing_document_data', missing: missingRepresentative(client) };
+  }
+  if (!contactOf({ emails: [employee.email], phones: [employee.phone] })) {
+    return { reason: 'employee_has_no_address', missing: [] };
+  }
+  return null;
+};
+
+type AgreementSources = {
+  row: AgreementRow | null;
+  client: RepresentativeColumns | null;
+  employee: { email: string | null; phone: string | null };
+};
+
+const toAgreement = ({ row, client, employee }: AgreementSources): SigningAgreementResponse => ({
   agreement: row ? toAgreementState(row) : null,
+  unavailable: awaits(row, 'employee') ? unavailableFor(client, employee) : null,
 });
 
-async function agreementOf(db: DataClient, clientId: string, employeeId: string) {
-  const [employee, agreement] = await Promise.all([
-    db.from('employees').select('id').eq('id', employeeId).eq('client_id', clientId).maybeSingle(),
+async function agreementSources(
+  db: DataClient,
+  clientId: string,
+  employeeId: string
+): Promise<AgreementSources> {
+  const [employee, agreement, client] = await Promise.all([
+    db
+      .from('employees')
+      .select('id, email, phone')
+      .eq('id', employeeId)
+      .eq('client_id', clientId)
+      .maybeSingle(),
     db
       .from('employee_signing_agreements')
       .select(agreementColumns)
       .eq('employee_id', employeeId)
       .eq('client_id', clientId)
       .maybeSingle(),
+    db
+      .from('clients')
+      .select('legal_representative_name, legal_representative_role')
+      .eq('id', clientId)
+      .maybeSingle(),
   ]);
   if (employee.error) throw fromDatabaseError(employee.error, 'agreement employee');
   if (agreement.error) throw fromDatabaseError(agreement.error, 'signing agreement');
+  if (client.error) throw fromDatabaseError(client.error, 'agreement client');
   if (!employee.data) throw noSuchEmployee();
-  return toAgreement(agreement.data);
+  return { row: agreement.data, client: client.data, employee: employee.data };
 }
+
+const agreementOf = async (db: DataClient, clientId: string, employeeId: string) =>
+  toAgreement(await agreementSources(db, clientId, employeeId));
 
 const agreementFileName = (employee: { lastName: string; firstName: string }) => {
   const words = `${employee.lastName} ${employee.firstName}`
@@ -724,7 +786,8 @@ export const putSigningAgreementState: RouteHandler<
   const { clientId, employeeId } = c.req.valid('param');
   const { state, clientFileId } = c.req.valid('json');
   const db = createDataClient(c);
-  const { agreement } = await agreementOf(db, clientId, employeeId);
+  const sources = await agreementSources(db, clientId, employeeId);
+  const agreement = sources.row;
   if (state === 'generated') await requireRepresentative(db, clientId);
   const now = new Date().toISOString();
   // marked_by is the database's to set, from the member signed in.
@@ -761,7 +824,7 @@ export const putSigningAgreementState: RouteHandler<
     }
     throw fromDatabaseError(saved.error, 'save signing agreement');
   }
-  return c.json(toAgreement(saved.data), 200);
+  return c.json(toAgreement({ ...sources, row: saved.data }), 200);
 };
 
 async function requireRepresentative(db: DataClient, clientId: string) {

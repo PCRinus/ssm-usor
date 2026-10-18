@@ -1204,8 +1204,12 @@ msgid "Sesiunea ta în portal a expirat. Ieși din cont și intră din nou."
 msgstr "Your portal session has expired. Sign out and sign in again."
 
 #: src/features/signing/agreement-section.tsx
-msgid "Specialistul nu l-a pregătit încă."
-msgstr "Your specialist has not prepared it yet."
+msgid "Specialistul trebuie să completeze mai întâi reprezentantul legal al angajatorului în datele firmei."
+msgstr "The specialist must first fill in the employer's legal representative in the company details."
+
+#: src/features/signing/agreement-section.tsx
+msgid "Specialistul trebuie să-ți adauge mai întâi un email sau un telefon, unde primești codurile de semnare."
+msgstr "The specialist must first add an email or a phone for you, where you receive the signing codes."
 
 #: src/features/my-data/provider-box.tsx
 msgid "Spune-i specialistului SSM: {name}"

@@ -75,13 +75,11 @@ test('an employee signs the agreement and a training with one code, and the clie
   await inviteAdministratorByEmail(provider, 'Elena Dobre', administratorEmail);
 
   await signIn(page, email);
-  await expect(page.getByTestId('home-todo')).toContainText('Nimic de semnat deocamdată');
+  // The agreement awaits the employee from the first sign-in, before any member records it.
+  await expect(page.getByTestId('home-todo-item')).toHaveCount(1);
+  await expect(page.getByTestId('home-todo-item')).toHaveAttribute('data-kind', 'agreement');
+  await expect(page.getByTestId('home-sign')).toHaveText('Semnează (1)');
 
-  await api(
-    `/clients/${provider.clientId}/employees/${employeeId}/signing-agreement/state`,
-    provider.token,
-    { method: 'PUT', body: { state: 'generated' } }
-  );
   await api(`/clients/${provider.clientId}/trainings`, provider.token, {
     method: 'POST',
     body: {

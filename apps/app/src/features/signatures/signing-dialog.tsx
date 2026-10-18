@@ -440,7 +440,7 @@ function RequestItem({
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-medium">{formatEmployeeName(record.employee)}</span>
           <Badge variant="secondary">{trainingDomainLabels[record.domain]}</Badge>
-          <AgreementWarning state={request.agreementState} />
+          <AgreementWarning agreement={request.agreement} />
         </p>
         <p className="mt-0.5 text-sm text-muted-foreground">
           {trainingPhaseLabels[record.phase]} ·{' '}

@@ -109,6 +109,7 @@ export function SigningAgreementCard({
   const [confirming, setConfirming] = useState<Change | null>(null);
   const [showingClause, setShowingClause] = useState(false);
   const agreement = query.data?.agreement ?? null;
+  const unavailable = query.data?.unavailable ?? null;
   const state = agreement?.state ?? 'none';
   const awaitsEmployer = agreementAwaitsEmployer(agreement);
   const unsigned = state === 'none' || (state === 'generated' && !awaitsEmployer);
@@ -202,7 +203,7 @@ export function SigningAgreementCard({
         )
       }
     >
-      {noAddress && (
+      {(noAddress || unavailable?.reason === 'employee_has_no_address') && (
         <Notice
           variant="info"
           data-testid="signing-agreement-no-address"
@@ -218,10 +219,10 @@ export function SigningAgreementCard({
           }
         >
           Actul adițional spune unde primește angajatul codurile de semnare. Adaugă-i un email sau
-          un telefon, apoi descarcă-l.
+          un telefon ca să-l poată semna din portal sau ca să-l descarci.
         </Notice>
       )}
-      {noRepresentative && (
+      {(noRepresentative || unavailable?.reason === 'missing_document_data') && (
         <Notice
           variant="info"
           data-testid="signing-agreement-no-representative"
@@ -234,7 +235,8 @@ export function SigningAgreementCard({
           }
         >
           Actul adițional numește reprezentantul legal al clientului. Completează-i numele și
-          funcția în datele clientului, apoi descarcă-l.
+          funcția în datele clientului ca să-l poată semna angajatul din portal sau ca să-l
+          descarci.
         </Notice>
       )}
       {!annexIssued && (
@@ -284,7 +286,7 @@ export function SigningAgreementCard({
             <span className="text-muted-foreground" data-testid="signing-agreement-detail">
               {agreement
                 ? stateDetail(agreement)
-                : 'Descarcă-l ca să-l dai angajatului spre semnare. Pentru un angajat nou, clauza poate intra direct în contractul de muncă.'}
+                : 'Angajatul îl poate semna din portal de la prima autentificare. Descarcă-l ca să fie semnat de mână; pentru un angajat nou, clauza poate intra direct în contractul de muncă.'}
             </span>
           </p>
           {!readOnly && (unsigned || agreed) && (
