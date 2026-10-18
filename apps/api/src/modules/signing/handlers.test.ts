@@ -580,7 +580,12 @@ const convertDocx = vi.fn<(docx: ArrayBuffer) => Promise<ArrayBuffer>>(
 const withConverter = {
   ...env,
   PDF_CONVERSION: 'service',
-  PDF: { convertDocx, convertDocuments: (files: ArrayBuffer[]) => convertDocx(files[0]!) },
+  PDF: {
+    convertDocx,
+    convertDocuments: (files: ArrayBuffer[]) => convertDocx(files[0]!),
+    convertForm: convertDocx,
+    mergePdfs: (files: ArrayBuffer[]) => convertDocx(files[0]!),
+  },
 } as ApiEnv['Bindings'];
 
 function agreementUpstream(overrides: Record<string, UpstreamRoute> = {}) {
