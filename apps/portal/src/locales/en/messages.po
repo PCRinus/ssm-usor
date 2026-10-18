@@ -81,14 +81,10 @@ msgstr "{minutes, plural, one {# minute} other {# minutes}}"
 msgid "{other}: {phase} {domain}"
 msgstr "{other}: {phase}, {domain}"
 
+#: src/features/signing/client-signatures-page.tsx
 #: src/features/signing/signing-item-text.tsx
 msgid "{phase} {domain}"
 msgstr "{phase}, {domain}"
-
-#. placeholder {0}: request.signerName
-#: src/features/signing/client-signatures-page.tsx
-msgid "{phase} {domain}: așteaptă {0} ({role})"
-msgstr "{phase}, {domain}: waiting for {0} ({role})"
 
 #: src/features/training/training-records-list.tsx
 msgid "{phase}, admis la lucru"
@@ -264,6 +260,7 @@ msgstr "Waiting for your signature ({roles})."
 msgid "Așteaptă semnătura ta."
 msgstr "Waiting for your signature."
 
+#: src/features/signing/client-signatures-page.tsx
 #: src/features/training/training-records-list.tsx
 msgid "Așteaptă semnătura: {people}."
 msgstr "Waiting for: {people}."

@@ -24,7 +24,7 @@ import {
   type Participation,
   useParticipation,
 } from '@/features/participation/participation-context';
-import { useFormatDate } from '@/lib/format';
+import { useFormatDate, useFormatList } from '@/lib/format';
 import { trainingDomainMessages, trainingPhaseMessages } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
 
@@ -212,9 +212,18 @@ function PendingRequests({ participantId }: { participantId: string }) {
   );
 }
 
+function byRecord(requests: PortalSignatureRequest[]) {
+  const records = new Map<string, PortalSignatureRequest[]>();
+  for (const request of requests) {
+    records.set(request.record.id, [...(records.get(request.record.id) ?? []), request]);
+  }
+  return records;
+}
+
 function EmployeeRequests({ items }: { items: PortalSignatureRequest[] }) {
   const { t, i18n } = useLingui();
   const formatDate = useFormatDate();
+  const formatList = useFormatList();
   const employee = items[0]!.record.employee;
   return (
     <li data-testid="client-pending-employee" className="grid gap-2 px-4 py-3.5 sm:px-5">
@@ -225,22 +234,27 @@ function EmployeeRequests({ items }: { items: PortalSignatureRequest[] }) {
       >
         {employeeNameOf(employee)}
       </Link>
-      <ul className="grid gap-1.5">
-        {items.map((request) => {
-          const phase = i18n._(trainingPhaseMessages[request.record.phase]);
-          const domain = i18n._(trainingDomainMessages[request.record.domain]);
-          const day = formatDate(request.record.heldOn, 'short');
-          const role = i18n._(slotRoleMessages[request.slot]);
+      <ul className="grid gap-2.5">
+        {[...byRecord(items).values()].map((requests) => {
+          const { record } = requests[0]!;
+          const phase = i18n._(trainingPhaseMessages[record.phase]);
+          const domain = i18n._(trainingDomainMessages[record.domain]);
+          const day = formatDate(record.heldOn, 'short');
+          const people = formatList(
+            requests.map(
+              (request) => `${request.signerName} (${i18n._(slotRoleMessages[request.slot])})`
+            )
+          );
           return (
-            <li
-              key={request.id}
-              data-testid="client-pending-request"
-              className="grid gap-0.5 text-sm sm:flex sm:gap-2"
-            >
-              <span className="tabular-nums sm:w-28 sm:shrink-0">{day}</span>
-              <span className="min-w-0 text-foreground/80">
-                {t`${phase} ${domain}: așteaptă ${request.signerName} (${role})`}
+            <li key={record.id} data-testid="client-pending-request" className="grid text-sm">
+              <span className="font-medium">
+                <time dateTime={record.heldOn} className="tabular-nums">
+                  {day}
+                </time>
+                {' · '}
+                {t`${phase} ${domain}`}
               </span>
+              <span className="text-foreground/80">{t`Așteaptă semnătura: ${people}.`}</span>
             </li>
           );
         })}

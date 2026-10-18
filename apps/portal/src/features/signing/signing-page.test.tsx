@@ -345,7 +345,15 @@ describe('the client administrator', () => {
       queryResult({ items: [awaiting(first, 'Pop'), awaiting(second, 'Stan')] })
     );
     vi.mocked(useListPortalClientSignatureRequests).mockReturnValue(
-      queryResult({ items: [requestA, request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r3')] })
+      queryResult({
+        items: [
+          requestA,
+          request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r3', {
+            slot: 'trainer',
+            signerName: 'Ana Ionescu',
+          }),
+        ],
+      })
     );
   });
 
@@ -365,7 +373,10 @@ describe('the client administrator', () => {
     mountPortal(signedIn(), '/angajati/semnaturi');
     const rows = await screen.findAllByTestId('agreement-row');
     expect(rows).toHaveLength(2);
-    expect(screen.getAllByTestId('client-pending-request')).toHaveLength(2);
+    expect(screen.getAllByTestId('client-pending-request')).toHaveLength(1);
+    expect(screen.getByTestId('client-pending-request').textContent).toContain(
+      'Așteaptă semnătura: Pop Ana (lucrător), Ana Ionescu (instructor).'
+    );
 
     await user.click(within(rows[1]!).getByTestId('agreement-sign'));
     const checks = await screen.findAllByTestId('signing-item-check');

@@ -347,11 +347,7 @@ function ChooseRow({
   const id = useId();
   const record = item.kind === 'request' ? item.request.record : null;
   return (
-    <li
-      data-testid="signing-item"
-      data-kind={item.kind}
-      className={cn('grid gap-2 px-4 py-3.5 sm:px-5', checked && 'bg-accent/40')}
-    >
+    <li data-testid="signing-item" data-kind={item.kind} className="grid gap-2 px-4 py-3.5 sm:px-5">
       <div className="flex items-start gap-3.5">
         <Checkbox
           id={id}
