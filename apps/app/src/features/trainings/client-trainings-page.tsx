@@ -13,6 +13,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
@@ -28,7 +29,7 @@ import {
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData } from '@tanstack/react-query';
 import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
-import { ClipboardCheck, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ClipboardCheck, Lock, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Fragment, useState } from 'react';
 
 import {
@@ -41,6 +42,7 @@ import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { formatDate } from '@/features/employees/employee-format';
 import { ClientSignatureRequests } from '@/features/signatures/client-signature-requests';
+import { trainingLocks } from '@/features/signatures/use-record-signatures';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
 import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
@@ -272,6 +274,8 @@ function TrainingRow({
   onDelete: () => void;
 }) {
   const label = `${trainingPhaseLabels[training.phase]} din ${formatDate(training.heldOn)}`;
+  const locks = trainingLocks(training);
+  const lock = locks.edit ?? locks.delete;
   return (
     <TableRow data-testid="trainings-row" className="align-top">
       <TableCell className="pl-5 whitespace-nowrap tabular-nums">
@@ -324,14 +328,28 @@ function TrainingRow({
                 <MoreHorizontal aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem data-testid="trainings-edit" onSelect={onEdit}>
+            <DropdownMenuContent align="end" className="max-w-72">
+              {lock && (
+                <DropdownMenuLabel
+                  data-testid="trainings-lock"
+                  className="text-xs font-normal text-muted-foreground"
+                >
+                  <Lock aria-hidden="true" className="mr-1 inline size-3.5 align-[-2px]" />
+                  {lock}
+                </DropdownMenuLabel>
+              )}
+              <DropdownMenuItem
+                data-testid="trainings-edit"
+                disabled={locks.edit !== null}
+                onSelect={onEdit}
+              >
                 <Pencil aria-hidden="true" />
                 Modifică
               </DropdownMenuItem>
               <DropdownMenuItem
                 data-testid="trainings-delete"
                 variant="destructive"
+                disabled={locks.delete !== null}
                 onSelect={onDelete}
               >
                 <Trash2 aria-hidden="true" />

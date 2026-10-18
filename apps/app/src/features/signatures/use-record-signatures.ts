@@ -22,15 +22,25 @@ export function useRecordSignatures(
   });
 }
 
-export function recordLocks(signatures: RecordSignaturesResponse | undefined) {
-  const signed = signatures?.slots.some((slot) => slot.state === 'signed') ?? false;
-  const frozen = 'Semnată electronic: anulează semnăturile ca s-o poți modifica sau șterge.';
+export type TrainingSigning = { signed: boolean; hasSignatures: boolean };
+
+// Any record of a training freezes all of it, so one record's own slots cannot lock it alone.
+export function trainingLocks(
+  training: TrainingSigning | undefined,
+  signatures?: RecordSignaturesResponse
+) {
+  const signed =
+    (training?.signed ?? false) ||
+    (signatures?.slots.some((slot) => slot.state === 'signed') ?? false);
+  const kept = (training?.hasSignatures ?? false) || (signatures?.hasSignatures ?? false);
+  const frozen =
+    'Instruirea este semnată electronic. Anulează semnăturile ca să o poți modifica sau șterge.';
   return {
     edit: signed ? frozen : null,
     delete: signed
       ? frozen
-      : signatures?.hasSignatures
-        ? 'Are semnături, chiar anulate sau pe hârtie, care rămân în evidență: nu se mai poate șterge.'
+      : kept
+        ? 'Instruirea are semnături, chiar anulate sau pe hârtie, care rămân în evidență, așa că nu se mai poate șterge.'
         : null,
   };
 }
