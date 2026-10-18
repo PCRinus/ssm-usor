@@ -2357,6 +2357,27 @@
                   },
                   "required": ["id", "employee", "occupation", "admission"]
                 }
+              },
+              "signers": {
+                "type": "object",
+                "properties": {
+                  "trainer": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "uuid"
+                  },
+                  "verifier": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "uuid"
+                  },
+                  "admitter": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "uuid"
+                  }
+                },
+                "required": ["trainer", "verifier", "admitter"]
               }
             },
             "required": [
@@ -2375,7 +2396,8 @@
               "notes",
               "createdAt",
               "updatedAt",
-              "records"
+              "records",
+              "signers"
             ]
           }
         },
@@ -11162,9 +11184,12 @@
                 "voidReason"
               ]
             }
+          },
+          "hasSignatures": {
+            "type": "boolean"
           }
         },
-        "required": ["recordId", "slots"]
+        "required": ["recordId", "slots", "hasSignatures"]
       },
       "PaperSignatureRequest": {
         "type": "object",
@@ -11343,9 +11368,26 @@
                 "type": "string",
                 "nullable": true,
                 "format": "uuid"
+              },
+              "employeeSignedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "employerSignedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
               }
             },
-            "required": ["state", "generatedAt", "signedAt", "clientFileId"]
+            "required": [
+              "state",
+              "generatedAt",
+              "signedAt",
+              "clientFileId",
+              "employeeSignedAt",
+              "employerSignedAt"
+            ]
           }
         },
         "required": ["agreement"]
@@ -11364,6 +11406,190 @@
           }
         },
         "required": ["state"]
+      },
+      "SigningSessionResponse": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "channel": {
+            "type": "string",
+            "enum": ["email", "sms"]
+          },
+          "addressHint": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": ["request"]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": ["kind", "requestId"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": ["agreement"]
+                    },
+                    "employeeId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "party": {
+                      "type": "string",
+                      "enum": ["employee", "employer"]
+                    }
+                  },
+                  "required": ["kind", "employeeId", "party"]
+                }
+              ]
+            }
+          }
+        },
+        "required": ["sessionId", "channel", "addressHint", "expiresAt", "items"]
+      },
+      "SigningSessionRequest": {
+        "type": "object",
+        "properties": {
+          "requestIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 30
+          },
+          "agreementEmployeeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 30
+          }
+        },
+        "required": ["requestIds"]
+      },
+      "SignSessionResponse": {
+        "type": "object",
+        "properties": {
+          "signed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "requestId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "agreementState": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["generated", "signed_electronically", "signed_on_paper", null]
+                }
+              },
+              "required": ["requestId", "agreementState"]
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "requestId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "request_not_pending",
+                    "agreement_not_awaiting",
+                    "sheet_busy",
+                    "slot_not_on_sheet",
+                    "missing_sheet_data",
+                    "signer_unavailable",
+                    "pdf_unavailable",
+                    "template_missing",
+                    "signing_failed"
+                  ]
+                }
+              },
+              "required": ["requestId", "reason"]
+            }
+          },
+          "agreements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "employeeId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "party": {
+                  "type": "string",
+                  "enum": ["employee", "employer"]
+                },
+                "signed": {
+                  "type": "boolean"
+                },
+                "reason": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": [
+                    "request_not_pending",
+                    "agreement_not_awaiting",
+                    "sheet_busy",
+                    "slot_not_on_sheet",
+                    "missing_sheet_data",
+                    "signer_unavailable",
+                    "pdf_unavailable",
+                    "template_missing",
+                    "signing_failed",
+                    null
+                  ]
+                },
+                "agreementState": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["generated", "signed_electronically", "signed_on_paper", null]
+                }
+              },
+              "required": ["employeeId", "party", "signed", "reason", "agreementState"]
+            }
+          }
+        },
+        "required": ["signed", "failed", "agreements"]
+      },
+      "SignCodeRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          }
+        },
+        "required": ["code"]
       },
       "PortalSignatureRequestsResponse": {
         "type": "object",
@@ -11511,6 +11737,81 @@
                 }
               },
               "required": ["id", "slot", "issuedAt", "signerName", "record", "agreementState"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "PortalSigningAgreementsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "employee": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "lastName": {
+                      "type": "string"
+                    },
+                    "firstName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "lastName", "firstName"]
+                },
+                "agreement": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "type": "string",
+                      "enum": ["generated", "signed_electronically", "signed_on_paper"]
+                    },
+                    "generatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "signedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "clientFileId": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    },
+                    "employeeSignedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "employerSignedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "state",
+                    "generatedAt",
+                    "signedAt",
+                    "clientFileId",
+                    "employeeSignedAt",
+                    "employerSignedAt"
+                  ]
+                },
+                "awaitingEmployer": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["employee", "agreement", "awaitingEmployer"]
             }
           }
         },
@@ -30924,6 +31225,235 @@
         }
       }
     },
+    "/me/signing-sessions": {
+      "post": {
+        "operationId": "createMySigningSession",
+        "summary": "Ask for a signing code for the listed requests",
+        "description": "The member's pending requests to sign in one go with one code (ADR 023), sent to the account's email. A trainee's request is signed in the portal and is refused here, as is any agreement (reason `agreement_signed_in_portal`). The code is valid for ten minutes and three attempts.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SigningSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The code was sent; `items` is what it will sign, the agreements first, then the requests in the order given",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigningSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A request is not pending, not addressed to the caller or (in the portal) not under the participation's client, or an agreement does not await the caller's signature (reason `signing_item_not_found`, the item in `issues`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`), or the account has no address for the code (reason `signer_has_no_address`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "An agreement was listed (reason `agreement_signed_in_portal`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The code could not be sent and nothing was kept (reason `signing_code_not_sent`), the signing secrets are not configured (reason `signing_unavailable`), or Supabase is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/signing-sessions/{sessionId}/sign": {
+      "post": {
+        "operationId": "signMySigningSession",
+        "summary": "Type the code and sign everything the session lists",
+        "description": "Each request's record gets its row on the employee's signed sheet, the slot's signature (PAdES, with the signer's own certificate), the evidence row, and the request marked signed. One item failing does not stop the others.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The code was right and the session is spent. Each item is signed or reported failed, independently: `signed` with the trainee's agreement state, `failed` with a reason (`request_not_pending`, `sheet_busy`, `slot_not_on_sheet`, `missing_sheet_data`, `signer_unavailable`, `pdf_unavailable`, `template_missing`, `signing_failed`), `agreements` likewise, with `agreement_not_awaiting` for one signed or settled since",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, the code not six digits",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The session is not the caller's (reason `signing_session_not_found`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The code was refused and nothing was signed: `code_invalid` (the attempts left in the message), `code_attempts_exceeded`, `code_expired`, `code_already_used`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The signing secrets are not configured (reason `signing_unavailable`); the code is not spent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/portal/participants/{participantId}/signature-requests": {
       "get": {
         "operationId": "listPortalSignatureRequests",
@@ -31105,6 +31635,218 @@
           },
           "503": {
             "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/employees/signing-agreements": {
+      "get": {
+        "operationId": "listPortalSigningAgreements",
+        "tags": ["portal"],
+        "summary": "The client's signing agreements the employer signs, for the client administrator",
+        "description": "Those the employee has signed and the employer has not (`awaitingEmployer`) first, then those signed electronically by both, each by employee name.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The agreements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalSigningAgreementsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant, or the participation is not a client administrator's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/employees/{employeeId}/signing-agreement": {
+      "get": {
+        "operationId": "getPortalEmployeeSigningAgreement",
+        "tags": ["portal"],
+        "summary": "An employee's signing agreement as a PDF, for the client administrator",
+        "description": "The stored, signed file once the employee has signed; else drawn up on the spot.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The agreement, named in `Content-Disposition`",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant, or the participation is not a client administrator's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, or the employee is not of the client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Supabase is unavailable, the template is not registered (reason `template_missing`), or there is no converter or it failed (reason `pdf_unavailable`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31308,6 +32050,247 @@
           },
           "503": {
             "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/signing-sessions": {
+      "post": {
+        "operationId": "createPortalSigningSession",
+        "tags": ["portal"],
+        "summary": "Ask for a signing code for the listed requests and agreements",
+        "description": "The participant's pending requests under the participation's client and, in `agreementEmployeeIds`, signing agreements: an employee their own, while it awaits them; the client administrator the client's employees' agreements the employee has signed and the employer has not. The code goes to the email the app holds for the person, else by SMS to the phone.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SigningSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The code was sent; `items` is what it will sign, the agreements first, then the requests in the order given",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigningSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A request is not pending, not addressed to the caller or (in the portal) not under the participation's client, or an agreement does not await the caller's signature (reason `signing_item_not_found`, the item in `issues`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`), or the account has no address for the code (reason `signer_has_no_address`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The code could not be sent and nothing was kept (reason `signing_code_not_sent`), the signing secrets are not configured (reason `signing_unavailable`), or Supabase is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/signing-sessions/{sessionId}/sign": {
+      "post": {
+        "operationId": "signPortalSigningSession",
+        "tags": ["portal"],
+        "summary": "Type the code and sign everything the session lists",
+        "description": "As the member's route, with the agreements first: the employee's signature draws the agreement up, certifies it and stores it; the administrator's signs the stored file, after which the agreement is `signed_electronically`. A record is signed whatever its trainee's agreement state; `agreementState` says it, so the screen keeps warning.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The code was right and the session is spent. Each item is signed or reported failed, independently: `signed` with the trainee's agreement state, `failed` with a reason (`request_not_pending`, `sheet_busy`, `slot_not_on_sheet`, `missing_sheet_data`, `signer_unavailable`, `pdf_unavailable`, `template_missing`, `signing_failed`), `agreements` likewise, with `agreement_not_awaiting` for one signed or settled since",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, the code not six digits",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation or the session is not the caller's (reason `signing_session_not_found` for the session)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The code was refused and nothing was signed: `code_invalid` (the attempts left in the message), `code_attempts_exceeded`, `code_expired`, `code_already_used`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The signing secrets are not configured (reason `signing_unavailable`); the code is not spent",
             "content": {
               "application/json": {
                 "schema": {

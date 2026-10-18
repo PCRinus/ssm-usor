@@ -1800,6 +1800,15 @@ export type TrainingResponseTrainingRecordsItem = {
   admission: TrainingResponseTrainingRecordsItemAdmission;
 };
 
+export type TrainingResponseTrainingSigners = {
+  /** @nullable */
+  trainer: string | null;
+  /** @nullable */
+  verifier: string | null;
+  /** @nullable */
+  admitter: string | null;
+};
+
 export type TrainingResponseTraining = {
   id: string;
   clientId: string;
@@ -1821,6 +1830,7 @@ export type TrainingResponseTraining = {
   createdAt: string;
   updatedAt: string;
   records: TrainingResponseTrainingRecordsItem[];
+  signers: TrainingResponseTrainingSigners;
 };
 
 export interface TrainingResponse {
@@ -7242,6 +7252,7 @@ export type RecordSignaturesResponseSlotsItem = {
 export interface RecordSignaturesResponse {
   recordId: string;
   slots: RecordSignaturesResponseSlotsItem[];
+  hasSignatures: boolean;
 }
 
 export type PaperSignatureRequestSlot =
@@ -7394,6 +7405,10 @@ export type SigningAgreementResponseAgreement = {
   signedAt: string | null;
   /** @nullable */
   clientFileId: string | null;
+  /** @nullable */
+  employeeSignedAt: string | null;
+  /** @nullable */
+  employerSignedAt: string | null;
 } | null;
 
 export interface SigningAgreementResponse {
@@ -7413,6 +7428,140 @@ export interface SigningAgreementStateRequest {
   state: SigningAgreementStateRequestState;
   /** @nullable */
   clientFileId?: string | null;
+}
+
+export type SigningSessionResponseChannel =
+  (typeof SigningSessionResponseChannel)[keyof typeof SigningSessionResponseChannel];
+
+export const SigningSessionResponseChannel = {
+  email: 'email',
+  sms: 'sms',
+} as const;
+
+export type SigningSessionResponseItemsItem =
+  | {
+      kind: 'request';
+      requestId: string;
+    }
+  | {
+      kind: 'agreement';
+      employeeId: string;
+      party: 'employee' | 'employer';
+    };
+
+export interface SigningSessionResponse {
+  sessionId: string;
+  channel: SigningSessionResponseChannel;
+  addressHint: string;
+  expiresAt: string;
+  items: SigningSessionResponseItemsItem[];
+}
+
+export interface SigningSessionRequest {
+  /** @maxItems 30 */
+  requestIds: string[];
+  /** @maxItems 30 */
+  agreementEmployeeIds?: string[];
+}
+
+/**
+ * @nullable
+ */
+export type SignSessionResponseSignedItemAgreementState =
+  | (typeof SignSessionResponseSignedItemAgreementState)[keyof typeof SignSessionResponseSignedItemAgreementState]
+  | null;
+
+export const SignSessionResponseSignedItemAgreementState = {
+  generated: 'generated',
+  signed_electronically: 'signed_electronically',
+  signed_on_paper: 'signed_on_paper',
+} as const;
+
+export type SignSessionResponseSignedItem = {
+  requestId: string;
+  /** @nullable */
+  agreementState: SignSessionResponseSignedItemAgreementState;
+};
+
+export type SignSessionResponseFailedItemReason =
+  (typeof SignSessionResponseFailedItemReason)[keyof typeof SignSessionResponseFailedItemReason];
+
+export const SignSessionResponseFailedItemReason = {
+  request_not_pending: 'request_not_pending',
+  agreement_not_awaiting: 'agreement_not_awaiting',
+  sheet_busy: 'sheet_busy',
+  slot_not_on_sheet: 'slot_not_on_sheet',
+  missing_sheet_data: 'missing_sheet_data',
+  signer_unavailable: 'signer_unavailable',
+  pdf_unavailable: 'pdf_unavailable',
+  template_missing: 'template_missing',
+  signing_failed: 'signing_failed',
+} as const;
+
+export type SignSessionResponseFailedItem = {
+  requestId: string;
+  reason: SignSessionResponseFailedItemReason;
+};
+
+export type SignSessionResponseAgreementsItemParty =
+  (typeof SignSessionResponseAgreementsItemParty)[keyof typeof SignSessionResponseAgreementsItemParty];
+
+export const SignSessionResponseAgreementsItemParty = {
+  employee: 'employee',
+  employer: 'employer',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SignSessionResponseAgreementsItemReason =
+  | (typeof SignSessionResponseAgreementsItemReason)[keyof typeof SignSessionResponseAgreementsItemReason]
+  | null;
+
+export const SignSessionResponseAgreementsItemReason = {
+  request_not_pending: 'request_not_pending',
+  agreement_not_awaiting: 'agreement_not_awaiting',
+  sheet_busy: 'sheet_busy',
+  slot_not_on_sheet: 'slot_not_on_sheet',
+  missing_sheet_data: 'missing_sheet_data',
+  signer_unavailable: 'signer_unavailable',
+  pdf_unavailable: 'pdf_unavailable',
+  template_missing: 'template_missing',
+  signing_failed: 'signing_failed',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SignSessionResponseAgreementsItemAgreementState =
+  | (typeof SignSessionResponseAgreementsItemAgreementState)[keyof typeof SignSessionResponseAgreementsItemAgreementState]
+  | null;
+
+export const SignSessionResponseAgreementsItemAgreementState = {
+  generated: 'generated',
+  signed_electronically: 'signed_electronically',
+  signed_on_paper: 'signed_on_paper',
+} as const;
+
+export type SignSessionResponseAgreementsItem = {
+  employeeId: string;
+  party: SignSessionResponseAgreementsItemParty;
+  signed: boolean;
+  /** @nullable */
+  reason: SignSessionResponseAgreementsItemReason;
+  /** @nullable */
+  agreementState: SignSessionResponseAgreementsItemAgreementState;
+};
+
+export interface SignSessionResponse {
+  signed: SignSessionResponseSignedItem[];
+  failed: SignSessionResponseFailedItem[];
+  agreements: SignSessionResponseAgreementsItem[];
+}
+
+export interface SignCodeRequest {
+  /** @pattern ^\d{6}$ */
+  code: string;
 }
 
 export type WaitlistSubscribeResponseStatus =
@@ -28671,6 +28820,221 @@ export const usePutSigningAgreementState = <
   TContext
 > => {
   return useMutation(getPutSigningAgreementStateMutationOptions(options), queryClient);
+};
+
+export const getCreateMySigningSessionUrl = () => {
+  return `/me/signing-sessions`;
+};
+
+/**
+ * The member's pending requests to sign in one go with one code (ADR 023), sent to the account's email. A trainee's request is signed in the portal and is refused here, as is any agreement (reason `agreement_signed_in_portal`). The code is valid for ten minutes and three attempts.
+ * @summary Ask for a signing code for the listed requests
+ */
+export const createMySigningSession = async (
+  signingSessionRequest: SigningSessionRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SigningSessionResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<SigningSessionResponse>(getCreateMySigningSessionUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(signingSessionRequest),
+  });
+};
+
+export const getCreateMySigningSessionMutationKey = () => ['createMySigningSession'] as const;
+
+export const getCreateMySigningSessionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMySigningSession>>,
+    TError,
+    CreateMySigningSessionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createMySigningSession>>,
+  TError,
+  CreateMySigningSessionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateMySigningSessionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createMySigningSession>>,
+    CreateMySigningSessionMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createMySigningSession(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateMySigningSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createMySigningSession>>
+>;
+export type CreateMySigningSessionMutationBody = SigningSessionRequest;
+export type CreateMySigningSessionMutationError = ErrorType<ApiErrorResponse>;
+export type CreateMySigningSessionMutationVariables = { data: SigningSessionRequest };
+
+/**
+ * @summary Ask for a signing code for the listed requests
+ */
+export const useCreateMySigningSession = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createMySigningSession>>,
+      TError,
+      CreateMySigningSessionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createMySigningSession>>,
+  TError,
+  CreateMySigningSessionMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateMySigningSessionMutationOptions(options), queryClient);
+};
+
+export const getSignMySigningSessionUrl = (sessionId: string) => {
+  return `/me/signing-sessions/${sessionId}/sign`;
+};
+
+/**
+ * Each request's record gets its row on the employee's signed sheet, the slot's signature (PAdES, with the signer's own certificate), the evidence row, and the request marked signed. One item failing does not stop the others.
+ * @summary Type the code and sign everything the session lists
+ */
+export const signMySigningSession = async (
+  sessionId: string,
+  signCodeRequest: SignCodeRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SignSessionResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<SignSessionResponse>(getSignMySigningSessionUrl(sessionId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(signCodeRequest),
+  });
+};
+
+export const getSignMySigningSessionMutationKey = () => ['signMySigningSession'] as const;
+
+export const getSignMySigningSessionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof signMySigningSession>>,
+    TError,
+    SignMySigningSessionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof signMySigningSession>>,
+  TError,
+  SignMySigningSessionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSignMySigningSessionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof signMySigningSession>>,
+    SignMySigningSessionMutationVariables
+  > = (props) => {
+    const { sessionId, data } = props ?? {};
+
+    return signMySigningSession(sessionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SignMySigningSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof signMySigningSession>>
+>;
+export type SignMySigningSessionMutationBody = SignCodeRequest;
+export type SignMySigningSessionMutationError = ErrorType<ApiErrorResponse>;
+export type SignMySigningSessionMutationVariables = { sessionId: string; data: SignCodeRequest };
+
+/**
+ * @summary Type the code and sign everything the session lists
+ */
+export const useSignMySigningSession = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof signMySigningSession>>,
+      TError,
+      SignMySigningSessionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof signMySigningSession>>,
+  TError,
+  SignMySigningSessionMutationVariables,
+  TContext
+> => {
+  return useMutation(getSignMySigningSessionMutationOptions(options), queryClient);
 };
 
 export const getSubscribeToWaitlistUrl = () => {
