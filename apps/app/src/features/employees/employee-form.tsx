@@ -308,6 +308,7 @@ export function EmployeeForm({
                   <EmployeeWorkplaceCombobox
                     id="workplaceId"
                     testId="employee-workplace"
+                    clientId={clientId}
                     workplaces={workplaces}
                     current={employee?.workplace ?? null}
                     value={field.value}

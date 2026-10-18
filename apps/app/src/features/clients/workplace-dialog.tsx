@@ -87,10 +87,19 @@ export function WorkplaceDialog({
   clientId,
   editing,
   onClose,
+  initialName,
+  onSaved,
+  onCloseAutoFocus,
 }: {
   clientId: string;
   editing: WorkplaceEditing;
   onClose: () => void;
+  /** What a new workplace's name starts as: what was typed where the dialog was opened from. */
+  initialName?: string;
+  /** The workplace as saved, for a caller that goes on to use it. */
+  onSaved?: (workplace: Workplace) => void;
+  /** Where the focus goes on closing, when what opened the dialog is gone by then. */
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   return (
     <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
@@ -99,6 +108,9 @@ export function WorkplaceDialog({
           key={editing === 'new' ? 'new' : editing.id}
           clientId={clientId}
           workplace={editing === 'new' ? null : editing}
+          initialName={initialName}
+          onSaved={onSaved}
+          onCloseAutoFocus={onCloseAutoFocus}
           onClose={onClose}
         />
       )}
@@ -109,10 +121,16 @@ export function WorkplaceDialog({
 function WorkplaceForm({
   clientId,
   workplace,
+  initialName = '',
+  onSaved,
+  onCloseAutoFocus,
   onClose,
 }: {
   clientId: string;
   workplace: Workplace | null;
+  initialName?: string;
+  onSaved?: (workplace: Workplace) => void;
+  onCloseAutoFocus?: (event: Event) => void;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -120,7 +138,9 @@ function WorkplaceForm({
   const update = useUpdateWorkplace({ request: apiRequest });
   const form = useForm<WorkplaceFormValues>({
     resolver: zodResolver(workplaceFormSchema),
-    defaultValues: workplace ? toWorkplaceForm(workplace) : emptyWorkplaceForm,
+    defaultValues: workplace
+      ? toWorkplaceForm(workplace)
+      : { ...emptyWorkplaceForm, name: initialName },
   });
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
@@ -134,12 +154,14 @@ function WorkplaceForm({
   const onSubmit = form.handleSubmit(async (values) => {
     const data = toWorkplaceRequest(values);
     try {
-      if (workplace) await update.mutateAsync({ clientId, workplaceId: workplace.id, data });
-      else await create.mutateAsync({ clientId, data });
+      const saved = workplace
+        ? await update.mutateAsync({ clientId, workplaceId: workplace.id, data })
+        : await create.mutateAsync({ clientId, data });
       await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
       toast.success(
         workplace ? 'Punctul de lucru a fost salvat.' : 'Punctul de lucru a fost adăugat.'
       );
+      onSaved?.(saved.workplace);
       onClose();
     } catch (cause) {
       if (cause instanceof ApiHttpError && cause.status === 409) {
@@ -161,8 +183,23 @@ function WorkplaceForm({
   });
 
   return (
-    <DialogContent data-testid="workplace-dialog" className="sm:max-w-2xl">
-      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+    <DialogContent
+      data-testid="workplace-dialog"
+      className="sm:max-w-2xl"
+      onCloseAutoFocus={onCloseAutoFocus}
+    >
+      <form
+        ref={formRef}
+        onSubmit={(event) => {
+          // The dialog also opens from the employee form's workplace picker. React events bubble
+          // through the component tree past the portal, and saving a workplace must not submit
+          // the form behind it.
+          event.stopPropagation();
+          void onSubmit(event);
+        }}
+        aria-busy={busy}
+        noValidate
+      >
         <DialogHeader>
           <DialogTitle>
             {workplace ? 'Modifică punctul de lucru' : 'Adaugă un punct de lucru'}
