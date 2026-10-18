@@ -32,7 +32,7 @@ import { useRevealErrors } from '@/components/use-reveal-errors';
 import {
   domainHints,
   domainLabels,
-  groupHints,
+  groupHint,
   groupLabels,
   type InstructionModule,
   invalidateLibrary,
@@ -149,7 +149,7 @@ function ModuleForm({
           <DialogTitle>{module ? 'Modifică instrucțiunea' : 'Scrie o instrucțiune'}</DialogTitle>
           <DialogDescription>
             {module
-              ? 'Titlul, grupul și domeniul apar în bibliotecă și în documentele care o anexează; textul se modifică din editor.'
+              ? 'Titlul, categoria și domeniul apar în bibliotecă și în documentele care o anexează; textul se modifică din editor.'
               : 'Instrucțiunea pornește de la un schelet cu capitolele cerute de Inspecția Muncii și se scrie în editor.'}
           </DialogDescription>
         </DialogHeader>
@@ -168,9 +168,9 @@ function ModuleForm({
           </Field>
           <Field
             id="instruction-module-group"
-            label="Grup"
+            label="Categoria instrucțiunii"
             mark="required"
-            hint={groupHints[group]}
+            hint={groupHint(group)}
           >
             <NativeSelect
               id="instruction-module-group"

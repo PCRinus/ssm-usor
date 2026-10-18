@@ -319,7 +319,7 @@ export function PositionInstructionsCard({
             <TableHeader className="max-sm:sr-only">
               <TableRow>
                 <TableHead>Instrucțiune</TableHead>
-                <TableHead>Grup</TableHead>
+                <TableHead>Categorie</TableHead>
                 {!readOnly && (
                   <TableHead className="w-12">
                     <span className="sr-only">Acțiuni</span>
