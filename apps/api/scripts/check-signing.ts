@@ -1,6 +1,7 @@
 import { execFileSync, spawn } from 'node:child_process';
 import console from 'node:console';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
@@ -19,10 +20,15 @@ import { generateSigningCa } from '../src/lib/signing-ca';
 // is removed, the evidence too, which only a superuser on the local database can delete.
 //
 //   GOTENBERG_URL=http://localhost:3300 SIGNER_URL=http://localhost:3301 \
-//     pnpm --filter @ssm-usor/api signing:check:local
+//     pnpm --filter @ssm-usor/api signing:check:local [-- --out /tmp/signing]
+//
+// With --out, the signed sheet and agreement are written to that folder before the clean-up.
 
 const { GOTENBERG_URL, SIGNER_URL } = process.env;
 const port = Number(process.env.PORT ?? 8797);
+const outFolder = process.argv.includes('--out')
+  ? process.argv[process.argv.indexOf('--out') + 1]
+  : undefined;
 if (!GOTENBERG_URL || !SIGNER_URL) {
   console.error('Set GOTENBERG_URL and SIGNER_URL.');
   process.exit(1);
@@ -472,6 +478,10 @@ try {
     'sheet file'
   );
   const sheetValidation = await signer.validate(await sheetBytes.arrayBuffer(), trustRoots);
+  if (outFolder) {
+    mkdirSync(outFolder, { recursive: true });
+    writeFileSync(join(outFolder, 'fisa-ssm.pdf'), new Uint8Array(await sheetBytes.arrayBuffer()));
+  }
   console.log(`sheet v${sheet.version}:`);
   for (const each of sheetValidation) {
     console.log(
@@ -485,6 +495,7 @@ try {
     `/clients/${clientId}/employees/${employee.id}/signing-agreement`
   );
   const agreementValidation = await signer.validate(agreementPdf, trustRoots);
+  if (outFolder) writeFileSync(join(outFolder, 'act-aditional.pdf'), new Uint8Array(agreementPdf));
   console.log('agreement, as the member downloads it:');
   for (const each of agreementValidation) {
     console.log(

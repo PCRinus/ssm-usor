@@ -643,7 +643,9 @@ export async function applySignature(
       signedAt: signedAt.toISOString(),
       certify: sheet.certifiedAt === null,
       lockFields: lockFieldsOf(record.domain, live.rowKey),
-      appearanceLines: [signer.name, signer.jobTitle, 'semnat electronic', signedOn(signedAt)],
+      // No job title: the row or the block prints it, and a periodic row's box is too narrow for
+      // a long line, which would shrink the whole appearance.
+      appearanceLines: [signer.name, 'semnat electronic', signedOn(signedAt)],
     });
     const signature = await sign(begun.toSign, begun.prepared);
     const signed = await service.finishSignature(begun.prepared, begun.sessionToken, signature);

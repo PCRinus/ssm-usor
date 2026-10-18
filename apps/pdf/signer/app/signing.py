@@ -47,7 +47,7 @@ APPEARANCE_LAYOUT = layout.SimpleBoxLayoutRule(
     margins=layout.Margins.uniform(2),
     inner_content_scaling=layout.InnerScaling.SHRINK_TO_FIT,
 )
-APPEARANCE_FONT_SIZE = 7
+APPEARANCE_FONT_SIZE = 10
 
 
 @dataclass

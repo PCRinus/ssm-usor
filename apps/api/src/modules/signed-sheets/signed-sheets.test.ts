@@ -547,7 +547,7 @@ describe('applySignature', () => {
       field: 'p1_sig_trainee',
       certify: true,
       lockFields: ['p1_date', 'p1_duration', 'p1_occupation', 'p1_material'],
-      appearanceLines: ['Ana Ștefănescu', 'Sudor', 'semnat electronic', '18.10.2026'],
+      appearanceLines: ['Ana Ștefănescu', 'semnat electronic', '18.10.2026'],
       signedAt: '2026-10-18T10:00:00.000Z',
       reason: 'Instruirea din 03.04.2026: semnătura celui instruit',
     });
