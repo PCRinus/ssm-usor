@@ -3610,8 +3610,15 @@ export type Database = {
             foreignKeyName: 'signing_session_items_agreement_employee_id_fkey';
             columns: ['agreement_employee_id'];
             isOneToOne: false;
-            referencedRelation: 'employee_signing_agreements';
+            referencedRelation: 'employee_training_status';
             referencedColumns: ['employee_id'];
+          },
+          {
+            foreignKeyName: 'signing_session_items_agreement_employee_id_fkey';
+            columns: ['agreement_employee_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'signing_session_items_request_id_fkey';

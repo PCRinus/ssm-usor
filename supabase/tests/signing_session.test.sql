@@ -1,5 +1,5 @@
 begin;
-select plan(27);
+select plan(29);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -25,7 +25,8 @@ insert into public.job_positions (id, organization_id, client_id, name) values
 
 insert into public.employees (id, organization_id, client_id, job_position_id, last_name, first_name, job_title, hired_at, email) values
   ('e1e1e1e1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Popescu', 'Ion', 'Sudor', '2020-03-01', 'ion@example.com'),
-  ('e1e1e1e1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Ionescu', 'Ana', 'Sudor', '2020-03-01', 'ana@example.com');
+  ('e1e1e1e1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Ionescu', 'Ana', 'Sudor', '2020-03-01', 'ana@example.com'),
+  ('e1e1e1e1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Ionescu', 'Ana', 'Sudor', '2020-03-01', 'ana@example.com');
 
 insert into public.client_participants (organization_id, client_id, kind, employee_id, full_name, user_id) values
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'employee', 'e1e1e1e1-0000-4000-8000-000000000001', null, 'dddddddd-0000-4000-8000-000000000001'),
@@ -90,6 +91,16 @@ select lives_ok(
   $$ insert into public.signing_session_items (session_id, position, agreement_employee_id, agreement_party)
      values ('5e5e5e5e-0000-4000-8000-000000000001', 0, 'e1e1e1e1-0000-4000-8000-000000000001', 'employee') $$,
   'the secret key records what a session signs'
+);
+select lives_ok(
+  $$ insert into public.signing_session_items (session_id, position, agreement_employee_id, agreement_party)
+     values ('5e5e5e5e-0000-4000-8000-000000000001', 2, 'e1e1e1e1-0000-4000-8000-000000000003', 'employee') $$,
+  'an agreement item may precede the agreement row: the employee signs from the first sign-in'
+);
+select throws_ok(
+  $$ insert into public.signing_session_items (session_id, position, agreement_employee_id, agreement_party)
+     values ('5e5e5e5e-0000-4000-8000-000000000001', 3, 'e1e1e1e1-0000-4000-8000-000000000009', 'employee') $$,
+  '23503', null, 'but it names an employee of the client'
 );
 select throws_ok(
   $$ insert into public.signing_session_items (session_id, position, agreement_employee_id, agreement_party)
