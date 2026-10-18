@@ -51,7 +51,11 @@ export function periodHint(typeKeys: readonly DatedDocumentTypeKey[]) {
   return `Anul pentru care se întocmește ${listed}; un alt an face un document nou.`;
 }
 
-/** Mirrors the API's `documentApplies`, which decides what a generation makes. */
+/**
+ * Mirrors the headcount rules of the API's `documentApplies`, which decides what a generation
+ * makes; the annex on the electronic signature, which depends on participants, the app knows
+ * only from the list's `notApplicable`.
+ */
 export function appliesAt(typeKey: string, currentEmployeeCount: number) {
   if (typeKey === 'decision_workers_representative') {
     return requiredWorkersRepresentatives(currentEmployeeCount) > 0;

@@ -59,9 +59,12 @@ const clientRow = {
   archived_at: null,
 };
 
+// The pack without the annex on the electronic signature, which applies only with participants.
+const providerPack = documentTypeKeys.filter((key) => key !== 'signing_regulation_annex');
+
 const workRow = {
   client_since: '2026-09-17T10:00:00+00:00',
-  documentation_generated_type_keys: documentTypeKeys.slice(6),
+  documentation_generated_type_keys: providerPack.slice(6),
   documentation_issued_count: 18,
   documentation_last_generated_at: '2026-09-20T10:00:00+00:00',
   fire_safety_generated_type_keys: [],
@@ -74,7 +77,9 @@ type Handler = (init?: RequestInit) => Response | Promise<Response>;
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockUpstream(
-  handlers: Partial<Record<'auth' | 'membership' | 'clients' | 'notes', Handler>>
+  handlers: Partial<
+    Record<'auth' | 'membership' | 'clients' | 'notes' | 'participants' | 'invitations', Handler>
+  >
 ) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
@@ -90,6 +95,12 @@ function mockUpstream(
     }
     if (url.pathname === '/rest/v1/client_owner_notes') {
       return handlers.notes?.(init) ?? Response.json([]);
+    }
+    if (url.pathname === '/rest/v1/client_participants') {
+      return handlers.participants?.(init) ?? Response.json([]);
+    }
+    if (url.pathname === '/rest/v1/participant_invitations') {
+      return handlers.invitations?.(init) ?? Response.json([]);
     }
     throw new Error(`Unexpected upstream request: ${url}`);
   });
@@ -245,7 +256,7 @@ describe('GET /clients', () => {
   });
 
   it('counts the workers representative decision from 10 current employees', async () => {
-    const issuedSet = documentTypeKeys.filter((key) => key !== 'decision_workers_representative');
+    const issuedSet = providerPack.filter((key) => key !== 'decision_workers_representative');
     expect(
       await documentationOf({
         current_employee_count: 9,
@@ -266,14 +277,45 @@ describe('GET /clients', () => {
     expect(
       await documentationOf({
         current_employee_count: 4,
-        documentation_generated_type_keys: [...documentTypeKeys],
-        documentation_issued_count: documentTypeKeys.length,
+        documentation_generated_type_keys: [...providerPack],
+        documentation_issued_count: providerPack.length,
       })
     ).toMatchObject({ state: 'issued', issuedCount: 24, totalCount: 24 });
   });
 
+  it('counts the annex on the electronic signature for a client with a participant or an open invitation', async () => {
+    const listed = async (handlers: Partial<Record<'participants' | 'invitations', Handler>>) => {
+      mockUpstream({
+        clients: () =>
+          Response.json(
+            [{ ...clientRow, ...workRow, documentation_generated_type_keys: providerPack }],
+            { headers: { 'Content-Range': '0-0/1' } }
+          ),
+        ...handlers,
+      });
+      const body = clientListResponseSchema.parse(await (await request('/clients')).json());
+      return body.items[0]!.documentation!.totalCount;
+    };
+    const withNobody = await listed({});
+    expect(await listed({ participants: () => Response.json([{ client_id: clientRow.id }]) })).toBe(
+      withNobody + 1
+    );
+    expect(await listed({ invitations: () => Response.json([{ client_id: clientRow.id }]) })).toBe(
+      withNobody + 1
+    );
+    const [participantsUrl] = calls('/rest/v1/client_participants').at(-1)!;
+    const participants = new URL(String(participantsUrl)).searchParams;
+    expect(participants.get('client_id')).toBe(`in.(${clientRow.id})`);
+    expect(participants.get('revoked_at')).toBe('is.null');
+    const [invitationsUrl] = calls('/rest/v1/participant_invitations').at(-1)!;
+    const invitations = new URL(String(invitationsUrl)).searchParams;
+    expect(invitations.get('accepted_at')).toBe('is.null');
+    expect(invitations.get('revoked_at')).toBe('is.null');
+    expect(invitations.get('expires_at')).toMatch(/^gt\./);
+  });
+
   it('counts training themes still waiting for generated own instructions as not done', async () => {
-    const generated = documentTypeKeys.filter(
+    const generated = providerPack.filter(
       (key) => key !== 'decision_workers_representative' && key !== 'training_themes'
     );
     expect(

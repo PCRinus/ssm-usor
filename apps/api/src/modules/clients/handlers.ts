@@ -154,8 +154,30 @@ type ListedRow = SelectedClientRow & ContractDocuments & Partial<WorkRow>;
 const contractEmbed =
   'client_documents!client_documents_client_in_organization(type_key, document_revisions!document_revisions_document_in_organization(status, service_contract_sends(id), document_signed_copies(revision_id, confirmed_at)))';
 
+/** The listed clients with a participant or an open invitation, for the annex of ADR 023. */
+async function clientsWithParticipants(db: DataClient, clientIds: string[]) {
+  if (clientIds.length === 0) return new Set<string>();
+  const [participants, invitations] = await Promise.all([
+    db
+      .from('client_participants')
+      .select('client_id')
+      .in('client_id', clientIds)
+      .is('revoked_at', null),
+    db
+      .from('participant_invitations')
+      .select('client_id')
+      .in('client_id', clientIds)
+      .is('accepted_at', null)
+      .is('revoked_at', null)
+      .gt('expires_at', new Date().toISOString()),
+  ]);
+  if (participants.error) throw fromDatabaseError(participants.error, 'list participants');
+  if (invitations.error) throw fromDatabaseError(invitations.error, 'list invitations');
+  return new Set([...participants.data, ...invitations.data].map((row) => row.client_id));
+}
+
 // The generated types make every column of a view nullable.
-function toClientListItem(row: ListedRow) {
+function toClientListItem(row: ListedRow, hasParticipants: boolean) {
   const item: ClientListItem = {
     ...toClient(row),
     clientSince: null,
@@ -170,6 +192,7 @@ function toClientListItem(row: ListedRow) {
     documentation: {
       ...documentationProgress('occupational_safety', {
         currentEmployeeCount,
+        hasParticipants,
         generatedTypeKeys: row.documentation_generated_type_keys ?? [],
         issuedCount: row.documentation_issued_count ?? 0,
       }),
@@ -178,6 +201,7 @@ function toClientListItem(row: ListedRow) {
     fireSafetyDocumentation: {
       ...documentationProgress('fire_safety', {
         currentEmployeeCount,
+        hasParticipants,
         generatedTypeKeys: row.fire_safety_generated_type_keys ?? [],
         issuedCount: row.fire_safety_issued_count ?? 0,
       }),
@@ -218,7 +242,19 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
     return c.json({ items: [], page, pageSize, total: recount.count ?? 0 }, 200);
   }
   if (error) throw fromDatabaseError(error, 'list clients');
-  return c.json({ items: data.map(toClientListItem), page, pageSize, total: count ?? 0 }, 200);
+  const withParticipants = await clientsWithParticipants(
+    db,
+    stage === 'lead' ? [] : data.map((row) => row.id)
+  );
+  return c.json(
+    {
+      items: data.map((row) => toClientListItem(row, withParticipants.has(row.id))),
+      page,
+      pageSize,
+      total: count ?? 0,
+    },
+    200
+  );
 };
 
 // Row-level security hides other organizations' clients, so a missing row is a 404

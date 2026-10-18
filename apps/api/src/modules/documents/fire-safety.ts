@@ -378,6 +378,7 @@ export type FireSafetySetFacts = Pick<
   | 'issueDate'
   | 'period'
   | 'currentEmployeeCount'
+  | 'hasParticipants'
   | 'firstDecisionNumber'
   | 'branding'
   | 'organization'

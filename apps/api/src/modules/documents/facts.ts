@@ -56,6 +56,8 @@ export async function loadDocumentFacts(
     fireSubstances,
     fireMaintenanceItems,
     fireBuildings,
+    participants,
+    openInvitations,
     ...employeeCounts
   ] = await Promise.all([
     db
@@ -177,6 +179,18 @@ export async function loadDocumentFacts(
         'workplace_id, year_built, built_area_m2, levels, classification, structure, heating_fuel, gas_use, electrical_maintainer, electrical_last_check_on, water_reserve_m3, notes'
       )
       .eq('client_id', clientId),
+    db
+      .from('client_participants')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .is('revoked_at', null),
+    db
+      .from('participant_invitations')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .is('accepted_at', null)
+      .is('revoked_at', null)
+      .gt('expires_at', new Date().toISOString()),
     ...categories.map((category) =>
       db
         .from('employees')
@@ -218,6 +232,11 @@ export async function loadDocumentFacts(
   }
   if (fireBuildings.error) {
     throw fromDatabaseError(fireBuildings.error, 'document facts: fire buildings');
+  }
+  if (participants.error)
+    throw fromDatabaseError(participants.error, 'document facts: participants');
+  if (openInvitations.error) {
+    throw fromDatabaseError(openInvitations.error, 'document facts: participant invitations');
   }
   for (const count of employeeCounts) {
     if (count.error) throw fromDatabaseError(count.error, 'document facts: employee categories');
@@ -418,6 +437,7 @@ export async function loadDocumentFacts(
     })),
     staffCategoriesInUse: categories.filter((_, index) => (employeeCounts[index]?.count ?? 0) > 0),
     currentEmployeeCount: headcount.count ?? 0,
+    hasParticipants: (participants.count ?? 0) + (openInvitations.count ?? 0) > 0,
     workersRepresentativeDecisionGenerated: generated.has('decision_workers_representative'),
     ownInstructions,
     fireOwnInstructions,

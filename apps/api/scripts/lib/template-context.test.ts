@@ -87,14 +87,8 @@ describe('the per-employee templates', () => {
 });
 
 describe('the built-in templates', () => {
-  // ADR 023: the annex is registered with the set before the API generates it, which waits for
-  // the SSM contact's review of its text and for the client's choice of the electronic signature.
   it('are the document types of the contracts, in the same order', () => {
-    expect(
-      manifest.templates
-        .map((entry) => entry.typeKey)
-        .filter((typeKey) => typeKey !== signingTypeKeys.regulationAnnex)
-    ).toEqual([...documentTypeKeys]);
+    expect(manifest.templates.map((entry) => entry.typeKey)).toEqual([...documentTypeKeys]);
   });
 
   const reversed: typeof facts = {

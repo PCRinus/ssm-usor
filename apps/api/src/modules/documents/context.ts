@@ -131,6 +131,8 @@ export type DocumentFacts = {
   /** Categories held by at least one current employee, based on their job position. */
   staffCategoriesInUse: StaffCategory[];
   currentEmployeeCount: number;
+  /** A participant not revoked, or an invitation still open: someone who signs in the portal. */
+  hasParticipants: boolean;
   /** Whether decision 1.5 was generated for this client, whatever the headcount is now. */
   workersRepresentativeDecisionGenerated: boolean;
   /** What the training themes cite; null until the own instructions are generated (ADR 014). */
@@ -790,12 +792,14 @@ function intervalLabel(months: number | null) {
 /**
  * Whether a document belongs in this client's set. Decision 1.5 only does from 10 current
  * employees (ADR 010), and so do the fire-safety documents of OMAI 163/2007 art. 17 or 18 alone
- * (ADR 020); a document that already exists is kept regardless.
+ * (ADR 020); the annex on the electronic signature only once the client has participants, who
+ * are the ones who sign (ADR 023). A document that already exists is kept regardless.
  */
 export function documentApplies(
-  facts: Pick<DocumentFacts, 'currentEmployeeCount'>,
+  facts: Pick<DocumentFacts, 'currentEmployeeCount' | 'hasParticipants'>,
   typeKey: string
 ): boolean {
+  if (typeKey === 'signing_regulation_annex') return facts.hasParticipants;
   if (typeKey === 'decision_workers_representative') {
     return requiredWorkersRepresentatives(facts.currentEmployeeCount) > 0;
   }
@@ -814,10 +818,12 @@ export function documentationProgress(
   set: DocumentSet,
   {
     currentEmployeeCount,
+    hasParticipants,
     generatedTypeKeys,
     issuedCount,
   }: {
     currentEmployeeCount: number;
+    hasParticipants: boolean;
     generatedTypeKeys: readonly string[];
     issuedCount: number;
   }
@@ -826,7 +832,9 @@ export function documentationProgress(
   const generated = new Set(generatedTypeKeys);
   const totalCount =
     builtIn.filter(
-      (typeKey) => generated.has(typeKey) || documentApplies({ currentEmployeeCount }, typeKey)
+      (typeKey) =>
+        generated.has(typeKey) ||
+        documentApplies({ currentEmployeeCount, hasParticipants }, typeKey)
     ).length + [...generated].filter((typeKey) => !builtIn.includes(typeKey)).length;
   const state =
     generated.size === 0 ? 'none' : issuedCount >= totalCount ? 'issued' : 'in_progress';
