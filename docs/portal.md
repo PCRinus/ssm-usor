@@ -162,6 +162,18 @@ read from the mailbox. `sign-in.spec.ts` follows an employee through their place
 responsible persons), _Angajați_ and one employee's records and sheets. It shares port 8797
 with the app's flows, so run the two one after the other.
 
+`signing.spec.ts` has an employee sign their agreement and a training with one code, read from
+the mailbox, and the client administrator countersign the agreement. Signing needs
+`GOTENBERG_URL`, `SIGNER_URL` and the three `SIGNING_*` values exported in the shell, as the
+app's signing flow does ([app](app.md), [Signing locally](local-development.md#signing-locally));
+without them the flow checks only what the lists show and stops before asking for a code.
+
+```bash
+pnpm dev:pdf
+set -a; . <(grep -E '^(GOTENBERG_URL|SIGNER_URL|SIGNING_)' apps/api/.dev.vars); set +a
+pnpm --filter @ssm-usor/portal test:e2e:flows
+```
+
 ## Structure
 
 The same folders as the app ([SPA folder structure](app.md)): `src/app/` (runtime, router,

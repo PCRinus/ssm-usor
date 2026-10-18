@@ -149,6 +149,72 @@ the `SUPABASE_AUTH_HOOK_SECRET` from `apps/api/.dev.vars.example`. The mail Work
 the email, or sends it when it holds a Resend key. The same goes for the Send SMS hook, with
 `SUPABASE_AUTH_SMS_HOOK_SECRET` and the SMS Worker. Do not commit that change.
 
+## Signing locally
+
+Signing ([ADR 023](architecture/adr-023-advanced-electronic-signature.md)) needs three things
+beside the local stack: the PDF converter, the signer, and a signing authority of your own.
+`compose.yaml` runs the first two from the same images the deployment builds:
+
+```bash
+pnpm dev:pdf                               # Gotenberg on port 3300, the signer on 3301
+pnpm --filter @ssm-usor/api signing:ca     # prints the three SIGNING_* lines
+```
+
+`pnpm dev` runs `pnpm dev:pdf` first and only warns when Docker is not up. Put these lines in
+`apps/api/.dev.vars`, the last three as `signing:ca` printed them, each PEM on one line with
+`\n` for its line breaks:
+
+```
+GOTENBERG_URL=http://localhost:3300
+SIGNER_URL=http://localhost:3301
+SIGNING_CA_KEY="-----BEGIN PRIVATE KEY-----\n…\n-----END PRIVATE KEY-----"
+SIGNING_CA_CERT="-----BEGIN CERTIFICATE-----\n…\n-----END CERTIFICATE-----"
+SIGNING_KEY_ENCRYPTION_KEY=…
+```
+
+Then restart `pnpm dev`; `pnpm dev:local` reads the same lines. The data comes from
+`pnpm seed:local` and `pnpm templates:register:local`: the sheets, the agreement and the annex
+are templates like the rest. Without the converter a sheet or an agreement has no PDF; without
+the signer or the three values, signing answers `503` (`signer_unavailable`,
+`signing_unavailable`) and neither signs nor sends a code. The codes go through the mail and SMS
+Workers that `pnpm dev` starts, which print each message, the code included, while they hold no
+Resend key or Twilio settings. A new authority made later
+makes every local identity reissue at its next signature, which is harmless.
+
+Two scripts run the whole of it against the local stack, with an authority of their own, so they
+need neither the three values nor `pnpm dev`:
+
+```bash
+GOTENBERG_URL=http://localhost:3300 SIGNER_URL=http://localhost:3301 \
+  pnpm --filter @ssm-usor/api signed-sheet:check:local -- --out /tmp/signed-sheets
+GOTENBERG_URL=http://localhost:3300 SIGNER_URL=http://localhost:3301 \
+  pnpm --filter @ssm-usor/api signing:check:local
+```
+
+`signed-sheet:check:local` records trainings for a seeded employee, places, signs, voids and
+continues the sheet, validates every signature and writes the PDFs to the folder.
+`signing:check:local` signs a training as a member, the agreement and the trainee's slot as the
+employee in the portal and the agreement for the employer as the client administrator, over
+HTTP, then validates the stored sheet and agreement and prints the evidence. Both need:
+
+- the local stack running and the Supabase CLI on the PATH: they read its address and keys from
+  `supabase status`, and refuse any other;
+- `pnpm seed:local` and `pnpm templates:register:local` done, and a seeded employee with no
+  training records (and, for `signing:check:local`, no participant);
+- `pnpm dev:pdf` up, with the two URLs above exported.
+
+`signed-sheet:check:local` also needs `openssl` on the PATH, which makes its throwaway authority.
+`signing:check:local` starts the API from `scripts/e2e-server.ts` on port 8797, which must be
+free, so not while the browser flows run; and it removes the evidence at the end as the
+database's superuser, through `docker exec` into the `supabase_db_<project_id>` container. Both
+remove everything they made. CI runs neither.
+
+The browser flows that sign, `apps/app/e2e/flows/signatures.spec.ts` and
+`apps/portal/e2e/flows/signing.spec.ts`, need `GOTENBERG_URL`, `SIGNER_URL` and the three
+`SIGNING_*` values exported in the shell that runs them, since the API they start reads its
+environment and not `.dev.vars`; without them the app's flow is skipped and the portal's stops
+before asking for a code ([app](app.md), [portal](portal.md#browser-flows)).
+
 ## Legislation check
 
 The daily check of the watched acts ([deployment](deployment.md#legislation-worker)) runs
