@@ -48,8 +48,8 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
 }));
 
 const sheetsReady = {
-  ssm: { ready: true, missing: [], stored: false },
-  psi: { ready: true, missing: [], stored: false },
+  ssm: { ready: true, missing: [], stored: false, sequences: [] },
+  psi: { ready: true, missing: [], stored: false, sequences: [] },
 };
 
 beforeEach(() => {
@@ -290,8 +290,13 @@ describe('Instruiri', () => {
   it('says what a sheet that is not ready lacks, for the specialist to fill', async () => {
     vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
       queryResult({
-        ssm: { ready: false, missing: ['employee.commute_route', 'employee.workplace'] },
-        psi: { ready: false, missing: ['employee.workplace'] },
+        ssm: {
+          ready: false,
+          missing: ['employee.commute_route', 'employee.workplace'],
+          stored: false,
+          sequences: [],
+        },
+        psi: { ready: false, missing: ['employee.workplace'], stored: false, sequences: [] },
       })
     );
     mountPortal(signedIn(), '/instruiri');

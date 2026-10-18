@@ -51,8 +51,8 @@ beforeEach(() => {
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
   vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
     queryResult({
-      ssm: { ready: true, missing: [], stored: false },
-      psi: { ready: true, missing: [], stored: false },
+      ssm: { ready: true, missing: [], stored: false, sequences: [] },
+      psi: { ready: true, missing: [], stored: false, sequences: [] },
     })
   );
   mutate.mockReset();

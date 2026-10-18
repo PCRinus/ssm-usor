@@ -83,6 +83,13 @@ const agreementAwaitingEmployee = {
   clientFileId: null,
   employeeSignedAt: null,
   employerSignedAt: null,
+  awaiting: 'employee' as 'employee' | 'employer' | null,
+};
+
+const agreementAwaitingEmployer = {
+  ...agreementAwaitingEmployee,
+  employeeSignedAt: '2026-10-17T09:00:00Z',
+  awaiting: 'employer' as const,
 };
 
 const session = {
@@ -93,8 +100,8 @@ const session = {
   items: [],
 };
 
-const refusal = (reason: string, message = 'Refused.') =>
-  new ApiHttpError(409, { error: 'conflict', message, reason });
+const refusal = (reason: string, message = 'Refused.', extra: Record<string, unknown> = {}) =>
+  new ApiHttpError(409, { error: 'conflict', message, reason, ...extra });
 
 beforeEach(() => {
   vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [employee] }));
@@ -102,8 +109,8 @@ beforeEach(() => {
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
   vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
     queryResult({
-      ssm: { ready: true, missing: [], stored: true },
-      psi: { ready: true, missing: [], stored: false },
+      ssm: { ready: true, missing: [], stored: true, sequences: [1] },
+      psi: { ready: true, missing: [], stored: false, sequences: [] },
     })
   );
   vi.mocked(useListPortalClientEmployees).mockReturnValue(queryPending());
@@ -142,9 +149,9 @@ describe('Acasă', () => {
     const panel = await screen.findByTestId('home-todo');
     const items = within(panel).getAllByTestId('home-todo-item');
     expect(items.map((item) => item.dataset.kind)).toEqual(['agreement', 'request', 'request']);
-    expect(items[0]!.textContent).toContain('Acordul de semnare electronică');
+    expect(items[0]!.textContent).toContain('Actul adițional privind semnarea electronică');
     expect(items[1]!.textContent).toContain('Instruire periodică SSM');
-    expect(items[1]!.textContent).toContain('semnezi ca lucrător');
+    expect(items[1]!.textContent).toContain('semnezi ca instruit');
     expect(within(panel).queryByTestId('signing-item-agreement-warning')).toBeNull();
     expect(screen.getByTestId('home-sign').textContent).toBe('Semnează (3)');
   });
@@ -164,6 +171,28 @@ describe('Acasă', () => {
     mountPortal(signedIn());
     const panel = await screen.findByTestId('home-todo');
     expect(within(panel).getAllByTestId('signing-item-agreement-warning')).toHaveLength(2);
+  });
+
+  it('stops warning on the own records once the employee signed the agreement', async () => {
+    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+      queryResult({ agreement: agreementAwaitingEmployer })
+    );
+    mountPortal(signedIn());
+    const panel = await screen.findByTestId('home-todo');
+    expect(within(panel).getAllByTestId('home-todo-item')).toHaveLength(2);
+    expect(within(panel).queryByTestId('signing-item-agreement-warning')).toBeNull();
+  });
+
+  it('counts what is not shown as +N', async () => {
+    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
+      queryResult({
+        items: Array.from({ length: 6 }, (_, index) =>
+          request(`6f0c3e43-0c1b-4f4b-8a1e-00000000010${index}`)
+        ),
+      })
+    );
+    mountPortal(signedIn());
+    expect((await screen.findByTestId('home-todo-more')).textContent).toBe('+3');
   });
 });
 
@@ -210,7 +239,7 @@ describe('the signing screen', () => {
 
   it('says how many attempts are left after a wrong code, then shows what was signed and what was not', async () => {
     vi.mocked(signPortalSigningSession)
-      .mockRejectedValueOnce(refusal('code_invalid', 'The code is wrong; 2 attempts are left.'))
+      .mockRejectedValueOnce(refusal('code_invalid', 'Wrong code.', { attemptsLeft: 2 }))
       .mockResolvedValueOnce({
         signed: [{ requestId: requestA.id, agreementState: 'generated' }],
         failed: [{ requestId: requestB.id, reason: 'sheet_busy' }],
@@ -231,6 +260,7 @@ describe('the signing screen', () => {
     expect((await screen.findByTestId('signing-code-error')).textContent).toBe(
       'Codul nu este corect. Mai ai 2 încercări.'
     );
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByTestId('signing-code')));
 
     await user.clear(screen.getByTestId('signing-code'));
     await user.type(screen.getByTestId('signing-code'), '123456');
@@ -249,7 +279,62 @@ describe('the signing screen', () => {
     expect(within(outcomes[2]!).getByTestId('signing-outcome-reason').textContent).toContain(
       'Fișa era folosită chiar atunci de altă semnătură'
     );
-    expect(screen.getByTestId('signing-again')).toBeTruthy();
+    await user.click(screen.getByTestId('signing-again'));
+    const checks = await screen.findAllByTestId('signing-item-check');
+    expect(checks.map((check) => check.getAttribute('aria-checked'))).toEqual([
+      'false',
+      'false',
+      'true',
+    ]);
+  });
+
+  it('focuses the code field once the code is sent, and keeps every digit of a pasted code', async () => {
+    const user = await askForCode();
+    const code = screen.getByTestId('signing-code');
+    await waitFor(() => expect(document.activeElement).toBe(code));
+    await user.paste(' 123 456');
+    expect((code as HTMLInputElement).value).toBe('123456');
+  });
+
+  it('says what one signed item was, by its kind and whose record it is', async () => {
+    vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
+    vi.mocked(signPortalSigningSession).mockResolvedValueOnce({
+      signed: [],
+      failed: [],
+      agreements: [
+        { employeeId, party: 'employee', signed: true, reason: null, agreementState: 'generated' },
+      ],
+    });
+    const user = await askForCode();
+    await user.type(screen.getByTestId('signing-code'), '123456');
+    await user.click(screen.getByTestId('signing-sign'));
+    expect((await screen.findByTestId('signing-result-summary')).textContent).toBe(
+      'Ai semnat actul adițional. Specialistul îl vede semnat de tine.'
+    );
+  });
+
+  it('ticks at most what one code signs and holds the code back over the limit', async () => {
+    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
+      queryResult({
+        items: Array.from({ length: 31 }, (_, index) =>
+          request(`6f0c3e43-0c1b-4f4b-8a1e-0000000002${String(index).padStart(2, '0')}`)
+        ),
+      })
+    );
+    const user = userEvent.setup();
+    mountPortal(signedIn(), '/semneaza');
+    const checks = await screen.findAllByTestId('signing-item-check');
+    expect(checks).toHaveLength(32);
+    expect(checks.filter((check) => check.getAttribute('aria-checked') === 'true')).toHaveLength(
+      30
+    );
+    expect(screen.queryByTestId('signing-limit')).toBeNull();
+
+    await user.click(checks[31]!);
+    expect(screen.getByTestId('signing-limit').textContent).toBe(
+      'Cu un cod semnezi cel mult 30 de documente. Debifează 1; pe celelalte le semnezi apoi cu alt cod.'
+    );
+    expect(screen.getByTestId('signing-send')).toHaveProperty('disabled', true);
   });
 
   it.each([
@@ -271,7 +356,7 @@ describe('the signing screen', () => {
 
   it('treats the last wrong code as spent', async () => {
     vi.mocked(signPortalSigningSession).mockRejectedValueOnce(
-      refusal('code_invalid', 'The code is wrong, and no attempt is left; ask for a new one.')
+      refusal('code_invalid', 'Wrong code.', { attemptsLeft: 0 })
     );
     const user = await askForCode();
     await user.type(screen.getByTestId('signing-code'), '123456');
@@ -290,14 +375,16 @@ describe('the signing screen', () => {
   });
 
   it('says to wait when a code was asked for less than a minute ago', async () => {
-    vi.mocked(createPortalSigningSession).mockRejectedValueOnce(refusal('code_rate_limited'));
+    vi.mocked(createPortalSigningSession).mockRejectedValueOnce(
+      refusal('code_rate_limited', 'Too soon.', { retryAfterSeconds: 37 })
+    );
     const user = userEvent.setup();
     mountPortal(signedIn(), '/semneaza');
     await screen.findByTestId('signing-items');
     await user.click(screen.getByTestId('signing-send'));
     const error = await screen.findByTestId('signing-send-error');
     expect(error.textContent).toContain('Ai cerut un cod acum mai puțin de un minut.');
-    expect(error.textContent).toMatch(/Poți cere altul în \d+ s\./);
+    expect(error.textContent).toContain('Poți cere altul în 37 s.');
     expect(screen.getByTestId('signing-send')).toHaveProperty('disabled', true);
   });
 
@@ -313,6 +400,40 @@ describe('the signing screen', () => {
     await screen.findByTestId('signing-items');
     await user.click(screen.getByTestId('signing-send'));
     expect((await screen.findByTestId('signing-send-error')).textContent).toContain(text);
+  });
+
+  it.each([
+    [400, 'Cu un cod semnezi cel mult 30 de documente.'],
+    [401, 'Sesiunea ta în portal a expirat. Ieși din cont și intră din nou.'],
+    [403, 'Sesiunea ta în portal a expirat. Ieși din cont și intră din nou.'],
+  ])('words a %i when the code is asked for', async (status, text) => {
+    vi.mocked(createPortalSigningSession).mockRejectedValueOnce(
+      new ApiHttpError(status, { error: 'refused', message: 'Refused.' })
+    );
+    const user = userEvent.setup();
+    mountPortal(signedIn(), '/semneaza');
+    await screen.findByTestId('signing-items');
+    await user.click(screen.getByTestId('signing-send'));
+    expect((await screen.findByTestId('signing-send-error')).textContent).toContain(text);
+  });
+
+  it('keeps the choice when an item vanished before the code was sent', async () => {
+    vi.mocked(createPortalSigningSession).mockRejectedValueOnce(
+      new ApiHttpError(404, {
+        error: 'not_found',
+        message: 'Gone.',
+        reason: 'signing_item_not_found',
+      })
+    );
+    const user = userEvent.setup();
+    mountPortal(signedIn(), '/semneaza');
+    const checks = await screen.findAllByTestId('signing-item-check');
+    await user.click(checks[2]!);
+    await user.click(screen.getByTestId('signing-send'));
+    await screen.findByTestId('signing-send-error');
+    expect(
+      screen.getAllByTestId('signing-item-check').map((check) => check.getAttribute('aria-checked'))
+    ).toEqual(['true', 'true', 'false']);
   });
 
   it('says nothing waits when the lists are empty', async () => {
@@ -332,7 +453,7 @@ describe('the client administrator', () => {
   });
   const awaiting = (id: string, lastName: string) => ({
     employee: { id, lastName, firstName: 'Ana' },
-    agreement: { ...agreementAwaitingEmployee, employeeSignedAt: '2026-10-17T09:00:00Z' },
+    agreement: agreementAwaitingEmployer,
     awaitingEmployer: true,
   });
   const first = '6f0c3e43-0c1b-4f4b-8a1e-0000000000e2';
@@ -375,7 +496,7 @@ describe('the client administrator', () => {
     expect(rows).toHaveLength(2);
     expect(screen.getAllByTestId('client-pending-request')).toHaveLength(1);
     expect(screen.getByTestId('client-pending-request').textContent).toContain(
-      'Așteaptă semnătura: Pop Ana (lucrător), Ana Ionescu (instructor).'
+      'Așteaptă semnătura: Pop Ana (instruit), Ana Ionescu (instructor).'
     );
 
     await user.click(within(rows[1]!).getByTestId('agreement-sign'));
@@ -390,6 +511,38 @@ describe('the client administrator', () => {
       )
     );
   });
+
+  it('signs all the agreements, and only them, from Semnează toate', async () => {
+    vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [requestB] }));
+    const user = userEvent.setup();
+    mountPortal(signedIn(), '/angajati/semnaturi');
+    await user.click(await screen.findByTestId('agreements-sign-all'));
+    const checks = await screen.findAllByTestId('signing-item-check');
+    expect(checks.map((check) => check.getAttribute('aria-checked'))).toEqual([
+      'true',
+      'true',
+      'false',
+    ]);
+  });
+
+  it('signs their own agreement as the employee when the administrator is one', async () => {
+    const both = { ...administrator, employeeId };
+    vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [both] }));
+    vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
+    const user = userEvent.setup();
+    mountPortal(signedIn(), '/contul-meu');
+    await user.click(await screen.findByTestId('account-agreement-sign'));
+    const items = await screen.findAllByTestId('signing-item');
+    expect(items.map((item) => item.dataset.kind)).toEqual(['agreement']);
+    await user.click(screen.getByTestId('signing-send'));
+    await waitFor(() =>
+      expect(createPortalSigningSession).toHaveBeenCalledWith(
+        both.participantId,
+        { requestIds: [], agreementEmployeeIds: [employeeId] },
+        expect.anything()
+      )
+    );
+  });
 });
 
 describe('Instruiri and Contul meu', () => {
@@ -397,18 +550,36 @@ describe('Instruiri and Contul meu', () => {
     mountPortal(signedIn(), '/instruiri');
     const records = await screen.findAllByTestId('training-record');
     expect(within(records[0]!).getByTestId('training-record-signatures').textContent).toContain(
-      'Așteaptă semnătura ta (lucrător).'
+      'Așteaptă semnătura ta (instruit).'
     );
     expect(screen.getByTestId('training-sheet-ssm-stored').textContent).toBe(
       'Fișă semnată electronic'
     );
     expect(screen.queryByTestId('training-sheet-psi-stored')).toBeNull();
+    expect(screen.queryByTestId('training-sheet-ssm-originals')).toBeNull();
+  });
+
+  it('offers the originals of a sheet continued on a second one beside the reading copy', async () => {
+    vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
+      queryResult({
+        ssm: { ready: true, missing: [], stored: true, sequences: [1, 2] },
+        psi: { ready: true, missing: [], stored: false, sequences: [] },
+      })
+    );
+    mountPortal(signedIn(), '/instruiri');
+    const originals = await screen.findByTestId('training-sheet-ssm-originals');
+    expect(originals.textContent).toContain('copie de citire');
+    expect(
+      within(originals)
+        .getAllByTestId('training-sheet-ssm-original')
+        .map((button) => button.textContent)
+    ).toEqual(['Fișa 1', 'Fișa 2 (continuare)']);
   });
 
   it.each([
     [agreementAwaitingEmployee, 'Așteaptă semnătura ta.', true],
     [
-      { ...agreementAwaitingEmployee, employeeSignedAt: '2026-10-17T09:00:00Z' },
+      agreementAwaitingEmployer,
       'L-ai semnat pe 17 octombrie 2026. Așteaptă semnătura angajatorului.',
       false,
     ],
@@ -418,8 +589,14 @@ describe('Instruiri and Contul meu', () => {
         state: 'signed_electronically' as const,
         employeeSignedAt: '2026-10-17T09:00:00Z',
         employerSignedAt: '2026-10-18T09:00:00Z',
+        awaiting: null,
       },
       'Semnat electronic de ambele părți pe 18 octombrie 2026.',
+      false,
+    ],
+    [
+      { ...agreementAwaitingEmployee, state: 'withdrawn' as const, awaiting: null },
+      'Ai revenit la semnarea de mână: fișele tale se semnează pe hârtie.',
       false,
     ],
   ])('shows the agreement %#', async (agreement, text, signable) => {
