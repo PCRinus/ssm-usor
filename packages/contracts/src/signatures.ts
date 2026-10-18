@@ -15,8 +15,8 @@ export type SignerSlot = z.infer<typeof signerSlotSchema>;
 export const signerSlotLabels: Record<SignerSlot, string> = {
   trainee: 'Instruit',
   trainer: 'Instructor',
-  verifier: 'Verificat',
-  admitter: 'Admis la lucru',
+  verifier: 'Verificator',
+  admitter: 'Admite la lucru',
 };
 
 export const signatureRequestStates = ['pending', 'signed', 'void'] as const;
