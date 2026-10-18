@@ -582,6 +582,10 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   position opens a dialog that moves the person and sends the contract title only when it was
   changed. Creating, moving, marking a leaver and reactivating all refresh the positions list,
   whose counts they change.
+- The employment contract's number: the form's "Angajare" group has an optional "Nr.
+  contractului individual de muncă" after "Funcția din contract", so that the number and the
+  hire date sit side by side as the signing agreement prints them; the employee page shows it as
+  "Nr. contract" after the contract title, a dash when unknown.
 - Employees and what the training sheets print (ADR 021): the employee form's group "Fișa de
   instruire", all optional, starts with "Punct de lucru", a picker of the client's active
   workplaces from `GET …/workplaces` (`src/features/employees/employee-workplace-combobox.tsx`),

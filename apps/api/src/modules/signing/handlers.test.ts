@@ -600,6 +600,7 @@ const employeeRow = {
   first_name: 'Ion',
   employee_number: '0042',
   job_title: 'Sudor',
+  contract_number: '118/2024',
   hired_at: '2024-03-01',
   birth_date: '1988-03-14',
   birth_place: 'Lugoj',
@@ -678,6 +679,8 @@ describe('the signing agreement', () => {
     expect(text).toContain('Protect SSM Consult SRL');
     expect(text).toContain('adresa de e-mail comunicată angajatorului');
     expect(text).not.toContain('{');
+    const [employee] = callsTo('/rest/v1/employees');
+    expect(employee!.url.searchParams.get('select')).toContain('contract_number');
     const [read] = callsTo(
       '/storage/v1/object/sign/document-templates/built-in/signing_agreement/v1.docx',
       'POST'

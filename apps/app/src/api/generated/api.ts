@@ -1141,6 +1141,8 @@ export type EmployeeResponseEmployee = {
   /** @nullable */
   phone: string | null;
   jobTitle: string;
+  /** @nullable */
+  contractNumber: string | null;
   jobPosition: EmployeeResponseEmployeeJobPosition;
   hiredAt: string;
   status: EmployeeResponseEmployeeStatus;
@@ -1240,6 +1242,12 @@ export interface CreateEmployeeRequest {
    * @maxLength 160
    */
   jobTitle: string;
+  /**
+   * @minLength 1
+   * @maxLength 50
+   * @nullable
+   */
+  contractNumber?: string | null;
   /** @nullable */
   jobPositionId?: string | null;
   hiredAt: string;
@@ -1360,6 +1368,12 @@ export interface UpdateEmployeeRequest {
    * @maxLength 160
    */
   jobTitle: string;
+  /**
+   * @minLength 1
+   * @maxLength 50
+   * @nullable
+   */
+  contractNumber?: string | null;
   /** @nullable */
   jobPositionId?: string | null;
   hiredAt: string;

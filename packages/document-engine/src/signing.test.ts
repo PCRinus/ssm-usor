@@ -117,6 +117,7 @@ describe('the signing agreement', () => {
       identification:
         'marca 0042, data nașterii 14.03.1988, locul nașterii Lugoj, cu domiciliul în Str. Lungă nr. 12, bl. A3, sc. 2, ap. 14, Timișoara, jud. Timiș',
       hiredOn: '05.01.2026',
+      contractNumber: 'CIM 123/2020',
     });
     expect(JSON.stringify(data)).not.toMatch(/CNP|\b[1-8]\d{12}\b/);
   });
@@ -125,6 +126,16 @@ describe('the signing agreement', () => {
     expect(buildSigningAgreementData(signingAgreementFacts.sparse).employee.identification).toBe(
       ''
     );
+  });
+
+  it('gives the contract number trimmed, and null when the app holds none', () => {
+    const { recorded, sparse } = signingAgreementFacts;
+    const withNumber = (contractNumber: string | null) =>
+      buildSigningAgreementData({ ...recorded, employee: { ...recorded.employee, contractNumber } })
+        .employee.contractNumber;
+    expect(withNumber(' CIM 123/2020 ')).toBe('CIM 123/2020');
+    expect(withNumber('   ')).toBeNull();
+    expect(buildSigningAgreementData(sparse).employee.contractNumber).toBeNull();
   });
 
   it('names the channel the codes go to, not the address', () => {

@@ -47,6 +47,7 @@ const employeeRow = {
   email: 'ion.popescu@example.com',
   phone: '+40721000000',
   job_title: 'Sudor',
+  contract_number: null,
   job_positions: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor autorizat' },
   hired_at: '2020-03-01',
   status: 'active',
@@ -115,6 +116,7 @@ const employeeListRow = Object.fromEntries(
         'authorizations',
         'commute_route',
         'commute_minutes',
+        'contract_number',
       ].includes(key)
   )
 );
@@ -419,6 +421,7 @@ describe('POST /clients/{clientId}/employees', () => {
       email: 'ion.popescu@example.com',
       phone: '+40721000000',
       job_title: 'Sudor',
+      contract_number: null,
       hired_at: '2020-03-01',
       birth_date: '1990-01-01',
       birth_place: 'Cluj-Napoca',
@@ -690,6 +693,7 @@ describe('PUT /clients/{clientId}/employees/{employeeId}', () => {
       email: 'ioan.popescu@example.com',
       phone: null,
       job_title: 'Sudor',
+      contract_number: null,
       hired_at: '2020-03-01',
       birth_date: null,
       birth_place: null,
@@ -981,6 +985,62 @@ describe('training sheet fields on employees (ADR 021)', () => {
     ).toContain(path);
     expect(calls('/rest/v1/employees')).toHaveLength(0);
   });
+});
+
+describe('the employment contract number', () => {
+  const body = { lastName: 'Popescu', firstName: 'Ion', jobTitle: 'Sudor', hiredAt: '2020-03-01' };
+  const sent = (method: 'POST' | 'PATCH') =>
+    JSON.parse(
+      String(
+        calls('/rest/v1/employees')
+          .filter(([, init]) => init?.method === method)
+          .at(-1)![1]?.body
+      )
+    ) as Record<string, unknown>;
+
+  it('is stored trimmed, read with the full record and returned', async () => {
+    mockUpstream({
+      employees: () =>
+        Response.json({ ...employeeRow, contract_number: '118/2020' }, { status: 201 }),
+    });
+    const response = await postEmployee({ ...body, contractNumber: ' 118/2020 ' });
+    expect(response.status).toBe(201);
+    expect(sent('POST').contract_number).toBe('118/2020');
+    const select = new URL(String(calls('/rest/v1/employees')[0]![0])).searchParams.get('select');
+    expect(select).toContain('contract_number');
+    expect(employeeResponseSchema.parse(await response.json()).employee.contractNumber).toBe(
+      '118/2020'
+    );
+  });
+
+  it('is replaced on an edit and cleared when left out', async () => {
+    const put = (payload: unknown) =>
+      request(`${employeesPath}/${employeeRow.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    mockUpstream({ employees: () => Response.json(employeeRow) });
+    expect((await put({ ...body, contractNumber: '7' })).status).toBe(200);
+    expect(sent('PATCH').contract_number).toBe('7');
+
+    mockUpstream({ employees: () => Response.json(employeeRow) });
+    expect((await put(body)).status).toBe(200);
+    expect(sent('PATCH').contract_number).toBeNull();
+  });
+
+  it.each([['x'.repeat(51)], ['   ']])(
+    'rejects %j before touching the database',
+    async (contractNumber) => {
+      mockUpstream({});
+      const response = await postEmployee({ ...body, contractNumber });
+      expect(response.status).toBe(400);
+      expect(
+        apiErrorResponseSchema.parse(await response.json()).issues?.map((i) => i.path)
+      ).toContain('contractNumber');
+      expect(calls('/rest/v1/employees')).toHaveLength(0);
+    }
+  );
 });
 
 describe('CORS', () => {

@@ -1300,6 +1300,10 @@
               "jobTitle": {
                 "type": "string"
               },
+              "contractNumber": {
+                "type": "string",
+                "nullable": true
+              },
               "jobPosition": {
                 "type": "object",
                 "properties": {
@@ -1491,6 +1495,7 @@
               "email",
               "phone",
               "jobTitle",
+              "contractNumber",
               "jobPosition",
               "hiredAt",
               "status",
@@ -1555,6 +1560,12 @@
             "type": "string",
             "minLength": 2,
             "maxLength": 160
+          },
+          "contractNumber": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 50
           },
           "jobPositionId": {
             "type": "string",
@@ -1675,6 +1686,12 @@
             "type": "string",
             "minLength": 2,
             "maxLength": 160
+          },
+          "contractNumber": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 50
           },
           "jobPositionId": {
             "type": "string",

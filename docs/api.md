@@ -373,6 +373,10 @@ stored workplace, and `workplaceId: null` clears it. The detail returns the five
 the list and the detail carry `workplace: { id, name } | null`, the name read even once the
 workplace is archived.
 
+`contractNumber`, the number of the individual employment contract, is optional on the same
+bodies (trimmed, up to 50 characters) and on the detail as `string | null`; the list leaves it
+out. `PUT` without it clears it, as for the other optional facts. The signing agreement prints it.
+
 Both employee lists take `?q=`, up to 100 characters, and keep the employees that match every
 term of it: the text is lowercased, stripped of diacritics and split on anything that is not a
 letter or a digit, and each term must appear somewhere in the name (`last_name first_name`) or

@@ -667,18 +667,18 @@ empty section 13.
 
 The agreement's data is built by `buildSigningAgreementData(facts)` from the client's legal
 name, CUI, registered office and representative, the provider's name, the employee's name, job
-title, start date, employee number, birth and home address, and the channel the codes go to. It
+title, contract number, start date, employee number, birth and home address, and the channel the codes go to. It
 throws `SigningAgreementDataError` with the missing names when the client's representative's name
 or role is empty, since the parties name them, and the API answers `409 missing_document_data`
 with `client.representativeName` or `client.representativeRole`:
 
-| Name          | What it holds                                                                                                                                                                                                     |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `branding`    | The footer line, as on every template                                                                                                                                                                             |
-| `client`      | `legalName`, `cui`, `address`, `representativeName`, `representativeRole`                                                                                                                                         |
-| `provider`    | `legalName`, whose platform the signature is made in                                                                                                                                                              |
-| `employee`    | `name` ("POPESCU Ion", as on the sheets), `position`, `hiredOn` (`dd.mm.yyyy`), and `identification`: the employee number, birth date and place and home address the app holds, in words, or empty; never the CNP |
-| `codeChannel` | "adresa de e-mail comunicată angajatorului" or "numărul de telefon mobil comunicat angajatorului": the channel, not the address, since nothing masks one yet                                                      |
+| Name          | What it holds                                                                                                                                                                                                                                                                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `branding`    | The footer line, as on every template                                                                                                                                                                                                                                                                                                         |
+| `client`      | `legalName`, `cui`, `address`, `representativeName`, `representativeRole`                                                                                                                                                                                                                                                                     |
+| `provider`    | `legalName`, whose platform the signature is made in                                                                                                                                                                                                                                                                                          |
+| `employee`    | `name` ("POPESCU Ion", as on the sheets), `position`, `hiredOn` (`dd.mm.yyyy`), `contractNumber` (the employment contract's number, or `null` when the app holds none, so that a section can switch on it), and `identification`: the employee number, birth date and place and home address the app holds, in words, or empty; never the CNP |
+| `codeChannel` | "adresa de e-mail comunicată angajatorului" or "numărul de telefon mobil comunicat angajatorului": the channel, not the address, since nothing masks one yet                                                                                                                                                                                  |
 
 The JSON's `contract_clause` is the agreement's first three articles as the clause of a new
 hire's employment contract, which then needs no agreement: no parties, no signatures, the code

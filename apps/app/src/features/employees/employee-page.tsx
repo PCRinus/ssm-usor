@@ -102,6 +102,7 @@ export function EmployeePage() {
             </span>
           </Fact>
           <Fact label="Funcția din contract">{employee.jobTitle}</Fact>
+          <Fact label="Nr. contract">{employee.contractNumber}</Fact>
           <Fact label="Data angajării">{formatDate(employee.hiredAt)}</Fact>
           <Fact label={former ? 'Vechime la plecare' : 'Vechime'}>
             {formatTenure(employee.hiredAt, employee.terminatedAt ?? todayIso())}

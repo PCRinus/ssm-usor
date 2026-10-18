@@ -61,6 +61,7 @@ const createdEmployee = {
   authorizations: null,
   commuteRoute: null,
   commuteMinutes: null,
+  contractNumber: null,
 };
 
 const workplace = (id: string, name: string, isRegisteredOffice = false) => ({
@@ -566,6 +567,7 @@ describe('employee creation', () => {
       jobPositionId: sampleEmployee.jobPosition.id,
       // Filled from the position; nobody typed it.
       jobTitle: 'Sudor',
+      contractNumber: null,
       hiredAt: '2020-03-01',
       birthDate: '1990-01-01',
       birthPlace: null,
@@ -599,6 +601,7 @@ describe('employee creation', () => {
       email: null,
       birthDate: null,
       bloodGroup: null,
+      contractNumber: null,
     });
   });
 
@@ -634,6 +637,73 @@ describe('employee creation', () => {
     await user.click(screen.getByTestId('employee-submit'));
     expect((await screen.findByTestId('employee-form-error')).textContent).toContain('arhivat');
     expect(requests(employeesPath, 'POST')).toHaveLength(2);
+  });
+});
+
+describe('the employment contract number', () => {
+  const detailPath = `${employeesPath}/${sampleEmployee.id}`;
+  const editPath = `${detailPath}/edit`;
+  const contractFact = () => screen.getByText('Nr. contract').nextElementSibling?.textContent;
+
+  it('is sent with a new employee, trimmed', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await user.type(screen.getByTestId('employee-last-name'), 'Popescu');
+    await user.type(screen.getByTestId('employee-first-name'), 'Ion');
+    await pickPosition(user, 'sud', /Sudor/);
+    await user.type(screen.getByTestId('employee-contract-number'), ' 118/2020 ');
+    setDate(screen.getByTestId('employee-hired-at'), '2020-03-01');
+    await user.click(screen.getByTestId('employee-submit'));
+    await screen.findByTestId('employees-page');
+    expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
+      contractNumber: '118/2020',
+    });
+  });
+
+  it('refuses more than 50 characters before contacting the API', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await user.click(screen.getByTestId('employee-contract-number'));
+    await user.paste('1'.repeat(51));
+    await user.click(screen.getByTestId('employee-submit'));
+    expect((await screen.findByTestId('contractNumber-error')).textContent).toContain('50');
+    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+  });
+
+  it('shows on the employee page beside the contract title', async () => {
+    mockApi({
+      detail: () => Response.json({ employee: { ...createdEmployee, contractNumber: '118/2020' } }),
+    });
+    mountApp(authFixture(makeSession()).client, detailPath);
+    await screen.findByTestId('employee-page');
+    expect(contractFact()).toBe('118/2020');
+  });
+
+  it('shows a dash on the employee page when the number is unknown', async () => {
+    mockApi({ detail: () => Response.json({ employee: createdEmployee }) });
+    mountApp(authFixture(makeSession()).client, detailPath);
+    await screen.findByTestId('employee-page');
+    expect(contractFact()).toBe('—');
+  });
+
+  it('opens in the edit form and is cleared when emptied', async () => {
+    mockApi({
+      detail: () => Response.json({ employee: { ...createdEmployee, contractNumber: '118/2020' } }),
+    });
+    mountApp(authFixture(makeSession()).client, editPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('edit-employee-page');
+    const field = screen.getByTestId<HTMLInputElement>('employee-contract-number');
+    expect(field.value).toBe('118/2020');
+    await user.clear(field);
+    await user.click(screen.getByTestId('employee-submit'));
+    await screen.findByTestId('employee-page');
+    const [, init] = requests(detailPath, 'PUT')[0]!;
+    expect(JSON.parse(String(init?.body))).toMatchObject({ contractNumber: null });
   });
 });
 

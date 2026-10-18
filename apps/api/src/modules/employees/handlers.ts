@@ -53,7 +53,7 @@ function inTrainingState<
 }
 
 // The CNP and the training-sheet details are read only for one employee at a time.
-export const employeeColumns = `${employeeListColumns}, cnp, birth_date, birth_place, home_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_minutes`;
+export const employeeColumns = `${employeeListColumns}, cnp, birth_date, birth_place, home_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_minutes, contract_number`;
 
 type EmployeeListRow = Pick<
   EmployeeRow,
@@ -126,6 +126,7 @@ export function toEmployee(
     authorizations: row.authorizations,
     commuteRoute: row.commute_route,
     commuteMinutes: row.commute_minutes,
+    contractNumber: row.contract_number,
   };
 }
 
@@ -271,6 +272,7 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
       email: body.email ?? null,
       phone: body.phone ?? null,
       job_title: body.jobTitle,
+      contract_number: body.contractNumber ?? null,
       hired_at: body.hiredAt,
       birth_date: body.birthDate ?? null,
       birth_place: body.birthPlace ?? null,
@@ -402,6 +404,7 @@ export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = 
       email: body.email ?? null,
       phone: body.phone ?? null,
       job_title: body.jobTitle,
+      contract_number: body.contractNumber ?? null,
       ...(body.jobPositionId ? { job_position_id: body.jobPositionId } : {}),
       hired_at: body.hiredAt,
       birth_date: body.birthDate ?? null,

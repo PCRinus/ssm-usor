@@ -1231,6 +1231,7 @@ export type Database = {
           cnp: string | null;
           commute_minutes: number | null;
           commute_route: string | null;
+          contract_number: string | null;
           created_at: string;
           created_by: string | null;
           education: string | null;
@@ -1284,6 +1285,7 @@ export type Database = {
           cnp?: string | null;
           commute_minutes?: number | null;
           commute_route?: string | null;
+          contract_number?: string | null;
           created_at?: string;
           created_by?: string | null;
           education?: string | null;
@@ -1316,6 +1318,7 @@ export type Database = {
           cnp?: string | null;
           commute_minutes?: number | null;
           commute_route?: string | null;
+          contract_number?: string | null;
           created_at?: string;
           created_by?: string | null;
           education?: string | null;
