@@ -122,6 +122,83 @@ const recordRow = {
     supplementary_reason: null,
     created_at: '2026-01-06T10:00:00+00:00',
   },
+  signature_requests: [],
+  training_signatures: [],
+};
+
+const signerAccountId = '7a7a7a7a-0000-4000-8000-000000000001';
+const traineeRequestId = '9b9b9b9b-0000-4000-8000-000000000001';
+const voidedRequestId = '9b9b9b9b-0000-4000-8000-000000000002';
+const paperRequestId = '9b9b9b9b-0000-4000-8000-000000000003';
+
+const signedRecordRow = {
+  ...recordRow,
+  trainings: {
+    ...recordRow.trainings,
+    verifier_name: 'Maria IONESCU',
+    verifier_job_title: 'Inspector SSM',
+  },
+  signature_requests: [
+    {
+      id: paperRequestId,
+      slot: 'trainer',
+      signer_account_id: null,
+      state: 'signed',
+      issued_at: '2026-10-17T10:00:00+00:00',
+      notified_at: null,
+      voided_at: null,
+      void_reason: null,
+      created_at: '2026-10-17T10:00:00+00:00',
+    },
+    {
+      id: voidedRequestId,
+      slot: 'admitter',
+      signer_account_id: signerAccountId,
+      state: 'void',
+      issued_at: '2026-10-17T08:00:00+00:00',
+      notified_at: '2026-10-17T08:00:05+00:00',
+      voided_at: '2026-10-17T09:00:00+00:00',
+      void_reason: 'Greșeală la data admiterii',
+      created_at: '2026-10-17T08:00:00+00:00',
+    },
+    {
+      id: traineeRequestId,
+      slot: 'trainee',
+      signer_account_id: user.id,
+      state: 'signed',
+      issued_at: '2026-10-16T08:00:00+00:00',
+      notified_at: '2026-10-16T08:00:05+00:00',
+      voided_at: null,
+      void_reason: null,
+      created_at: '2026-10-16T08:00:00+00:00',
+    },
+  ],
+  training_signatures: [
+    {
+      request_id: traineeRequestId,
+      slot: 'trainee',
+      method: 'electronic',
+      signer_account_id: user.id,
+      signer_name: 'Popescu Ion',
+      signer_job_title: null,
+      signed_at: '2026-10-18T07:12:00+00:00',
+      voided_at: null,
+      void_reason: null,
+      created_at: '2026-10-18T07:12:00+00:00',
+    },
+    {
+      request_id: paperRequestId,
+      slot: 'trainer',
+      method: 'paper',
+      signer_account_id: null,
+      signer_name: 'Ion POP',
+      signer_job_title: 'Șef atelier',
+      signed_at: '2026-10-17T10:00:00+00:00',
+      voided_at: null,
+      void_reason: null,
+      created_at: '2026-10-17T10:00:00+00:00',
+    },
+  ],
 };
 
 const responsiblePersonRow = {
@@ -168,6 +245,14 @@ const withStoredSheet = (url: URL) =>
   Response.json(
     [url.searchParams.get('domain') ?? 'eq.ssm'].includes('eq.ssm') ? [storedSheetRow] : []
   );
+
+const unsigned = (slot: string) => ({
+  slot,
+  state: 'unassigned',
+  signedAt: null,
+  signerName: null,
+  signerJobTitle: null,
+});
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -427,6 +512,7 @@ describe('GET /portal/participants/{participantId}/training-records', () => {
         supplementaryReason: null,
         occupation: 'Sudor',
         admission: { admittedOn: '2026-01-06', name: 'Ion POP', jobTitle: 'Șef atelier' },
+        slots: [unsigned('trainee'), unsigned('trainer'), unsigned('admitter')],
       },
     ]);
     expect(body.training.ssm).toMatchObject({ state: 'current', dueOn: '2027-01-06' });
@@ -437,6 +523,57 @@ describe('GET /portal/participants/{participantId}/training-records', () => {
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
     expect(query.get('select')).not.toContain('notes');
     expect(query.get('order')).toContain('trainings(held_on).desc');
+  });
+
+  it('carries the state of each slot the record has, as the sheet prints it', async () => {
+    mockUpstream({ records: () => Response.json([signedRecordRow]) });
+
+    const response = await request(own('/training-records'));
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(portalTrainingRecordsResponseSchema.parse(body).items[0]!.slots).toEqual([
+      {
+        slot: 'trainee',
+        state: 'signed',
+        signedAt: '2026-10-18T07:12:00.000Z',
+        signerName: 'Popescu Ion',
+        signerJobTitle: null,
+      },
+      {
+        slot: 'trainer',
+        state: 'paper',
+        signedAt: '2026-10-17T10:00:00.000Z',
+        signerName: 'Ion POP',
+        signerJobTitle: 'Șef atelier',
+      },
+      unsigned('verifier'),
+      { ...unsigned('admitter'), state: 'void' },
+    ]);
+    const text = JSON.stringify(body);
+    for (const kept of [
+      signerAccountId,
+      user.id,
+      traineeRequestId,
+      voidedRequestId,
+      paperRequestId,
+    ]) {
+      expect(text).not.toContain(kept);
+    }
+    expect(text).not.toContain('Greșeală la data admiterii');
+    expect(text).not.toMatch(/notifiedAt|issuedAt|voidReason|requestId/);
+
+    const [records] = calls('/rest/v1/training_records');
+    expect(records!.headers.get('Authorization')).toBe('Bearer user-token');
+    const query = records!.url.searchParams;
+    expect(query.get('select')).toContain(
+      'signature_requests!signature_requests_record_of_client('
+    );
+    expect(query.get('select')).toContain(
+      'training_signatures!training_signatures_record_of_client('
+    );
+    expect(query.get('signature_requests.order')).toBe('created_at.desc');
+    expect(query.get('training_signatures.order')).toBe('created_at.desc');
   });
 
   it('answers 404 for a client administrator who is not an employee', async () => {

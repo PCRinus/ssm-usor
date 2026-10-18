@@ -5,7 +5,6 @@ import {
   signatureErrorReasons,
   type SignatureRequestItem,
   type SignatureRequestState,
-  type SignatureSlot,
   type SignerSlot,
   type SigningAgreementResponse,
   type SigningAgreementState,
@@ -29,6 +28,14 @@ import { collator } from '../../lib/romanian';
 import { builtInTemplates, merge } from '../documents/documents';
 import { signedSheetContext, voidRow } from '../signed-sheets/signed-sheets';
 import { awaitedParty } from './agreement-state';
+import {
+  nameIn,
+  recordSlots,
+  requestColumns,
+  type RequestRow,
+  signatureColumns,
+  type SignatureRow,
+} from './record-slots';
 import type {
   getPortalEmployeeSigningAgreementRoute,
   getPortalSigningAgreementRoute,
@@ -46,7 +53,7 @@ import type {
   putSigningAgreementStateRoute,
   voidRecordSignaturesRoute,
 } from './routes';
-import { contactOf, type Signer, signersOfClient } from './signers';
+import { contactOf, signersOfClient } from './signers';
 
 const noSuchClient = () =>
   new ApiError('not_found', 'This client does not exist in your organization.');
@@ -84,11 +91,6 @@ async function findClient(db: DataClient, clientId: string) {
   if (!data) throw noSuchClient();
 }
 
-const nameIn = (directory: Signer[], accountId: string | null) =>
-  accountId
-    ? { accountId, name: directory.find((s) => s.accountId === accountId)?.name ?? null }
-    : null;
-
 export const listSignerCandidates: RouteHandler<typeof listSignerCandidatesRoute, ApiEnv> = async (
   c
 ) => {
@@ -105,99 +107,6 @@ export const listSignerCandidates: RouteHandler<typeof listSignerCandidatesRoute
   );
   return c.json({ items }, 200);
 };
-
-const requestColumns =
-  'id, slot, signer_account_id, state, issued_at, notified_at, voided_at, void_reason, created_at';
-const signatureColumns =
-  'request_id, slot, method, signer_account_id, signer_name, signer_job_title, signed_at, voided_at, void_reason, created_at';
-
-type RequestRow = {
-  id: string;
-  slot: SignerSlot;
-  signer_account_id: string | null;
-  state: string;
-  issued_at: string;
-  notified_at: string | null;
-  voided_at: string | null;
-  void_reason: string | null;
-};
-
-type SignatureRow = {
-  request_id: string;
-  slot: SignerSlot;
-  method: string;
-  signer_account_id: string | null;
-  signer_name: string;
-  signer_job_title: string | null;
-  signed_at: string;
-  voided_at: string | null;
-  void_reason: string | null;
-};
-
-function slotState(
-  slot: SignerSlot,
-  requests: RequestRow[],
-  signatures: SignatureRow[],
-  directory: Signer[]
-): SignatureSlot {
-  const empty: SignatureSlot = {
-    slot,
-    state: 'unassigned',
-    requestId: null,
-    signer: null,
-    issuedAt: null,
-    notifiedAt: null,
-    signedAt: null,
-    signerName: null,
-    signerJobTitle: null,
-    voidedAt: null,
-    voidReason: null,
-  };
-  const ofSlot = requests.filter((request) => request.slot === slot);
-  const requestOf = (id: string) => ofSlot.find((request) => request.id === id);
-  const fromRequest = (request: RequestRow | undefined) =>
-    request
-      ? {
-          requestId: request.id,
-          issuedAt: toIso(request.issued_at),
-          notifiedAt: toIsoOrNull(request.notified_at),
-        }
-      : {};
-  const signature = signatures.find((row) => row.slot === slot && !row.voided_at);
-  if (signature) {
-    return {
-      ...empty,
-      ...fromRequest(requestOf(signature.request_id)),
-      requestId: signature.request_id,
-      state: signature.method === 'paper' ? 'paper' : 'signed',
-      signer: nameIn(directory, signature.signer_account_id),
-      signedAt: toIso(signature.signed_at),
-      signerName: signature.signer_name,
-      signerJobTitle: signature.signer_job_title,
-    };
-  }
-  const pending = ofSlot.find((request) => request.state === 'pending');
-  if (pending) {
-    return {
-      ...empty,
-      ...fromRequest(pending),
-      state: 'pending',
-      signer: nameIn(directory, pending.signer_account_id),
-    };
-  }
-  const voided = ofSlot.find((request) => request.state === 'void');
-  if (voided) {
-    return {
-      ...empty,
-      ...fromRequest(voided),
-      state: 'void',
-      signer: nameIn(directory, voided.signer_account_id),
-      voidedAt: toIsoOrNull(voided.voided_at),
-      voidReason: voided.void_reason,
-    };
-  }
-  return empty;
-}
 
 async function recordSignatures(
   db: DataClient,
@@ -232,15 +141,17 @@ async function recordSignatures(
     requestRows.some((row) => row.signer_account_id) ||
     signatureRows.some((row) => row.signer_account_id);
   const directory = named ? await signersOfClient(db, clientId) : [];
-  const slots: SignerSlot[] = [
-    'trainee',
-    'trainer',
-    ...(record.data.trainings.verifier_name ? (['verifier'] as const) : []),
-    ...(record.data.admitted_on ? (['admitter'] as const) : []),
-  ];
   return {
     recordId,
-    slots: slots.map((slot) => slotState(slot, requestRows, signatureRows, directory)),
+    slots: recordSlots(
+      {
+        verifierName: record.data.trainings.verifier_name,
+        admittedOn: record.data.admitted_on,
+      },
+      requestRows,
+      signatureRows,
+      directory
+    ),
     hasSignatures: signatureRows.length > 0,
   };
 }

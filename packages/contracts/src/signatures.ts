@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { participantChannelSchema } from './participants';
+import { participantChannelSchema } from './participant-channels';
 import {
   supplementaryTrainingReasonSchema,
   trainingAdmissionSchema,
@@ -125,6 +125,18 @@ export const signatureSlotSchema = z.object({
 });
 
 export type SignatureSlot = z.infer<typeof signatureSlotSchema>;
+
+// Only what the signed sheet prints: the request, the addressed account, the delivery and the
+// void reason stay with the specialist.
+export const portalSignatureSlotSchema = signatureSlotSchema.pick({
+  slot: true,
+  state: true,
+  signedAt: true,
+  signerName: true,
+  signerJobTitle: true,
+});
+
+export type PortalSignatureSlot = z.infer<typeof portalSignatureSlotSchema>;
 
 /** Only the slots the record has: the verifier with a verifier, the admitter with an admission. */
 export const recordSignaturesResponseSchema = z.object({

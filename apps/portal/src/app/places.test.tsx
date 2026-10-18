@@ -26,6 +26,7 @@ import {
   participation,
   queryPending,
   queryResult,
+  recordSlot,
   trainingRecords,
   trainingStatus,
 } from '@/test/portal';
@@ -255,6 +256,56 @@ describe('Instruiri', () => {
     expect(records[1]!.textContent).toContain('8 ore.');
     expect(records[2]!.textContent).toContain('Instruire la locul de muncă, admis la lucru');
     expect(records[2]!.textContent).toContain('1 oră și 1 minut.');
+  });
+
+  it('says which slots are signed, electronically by the day in Romania or on paper', async () => {
+    const [first, second] = trainingRecords().items;
+    vi.mocked(useListPortalTrainingRecords).mockReturnValue(
+      queryResult(
+        trainingRecords({
+          items: [
+            {
+              ...first!,
+              verifier: { name: 'Maria Ionescu', jobTitle: 'Inspector SSM' },
+              admission: { admittedOn: '2026-09-12', name: 'Radu Stan', jobTitle: 'Șef' },
+              slots: [
+                recordSlot('trainee', {
+                  state: 'signed',
+                  signedAt: '2026-10-17T22:30:00.000Z',
+                  signerName: 'Pop Ana',
+                }),
+                recordSlot('trainer', {
+                  state: 'signed',
+                  signedAt: '2026-10-18T07:00:00.000Z',
+                  signerName: 'Radu Stan',
+                  signerJobTitle: 'Șef de atelier',
+                }),
+                recordSlot('verifier', {
+                  state: 'paper',
+                  signedAt: '2026-10-16T09:00:00.000Z',
+                  signerName: 'Maria Ionescu',
+                  signerJobTitle: 'Inspector SSM',
+                }),
+                recordSlot('admitter', { state: 'void' }),
+              ],
+            },
+            second!,
+          ],
+        })
+      )
+    );
+    mountPortal(signedIn(), '/instruiri');
+
+    const records = await screen.findAllByTestId('training-record');
+    expect(
+      within(records[0]!)
+        .getAllByTestId('training-record-signed')
+        .map((line) => line.textContent)
+    ).toEqual([
+      'Semnat electronic pe 18 oct. 2026 (instruit, instructor).',
+      'Semnat pe hârtie (verificator).',
+    ]);
+    expect(within(records[1]!).queryByTestId('training-record-signed')).toBeNull();
   });
 
   it('counts the records of a ready sheet and says when it was last updated', async () => {
