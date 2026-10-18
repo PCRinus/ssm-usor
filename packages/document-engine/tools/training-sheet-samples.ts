@@ -175,7 +175,7 @@ export function trainingSheetSamples(domain: SheetDomain) {
  * periodic rows recorded from a paper sheet, every other row a field.
  */
 export function trainingSheetFormSample(domain: SheetDomain) {
-  const [{ data }] = trainingSheetSamples(domain) as [{ data: ReturnType<typeof ssmSample> }];
+  const { data } = trainingSheetSamples(domain)[0]!;
   const form = paperForm(domain);
   for (const key of Object.keys(form.rows)) form.rows[key] = !['p1', 'p2'].includes(key);
   return {
