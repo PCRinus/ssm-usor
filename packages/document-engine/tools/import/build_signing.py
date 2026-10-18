@@ -34,7 +34,8 @@ DATE_MARK = 'DATE_FIELD:'
 EMPHASIS = '**'
 # Half the text width, from hundredths of a millimetre to twips.
 FIELD_WIDTH = round((21000 - MARGINS['LeftMargin'] - MARGINS['RightMargin']) / 2 * 1440 / 2540)
-DATE_WIDTH = FIELD_WIDTH // 2
+# Room for a day, "18.10.2026", at the body size, so the date sits by its label.
+DATE_WIDTH = 1300
 
 
 def signature_fields(path):

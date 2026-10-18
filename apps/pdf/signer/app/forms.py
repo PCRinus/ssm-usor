@@ -17,8 +17,10 @@ from .fonts import SharedSubset
 
 TEXT_FIELD_LAYOUT = layout.SimpleBoxLayoutRule(
     x_align=layout.AxisAlignment.ALIGN_MIN,
-    y_align=layout.AxisAlignment.ALIGN_MID,
-    margins=layout.Margins(left=2, right=2, top=1, bottom=1),
+    # From the top, with no room above: a field's box is the line box LibreOffice gave it, so
+    # the text then sits on the same baseline as the label beside it; centred, it was 2 pt low.
+    y_align=layout.AxisAlignment.ALIGN_MAX,
+    margins=layout.Margins(left=2, right=2, top=0, bottom=0),
     inner_content_scaling=layout.InnerScaling.SHRINK_TO_FIT,
 )
 DEFAULT_FONT_SIZE = 9

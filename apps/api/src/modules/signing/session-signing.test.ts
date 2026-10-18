@@ -36,7 +36,9 @@ const sheetFiles = {
 const sheetPdf = { convertForm: vi.fn<(docx: Uint8Array) => Promise<Uint8Array>>() };
 const sheetSigner = {
   prepareSheet: vi.fn<(pdf: ArrayBuffer, fields: string[]) => Promise<ArrayBuffer>>(),
-  fillFields: vi.fn(async (pdf: ArrayBuffer) => pdf),
+  fillFields: vi.fn<(pdf: ArrayBuffer, values: Record<string, string>) => Promise<ArrayBuffer>>(
+    async (pdf) => pdf
+  ),
   beginSignature:
     vi.fn<
       (
