@@ -1144,7 +1144,7 @@ their record through `(training_record_id, client_id)`, so none crosses clients.
 | `issued_by`, `issued_at`     | Who issued it, the real user during an impersonation.                                                                                                                                                                                            |
 | `notified_at`                | When the signer was told.                                                                                                                                                                                                                        |
 | `state`                      | `pending`, `signed` or `void`.                                                                                                                                                                                                                   |
-| `voided_at`, `void_reason`   | Set exactly when `void`. `record_changed` when the record changed under a pending request, `signed_on_paper` when a paper mark replaced it, otherwise the member's reason.                                                                       |
+| `voided_at`, `void_reason`   | Set exactly when `void`. `record_changed` when the record changed under a pending request, `signed_on_paper` when a paper mark replaced it, `signer_changed` or `paper` when a save named another signer or none, otherwise the member's reason. |
 | `signing_session_id`         | The session that signed it.                                                                                                                                                                                                                      |
 
 `training_signatures` is the evidence, one row per slot signed, written once.
@@ -1171,7 +1171,26 @@ key, deleted with the employee): `state` is `generated`, `signed_electronically`
 `signed_on_paper`, with `generated_at`, `signed_at` (set exactly when signed), `marked_by` (only on
 paper) and `client_file_id`, the scan as a client file of the same client, set null when the file
 is deleted. Members read and write it with the four usual policies; only the secret key sets or
-undoes `signed_electronically` (`SIG07`).
+undoes `signed_electronically` (`SIG07`). The electronic signing adds `storage_path`, the signed
+PDF's current version in the documents bucket, `employee_signed_at` and `employer_signed_at`,
+which members may neither insert nor update: the employer signs after the employee, and a
+signed agreement has its file (both by checks). Once either party has signed electronically, a
+member's update or delete of the row is refused (`SIG07`), so that a paper mark never
+contradicts a signed file; the secret key sets `signed_electronically` once both have signed.
+
+`agreement_signatures` is the evidence of one party's signature on an agreement, written once:
+`employee_id` (restricting the agreement's and the employee's deletion), `party` (`employee` or
+`employer`, one row each by a unique key), the signer's account and printed name, the code's
+`channel`, `address`, `code_sent_at` and `code_verified_at`, `signed_at`, both digests of the
+file, the certificate serial, `client_ip`, `user_agent` and the `signing_session_id`, all
+required but the client's. Any update, delete or truncate raises `SIG06`. Members read their
+organization's, participants the ones on their own agreement, administrators the client's;
+nobody but the secret key writes.
+
+`signing_session_items` says what one signing session signs, in `position` order: a
+`request_id`, or an `agreement_employee_id` with the `agreement_party`, never both, each once per
+session. It has row-level security and no policy: the API writes it with the session and reads
+it back when the code is typed. A session is used once, by `signing_sessions.verified_at`.
 
 `signed_sheets` is an individual training sheet stored as a PDF form for signing: one per
 `employee_id`, `domain` and `sequence`, the continuation sheets counting up, with its
@@ -1217,6 +1236,7 @@ agreements, and change the rest only through the two functions above.
 | `signature_requests`          | the requests addressed to them | those on their own records    | the client's                |
 | `training_signatures`         | their own signatures           | those on their own records    | the client's                |
 | `employee_signing_agreements` |                                | their own                     | the client's                |
+| `agreement_signatures`        | their own signatures           | those on their own agreement  | the client's                |
 | `signed_sheets`               |                                | their own                     | the client's                |
 | `signed_sheet_rows`           |                                | the rows of their own sheets  | the client's                |
 

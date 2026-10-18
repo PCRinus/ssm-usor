@@ -794,24 +794,28 @@ The routes under `/portal` are the portal's and nothing else's. Each carries the
 `portal`, which is what puts it in the portal's generated client ([API client](api-client.md));
 no route outside the prefix has the tag.
 
-| Route                                                           | Who                  | Response                                                                            |
-| --------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------- |
-| `GET /portal/me`                                                | Participant          | `{ participations: [ … ] }`, never empty                                            |
-| `POST /portal/participants/{participantId}/notice`              | Participant          | `204` after recording `{ version }` of the privacy notice                           |
-| `PUT /portal/participants/{participantId}/language`             | Participant          | `204` after saving `{ language }`, `ro` or `en`                                     |
-| `GET …/{participantId}/training-records`                        | Employee             | `{ items, training }`: own records newest first, the states                         |
-| `GET …/{participantId}/data`                                    | Employee             | _Datele mele_: what the sheets print, and the provider                              |
-| `GET …/{participantId}/sheets`                                  | Employee             | `{ ssm, psi }`, each `{ ready, missing, stored }`                                   |
-| `GET …/{participantId}/sheets/{domain}`                         | Employee             | `200 application/pdf`, as stored once signing has started; `409 missing_sheet_data` |
-| `GET …/{participantId}/employees`                               | Client administrator | `{ items }`: current employees with their training states                           |
-| `GET …/{participantId}/employees/{employeeId}/training-records` | Client administrator | As the employee's own                                                               |
-| `GET …/{participantId}/employees/{employeeId}/sheets`           | Client administrator | As the employee's own                                                               |
-| `GET …/{participantId}/employees/{employeeId}/sheets/{domain}`  | Client administrator | As the employee's own                                                               |
-| `GET …/{participantId}/responsible-persons`                     | Client administrator | `{ items }`: the client's active responsible persons                                |
-| `GET …/{participantId}/signature-requests`                      | Participant          | `{ items }`: the pending requests addressed to them                                 |
-| `GET …/{participantId}/employees/signature-requests`            | Client administrator | `{ items }`: the client's pending requests                                          |
-| `GET …/{participantId}/signing-agreement`                       | Employee             | `200 application/pdf`, their own signing agreement                                  |
-| `GET …/{participantId}/signing-agreement/state`                 | Employee             | `{ agreement }`, null until the specialist records one                              |
+| Route                                                            | Who                  | Response                                                                            |
+| ---------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------- |
+| `GET /portal/me`                                                 | Participant          | `{ participations: [ … ] }`, never empty                                            |
+| `POST /portal/participants/{participantId}/notice`               | Participant          | `204` after recording `{ version }` of the privacy notice                           |
+| `PUT /portal/participants/{participantId}/language`              | Participant          | `204` after saving `{ language }`, `ro` or `en`                                     |
+| `GET …/{participantId}/training-records`                         | Employee             | `{ items, training }`: own records newest first, the states                         |
+| `GET …/{participantId}/data`                                     | Employee             | _Datele mele_: what the sheets print, and the provider                              |
+| `GET …/{participantId}/sheets`                                   | Employee             | `{ ssm, psi }`, each `{ ready, missing, stored }`                                   |
+| `GET …/{participantId}/sheets/{domain}`                          | Employee             | `200 application/pdf`, as stored once signing has started; `409 missing_sheet_data` |
+| `GET …/{participantId}/employees`                                | Client administrator | `{ items }`: current employees with their training states                           |
+| `GET …/{participantId}/employees/{employeeId}/training-records`  | Client administrator | As the employee's own                                                               |
+| `GET …/{participantId}/employees/{employeeId}/sheets`            | Client administrator | As the employee's own                                                               |
+| `GET …/{participantId}/employees/{employeeId}/sheets/{domain}`   | Client administrator | As the employee's own                                                               |
+| `GET …/{participantId}/responsible-persons`                      | Client administrator | `{ items }`: the client's active responsible persons                                |
+| `GET …/{participantId}/signature-requests`                       | Participant          | `{ items }`: the pending requests addressed to them                                 |
+| `GET …/{participantId}/employees/signature-requests`             | Client administrator | `{ items }`: the client's pending requests                                          |
+| `GET …/{participantId}/signing-agreement`                        | Employee             | `200 application/pdf`, their own signing agreement                                  |
+| `GET …/{participantId}/signing-agreement/state`                  | Employee             | `{ agreement }`, null until the specialist records one                              |
+| `GET …/{participantId}/employees/signing-agreements`             | Client administrator | `{ items }`: agreements awaiting the employer, then those signed electronically     |
+| `GET …/{participantId}/employees/{employeeId}/signing-agreement` | Client administrator | `200 application/pdf`, as the employee's own                                        |
+| `POST …/{participantId}/signing-sessions`                        | Participant          | `201 { sessionId, channel, addressHint, expiresAt, items }`; the code is sent       |
+| `POST …/{participantId}/signing-sessions/{sessionId}/sign`       | Participant          | `{ signed, failed, agreements }` after `{ code }`                                   |
 
 `…` stands for `/portal/participants`. `requireParticipant` (`src/lib/participant.ts`) runs
 after `requireAuth` on every one of them: as the caller it calls
@@ -835,30 +839,33 @@ columns and every response is built field by field into a schema of its own in
 notes, or the organization's bank, contract and terms details. Nothing of the app's responses
 is reused as-is. A new portal route does the same.
 
-The secret key is used in two places, both for the sheets: the sheet PDF reads its template
-from Storage with `createAdminFileStore`, because Storage's template policy admits members only,
-and a stored signed sheet's file the same way. The participant reads the template's registry row
-and the signed sheet's row through their own policies, so the paths the secret key reads are
-ones they are allowed. Everything else runs as the participant.
+The secret key reads files for the sheets and the signing agreement: a template from Storage
+with `createAdminFileStore`, because Storage's template policy admits members only, and a stored
+signed sheet's or agreement's file the same way. The participant reads the template's registry
+row, the signed sheet's row and the agreement's row through their own policies, so the paths the
+secret key reads are ones they are allowed. Signing, below, is the other exception. Everything
+else runs as the participant.
 
 ## Signatures
 
 [ADR 023](architecture/adr-023-advanced-electronic-signature.md) records the design and
 [the data model](data-model.md#signatures) the database side. The `signing` module holds the
-routes below; the signing session itself, the code, the sheet and the two-phase signature, is
-not built yet.
+routes below, the signing sessions among them; the signed sheet they sign on is the
+`signed-sheets` module's.
 
-| Route                                                                    | Response                                                                     |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| `GET /clients/{clientId}/signer-candidates`                              | `{ items }`: members, then active participants, each account once            |
-| `GET /clients/{clientId}/training-records/{recordId}/signatures`         | `{ recordId, slots }`, each slot with its state                              |
-| `POST /clients/{clientId}/training-records/{recordId}/signatures/paper`  | The slots, after `{ slot, signerName, signerJobTitle? }` marked on paper     |
-| `POST /clients/{clientId}/training-records/{recordId}/signatures/void`   | The slots, after `{ reason }` voided every live signature and request        |
-| `GET /me/signature-requests`                                             | `{ items }`: the caller's own pending requests across clients, oldest first  |
-| `GET /clients/{clientId}/signature-requests`                             | `{ items }`: the client's requests in `?state=` (`pending` by default)       |
-| `GET /clients/{clientId}/employees/{employeeId}/signing-agreement`       | `200 application/pdf`, the act adițional drawn up on the spot                |
-| `GET /clients/{clientId}/employees/{employeeId}/signing-agreement/state` | `{ agreement }`: `state`, `generatedAt`, `signedAt`, `clientFileId`, or null |
-| `PUT /clients/{clientId}/employees/{employeeId}/signing-agreement/state` | The agreement after `{ state: generated \| signed_on_paper, clientFileId? }` |
+| Route                                                                    | Response                                                                      |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `GET /clients/{clientId}/signer-candidates`                              | `{ items }`: members, then active participants, each account once             |
+| `GET /clients/{clientId}/training-records/{recordId}/signatures`         | `{ recordId, slots }`, each slot with its state                               |
+| `POST /clients/{clientId}/training-records/{recordId}/signatures/paper`  | The slots, after `{ slot, signerName, signerJobTitle? }` marked on paper      |
+| `POST /clients/{clientId}/training-records/{recordId}/signatures/void`   | The slots, after `{ reason }` voided every live signature and request         |
+| `GET /me/signature-requests`                                             | `{ items }`: the caller's own pending requests across clients, oldest first   |
+| `GET /clients/{clientId}/signature-requests`                             | `{ items }`: the client's requests in `?state=` (`pending` by default)        |
+| `GET /clients/{clientId}/employees/{employeeId}/signing-agreement`       | `200 application/pdf`, the act adițional drawn up on the spot                 |
+| `GET /clients/{clientId}/employees/{employeeId}/signing-agreement/state` | `{ agreement }`: `state`, `generatedAt`, `signedAt`, `clientFileId`, or null  |
+| `PUT /clients/{clientId}/employees/{employeeId}/signing-agreement/state` | The agreement after `{ state: generated \| signed_on_paper, clientFileId? }`  |
+| `POST /me/signing-sessions`                                              | `201 { sessionId, channel, addressHint, expiresAt, items }`; the code is sent |
+| `POST /me/signing-sessions/{sessionId}/sign`                             | `{ signed, failed, agreements }` after `{ code }`                             |
 
 Every member route takes a membership; the four portal routes are in the [Portal](#portal)
 table, with the `portal` tag.
@@ -871,9 +878,15 @@ only with a verifier, the admitter only with an admission), a pending request go
 member, row-level security and the database's checks applying: the trainee's to the employee's
 own active participant, found by the API; the trainer's, verifier's and admitter's to the
 accounts named. A slot left out or null is signed on paper, and a body without `signers`, or a
-training whose `source` is `paper`, asks nobody. A slot that already has a live request,
-pending or signed, is left alone, so a save after an edit issues only what the edit voided
-(the database voids the pending requests of a record whose printed facts change). A request the
+training whose `source` is `paper`, asks nobody. A slot whose live request is already addressed
+to the signer wanted, pending or signed, is left alone, so a save after an edit issues only what
+the edit voided (the database voids the pending requests of a record whose printed facts
+change). A pending request addressed to someone else is voided with the secret key, with
+`signer_changed`, and issued again to the new signer; one whose slot is now null or left out is
+voided with `paper`. A signed request is never touched by a save. `GET …/trainings/{trainingId}`
+answers `signers: { trainer, verifier, admitter }`, the account each slot's live request (pending
+or signed) is addressed to on any of the records, the first issued, null when none is, for the
+form to start from. A request the
 database refuses answers `422` with its reason (`SIG05`, `signer_not_of_client`; `SIG03`,
 `slot_not_on_record`).
 
@@ -888,6 +901,8 @@ with the secret key on the requests whose signer was told.
 **Slots.** A slot is `pending` (with `signer: { accountId, name }`), `signed` electronically or
 `paper`, with `signedAt`, `signerName` and `signerJobTitle` as printed, `void` when its request
 or signature was voided and nothing replaced it (`voidedAt`, `voidReason`), or `unassigned`.
+`hasSignatures` is true once the record has any signature row, voided and paper ones included,
+which is when the database refuses to delete the record or its training (`record_has_signatures`).
 `…/paper` calls `mark_paper_signature`; `…/void` calls `void_training_signatures`. Both answer
 `404` for a record outside the client in the path, checked before the function runs.
 
@@ -938,6 +953,67 @@ with the session id kept in `signing_sessions` and the code never, ten minutes, 
 counted with a compare-and-set, one code per account a minute, sent by `sendSigningCode` of the
 mail or SMS Worker. A code that could not be sent removes its session and answers `503` with
 `signing_code_not_sent`.
+
+**The signing session.** `src/modules/signing/session-signing.ts`. `POST …/signing-sessions`
+takes `{ requestIds, agreementEmployeeIds? }`, up to 30 of each and at least one item, each
+once. Every request must be `pending`, addressed to the caller and, in the portal, under the
+participation's client, read as the caller; the member's route also refuses a trainee's request,
+which is signed in the portal. In the portal, `agreementEmployeeIds` is an employee's own
+agreement while it awaits them, or for a client administrator the client's agreements the
+employee has signed and the employer has not; the member's route refuses any with `422
+agreement_signed_in_portal`. Anything else answers `404 signing_item_not_found` with the item in
+`issues`, before a code is sent. The code goes where `signerContact` says, the email whenever
+there is one, else the phone (`409 signer_has_no_address` with neither), and the answer masks it
+in `addressHint` (`i***@example.ro`, `+40 7** *** *12`). The items, the agreements first and then
+the requests in the order given, go into `signing_session_items` with the secret key before the
+code leaves, so a code never goes out for a session without them. `code_rate_limited` (`409`) and
+`signing_code_not_sent` (`503`) are the code's, above; without the three signing secrets both
+routes answer `503 signing_unavailable` before a code is sent or spent.
+
+`POST …/signing-sessions/{sessionId}/sign` with `{ code }` verifies the code (`404
+signing_session_not_found` for another account's session, `409` with the code's reasons), which
+spends the session, then signs each item in turn with the secret key; one that fails is reported
+and the others go on. For a request: the request is read again and skipped as
+`request_not_pending` unless it is still pending and the caller's; the signer's identity is
+`identityFor(account, printed name)`, the name the slot prints (the employee's `last first` for
+the trainee, else the training's trainer or verifier or the record's admitter); `placeRecord`
+gives the record its row and `applySignature` signs the slot on it, with the moment taken just
+before; the `training_signatures` row records the session's channel, address and code times, the
+moment, both digests, the certificate's serial, the request's client address
+(`CF-Connecting-IP`) and user agent; the request becomes `signed` with the session. The answer is
+`{ signed: [{ requestId, agreementState }], failed: [{ requestId, reason }], agreements: [{
+employeeId, party, signed, reason, agreementState }] }`. `agreementState` is the trainee's
+agreement after the session: a record is signed whatever it is (ADR 023), and the screen keeps
+warning. The failure reasons are `request_not_pending`, `agreement_not_awaiting`, `sheet_busy`,
+`slot_not_on_sheet` (the fire-safety sheet's verifier and admitter), `missing_sheet_data`,
+`signer_unavailable`, `pdf_unavailable`, `template_missing` and `signing_failed` for anything
+else, which is logged. A signature whose evidence cannot be written after the sheet took it
+leaves its field spent and its request pending; only a void moves the record to a new row.
+
+**The signing agreement, signed.** The agreement's template has two signature cells, content
+controls named `sig_employer` and `sig_employee` that LibreOffice exports as text fields named
+by their tooltip, as on the sheets. The employee signs first: the agreement is drawn up as on
+demand, converted with `convertForm`, the two fields made signature fields by `prepareSheet`, and
+`sig_employee` signed with `certify: true` and nothing locked; the file is stored at
+`signing-agreements/{clientId}/{employeeId}/v1-{nonce}.pdf` in the documents bucket, the
+`agreement_signatures` row written, and the agreement gets `storage_path` and
+`employee_signed_at`. The administrator then signs `sig_employer` on that file, whose digest must
+match the employee's evidence, without certifying, into `v2-{nonce}.pdf`; the agreement becomes
+`signed_electronically` with `signed_at` and `employer_signed_at`. The employee signs under their
+`last first` name, the administrator under the participation's name. The evidence row's unique
+`(employee_id, party)` settles two sessions racing for one signature: the loser removes its file
+and reports `agreement_not_awaiting`. The agreement routes of members, the employee and the
+administrator answer the stored file once it exists, else the on-demand render.
+`GET …/employees/signing-agreements` lists for the administrator the agreements awaiting the
+employer (`awaitingEmployer`) and then those signed electronically, by name, each with the
+agreement state, which now carries `employeeSignedAt` and `employerSignedAt` everywhere.
+
+`pnpm --filter @ssm-usor/api signing:check:local`, with `GOTENBERG_URL` and `SIGNER_URL` set,
+runs all of it on the local stack over HTTP: it starts `scripts/e2e-server.ts` on port 8797
+with a throwaway authority, whose mailbox holds the codes, makes a member, an employee
+participant and a client administrator, records a training with signers, signs it in the three
+places with the agreement, validates the stored sheet and agreement with the signer, prints the
+evidence and removes everything, the evidence included, as the local database's superuser.
 
 ## What the documents print
 
