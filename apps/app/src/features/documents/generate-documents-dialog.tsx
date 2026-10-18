@@ -251,7 +251,7 @@ function GenerateDocumentsForm({
                 id="generate-issue-date"
                 label="Data documentelor"
                 mark="required"
-                hint="De obicei data de început a contractului."
+                hint="De obicei data de început a contractului de prestări servicii SSM cu acest client, nu a contractelor de muncă."
                 error={errors.issueDate}
               >
                 <Controller
