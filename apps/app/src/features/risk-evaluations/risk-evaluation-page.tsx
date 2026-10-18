@@ -291,6 +291,7 @@ function RiskEvaluationView({
         }
         removalConsequence="nu vor mai apărea în evaluare și în planul de prevenire."
         editorContext={evaluationTitle(evaluation)}
+        clientId={evaluation.clientId}
       />
       <ProfileNameDialog naming={naming} onClose={() => setNaming(null)} />
       <RemoveEvaluationDialog

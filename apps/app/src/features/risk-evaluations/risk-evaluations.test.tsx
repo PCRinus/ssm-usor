@@ -54,6 +54,21 @@ const fitter = { ...welder, id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d', name: 'L
 const cashier = { ...welder, id: '3f1d2c4b-5a6e-4f7a-8b9c-0d1e2f3a4b5c', name: 'Casier' };
 
 const stamp = '2026-10-01T10:00:00.000Z';
+
+const person = (fullName: string, jobTitle: string, roles: string[]) => ({
+  id: `p-${fullName}`,
+  clientId,
+  employeeId: null,
+  fullName,
+  jobTitle,
+  employeeJobTitle: null,
+  roles,
+  workplaceId: null,
+  createdAt: stamp,
+  updatedAt: stamp,
+});
+const firstAider = person('Ioana Marin', 'Contabil', ['first_aid']);
+const workshopLead = person('Andrei Vasilescu', 'Șef de atelier', ['workplace_manager']);
 let nextId = 0;
 const uuid = () => `00000000-0000-4000-8000-${String(++nextId).padStart(12, '0')}`;
 
@@ -215,6 +230,25 @@ function mockApi({
       return Response.json({ items: [], needsInstructions: true });
     }
     if (pathname === '/risk-factor-suggestions') return suggestions(init, url);
+    if (pathname === `/clients/${clientId}/document-details`) {
+      return Response.json({
+        documentDetails: {
+          legalRepresentativeName: 'Maria Popescu',
+          legalRepresentativeRole: 'Administrator',
+          periodicTrainingMinutes: null,
+          administrativeTrainingIntervalMonths: null,
+          administrativeTrainingNotApplicable: false,
+          workerTrainingIntervalMonths: null,
+          workerTrainingNotApplicable: false,
+          trainingFirstMonth: null,
+          trainingDayFrom: null,
+          trainingDayTo: null,
+        },
+      });
+    }
+    if (pathname === `/clients/${clientId}/responsible-persons`) {
+      return Response.json({ items: [workshopLead, firstAider] });
+    }
     const byPosition = pathname.match(/\/job-positions\/([^/]+)\/risk-evaluation$/);
     if (byPosition) {
       const evaluation = [...store.values()].find(
@@ -270,6 +304,12 @@ function mockApi({
     }
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
+}
+
+async function typeResponsible(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await user.click(screen.getByTestId('risk-factor-responsible'));
+  await user.type(await screen.findByTestId('risk-factor-responsible-search'), name);
+  await user.click(await screen.findByRole('option', { name: `Folosește „${name}”` }));
 }
 
 const requests = (pathname: string, method: string) =>
@@ -682,7 +722,7 @@ describe("a position's risk evaluation page", () => {
       'Pauze în spațiu liniștit'
     );
     await user.type(screen.getByTestId('risk-factor-deadline'), 'Permanent');
-    await user.type(screen.getByTestId('risk-factor-responsible'), 'Șef atelier');
+    await typeResponsible(user, 'Șef atelier');
     await waitFor(() =>
       expect(requests('/risk-factor-suggestions', 'GET').length).toBeGreaterThan(0)
     );
@@ -833,6 +873,38 @@ describe('the factor editor', () => {
     expect(within(editor).getByTestId('risk-factor-save').textContent).toBe('Adaugă');
   });
 
+  it("suggests the client's administrator first for the person responsible, and saves the name", async () => {
+    mockApi();
+    mount(welderEvaluationPath);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('risk-factor-add'));
+    await screen.findByTestId('risk-factor-dialog');
+    expect(screen.getByTestId('risk-factor-deadline').getAttribute('placeholder')).toBe(
+      'Permanent, 30.11.2026, trimestrial…'
+    );
+    expect(screen.getByText(/De obicei administratorul/).id).toBe('risk-factor-plan-note');
+
+    await user.click(screen.getByTestId('risk-factor-responsible'));
+    await waitFor(() => expect(screen.getAllByRole('option')).toHaveLength(5));
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Maria PopescuAdministrator',
+      'Andrei VasilescuȘef de atelier',
+      'Ioana MarinContabil',
+      'Factori de risc mecanicFolosit anterior',
+      'PermanentFolosit anterior',
+    ]);
+    await user.click(screen.getByRole('option', { name: /Maria Popescu/ }));
+    expect(screen.getByTestId('risk-factor-responsible').textContent).toContain('Maria Popescu');
+
+    await fillFactor(user, 'Zgomot peste limită');
+    await user.click(screen.getByTestId('risk-factor-save'));
+    await waitFor(() =>
+      expect(requests(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')).toEqual([
+        expect.objectContaining({ responsiblePerson: 'Maria Popescu' }),
+      ])
+    );
+  });
+
   it('opens as a drawer from the bottom on a phone, closed from its header', async () => {
     phoneScreen();
     mockApi();
@@ -878,7 +950,7 @@ describe('the factor editor', () => {
     await user.click(screen.getByTestId('risk-factor-measure-add'));
     await user.type(screen.getByTestId('risk-factor-measure-description'), 'Căști');
     await user.type(screen.getByTestId('risk-factor-deadline'), 'Zilnic');
-    await user.type(screen.getByTestId('risk-factor-responsible'), 'Șef');
+    await typeResponsible(user, 'Șef');
     await user.click(screen.getByTestId('risk-factor-save'));
 
     expect(
@@ -958,10 +1030,15 @@ describe("a client's evaluations outside its positions", () => {
     const runtime = mount(positionsPath);
     const card = await screen.findByTestId('client-risk-evaluations-card');
     const rows = await within(card).findAllByTestId('client-risk-evaluation-row');
-    expect(rows.map((row) => row.firstChild?.textContent)).toEqual([
+    expect(rows.map((row) => row.firstChild?.firstChild?.textContent)).toEqual([
       'Grupuri sensibile',
       'Vizitatori',
     ]);
+    expect(within(rows[0]!).getByText('Opțional')).toBeTruthy();
+    expect(within(rows[0]!).queryByText('Neevaluat')).toBeNull();
+    expect(within(rows[0]!).getByTestId('client-risk-evaluation-note').textContent).toContain(
+      'femei gravide sau care alăptează'
+    );
     expect(within(rows[1]!).getByTestId('client-risk-evaluation-state').getAttribute('href')).toBe(
       `${positionsPath}/risk-evaluations/${visitors.id}`
     );
