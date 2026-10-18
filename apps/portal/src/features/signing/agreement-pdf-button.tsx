@@ -38,7 +38,7 @@ export function AgreementPdfButton({
     setFailure(null);
     try {
       await openPreview(load, {
-        title: t`Acordul de semnare electronică`,
+        title: t`Actul adițional privind semnarea electronică`,
         pending: t`Se pregătește documentul…`,
       });
     } catch (cause) {

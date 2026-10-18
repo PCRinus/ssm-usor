@@ -16,7 +16,8 @@ export function SigningItemText({
 }: {
   item: SigningItem;
   ownEmployeeId: string | null;
-  // The employees whose agreement is signed along with this item, so its warning would repeat.
+  // The employees whose agreement no longer needs the warning: signed along with this item, or
+  // the participant's own once they signed it.
   agreementsSigned?: ReadonlySet<string>;
   warnings?: boolean;
 }) {
@@ -27,7 +28,7 @@ export function SigningItemText({
     return (
       <span className="grid min-w-0 gap-0.5">
         <span className="font-semibold">
-          <Trans>Acordul de semnare electronică</Trans>
+          <Trans>Actul adițional privind semnarea electronică</Trans>
         </span>
         <span className="text-sm leading-snug text-muted-foreground">
           {item.party === 'employee'

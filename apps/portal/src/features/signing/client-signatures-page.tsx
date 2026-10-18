@@ -100,7 +100,7 @@ function Agreements({ participation }: { participation: Participation }) {
               </ul>
               {awaiting.length > 1 && (
                 <Button asChild className="h-12 w-full text-base sm:w-fit sm:px-6">
-                  <Link to="/semneaza" data-testid="agreements-sign-all">
+                  <Link to="/semneaza" search={{ doar: 'acte' }} data-testid="agreements-sign-all">
                     <PenLine aria-hidden="true" />
                     {t`Semnează toate (${awaiting.length})`}
                   </Link>

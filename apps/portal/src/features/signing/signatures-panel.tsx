@@ -14,13 +14,13 @@ import {
 import { useApiRequest } from '@/lib/request';
 
 import { SigningItemText } from './signing-item-text';
-import { useSigningItems } from './signing-items';
+import { agreementsSettledFor, useSigningItems } from './signing-items';
 
 const shownItems = 4;
 
 export function SignaturesPanel({ participation }: { participation: Participation }) {
   const { t } = useLingui();
-  const { items, isPending, isError, refetch } = useSigningItems(participation);
+  const { items, ownAgreement, isPending, isError, refetch } = useSigningItems(participation);
   const administrator = isAdministrator(participation);
 
   if (isPending || isError || items.length === 0) {
@@ -63,7 +63,9 @@ export function SignaturesPanel({ participation }: { participation: Participatio
 
   const count = items.length;
   const hidden = count - shownItems;
-  const agreementsListed = new Set(
+  const agreementsListed = agreementsSettledFor(
+    participation.employeeId,
+    ownAgreement,
     items.flatMap((item) => (item.kind === 'agreement' ? [item.employeeId] : []))
   );
   return (
@@ -107,10 +109,8 @@ export function SignaturesPanel({ participation }: { participation: Participatio
         ))}
       </ul>
       {hidden > 0 && (
-        <p className="text-sm text-muted-foreground">
-          {t({
-            message: plural(hidden, { one: 'și încă unul', few: 'și încă #', other: 'și încă #' }),
-          })}
+        <p className="text-sm text-muted-foreground tabular-nums" data-testid="home-todo-more">
+          +{hidden}
         </p>
       )}
       <Button asChild className="h-12 w-full text-base sm:w-fit sm:px-6">

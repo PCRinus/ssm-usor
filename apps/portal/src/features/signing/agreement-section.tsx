@@ -6,10 +6,7 @@ import { PenLine } from 'lucide-react';
 
 import { useGetPortalSigningAgreementState } from '@/api/generated/api';
 import { cardClass } from '@/components/page';
-import {
-  isAdministrator,
-  type Participation,
-} from '@/features/participation/participation-context';
+import type { Participation } from '@/features/participation/participation-context';
 import { useFormatDate } from '@/lib/format';
 import { useApiRequest } from '@/lib/request';
 
@@ -25,8 +22,7 @@ export function AgreementSection({ participation }: { participation: Participati
   });
   if (employeeId === null || !state.data) return null;
   const agreement = state.data.agreement;
-  // The API signs an administrator's agreements as the employer, never as the employee.
-  const canSign = !isAdministrator(participation) && awaitsEmployee(agreement);
+  const canSign = awaitsEmployee(agreement);
 
   return (
     <section
@@ -37,7 +33,7 @@ export function AgreementSection({ participation }: { participation: Participati
     >
       <div className="grid gap-1">
         <h2 id="agreement-title" className="font-semibold">
-          <Trans>Acordul de semnare electronică</Trans>
+          <Trans>Actul adițional privind semnarea electronică</Trans>
         </h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
           <Trans>
@@ -51,7 +47,11 @@ export function AgreementSection({ participation }: { participation: Participati
         <div className="flex flex-wrap gap-2">
           {canSign && (
             <Button asChild className="h-10 px-4">
-              <Link to="/semneaza" data-testid="account-agreement-sign">
+              <Link
+                to="/semneaza"
+                search={{ acord: employeeId }}
+                data-testid="account-agreement-sign"
+              >
                 <PenLine aria-hidden="true" />
                 <Trans>Semnează</Trans>
               </Link>
@@ -72,13 +72,19 @@ function AgreementState({ agreement }: { agreement: OwnAgreement }) {
     ? t`Specialistul nu l-a pregătit încă.`
     : agreement.state === 'signed_on_paper'
       ? t`Semnat pe hârtie.`
-      : agreement.state === 'signed_electronically'
-        ? t`Semnat electronic de ambele părți pe ${day(agreement.employerSignedAt ?? agreement.signedAt)}.`
-        : agreement.employeeSignedAt
-          ? t`L-ai semnat pe ${day(agreement.employeeSignedAt)}. Așteaptă semnătura angajatorului.`
-          : t`Așteaptă semnătura ta.`;
+      : agreement.state === 'in_contract'
+        ? t`Clauza este în contractul tău de muncă.`
+        : agreement.state === 'withdrawn'
+          ? t`Ai revenit la semnarea de mână: fișele tale se semnează pe hârtie.`
+          : agreement.state === 'signed_electronically'
+            ? t`Semnat electronic de ambele părți pe ${day(agreement.employerSignedAt ?? agreement.signedAt)}.`
+            : agreement.employeeSignedAt
+              ? t`L-ai semnat pe ${day(agreement.employeeSignedAt)}. Așteaptă semnătura angajatorului.`
+              : t`Așteaptă semnătura ta.`;
   const done =
-    agreement?.state === 'signed_electronically' || agreement?.state === 'signed_on_paper';
+    agreement?.state === 'signed_electronically' ||
+    agreement?.state === 'signed_on_paper' ||
+    agreement?.state === 'in_contract';
   return (
     <p
       data-testid="account-agreement-state"
