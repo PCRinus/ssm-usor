@@ -150,11 +150,8 @@ function linesAt(text: string, width: number) {
   return lines;
 }
 
-/**
- * The text broken into lines that keep the field's proportions, since the signer shrinks what it
- * writes to fit the field but does not wrap it: a text too long for the field gets more and
- * shorter-per-box lines, which the signer then scales down evenly.
- */
+// The signer does not wrap: it sets a text too long for its field in a smaller size. Lines in
+// the field's proportions lose the least size.
 export function wrapToBox(text: string, box: Box) {
   for (let scale = 1; scale < 8; scale += 0.1) {
     const lines = linesAt(text, Math.floor(box.chars * scale));
