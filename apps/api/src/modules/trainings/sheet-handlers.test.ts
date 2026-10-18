@@ -105,7 +105,7 @@ const templateFiles: Record<string, string> = {
 };
 
 type Handler = (url: URL) => Response | Promise<Response>;
-type Upstream = 'employees' | 'clients' | 'workplaces' | 'records' | 'templates';
+type Upstream = 'employees' | 'clients' | 'workplaces' | 'records' | 'templates' | 'sheets';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -115,6 +115,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     clients: () => Response.json([{ legal_name: 'S.C. CLIENT DEMO S.R.L.' }]),
     workplaces: () => Response.json([workshop, office]),
     records: () => Response.json(recordRows),
+    sheets: () => Response.json([]),
     templates: (url) => {
       const typeKey = url.searchParams.get('type_key')!.replace(/^in\.\((.*)\)$/, '$1');
       return Response.json([
@@ -135,11 +136,18 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     '/rest/v1/client_workplaces': 'workplaces',
     '/rest/v1/training_records': 'records',
     '/rest/v1/document_templates': 'templates',
+    '/rest/v1/signed_sheets': 'sheets',
   };
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     if (url.pathname === '/auth/v1/user') return Response.json(user);
     if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
+    if (url.pathname.startsWith('/storage/v1/object/sign/documents/')) {
+      if ((init?.method ?? 'GET') === 'POST') {
+        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+      }
+      return new Response(`%PDF-1.7 ${url.pathname.split('/').at(-2)}`);
+    }
     if (url.pathname.startsWith('/storage/v1/object/sign/document-templates/')) {
       if ((init?.method ?? 'GET') === 'POST') {
         return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
@@ -160,10 +168,18 @@ const pdfBytes = new TextEncoder().encode('%PDF-1.7 sheet');
 const convertDocx = vi.fn<(docx: ArrayBuffer) => Promise<ArrayBuffer>>(
   async () => pdfBytes.slice().buffer
 );
+const mergePdfs = vi.fn<(files: ArrayBuffer[]) => Promise<ArrayBuffer>>(
+  async () => new TextEncoder().encode('%PDF-1.7 merged').buffer as ArrayBuffer
+);
 const withConverter = {
   ...env,
   PDF_CONVERSION: 'service',
-  PDF: { convertDocx, convertDocuments: (files: ArrayBuffer[]) => convertDocx(files[0]!) },
+  PDF: {
+    convertDocx,
+    convertDocuments: (files: ArrayBuffer[]) => convertDocx(files[0]!),
+    convertForm: convertDocx,
+    mergePdfs,
+  },
 } as ApiEnv['Bindings'];
 
 const request = (path: string, bindings: ApiEnv['Bindings'] = withConverter) =>
@@ -190,8 +206,8 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
     const response = await request(sheetsPath);
     expect(response.status).toBe(200);
     expect(trainingSheetsResponseSchema.parse(await response.json())).toEqual({
-      ssm: { ready: true, missing: [] },
-      psi: { ready: true, missing: [] },
+      ssm: { ready: true, missing: [], stored: false },
+      psi: { ready: true, missing: [], stored: false },
     });
     expect(calls('/rest/v1/training_records')).toHaveLength(0);
     const query = new URL(String(calls('/rest/v1/employees')[0]![0])).searchParams;
@@ -208,8 +224,12 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
     });
     const response = await request(sheetsPath);
     expect(trainingSheetsResponseSchema.parse(await response.json())).toEqual({
-      ssm: { ready: false, missing: ['employee.commute_route', 'employee.workplace'] },
-      psi: { ready: false, missing: ['employee.workplace'] },
+      ssm: {
+        ready: false,
+        missing: ['employee.commute_route', 'employee.workplace'],
+        stored: false,
+      },
+      psi: { ready: false, missing: ['employee.workplace'], stored: false },
     });
   });
 
@@ -219,7 +239,22 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheets', () =>
       workplaces: () => Response.json([workshop]),
     });
     const body = trainingSheetsResponseSchema.parse(await (await request(sheetsPath)).json());
-    expect(body.ssm).toEqual({ ready: true, missing: [] });
+    expect(body.ssm).toEqual({ ready: true, missing: [], stored: false });
+  });
+
+  it('answers a stored signed sheet as ready, whatever the employee now lacks', async () => {
+    mockUpstream({
+      employees: () => Response.json([{ ...employeeRow, commute_route: null }]),
+      sheets: () => Response.json([{ domain: 'psi' }]),
+    });
+    const body = trainingSheetsResponseSchema.parse(await (await request(sheetsPath)).json());
+    expect(body).toEqual({
+      ssm: { ready: false, missing: ['employee.commute_route'], stored: false },
+      psi: { ready: true, missing: [], stored: true },
+    });
+    const query = new URL(String(calls('/rest/v1/signed_sheets')[0]![0])).searchParams;
+    expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
+    expect(query.get('client_id')).toBe(`eq.${clientId}`);
   });
 
   it('answers 404 for an employee who is not of the client', async () => {
@@ -259,6 +294,45 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
     expect(text).toContain('Punct de lucru Str. Fabricii 3 – Atelier');
     expect(text).toContain('I.P.S.S.M. Art. 1 – 60 (periodic)');
     expect(text).toContain('Str. Lungă – Str. Fabricii, cu autobuzul 33 (25 de minute)');
+  });
+
+  const storedSheet = (sequence: number) => ({
+    id: `5d5d5d5d-0000-4000-8000-00000000000${sequence}`,
+    organization_id: membership.organization_id,
+    client_id: clientId,
+    employee_id: employeeId,
+    domain: 'ssm',
+    sequence,
+    storage_path: `signed-sheets/${clientId}/${employeeId}/ssm-${sequence}/v2-abcdef12.pdf`,
+    digest: 'd'.repeat(64),
+    version: 2,
+    row_capacity: 17,
+    rows_used: 17,
+    certified_at: '2026-10-18T09:30:00+00:00',
+    created_at: '2026-10-18T09:00:00+00:00',
+  });
+  const withSecretKey = { ...withConverter, SUPABASE_SECRET_KEY: 'sb_secret_test_key_value' };
+
+  it('answers the stored signed sheet once signing has started, drawing nothing', async () => {
+    mockUpstream({ sheets: () => Response.json([storedSheet(1)]) });
+    const response = await request(sheetPath('ssm'), withSecretKey);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Disposition')).toContain('Fisa-SSM-Popescu-Ion.pdf');
+    expect(await response.text()).toBe('%PDF-1.7 ssm-1');
+    const query = new URL(String(calls('/rest/v1/signed_sheets')[0]![0])).searchParams;
+    expect(query.get('domain')).toBe('eq.ssm');
+    expect(query.get('client_id')).toBe(`eq.${clientId}`);
+    expect(calls('/rest/v1/document_templates')).toHaveLength(0);
+    expect(convertDocx).not.toHaveBeenCalled();
+  });
+
+  it('merges a sheet and its continuation into one PDF, in sequence order', async () => {
+    mockUpstream({ sheets: () => Response.json([storedSheet(1), storedSheet(2)]) });
+    mergePdfs.mockClear();
+    const response = await request(sheetPath('ssm'), withSecretKey);
+    expect(await response.text()).toBe('%PDF-1.7 merged');
+    const merged = mergePdfs.mock.calls[0]![0].map((file) => new TextDecoder().decode(file));
+    expect(merged).toEqual(['%PDF-1.7 ssm-1', '%PDF-1.7 ssm-2']);
   });
 
   it('merges the fire-safety template for the PSI sheet', async () => {

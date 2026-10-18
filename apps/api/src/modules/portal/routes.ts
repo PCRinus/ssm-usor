@@ -203,7 +203,7 @@ export const getPortalTrainingSheetsRoute = createRoute({
   tags,
   summary: "Whether the participant's two individual training sheets can be opened",
   description:
-    "For each domain, `ready` and the codes of what the client's specialist still has to fill.",
+    "For each domain, `ready` and the codes of what the client's specialist still has to fill, and `stored` once the sheet is the stored signed sheet (ADR 023).",
   security: bearerSecurity,
   middleware: [requireAuth, requireParticipant] as const,
   request: { params: participantParams },
@@ -220,7 +220,8 @@ export const getPortalTrainingSheetRoute = createRoute({
   operationId: 'getPortalTrainingSheet',
   tags,
   summary: "The participant's individual training sheet of a domain as a PDF",
-  description: "Drawn up on the spot, as the employee's page in the app does; nothing is stored.",
+  description:
+    "As the employee's page in the app has it: the stored signed sheet once signing has started (ADR 023), else drawn up on the spot and not stored.",
   security: bearerSecurity,
   middleware: [requireAuth, requireParticipant] as const,
   request: { params: domainParams },

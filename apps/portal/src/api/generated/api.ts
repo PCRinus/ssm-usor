@@ -494,6 +494,7 @@ export const PortalTrainingSheetsResponseSsmMissingItem = {
 export type PortalTrainingSheetsResponseSsm = {
   ready: boolean;
   missing: PortalTrainingSheetsResponseSsmMissingItem[];
+  stored: boolean;
 };
 
 export type PortalTrainingSheetsResponsePsiMissingItem =
@@ -507,6 +508,7 @@ export const PortalTrainingSheetsResponsePsiMissingItem = {
 export type PortalTrainingSheetsResponsePsi = {
   ready: boolean;
   missing: PortalTrainingSheetsResponsePsiMissingItem[];
+  stored: boolean;
 };
 
 export interface PortalTrainingSheetsResponse {
@@ -1457,7 +1459,7 @@ export const getGetPortalTrainingSheetsUrl = (participantId: string) => {
 };
 
 /**
- * For each domain, `ready` and the codes of what the client's specialist still has to fill.
+ * For each domain, `ready` and the codes of what the client's specialist still has to fill, and `stored` once the sheet is the stored signed sheet (ADR 023).
  * @summary Whether the participant's two individual training sheets can be opened
  */
 export const getPortalTrainingSheets = async (
@@ -1595,7 +1597,7 @@ export const getGetPortalTrainingSheetUrl = (participantId: string, domain: 'ssm
 };
 
 /**
- * Drawn up on the spot, as the employee's page in the app does; nothing is stored.
+ * As the employee's page in the app has it: the stored signed sheet once signing has started (ADR 023), else drawn up on the spot and not stored.
  * @summary The participant's individual training sheet of a domain as a PDF
  */
 export const getPortalTrainingSheet = async (

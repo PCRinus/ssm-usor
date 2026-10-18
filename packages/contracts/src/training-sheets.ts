@@ -29,6 +29,8 @@ export const missingSheetDataLabels: Record<MissingSheetData, string> = {
 export const trainingSheetReadinessSchema = z.object({
   ready: z.boolean(),
   missing: z.array(missingSheetDataSchema),
+  /** The sheet is the stored signed sheet (ADR 023), not drawn up on the spot. */
+  stored: z.boolean(),
 });
 
 export type TrainingSheetReadiness = z.infer<typeof trainingSheetReadinessSchema>;

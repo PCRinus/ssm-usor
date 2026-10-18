@@ -22,7 +22,7 @@ export const getTrainingSheetsRoute = createRoute({
   operationId: 'getTrainingSheets',
   summary: "Whether an employee's two individual training sheets can be drawn up",
   description:
-    "For each domain, `ready` and the codes of what is missing (ADR 021): the commute route on the occupational safety sheet (`employee.commute_route`), and on both the workplace when the client has more than one active workplace and the employee has none (`employee.workplace`). Every other empty line prints empty. A former employee's sheets are drawn up too.",
+    "For each domain, `ready` and the codes of what is missing (ADR 021): the commute route on the occupational safety sheet (`employee.commute_route`), and on both the workplace when the client has more than one active workplace and the employee has none (`employee.workplace`). Every other empty line prints empty. A former employee's sheets are drawn up too. `stored` is true once signing has started and the sheet is the stored signed sheet (ADR 023), which is then always ready.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: employeeParams },
@@ -47,7 +47,7 @@ export const getTrainingSheetRoute = createRoute({
   operationId: 'getTrainingSheet',
   summary: "Download an employee's individual training sheet of a domain as a PDF",
   description:
-    "Built on the spot from the employee, their workplace and position, and their training records of the domain, merged into the newest registered version of the sheet's template and converted by the converter that makes the PDFs at issuing; nothing is stored. Hiring trainings not recorded yet print blank, and the periodic tables run on in blank rows to the end of their page for signing on paper.",
+    "Once signing has started, the stored signed sheet (ADR 023): the PDF form as signed so far, or a sheet and its continuation sheets merged into one PDF, flattened, whose signatures are then not verifiable in that copy. Before, built on the spot from the employee, their workplace and position, and their training records of the domain, merged into the newest registered version of the sheet's template and converted by the converter that makes the PDFs at issuing; nothing is stored. Hiring trainings not recorded yet print blank, and the periodic tables run on in blank rows to the end of their page for signing on paper.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: employeeParams, query: trainingSheetQuerySchema },

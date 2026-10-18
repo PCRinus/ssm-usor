@@ -13,9 +13,11 @@ import { contentDisposition } from '../../lib/content-disposition';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import { createFileStore } from '../../lib/files';
-import { requirePdfConverter } from '../../lib/pdf';
+import { adminFileStore, createFileStore } from '../../lib/files';
+import { createPdfConverter, requirePdfConverter } from '../../lib/pdf';
 import { builtInTemplates, merge } from '../documents/documents';
+import { supabaseSheetStore } from '../signed-sheets/store';
+import { currentSheetPdf } from '../signed-sheets/stored';
 import { toAdmission, toTraining, trainingColumns } from './handlers';
 import {
   buildTrainingSheetData,
@@ -101,15 +103,29 @@ export async function loadSheetFacts(
   };
 }
 
+async function storedDomains(db: DataClient, clientId: string, employeeId: string) {
+  const { data, error } = await db
+    .from('signed_sheets')
+    .select('domain')
+    .eq('employee_id', employeeId)
+    .eq('client_id', clientId);
+  if (error) throw fromDatabaseError(error, 'stored sheets');
+  return new Set(data.map((row) => row.domain));
+}
+
 export async function trainingSheetReadiness(
   db: DataClient,
   clientId: string,
   employeeId: string
 ): Promise<TrainingSheetsResponse> {
-  const facts = await loadSheetFacts(db, clientId, employeeId);
+  const [facts, stored] = await Promise.all([
+    loadSheetFacts(db, clientId, employeeId),
+    storedDomains(db, clientId, employeeId),
+  ]);
   const readiness = (domain: TrainingDomain) => {
+    if (stored.has(domain)) return { ready: true, missing: [], stored: true };
     const missing = missingSheetDataOf({ ...facts, domain, records: [] });
-    return { ready: missing.length === 0, missing };
+    return { ready: missing.length === 0, missing, stored: false };
   };
   return Object.fromEntries(
     trainingDomains.map((domain) => [domain, readiness(domain)])
@@ -126,7 +142,10 @@ export const missingSheetDataResponse = (missing: MissingSheetData[]) =>
 
 export type DrawnSheet = { missing: MissingSheetData[] } | { pdf: Uint8Array; fileName: string };
 
-/** The caller reads the template, since who may read Storage differs between them. */
+/**
+ * The stored signed sheet once signing has started (ADR 023), else the sheet drawn up on the spot.
+ * The caller reads the template, since who may read Storage differs between them.
+ */
 export async function drawTrainingSheet(
   c: Context<ApiEnv>,
   db: DataClient,
@@ -134,8 +153,21 @@ export async function drawTrainingSheet(
   readTemplate: (storagePath: string) => Promise<Uint8Array>
 ): Promise<DrawnSheet> {
   const { clientId, employeeId, domain } = sheet;
+  const identity = await loadSheetFacts(db, clientId, employeeId);
+  const stored = await currentSheetPdf(
+    {
+      // The caller's own policies have shown the sheet's row, so its file is one they may read.
+      store: supabaseSheetStore(db),
+      files: { readDocument: (path) => adminFileStore(c.env, c.req.raw.signal).readDocument(path) },
+      pdf: createPdfConverter(c),
+    },
+    employeeId,
+    domain,
+    { clientId }
+  );
+  if (stored) return { pdf: stored, fileName: trainingSheetFileName(domain, identity.employee) };
   const facts: TrainingSheetFacts = {
-    ...(await loadSheetFacts(db, clientId, employeeId)),
+    ...identity,
     domain,
     records: await loadRecords(db, employeeId, domain),
   };
