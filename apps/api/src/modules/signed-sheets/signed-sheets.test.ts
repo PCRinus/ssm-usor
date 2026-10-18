@@ -147,6 +147,7 @@ const signer = {
     buffer(`${decode(prepared)}|signed ${decode(signature)}`)
   ),
   validate: vi.fn(),
+  stampPages: vi.fn(),
 } satisfies SignerService;
 
 const pdf: PdfConverter = {

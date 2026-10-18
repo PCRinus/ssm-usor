@@ -1,13 +1,37 @@
-import { type SignatureValidation, signerFailed, type SignerService } from './signer';
+import {
+  type SignatureValidation,
+  signerFailed,
+  signerRefused,
+  type SignerService,
+} from './signer';
 
 // The wire format of the signer container (apps/pdf/signer): JSON bodies with every PDF and
 // signature in base64. Shared by apps/pdf, which reaches the container, and the API, which
 // reaches a signer started locally by URL (docs/pdf.md).
 
-export type SignerRoute = '/prepare-sheet' | '/fill' | '/sign/begin' | '/sign/finish' | '/validate';
+export type SignerRoute =
+  '/prepare-sheet' | '/fill' | '/sign/begin' | '/sign/finish' | '/validate' | '/stamp';
 
-/** Posts a JSON body to a route and resolves with the parsed JSON answer of a 2xx; rejects otherwise. */
+/**
+ * Posts a JSON body to a route and resolves with the parsed JSON answer of a 2xx; rejects
+ * otherwise, with `signerAnswerError` for an answer that is not a 2xx.
+ */
 export type SignerPost = (route: SignerRoute, body: object) => Promise<unknown>;
+
+/** The error for an answer that is not a 2xx: the service's refusal code for a 4xx, `signer_failed` alone for anything else. */
+export function signerAnswerError(status: number, body: string): Error {
+  if (status >= 400 && status < 500) {
+    try {
+      const { error } = JSON.parse(body) as { error?: unknown };
+      if (typeof error === 'string' && /^[a-z_]+$/.test(error)) {
+        return new Error(signerRefused(error));
+      }
+    } catch {
+      // Not the service's JSON: a proxy or the container runtime answered.
+    }
+  }
+  return new Error(signerFailed);
+}
 
 function toBase64(data: ArrayBuffer): string {
   const bytes = new Uint8Array(data);
@@ -63,10 +87,14 @@ export function signerOverHttp(post: SignerPost): SignerService {
       );
       return fromBase64(answer.pdf);
     },
-    async validate(pdf) {
-      const answer = answerOf(await post('/validate', { pdf: toBase64(pdf) }));
+    async validate(pdf, trustRootsPem) {
+      const answer = answerOf(await post('/validate', { pdf: toBase64(pdf), trustRootsPem }));
       if (!Array.isArray(answer.signatures)) throw new Error(signerFailed);
       return answer.signatures as SignatureValidation[];
+    },
+    async stampPages(pdf, text) {
+      const answer = answerOf(await post('/stamp', { pdf: toBase64(pdf), text }));
+      return fromBase64(answer.pdf);
     },
   };
 }

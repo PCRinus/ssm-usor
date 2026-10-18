@@ -1,4 +1,5 @@
 import {
+  signerAnswerError,
   signerFailed,
   signerOverHttp,
   type SignerPost,
@@ -29,9 +30,9 @@ function postTo(url: string): SignerPost {
       signal: AbortSignal.timeout(60_000),
     });
     if (!response.ok) {
-      throw new Error(
-        `${signerFailed}: ${response.status} ${(await response.text()).slice(0, 300)}`
-      );
+      const text = await response.text();
+      console.error(`Signer ${route} answered ${response.status}: ${text.slice(0, 300)}`);
+      throw signerAnswerError(response.status, text);
     }
     return response.json();
   };
@@ -61,7 +62,8 @@ export function createSigner(c: Context<ApiEnv>): SignerService | null {
     beginSignature: (pdf, options) => guarded(() => service.beginSignature(pdf, options)),
     finishSignature: (prepared, token, signature) =>
       guarded(() => service.finishSignature(prepared, token, signature)),
-    validate: (pdf) => guarded(() => service.validate(pdf)),
+    validate: (pdf, trustRootsPem) => guarded(() => service.validate(pdf, trustRootsPem)),
+    stampPages: (pdf, text) => guarded(() => service.stampPages(pdf, text)),
   };
 }
 

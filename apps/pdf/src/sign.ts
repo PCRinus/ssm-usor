@@ -1,4 +1,4 @@
-import { signerFailed, type SignerPost } from '@ssm-usor/contracts';
+import { signerAnswerError, signerFailed, type SignerPost } from '@ssm-usor/contracts';
 
 import type { Fetcher } from './convert';
 
@@ -8,6 +8,8 @@ class TimedOut extends Error {}
 /**
  * Posts to the signer container with the discipline of `convertDocx`: a failure that is not
  * about the request, such as a container that did not start, is tried once more after a pause.
+ * A refusal rejects with the service's code (`signer_failed:locked_field`), which a service
+ * binding carries to the caller in the error's message.
  */
 export function postToSigner(fetcher: Fetcher, pauseMs = 2000, timeoutMs = 60_000): SignerPost {
   return async (route, body) => {
@@ -18,8 +20,8 @@ export function postToSigner(fetcher: Fetcher, pauseMs = 2000, timeoutMs = 60_00
       await new Promise((resolve) => setTimeout(resolve, pauseMs));
       try {
         return await postOnce(fetcher, route, body, timeoutMs);
-      } catch {
-        throw new Error(signerFailed);
+      } catch (retryError) {
+        throw retryError instanceof RetryableFailure ? new Error(signerFailed) : retryError;
       }
     }
   };
@@ -56,13 +58,18 @@ async function postOnce(
     clearTimeout(timer);
   }
   if (!response.ok) {
-    const detail = (await response.text()).slice(0, 500);
+    const text = await response.text();
     console.error(
-      JSON.stringify({ event: 'signer_refused', route, status: response.status, detail })
+      JSON.stringify({
+        event: 'signer_refused',
+        route,
+        status: response.status,
+        detail: text.slice(0, 500),
+      })
     );
     // 4xx is the service about the request; anything else is the container or the service.
     if (response.status >= 500) throw new RetryableFailure(signerFailed);
-    throw new Error(signerFailed);
+    throw signerAnswerError(response.status, text);
   }
   try {
     return await response.json();

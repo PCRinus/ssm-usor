@@ -1,4 +1,4 @@
-import { signerFailed, signerOverHttp } from '@ssm-usor/contracts';
+import { signerFailed, signerOverHttp, signerRefusalCode } from '@ssm-usor/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Fetcher } from './convert';
@@ -30,6 +30,7 @@ describe('the signer forwarding', () => {
         });
       }
       if (route === '/validate') return answer({ signatures: [{ field: 'row1_trainee' }] });
+      if (route === '/stamp') return answer({ pdf: base64('%PDF stamped') });
       return answer({ pdf: base64(`%PDF from ${route}`) });
     });
     const service = signer(fetcher);
@@ -55,7 +56,8 @@ describe('the signer forwarding', () => {
     expect(begun.sessionToken).toBe('token');
     const signed = await service.finishSignature(begun.prepared, 'token', bytes('r||s'));
     expect(text(signed)).toBe('%PDF from /sign/finish');
-    expect(await service.validate(signed)).toEqual([{ field: 'row1_trainee' }]);
+    expect(await service.validate(signed, ['ROOT'])).toEqual([{ field: 'row1_trainee' }]);
+    expect(text(await service.stampPages(signed, 'Copie'))).toBe('%PDF stamped');
 
     const bodies = await Promise.all(
       fetcher.mock.calls.map(async ([request]) => ({
@@ -71,6 +73,7 @@ describe('the signer forwarding', () => {
       '/sign/begin',
       '/sign/finish',
       '/validate',
+      '/stamp',
     ]);
     expect(
       bodies.every(({ method, type }) => method === 'POST' && type === 'application/json')
@@ -95,6 +98,11 @@ describe('the signer forwarding', () => {
       sessionToken: 'token',
       signature: base64('r||s'),
     });
+    expect(bodies[4]!.body).toEqual({
+      pdf: base64('%PDF from /sign/finish'),
+      trustRootsPem: ['ROOT'],
+    });
+    expect(bodies[5]!.body).toEqual({ pdf: base64('%PDF from /sign/finish'), text: 'Copie' });
   });
 
   it('carries every byte value, in a file longer than one slice', async () => {
@@ -107,20 +115,51 @@ describe('the signer forwarding', () => {
     expect(new Uint8Array(echoed)).toEqual(large);
   });
 
-  it('rejects with signer_failed when the service refuses, is unreachable, or answers something else', async () => {
+  it('rejects with signer_failed when the service is unreachable or answers something else', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     const failing: Fetcher[] = [
-      async () => answer({ error: 'unknown_fields', detail: 'No such fields: row9.' }, 400),
       async () => Promise.reject(new Error('container did not start')),
       async () => new Response('<html>not json</html>'),
       async () => answer({ unexpected: true }),
+      async () => new Response('<html>bad gateway</html>', { status: 404 }),
     ];
     for (const fetcher of failing) {
-      await expect(signer(fetcher).fillFields(pdf, {})).rejects.toThrow(signerFailed);
+      const rejection = signer(fetcher).fillFields(pdf, {});
+      await expect(rejection).rejects.toThrow(new Error(signerFailed));
     }
-    expect(String(log.mock.calls[0]![0])).toContain('unknown_fields');
     // The unreachable one was tried twice.
     expect(log).toHaveBeenCalledTimes(4);
+  });
+
+  it("carries the service's code when it refuses the request", async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const locked = async () =>
+      answer({ error: 'locked_field', detail: 'p1_date, p1_material' }, 409);
+    const error = await signer(locked)
+      .fillFields(pdf, { p1_date: '18.10.2026' })
+      .catch((reason: unknown) => reason);
+    expect(error).toEqual(new Error('signer_failed:locked_field'));
+    expect(signerRefusalCode(error)).toBe('locked_field');
+    expect(String(log.mock.calls[0]![0])).toContain('p1_date, p1_material');
+
+    const malformed = async () => answer({ error: 'malformed_request', detail: 'pdf' }, 422);
+    await expect(signer(malformed).fillFields(pdf, {})).rejects.toThrow(
+      new Error('signer_failed:malformed_request')
+    );
+  });
+
+  it('carries the code of a refusal that answers the second try', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const waking = vi
+      .fn<Fetcher>()
+      .mockRejectedValueOnce(new Error('container did not start'))
+      .mockResolvedValueOnce(answer({ error: 'unknown_session' }, 404));
+    await expect(signer(waking).finishSignature(pdf, 'gone', pdf)).rejects.toThrow(
+      new Error('signer_failed:unknown_session')
+    );
+    const failing = vi.fn<Fetcher>(async () => new Response('down', { status: 503 }));
+    await expect(signer(failing).validate(pdf)).rejects.toThrow(new Error(signerFailed));
+    expect(failing).toHaveBeenCalledTimes(2);
   });
 
   it('tries once more when the container fails to start, not when the request is refused', async () => {
@@ -133,14 +172,16 @@ describe('the signer forwarding', () => {
     expect(waking).toHaveBeenCalledTimes(2);
 
     const refusing = vi.fn<Fetcher>(async () => answer({ error: 'unknown_session' }, 404));
-    await expect(signer(refusing).finishSignature(pdf, 'gone', pdf)).rejects.toThrow(signerFailed);
+    await expect(signer(refusing).finishSignature(pdf, 'gone', pdf)).rejects.toThrow(
+      'signer_failed:unknown_session'
+    );
     expect(refusing).toHaveBeenCalledTimes(1);
   });
 
   it('gives up on a request that takes too long, without trying again', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     const hanging = vi.fn<Fetcher>(() => new Promise(() => {}));
-    await expect(signer(hanging, 10).validate(pdf)).rejects.toThrow(signerFailed);
+    await expect(signer(hanging, 10).validate(pdf)).rejects.toThrow(new Error(signerFailed));
     expect(hanging).toHaveBeenCalledTimes(1);
     expect(String(log.mock.calls[0]![0])).toContain('signer_timeout');
   });

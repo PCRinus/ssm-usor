@@ -2,20 +2,52 @@
 // routes of the signer container, pyHanko behind a small HTTP service, as one interface.
 // Signing is two-phase so that a signer's private key never leaves the API Worker.
 
-/** `message` of the error every method rejects with when the signer service fails. */
+/**
+ * `message` of the error every method rejects with when the signer service fails. When the service
+ * refused the request (a 4xx), the message carries its code after a colon, as `signerRefused`
+ * writes it: `signer_failed:locked_field`. A service that could not be reached, timed out, failed
+ * in itself or answered something unexpected gives `signer_failed` alone.
+ */
 export const signerFailed = 'signer_failed';
+
+export function signerRefused(code: string): string {
+  return `${signerFailed}:${code}`;
+}
+
+/** The service's code in a rejection, `locked_field` for `signer_failed:locked_field`; null for any other error. */
+export function signerRefusalCode(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+  const prefix = `${signerFailed}:`;
+  return error.message.startsWith(prefix) ? error.message.slice(prefix.length) : null;
+}
 
 export type SignatureValidation = {
   field: string;
   signerName: string;
   /** ISO 8601, from the signature's own signing time; null when it has none. */
   signedAt: string | null;
-  /** The bytes the signature covers are unchanged, and the signature over them verifies against its certificate. The chain is not checked: the app is its own authority. */
+  /** The bytes the signature covers are unchanged, and the signature over them verifies against its certificate. Says nothing of who issued the certificate: `trusted` does. */
   intact: boolean;
   /** Every change after this signature was a permitted one (form fill or signature). */
   modificationsPermitted: boolean;
   /** This signature certified the document (DocMDP). */
   certified: boolean;
+  /**
+   * The certificate chains to one of the roots given to `validate`, checked at the signing time
+   * the signature states, as Adobe Acrobat does by default; false when no root was given.
+   */
+  trusted: boolean;
+  /** The signer certificate's serial in lowercase hex, as @peculiar/x509 gives it. */
+  certificateSerial: string;
+  /** The issuer's distinguished name as RFC 4514 writes it, `CN=SSM Ușor Signing CA`. */
+  issuer: string;
+  /** The subject's serialNumber attribute (2.5.4.5), the signer's account id; null without one. */
+  subjectSerialNumber: string | null;
+  /**
+   * `entire` when the signature covers the whole file, as the newest signature does while nothing
+   * follows it; `partial` when later updates follow, as they do every earlier signature on a sheet.
+   */
+  coverage: 'entire' | 'partial';
 };
 
 export type BeginSignatureOptions = {
@@ -57,7 +89,11 @@ export interface SignerService {
    * for a sheet whose signature cells LibreOffice exported as text fields. Unknown names reject.
    */
   prepareSheet(pdf: ArrayBuffer, signatureFields: string[]): Promise<ArrayBuffer>;
-  /** Fills text fields as an incremental update, so that earlier signatures stay valid. Unknown names reject. */
+  /**
+   * Fills text fields as an incremental update, so that earlier signatures stay valid. Unknown
+   * names reject, and so does a field that a signature's lock covers, with
+   * `signer_failed:locked_field`.
+   */
   fillFields(pdf: ArrayBuffer, values: Record<string, string>): Promise<ArrayBuffer>;
   /** First phase of a signature: the placeholder goes in, the bytes to sign come out. */
   beginSignature(pdf: ArrayBuffer, options: BeginSignatureOptions): Promise<BeginSignatureResult>;
@@ -71,6 +107,12 @@ export interface SignerService {
     sessionToken: string,
     signature: ArrayBuffer
   ): Promise<ArrayBuffer>;
-  /** Every signature in the PDF, in order, as a validator sees it. */
-  validate(pdf: ArrayBuffer): Promise<SignatureValidation[]>;
+  /** Every signature in the PDF, in order, as a validator sees it; `trustRootsPem` are the certificate authorities `trusted` accepts. */
+  validate(pdf: ArrayBuffer, trustRootsPem?: string[]): Promise<SignatureValidation[]>;
+  /**
+   * Draws `text` in small grey letters in the top margin of every page, as an incremental update
+   * that touches no field or signature. For a copy whose signatures no longer count, such as the
+   * flattened merge of several sheets.
+   */
+  stampPages(pdf: ArrayBuffer, text: string): Promise<ArrayBuffer>;
 }

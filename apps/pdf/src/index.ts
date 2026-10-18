@@ -93,8 +93,12 @@ export class Pdf extends WorkerEntrypoint<PdfEnv> implements PdfService, SignerS
     return this.signer().finishSignature(prepared, sessionToken, signature);
   }
 
-  async validate(pdf: ArrayBuffer): Promise<SignatureValidation[]> {
-    return this.signer().validate(pdf);
+  async validate(pdf: ArrayBuffer, trustRootsPem?: string[]): Promise<SignatureValidation[]> {
+    return this.signer().validate(pdf, trustRootsPem);
+  }
+
+  async stampPages(pdf: ArrayBuffer, text: string): Promise<ArrayBuffer> {
+    return this.signer().stampPages(pdf, text);
   }
 }
 
