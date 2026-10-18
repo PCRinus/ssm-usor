@@ -212,8 +212,8 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
         return Response.json({ items: [] });
       case `GET ${employeePath}/training-sheets`:
         return Response.json({
-          ssm: { ready: true, missing: [] },
-          psi: { ready: true, missing: [] },
+          ssm: { ready: true, missing: [], stored: false, sequences: [] },
+          psi: { ready: true, missing: [], stored: false, sequences: [] },
         });
       case `GET ${employeePath}/participant`:
         return Response.json({ participant: null, invitation: null });
@@ -300,9 +300,9 @@ describe('matchSigner', () => {
 });
 
 describe('signers on the training flow', () => {
-  async function openWorkplaceTraining() {
+  async function openWorkplaceTraining(domain: 'ssm' | 'psi' = 'ssm') {
     const user = userEvent.setup();
-    mount(`${employeePath}/training/ssm`);
+    mount(`${employeePath}/training/${domain}`);
     await screen.findByTestId('training-records-empty');
     await user.click(screen.getAllByTestId('training-record')[0]!);
     const dialog = await screen.findByTestId('training-dialog');
@@ -347,20 +347,83 @@ describe('signers on the training flow', () => {
     });
   });
 
-  it('keeps a signer the specialist chose when the name changes', async () => {
+  it('warns when the chosen signer is not the person the slot prints, and takes their name on request', async () => {
     mockApi();
     const { user, dialog } = await openWorkplaceTraining();
     const trainerSigner = within(dialog).getByTestId('training-trainer-signer');
     await waitFor(() => expect((trainerSigner as HTMLSelectElement).value).toBe(managerAccountId));
+    expect(within(dialog).queryByTestId('training-trainer-signer-mismatch')).toBeNull();
+
     await user.selectOptions(trainerSigner, memberId);
-    await user.clear(within(dialog).getByTestId('training-trainer-name'));
-    await user.type(within(dialog).getByTestId('training-trainer-name'), 'Ana Ionescu');
+    expect(within(dialog).getByTestId('training-trainer-signer-mismatch').textContent).toContain(
+      'Rubrica tipărește „Maria Pop”, dar semnează Dan MARIN.'
+    );
+    await user.click(within(dialog).getByTestId('training-trainer-signer-use-name'));
+    expect((within(dialog).getByTestId('training-trainer-name') as HTMLInputElement).value).toBe(
+      'Dan MARIN'
+    );
     expect((trainerSigner as HTMLSelectElement).value).toBe(memberId);
-    await user.clear(within(dialog).getByTestId('training-admitted-by-name'));
-    await user.type(within(dialog).getByTestId('training-admitted-by-name'), 'Ana Ionescu');
+    expect(within(dialog).queryByTestId('training-trainer-signer-mismatch')).toBeNull();
+  });
+
+  it("drops a chosen signer back to the name's match when the slot's name is typed again", async () => {
+    mockApi();
+    const { user, dialog } = await openWorkplaceTraining();
+    const trainerSigner = within(dialog).getByTestId('training-trainer-signer');
+    const trainerName = within(dialog).getByTestId('training-trainer-name');
+    await waitFor(() => expect((trainerSigner as HTMLSelectElement).value).toBe(managerAccountId));
+    await user.selectOptions(trainerSigner, memberId);
+    await user.clear(trainerName);
+    await user.type(trainerName, 'Ana Ionescu');
+    expect((trainerSigner as HTMLSelectElement).value).toBe('');
+    await user.clear(trainerName);
+    await user.type(trainerName, 'Pop Maria');
+    expect((trainerSigner as HTMLSelectElement).value).toBe(managerAccountId);
+    expect(within(dialog).queryByTestId('training-trainer-signer-mismatch')).toBeNull();
+  });
+
+  it('offers no verifier or admitter signer on the fire-safety sheet, which has no field for them', async () => {
+    mockApi();
+    const { user, dialog } = await openWorkplaceTraining('psi');
+    await waitFor(() =>
+      expect(
+        (within(dialog).getByTestId('training-trainer-signer') as HTMLSelectElement).value
+      ).toBe(managerAccountId)
+    );
     expect(
-      (within(dialog).getByTestId('training-admitter-signer') as HTMLSelectElement).value
-    ).toBe('');
+      (within(dialog).getByTestId('training-admitted-by-name') as HTMLInputElement).value
+    ).toBe('Maria Pop');
+    expect(within(dialog).queryByTestId('training-admitter-signer')).toBeNull();
+    expect(within(dialog).queryByTestId('training-verifier-signer')).toBeNull();
+    await user.click(within(dialog).getByTestId('training-save'));
+    await screen.findByText('Instruirea a fost înregistrată.');
+    expect(requests('POST', trainingsPath)[0]!.body).toMatchObject({
+      signers: { trainer: managerAccountId },
+    });
+    expect(
+      (requests('POST', trainingsPath)[0]!.body as { signers: Record<string, unknown> }).signers
+    ).not.toHaveProperty('admitter');
+  });
+
+  it("puts the API's name mismatch under the picker", async () => {
+    mockApi({
+      [`POST ${trainingsPath}`]: () =>
+        Response.json(
+          {
+            error: 'unprocessable',
+            message: 'The signer is not the person the slot names.',
+            reason: 'signer_name_mismatch',
+            issues: [{ path: 'signers.verifier', message: "The account's name is not Dan Marin." }],
+          },
+          { status: 422 }
+        ),
+    });
+    const { user, dialog } = await openWorkplaceTraining();
+    await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
+    await user.click(within(dialog).getByTestId('training-save'));
+    expect((await within(dialog).findByTestId('training-verifier-signer-error')).textContent).toBe(
+      'Contul ales nu poartă numele tipărit în rubrică. Alege persoana cu acest nume sau folosește numele semnatarului.'
+    );
   });
 
   it('asks nobody for a training typed from a paper sheet', async () => {
@@ -421,13 +484,67 @@ describe("a record's signatures", () => {
     expect(slots.map((item) => item.textContent)).toEqual([
       'InstruitDe semnatPopescu Ion',
       'InstructorSemnat electronicMaria Pop · 2 sept. 2026',
-      'VerificatFără semnatar',
+      'VerificatorFără semnatar',
     ]);
     expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', true);
     expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true);
     expect(screen.getByTestId('training-record-lock').textContent).toBe(
-      'Semnată electronic: anulează semnăturile ca s-o poți modifica sau șterge.'
+      'Instruirea este semnată electronic. Anulează semnăturile ca să o poți modifica sau șterge.'
     );
+  });
+
+  it("locks a record whose training another attendee's record signed", async () => {
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
+      [`GET ${signaturesPath}`]: () => Response.json({ recordId, slots: [pendingTrainee] }),
+      [`GET ${trainingsPath}`]: () =>
+        Response.json({
+          items: [
+            {
+              ...record().training,
+              attendeeCount: 2,
+              attendees: [],
+              signed: true,
+              hasSignatures: true,
+            },
+          ],
+        }),
+    });
+    mount(`${employeePath}/training/ssm`);
+    await screen.findByTestId('record-signatures');
+    await waitFor(() =>
+      expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', true)
+    );
+    expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true);
+    expect(screen.getByTestId('training-record-lock').textContent).toBe(
+      'Instruirea este semnată electronic. Anulează semnăturile ca să o poți modifica sau șterge.'
+    );
+  });
+
+  it("words the reasons the app voids a request for, and keeps a member's own words", async () => {
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
+      [`GET ${signaturesPath}`]: () =>
+        Response.json({
+          recordId,
+          slots: [
+            slot('trainee', 'void', { voidReason: 'withdrawn' }),
+            slot('trainer', 'void', { voidReason: 'record_changed' }),
+            slot('verifier', 'void', { voidReason: 'Data greșită' }),
+          ],
+        }),
+    });
+    mount(`${employeePath}/training/ssm`);
+    const block = await screen.findByTestId('record-signatures');
+    expect(
+      within(block)
+        .getAllByTestId('signature-slot')
+        .map((item) => item.textContent)
+    ).toEqual([
+      'InstruitAnulatMotiv: salariatul a revenit la semnarea olografă',
+      'InstructorAnulatMotiv: instruirea a fost modificată',
+      'VerificatorAnulatMotiv: Data greșită',
+    ]);
   });
 
   it('marks a slot signed on paper with the name the record prints', async () => {
@@ -464,7 +581,7 @@ describe("a record's signatures", () => {
     expect([...slotSelect.options].map((option) => option.textContent)).toEqual([
       'Instruit',
       'Instructor',
-      'Verificat',
+      'Verificator',
     ]);
     expect((within(dialog).getByTestId('paper-signature-name') as HTMLInputElement).value).toBe(
       'Popescu Ion'
@@ -597,7 +714,7 @@ describe("a record's signatures", () => {
     const dialog = await screen.findByTestId('training-dialog');
     await user.click(await within(dialog).findByTestId('training-save'));
     expect((await within(dialog).findByTestId('training-error')).textContent).toBe(
-      'Instruirea are semnături electronice și nu se mai poate modifica. Anulează semnăturile, apoi modific-o.'
+      'Instruirea are semnături electronice și nu se mai poate modifica. Anulează semnăturile, apoi modifică instruirea.'
     );
   });
 
@@ -643,7 +760,10 @@ describe('the Semnături place', () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]!.textContent).toContain('Popescu Ion');
     expect(rows[0]!.textContent).toContain('Periodică · 14 oct. 2026 · semnezi ca instructor');
-    expect(rows[1]!.textContent).toContain('semnezi ca cel care admite la lucru');
+    expect(within(rows[0]!).getByTestId('agreement-warning').textContent).toBe(
+      'Act adițional nesemnat'
+    );
+    expect(rows[1]!.textContent).toContain('semnezi la „Admite la lucru”');
 
     const sign = screen.getByTestId('signature-requests-sign');
     expect(sign).toHaveProperty('disabled', true);
@@ -874,6 +994,157 @@ describe("the employee's signing agreement", () => {
     await within(card).findByTestId('participant-none');
     expect(within(card).queryByTestId('agreement-warning')).toBeNull();
   });
+
+  const electronic = (overrides: Record<string, unknown> = {}) => ({
+    state: 'signed_electronically',
+    generatedAt: '2026-10-01T09:00:00.000Z',
+    signedAt: '2026-10-02T09:00:00.000Z',
+    clientFileId: null,
+    employeeSignedAt: '2026-10-01T10:00:00.000Z',
+    employerSignedAt: '2026-10-02T09:00:00.000Z',
+    awaiting: null,
+    ...overrides,
+  });
+
+  it('says an agreement the employee signed waits for the administrator, and offers no paper mark', async () => {
+    mockApi({
+      [`GET ${agreementPath}/state`]: () =>
+        Response.json({
+          agreement: electronic({
+            state: 'generated',
+            signedAt: null,
+            employerSignedAt: null,
+            awaiting: 'employer',
+          }),
+        }),
+    });
+    mount(employeePath);
+    const card = await screen.findByTestId('signing-agreement-card');
+    expect((await within(card).findByTestId('signing-agreement-detail')).textContent).toBe(
+      'Semnat de angajat pe 1 oct. 2026, așteaptă semnătura administratorului în portal.'
+    );
+    expect(within(card).queryByTestId('signing-agreement-paper')).toBeNull();
+    expect(within(card).queryByTestId('signing-agreement-in-contract')).toBeNull();
+    expect(within(card).getByTestId('signing-agreement-withdraw')).toBeTruthy();
+  });
+
+  it('records the return to handwriting after an electronic signature, once confirmed', async () => {
+    let withdrawn = false;
+    mockApi({
+      [`GET ${agreementPath}/state`]: () =>
+        Response.json({ agreement: electronic(withdrawn ? { state: 'withdrawn' } : {}) }),
+      [`PUT ${agreementPath}/state`]: () => {
+        withdrawn = true;
+        return Response.json({ agreement: electronic({ state: 'withdrawn' }) });
+      },
+    });
+    const user = userEvent.setup();
+    mount(employeePath);
+    const card = await screen.findByTestId('signing-agreement-card');
+    expect((await within(card).findByTestId('signing-agreement-detail')).textContent).toBe(
+      'Semnat electronic pe 2 oct. 2026.'
+    );
+    expect(within(card).getByTestId('signing-agreement-download')).toBeTruthy();
+    await user.click(within(card).getByTestId('signing-agreement-withdraw'));
+    const dialog = await screen.findByTestId('signing-agreement-change-dialog');
+    expect(dialog.textContent).toContain(
+      'Actul adițional semnat electronic și semnăturile de până acum rămân la dosar.'
+    );
+    expect(requests('PUT', `${agreementPath}/state`)).toHaveLength(0);
+    await user.click(within(dialog).getByTestId('signing-agreement-change-confirm'));
+    await waitFor(() =>
+      expect(requests('PUT', `${agreementPath}/state`).map((call) => call.body)).toEqual([
+        { state: 'withdrawn' },
+      ])
+    );
+    await waitFor(() =>
+      expect(within(card).getByTestId('signing-agreement-state').textContent).toBe(
+        'Revenire la semnarea olografă'
+      )
+    );
+    expect(within(card).getByTestId('signing-agreement-detail').textContent).toBe(
+      'Salariatul a revenit la semnarea olografă. Actul adițional, semnat pe 2 oct. 2026, rămâne la dosar.'
+    );
+    expect(within(card).queryByTestId('signing-agreement-withdraw')).toBeNull();
+  });
+
+  it("copies the contract clause with the provider's name and records a clause in the contract", async () => {
+    let inContract = false;
+    mockApi({
+      [`GET ${agreementPath}/state`]: () =>
+        Response.json({
+          agreement: inContract
+            ? electronic({
+                state: 'in_contract',
+                signedAt: null,
+                employeeSignedAt: null,
+                employerSignedAt: null,
+              })
+            : null,
+        }),
+      'GET /organization/company-details': () =>
+        Response.json({ companyDetails: { legalName: 'PREVENȚIA PLUS SRL' } }),
+      [`PUT ${agreementPath}/state`]: () => {
+        inContract = true;
+        return Response.json({ agreement: null });
+      },
+    });
+    const user = userEvent.setup();
+    mount(employeePath);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await user.click(await within(card).findByTestId('signing-agreement-clause'));
+    const clause = await screen.findByTestId('signing-agreement-clause-dialog');
+    await waitFor(() =>
+      expect(within(clause).getByTestId('signing-agreement-clause-text').textContent).toContain(
+        'în platforma informatică pusă la dispoziție de PREVENȚIA PLUS SRL'
+      )
+    );
+    await user.click(within(clause).getByTestId('signing-agreement-clause-copy'));
+    expect(await navigator.clipboard.readText()).toContain('PREVENȚIA PLUS SRL');
+    await user.keyboard('{Escape}');
+
+    await user.click(within(card).getByTestId('signing-agreement-in-contract'));
+    const dialog = await screen.findByTestId('signing-agreement-change-dialog');
+    await user.click(within(dialog).getByTestId('signing-agreement-change-confirm'));
+    await waitFor(() =>
+      expect(within(card).getByTestId('signing-agreement-detail').textContent).toBe(
+        'Clauza este în contractul de muncă.'
+      )
+    );
+    expect(requests('PUT', `${agreementPath}/state`).map((call) => call.body)).toEqual([
+      { state: 'in_contract' },
+    ]);
+    expect(within(card).queryByTestId('signing-agreement-download')).toBeNull();
+    expect(within(card).getByTestId('signing-agreement-withdraw')).toBeTruthy();
+  });
+
+  it('warns while annex 13 of the internal regulation is not issued', async () => {
+    mockApi({
+      [`GET /clients/${clientId}/documents`]: () =>
+        Response.json({ items: [], notApplicable: [], lastGeneration: null }),
+    });
+    mount(employeePath);
+    const card = await screen.findByTestId('signing-agreement-card');
+    expect((await within(card).findByTestId('signing-agreement-annex')).textContent).toContain(
+      'Anexa 13 la regulamentul intern nu este emisă.'
+    );
+  });
+
+  it('does not warn about the annex for a client the annex does not apply to', async () => {
+    mockApi({
+      [`GET /clients/${clientId}/documents`]: () =>
+        Response.json({
+          items: [],
+          notApplicable: ['signing_regulation_annex'],
+          lastGeneration: null,
+        }),
+    });
+    mount(employeePath);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await within(card).findByTestId('signing-agreement-state');
+    await waitFor(() => expect(requests('GET', `/clients/${clientId}/documents`)).toHaveLength(1));
+    expect(within(card).queryByTestId('signing-agreement-annex')).toBeNull();
+  });
 });
 
 describe('signing from the Semnături place', () => {
@@ -929,8 +1200,8 @@ describe('signing from the Semnături place', () => {
         .getAllByTestId('signing-item')
         .map((item) => item.textContent)
     ).toEqual([
-      'Popescu IonSSMPeriodică · 14 oct. 2026 · semnezi ca instructorVELOCE CAFE SRL',
-      'Popescu IonSSMPeriodică · 14 oct. 2026 · semnezi ca cel care a verificatVELOCE CAFE SRL',
+      'Popescu IonSSMAct adițional nesemnatPeriodică · 14 oct. 2026 · semnezi ca instructorVELOCE CAFE SRL',
+      'Popescu IonSSMAct adițional nesemnatPeriodică · 14 oct. 2026 · semnezi ca verificatorVELOCE CAFE SRL',
     ]);
 
     const code = await askForCode(user, dialog);
@@ -953,7 +1224,7 @@ describe('signing from the Semnături place', () => {
     expect(requests('POST', signPath).map((call) => call.body)).toEqual([{ code: '123456' }]);
     expect(within(dialog).getAllByTestId('signing-signed')).toHaveLength(1);
     const failed = within(dialog).getByTestId('signing-failed');
-    expect(failed.textContent).toContain('semnezi ca cel care a verificat');
+    expect(failed.textContent).toContain('semnezi ca verificator');
     expect(within(failed).getByTestId('signing-failed-reason').textContent).toBe(
       'Fișa angajatului nu are toate datele (locul de muncă, traseul). Completează-le, apoi semnează din nou.'
     );
@@ -964,9 +1235,16 @@ describe('signing from the Semnături place', () => {
   });
 
   it('counts the attempts left on a wrong code, then asks for a new code and starts over', async () => {
+    let attemptsLeft = 3;
     const { user, dialog } = await openSigning({
       [`POST ${sessionPath}`]: session,
-      [`POST ${signPath}`]: () => conflict('code_invalid'),
+      [`POST ${signPath}`]: () => {
+        attemptsLeft -= 1;
+        return Response.json(
+          { error: 'conflict', message: 'Wrong code.', reason: 'code_invalid', attemptsLeft },
+          { status: 409 }
+        );
+      },
     });
     await askForCode(user, dialog);
     const attempt = async () => {
@@ -976,6 +1254,9 @@ describe('signing from the Semnături place', () => {
     await attempt();
     expect((await within(dialog).findByTestId('signing-code-error')).textContent).toBe(
       'Codul nu este corect. Mai ai 2 încercări.'
+    );
+    await waitFor(() =>
+      expect(document.activeElement).toBe(within(dialog).getByTestId('signing-code'))
     );
     await attempt();
     await waitFor(() =>
@@ -1014,20 +1295,47 @@ describe('signing from the Semnături place', () => {
   it('says how long to wait when a new code is asked for within the minute', async () => {
     let sent = 0;
     const { user, dialog } = await openSigning({
-      [`POST ${sessionPath}`]: () => (sent++ === 0 ? session() : conflict('code_rate_limited')),
+      [`POST ${sessionPath}`]: () =>
+        sent++ === 0
+          ? session()
+          : Response.json(
+              {
+                error: 'conflict',
+                message: 'Too soon.',
+                reason: 'code_rate_limited',
+                retryAfterSeconds: 42,
+              },
+              { status: 409 }
+            ),
     });
     await askForCode(user, dialog);
-    await user.click(within(dialog).getByTestId('signing-resend'));
-    expect((await within(dialog).findByTestId('signing-error')).textContent).toMatch(
-      /^Ți-am trimis un cod acum mai puțin de un minut\. Poți cere altul peste (\d+ de )?secunde\.$/
+    await waitFor(() =>
+      expect(document.activeElement).toBe(within(dialog).getByTestId('signing-code'))
     );
+    await user.click(within(dialog).getByTestId('signing-resend'));
+    expect((await within(dialog).findByTestId('signing-error')).textContent).toBe(
+      'Ți-am trimis un cod acum mai puțin de un minut. Poți cere altul peste 42 de secunde.'
+    );
+  });
+
+  it('keeps every digit of a pasted code', async () => {
+    const { user, dialog } = await openSigning({ [`POST ${sessionPath}`]: session });
+    const code = await askForCode(user, dialog);
+    await user.click(code);
+    await user.paste(' 123 456');
+    expect((code as HTMLInputElement).value).toBe('123456');
   });
 
   it.each([
     [
       'code_rate_limited',
       409,
-      'Ți-am trimis un cod în ultimul minut. Așteaptă un minut de la el, apoi cere altul.',
+      'Ți-am trimis un cod acum mai puțin de un minut. Așteaptă puțin, apoi cere altul.',
+    ],
+    [
+      'too_many_items',
+      400,
+      'Cu un cod semnezi cel mult 30 de instruiri. Alege mai puține și încearcă din nou.',
     ],
     [
       'signing_unavailable',
@@ -1130,10 +1438,41 @@ describe('a saved training and its signers', () => {
     );
   });
 
-  it('matches the names as before when no request went out', async () => {
-    const { dialog } = await editTraining({ trainer: null, verifier: null, admitter: null });
-    await waitFor(() => expect(valueOf(dialog, 'training-trainer-signer')).toBe(managerAccountId));
-    expect(valueOf(dialog, 'training-verifier-signer')).toBe(memberId);
+  it('keeps every slot on paper when the saved training asked nobody', async () => {
+    const { user, dialog } = await editTraining({ trainer: null, verifier: null, admitter: null });
+    await within(dialog).findByTestId('training-trainer-signer');
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('training-trainer-signer')).toHaveProperty(
+        'disabled',
+        false
+      )
+    );
+    expect(valueOf(dialog, 'training-trainer-signer')).toBe('');
+    expect(valueOf(dialog, 'training-verifier-signer')).toBe('');
+    await user.click(within(dialog).getByTestId('training-save'));
+    await waitFor(() => expect(requests('PUT', `${trainingsPath}/${trainingId}`)).toHaveLength(1));
+    expect(requests('PUT', `${trainingsPath}/${trainingId}`)[0]!.body).toMatchObject({
+      signers: { trainer: null, verifier: null },
+    });
+  });
+
+  it('shows a requested signer who no longer has access instead of passing for paper', async () => {
+    const { dialog } = await editTraining({
+      trainer: '0e0e0e0e-0000-4000-8000-000000000000',
+      verifier: null,
+      admitter: null,
+    });
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('training-trainer-signer')).toHaveProperty(
+        'disabled',
+        false
+      )
+    );
+    const trainer = within(dialog).getByTestId('training-trainer-signer') as HTMLSelectElement;
+    expect(trainer.selectedOptions[0]!.textContent).toBe('Semnatar care nu mai are acces');
+    expect(dialog.querySelector('#training-trainer-signer-hint')!.textContent).toBe(
+      'Persoana căreia i s-a cerut semnătura nu mai are acces. Alege alt semnatar sau semnătura pe hârtie.'
+    );
   });
 
   it('keeps delete closed once the record has a signature, voided ones included', async () => {
@@ -1153,7 +1492,7 @@ describe('a saved training and its signers', () => {
     );
     expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', false);
     expect(screen.getByTestId('training-record-lock').textContent).toBe(
-      'Are semnături, chiar anulate sau pe hârtie, care rămân în evidență: nu se mai poate șterge.'
+      'Instruirea are semnături, chiar anulate sau pe hârtie, care rămân în evidență, așa că nu se mai poate șterge.'
     );
   });
 });

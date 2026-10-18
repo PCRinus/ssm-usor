@@ -210,8 +210,8 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
         return Response.json({ items: [] });
       case `GET ${employeePath}/training-sheets`:
         return Response.json({
-          ssm: { ready: true, missing: [] },
-          psi: { ready: true, missing: [] },
+          ssm: { ready: true, missing: [], stored: false, sequences: [] },
+          psi: { ready: true, missing: [], stored: false, sequences: [] },
         });
       case `GET /clients/${clientId}/job-positions`:
         return Response.json({
@@ -397,8 +397,8 @@ describe("an employee's training tabs", () => {
     mockApi({
       [`GET ${employeePath}/training-sheets`]: () =>
         Response.json({
-          ssm: { ready: false, missing: ['employee.commute_route'] },
-          psi: { ready: true, missing: [] },
+          ssm: { ready: false, missing: ['employee.commute_route'], stored: false, sequences: [] },
+          psi: { ready: true, missing: [], stored: false, sequences: [] },
         }),
     });
     mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
@@ -677,6 +677,30 @@ describe("a client's trainings held", () => {
     await user.click(within(dialog).getByTestId('training-delete-confirm'));
     expect(await screen.findByText('Instruirea a fost ștearsă.')).toBeTruthy();
     expect(await screen.findByTestId('trainings-empty')).toBeTruthy();
+  });
+
+  it.each([
+    [
+      { signed: true, hasSignatures: true },
+      true,
+      'Instruirea este semnată electronic. Anulează semnăturile ca să o poți modifica sau șterge.',
+    ],
+    [
+      { signed: false, hasSignatures: true },
+      false,
+      'Instruirea are semnături, chiar anulate sau pe hârtie, care rămân în evidență, așa că nu se mai poate șterge.',
+    ],
+  ])('locks a training by its signatures, %o', async (signing, editLocked, lock) => {
+    mockApi({
+      [`GET ${trainingsPath}`]: () =>
+        Response.json({ items: [{ ...heldWith(popescu, taranu), ...signing }] }),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPath);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('trainings-row-menu'));
+    expect((await screen.findByTestId('trainings-lock')).textContent).toBe(lock);
+    expect(screen.getByTestId('trainings-edit').hasAttribute('data-disabled')).toBe(editLocked);
+    expect(screen.getByTestId('trainings-delete').hasAttribute('data-disabled')).toBe(true);
   });
 });
 
