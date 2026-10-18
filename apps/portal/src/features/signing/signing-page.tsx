@@ -31,20 +31,30 @@ import { useApiRequest } from '@/lib/request';
 
 import { AgreementPdfButton } from './agreement-pdf-button';
 import { SigningItemText } from './signing-item-text';
-import { agreementKey, type SigningItem, useSigningItems } from './signing-items';
+import {
+  agreementKey,
+  agreementsSettledFor,
+  defaultChoice,
+  invalidateSigningQueries,
+  type SigningItem,
+  signingLimit,
+  useSigningItems,
+} from './signing-items';
 import {
   itemFailureMessages,
   sessionFailureMessages,
+  signInAgainMessage,
   spentCodeMessages,
+  tooManyItemsMessage,
   unreachableMessage,
 } from './signing-messages';
 
 // The API sends one signing code per account a minute.
-const resendDelayMs = 60_000;
+const resendDelaySeconds = 60;
 const codeLength = { min: 6, max: 6 };
 
 type Step =
-  | { kind: 'choose' }
+  | { kind: 'choose'; choice: ReadonlySet<string> | null }
   | {
       kind: 'code';
       session: SigningSessionResponse;
@@ -54,30 +64,35 @@ type Step =
     }
   | { kind: 'result'; items: SigningItem[]; result: SignSessionResponse };
 
-const reasonOf = (cause: unknown) =>
-  cause instanceof ApiHttpError
-    ? ((cause.body as Partial<ApiErrorResponse> | null)?.reason ?? null)
-    : null;
+const errorBody = (cause: unknown) =>
+  cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse> | null) : null;
 
-const messageOf = (cause: unknown) =>
-  cause instanceof ApiHttpError
-    ? ((cause.body as Partial<ApiErrorResponse> | null)?.message ?? '')
-    : '';
+const reasonOf = (cause: unknown) => errorBody(cause)?.reason ?? null;
 
-type SessionFailure = { message: MessageDescriptor; rateLimited: boolean };
+type SessionFailure = { message: MessageDescriptor; retryAfterSeconds: number };
 
 function sessionFailureOf(cause: unknown): SessionFailure {
-  const reason = reasonOf(cause);
+  const body = errorBody(cause);
+  const reason = body?.reason ?? null;
   if (reason === 'code_rate_limited') {
-    return { message: msg`Ai cerut un cod acum mai puțin de un minut.`, rateLimited: true };
+    return {
+      message: msg`Ai cerut un cod acum mai puțin de un minut.`,
+      retryAfterSeconds: body?.retryAfterSeconds ?? resendDelaySeconds,
+    };
   }
   if (reason && reason in sessionFailureMessages) {
     return {
       message: sessionFailureMessages[reason as keyof typeof sessionFailureMessages],
-      rateLimited: false,
+      retryAfterSeconds: 0,
     };
   }
-  return { message: unreachableMessage, rateLimited: false };
+  if (cause instanceof ApiHttpError && cause.status === 400) {
+    return { message: tooManyItemsMessage, retryAfterSeconds: 0 };
+  }
+  if (cause instanceof ApiHttpError && (cause.status === 401 || cause.status === 403)) {
+    return { message: signInAgainMessage, retryAfterSeconds: 0 };
+  }
+  return { message: unreachableMessage, retryAfterSeconds: 0 };
 }
 
 function useCountdown(initialUntil = 0) {
@@ -93,9 +108,9 @@ function useCountdown(initialUntil = 0) {
   }, [clock.until]);
   return {
     secondsLeft: Math.max(0, Math.ceil((clock.until - clock.now) / 1000)),
-    restart() {
+    restart(seconds: number) {
       const now = Date.now();
-      setClock({ until: now + resendDelayMs, now });
+      setClock({ until: now + seconds * 1000, now });
     },
   };
 }
@@ -108,9 +123,17 @@ function sessionBody(items: SigningItem[]) {
   return agreementEmployeeIds.length > 0 ? { requestIds, agreementEmployeeIds } : { requestIds };
 }
 
-export function SigningPage({ agreementOnly }: { agreementOnly?: string }) {
+const keysOf = (items: SigningItem[]) => new Set(items.map((item) => item.key));
+
+export function SigningPage({
+  agreementOnly,
+  agreementsOnly,
+}: {
+  agreementOnly?: string;
+  agreementsOnly?: boolean;
+}) {
   const participation = useParticipation();
-  const [step, setStep] = useState<Step>({ kind: 'choose' });
+  const [step, setStep] = useState<Step>({ kind: 'choose', choice: null });
 
   return (
     <Page testId="signing-page" className="max-w-[44rem]">
@@ -119,6 +142,8 @@ export function SigningPage({ agreementOnly }: { agreementOnly?: string }) {
         <ChooseStep
           participation={participation}
           agreementOnly={agreementOnly}
+          agreementsOnly={agreementsOnly}
+          initialChoice={step.choice}
           onSent={(session, items) =>
             setStep({ kind: 'code', session, items, sentAt: Date.now(), resent: false })
           }
@@ -133,7 +158,7 @@ export function SigningPage({ agreementOnly }: { agreementOnly?: string }) {
           sentAt={step.sentAt}
           resent={step.resent}
           onResent={(session) => setStep({ ...step, session, sentAt: Date.now(), resent: true })}
-          onBack={() => setStep({ kind: 'choose' })}
+          onBack={() => setStep({ kind: 'choose', choice: keysOf(step.items) })}
           onSigned={(result) => setStep({ kind: 'result', items: step.items, result })}
         />
       )}
@@ -142,7 +167,7 @@ export function SigningPage({ agreementOnly }: { agreementOnly?: string }) {
           participation={participation}
           items={step.items}
           result={step.result}
-          onAgain={() => setStep({ kind: 'choose' })}
+          onAgain={(unsigned) => setStep({ kind: 'choose', choice: keysOf(unsigned) })}
         />
       )}
     </Page>
@@ -190,20 +215,37 @@ function StepHeader({ step }: { step: Step['kind'] }) {
   );
 }
 
+function startingChoice(
+  items: SigningItem[],
+  agreementOnly: string | undefined,
+  agreementsOnly: boolean | undefined
+) {
+  if (agreementOnly) return defaultChoice(items, new Set([agreementKey(agreementOnly)]));
+  if (agreementsOnly) {
+    return defaultChoice(items.filter((item) => item.kind === 'agreement'));
+  }
+  return defaultChoice(items);
+}
+
 function ChooseStep({
   participation,
   agreementOnly,
+  agreementsOnly,
+  initialChoice,
   onSent,
 }: {
   participation: Participation;
   agreementOnly?: string;
+  agreementsOnly?: boolean;
+  // What the signer chose before, kept when they come back; items no longer listed fall out.
+  initialChoice: ReadonlySet<string> | null;
   onSent: (session: SigningSessionResponse, items: SigningItem[]) => void;
 }) {
   const { t, i18n } = useLingui();
   const apiRequest = useApiRequest();
   const queryClient = useQueryClient();
-  const { items, isPending, isError, refetch } = useSigningItems(participation);
-  const [choice, setChoice] = useState<Set<string> | null>(null);
+  const { items, ownAgreement, isPending, isError, refetch } = useSigningItems(participation);
+  const [choice, setChoice] = useState<ReadonlySet<string> | null>(initialChoice);
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<SessionFailure | null>(null);
   const { secondsLeft, restart } = useCountdown();
@@ -225,18 +267,18 @@ function ChooseStep({
     );
   }
 
-  const defaultChoice = agreementOnly
-    ? new Set([agreementKey(agreementOnly)])
-    : new Set(items.map((item) => item.key));
-  const chosen = choice ?? defaultChoice;
+  const chosen = choice ?? startingChoice(items, agreementOnly, agreementsOnly);
   const selected = items.filter((item) => chosen.has(item.key));
+  const overLimit = selected.length > signingLimit;
   const toggle = (key: string) => {
     const next = new Set(chosen);
     if (next.has(key)) next.delete(key);
     else next.add(key);
     setChoice(next);
   };
-  const agreementsSigned = new Set(
+  const agreementsSigned = agreementsSettledFor(
+    participation.employeeId,
+    ownAgreement,
     selected.flatMap((item) => (item.kind === 'agreement' ? [item.employeeId] : []))
   );
   const ownAgreementItem = items.find(
@@ -252,7 +294,7 @@ function ChooseStep({
 
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (sending || selected.length === 0) return;
+    if (sending || selected.length === 0 || overLimit) return;
     setSending(true);
     setFailure(null);
     try {
@@ -265,10 +307,10 @@ function ChooseStep({
     } catch (cause) {
       const next = sessionFailureOf(cause);
       setFailure(next);
-      if (next.rateLimited) restart();
+      if (next.retryAfterSeconds > 0) restart(next.retryAfterSeconds);
       if (reasonOf(cause) === 'signing_item_not_found') {
-        setChoice(null);
-        void queryClient.invalidateQueries();
+        setChoice(new Set(chosen));
+        void invalidateSigningQueries(queryClient);
       }
     } finally {
       setSending(false);
@@ -297,9 +339,14 @@ function ChooseStep({
       {ownRecordsWithoutAgreement && (
         <Notice variant="warning" data-testid="signing-agreement-warning">
           <Trans>
-            Poți semna instruirile și fără acordul de semnare electronică, dar specialistul le va
-            vedea cu mențiunea „act adițional nesemnat” până îl semnezi.
+            Poți semna instruirile și fără actul adițional, dar specialistul le va vedea cu
+            mențiunea „act adițional nesemnat” până îl semnezi.
           </Trans>
+        </Notice>
+      )}
+      {overLimit && (
+        <Notice variant="warning" data-testid="signing-limit">
+          {t`Cu un cod semnezi cel mult ${signingLimit} de documente. Debifează ${selected.length - signingLimit}; pe celelalte le semnezi apoi cu alt cod.`}
         </Notice>
       )}
       {failure && (
@@ -314,7 +361,8 @@ function ChooseStep({
           type="submit"
           data-testid="signing-send"
           className="h-12 w-full text-base sm:w-fit sm:px-8"
-          disabled={sending || selected.length === 0 || secondsLeft > 0}
+          disabled={sending || selected.length === 0 || overLimit || secondsLeft > 0}
+          aria-describedby={overLimit ? 'signing-limit' : undefined}
         >
           {sending && <LoaderCircle aria-hidden="true" className="animate-spin" />}
           {sending ? t`Se trimite…` : t`Trimite codul`}
@@ -388,17 +436,11 @@ type CodeError =
   | { kind: 'spent'; message: MessageDescriptor }
   | { kind: 'other'; message: MessageDescriptor };
 
-function attemptsLeftIn(message: string) {
-  if (/no attempt/i.test(message)) return 0;
-  if (/one attempt/i.test(message)) return 1;
-  const count = /(\d+) attempts/i.exec(message);
-  return count ? Number(count[1]) : null;
-}
-
 function codeErrorOf(cause: unknown): CodeError {
-  const reason = reasonOf(cause);
+  const body = errorBody(cause);
+  const reason = body?.reason ?? null;
   if (reason === 'code_invalid') {
-    const attemptsLeft = attemptsLeftIn(messageOf(cause));
+    const attemptsLeft = body?.attemptsLeft ?? null;
     return attemptsLeft === 0
       ? { kind: 'spent', message: spentCodeMessages.code_attempts_exceeded }
       : { kind: 'invalid', attemptsLeft };
@@ -408,6 +450,9 @@ function codeErrorOf(cause: unknown): CodeError {
   }
   if (reason === 'signing_unavailable') {
     return { kind: 'other', message: sessionFailureMessages.signing_unavailable };
+  }
+  if (cause instanceof ApiHttpError && (cause.status === 401 || cause.status === 403)) {
+    return { kind: 'other', message: signInAgainMessage };
   }
   return { kind: 'other', message: unreachableMessage };
 }
@@ -441,15 +486,24 @@ function CodeStep({
     failure: null,
   });
   const codeInput = useRef<HTMLInputElement>(null);
-  const { secondsLeft, restart } = useCountdown(sentAt + resendDelayMs);
+  const wantsFocus = useRef(true);
+  const { secondsLeft, restart } = useCountdown(sentAt + resendDelaySeconds * 1000);
+  const spent = error?.kind === 'spent';
 
-  useEffect(() => codeInput.current?.focus(), []);
+  // The field is enabled again only in the render that follows the request.
+  useEffect(() => {
+    if (signing || spent || !wantsFocus.current) return;
+    wantsFocus.current = false;
+    codeInput.current?.focus();
+    codeInput.current?.select();
+  });
 
   async function sign(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (signing) return;
     if (code.length < codeLength.min) {
       setError({ kind: 'other', message: msg`Scrie toate cele 6 cifre din cod.` });
+      wantsFocus.current = true;
       return;
     }
     setSigning(true);
@@ -466,7 +520,7 @@ function CodeStep({
     } catch (cause) {
       setSigning(false);
       setError(codeErrorOf(cause));
-      codeInput.current?.select();
+      wantsFocus.current = true;
     }
   }
 
@@ -483,11 +537,10 @@ function CodeStep({
     } catch (cause) {
       const failure = sessionFailureOf(cause);
       setResend({ busy: false, failure });
-      if (failure.rateLimited) restart();
+      if (failure.retryAfterSeconds > 0) restart(failure.retryAfterSeconds);
     }
   }
 
-  const spent = error?.kind === 'spent';
   const count = items.length;
   const hint = session.addressHint;
 
@@ -525,6 +578,22 @@ function CodeStep({
             }),
           })}
         </p>
+        <details data-testid="signing-code-items" className="group text-sm">
+          <summary className="flex min-h-11 cursor-pointer items-center font-medium">
+            <Trans>Ce semnează codul</Trans>
+          </summary>
+          <ul className={cn(cardClass, 'divide-y overflow-hidden')}>
+            {items.map((item) => (
+              <li key={item.key} className="px-4 py-3 sm:px-5">
+                <SigningItemText
+                  item={item}
+                  ownEmployeeId={participation.employeeId}
+                  warnings={false}
+                />
+              </li>
+            ))}
+          </ul>
+        </details>
       </div>
       {resent && (
         <Notice variant="info" data-testid="signing-code-resent">
@@ -543,7 +612,9 @@ function CodeStep({
             value={code}
             onValueChange={setCode}
             length={codeLength}
-            disabled={signing || spent}
+            readOnly={signing}
+            aria-busy={signing}
+            disabled={spent}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? 'signing-code-error' : undefined}
           />
@@ -639,6 +710,17 @@ function outcomesOf(items: SigningItem[], result: SignSessionResponse): Outcome[
   });
 }
 
+function oneSignedMessage(item: SigningItem, ownEmployeeId: string | null): MessageDescriptor {
+  if (item.kind === 'agreement') {
+    return item.party === 'employee'
+      ? msg`Ai semnat actul adițional. Specialistul îl vede semnat de tine.`
+      : msg`Ai semnat actul adițional ca angajator.`;
+  }
+  return item.request.record.employee.id === ownEmployeeId
+    ? msg`Ai semnat instruirea. Semnătura e pe fișa ta.`
+    : msg`Ai semnat instruirea. Semnătura e pe fișa angajatului.`;
+}
+
 function ResultStep({
   participation,
   items,
@@ -648,29 +730,32 @@ function ResultStep({
   participation: Participation;
   items: SigningItem[];
   result: SignSessionResponse;
-  onAgain: () => void;
+  onAgain: (unsigned: SigningItem[]) => void;
 }) {
   const { t, i18n } = useLingui();
   const queryClient = useQueryClient();
   const outcomes = outcomesOf(items, result);
-  const signed = outcomes.filter((outcome) => outcome.signed).length;
+  const signedOutcomes = outcomes.filter((outcome) => outcome.signed);
+  const signed = signedOutcomes.length;
   const failed = outcomes.length - signed;
 
   useEffect(() => {
-    void queryClient.invalidateQueries();
+    void invalidateSigningQueries(queryClient);
   }, [queryClient]);
 
   return (
     <div className="grid gap-5" data-testid="signing-result">
       {failed === 0 ? (
         <Notice variant="success" data-testid="signing-result-summary" data-outcome="signed">
-          {t({
-            message: plural(signed, {
-              one: 'Ai semnat documentul. Semnătura e pe fișa ta.',
-              few: 'Ai semnat cele # documente.',
-              other: 'Ai semnat cele # de documente.',
-            }),
-          })}
+          {signed === 1
+            ? i18n._(oneSignedMessage(signedOutcomes[0]!.item, participation.employeeId))
+            : t({
+                message: plural(signed, {
+                  one: 'Ai semnat documentul.',
+                  few: 'Ai semnat cele # documente.',
+                  other: 'Ai semnat cele # de documente.',
+                }),
+              })}
         </Notice>
       ) : (
         <Notice
@@ -729,7 +814,9 @@ function ResultStep({
             variant="outline"
             data-testid="signing-again"
             className="h-12"
-            onClick={onAgain}
+            onClick={() =>
+              onAgain(outcomes.filter((outcome) => !outcome.signed).map(({ item }) => item))
+            }
           >
             <Trans>Încearcă din nou</Trans>
           </Button>

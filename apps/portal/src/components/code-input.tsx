@@ -20,7 +20,6 @@ export function CodeInput({ value, onValueChange, length, className, ...props }:
       inputMode="numeric"
       autoComplete="one-time-code"
       pattern={`[0-9]{${length.min},${length.max}}`}
-      maxLength={length.max}
       {...props}
     />
   );

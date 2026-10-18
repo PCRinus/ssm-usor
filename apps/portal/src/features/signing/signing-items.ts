@@ -1,4 +1,5 @@
-import type { SigningAgreementState } from '@ssm-usor/contracts';
+import { SIGNING_SESSION_MAX_ITEMS, type SigningAgreementState } from '@ssm-usor/contracts';
+import type { QueryClient } from '@tanstack/react-query';
 
 import {
   type PortalSignatureRequestsResponse,
@@ -30,45 +31,48 @@ export type SigningItem =
     }
   | { kind: 'request'; key: string; request: PortalSignatureRequest };
 
+export const signingLimit = SIGNING_SESSION_MAX_ITEMS;
+
 export const agreementKey = (employeeId: string) => `agreement:${employeeId}`;
 const requestKey = (requestId: string) => `request:${requestId}`;
 
 export const settledAgreementStates: ReadonlySet<SigningAgreementState> = new Set([
   'signed_electronically',
   'signed_on_paper',
+  'in_contract',
 ]);
 
-export const awaitsEmployee = (agreement: OwnAgreement) =>
-  agreement?.state === 'generated' && agreement.employeeSignedAt === null;
+export const awaitsEmployee = (agreement: OwnAgreement) => agreement?.awaiting === 'employee';
 
 export const employeeNameOf = (employee: { lastName: string; firstName: string }) =>
   `${employee.lastName} ${employee.firstName}`;
 
 export function useSigningItems(participation: Participation) {
   const apiRequest = useApiRequest();
-  const { participantId } = participation;
+  const { participantId, employeeId } = participation;
   const administrator = isAdministrator(participation);
   const requests = useListPortalSignatureRequests(participantId, { request: apiRequest });
+  // An administrator who is also an employee signs their own agreement as the employee.
   const ownAgreement = useGetPortalSigningAgreementState(participantId, {
     request: apiRequest,
-    query: { enabled: !administrator },
+    query: { enabled: employeeId !== null },
   });
   const agreements = useListPortalSigningAgreements(participantId, {
     request: apiRequest,
     query: { enabled: administrator },
   });
-  const agreementQuery = administrator ? agreements : ownAgreement;
+  const agreementQueries = [
+    ...(employeeId !== null ? [ownAgreement] : []),
+    ...(administrator ? [agreements] : []),
+  ];
 
   const items: SigningItem[] = [];
-  if (
-    !administrator &&
-    participation.employeeId &&
-    awaitsEmployee(ownAgreement.data?.agreement ?? null)
-  ) {
+  const own = ownAgreement.data?.agreement ?? null;
+  if (employeeId && awaitsEmployee(own)) {
     items.push({
       kind: 'agreement',
-      key: agreementKey(participation.employeeId),
-      employeeId: participation.employeeId,
+      key: agreementKey(employeeId),
+      employeeId,
       party: 'employee',
     });
   }
@@ -83,12 +87,12 @@ export function useSigningItems(participation: Participation) {
 
   return {
     items,
-    ownAgreement: ownAgreement.data?.agreement ?? null,
-    isPending: requests.isPending || agreementQuery.isPending,
-    isError: requests.isError || agreementQuery.isError,
+    ownAgreement: own,
+    isPending: requests.isPending || agreementQueries.some((query) => query.isPending),
+    isError: requests.isError || agreementQueries.some((query) => query.isError),
     refetch: () => {
       void requests.refetch();
-      void agreementQuery.refetch();
+      for (const query of agreementQueries) void query.refetch();
     },
   };
 }
@@ -106,3 +110,29 @@ function employerItem({ employee, agreement }: AwaitedAgreement): SigningItem {
 
 export const unsettledAgreement = (request: PortalSignatureRequest) =>
   request.agreementState === null || !settledAgreementStates.has(request.agreementState);
+
+// The employees whose agreement the warning on a record no longer applies to: those signed along
+// with it, and the participant's own once they signed it, while the employer's signature waits.
+export function agreementsSettledFor(
+  ownEmployeeId: string | null,
+  ownAgreement: OwnAgreement,
+  signedAlong: Iterable<string> = []
+): ReadonlySet<string> {
+  const settled = new Set(signedAlong);
+  if (ownEmployeeId && ownAgreement?.employeeSignedAt) settled.add(ownEmployeeId);
+  return settled;
+}
+
+export function defaultChoice(items: SigningItem[], keys?: ReadonlySet<string>) {
+  const wanted = keys ? items.filter((item) => keys.has(item.key)) : items;
+  return new Set(wanted.slice(0, signingLimit).map((item) => item.key));
+}
+
+const signingQuery =
+  /\/portal\/participants\/[^/]+\/(?:.*\/)?(?:signature-requests|signing-agreements?|training-records|sheets)(?:\/|$)/;
+
+export function invalidateSigningQueries(queryClient: QueryClient) {
+  return queryClient.invalidateQueries({
+    predicate: ({ queryKey: [key] }) => typeof key === 'string' && signingQuery.test(key),
+  });
+}
