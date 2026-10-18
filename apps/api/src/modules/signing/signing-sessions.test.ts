@@ -116,6 +116,32 @@ describe('createSigningSession', () => {
     );
   });
 
+  it('runs onCreated before sending, and keeps nothing and sends nothing when it fails', async () => {
+    const seen: string[] = [];
+    const { sessionId } = await createSigningSession(
+      { store: memory.store, send },
+      { accountId, channel: 'email', address: 'ion@example.ro', clientIp: null, userAgent: null },
+      now,
+      async (id) => {
+        seen.push(id);
+        expect(sent).toHaveLength(0);
+      }
+    );
+    expect(seen).toEqual([sessionId]);
+
+    const failing = createSigningSession(
+      { store: memory.store, send },
+      { accountId, channel: 'email', address: 'ion@example.ro', clientIp: null, userAgent: null },
+      seconds(61),
+      async () => {
+        throw new Error('items not kept');
+      }
+    );
+    await expect(failing).rejects.toThrow('items not kept');
+    expect(sent).toHaveLength(1);
+    expect(memory.sessions.size).toBe(1);
+  });
+
   it('refuses a second code for the account within a minute', async () => {
     await start();
 

@@ -106,7 +106,9 @@ export async function createSigningSession(
     clientIp: string | null;
     userAgent: string | null;
   },
-  now = new Date()
+  now = new Date(),
+  // Runs before the code is sent, so that a code never goes out for a session without its items.
+  onCreated?: (sessionId: string) => Promise<void>
 ) {
   const last = await deps.store.lastCodeSentAt(input.accountId);
   if (last && now.getTime() - last.getTime() < SIGNING_CODE_INTERVAL_SECONDS * 1000) {
@@ -129,6 +131,14 @@ export async function createSigningSession(
     userAgent: input.userAgent?.slice(0, 500) ?? null,
   };
   await deps.store.insert({ ...session, codeHash: await codeHash(id, code) });
+  if (onCreated) {
+    try {
+      await onCreated(id);
+    } catch (error) {
+      await deps.store.remove(id).catch(() => undefined);
+      throw error;
+    }
+  }
   try {
     await deps.send({
       channel: input.channel,
@@ -309,8 +319,11 @@ export function signingCodeSender(env: ApiEnv['Bindings']): SigningCodeSender {
 export function signingSessionsOf(c: Context<ApiEnv>) {
   const store = signingSessionStore(createAdminClient(c));
   return {
-    create: (input: Parameters<typeof createSigningSession>[1]) =>
-      createSigningSession({ store, send: signingCodeSender(c.env) }, input),
+    create: (
+      input: Parameters<typeof createSigningSession>[1],
+      onCreated?: (sessionId: string) => Promise<void>
+    ) =>
+      createSigningSession({ store, send: signingCodeSender(c.env) }, input, new Date(), onCreated),
     verify: (input: Parameters<typeof verifySigningCode>[1]) => verifySigningCode(store, input),
   };
 }

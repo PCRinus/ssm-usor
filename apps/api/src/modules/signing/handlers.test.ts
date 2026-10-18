@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import {
   portalSignatureRequestsResponseSchema,
+  portalSigningAgreementsResponseSchema,
   recordSignaturesResponseSchema,
   signatureRequestListResponseSchema,
   signerCandidatesResponseSchema,
@@ -194,13 +195,22 @@ function recordUpstream(overrides: Record<string, UpstreamRoute> = {}) {
 }
 
 describe('GET …/training-records/{recordId}/signatures', () => {
+  it('says the record has no signature while nothing was signed, on paper or otherwise', async () => {
+    recordUpstream({ '/rest/v1/training_signatures': () => [] });
+
+    const body = recordSignaturesResponseSchema.parse(await (await request(signaturesPath)).json());
+
+    expect(body.hasSignatures).toBe(false);
+  });
+
   it("gives each of the record's slots its state", async () => {
     recordUpstream();
 
     const response = await request(signaturesPath);
 
     expect(response.status).toBe(200);
-    const { slots } = recordSignaturesResponseSchema.parse(await response.json());
+    const { slots, hasSignatures } = recordSignaturesResponseSchema.parse(await response.json());
+    expect(hasSignatures).toBe(true);
     expect(slots.map((slot) => [slot.slot, slot.state])).toEqual([
       ['trainee', 'pending'],
       ['trainer', 'signed'],
@@ -590,6 +600,7 @@ const withConverter = {
 
 function agreementUpstream(overrides: Record<string, UpstreamRoute> = {}) {
   return {
+    '/rest/v1/employee_signing_agreements': () => [],
     '/rest/v1/employees': () => [employeeRow],
     '/rest/v1/clients': () => [
       {
@@ -697,6 +708,106 @@ describe('the signing agreement', () => {
     const response = await request(`/portal/participants/${participantId}/signing-agreement/state`);
 
     expect(response.status).toBe(404);
+  });
+
+  const storedPath = `signing-agreements/${clientId}/${employeeId}/v1-abcd1234.pdf`;
+  const stored = {
+    '/rest/v1/employee_signing_agreements': () => [{ storage_path: storedPath }],
+    '/rest/v1/employees': () => [{ last_name: 'Popescu', first_name: 'Ion' }],
+    [`POST /storage/v1/object/sign/documents/${storedPath}`]: () => ({
+      signedURL: `/object/sign/documents/${storedPath}?token=t`,
+    }),
+    [`GET /storage/v1/object/sign/documents/${storedPath}`]: () =>
+      new Response('%PDF-1.7 signed agreement'),
+  };
+
+  it('answers the stored, signed file once a party has signed, read with the secret key', async () => {
+    mockUpstream(stored);
+
+    const response = await request(agreementPath, {}, withConverter);
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('%PDF-1.7 signed agreement');
+    expect(convertDocx).not.toHaveBeenCalled();
+    const [row] = callsTo('/rest/v1/employee_signing_agreements');
+    expect(row!.secret).toBe(false);
+    expect(row!.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+    const [read] = callsTo(`/storage/v1/object/sign/documents/${storedPath}`, 'POST');
+    expect(read!.secret).toBe(true);
+  });
+
+  it("answers the client administrator an employee's stored agreement", async () => {
+    portalUpstream('client_administrator', stored);
+
+    const response = await request(
+      `/portal/participants/${participantId}/employees/${employeeId}/signing-agreement`,
+      {},
+      withConverter
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('%PDF-1.7 signed agreement');
+  });
+
+  it("refuses an employee the route of the administrator's", async () => {
+    portalUpstream('employee', stored);
+
+    const response = await request(
+      `/portal/participants/${participantId}/employees/${employeeId}/signing-agreement`
+    );
+
+    expect(response.status).toBe(403);
+  });
+});
+
+describe("the client's signing agreements for the administrator", () => {
+  const listPath = `/portal/participants/${participantId}/employees/signing-agreements`;
+  const row = (overrides: Record<string, unknown>) => ({
+    state: 'generated',
+    generated_at: '2026-10-01T09:00:00+00:00',
+    signed_at: null,
+    client_file_id: null,
+    employee_signed_at: '2026-10-02T09:00:00+00:00',
+    employer_signed_at: null,
+    employees: { id: employeeId, last_name: 'Popescu', first_name: 'Ion' },
+    ...overrides,
+  });
+
+  it('lists those awaiting the employer first, then the signed ones, by name', async () => {
+    const other = 'e0000000-0000-4000-8000-0000000000aa';
+    portalUpstream('client_administrator', {
+      '/rest/v1/employee_signing_agreements': () => [
+        row({
+          state: 'signed_electronically',
+          signed_at: '2026-10-03T09:00:00+00:00',
+          employer_signed_at: '2026-10-03T09:00:00+00:00',
+          employees: { id: other, last_name: 'Albu', first_name: 'Dan' },
+        }),
+        row({}),
+      ],
+    });
+
+    const response = await request(listPath);
+
+    expect(response.status).toBe(200);
+    const body = portalSigningAgreementsResponseSchema.parse(await response.json());
+    expect(body.items.map((item) => [item.employee.id, item.awaitingEmployer])).toEqual([
+      [employeeId, true],
+      [other, false],
+    ]);
+    expect(body.items[0]!.agreement.employeeSignedAt).toBe('2026-10-02T09:00:00.000Z');
+    const [query] = callsTo('/rest/v1/employee_signing_agreements');
+    expect(query!.secret).toBe(false);
+    expect(query!.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+    expect(query!.url.searchParams.get('or')).toBe(
+      '(state.eq.signed_electronically,and(state.eq.generated,employee_signed_at.not.is.null,employer_signed_at.is.null))'
+    );
+  });
+
+  it('answers 403 to an employee', async () => {
+    portalUpstream('employee');
+
+    expect((await request(listPath)).status).toBe(403);
   });
 });
 

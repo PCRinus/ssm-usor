@@ -25,8 +25,10 @@ import { ApiError } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
 import { participationOf } from '../../lib/participant';
 import { requirePdfConverter } from '../../lib/pdf';
+import { collator } from '../../lib/romanian';
 import { builtInTemplates, merge } from '../documents/documents';
 import type {
+  getPortalEmployeeSigningAgreementRoute,
   getPortalSigningAgreementRoute,
   getPortalSigningAgreementStateRoute,
   getRecordSignaturesRoute,
@@ -36,6 +38,7 @@ import type {
   listMySignatureRequestsRoute,
   listPortalClientSignatureRequestsRoute,
   listPortalSignatureRequestsRoute,
+  listPortalSigningAgreementsRoute,
   listSignerCandidatesRoute,
   markPaperSignatureRoute,
   putSigningAgreementStateRoute,
@@ -216,6 +219,7 @@ async function recordSignatures(
   return {
     recordId,
     slots: slots.map((slot) => slotState(slot, requestRows, signatureRows, directory)),
+    hasSignatures: signatureRows.length > 0,
   };
 }
 
@@ -540,24 +544,29 @@ export const listPortalClientSignatureRequests: RouteHandler<
   return c.json({ items: rows.map((row) => toPortalRequest(row, row.training_records)) }, 200);
 };
 
-const agreementColumns = 'state, generated_at, signed_at, client_file_id';
+export const agreementColumns =
+  'state, generated_at, signed_at, client_file_id, employee_signed_at, employer_signed_at';
 
-type AgreementRow = {
+export type AgreementRow = {
   state: string;
   generated_at: string;
   signed_at: string | null;
   client_file_id: string | null;
+  employee_signed_at: string | null;
+  employer_signed_at: string | null;
 };
 
+export const toAgreementState = (row: AgreementRow) => ({
+  state: row.state as SigningAgreementState,
+  generatedAt: toIso(row.generated_at),
+  signedAt: toIsoOrNull(row.signed_at),
+  clientFileId: row.client_file_id,
+  employeeSignedAt: toIsoOrNull(row.employee_signed_at),
+  employerSignedAt: toIsoOrNull(row.employer_signed_at),
+});
+
 const toAgreement = (row: AgreementRow | null): SigningAgreementResponse => ({
-  agreement: row
-    ? {
-        state: row.state as SigningAgreementState,
-        generatedAt: toIso(row.generated_at),
-        signedAt: toIsoOrNull(row.signed_at),
-        clientFileId: row.client_file_id,
-      }
-    : null,
+  agreement: row ? toAgreementState(row) : null,
 });
 
 async function agreementOf(db: DataClient, clientId: string, employeeId: string) {
@@ -587,7 +596,7 @@ const agreementFileName = (employee: { lastName: string; firstName: string }) =>
 };
 
 /** The caller reads the template, since who may read Storage differs between them. */
-async function drawSigningAgreement(
+export async function signingAgreementDocx(
   c: Context<ApiEnv>,
   db: DataClient,
   { clientId, employeeId }: { clientId: string; employeeId: string },
@@ -630,7 +639,6 @@ async function drawSigningAgreement(
       signatureErrorReasons.employeeHasNoAddress
     );
   }
-  const pdf = requirePdfConverter(c);
   const typeKey = signingTypeKeys.agreement;
   const [template] = await builtInTemplates(db, [typeKey]);
   if (!template) {
@@ -674,9 +682,48 @@ async function drawSigningAgreement(
   });
   const { bytes } = merge(await readTemplate(template.storagePath), data, typeKey);
   return {
-    pdf: await pdf.convertDocx(bytes),
+    docx: bytes,
     fileName: agreementFileName({ lastName: row.last_name, firstName: row.first_name }),
   };
+}
+
+/**
+ * The stored agreement once a party has signed it, read with the secret key after the caller's own
+ * read of the row; else drawn up on the spot.
+ */
+export async function signingAgreementPdf(
+  c: Context<ApiEnv>,
+  db: DataClient,
+  ids: { clientId: string; employeeId: string },
+  readTemplate: (storagePath: string) => Promise<Uint8Array>
+) {
+  const stored = await db
+    .from('employee_signing_agreements')
+    .select('storage_path')
+    .eq('employee_id', ids.employeeId)
+    .eq('client_id', ids.clientId)
+    .maybeSingle();
+  if (stored.error) throw fromDatabaseError(stored.error, 'stored signing agreement');
+  if (stored.data?.storage_path) {
+    const employee = await db
+      .from('employees')
+      .select('last_name, first_name')
+      .eq('id', ids.employeeId)
+      .eq('client_id', ids.clientId)
+      .maybeSingle();
+    if (employee.error) throw fromDatabaseError(employee.error, 'agreement employee');
+    if (!employee.data) throw noSuchEmployee();
+    return {
+      pdf: await createAdminFileStore(c).readDocument(stored.data.storage_path),
+      fileName: agreementFileName({
+        lastName: employee.data.last_name,
+        firstName: employee.data.first_name,
+      }),
+    };
+  }
+  const pdf = requirePdfConverter(c);
+  const { docx, fileName } = await signingAgreementDocx(c, db, ids, readTemplate);
+  return { pdf: await pdf.convertDocx(docx), fileName };
 }
 
 const pdfHeaders = (fileName: string) => ({
@@ -688,7 +735,7 @@ export const getSigningAgreement: RouteHandler<typeof getSigningAgreementRoute, 
   c
 ) => {
   const employee = c.req.valid('param');
-  const drawn = await drawSigningAgreement(
+  const drawn = await signingAgreementPdf(
     c,
     createDataClient(c),
     employee,
@@ -772,7 +819,7 @@ export const getPortalSigningAgreement: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { participantId } = c.req.valid('param');
-  const drawn = await drawSigningAgreement(
+  const drawn = await signingAgreementPdf(
     c,
     createDataClient(c),
     ownEmployee(c, participantId),
@@ -788,4 +835,69 @@ export const getPortalSigningAgreementState: RouteHandler<
   const { participantId } = c.req.valid('param');
   const { clientId, employeeId } = ownEmployee(c, participantId);
   return c.json(await agreementOf(createDataClient(c), clientId, employeeId), 200);
+};
+
+// Checked here and not left to the policies, as for the client's requests: a member reads every
+// agreement of the organization through the members' policies.
+function administeredClient(c: Context<ApiEnv>, participantId: string) {
+  const participation = participationOf(c, participantId);
+  if (participation.kind !== 'client_administrator') {
+    throw new ApiError('forbidden', 'Only the client administrator signs for the employer.');
+  }
+  return participation.clientId;
+}
+
+type AgreementListRow = AgreementRow & {
+  employees: { id: string; last_name: string; first_name: string };
+};
+
+export const listPortalSigningAgreements: RouteHandler<
+  typeof listPortalSigningAgreementsRoute,
+  ApiEnv
+> = async (c) => {
+  const { participantId } = c.req.valid('param');
+  const clientId = administeredClient(c, participantId);
+  const { data, error } = await createDataClient(c)
+    .from('employee_signing_agreements')
+    .select(
+      `${agreementColumns}, employees!employee_signing_agreements_employee_of_client(id, last_name, first_name)`
+    )
+    .eq('client_id', clientId)
+    .or(
+      'state.eq.signed_electronically,and(state.eq.generated,employee_signed_at.not.is.null,employer_signed_at.is.null)'
+    )
+    .limit(2000);
+  if (error) throw fromDatabaseError(error, 'portal signing agreements');
+  const items = (data as unknown as AgreementListRow[])
+    .map((row) => ({
+      employee: {
+        id: row.employees.id,
+        lastName: row.employees.last_name,
+        firstName: row.employees.first_name,
+      },
+      agreement: toAgreementState(row),
+      awaitingEmployer: row.state === 'generated',
+    }))
+    .sort(
+      (a, b) =>
+        Number(b.awaitingEmployer) - Number(a.awaitingEmployer) ||
+        collator.compare(a.employee.lastName, b.employee.lastName) ||
+        collator.compare(a.employee.firstName, b.employee.firstName)
+    );
+  return c.json({ items }, 200);
+};
+
+export const getPortalEmployeeSigningAgreement: RouteHandler<
+  typeof getPortalEmployeeSigningAgreementRoute,
+  ApiEnv
+> = async (c) => {
+  const { participantId, employeeId } = c.req.valid('param');
+  const clientId = administeredClient(c, participantId);
+  const drawn = await signingAgreementPdf(
+    c,
+    createDataClient(c),
+    { clientId, employeeId },
+    createAdminFileStore(c).readTemplate
+  );
+  return c.body(new Uint8Array(drawn.pdf), 200, pdfHeaders(drawn.fileName));
 };

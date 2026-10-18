@@ -3,11 +3,16 @@ import {
   clientSignatureRequestsQuerySchema,
   paperSignatureRequestSchema,
   portalSignatureRequestsResponseSchema,
+  portalSigningAgreementsResponseSchema,
   recordSignaturesResponseSchema,
   signatureRequestListResponseSchema,
+  signCodeRequestSchema,
   signerCandidatesResponseSchema,
   signingAgreementResponseSchema,
   signingAgreementStateRequestSchema,
+  signingSessionRequestSchema,
+  signingSessionResponseSchema,
+  signSessionResponseSchema,
   voidSignaturesRequestSchema,
 } from '@ssm-usor/contracts';
 
@@ -346,5 +351,202 @@ export const getPortalSigningAgreementStateRoute = createRoute({
     200: { description: 'The state', content: agreementContent },
     400: { description: 'Invalid path', content: errorContent },
     ...ownAgreementErrors,
+  },
+});
+
+const sessionBody = {
+  required: true,
+  content: json(signingSessionRequestSchema, 'SigningSessionRequest'),
+} as const;
+const codeBody = {
+  required: true,
+  content: json(signCodeRequestSchema, 'SignCodeRequest'),
+} as const;
+const sessionContent = json(signingSessionResponseSchema, 'SigningSessionResponse');
+const signedContent = json(signSessionResponseSchema, 'SignSessionResponse');
+const sessionParams = z.object({ sessionId: z.uuid() });
+
+const sessionCreated = {
+  description:
+    'The code was sent; `items` is what it will sign, the agreements first, then the requests in the order given',
+  content: sessionContent,
+};
+const itemNotFound = {
+  description:
+    "A request is not pending, not addressed to the caller or (in the portal) not under the participation's client, or an agreement does not await the caller's signature (reason `signing_item_not_found`, the item in `issues`)",
+  content: errorContent,
+};
+const sessionRefused = {
+  description:
+    'A code was sent to the account in the last minute (reason `code_rate_limited`), or the account has no address for the code (reason `signer_has_no_address`)',
+  content: errorContent,
+};
+const sessionUnavailable = {
+  description:
+    'The code could not be sent and nothing was kept (reason `signing_code_not_sent`), the signing secrets are not configured (reason `signing_unavailable`), or Supabase is unavailable',
+  content: errorContent,
+};
+const signAnswered = {
+  description:
+    "The code was right and the session is spent. Each item is signed or reported failed, independently: `signed` with the trainee's agreement state, `failed` with a reason (`request_not_pending`, `sheet_busy`, `slot_not_on_sheet`, `missing_sheet_data`, `signer_unavailable`, `pdf_unavailable`, `template_missing`, `signing_failed`), `agreements` likewise, with `agreement_not_awaiting` for one signed or settled since",
+  content: signedContent,
+};
+const codeRefused = {
+  description:
+    'The code was refused and nothing was signed: `code_invalid` (the attempts left in the message), `code_attempts_exceeded`, `code_expired`, `code_already_used`',
+  content: errorContent,
+};
+const noSession = {
+  description: "The session is not the caller's (reason `signing_session_not_found`)",
+  content: errorContent,
+};
+const signUnavailable = {
+  description:
+    'The signing secrets are not configured (reason `signing_unavailable`); the code is not spent',
+  content: errorContent,
+};
+
+export const createMySigningSessionRoute = createRoute({
+  method: 'post',
+  path: '/me/signing-sessions',
+  operationId: 'createMySigningSession',
+  summary: 'Ask for a signing code for the listed requests',
+  description:
+    "The member's pending requests to sign in one go with one code (ADR 023), sent to the account's email. A trainee's request is signed in the portal and is refused here, as is any agreement (reason `agreement_signed_in_portal`). The code is valid for ten minutes and three attempts.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { body: sessionBody },
+  responses: {
+    201: sessionCreated,
+    400: { description: 'Invalid body', content: errorContent },
+    404: itemNotFound,
+    409: sessionRefused,
+    422: {
+      description: 'An agreement was listed (reason `agreement_signed_in_portal`)',
+      content: errorContent,
+    },
+    ...membershipErrors,
+    503: sessionUnavailable,
+  },
+});
+
+export const signMySigningSessionRoute = createRoute({
+  method: 'post',
+  path: '/me/signing-sessions/{sessionId}/sign',
+  operationId: 'signMySigningSession',
+  summary: 'Type the code and sign everything the session lists',
+  description:
+    "Each request's record gets its row on the employee's signed sheet, the slot's signature (PAdES, with the signer's own certificate), the evidence row, and the request marked signed. One item failing does not stop the others.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: sessionParams, body: codeBody },
+  responses: {
+    200: signAnswered,
+    400: { description: 'Invalid path or body, the code not six digits', content: errorContent },
+    404: noSession,
+    409: codeRefused,
+    ...membershipErrors,
+    503: signUnavailable,
+  },
+});
+
+const portalSessionParams = participantParams.extend({ sessionId: z.uuid() });
+
+export const createPortalSigningSessionRoute = createRoute({
+  method: 'post',
+  path: '/portal/participants/{participantId}/signing-sessions',
+  operationId: 'createPortalSigningSession',
+  tags: portalTags,
+  summary: 'Ask for a signing code for the listed requests and agreements',
+  description:
+    "The participant's pending requests under the participation's client and, in `agreementEmployeeIds`, signing agreements: an employee their own, while it awaits them; the client administrator the client's employees' agreements the employee has signed and the employer has not. The code goes to the email the app holds for the person, else by SMS to the phone.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireParticipant] as const,
+  request: { params: participantParams, body: sessionBody },
+  responses: {
+    201: sessionCreated,
+    400: { description: 'Invalid path or body', content: errorContent },
+    ...participantErrors,
+    404: itemNotFound,
+    409: sessionRefused,
+    503: sessionUnavailable,
+  },
+});
+
+export const signPortalSigningSessionRoute = createRoute({
+  method: 'post',
+  path: '/portal/participants/{participantId}/signing-sessions/{sessionId}/sign',
+  operationId: 'signPortalSigningSession',
+  tags: portalTags,
+  summary: 'Type the code and sign everything the session lists',
+  description:
+    "As the member's route, with the agreements first: the employee's signature draws the agreement up, certifies it and stores it; the administrator's signs the stored file, after which the agreement is `signed_electronically`. A record is signed whatever its trainee's agreement state; `agreementState` says it, so the screen keeps warning.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireParticipant] as const,
+  request: { params: portalSessionParams, body: codeBody },
+  responses: {
+    200: signAnswered,
+    400: { description: 'Invalid path or body, the code not six digits', content: errorContent },
+    ...participantErrors,
+    404: {
+      description:
+        "The participation or the session is not the caller's (reason `signing_session_not_found` for the session)",
+      content: errorContent,
+    },
+    409: codeRefused,
+    503: signUnavailable,
+  },
+});
+
+const administratorErrors = {
+  ...participantErrors,
+  403: {
+    description:
+      "The account is not a participant, or the participation is not a client administrator's",
+    content: errorContent,
+  },
+} as const;
+
+export const listPortalSigningAgreementsRoute = createRoute({
+  method: 'get',
+  path: '/portal/participants/{participantId}/employees/signing-agreements',
+  operationId: 'listPortalSigningAgreements',
+  tags: portalTags,
+  summary: "The client's signing agreements the employer signs, for the client administrator",
+  description:
+    'Those the employee has signed and the employer has not (`awaitingEmployer`) first, then those signed electronically by both, each by employee name.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireParticipant] as const,
+  request: { params: participantParams },
+  responses: {
+    200: {
+      description: 'The agreements',
+      content: json(portalSigningAgreementsResponseSchema, 'PortalSigningAgreementsResponse'),
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    ...administratorErrors,
+  },
+});
+
+export const getPortalEmployeeSigningAgreementRoute = createRoute({
+  method: 'get',
+  path: '/portal/participants/{participantId}/employees/{employeeId}/signing-agreement',
+  operationId: 'getPortalEmployeeSigningAgreement',
+  tags: portalTags,
+  summary: "An employee's signing agreement as a PDF, for the client administrator",
+  description: 'The stored, signed file once the employee has signed; else drawn up on the spot.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireParticipant] as const,
+  request: { params: participantParams.extend({ employeeId: z.uuid() }) },
+  responses: {
+    200: { description: 'The agreement, named in `Content-Disposition`', content: pdfContent },
+    400: { description: 'Invalid path', content: errorContent },
+    409: noAddress,
+    ...administratorErrors,
+    404: {
+      description: "The participation is not the account's, or the employee is not of the client",
+      content: errorContent,
+    },
+    503: agreementUnavailable,
   },
 });

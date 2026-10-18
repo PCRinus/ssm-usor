@@ -19,7 +19,8 @@
     "signed-sheet:check:local": "node --import tsx scripts/check-signed-sheet.ts",
     "legislation:check": "node --env-file-if-exists=.env.seed --import tsx scripts/check-legislation.ts",
     "legislation:check:local": "node --import tsx scripts/check-legislation.ts --local",
-    "signing:ca": "node --import tsx scripts/signing-ca.ts"
+    "signing:ca": "node --import tsx scripts/signing-ca.ts",
+    "signing:check:local": "node --import tsx scripts/check-signing.ts"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",
