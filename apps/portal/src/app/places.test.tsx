@@ -7,10 +7,14 @@ import {
   useGetPortalEmployeeData,
   useGetPortalEmployeeTrainingSheets,
   useGetPortalMe,
+  useGetPortalSigningAgreementState,
   useGetPortalTrainingSheets,
   useListPortalClientEmployees,
+  useListPortalClientSignatureRequests,
   useListPortalEmployeeTrainingRecords,
   useListPortalResponsiblePersons,
+  useListPortalSignatureRequests,
+  useListPortalSigningAgreements,
   useListPortalTrainingRecords,
 } from '@/api/generated/api';
 import {
@@ -28,6 +32,10 @@ import {
 
 vi.mock('@/api/generated/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/generated/api')>()),
+  useGetPortalSigningAgreementState: vi.fn(),
+  useListPortalClientSignatureRequests: vi.fn(),
+  useListPortalSignatureRequests: vi.fn(),
+  useListPortalSigningAgreements: vi.fn(),
   useGetPortalMe: vi.fn(),
   useListPortalTrainingRecords: vi.fn(),
   useGetPortalEmployeeData: vi.fn(),
@@ -39,9 +47,16 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   useListPortalResponsiblePersons: vi.fn(),
 }));
 
-const sheetsReady = { ssm: { ready: true, missing: [] }, psi: { ready: true, missing: [] } };
+const sheetsReady = {
+  ssm: { ready: true, missing: [], stored: false },
+  psi: { ready: true, missing: [], stored: false },
+};
 
 beforeEach(() => {
+  vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
+  vi.mocked(useListPortalClientSignatureRequests).mockReturnValue(queryResult({ items: [] }));
+  vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
+  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(queryResult({ agreement: null }));
   vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));

@@ -5,7 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   useGetPortalEmployeeData,
   useGetPortalMe,
+  useGetPortalSigningAgreementState,
   useGetPortalTrainingSheets,
+  useListPortalClientSignatureRequests,
+  useListPortalSignatureRequests,
+  useListPortalSigningAgreements,
   useListPortalTrainingRecords,
   useSetPortalLanguage,
 } from '@/api/generated/api';
@@ -24,6 +28,10 @@ import { browserLocale } from './locale';
 
 vi.mock('@/api/generated/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/generated/api')>()),
+  useGetPortalSigningAgreementState: vi.fn(),
+  useListPortalClientSignatureRequests: vi.fn(),
+  useListPortalSignatureRequests: vi.fn(),
+  useListPortalSigningAgreements: vi.fn(),
   useGetPortalMe: vi.fn(),
   useListPortalTrainingRecords: vi.fn(),
   useGetPortalEmployeeData: vi.fn(),
@@ -34,11 +42,18 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
 const mutate = vi.fn();
 
 beforeEach(() => {
+  vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
+  vi.mocked(useListPortalClientSignatureRequests).mockReturnValue(queryResult({ items: [] }));
+  vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
+  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(queryResult({ agreement: null }));
   vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
   vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
-    queryResult({ ssm: { ready: true, missing: [] }, psi: { ready: true, missing: [] } })
+    queryResult({
+      ssm: { ready: true, missing: [], stored: false },
+      psi: { ready: true, missing: [], stored: false },
+    })
   );
   mutate.mockReset();
   vi.mocked(useSetPortalLanguage).mockReturnValue({ mutate } as never);
