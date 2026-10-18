@@ -215,7 +215,12 @@ def fill_fields(pdf: bytes, values: dict[str, str]) -> bytes:
         for widget in field.widgets:
             width, height = annot_width_height(widget)
             size = _fitting_size(engine, value, width, height, _font_size(field, widget))
-            style = TextBoxStyle(font=font, font_size=size, box_layout_rule=TEXT_FIELD_LAYOUT)
+            style = TextBoxStyle(
+                font=font,
+                font_size=size,
+                leading=_leading(value, size),
+                box_layout_rule=TEXT_FIELD_LAYOUT,
+            )
             content = TextFieldContent(
                 writer=writer,
                 text_content=value,
@@ -246,6 +251,12 @@ def _set_font_size(field: Field, widget: generic.DictionaryObject, size: int) ->
         holder[pdf_name('/DA')] = generic.TextStringObject(
             re.sub(r'[\d.]+(\s+Tf)', f'{size}\\1', appearance, count=1)
         )
+
+
+def _leading(value: str, size: int) -> float:
+    # Apple's leading for the lines of a multiline value, so that the appearance fills the field as
+    # Apple's viewers do, with no room left under the last line of a field sized to its text.
+    return APPLE_LEADING * size + APPLE_LINE_GAP if '\n' in value else size
 
 
 def _fitting_size(engine, value: str, width: float, height: float, size: float) -> int:

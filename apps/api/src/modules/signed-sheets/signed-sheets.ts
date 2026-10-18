@@ -23,6 +23,7 @@ import { createSigner } from '../../lib/signer';
 import { builtInTemplates, merge } from '../documents/documents';
 import {
   chronological,
+  materialOf,
   missingSheetDataOf,
   placeOfWork,
   type TrainingSheetData,
@@ -30,6 +31,7 @@ import {
 } from '../trainings/sheet';
 import { loadSheetFacts } from '../trainings/sheet-handlers';
 import {
+  type HiringMaterials,
   type PrintedRow,
   printedSheets,
   rowKindOf,
@@ -249,7 +251,8 @@ async function createSheet(
   employeeId: string,
   domain: TrainingDomain,
   sequence: number,
-  printed: PrintedRow[]
+  printed: PrintedRow[],
+  materials: HiringMaterials = {}
 ): Promise<StoredSheet> {
   const facts = await ctx.sheetFacts(owner.clientId, employeeId);
   const missing = missingSheetDataOf({ ...facts, domain, records: [] });
@@ -261,7 +264,10 @@ async function createSheet(
       'missing_sheet_data'
     );
   }
-  const docx = await ctx.drawForm(domain, signedSheetData(facts, domain, sequence, printed));
+  const docx = await ctx.drawForm(
+    domain,
+    signedSheetData(facts, domain, sequence, printed, materials)
+  );
   const pdf = await need(ctx.pdf, pdfUnavailable).convertForm(docx);
   const prepared = new Uint8Array(
     await need(ctx.signer, signerUnavailable).prepareSheet(
@@ -354,13 +360,19 @@ export async function ensureSignedSheet(
   }
   const records = await ctx.store.records(employeeId, domain);
   const plan = printedSheets(domain, records);
-  for (const [index, printed] of plan.entries()) {
-    await createSheet(ctx, owner, employeeId, domain, index + 1, printed);
-  }
   const printed = new Set(plan.flat().map((row) => row.record.id));
   const rest = placeable(domain, records)
     .filter((record) => !printed.has(record.id))
     .sort(chronological);
+  const materials: HiringMaterials = Object.fromEntries(
+    rest.flatMap((record) => {
+      const kind = rowKindOf(domain, record.training.phase);
+      return kind === 'h1' || kind === 'h2' ? [[kind, materialOf(record)]] : [];
+    })
+  );
+  for (const [index, printed] of plan.entries()) {
+    await createSheet(ctx, owner, employeeId, domain, index + 1, printed, materials);
+  }
   await placeNewRows(
     ctx,
     rest.map((record) => ({ ...record, ...owner }))
