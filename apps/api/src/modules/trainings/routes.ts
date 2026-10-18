@@ -30,6 +30,11 @@ const refusedClient = {
   description: 'The client is archived (reason `client_archived`) or a lead (`client_is_lead`)',
   content: errorContent,
 };
+const refusedSigners = {
+  description:
+    'A signer who is neither a member of the organization nor an active participant of the client (reason `signer_not_of_client`, an issue on the slot), or a slot the record does not have (`slot_not_on_record`)',
+  content: errorContent,
+};
 const invalidBody = {
   description:
     'Invalid path or body, a day after today, an attendee who is not an employee of this client (an issue on `employeeIds`), or a themes revision of another client (on `themesRevisionId`)',
@@ -111,6 +116,7 @@ export const createTrainingRoute = createRoute({
     400: invalidBody,
     404: noSuchClient,
     409: refusedClient,
+    422: refusedSigners,
     ...membershipErrors,
   },
 });
@@ -146,7 +152,12 @@ export const updateTrainingRoute = createRoute({
     200: { description: 'The training after the change', content: trainingContent },
     400: invalidBody,
     404: noSuchTraining,
-    409: refusedClient,
+    409: {
+      description:
+        'The client is archived (reason `client_archived`) or a lead (`client_is_lead`), or a record of the training carries a live electronic signature and a signed fact changed (`record_signed`)',
+      content: errorContent,
+    },
+    422: refusedSigners,
     ...membershipErrors,
   },
 });
