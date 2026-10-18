@@ -479,26 +479,41 @@ function FireSafetyForm({
             Programarea instruirii
           </h3>
           {select('trainingFirstMonth', 'fire-first-month', 'Alege luna', monthChoices)}
-          <div className="grid gap-4 sm:grid-cols-2">
-            {(['trainingDayFrom', 'trainingDayTo'] as const).map((name) => {
-              const id = name === 'trainingDayFrom' ? 'fire-day-from' : 'fire-day-to';
-              return (
-                <ProgramField key={name} id={id} label={fieldLabels[name]} error={errors[name]}>
-                  {(aria) => (
-                    <Input
-                      id={id}
-                      data-testid={id}
-                      inputMode="numeric"
-                      autoComplete="off"
-                      disabled={busy}
-                      {...aria}
-                      {...form.register(name)}
-                    />
-                  )}
-                </ProgramField>
-              );
-            })}
-          </div>
+          <fieldset className="grid gap-2">
+            <legend className="mb-2 text-sm font-medium">
+              Zilele lunii în care are loc instruirea
+            </legend>
+            <div className="grid grid-cols-2 gap-4">
+              {(['trainingDayFrom', 'trainingDayTo'] as const).map((name) => {
+                const id = name === 'trainingDayFrom' ? 'fire-day-from' : 'fire-day-to';
+                return (
+                  <ProgramField
+                    key={name}
+                    id={id}
+                    label={fieldLabels[name]}
+                    error={errors[name]}
+                    describedById="fire-days-hint"
+                  >
+                    {(aria) => (
+                      <Input
+                        id={id}
+                        data-testid={id}
+                        inputMode="numeric"
+                        autoComplete="off"
+                        placeholder={name === 'trainingDayFrom' ? '10' : '15'}
+                        disabled={busy}
+                        {...aria}
+                        {...form.register(name)}
+                      />
+                    )}
+                  </ProgramField>
+                );
+              })}
+            </div>
+            <p id="fire-days-hint" className="text-xs text-muted-foreground">
+              Numai ziua din lună (1–31); lunile vin din interval și prima lună.
+            </p>
+          </fieldset>
         </section>
       </div>
 
@@ -684,6 +699,6 @@ const fieldLabels = {
   workerTrainingIntervalMonths: staffCategoryLabels.execution,
   administrativeTrainingIntervalMonths: staffCategoryLabels.technical_administrative,
   trainingFirstMonth: 'Prima lună',
-  trainingDayFrom: 'Din ziua',
-  trainingDayTo: 'Până în ziua',
+  trainingDayFrom: 'De la ziua',
+  trainingDayTo: 'Până la ziua',
 } as const;
