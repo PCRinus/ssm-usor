@@ -63,7 +63,7 @@ export function SignerSelect({
           ? 'Primește o cerere de semnare pe email sau prin SMS.'
           : 'Rubrica se semnează de mână, pe fișa tipărită.';
   return (
-    <div className="grid gap-2">
+    <div className="contents">
       <Field id={id} label={label} hint={hint} error={error}>
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
@@ -113,6 +113,7 @@ export function SignerSelect({
         <Notice
           variant="warning"
           data-testid={`${id}-mismatch`}
+          className="sm:col-span-full"
           action={
             <Button
               type="button"
