@@ -814,7 +814,7 @@ no route outside the prefix has the tag.
 | `GET /portal/me`                                                 | Participant          | `{ participations: [ … ] }`, never empty                                            |
 | `POST /portal/participants/{participantId}/notice`               | Participant          | `204` after recording `{ version }` of the privacy notice                           |
 | `PUT /portal/participants/{participantId}/language`              | Participant          | `204` after saving `{ language }`, `ro` or `en`                                     |
-| `GET …/{participantId}/training-records`                         | Employee             | `{ items, training }`: own records newest first, the states                         |
+| `GET …/{participantId}/training-records`                         | Employee             | `{ items, training }`: own records newest first with their `slots`, the states      |
 | `GET …/{participantId}/data`                                     | Employee             | _Datele mele_: what the sheets print, and the provider                              |
 | `GET …/{participantId}/sheets`                                   | Employee             | `{ ssm, psi }`, each `{ ready, missing, stored, sequences }`                        |
 | `GET …/{participantId}/sheets/{domain}`                          | Employee             | `200 application/pdf`, as stored once signing has started; `409 missing_sheet_data` |
@@ -847,6 +847,17 @@ A responsible person reads as the decisions name them: `fullName`, `jobTitle`, t
 keys (the contracts' `responsiblePersonRoleLabels` word them), `employeeId` or null for someone
 who is not an employee, and the name of the one `workplace` they answer for, or null for every
 workplace. Archived rows are left out, and the list is ordered by name.
+
+A training record reads as its row of the sheet prints it, with `slots`: the slots the record
+has, derived by the same rule as `GET /clients/{clientId}/training-records/{recordId}/signatures`
+(`recordSlots` in `src/modules/signing/record-slots.ts`), each cut to `slot`, `state`,
+`signedAt`, `signerName` and `signerJobTitle`, which the signed sheet prints. The request, the
+addressed account, the delivery times and the void reason, which is the member's own words, stay
+with the specialist. The request and signature rows come embedded in the records query, read as
+the participant: the participants' and the client administrators' policies on
+`signature_requests` and `training_signatures` cover the records they read. The portal says a
+slot that is `signed` or `paper`; a `void` one reads as not signed, and a live request shows
+through the signature requests list.
 
 Policies choose the rows a participant reads, not the columns, so every portal query names its
 columns and every response is built field by field into a schema of its own in

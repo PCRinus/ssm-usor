@@ -212,6 +212,38 @@ export type PortalTrainingRecordsResponseItemsItemAdmission = {
   jobTitle: string;
 } | null;
 
+export type PortalTrainingRecordsResponseItemsItemSlotsItemSlot =
+  (typeof PortalTrainingRecordsResponseItemsItemSlotsItemSlot)[keyof typeof PortalTrainingRecordsResponseItemsItemSlotsItemSlot];
+
+export const PortalTrainingRecordsResponseItemsItemSlotsItemSlot = {
+  trainee: 'trainee',
+  trainer: 'trainer',
+  verifier: 'verifier',
+  admitter: 'admitter',
+} as const;
+
+export type PortalTrainingRecordsResponseItemsItemSlotsItemState =
+  (typeof PortalTrainingRecordsResponseItemsItemSlotsItemState)[keyof typeof PortalTrainingRecordsResponseItemsItemSlotsItemState];
+
+export const PortalTrainingRecordsResponseItemsItemSlotsItemState = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type PortalTrainingRecordsResponseItemsItemSlotsItem = {
+  slot: PortalTrainingRecordsResponseItemsItemSlotsItemSlot;
+  state: PortalTrainingRecordsResponseItemsItemSlotsItemState;
+  /** @nullable */
+  signedAt: string | null;
+  /** @nullable */
+  signerName: string | null;
+  /** @nullable */
+  signerJobTitle: string | null;
+};
+
 export type PortalTrainingRecordsResponseItemsItem = {
   id: string;
   domain: PortalTrainingRecordsResponseItemsItemDomain;
@@ -227,6 +259,7 @@ export type PortalTrainingRecordsResponseItemsItem = {
   occupation: string;
   /** @nullable */
   admission: PortalTrainingRecordsResponseItemsItemAdmission;
+  slots: PortalTrainingRecordsResponseItemsItemSlotsItem[];
 };
 
 /**

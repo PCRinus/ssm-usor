@@ -16,6 +16,7 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
 import { type Participation, participationOf } from '../../lib/participant';
+import { recordSlots, requestColumns, signatureColumns } from '../signing/record-slots';
 import {
   drawTrainingSheet,
   missingSheetDataResponse,
@@ -43,8 +44,7 @@ import type {
 const trainingStatusColumns =
   'training_status(ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, psi_state, psi_due_on, psi_last_periodic_on, psi_interval_months, psi_interval_source)';
 
-const recordColumns =
-  'id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, trainings!inner(domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, verifier_name, verifier_job_title, supplementary_reason, created_at)';
+const recordColumns = `id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, trainings!inner(domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, verifier_name, verifier_job_title, supplementary_reason, created_at), signature_requests!signature_requests_record_of_client(${requestColumns}), training_signatures!training_signatures_record_of_client(${signatureColumns})`;
 
 const dataColumns = `last_name, first_name, employee_number, job_title, hired_at, home_address, birth_date, birth_place, blood_group, rh_factor, qualification, education, authorizations, commute_route, commute_minutes, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}`;
 
@@ -102,7 +102,9 @@ async function trainingRecords(
       .eq('client_id', clientId)
       .order('trainings(held_on)', { ascending: false })
       .order('trainings(created_at)', { ascending: false })
-      .order('id'),
+      .order('id')
+      .order('created_at', { referencedTable: 'signature_requests', ascending: false })
+      .order('created_at', { referencedTable: 'training_signatures', ascending: false }),
   ]);
   if (employee.error) throw fromDatabaseError(employee.error, 'portal records employee');
   if (records.error) throw fromDatabaseError(records.error, 'portal training records');
@@ -126,6 +128,18 @@ async function trainingRecords(
       supplementaryReason: record.trainings.supplementary_reason,
       occupation: record.occupation,
       admission: toAdmission(record),
+      slots: recordSlots(
+        { verifierName: record.trainings.verifier_name, admittedOn: record.admitted_on },
+        record.signature_requests,
+        record.training_signatures,
+        []
+      ).map(({ slot, state, signedAt, signerName, signerJobTitle }) => ({
+        slot,
+        state,
+        signedAt,
+        signerName,
+        signerJobTitle,
+      })),
     })),
     training: toEmployeeTraining(employee.data.training_status),
   };

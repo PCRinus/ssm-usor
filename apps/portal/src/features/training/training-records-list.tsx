@@ -5,7 +5,7 @@ import { GraduationCap, PenLine } from 'lucide-react';
 import type { PortalTrainingRecordsResponse } from '@/api/generated/api';
 import { cardClass, SectionLabel } from '@/components/page';
 import { slotRoleMessages } from '@/features/signing/signing-messages';
-import { useFormatDate, useFormatDuration, useFormatList } from '@/lib/format';
+import { romanianDayOf, useFormatDate, useFormatDuration, useFormatList } from '@/lib/format';
 import {
   supplementaryReasonMessages,
   trainingDomainMessages,
@@ -16,6 +16,7 @@ import type { PendingSignature, PendingSignatures } from './pending-signatures';
 import { TrainingMaterial } from './training-material';
 
 type TrainingRecord = PortalTrainingRecordsResponse['items'][number];
+type RecordSlot = TrainingRecord['slots'][number];
 
 function byYear(records: TrainingRecord[]) {
   const years = new Map<string, TrainingRecord[]>();
@@ -110,9 +111,42 @@ function TrainingRecordRow({
         )}
         <TrainingMaterial text={record.material} />
         <p className="text-[0.8125rem] text-muted-foreground">{trainer}</p>
+        <SignedLines slots={record.slots} />
         {pending.length > 0 && <PendingLine pending={pending} />}
       </div>
     </li>
+  );
+}
+
+function signedGroups(slots: RecordSlot[]) {
+  const groups = new Map<string, { day: string | null; slots: RecordSlot[] }>();
+  for (const slot of slots) {
+    if (slot.state !== 'signed' && slot.state !== 'paper') continue;
+    const day = slot.state === 'signed' && slot.signedAt ? romanianDayOf(slot.signedAt) : null;
+    const key = day ?? 'paper';
+    groups.set(key, { day, slots: [...(groups.get(key)?.slots ?? []), slot] });
+  }
+  return [...groups];
+}
+
+function SignedLines({ slots }: { slots: RecordSlot[] }) {
+  const { t, i18n } = useLingui();
+  const formatDate = useFormatDate();
+  const formatList = useFormatList();
+  const groups = signedGroups(slots);
+  if (groups.length === 0) return null;
+  return (
+    <ul className="grid gap-0.5 text-[0.8125rem] text-muted-foreground">
+      {groups.map(([key, group]) => {
+        const roles = formatList(group.slots.map((slot) => i18n._(slotRoleMessages[slot.slot])));
+        const day = group.day ? formatDate(group.day, 'short') : null;
+        return (
+          <li key={key} data-testid="training-record-signed">
+            {day ? t`Semnat electronic pe ${day} (${roles}).` : t`Semnat pe hârtie (${roles}).`}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

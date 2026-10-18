@@ -16,6 +16,10 @@ export function formatDate(isoDate: string, locale: string, style: DateStyle = '
   }).format(new Date(`${isoDate}T00:00:00Z`));
 }
 
+// The signed sheet dates a signature by the day in Romania; en-CA writes it as YYYY-MM-DD.
+export const romanianDayOf = (instant: string) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest' }).format(new Date(instant));
+
 export function useFormatDate() {
   const { i18n } = useLingui();
   return (isoDate: string, style: DateStyle = 'long') => formatDate(isoDate, i18n.locale, style);

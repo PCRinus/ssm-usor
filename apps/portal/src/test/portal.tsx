@@ -8,6 +8,7 @@ import type {
   PortalEmployeeDataResponse,
   PortalMeResponseParticipationsItem,
   PortalTrainingRecordsResponse,
+  PortalTrainingRecordsResponseItemsItemSlotsItem,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import App from '@/app/App';
@@ -122,6 +123,18 @@ export const trainingStatus = (
   ...overrides,
 });
 
+export const recordSlot = (
+  slot: PortalTrainingRecordsResponseItemsItemSlotsItem['slot'],
+  overrides: Partial<PortalTrainingRecordsResponseItemsItemSlotsItem> = {}
+): PortalTrainingRecordsResponseItemsItemSlotsItem => ({
+  slot,
+  state: 'unassigned',
+  signedAt: null,
+  signerName: null,
+  signerJobTitle: null,
+  ...overrides,
+});
+
 export function trainingRecords(
   overrides: Partial<PortalTrainingRecordsResponse> = {}
 ): PortalTrainingRecordsResponse {
@@ -139,6 +152,7 @@ export function trainingRecords(
         supplementaryReason: null,
         occupation: 'Tâmplar',
         admission: null,
+        slots: [recordSlot('trainee'), recordSlot('trainer')],
       },
       {
         id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000a2',
@@ -152,6 +166,7 @@ export function trainingRecords(
         supplementaryReason: null,
         occupation: 'Tâmplar',
         admission: null,
+        slots: [recordSlot('trainee'), recordSlot('trainer')],
       },
     ],
     training: {

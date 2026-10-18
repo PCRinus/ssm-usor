@@ -10644,6 +10644,36 @@
                     }
                   },
                   "required": ["admittedOn", "name", "jobTitle"]
+                },
+                "slots": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "slot": {
+                        "type": "string",
+                        "enum": ["trainee", "trainer", "verifier", "admitter"]
+                      },
+                      "state": {
+                        "type": "string",
+                        "enum": ["unassigned", "pending", "signed", "paper", "void"]
+                      },
+                      "signedAt": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "date-time"
+                      },
+                      "signerName": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "signerJobTitle": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": ["slot", "state", "signedAt", "signerName", "signerJobTitle"]
+                  }
                 }
               },
               "required": [
@@ -10657,7 +10687,8 @@
                 "verifier",
                 "supplementaryReason",
                 "occupation",
-                "admission"
+                "admission",
+                "slots"
               ]
             }
           },

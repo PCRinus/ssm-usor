@@ -2,7 +2,9 @@ import { z } from 'zod';
 
 import { responsiblePersonRoleSchema } from './document-data';
 import { bloodGroupSchema, rhFactorSchema } from './employees';
+import { type ParticipantChannel, participantChannelSchema } from './participant-channels';
 import { normalizePhone } from './phone';
+import { portalSignatureSlotSchema } from './signatures';
 import { trainingSheetReadinessSchema } from './training-sheets';
 import {
   employeeTrainingSchema,
@@ -15,10 +17,6 @@ import {
 export const participantKinds = ['employee', 'client_administrator'] as const;
 export const participantKindSchema = z.enum(participantKinds);
 export type ParticipantKind = z.infer<typeof participantKindSchema>;
-
-export const participantChannels = ['email', 'sms'] as const;
-export const participantChannelSchema = z.enum(participantChannels);
-export type ParticipantChannel = z.infer<typeof participantChannelSchema>;
 
 const invitedEmailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
 
@@ -220,6 +218,7 @@ export const portalTrainingRecordSchema = z.object({
   // The position's name when the record was made.
   occupation: z.string(),
   admission: trainingAdmissionSchema.nullable(),
+  slots: z.array(portalSignatureSlotSchema),
 });
 
 export type PortalTrainingRecord = z.infer<typeof portalTrainingRecordSchema>;

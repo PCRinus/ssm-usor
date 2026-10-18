@@ -1133,6 +1133,14 @@ msgstr "Semnat electronic de ambele părți pe {0}."
 msgid "Semnat electronic pe {0}."
 msgstr "Semnat electronic pe {0}."
 
+#: src/features/training/training-records-list.tsx
+msgid "Semnat electronic pe {day} ({roles})."
+msgstr "Semnat electronic pe {day} ({roles})."
+
+#: src/features/training/training-records-list.tsx
+msgid "Semnat pe hârtie ({roles})."
+msgstr "Semnat pe hârtie ({roles})."
+
 #: src/features/signing/agreement-section.tsx
 msgid "Semnat pe hârtie."
 msgstr "Semnat pe hârtie."
