@@ -8,6 +8,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 
 import { PublicFrame } from '@/app/public-frame';
+import { CodeInput } from '@/components/code-input';
 import { Notice } from '@/components/notice';
 import { deviceLocale, useActiveLocale } from '@/features/language/locale';
 
@@ -242,20 +243,13 @@ function CodeStep({
           <Label htmlFor="sign-in-code">
             <Trans>Codul de intrare</Trans>
           </Label>
-          <Input
+          <CodeInput
             ref={codeInput}
             id="sign-in-code"
             data-testid="sign-in-code"
-            className="h-14 text-center font-mono text-2xl tracking-[0.5em] tabular-nums"
             value={code}
-            onChange={(event) => {
-              setCode(event.target.value.replace(/\D/g, '').slice(0, codeLength.max));
-            }}
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern={`[0-9]{${codeLength.min},${codeLength.max}}`}
-            maxLength={codeLength.max}
+            onValueChange={setCode}
+            length={codeLength}
             disabled={verifying}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? 'sign-in-code-error' : undefined}
