@@ -46,6 +46,8 @@ export const agreementStateLabels: Record<SigningAgreementState | 'none', string
   generated: 'Generat',
   signed_electronically: 'Semnat electronic',
   signed_on_paper: 'Semnat pe hârtie',
+  withdrawn: 'Revenire la semnarea olografă',
+  in_contract: 'Clauză în contract',
 };
 
 export const agreementSigned = (state: SigningAgreementState | null | undefined) =>
@@ -144,6 +146,18 @@ export const signingItemFailures: Record<SignSessionResponseFailedItemReason, st
   pdf_unavailable: 'Fișa nu a putut fi făcută PDF acum. Încearcă din nou mai târziu.',
   template_missing: 'Modelul fișei de instruire lipsește. Scrie-ne, ca să-l punem la loc.',
   signing_failed: 'Semnătura nu a reușit. Încearcă din nou; dacă se repetă, scrie-ne.',
+  agreement_changed: 'Actul adițional s-a schimbat de când ai cerut codul. Semnează din nou.',
+  missing_document_data:
+    'Clientului îi lipsesc numele sau funcția reprezentantului legal. Completează-le, apoi semnează din nou.',
+  client_archived: 'Clientul a fost arhivat; nu se mai semnează nimic pentru el.',
+  signer_not_of_client: 'Nu mai faci parte din organizație sau din client, așa că nu poți semna.',
+  row_locked:
+    'Rândul instruirii pe fișă este ținut de o semnătură fără evidență. Scrie-ne, ca să-l deblocăm.',
+  already_signed: 'Rubrica era deja semnată pe fișă.',
+  locked_field: 'Rubrica fișei este blocată de o semnătură de după ea. Scrie-ne.',
+  unknown_fields: 'Fișa nu are rubricile așteptate. Scrie-ne, ca să o refacem.',
+  cannot_certify: 'Fișa nu a mai putut fi certificată. Scrie-ne.',
+  signer_refused: 'Serviciul de semnare a refuzat fișa. Scrie-ne.',
 };
 
 // The API's limit on one signing session.

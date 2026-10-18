@@ -45,6 +45,8 @@ const stateClasses = {
   generated: 'border-warning-border bg-warning text-warning-foreground',
   signed_electronically: 'border-success-border bg-success text-success-foreground',
   signed_on_paper: 'border-success-border bg-success text-success-foreground',
+  withdrawn: 'border-border bg-secondary text-secondary-foreground',
+  in_contract: 'border-success-border bg-success text-success-foreground',
 } as const;
 
 function stateDetail(agreement: NonNullable<SigningAgreementResponseAgreement>) {
