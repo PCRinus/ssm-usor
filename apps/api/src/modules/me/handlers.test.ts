@@ -43,8 +43,12 @@ function mockUpstream({
         },
       ]);
     }
-    if (url.pathname === '/rest/v1/organizations')
-      return Response.json(member ? organization : null);
+    if (url.pathname === '/rest/v1/organizations') {
+      // The policies show a participant other organizations too; only the membership's answers.
+      return Response.json(
+        url.searchParams.get('id') === `eq.${organization.id}` ? organization : null
+      );
+    }
     if (url.pathname === '/rest/v1/profiles') {
       if (init?.method === 'GET') return Response.json(profile);
       if (init?.method === 'PATCH')
@@ -106,6 +110,18 @@ describe('GET /me', () => {
       membership: { organization, role: 'owner' },
       impersonation: null,
     });
+  });
+
+  it('reads the organization by the membership, not by what the policies show', async () => {
+    mockUpstream();
+
+    await request('/me');
+
+    const organizations = fetchMock.mock.calls
+      .map(([input]) => new URL(input instanceof Request ? input.url : String(input)))
+      .filter((url) => url.pathname === '/rest/v1/organizations');
+    expect(organizations).toHaveLength(1);
+    expect(organizations[0]!.searchParams.get('id')).toBe(`eq.${organization.id}`);
   });
 
   it('answers an account without a membership or a profile instead of refusing it', async () => {

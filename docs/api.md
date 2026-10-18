@@ -1451,7 +1451,11 @@ is unconfirmed Supabase sends its `signup` confirmation instead, with the code a
 a participant's account is created unconfirmed; a `signup` for an account whose `app_metadata`
 has `participant: true` is therefore a sign-in code too, and every other `signup` stays the
 registration's confirmation link. The code works for `otp_expiry`, the setting that also governs
-the recovery link: an hour.
+the recovery link: an hour. Supabase sends at most 60 of these emails an hour for the whole
+project (`[auth.rate_limit] email_sent` in `supabase/config.toml`, which CI pushes; the default
+of 2 applied to the hook too and silently dropped the third code of an hour on 2026-10-19). A
+request past the cap is answered as if sent, and every new request invalidates the previous
+code, sent or not.
 
 ### Supabase Auth SMS
 
