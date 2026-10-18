@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { participantChannelSchema } from './participants';
 import {
   supplementaryTrainingReasonSchema,
   trainingAdmissionSchema,
@@ -56,6 +57,9 @@ export const signatureErrorReasons = {
   // 503: nothing was signed or sent.
   signingUnavailable: 'signing_unavailable',
   signingCodeNotSent: 'signing_code_not_sent',
+  signingItemNotFound: 'signing_item_not_found',
+  agreementSignedInPortal: 'agreement_signed_in_portal',
+  signerHasNoAddress: 'signer_has_no_address',
 } as const;
 
 export type SignatureErrorReason =
@@ -103,6 +107,9 @@ export type SignatureSlot = z.infer<typeof signatureSlotSchema>;
 export const recordSignaturesResponseSchema = z.object({
   recordId: z.uuid(),
   slots: z.array(signatureSlotSchema),
+  // Any signature row, voided or on paper included, which keeps the record and its training from
+  // being deleted.
+  hasSignatures: z.boolean(),
 });
 
 export type RecordSignaturesResponse = z.infer<typeof recordSignaturesResponseSchema>;
@@ -137,6 +144,9 @@ export const signingAgreementSchema = z
     signedAt: z.iso.datetime({ offset: true }).nullable(),
     // The scan of a paper agreement, a file of the client.
     clientFileId: z.uuid().nullable(),
+    // The electronic signatures: the employee's first, then the employer's.
+    employeeSignedAt: z.iso.datetime({ offset: true }).nullable(),
+    employerSignedAt: z.iso.datetime({ offset: true }).nullable(),
   })
   .nullable();
 
@@ -220,3 +230,129 @@ export const portalSignatureRequestsResponseSchema = z.object({
 });
 
 export type PortalSignatureRequestsResponse = z.infer<typeof portalSignatureRequestsResponseSchema>;
+
+export const signingAgreementParties = ['employee', 'employer'] as const;
+export const signingAgreementPartySchema = z.enum(signingAgreementParties);
+export type SigningAgreementParty = z.infer<typeof signingAgreementPartySchema>;
+
+// A session signs within one Worker request, a few dozen subrequests per item.
+const idList = z.array(z.uuid()).max(30);
+
+export const signingSessionRequestSchema = z
+  .object({
+    requestIds: idList,
+    // Only in the portal: an employee's own agreement, or for the client administrator the
+    // agreements of the client's employees that await the employer.
+    agreementEmployeeIds: idList.optional(),
+  })
+  .superRefine((body, ctx) => {
+    if (body.requestIds.length + (body.agreementEmployeeIds?.length ?? 0) === 0) {
+      ctx.addIssue({ code: 'custom', path: ['requestIds'], message: 'Nothing to sign.' });
+    }
+    if (new Set(body.requestIds).size !== body.requestIds.length) {
+      ctx.addIssue({ code: 'custom', path: ['requestIds'], message: 'Each request once.' });
+    }
+    const agreements = body.agreementEmployeeIds ?? [];
+    if (new Set(agreements).size !== agreements.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['agreementEmployeeIds'],
+        message: 'Each agreement once.',
+      });
+    }
+  });
+
+export type SigningSessionRequest = z.infer<typeof signingSessionRequestSchema>;
+
+export const signingSessionItemSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('request'), requestId: z.uuid() }),
+  z.object({
+    kind: z.literal('agreement'),
+    employeeId: z.uuid(),
+    party: signingAgreementPartySchema,
+  }),
+]);
+
+export type SigningSessionItem = z.infer<typeof signingSessionItemSchema>;
+
+export const signingSessionResponseSchema = z.object({
+  sessionId: z.uuid(),
+  channel: participantChannelSchema,
+  // The address the code went to, masked: `i***@example.ro`, `+40 7** *** *12`.
+  addressHint: z.string(),
+  expiresAt: z.iso.datetime({ offset: true }),
+  // Agreements first, then the requests in the order asked.
+  items: z.array(signingSessionItemSchema),
+});
+
+export type SigningSessionResponse = z.infer<typeof signingSessionResponseSchema>;
+
+export const signCodeRequestSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'Six digits.'),
+});
+
+export type SignCodeRequest = z.infer<typeof signCodeRequestSchema>;
+
+/**
+ * Why one item of a session was not signed while the others were: `request_not_pending` and
+ * `agreement_not_awaiting` when it was signed, voided or changed since the code was asked for,
+ * `sheet_busy` when another write held the sheet, `slot_not_on_sheet` for a slot the sheet has no
+ * field for (the fire-safety sheet's verifier and admitter), `missing_sheet_data` when the sheet
+ * cannot be drawn up yet, `signer_unavailable` and `pdf_unavailable` when a service failed,
+ * `template_missing`, and `signing_failed` for anything else.
+ */
+export const signingItemFailureReasons = [
+  'request_not_pending',
+  'agreement_not_awaiting',
+  'sheet_busy',
+  'slot_not_on_sheet',
+  'missing_sheet_data',
+  'signer_unavailable',
+  'pdf_unavailable',
+  'template_missing',
+  'signing_failed',
+] as const;
+export const signingItemFailureReasonSchema = z.enum(signingItemFailureReasons);
+export type SigningItemFailureReason = z.infer<typeof signingItemFailureReasonSchema>;
+
+export const signSessionResponseSchema = z.object({
+  signed: z.array(
+    z.object({
+      requestId: z.uuid(),
+      // The trainee's signing agreement after this session; a record is signed without one, and
+      // the screen keeps warning.
+      agreementState: signingAgreementStateSchema.nullable(),
+    })
+  ),
+  failed: z.array(z.object({ requestId: z.uuid(), reason: signingItemFailureReasonSchema })),
+  agreements: z.array(
+    z.object({
+      employeeId: z.uuid(),
+      party: signingAgreementPartySchema,
+      signed: z.boolean(),
+      // Null when signed.
+      reason: signingItemFailureReasonSchema.nullable(),
+      agreementState: signingAgreementStateSchema.nullable(),
+    })
+  ),
+});
+
+export type SignSessionResponse = z.infer<typeof signSessionResponseSchema>;
+
+export const portalSigningAgreementItemSchema = z.object({
+  employee: z.object({ id: z.uuid(), lastName: z.string(), firstName: z.string() }),
+  agreement: signingAgreementSchema.unwrap(),
+  // The employee has signed and the employer has not.
+  awaitingEmployer: z.boolean(),
+});
+
+export type PortalSigningAgreementItem = z.infer<typeof portalSigningAgreementItemSchema>;
+
+export const portalSigningAgreementsResponseSchema = z.object({
+  items: z.array(portalSigningAgreementItemSchema),
+});
+
+export type PortalSigningAgreementsResponse = z.infer<typeof portalSigningAgreementsResponseSchema>;

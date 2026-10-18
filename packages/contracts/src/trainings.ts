@@ -241,6 +241,13 @@ export type TrainingRecord = z.infer<typeof trainingRecordSchema>;
 
 export const trainingDetailSchema = trainingSchema.extend({
   records: z.array(trainingRecordSchema),
+  // The account each slot is addressed to by a live request, pending or signed, on any record;
+  // null when none is, a slot on paper among them. The form starts its signer pickers from these.
+  signers: z.object({
+    trainer: z.uuid().nullable(),
+    verifier: z.uuid().nullable(),
+    admitter: z.uuid().nullable(),
+  }),
 });
 
 export type TrainingDetail = z.infer<typeof trainingDetailSchema>;
