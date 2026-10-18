@@ -48,7 +48,14 @@ function OwnTraining({ participantId }: { participantId: string }) {
         sheets={sheets.data}
         records={records.isError ? null : records.data?.items}
         failed={sheets.isError}
-        loadSheet={(domain) => getPortalTrainingSheet(participantId, domain, undefined, apiRequest)}
+        loadSheet={(domain, sequence) =>
+          getPortalTrainingSheet(
+            participantId,
+            domain,
+            sequence ? { sequence } : undefined,
+            apiRequest
+          )
+        }
         onStale={() =>
           void queryClient.invalidateQueries({
             queryKey: getGetPortalTrainingSheetsQueryKey(participantId),

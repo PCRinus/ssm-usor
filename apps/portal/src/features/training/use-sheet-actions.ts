@@ -22,7 +22,10 @@ function failureOf(cause: unknown): MessageDescriptor {
   return msg`Nu am putut deschide fișa. Verifică conexiunea la internet și încearcă din nou.`;
 }
 
-export type LoadSheet = (domain: TrainingDomain) => Promise<Blob>;
+// Without a sequence, a sheet with continuation sheets comes as one merged copy to read.
+export type LoadSheet = (domain: TrainingDomain, sequence?: number) => Promise<Blob>;
+
+type Busy = 'open' | 'download' | `original-${number}`;
 
 export function useSheetActions(
   domain: TrainingDomain,
@@ -31,11 +34,11 @@ export function useSheetActions(
   onStale: () => void
 ) {
   const { t, i18n } = useLingui();
-  const [busy, setBusy] = useState<'open' | 'download' | null>(null);
+  const [busy, setBusy] = useState<Busy | null>(null);
   const [failure, setFailure] = useState<MessageDescriptor | null>(null);
   const label = i18n._(trainingDomainMessages[domain]);
 
-  async function run(kind: 'open' | 'download', action: () => Promise<void>) {
+  async function run(kind: Busy, action: () => Promise<void>) {
     setBusy(kind);
     setFailure(null);
     try {
@@ -62,6 +65,14 @@ export function useSheetActions(
       run('download', async () => {
         const file = await loadSheet(domain);
         saveFile(file, file instanceof File ? file.name : t`Fisa-individuala-${label}.pdf`);
+      }),
+    downloadOriginal: (sequence: number) =>
+      run(`original-${sequence}`, async () => {
+        const file = await loadSheet(domain, sequence);
+        saveFile(
+          file,
+          file instanceof File ? file.name : t`Fisa-individuala-${label}-${sequence}.pdf`
+        );
       }),
   };
 }

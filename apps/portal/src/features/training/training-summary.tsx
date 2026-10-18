@@ -11,6 +11,7 @@ import { cardClass } from '@/components/page';
 import { useFormatDate } from '@/lib/format';
 import { trainingDomainMessages } from '@/lib/labels';
 
+import { signedSheet } from './signed-sheet';
 import { TrainingStateBadge } from './training-state-badge';
 import { type LoadSheet, useSheetActions } from './use-sheet-actions';
 
@@ -143,7 +144,7 @@ function SheetLink({
       >
         {busy
           ? t`Se pregătește fișa…`
-          : sheetAccess.sheets?.[domain].stored
+          : signedSheet(sheetAccess.sheets?.[domain])
             ? t`Fișa individuală ${label}, semnată electronic, PDF`
             : t`Fișa individuală ${label}, PDF`}
       </button>

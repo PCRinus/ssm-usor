@@ -16,9 +16,11 @@ import { useFormatDate } from '@/lib/format';
 import { trainingDomainMessages } from '@/lib/labels';
 
 import { useMissingSheetDataSentence } from './missing-sheet-data';
+import { signedSheet } from './signed-sheet';
 import { type LoadSheet, useSheetActions } from './use-sheet-actions';
 
 type TrainingRecord = PortalTrainingRecordsResponse['items'][number];
+type Sheet = PortalTrainingSheetsResponse[TrainingDomain];
 
 type TrainingSheetsProps = {
   title: ReactNode;
@@ -76,7 +78,7 @@ function TrainingSheetCard({
   onStale,
 }: {
   domain: TrainingDomain;
-  sheet: PortalTrainingSheetsResponse[TrainingDomain] | undefined;
+  sheet: Sheet | undefined;
   records: TrainingRecord[] | null | undefined;
   loadSheet: LoadSheet;
   onStale: () => void;
@@ -84,7 +86,12 @@ function TrainingSheetCard({
   const { t, i18n } = useLingui();
   const formatDate = useFormatDate();
   const missingSentence = useMissingSheetDataSentence();
-  const { busy, failure, open, download } = useSheetActions(domain, loadSheet, onStale);
+  const { busy, failure, open, download, downloadOriginal } = useSheetActions(
+    domain,
+    loadSheet,
+    onStale
+  );
+  const originals = sheet && sheet.sequences.length > 1 ? sheet.sequences : [];
   const label = i18n._(trainingDomainMessages[domain]);
   const untrained = records?.length === 0;
   const openable = sheet?.ready === true && records !== undefined && !untrained;
@@ -107,7 +114,7 @@ function TrainingSheetCard({
           <span className="lg:hidden">{t`Fișa ${label}`}</span>
           <span className="hidden lg:inline">{t`Fișa individuală ${label}`}</span>
         </h3>
-        {sheet?.stored && (
+        {signedSheet(sheet) && (
           <p
             data-testid={`training-sheet-${domain}-stored`}
             className="flex items-center gap-1 text-xs font-medium text-success-foreground lg:text-[0.8125rem]"
@@ -171,6 +178,38 @@ function TrainingSheetCard({
           {!sheet.ready && (
             <p data-testid={`training-sheet-${domain}-missing`}>{missingSentence(sheet.missing)}</p>
           )}
+        </div>
+      )}
+      {openable && originals.length > 0 && (
+        <div
+          data-testid={`training-sheet-${domain}-originals`}
+          className="col-span-full grid gap-1.5 text-[0.8125rem]"
+        >
+          <p className="text-muted-foreground">
+            <Trans>
+              PDF-ul de mai sus e o copie de citire. Semnăturile se verifică pe fișele originale:
+            </Trans>
+          </p>
+          <ul className="flex flex-wrap gap-x-4 gap-y-1">
+            {originals.map((sequence) => (
+              <li key={sequence}>
+                <button
+                  type="button"
+                  data-testid={`training-sheet-${domain}-original`}
+                  disabled={busy !== null}
+                  onClick={() => void downloadOriginal(sequence)}
+                  className="inline-flex min-h-8 items-center gap-1 rounded-sm font-medium underline underline-offset-4 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60"
+                >
+                  {busy === `original-${sequence}` ? (
+                    <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />
+                  ) : (
+                    <FileDown aria-hidden="true" className="size-3.5" />
+                  )}
+                  {sequence === 1 ? t`Fișa 1` : t`Fișa ${sequence} (continuare)`}
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       {failure && (
