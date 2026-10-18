@@ -1032,6 +1032,10 @@ describe('the signing agreement signed in a portal session', () => {
     });
     const [evidence] = callsTo('/rest/v1/agreement_signatures', 'POST');
     expect(evidence!.body).toMatchObject({ party: 'employee', organization_id: organizationId });
+    const client = callsTo('/rest/v1/employees').find((call) =>
+      call.url.searchParams.get('select')?.startsWith('clients!employees_client_id_fkey(')
+    );
+    expect(client).toBeDefined();
   });
 
   it('refuses an agreement that no longer says what it said when the code was asked for', async () => {

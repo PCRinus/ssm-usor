@@ -111,9 +111,11 @@ async function clientOfEmployee(
   clientId: string,
   employeeId: string
 ): Promise<ClientOfAgreement> {
+  // Two keys lead to the client (the plain one and the one that carries the organization), so
+  // PostgREST needs the hint; without it the embed answers PGRST201 and nothing is signed.
   const read = await admin
     .from('employees')
-    .select('clients(organization_id, archived_at)')
+    .select('clients!employees_client_id_fkey(organization_id, archived_at)')
     .eq('id', employeeId)
     .eq('client_id', clientId)
     .maybeSingle();
