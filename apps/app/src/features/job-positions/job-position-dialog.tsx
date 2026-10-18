@@ -48,6 +48,7 @@ export function JobPositionDialog({
   onClose,
   initialName,
   onSaved,
+  onCloseAutoFocus,
 }: {
   clientId: string;
   editing: JobPositionEditing;
@@ -56,6 +57,8 @@ export function JobPositionDialog({
   initialName?: string;
   /** The position as saved, for a caller that goes on to use it. */
   onSaved?: (position: JobPosition) => void;
+  /** Where the focus goes on closing, when what opened the dialog is gone by then. */
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   return (
     <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
@@ -66,6 +69,7 @@ export function JobPositionDialog({
           position={editing === 'new' ? null : editing}
           initialName={initialName}
           onSaved={onSaved}
+          onCloseAutoFocus={onCloseAutoFocus}
           onClose={onClose}
         />
       )}
@@ -78,12 +82,14 @@ function JobPositionForm({
   position,
   initialName = '',
   onSaved,
+  onCloseAutoFocus,
   onClose,
 }: {
   clientId: string;
   position: JobPosition | null;
   initialName?: string;
   onSaved?: (position: JobPosition) => void;
+  onCloseAutoFocus?: (event: Event) => void;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -139,7 +145,11 @@ function JobPositionForm({
   });
 
   return (
-    <DialogContent data-testid="job-position-dialog" className="sm:max-w-2xl">
+    <DialogContent
+      data-testid="job-position-dialog"
+      className="sm:max-w-2xl"
+      onCloseAutoFocus={onCloseAutoFocus}
+    >
       <form
         ref={formRef}
         onSubmit={(event) => {

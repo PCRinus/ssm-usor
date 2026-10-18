@@ -1307,6 +1307,9 @@ describe('job positions on employees (ADR 006)', () => {
     );
     await user.click(within(dialog).getByTestId('job-position-save'));
     await waitFor(() => expect(screen.queryByTestId('job-position-dialog')).toBeNull());
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByTestId('employee-job-position'))
+    );
     expect(screen.getByTestId<HTMLInputElement>('employee-job-title').value).toBe('Electrician');
     // Saving the post did not submit the form it was opened from.
     expect(requests(employeesPath, 'POST')).toHaveLength(0);
