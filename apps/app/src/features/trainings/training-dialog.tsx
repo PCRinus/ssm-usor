@@ -35,12 +35,14 @@ import {
   getGetTrainingProposalQueryKey,
   getGetTrainingQueryKey,
   getListJobPositionsQueryKey,
+  getListSignerCandidatesQueryKey,
   type JobPositionListResponseItemsItem,
   type TrainingResponseTraining,
   useCreateTraining,
   useGetTraining,
   useGetTrainingProposal,
   useListJobPositions,
+  useListSignerCandidates,
   useUpdateTraining,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
@@ -49,13 +51,19 @@ import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { todayIso } from '@/features/employees/employee-format';
+import { signingMessage } from '@/features/signatures/signature-format';
+import { matchSigner } from '@/features/signatures/signer-match';
+import { SignerSelect } from '@/features/signatures/signer-select';
 
 import { AttendeeChecklist, type AttendeeOption } from './attendee-checklist';
 import {
+  emptySigners,
   fieldOfIssue,
   type ProposedField,
   proposedFields,
   proposedValues,
+  type SignerField,
+  signerFields,
   toTrainingForm,
   toTrainingRequest,
   trainingFormSchema,
@@ -252,6 +260,7 @@ function TrainingForm({
           admittedByJobTitle: '',
           notes: '',
           themesRevisionId: null,
+          ...emptySigners,
         },
   });
   const formRef = useRevealErrors(form);
@@ -265,9 +274,9 @@ function TrainingForm({
     setTyped((current) => (current.has(field) ? current : new Set([...current, field])));
   const typing = (field: ProposedField) => ({ onChange: () => markTyped(field) });
 
-  const [domain, phase, heldOn, jobPositionId] = useWatch({
+  const [domain, phase, heldOn, jobPositionId, source] = useWatch({
     control: form.control,
-    name: ['domain', 'phase', 'heldOn', 'jobPositionId'],
+    name: ['domain', 'phase', 'heldOn', 'jobPositionId', 'source'],
   });
   const proposalParams = {
     domain,
@@ -298,6 +307,63 @@ function TrainingForm({
     }
     if (!typed.has('material')) form.setValue('themesRevisionId', proposed.themesRevisionId);
   }, [proposed, heldOn, typed, form]);
+
+  const candidates = useListSignerCandidates(clientId, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getListSignerCandidatesQueryKey(clientId), userId],
+      enabled: Boolean(userId && apiRequest.baseUrl),
+    },
+  });
+  const signerItems = candidates.data?.items;
+  const [trainerName, verifierName, admittedByName] = useWatch({
+    control: form.control,
+    name: ['trainerName', 'verifierName', 'admittedByName'],
+  });
+  // A signer the specialist chose stays; the others follow the names as they are proposed or typed.
+  const [pickedSigners, setPickedSigners] = useState<ReadonlySet<SignerField>>(() => new Set());
+  const pickSigner = (field: SignerField, accountId: string) => {
+    setPickedSigners((current) => new Set([...current, field]));
+    form.setValue(field, accountId);
+  };
+  useEffect(() => {
+    if (!signerItems) return;
+    const names: Record<SignerField, string> = {
+      trainerSignerId: trainerName,
+      verifierSignerId: verifierName,
+      admitterSignerId: admittedByName,
+    };
+    for (const field of signerFields) {
+      if (!pickedSigners.has(field)) {
+        form.setValue(field, matchSigner(names[field], signerItems, userId) ?? '');
+      }
+    }
+  }, [signerItems, trainerName, verifierName, admittedByName, pickedSigners, userId, form]);
+  const [trainerSignerId, verifierSignerId, admitterSignerId] = useWatch({
+    control: form.control,
+    name: [...signerFields],
+  });
+  const signerSelect = (field: SignerField, id: string, label: string, value: string) => (
+    <div
+      className={
+        field === 'admitterSignerId'
+          ? 'grid gap-5 sm:col-span-3 sm:grid-cols-3'
+          : 'grid gap-5 sm:col-span-2 sm:grid-cols-2'
+      }
+    >
+      <SignerSelect
+        id={id}
+        label={label}
+        value={value}
+        candidates={signerItems}
+        unavailable={candidates.isError}
+        disabled={busy}
+        error={errors[field]}
+        onChange={(accountId) => pickSigner(field, accountId)}
+      />
+    </div>
+  );
+  const signing = source === 'app';
 
   const position = positions.find((item) => item.id === jobPositionId);
   const options: AttendeeOption[] = attendeeOptions(employees, phase, jobPositionId).map(
@@ -370,7 +436,7 @@ function TrainingForm({
         return;
       }
       const fieldIssues =
-        status === 400
+        status === 400 || status === 422
           ? (body?.issues ?? []).flatMap((issue) => {
               const field = fieldOfIssue[issue.path];
               return field ? [{ field, message: issue.message }] : [];
@@ -384,20 +450,21 @@ function TrainingForm({
                 ? 'Un participant nu mai este angajat al clientului. Reîncarcă lista și alege din nou.'
                 : field === 'heldOn'
                   ? 'O instruire se înregistrează după ce a avut loc.'
-                  : message,
+                  : (signingMessage(cause) ?? message),
           });
         }
         return;
       }
       form.setError('root.server', {
         message:
-          status === 409
+          signingMessage(cause) ??
+          (status === 409
             ? 'Clientul este arhivat; instruirile lui nu mai pot fi modificate.'
             : status === 404
               ? 'Instruirea nu mai există la acest client.'
               : status === 401
                 ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-                : 'Nu am putut salva instruirea. Verifică conexiunea și încearcă din nou.',
+                : 'Nu am putut salva instruirea. Verifică conexiunea și încearcă din nou.'),
       });
     }
   });
@@ -692,6 +759,13 @@ function TrainingForm({
               {...form.register('trainerJobTitle', typing('trainerJobTitle'))}
             />
           </Field>
+          {signing &&
+            signerSelect(
+              'trainerSignerId',
+              'training-trainer-signer',
+              'Semnătura instructorului',
+              trainerSignerId
+            )}
           {domain === 'ssm' && (
             <>
               <Field
@@ -730,6 +804,14 @@ function TrainingForm({
                   {...form.register('verifierJobTitle', typing('verifierJobTitle'))}
                 />
               </Field>
+              {signing &&
+                verifierName.trim() &&
+                signerSelect(
+                  'verifierSignerId',
+                  'training-verifier-signer',
+                  'Semnătura celui care a verificat',
+                  verifierSignerId
+                )}
             </>
           )}
           {phase === 'workplace' && (
@@ -786,6 +868,14 @@ function TrainingForm({
                   {...form.register('admittedByJobTitle', typing('admittedByJobTitle'))}
                 />
               </Field>
+              {signing &&
+                admittedByName.trim() &&
+                signerSelect(
+                  'admitterSignerId',
+                  'training-admitter-signer',
+                  'Semnătura celui care admite',
+                  admitterSignerId
+                )}
             </fieldset>
           )}
           <Field

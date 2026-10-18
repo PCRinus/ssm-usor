@@ -51,6 +51,10 @@ export const trainingFormSchema = z
     admittedByJobTitle: optionalPersonText,
     notes: z.string().trim().max(2000, 'Observațiile au cel mult 2000 de caractere.'),
     themesRevisionId: z.string().nullable(),
+    // An account id, or empty for a slot signed on paper.
+    trainerSignerId: z.string(),
+    verifierSignerId: z.string(),
+    admitterSignerId: z.string(),
   })
   .superRefine((values, ctx) => {
     const issue = (path: keyof typeof values, message: string) =>
@@ -82,6 +86,16 @@ export const trainingFormSchema = z
   });
 
 export type TrainingFormValues = z.infer<typeof trainingFormSchema>;
+
+export const signerFields = ['trainerSignerId', 'verifierSignerId', 'admitterSignerId'] as const;
+
+export type SignerField = (typeof signerFields)[number];
+
+export const emptySigners: Pick<TrainingFormValues, SignerField> = {
+  trainerSignerId: '',
+  verifierSignerId: '',
+  admitterSignerId: '',
+};
 
 export const proposedFields = [
   'durationMinutes',
@@ -138,6 +152,7 @@ export function toTrainingForm(
     admittedByJobTitle: admission?.jobTitle ?? '',
     notes: training.notes ?? '',
     themesRevisionId: training.themesRevisionId,
+    ...emptySigners,
   };
 }
 
@@ -171,6 +186,17 @@ export function toTrainingRequest(values: TrainingFormValues): TrainingRequest {
     notes: values.notes.trim() || null,
     employeeIds: values.employeeIds,
     admission,
+    // `signers` present asks the trainee too, whom the API finds; a training typed from paper
+    // asks nobody.
+    ...(values.source === 'app'
+      ? {
+          signers: {
+            trainer: values.trainerSignerId || null,
+            ...(verifier ? { verifier: values.verifierSignerId || null } : {}),
+            ...(admission ? { admitter: values.admitterSignerId || null } : {}),
+          },
+        }
+      : {}),
   };
 }
 
@@ -192,4 +218,7 @@ export const fieldOfIssue: Partial<Record<string, keyof TrainingFormValues>> = {
   'admission.admittedOn': 'admittedOn',
   'admission.name': 'admittedByName',
   'admission.jobTitle': 'admittedByJobTitle',
+  'signers.trainer': 'trainerSignerId',
+  'signers.verifier': 'verifierSignerId',
+  'signers.admitter': 'admitterSignerId',
 };

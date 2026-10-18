@@ -224,7 +224,14 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
         return Response.json(detailOf([popescu]), { status: 201 });
       case `GET /clients/${clientId}/files`:
         return Response.json({ items: [] });
+      case `GET /clients/${clientId}/signer-candidates`:
+        return Response.json({ items: [] });
+      case `GET /clients/${clientId}/signature-requests`:
+        return Response.json({ items: [] });
       default:
+        if (/^GET \/clients\/[^/]+\/training-records\/[^/]+\/signatures$/.test(key)) {
+          return Response.json({ recordId: url.pathname.split('/')[4], slots: [] });
+        }
         throw new Error(`Unexpected request: ${key}${url.search}`);
     }
   });
