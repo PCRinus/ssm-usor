@@ -106,6 +106,10 @@ export interface ApiErrorResponse {
   issues?: ApiErrorResponseIssuesItem[];
   reason?: string;
   missing?: ApiErrorResponseMissingItem[];
+  /** @minimum 0 */
+  attemptsLeft?: number;
+  /** @minimum 1 */
+  retryAfterSeconds?: number;
 }
 
 export type MeResponseUser = {
@@ -1673,6 +1677,8 @@ export type TrainingListResponseItemsItem = {
   /** @minimum 0 */
   attendeeCount: number;
   attendees: TrainingListResponseItemsItemAttendeesItem[];
+  signed: boolean;
+  hasSignatures: boolean;
 };
 
 export interface TrainingListResponse {
@@ -1830,6 +1836,8 @@ export type TrainingResponseTraining = {
   createdAt: string;
   updatedAt: string;
   records: TrainingResponseTrainingRecordsItem[];
+  signed: boolean;
+  hasSignatures: boolean;
   signers: TrainingResponseTrainingSigners;
 };
 
@@ -2087,6 +2095,8 @@ export type TrainingSheetsResponseSsm = {
   ready: boolean;
   missing: TrainingSheetsResponseSsmMissingItem[];
   stored: boolean;
+  /** @items.minimum 1 */
+  sequences: number[];
 };
 
 export type TrainingSheetsResponsePsiMissingItem =
@@ -2101,6 +2111,8 @@ export type TrainingSheetsResponsePsi = {
   ready: boolean;
   missing: TrainingSheetsResponsePsiMissingItem[];
   stored: boolean;
+  /** @items.minimum 1 */
+  sequences: number[];
 };
 
 export interface TrainingSheetsResponse {
@@ -7365,6 +7377,8 @@ export const SignatureRequestListResponseItemsItemAgreementState = {
   generated: 'generated',
   signed_electronically: 'signed_electronically',
   signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
 } as const;
 
 export type SignatureRequestListResponseItemsItem = {
@@ -7393,6 +7407,20 @@ export const SigningAgreementResponseAgreementState = {
   generated: 'generated',
   signed_electronically: 'signed_electronically',
   signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SigningAgreementResponseAgreementAwaiting =
+  | (typeof SigningAgreementResponseAgreementAwaiting)[keyof typeof SigningAgreementResponseAgreementAwaiting]
+  | null;
+
+export const SigningAgreementResponseAgreementAwaiting = {
+  employee: 'employee',
+  employer: 'employer',
 } as const;
 
 /**
@@ -7409,6 +7437,8 @@ export type SigningAgreementResponseAgreement = {
   employeeSignedAt: string | null;
   /** @nullable */
   employerSignedAt: string | null;
+  /** @nullable */
+  awaiting: SigningAgreementResponseAgreementAwaiting;
 } | null;
 
 export interface SigningAgreementResponse {
@@ -7422,6 +7452,8 @@ export type SigningAgreementStateRequestState =
 export const SigningAgreementStateRequestState = {
   generated: 'generated',
   signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
 } as const;
 
 export interface SigningAgreementStateRequest {
@@ -7475,6 +7507,8 @@ export const SignSessionResponseSignedItemAgreementState = {
   generated: 'generated',
   signed_electronically: 'signed_electronically',
   signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
 } as const;
 
 export type SignSessionResponseSignedItem = {
@@ -7489,9 +7523,19 @@ export type SignSessionResponseFailedItemReason =
 export const SignSessionResponseFailedItemReason = {
   request_not_pending: 'request_not_pending',
   agreement_not_awaiting: 'agreement_not_awaiting',
+  agreement_changed: 'agreement_changed',
+  missing_document_data: 'missing_document_data',
+  client_archived: 'client_archived',
+  signer_not_of_client: 'signer_not_of_client',
   sheet_busy: 'sheet_busy',
   slot_not_on_sheet: 'slot_not_on_sheet',
   missing_sheet_data: 'missing_sheet_data',
+  row_locked: 'row_locked',
+  already_signed: 'already_signed',
+  locked_field: 'locked_field',
+  unknown_fields: 'unknown_fields',
+  cannot_certify: 'cannot_certify',
+  signer_refused: 'signer_refused',
   signer_unavailable: 'signer_unavailable',
   pdf_unavailable: 'pdf_unavailable',
   template_missing: 'template_missing',
@@ -7521,9 +7565,19 @@ export type SignSessionResponseAgreementsItemReason =
 export const SignSessionResponseAgreementsItemReason = {
   request_not_pending: 'request_not_pending',
   agreement_not_awaiting: 'agreement_not_awaiting',
+  agreement_changed: 'agreement_changed',
+  missing_document_data: 'missing_document_data',
+  client_archived: 'client_archived',
+  signer_not_of_client: 'signer_not_of_client',
   sheet_busy: 'sheet_busy',
   slot_not_on_sheet: 'slot_not_on_sheet',
   missing_sheet_data: 'missing_sheet_data',
+  row_locked: 'row_locked',
+  already_signed: 'already_signed',
+  locked_field: 'locked_field',
+  unknown_fields: 'unknown_fields',
+  cannot_certify: 'cannot_certify',
+  signer_refused: 'signer_refused',
   signer_unavailable: 'signer_unavailable',
   pdf_unavailable: 'pdf_unavailable',
   template_missing: 'template_missing',
@@ -7541,6 +7595,8 @@ export const SignSessionResponseAgreementsItemAgreementState = {
   generated: 'generated',
   signed_electronically: 'signed_electronically',
   signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
 } as const;
 
 export type SignSessionResponseAgreementsItem = {
@@ -7815,6 +7871,10 @@ export const ListEmployeeTrainingRecordsDomain = {
 
 export type GetTrainingSheetParams = {
   domain: GetTrainingSheetDomain;
+  /**
+   * @minimum 1
+   */
+  sequence?: number;
 };
 
 export type GetTrainingSheetDomain =
@@ -11548,7 +11608,7 @@ export const getGetTrainingSheetsUrl = (clientId: string, employeeId: string) =>
 };
 
 /**
- * For each domain, `ready` and the codes of what is missing (ADR 021): the commute route on the occupational safety sheet (`employee.commute_route`), and on both the workplace when the client has more than one active workplace and the employee has none (`employee.workplace`). Every other empty line prints empty. A former employee's sheets are drawn up too. `stored` is true once signing has started and the sheet is the stored signed sheet (ADR 023), which is then always ready.
+ * For each domain, `ready` and the codes of what is missing (ADR 021): the commute route on the occupational safety sheet (`employee.commute_route`), and on both the workplace when the client has more than one active workplace and the employee has none (`employee.workplace`). Every other empty line prints empty. A former employee's sheets are drawn up too. `stored` is true once signing has started and the sheet is the stored signed sheet (ADR 023), which is then always ready; `sequences` lists the stored sheet and its continuation sheets by number.
  * @summary Whether an employee's two individual training sheets can be drawn up
  */
 export const getTrainingSheets = async (
@@ -11701,7 +11761,7 @@ export const getGetTrainingSheetUrl = (
 };
 
 /**
- * Once signing has started, the stored signed sheet (ADR 023): the PDF form as signed so far, or a sheet and its continuation sheets merged into one PDF, flattened, whose signatures are then not verifiable in that copy. Before, built on the spot from the employee, their workplace and position, and their training records of the domain, merged into the newest registered version of the sheet's template and converted by the converter that makes the PDFs at issuing; nothing is stored. Hiring trainings not recorded yet print blank, and the periodic tables run on in blank rows to the end of their page for signing on paper.
+ * Once signing has started, the stored signed sheet (ADR 023): the PDF form as signed so far, or a sheet and its continuation sheets merged into one PDF, flattened, whose signatures are then not verifiable in that copy: it is stamped on every page as a copy to read and named `…-copie.pdf`, and `?sequence=n` serves the original of sheet n as signed (`sequences` in the readiness lists them; `404` for a number the employee has no stored sheet of). Before, built on the spot from the employee, their workplace and position, and their training records of the domain, merged into the newest registered version of the sheet's template and converted by the converter that makes the PDFs at issuing; nothing is stored. Hiring trainings not recorded yet print blank, and the periodic tables run on in blank rows to the end of their page for signing on paper.
  * @summary Download an employee's individual training sheet of a domain as a PDF
  */
 export const getTrainingSheet = async (
@@ -28009,7 +28069,7 @@ export const getVoidRecordSignaturesUrl = (clientId: string, recordId: string) =
 };
 
 /**
- * Every live signature of the record, paper ones included, and every request that is not void, with the reason given. The record is editable again; saving the corrected training with its signers issues the requests again. The evidence rows stay, marked void.
+ * Every live signature of the record, paper ones included, and every request that is not void, with the reason given and the caller as the void's actor. When an electronic signature was among them, the record's row on its stored sheet is struck: the database voids it and the API writes _anulat_ into its note, then or on the sheet's next write. The record is editable again; saving the corrected training with its signers issues the requests again and gives the record a new row. The evidence rows stay, marked void.
  * @summary Void a training record's signatures, to correct it
  */
 export const voidRecordSignatures = async (
@@ -28711,7 +28771,7 @@ export const getPutSigningAgreementStateUrl = (clientId: string, employeeId: str
 };
 
 /**
- * `generated` when it was handed to the employee, `signed_on_paper` when it came back signed by hand, with the scan as a file of the client in `clientFileId`. `signed_electronically` is set by the signing flow alone, and an agreement in that state is not changed here.
+ * `generated` when it was handed to the employee, `signed_on_paper` when it came back signed by hand, with the scan as a file of the client in `clientFileId`, `withdrawn` when the employee went back to signing by hand (their pending trainee requests are voided and none is issued while it stands), `in_contract` for a new hire whose contract carries the clause. The database records the member signed in as `marked_by`. `signed_electronically` is set by the signing flow alone, and an agreement in that state is not changed here.
  * @summary Record an employee's signing agreement as handed out or signed on paper
  */
 export const putSigningAgreementState = async (
@@ -28827,7 +28887,7 @@ export const getCreateMySigningSessionUrl = () => {
 };
 
 /**
- * The member's pending requests to sign in one go with one code (ADR 023), sent to the account's email. A trainee's request is signed in the portal and is refused here, as is any agreement (reason `agreement_signed_in_portal`). The code is valid for ten minutes and three attempts.
+ * The member's pending requests in the membership's organization, at most 30, to sign in one go with one code (ADR 023), sent to the account's email. A trainee's request is signed in the portal and is refused here, as is any agreement (reason `agreement_signed_in_portal`). The code is valid for ten minutes and three attempts.
  * @summary Ask for a signing code for the listed requests
  */
 export const createMySigningSession = async (
@@ -28934,7 +28994,7 @@ export const getSignMySigningSessionUrl = (sessionId: string) => {
 };
 
 /**
- * Each request's record gets its row on the employee's signed sheet, the slot's signature (PAdES, with the signer's own certificate), the evidence row, and the request marked signed. One item failing does not stop the others.
+ * Each request's record gets its row on the employee's signed sheet, the slot's signature (PAdES, with the signer's own certificate, naming the account), and the evidence row, which signs the request in the same write. One item failing does not stop the others.
  * @summary Type the code and sign everything the session lists
  */
 export const signMySigningSession = async (

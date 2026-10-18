@@ -129,6 +129,10 @@ export interface ApiErrorResponse {
   issues?: ApiErrorResponseIssuesItem[];
   reason?: string;
   missing?: ApiErrorResponseMissingItem[];
+  /** @minimum 0 */
+  attemptsLeft?: number;
+  /** @minimum 1 */
+  retryAfterSeconds?: number;
 }
 
 export interface PortalNoticeRequest {
@@ -495,6 +499,8 @@ export type PortalTrainingSheetsResponseSsm = {
   ready: boolean;
   missing: PortalTrainingSheetsResponseSsmMissingItem[];
   stored: boolean;
+  /** @items.minimum 1 */
+  sequences: number[];
 };
 
 export type PortalTrainingSheetsResponsePsiMissingItem =
@@ -509,6 +515,8 @@ export type PortalTrainingSheetsResponsePsi = {
   ready: boolean;
   missing: PortalTrainingSheetsResponsePsiMissingItem[];
   stored: boolean;
+  /** @items.minimum 1 */
+  sequences: number[];
 };
 
 export interface PortalTrainingSheetsResponse {
@@ -780,6 +788,8 @@ export const PortalSignatureRequestsResponseItemsItemAgreementState = {
   generated: 'generated',
   signed_electronically: 'signed_electronically',
   signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
 } as const;
 
 export type PortalSignatureRequestsResponseItemsItem = {
@@ -809,6 +819,20 @@ export const PortalSigningAgreementsResponseItemsItemAgreementState = {
   generated: 'generated',
   signed_electronically: 'signed_electronically',
   signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PortalSigningAgreementsResponseItemsItemAgreementAwaiting =
+  | (typeof PortalSigningAgreementsResponseItemsItemAgreementAwaiting)[keyof typeof PortalSigningAgreementsResponseItemsItemAgreementAwaiting]
+  | null;
+
+export const PortalSigningAgreementsResponseItemsItemAgreementAwaiting = {
+  employee: 'employee',
+  employer: 'employer',
 } as const;
 
 export type PortalSigningAgreementsResponseItemsItemAgreement = {
@@ -822,6 +846,8 @@ export type PortalSigningAgreementsResponseItemsItemAgreement = {
   employeeSignedAt: string | null;
   /** @nullable */
   employerSignedAt: string | null;
+  /** @nullable */
+  awaiting: PortalSigningAgreementsResponseItemsItemAgreementAwaiting;
 };
 
 export type PortalSigningAgreementsResponseItemsItem = {
@@ -841,6 +867,20 @@ export const SigningAgreementResponseAgreementState = {
   generated: 'generated',
   signed_electronically: 'signed_electronically',
   signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SigningAgreementResponseAgreementAwaiting =
+  | (typeof SigningAgreementResponseAgreementAwaiting)[keyof typeof SigningAgreementResponseAgreementAwaiting]
+  | null;
+
+export const SigningAgreementResponseAgreementAwaiting = {
+  employee: 'employee',
+  employer: 'employer',
 } as const;
 
 /**
@@ -857,6 +897,8 @@ export type SigningAgreementResponseAgreement = {
   employeeSignedAt: string | null;
   /** @nullable */
   employerSignedAt: string | null;
+  /** @nullable */
+  awaiting: SigningAgreementResponseAgreementAwaiting;
 } | null;
 
 export interface SigningAgreementResponse {
@@ -914,6 +956,8 @@ export const SignSessionResponseSignedItemAgreementState = {
   generated: 'generated',
   signed_electronically: 'signed_electronically',
   signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
 } as const;
 
 export type SignSessionResponseSignedItem = {
@@ -928,9 +972,19 @@ export type SignSessionResponseFailedItemReason =
 export const SignSessionResponseFailedItemReason = {
   request_not_pending: 'request_not_pending',
   agreement_not_awaiting: 'agreement_not_awaiting',
+  agreement_changed: 'agreement_changed',
+  missing_document_data: 'missing_document_data',
+  client_archived: 'client_archived',
+  signer_not_of_client: 'signer_not_of_client',
   sheet_busy: 'sheet_busy',
   slot_not_on_sheet: 'slot_not_on_sheet',
   missing_sheet_data: 'missing_sheet_data',
+  row_locked: 'row_locked',
+  already_signed: 'already_signed',
+  locked_field: 'locked_field',
+  unknown_fields: 'unknown_fields',
+  cannot_certify: 'cannot_certify',
+  signer_refused: 'signer_refused',
   signer_unavailable: 'signer_unavailable',
   pdf_unavailable: 'pdf_unavailable',
   template_missing: 'template_missing',
@@ -960,9 +1014,19 @@ export type SignSessionResponseAgreementsItemReason =
 export const SignSessionResponseAgreementsItemReason = {
   request_not_pending: 'request_not_pending',
   agreement_not_awaiting: 'agreement_not_awaiting',
+  agreement_changed: 'agreement_changed',
+  missing_document_data: 'missing_document_data',
+  client_archived: 'client_archived',
+  signer_not_of_client: 'signer_not_of_client',
   sheet_busy: 'sheet_busy',
   slot_not_on_sheet: 'slot_not_on_sheet',
   missing_sheet_data: 'missing_sheet_data',
+  row_locked: 'row_locked',
+  already_signed: 'already_signed',
+  locked_field: 'locked_field',
+  unknown_fields: 'unknown_fields',
+  cannot_certify: 'cannot_certify',
+  signer_refused: 'signer_refused',
   signer_unavailable: 'signer_unavailable',
   pdf_unavailable: 'pdf_unavailable',
   template_missing: 'template_missing',
@@ -980,6 +1044,8 @@ export const SignSessionResponseAgreementsItemAgreementState = {
   generated: 'generated',
   signed_electronically: 'signed_electronically',
   signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
 } as const;
 
 export type SignSessionResponseAgreementsItem = {
@@ -997,6 +1063,20 @@ export interface SignSessionResponse {
   failed: SignSessionResponseFailedItem[];
   agreements: SignSessionResponseAgreementsItem[];
 }
+
+export type GetPortalTrainingSheetParams = {
+  /**
+   * @minimum 1
+   */
+  sequence?: number;
+};
+
+export type GetPortalEmployeeTrainingSheetParams = {
+  /**
+   * @minimum 1
+   */
+  sequence?: number;
+};
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -1768,27 +1848,51 @@ export function useGetPortalTrainingSheets<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export const getGetPortalTrainingSheetUrl = (participantId: string, domain: 'ssm' | 'psi') => {
-  return `/portal/participants/${participantId}/sheets/${domain}`;
+export const getGetPortalTrainingSheetUrl = (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/portal/participants/${participantId}/sheets/${domain}?${stringifiedParams}`
+    : `/portal/participants/${participantId}/sheets/${domain}`;
 };
 
 /**
- * As the employee's page in the app has it: the stored signed sheet once signing has started (ADR 023), else drawn up on the spot and not stored.
+ * As the employee's page in the app has it: the stored signed sheet once signing has started (ADR 023), else drawn up on the spot and not stored. Several stored sheets (a sheet and its continuation sheets) come merged into one flattened copy, stamped on every page as a copy to read and named `…-copie.pdf`, whose signatures do not verify; `?sequence=n` serves the original of sheet n as signed, `sequences` in the readiness listing them.
  * @summary The participant's individual training sheet of a domain as a PDF
  */
 export const getPortalTrainingSheet = async (
   participantId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<Blob> => {
-  return apiFetch<Blob>(getGetPortalTrainingSheetUrl(participantId, domain), {
+  return apiFetch<Blob>(getGetPortalTrainingSheetUrl(participantId, domain, params), {
     ...options,
     method: 'GET',
   });
 };
 
-export const getGetPortalTrainingSheetQueryKey = (participantId: string, domain: 'ssm' | 'psi') => {
-  return [`/portal/participants/${participantId}/sheets/${domain}`] as const;
+export const getGetPortalTrainingSheetQueryKey = (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams
+) => {
+  return [
+    `/portal/participants/${participantId}/sheets/${domain}`,
+    ...(params ? [params] : []),
+  ] as const;
 };
 
 export const getGetPortalTrainingSheetQueryOptions = <
@@ -1797,6 +1901,7 @@ export const getGetPortalTrainingSheetQueryOptions = <
 >(
   participantId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheet>>, TError, TData>
@@ -1807,10 +1912,10 @@ export const getGetPortalTrainingSheetQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getGetPortalTrainingSheetQueryKey(participantId, domain);
+    queryOptions?.queryKey ?? getGetPortalTrainingSheetQueryKey(participantId, domain, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalTrainingSheet>>> = ({ signal }) =>
-    getPortalTrainingSheet(participantId, domain, { signal, ...requestOptions });
+    getPortalTrainingSheet(participantId, domain, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -1839,6 +1944,7 @@ export function useGetPortalTrainingSheet<
 >(
   participantId: string,
   domain: 'ssm' | 'psi',
+  params: undefined | GetPortalTrainingSheetParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheet>>, TError, TData>
@@ -1861,6 +1967,7 @@ export function useGetPortalTrainingSheet<
 >(
   participantId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheet>>, TError, TData>
@@ -1883,6 +1990,7 @@ export function useGetPortalTrainingSheet<
 >(
   participantId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheet>>, TError, TData>
@@ -1901,6 +2009,7 @@ export function useGetPortalTrainingSheet<
 >(
   participantId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheet>>, TError, TData>
@@ -1909,7 +2018,12 @@ export function useGetPortalTrainingSheet<
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetPortalTrainingSheetQueryOptions(participantId, domain, options);
+  const queryOptions = getGetPortalTrainingSheetQueryOptions(
+    participantId,
+    domain,
+    params,
+    options
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -2388,33 +2502,53 @@ export function useGetPortalEmployeeTrainingSheets<
 export const getGetPortalEmployeeTrainingSheetUrl = (
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi'
+  domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams
 ) => {
-  return `/portal/participants/${participantId}/employees/${employeeId}/sheets/${domain}`;
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/portal/participants/${participantId}/employees/${employeeId}/sheets/${domain}?${stringifiedParams}`
+    : `/portal/participants/${participantId}/employees/${employeeId}/sheets/${domain}`;
 };
 
 /**
+ * Several stored sheets (a sheet and its continuation sheets) come merged into one flattened copy, stamped on every page as a copy to read and named `…-copie.pdf`, whose signatures do not verify; `?sequence=n` serves the original of sheet n as signed, `sequences` in the readiness listing them.
  * @summary An employee's individual training sheet as a PDF, for the client administrator
  */
 export const getPortalEmployeeTrainingSheet = async (
   participantId: string,
   employeeId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<Blob> => {
-  return apiFetch<Blob>(getGetPortalEmployeeTrainingSheetUrl(participantId, employeeId, domain), {
-    ...options,
-    method: 'GET',
-  });
+  return apiFetch<Blob>(
+    getGetPortalEmployeeTrainingSheetUrl(participantId, employeeId, domain, params),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
 };
 
 export const getGetPortalEmployeeTrainingSheetQueryKey = (
   participantId: string,
   employeeId: string,
-  domain: 'ssm' | 'psi'
+  domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams
 ) => {
   return [
     `/portal/participants/${participantId}/employees/${employeeId}/sheets/${domain}`,
+    ...(params ? [params] : []),
   ] as const;
 };
 
@@ -2425,6 +2559,7 @@ export const getGetPortalEmployeeTrainingSheetQueryOptions = <
   participantId: string,
   employeeId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheet>>, TError, TData>
@@ -2436,12 +2571,12 @@ export const getGetPortalEmployeeTrainingSheetQueryOptions = <
 
   const queryKey =
     queryOptions?.queryKey ??
-    getGetPortalEmployeeTrainingSheetQueryKey(participantId, employeeId, domain);
+    getGetPortalEmployeeTrainingSheetQueryKey(participantId, employeeId, domain, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheet>>> = ({
     signal,
   }) =>
-    getPortalEmployeeTrainingSheet(participantId, employeeId, domain, {
+    getPortalEmployeeTrainingSheet(participantId, employeeId, domain, params, {
       signal,
       ...requestOptions,
     });
@@ -2478,6 +2613,7 @@ export function useGetPortalEmployeeTrainingSheet<
   participantId: string,
   employeeId: string,
   domain: 'ssm' | 'psi',
+  params: undefined | GetPortalEmployeeTrainingSheetParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheet>>, TError, TData>
@@ -2501,6 +2637,7 @@ export function useGetPortalEmployeeTrainingSheet<
   participantId: string,
   employeeId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheet>>, TError, TData>
@@ -2524,6 +2661,7 @@ export function useGetPortalEmployeeTrainingSheet<
   participantId: string,
   employeeId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheet>>, TError, TData>
@@ -2543,6 +2681,7 @@ export function useGetPortalEmployeeTrainingSheet<
   participantId: string,
   employeeId: string,
   domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheet>>, TError, TData>
@@ -2555,6 +2694,7 @@ export function useGetPortalEmployeeTrainingSheet<
     participantId,
     employeeId,
     domain,
+    params,
     options
   );
 
@@ -3580,7 +3720,7 @@ export const getCreatePortalSigningSessionUrl = (participantId: string) => {
 };
 
 /**
- * The participant's pending requests under the participation's client and, in `agreementEmployeeIds`, signing agreements: an employee their own, while it awaits them; the client administrator the client's employees' agreements the employee has signed and the employer has not. The code goes to the email the app holds for the person, else by SMS to the phone.
+ * The participant's pending requests under the participation's client and, in `agreementEmployeeIds`, signing agreements, at most 30 items in all. The party is decided per agreement: the participant's own while it awaits the employee is theirs as the employee, an administrator's who is that employee included; any of the client's that awaits the employer is the administrator's. The code goes to the email the app holds for the person, else by SMS to the phone.
  * @summary Ask for a signing code for the listed requests and agreements
  */
 export const createPortalSigningSession = async (

@@ -106,6 +106,14 @@
                 "documents.fire_own_instructions"
               ]
             }
+          },
+          "attemptsLeft": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "retryAfterSeconds": {
+            "type": "integer",
+            "minimum": 1
           }
         },
         "required": ["error", "message"]
@@ -2123,6 +2131,12 @@
                     },
                     "required": ["employeeId", "lastName", "firstName"]
                   }
+                },
+                "signed": {
+                  "type": "boolean"
+                },
+                "hasSignatures": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -2142,7 +2156,9 @@
                 "createdAt",
                 "updatedAt",
                 "attendeeCount",
-                "attendees"
+                "attendees",
+                "signed",
+                "hasSignatures"
               ]
             }
           }
@@ -2358,6 +2374,12 @@
                   "required": ["id", "employee", "occupation", "admission"]
                 }
               },
+              "signed": {
+                "type": "boolean"
+              },
+              "hasSignatures": {
+                "type": "boolean"
+              },
               "signers": {
                 "type": "object",
                 "properties": {
@@ -2397,6 +2419,8 @@
               "createdAt",
               "updatedAt",
               "records",
+              "signed",
+              "hasSignatures",
               "signers"
             ]
           }
@@ -2718,9 +2742,16 @@
               },
               "stored": {
                 "type": "boolean"
+              },
+              "sequences": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1
+                }
               }
             },
-            "required": ["ready", "missing", "stored"]
+            "required": ["ready", "missing", "stored", "sequences"]
           },
           "psi": {
             "type": "object",
@@ -2737,9 +2768,16 @@
               },
               "stored": {
                 "type": "boolean"
+              },
+              "sequences": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1
+                }
               }
             },
-            "required": ["ready", "missing", "stored"]
+            "required": ["ready", "missing", "stored", "sequences"]
           }
         },
         "required": ["ssm", "psi"]
@@ -10874,9 +10912,16 @@
               },
               "stored": {
                 "type": "boolean"
+              },
+              "sequences": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1
+                }
               }
             },
-            "required": ["ready", "missing", "stored"]
+            "required": ["ready", "missing", "stored", "sequences"]
           },
           "psi": {
             "type": "object",
@@ -10893,9 +10938,16 @@
               },
               "stored": {
                 "type": "boolean"
+              },
+              "sequences": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1
+                }
               }
             },
-            "required": ["ready", "missing", "stored"]
+            "required": ["ready", "missing", "stored", "sequences"]
           }
         },
         "required": ["ssm", "psi"]
@@ -11325,7 +11377,14 @@
                 "agreementState": {
                   "type": "string",
                   "nullable": true,
-                  "enum": ["generated", "signed_electronically", "signed_on_paper", null]
+                  "enum": [
+                    "generated",
+                    "signed_electronically",
+                    "signed_on_paper",
+                    "withdrawn",
+                    "in_contract",
+                    null
+                  ]
                 }
               },
               "required": [
@@ -11353,7 +11412,13 @@
             "properties": {
               "state": {
                 "type": "string",
-                "enum": ["generated", "signed_electronically", "signed_on_paper"]
+                "enum": [
+                  "generated",
+                  "signed_electronically",
+                  "signed_on_paper",
+                  "withdrawn",
+                  "in_contract"
+                ]
               },
               "generatedAt": {
                 "type": "string",
@@ -11378,6 +11443,11 @@
                 "type": "string",
                 "nullable": true,
                 "format": "date-time"
+              },
+              "awaiting": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["employee", "employer", null]
               }
             },
             "required": [
@@ -11386,7 +11456,8 @@
               "signedAt",
               "clientFileId",
               "employeeSignedAt",
-              "employerSignedAt"
+              "employerSignedAt",
+              "awaiting"
             ]
           }
         },
@@ -11397,7 +11468,7 @@
         "properties": {
           "state": {
             "type": "string",
-            "enum": ["generated", "signed_on_paper"]
+            "enum": ["generated", "signed_on_paper", "withdrawn", "in_contract"]
           },
           "clientFileId": {
             "type": "string",
@@ -11504,7 +11575,14 @@
                 "agreementState": {
                   "type": "string",
                   "nullable": true,
-                  "enum": ["generated", "signed_electronically", "signed_on_paper", null]
+                  "enum": [
+                    "generated",
+                    "signed_electronically",
+                    "signed_on_paper",
+                    "withdrawn",
+                    "in_contract",
+                    null
+                  ]
                 }
               },
               "required": ["requestId", "agreementState"]
@@ -11524,9 +11602,19 @@
                   "enum": [
                     "request_not_pending",
                     "agreement_not_awaiting",
+                    "agreement_changed",
+                    "missing_document_data",
+                    "client_archived",
+                    "signer_not_of_client",
                     "sheet_busy",
                     "slot_not_on_sheet",
                     "missing_sheet_data",
+                    "row_locked",
+                    "already_signed",
+                    "locked_field",
+                    "unknown_fields",
+                    "cannot_certify",
+                    "signer_refused",
                     "signer_unavailable",
                     "pdf_unavailable",
                     "template_missing",
@@ -11559,9 +11647,19 @@
                   "enum": [
                     "request_not_pending",
                     "agreement_not_awaiting",
+                    "agreement_changed",
+                    "missing_document_data",
+                    "client_archived",
+                    "signer_not_of_client",
                     "sheet_busy",
                     "slot_not_on_sheet",
                     "missing_sheet_data",
+                    "row_locked",
+                    "already_signed",
+                    "locked_field",
+                    "unknown_fields",
+                    "cannot_certify",
+                    "signer_refused",
                     "signer_unavailable",
                     "pdf_unavailable",
                     "template_missing",
@@ -11572,7 +11670,14 @@
                 "agreementState": {
                   "type": "string",
                   "nullable": true,
-                  "enum": ["generated", "signed_electronically", "signed_on_paper", null]
+                  "enum": [
+                    "generated",
+                    "signed_electronically",
+                    "signed_on_paper",
+                    "withdrawn",
+                    "in_contract",
+                    null
+                  ]
                 }
               },
               "required": ["employeeId", "party", "signed", "reason", "agreementState"]
@@ -11733,7 +11838,14 @@
                 "agreementState": {
                   "type": "string",
                   "nullable": true,
-                  "enum": ["generated", "signed_electronically", "signed_on_paper", null]
+                  "enum": [
+                    "generated",
+                    "signed_electronically",
+                    "signed_on_paper",
+                    "withdrawn",
+                    "in_contract",
+                    null
+                  ]
                 }
               },
               "required": ["id", "slot", "issuedAt", "signerName", "record", "agreementState"]
@@ -11771,7 +11883,13 @@
                   "properties": {
                     "state": {
                       "type": "string",
-                      "enum": ["generated", "signed_electronically", "signed_on_paper"]
+                      "enum": [
+                        "generated",
+                        "signed_electronically",
+                        "signed_on_paper",
+                        "withdrawn",
+                        "in_contract"
+                      ]
                     },
                     "generatedAt": {
                       "type": "string",
@@ -11796,6 +11914,11 @@
                       "type": "string",
                       "nullable": true,
                       "format": "date-time"
+                    },
+                    "awaiting": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": ["employee", "employer", null]
                     }
                   },
                   "required": [
@@ -11804,7 +11927,8 @@
                     "signedAt",
                     "clientFileId",
                     "employeeSignedAt",
-                    "employerSignedAt"
+                    "employerSignedAt",
+                    "awaiting"
                   ]
                 },
                 "awaitingEmployer": {
@@ -14240,7 +14364,7 @@
             }
           },
           "422": {
-            "description": "A signer who is neither a member of the organization nor an active participant of the client (reason `signer_not_of_client`, an issue on the slot), or a slot the record does not have (`slot_not_on_record`)",
+            "description": "A signer who is neither a member of the organization nor an active participant of the client (reason `signer_not_of_client`), or whose own name is not the name the slot prints, compared without order, case or diacritics (`signer_name_mismatch`), each with an issue on the slot; checked before anything is saved",
             "content": {
               "application/json": {
                 "schema": {
@@ -14597,7 +14721,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`), or a record of the training carries a live electronic signature and a signed fact changed (`record_signed`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`), a record of the training carries a live electronic signature, or is a record from paper printed on a certified sheet, and a fact it prints changed (`record_signed`), or an attendee left out has a signature or a row on a sheet (`record_has_signatures`). The requests and the sheet rows the save brings are best effort after it: a failure there is logged and the save answers 200",
             "content": {
               "application/json": {
                 "schema": {
@@ -14607,7 +14731,7 @@
             }
           },
           "422": {
-            "description": "A signer who is neither a member of the organization nor an active participant of the client (reason `signer_not_of_client`, an issue on the slot), or a slot the record does not have (`slot_not_on_record`)",
+            "description": "A signer who is neither a member of the organization nor an active participant of the client (reason `signer_not_of_client`), or whose own name is not the name the slot prints, compared without order, case or diacritics (`signer_name_mismatch`), each with an issue on the slot; checked before anything is saved",
             "content": {
               "application/json": {
                 "schema": {
@@ -14711,7 +14835,7 @@
             }
           },
           "409": {
-            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`)",
+            "description": "The client is archived (reason `client_archived`) or a lead (`client_is_lead`), or a record of the training has a signature, voided and paper ones included, or a row on a stored sheet (`record_has_signatures`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -14860,7 +14984,7 @@
       "get": {
         "operationId": "getTrainingSheets",
         "summary": "Whether an employee's two individual training sheets can be drawn up",
-        "description": "For each domain, `ready` and the codes of what is missing (ADR 021): the commute route on the occupational safety sheet (`employee.commute_route`), and on both the workplace when the client has more than one active workplace and the employee has none (`employee.workplace`). Every other empty line prints empty. A former employee's sheets are drawn up too. `stored` is true once signing has started and the sheet is the stored signed sheet (ADR 023), which is then always ready.",
+        "description": "For each domain, `ready` and the codes of what is missing (ADR 021): the commute route on the occupational safety sheet (`employee.commute_route`), and on both the workplace when the client has more than one active workplace and the employee has none (`employee.workplace`). Every other empty line prints empty. A former employee's sheets are drawn up too. `stored` is true once signing has started and the sheet is the stored signed sheet (ADR 023), which is then always ready; `sequences` lists the stored sheet and its continuation sheets by number.",
         "security": [
           {
             "bearerAuth": []
@@ -14964,7 +15088,7 @@
       "get": {
         "operationId": "getTrainingSheet",
         "summary": "Download an employee's individual training sheet of a domain as a PDF",
-        "description": "Once signing has started, the stored signed sheet (ADR 023): the PDF form as signed so far, or a sheet and its continuation sheets merged into one PDF, flattened, whose signatures are then not verifiable in that copy. Before, built on the spot from the employee, their workplace and position, and their training records of the domain, merged into the newest registered version of the sheet's template and converted by the converter that makes the PDFs at issuing; nothing is stored. Hiring trainings not recorded yet print blank, and the periodic tables run on in blank rows to the end of their page for signing on paper.",
+        "description": "Once signing has started, the stored signed sheet (ADR 023): the PDF form as signed so far, or a sheet and its continuation sheets merged into one PDF, flattened, whose signatures are then not verifiable in that copy: it is stamped on every page as a copy to read and named `…-copie.pdf`, and `?sequence=n` serves the original of sheet n as signed (`sequences` in the readiness lists them; `404` for a number the employee has no stored sheet of). Before, built on the spot from the employee, their workplace and position, and their training records of the domain, merged into the newest registered version of the sheet's template and converted by the converter that makes the PDFs at issuing; nothing is stored. Hiring trainings not recorded yet print blank, and the periodic tables run on in blank rows to the end of their page for signing on paper.",
         "security": [
           {
             "bearerAuth": []
@@ -14997,6 +15121,15 @@
             "required": true,
             "name": "domain",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "required": false,
+            "name": "sequence",
+            "in": "query"
           }
         ],
         "responses": {
@@ -15012,7 +15145,7 @@
             }
           },
           "400": {
-            "description": "Invalid path or domain",
+            "description": "Invalid path, domain or sequence",
             "content": {
               "application/json": {
                 "schema": {
@@ -15042,7 +15175,7 @@
             }
           },
           "404": {
-            "description": "The employee does not exist under this client in the organization",
+            "description": "The employee does not exist under this client in the organization, or has no stored sheet of that `sequence`",
             "content": {
               "application/json": {
                 "schema": {
@@ -15072,7 +15205,7 @@
             }
           },
           "503": {
-            "description": "Supabase is unavailable, the template is not registered (reason `template_missing`), or there is no converter or it failed (reason `pdf_unavailable`)",
+            "description": "Supabase is unavailable, the template is not registered (reason `template_missing`), there is no converter or it failed (reason `pdf_unavailable`), or the signer that stamps a merged copy did (reason `signer_unavailable`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -29623,7 +29756,7 @@
         "operationId": "getPortalTrainingSheet",
         "tags": ["portal"],
         "summary": "The participant's individual training sheet of a domain as a PDF",
-        "description": "As the employee's page in the app has it: the stored signed sheet once signing has started (ADR 023), else drawn up on the spot and not stored.",
+        "description": "As the employee's page in the app has it: the stored signed sheet once signing has started (ADR 023), else drawn up on the spot and not stored. Several stored sheets (a sheet and its continuation sheets) come merged into one flattened copy, stamped on every page as a copy to read and named `…-copie.pdf`, whose signatures do not verify; `?sequence=n` serves the original of sheet n as signed, `sequences` in the readiness listing them. ",
         "security": [
           {
             "bearerAuth": []
@@ -29647,6 +29780,15 @@
             "required": true,
             "name": "domain",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "required": false,
+            "name": "sequence",
+            "in": "query"
           }
         ],
         "responses": {
@@ -29662,7 +29804,7 @@
             }
           },
           "400": {
-            "description": "Invalid path or domain",
+            "description": "Invalid path, domain or sequence",
             "content": {
               "application/json": {
                 "schema": {
@@ -30043,6 +30185,7 @@
         "operationId": "getPortalEmployeeTrainingSheet",
         "tags": ["portal"],
         "summary": "An employee's individual training sheet as a PDF, for the client administrator",
+        "description": "Several stored sheets (a sheet and its continuation sheets) come merged into one flattened copy, stamped on every page as a copy to read and named `…-copie.pdf`, whose signatures do not verify; `?sequence=n` serves the original of sheet n as signed, `sequences` in the readiness listing them.",
         "security": [
           {
             "bearerAuth": []
@@ -30075,6 +30218,15 @@
             "required": true,
             "name": "domain",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "required": false,
+            "name": "sequence",
+            "in": "query"
           }
         ],
         "responses": {
@@ -30090,7 +30242,7 @@
             }
           },
           "400": {
-            "description": "Invalid path or domain",
+            "description": "Invalid path, domain or sequence",
             "content": {
               "application/json": {
                 "schema": {
@@ -30595,7 +30747,7 @@
       "post": {
         "operationId": "voidRecordSignatures",
         "summary": "Void a training record's signatures, to correct it",
-        "description": "Every live signature of the record, paper ones included, and every request that is not void, with the reason given. The record is editable again; saving the corrected training with its signers issues the requests again. The evidence rows stay, marked void.",
+        "description": "Every live signature of the record, paper ones included, and every request that is not void, with the reason given and the caller as the void's actor. When an electronic signature was among them, the record's row on its stored sheet is struck: the database voids it and the API writes _anulat_ into its note, then or on the sheet's next write. The record is editable again; saving the corrected training with its signers issues the requests again and gives the record a new row. The evidence rows stay, marked void.",
         "security": [
           {
             "bearerAuth": []
@@ -30967,7 +31119,7 @@
             }
           },
           "409": {
-            "description": "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`)",
+            "description": "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`), or the client's legal representative's name or role is not filled in (reason `missing_document_data`, the codes under `missing`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31105,7 +31257,7 @@
       "put": {
         "operationId": "putSigningAgreementState",
         "summary": "Record an employee's signing agreement as handed out or signed on paper",
-        "description": "`generated` when it was handed to the employee, `signed_on_paper` when it came back signed by hand, with the scan as a file of the client in `clientFileId`. `signed_electronically` is set by the signing flow alone, and an agreement in that state is not changed here.",
+        "description": "`generated` when it was handed to the employee, `signed_on_paper` when it came back signed by hand, with the scan as a file of the client in `clientFileId`, `withdrawn` when the employee went back to signing by hand (their pending trainee requests are voided and none is issued while it stands), `in_contract` for a new hire whose contract carries the clause. The database records the member signed in as `marked_by`. `signed_electronically` is set by the signing flow alone, and an agreement in that state is not changed here.",
         "security": [
           {
             "bearerAuth": []
@@ -31193,7 +31345,7 @@
             }
           },
           "409": {
-            "description": "The agreement is signed electronically (reason `agreement_signed_electronically`), the file is not of the client, or the client is archived (reason `client_archived`)",
+            "description": "The agreement is signed electronically (reason `agreement_signed_electronically`), the file is not of the client, the client is archived (reason `client_archived`), or, for `generated`, the client's legal representative is not filled in (reason `missing_document_data`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31229,7 +31381,7 @@
       "post": {
         "operationId": "createMySigningSession",
         "summary": "Ask for a signing code for the listed requests",
-        "description": "The member's pending requests to sign in one go with one code (ADR 023), sent to the account's email. A trainee's request is signed in the portal and is refused here, as is any agreement (reason `agreement_signed_in_portal`). The code is valid for ten minutes and three attempts.",
+        "description": "The member's pending requests in the membership's organization, at most 30, to sign in one go with one code (ADR 023), sent to the account's email. A trainee's request is signed in the portal and is refused here, as is any agreement (reason `agreement_signed_in_portal`). The code is valid for ten minutes and three attempts.",
         "security": [
           {
             "bearerAuth": []
@@ -31297,7 +31449,7 @@
             }
           },
           "409": {
-            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`), or the account has no address for the code (reason `signer_has_no_address`)",
+            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`, with `retryAfterSeconds`), the account has no address for the code (reason `signer_has_no_address`), or an agreement's client has no legal representative filled in (reason `missing_document_data`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31343,7 +31495,7 @@
       "post": {
         "operationId": "signMySigningSession",
         "summary": "Type the code and sign everything the session lists",
-        "description": "Each request's record gets its row on the employee's signed sheet, the slot's signature (PAdES, with the signer's own certificate), the evidence row, and the request marked signed. One item failing does not stop the others.",
+        "description": "Each request's record gets its row on the employee's signed sheet, the slot's signature (PAdES, with the signer's own certificate, naming the account), and the evidence row, which signs the request in the same write. One item failing does not stop the others.",
         "security": [
           {
             "bearerAuth": []
@@ -31372,7 +31524,7 @@
         },
         "responses": {
           "200": {
-            "description": "The code was right and the session is spent. Each item is signed or reported failed, independently: `signed` with the trainee's agreement state, `failed` with a reason (`request_not_pending`, `sheet_busy`, `slot_not_on_sheet`, `missing_sheet_data`, `signer_unavailable`, `pdf_unavailable`, `template_missing`, `signing_failed`), `agreements` likewise, with `agreement_not_awaiting` for one signed or settled since",
+            "description": "The code was right and the session is spent. Each item is signed or reported failed, independently: `signed` with the trainee's agreement state, `failed` with a reason (`request_not_pending`, `client_archived`, `signer_not_of_client`, `sheet_busy`, `slot_not_on_sheet`, `missing_sheet_data`, `row_locked`, the signer's `already_signed`, `locked_field`, `unknown_fields`, `cannot_certify`, `signer_refused`, `signer_unavailable`, `pdf_unavailable`, `template_missing`, `signing_failed`), `agreements` likewise, with `agreement_not_awaiting` for one signed or settled since, `agreement_changed` for one that no longer says what it said when the code was asked for, and `missing_document_data`",
             "content": {
               "application/json": {
                 "schema": {
@@ -31412,7 +31564,7 @@
             }
           },
           "404": {
-            "description": "The session is not the caller's (reason `signing_session_not_found`)",
+            "description": "The session is not the caller's, or was asked for in another place or participation (reason `signing_session_not_found`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31422,7 +31574,7 @@
             }
           },
           "409": {
-            "description": "The code was refused and nothing was signed: `code_invalid` (the attempts left in the message), `code_attempts_exceeded`, `code_expired`, `code_already_used`",
+            "description": "The code was refused and nothing was signed: `code_invalid` (with `attemptsLeft`), `code_attempts_exceeded`, `code_expired`, `code_already_used`",
             "content": {
               "application/json": {
                 "schema": {
@@ -31442,7 +31594,7 @@
             }
           },
           "503": {
-            "description": "The signing secrets are not configured (reason `signing_unavailable`); the code is not spent",
+            "description": "The signing secrets are not configured (reason `signing_unavailable`), or there is no signer (`signer_unavailable`) or converter (`pdf_unavailable`); the code is not spent",
             "content": {
               "application/json": {
                 "schema": {
@@ -31826,7 +31978,7 @@
             }
           },
           "409": {
-            "description": "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`)",
+            "description": "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`), or the client's legal representative's name or role is not filled in (reason `missing_document_data`, the codes under `missing`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -31933,7 +32085,7 @@
             }
           },
           "409": {
-            "description": "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`)",
+            "description": "The employee has neither an email nor a phone, so the agreement cannot say where the codes go (reason `employee_has_no_address`), or the client's legal representative's name or role is not filled in (reason `missing_document_data`, the codes under `missing`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -32066,7 +32218,7 @@
         "operationId": "createPortalSigningSession",
         "tags": ["portal"],
         "summary": "Ask for a signing code for the listed requests and agreements",
-        "description": "The participant's pending requests under the participation's client and, in `agreementEmployeeIds`, signing agreements: an employee their own, while it awaits them; the client administrator the client's employees' agreements the employee has signed and the employer has not. The code goes to the email the app holds for the person, else by SMS to the phone.",
+        "description": "The participant's pending requests under the participation's client and, in `agreementEmployeeIds`, signing agreements, at most 30 items in all. The party is decided per agreement: the participant's own while it awaits the employee is theirs as the employee, an administrator's who is that employee included; any of the client's that awaits the employer is the administrator's. The code goes to the email the app holds for the person, else by SMS to the phone.",
         "security": [
           {
             "bearerAuth": []
@@ -32145,7 +32297,7 @@
             }
           },
           "409": {
-            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`), or the account has no address for the code (reason `signer_has_no_address`)",
+            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`, with `retryAfterSeconds`), the account has no address for the code (reason `signer_has_no_address`), or an agreement's client has no legal representative filled in (reason `missing_document_data`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -32220,7 +32372,7 @@
         },
         "responses": {
           "200": {
-            "description": "The code was right and the session is spent. Each item is signed or reported failed, independently: `signed` with the trainee's agreement state, `failed` with a reason (`request_not_pending`, `sheet_busy`, `slot_not_on_sheet`, `missing_sheet_data`, `signer_unavailable`, `pdf_unavailable`, `template_missing`, `signing_failed`), `agreements` likewise, with `agreement_not_awaiting` for one signed or settled since",
+            "description": "The code was right and the session is spent. Each item is signed or reported failed, independently: `signed` with the trainee's agreement state, `failed` with a reason (`request_not_pending`, `client_archived`, `signer_not_of_client`, `sheet_busy`, `slot_not_on_sheet`, `missing_sheet_data`, `row_locked`, the signer's `already_signed`, `locked_field`, `unknown_fields`, `cannot_certify`, `signer_refused`, `signer_unavailable`, `pdf_unavailable`, `template_missing`, `signing_failed`), `agreements` likewise, with `agreement_not_awaiting` for one signed or settled since, `agreement_changed` for one that no longer says what it said when the code was asked for, and `missing_document_data`",
             "content": {
               "application/json": {
                 "schema": {
@@ -32270,7 +32422,7 @@
             }
           },
           "409": {
-            "description": "The code was refused and nothing was signed: `code_invalid` (the attempts left in the message), `code_attempts_exceeded`, `code_expired`, `code_already_used`",
+            "description": "The code was refused and nothing was signed: `code_invalid` (with `attemptsLeft`), `code_attempts_exceeded`, `code_expired`, `code_already_used`",
             "content": {
               "application/json": {
                 "schema": {
@@ -32290,7 +32442,7 @@
             }
           },
           "503": {
-            "description": "The signing secrets are not configured (reason `signing_unavailable`); the code is not spent",
+            "description": "The signing secrets are not configured (reason `signing_unavailable`), or there is no signer (`signer_unavailable`) or converter (`pdf_unavailable`); the code is not spent",
             "content": {
               "application/json": {
                 "schema": {
