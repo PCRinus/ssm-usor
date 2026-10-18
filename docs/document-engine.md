@@ -596,6 +596,47 @@ template apply to them as well. `apps/api/src/modules/trainings/sheet-handlers.t
 the real files with the data the API builds. `pnpm --filter @ssm-usor/document-engine preview`
 renders each sheet for an employee with every training recorded and for a new hire with none.
 
+### The signed sheet
+
+Each sheet template is also the form of the signed sheet
+([ADR 023](architecture/adr-023-advanced-electronic-signature.md)): the PDF stored once signing
+starts, filled one row per training record and signed row by row
+(`apps/api/src/modules/signed-sheets`, [PDF](pdf.md#the-signed-sheet)). The merge data's `form`
+chooses the variant of each part:
+
+| `form`         | What it holds                                                                                                                                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `on`           | False on the paper sheet, which prints exactly as before the form existed: `paperForm(domain)` in `sheet.ts` gives every flag false. True on the signed sheet                                                                  |
+| `continuation` | "Fișa nr. 2, în continuarea fișei nr. 1" under the title of a continuation sheet; empty on the first                                                                                                                           |
+| `h1`, `h2`     | `{ paper }`: the hiring block prints as text, each signature box saying _semnat pe hârtie_, for a training recorded from a paper sheet (`source` paper); else every value and signature is a field. The admission follows `h2` |
+| `rows`         | `p1`… (and `s1`… on the occupational safety sheet): true where the table row prints as fields; the rows taken by trainings from paper print as text above them, from `periodic` and `supplementary` as on paper                |
+
+On the signed sheet every cell a training or a signature fills is a Word plain-text content
+control (`w:sdt`) titled with the field's name. LibreOffice exports a content control as a PDF
+text field over the space its placeholder takes, so the builder fills each with lines of en
+spaces across its cell: one line for a date or a duration, three for an occupation, a material
+and a signature. LibreOffice names the fields `Widget`, `_2`, `_3`… and puts the title in the
+tooltip, and the signer's `prepareSheet` names each by its tooltip ([PDF](pdf.md#signer)). Word's
+legacy form fields (`FORMTEXT`) were the first choice and are not exported at all.
+
+The names, in `packages/contracts/src/signed-sheet.ts` (`sheetFieldNames`), are the row key and
+the column:
+
+| Row                                | Text fields                                                                   | Note      | Signature fields                                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------- |
+| `h1` introductory general          | `h1_date`, `h1_duration`, `h1_trainer`, `h1_trainer_job_title`, `h1_material` | `h1_note` | SSM `h1_sig_trainee`, `h1_sig_trainer`, `h1_sig_verifier`; PSI `h1_sig_trainer`, `h1_sig_trainee` |
+| `h2` workplace                     | as `h1`, with `h2_place`, and on the fire-safety sheet `h2_occupation`        | `h2_note` | as `h1`                                                                                           |
+| `adm` admission, filled by `h2`    | `adm_name`, `adm_job_title`, `adm_date`                                       |           | SSM `adm_sig`; the fire-safety form's admission has no signature                                  |
+| `p1`…`p17` periodic                | `p1_date`, `p1_duration`, `p1_occupation`, `p1_material`                      | `p1_note` | SSM trainee, trainer, verifier; PSI trainee, trainer (`p1_sig_trainee`, …)                        |
+| `s1`…`s17` supplementary, SSM only | as `p`                                                                        | `s1_note` | as `p` on the SSM sheet                                                                           |
+
+On the fire-safety sheet the box beside the trainee's is the trainer's slot, as ADR 021 has the
+record name the person who verified as its trainer, and a supplementary training is a `p` row.
+A table holds 17 rows, a page (`rowCapacity`), which the form's rows fit at their minimum
+height. The note, under the date, takes _anulat_ when a row is voided and _semnat pe hârtie_
+for a record from paper placed after its sheet was made; a signature never locks it. The API's
+`form.test.ts` holds the templates' titles to `sheetFieldNames`.
+
 ## The signing templates
 
 Two templates give the employer's choice of the electronic signature its footing

@@ -22,6 +22,8 @@ stay out of the API's deployment: a problem here cannot block an API release.
 ```ts
 convertDocx(docx: ArrayBuffer): Promise<ArrayBuffer>;
 convertDocuments(files: ArrayBuffer[]): Promise<ArrayBuffer>;
+convertForm(docx: ArrayBuffer): Promise<ArrayBuffer>;
+mergePdfs(files: ArrayBuffer[]): Promise<ArrayBuffer>;
 ```
 
 `convertDocuments` is one PDF of several Word files in the order given, for a document and
@@ -41,6 +43,16 @@ document, such as a container that did not start, is tried once more after two s
 
 LibreOffice converts almost anything it is handed, a text file included, so the caller checks
 that the bytes are a `.docx` before asking.
+
+`convertForm` is the [signed sheet](#the-signed-sheet)'s conversion: the same route, without
+PDF/A. Gotenberg exports form fields by default (`exportFormFields`), and LibreOffice keeps them
+under PDF/A-2b too, but a PDF/A export is tagged, and the structure tree references every field's
+widget, so pyHanko's analysis of what changed after a signature counts each later fill as an
+unexplained change to the signed revision, and every signature but the newest stops validating.
+Without PDF/A the PDF is untagged and every fill is a permitted change. The fonts are embedded
+either way. PDF/A for the signed sheet waits for the archiving of #487; every other PDF stays
+PDF/A-2b. `mergePdfs` is Gotenberg's `/forms/pdfengines/merge` with `flatten=true`: one PDF of
+several, in the order given, their fields drawn into the pages.
 
 ## How the API uses it
 
@@ -75,8 +87,42 @@ print dialog on it; a browser without a PDF viewer gets the file as a download i
 The individual training sheets ([document engine](document-engine.md#sheets)) are the one PDF
 made outside the documents: `GET /clients/{clientId}/employees/{employeeId}/training-sheet`
 merges the sheet's template, converts it with the same converter and answers the PDF, storing
-nothing. Without a converter it answers `503 pdf_unavailable`, so opening a sheet locally needs
-`pnpm dev:pdf` and `GOTENBERG_URL`.
+nothing, until signing starts and the sheet is stored (below). Without a converter it answers
+`503 pdf_unavailable`, so opening a sheet locally needs `pnpm dev:pdf` and `GOTENBERG_URL`.
+
+## The signed sheet
+
+Once signing starts, an employee's sheet of a domain is a stored PDF form
+([ADR 023](architecture/adr-023-advanced-electronic-signature.md)), made, filled and signed by
+`apps/api/src/modules/signed-sheets`, whose functions the signing flow calls:
+
+| Function                                                      | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ensureSignedSheet(ctx, employeeId, domain)`                  | The current sheet, the highest `sequence` while `rows_used < row_capacity`; else a new one: the template merged with `form.on` ([fields](document-engine.md#the-signed-sheet)), `convertForm`, `prepareSheet` with every signature field, stored, a `signed_sheets` row at version 1. An employee's first sheet prints the trainings recorded from paper (`source` paper) as text in the rows they take, with `signed_sheet_rows` and no fields, and runs on to continuation sheets when they fill a table |
+| `placeRecord(ctx, recordId)`                                  | The record's row: `h1` or `h2` for the hiring trainings, the workplace one filling the admission too, else the next free `p` (or `s`, the occupational safety sheet's supplementary table) row of the current sheet, on a continuation sheet when it is full. Claims the row, then `fillFields` with what the paper sheet prints. A record already placed keeps its row, filled again while nobody has signed it since                                                                                     |
+| `voidRow(ctx, recordId)`                                      | Writes _anulat_ in the row's note and sets `voided_at`; the signatures stay, and the record takes another row when placed again                                                                                                                                                                                                                                                                                                                                                                            |
+| `applySignature(ctx, recordId, slot, signer, signedAt, sign)` | `beginSignature` on the slot's field, certifying with the first signature on the sheet, locking the row's text, the appearance `[name, jobTitle, "semnat electronic", day]`; `sign(toSign)` makes the raw signature; `finishSignature`; answers `{ digestBefore, digestAfter, sheetId, version }` for the evidence                                                                                                                                                                                         |
+| `currentSheetPdf(ctx, employeeId, domain)`                    | The stored sheet as it is, several merged with `mergePdfs`, or null before signing                                                                                                                                                                                                                                                                                                                                                                                                                         |
+
+`signedSheetContext(c)` gives them the secret key's database client and documents bucket, the
+converter and the signer: the caller decides who may act before calling. Every version of a
+sheet is a file of its own, `signed-sheets/{clientId}/{employeeId}/{domain}-{sequence}/v{version}-{nonce}.pdf`
+in the `documents` bucket, and the row's `storage_path` and `digest` point at the current one. A
+write reads the current version, checks its bytes against the digest, makes the next one and
+moves the row on only where `version` is still the one it read; when another write got there
+first, its file is removed and it tries once more on the newer bytes, `sign` included, then
+answers `409 sheet_busy`. A Postgres advisory lock was the alternative and does not fit: a write
+spans calls to the signer, and PostgREST holds no transaction between requests. The earlier
+versions stay, so the evidence's `digest_before` names a file that still exists.
+
+The text of a cell is broken into lines by the API (`wrapToBox`) in the field's proportions,
+and the signer sets a text too long for its field in a smaller size, never below what keeps every
+line inside it.
+
+`pnpm --filter @ssm-usor/api signed-sheet:check:local -- --out <folder>`, with `GOTENBERG_URL`
+and `SIGNER_URL` set, runs all of it on the local stack with a throwaway certificate authority:
+it records trainings for a seeded employee, places, signs, voids and continues, validates every
+signature, writes the PDFs to the folder and removes what it made. CI does not run it.
 
 ## The container
 
@@ -145,8 +191,10 @@ finishSignature(prepared: ArrayBuffer, sessionToken: string, signature: ArrayBuf
 validate(pdf: ArrayBuffer): Promise<SignatureValidation[]>;
 ```
 
-`prepareSheet` turns the named text fields, the signature cells LibreOffice exported, into
-signature fields of the same rectangle. `fillFields` writes values as an incremental update,
+`prepareSheet` first names every field by its tooltip, where LibreOffice puts the title of the
+content control it exported, since it names the fields themselves `Widget`, `_2`, `_3`…, and
+empties the blank placeholder LibreOffice exports as a field's value. It then turns the named
+text fields, the signature cells, into signature fields of the same rectangle. `fillFields` writes values as an incremental update,
 each with its appearance drawn in an embedded Liberation Sans, so no viewer needs to redraw
 fields and earlier signatures stay valid. Unknown field names are refused.
 
