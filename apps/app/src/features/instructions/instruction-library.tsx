@@ -144,7 +144,7 @@ export function InstructionLibrary({
       )}
       {uploaded.length > 0 && (
         <Notice variant="info" data-testid="instruction-uploaded">
-          Titlul este primul rând al fișierului, iar grupul „Activități”. Le corectezi din meniul
+          Titlul este primul rând al fișierului, iar categoria „Activități”. Le corectezi din meniul
           rândului, ca și domeniul, cât timp niciun post nu aplică instrucțiunea.
         </Notice>
       )}
@@ -216,7 +216,7 @@ export function InstructionLibrary({
               <TableHeader>
                 <TableRow>
                   <TableHead>Titlu</TableHead>
-                  <TableHead>Grup</TableHead>
+                  <TableHead>Categorie</TableHead>
                   <TableHead>Versiune</TableHead>
                   <TableHead>Aplicată la</TableHead>
                   <TableHead className="w-12">
@@ -274,7 +274,7 @@ export function InstructionLibrary({
                             data-testid="instruction-rename"
                             onSelect={() => setEditing(module)}
                           >
-                            Titlu, grup și domeniu
+                            Titlu, categorie și domeniu
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {module.archivedAt ? (

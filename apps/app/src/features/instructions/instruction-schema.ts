@@ -28,11 +28,15 @@ export const domainHints: Record<InstructionDomain, string> = {
   psi: 'Anexată la instrucțiunile proprii PSI și citată de tematica PSI.',
 };
 
-export const groupHints: Record<InstructionModuleGroup, string> = {
-  work_activity: 'Munca de birou, curățenia, servirea, conducerea autovehiculelor.',
-  work_equipment: 'O scară, un aparat de sudură, un polizor, o mașină de găurit.',
-  protective_equipment: 'Purtarea unei căști, a mănușilor, a ochelarilor de protecție.',
+const groupExamples: Record<InstructionModuleGroup, string> = {
+  work_activity: 'munca de birou, curățenia, servirea, conducerea autovehiculelor',
+  work_equipment: 'o scară, un aparat de sudură, un polizor, o mașină de găurit',
+  protective_equipment: 'purtarea unei căști, a mănușilor, a ochelarilor de protecție',
 };
+
+export function groupHint(group: InstructionModuleGroup) {
+  return `Locul instrucțiunii în bibliotecă și printre anexele instrucțiunilor proprii: întâi activitățile, apoi echipamentele de muncă, apoi echipamentul de protecție. ${groupLabels[group]}: ${groupExamples[group]}.`;
+}
 
 /** "Nicio instrucțiune", "O instrucțiune", "3 instrucțiuni", "20 de instrucțiuni". */
 export function moduleCountLabel(count: number) {

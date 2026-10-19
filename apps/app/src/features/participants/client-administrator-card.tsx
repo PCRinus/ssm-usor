@@ -17,9 +17,6 @@ import {
 } from './participant-actions';
 
 function employeesWithAccess(count: number) {
-  if (count === 0) {
-    return 'Niciun angajat nu are încă acces la portal. Îi inviți din pagina fiecărui angajat.';
-  }
   if (count === 1) return '1 angajat are acces la portal.';
   const tail = count % 100;
   return tail === 0 || tail >= 20
@@ -42,6 +39,7 @@ export function ClientAdministratorCard({ client, userId }: { client: Client; us
     list.data?.invitations.filter((item) => item.kind === 'client_administrator') ?? [];
   const employeeCount =
     list.data?.participants.filter((item) => item.kind === 'employee').length ?? 0;
+  const noAdministrator = administrators.length === 0 && invitations.length === 0;
 
   return (
     <SectionCard
@@ -86,11 +84,24 @@ export function ClientAdministratorCard({ client, userId }: { client: Client; us
         </Notice>
       ) : (
         <>
-          {administrators.length === 0 && invitations.length === 0 ? (
-            <p data-testid="client-administrator-empty" className="text-sm text-muted-foreground">
-              Administratorul clientului nu a fost invitat în portal.
-            </p>
-          ) : (
+          {(noAdministrator || employeeCount === 0) && (
+            <Notice variant="info" title="Fără acces încă" data-testid="client-portal-missing">
+              <ul className="grid list-disc gap-1 pl-4">
+                {noAdministrator && (
+                  <li data-testid="client-administrator-empty">
+                    Administratorul clientului nu a fost invitat în portal.
+                  </li>
+                )}
+                {employeeCount === 0 && (
+                  <li data-testid="client-employees-with-access">
+                    Niciun angajat nu are încă acces la portal. Îi inviți din pagina fiecărui
+                    angajat.
+                  </li>
+                )}
+              </ul>
+            </Notice>
+          )}
+          {!noAdministrator && (
             <ul className="grid divide-y">
               {administrators.map((participant) => (
                 <li
@@ -123,9 +134,11 @@ export function ClientAdministratorCard({ client, userId }: { client: Client; us
               ))}
             </ul>
           )}
-          <p data-testid="client-employees-with-access" className="text-sm text-muted-foreground">
-            {employeesWithAccess(employeeCount)}
-          </p>
+          {employeeCount > 0 && (
+            <p data-testid="client-employees-with-access" className="text-sm text-muted-foreground">
+              {employeesWithAccess(employeeCount)}
+            </p>
+          )}
         </>
       )}
       <InviteAdministratorDialog
