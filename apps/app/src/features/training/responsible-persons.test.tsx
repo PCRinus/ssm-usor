@@ -139,6 +139,11 @@ const requests = (pathname: string, method: string) =>
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training`);
 
+const renderedRoles = () =>
+  Array.from(document.querySelectorAll('[data-testid^="responsible-role-"]')).map((checkbox) =>
+    checkbox.getAttribute('data-testid')!.replace('responsible-role-', '')
+  );
+
 beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
@@ -324,17 +329,39 @@ describe('client responsible persons', () => {
     ).toEqual(['Luca Paolo-AntonioManager magazin']);
   });
 
-  it('keeps the workers’ representative off below 10 employees', async () => {
+  it('lists the occupational safety roles, the fire safety ones, then the representative', async () => {
+    mockApi({ items: [], client: { ...sampleClient, currentEmployeeCount: 10 } });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-add'));
+    await screen.findByTestId('responsible-role-workers_representative');
+    expect(renderedRoles()).toEqual([
+      'workplace_manager',
+      'first_aid',
+      'imminent_danger',
+      'risk_evaluation_team',
+      'fire_safety_coordinator',
+      'fire_intervention_leader',
+      'workers_representative',
+    ]);
+  });
+
+  it('leaves the workers’ representative out below 10 employees', async () => {
     mockApi({ items: [], client: { ...sampleClient, currentEmployeeCount: 6 } });
     mount();
     const user = userEvent.setup();
 
     await user.click(await screen.findByTestId('responsible-add'));
-    const representative = await screen.findByTestId('responsible-role-workers_representative');
-    await waitFor(() => expect(representative.hasAttribute('disabled')).toBe(true));
-    expect(
-      document.getElementById('responsible-role-workers_representative-description')?.textContent
-    ).toBe('Clientul are 6 angajați; reprezentantul lucrătorilor se alege de la 10.');
+    await screen.findByTestId('responsible-role-fire_intervention_leader');
+    expect(renderedRoles()).toEqual([
+      'workplace_manager',
+      'first_aid',
+      'imminent_danger',
+      'risk_evaluation_team',
+      'fire_safety_coordinator',
+      'fire_intervention_leader',
+    ]);
   });
 
   it('lets someone who holds the role below 10 employees keep or drop it', async () => {
@@ -349,9 +376,10 @@ describe('client responsible persons', () => {
     await user.click(await screen.findByTestId('responsible-edit'));
     const representative = await screen.findByTestId('responsible-role-workers_representative');
     expect(representative.getAttribute('data-state')).toBe('checked');
+    expect(representative.hasAttribute('disabled')).toBe(false);
     await user.click(representative);
     expect(representative.getAttribute('data-state')).toBe('unchecked');
-    expect(representative.hasAttribute('disabled')).toBe(false);
+    expect(screen.getByTestId('responsible-role-workers_representative')).toBe(representative);
   });
 
   it('offers the role below 10 employees when a row of missing data asks for it', async () => {

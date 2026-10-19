@@ -37,7 +37,6 @@ import { ApiHttpError } from '@/api/http';
 import { Field, FieldMessage } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { employeeCountLabel } from '@/features/job-positions/job-position-schema';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
 import { type Administrator, administratorValue, EmployeeCombobox } from './employee-combobox';
@@ -47,10 +46,20 @@ import {
   responsiblePersonFormSchema,
   type ResponsiblePersonFormValues,
   responsibleRoleLabels,
-  responsibleRoleOrder,
   toResponsiblePersonForm,
   toResponsiblePersonRequest,
 } from './responsible-person-schema';
+
+// Only the dialog reads this way; saved roles and badges keep the order of the database enum.
+const dialogRoleOrder: readonly ResponsiblePersonRole[] = [
+  'workplace_manager',
+  'first_aid',
+  'imminent_danger',
+  'risk_evaluation_team',
+  'fire_safety_coordinator',
+  'fire_intervention_leader',
+  'workers_representative',
+];
 
 // `null` is closed, 'new' adds a person, and a person edits them.
 export type ResponsiblePersonEditing = ResponsiblePerson | 'new' | null;
@@ -144,12 +153,17 @@ function ResponsiblePersonForm({
       : null;
   const administratorChosen =
     administrator != null && !employeeId && samePersonName(typedName, administrator.fullName);
-  const representativeBlock = workersRepresentativeBlock({
-    administratorChosen,
-    employeeCount: client.data?.client.currentEmployeeCount,
-    holdsRole: person?.roles.includes('workers_representative') ?? false,
-    pointedRole,
-  });
+  const employeeCount = client.data?.client.currentEmployeeCount;
+  // Below 10 employees the role does not exist (H.G. 1425/2006 art. 53), unless the person
+  // already holds it, to be unticked, or a decision 1.5 generated earlier asks for it through a
+  // row of missing data.
+  const representativeOffered =
+    (person?.roles.includes('workers_representative') ?? false) ||
+    pointedRole === 'workers_representative' ||
+    (employeeCount !== undefined && requiredWorkersRepresentatives(employeeCount) > 0);
+  const roles = representativeOffered
+    ? dialogRoleOrder
+    : dialogRoleOrder.filter((role) => role !== 'workers_representative');
   const contractTitleHint =
     contractTitle && contractTitle !== typedTitle.trim()
       ? `În contractul angajatului este acum „${contractTitle}”.`
@@ -384,11 +398,11 @@ function ResponsiblePersonForm({
               name="roles"
               render={({ field }) => (
                 <>
-                  {responsibleRoleOrder.map((role) => {
+                  {roles.map((role) => {
                     const id = `responsible-role-${role}`;
                     const blocked =
                       role === 'workers_representative' &&
-                      representativeBlock !== null &&
+                      administratorChosen &&
                       !field.value.includes(role);
                     return (
                       <div key={role} className="flex items-start gap-3">
@@ -419,7 +433,7 @@ function ResponsiblePersonForm({
                           </label>
                           <p id={`${id}-description`} className="text-xs text-muted-foreground">
                             {blocked
-                              ? representativeBlock
+                              ? 'Nu poate fi reprezentantul legal. Se alege dintre angajații clientului.'
                               : responsibleRoleLabels[role].description}
                           </p>
                         </div>
@@ -451,36 +465,4 @@ function ResponsiblePersonForm({
       </form>
     </DialogContent>
   );
-}
-
-// Why the workers' representative cannot be ticked, or null when it can. Below 10 employees the
-// role does not exist (H.G. 1425/2006 art. 53), unless the person already holds it, to be
-// unticked, or a decision 1.5 generated earlier asks for it through a row of missing data.
-function workersRepresentativeBlock({
-  administratorChosen,
-  employeeCount,
-  holdsRole,
-  pointedRole,
-}: {
-  administratorChosen: boolean;
-  employeeCount: number | undefined;
-  holdsRole: boolean;
-  pointedRole: ResponsiblePersonRole | null;
-}) {
-  if (administratorChosen) {
-    return 'Nu poate fi reprezentantul legal. Se alege dintre angajații clientului.';
-  }
-  if (
-    employeeCount === undefined ||
-    requiredWorkersRepresentatives(employeeCount) > 0 ||
-    holdsRole ||
-    pointedRole === 'workers_representative'
-  ) {
-    return null;
-  }
-  const headcount =
-    employeeCount === 0
-      ? 'Clientul nu are angajați'
-      : `Clientul are ${employeeCountLabel(employeeCount).toLocaleLowerCase('ro')}`;
-  return `${headcount}; reprezentantul lucrătorilor se alege de la 10.`;
 }
