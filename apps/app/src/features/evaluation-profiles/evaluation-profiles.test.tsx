@@ -400,7 +400,8 @@ describe('a profile page', () => {
     await user.click(await screen.findByTestId('risk-factor-add'));
     await screen.findByTestId('risk-factor-dialog');
     await user.selectOptions(screen.getByTestId('risk-factor-component'), 'work_environment');
-    await user.type(screen.getByTestId('risk-factor-group'), 'Factori de risc fizic');
+    await user.click(screen.getByTestId('risk-factor-group'));
+    await user.click(screen.getByRole('option', { name: 'Factori de risc fizic' }));
     await user.type(screen.getByTestId('risk-factor-description'), 'Vibrații la volan');
     await user.selectOptions(screen.getByTestId('risk-factor-gravity'), '2');
     await user.selectOptions(screen.getByTestId('risk-factor-probability'), '5');
@@ -538,7 +539,12 @@ describe('an evaluation and the library', () => {
     mount(accountantEvaluationPath);
     const user = userEvent.setup();
     const nudge = await screen.findByTestId('risk-library-nudge');
-    expect(nudge.textContent).toContain('Factorii nu sunt încă în biblioteca de riscuri.');
+    expect(nudge.textContent).toContain(
+      'Factorii nu sunt încă în biblioteca de riscuri a organizației tale (meniul Riscuri).'
+    );
+    expect(within(nudge).getByRole('link', { name: 'meniul Riscuri' }).getAttribute('href')).toBe(
+      '/risks'
+    );
     expect(screen.queryByTestId('risk-evaluation-save-as-profile')).toBeNull();
     await user.click(within(nudge).getByTestId('risk-library-nudge-save'));
     const dialog = await screen.findByTestId('profile-name-dialog');

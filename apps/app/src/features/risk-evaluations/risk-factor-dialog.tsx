@@ -4,6 +4,7 @@ import {
   preventionMeasureKinds,
   riskLevel,
   sheetComponents,
+  type WorkSystemComponent,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
@@ -25,8 +26,8 @@ import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
 import { Plus, X } from 'lucide-react';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { useFieldArray, useForm, useWatch } from 'react-hook-form';
+import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from 'react';
+import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 
 import {
   getListRiskFactorSuggestionsQueryKey,
@@ -38,6 +39,8 @@ import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
+import { FactorGroupCombobox } from './factor-group-combobox';
+import { groupUnder } from './factor-groups';
 import type { FactorStore } from './factor-store';
 import {
   componentLabels,
@@ -194,11 +197,11 @@ function RiskFactorForm({
   const [addAnother, setAddAnother] = useState(readAddAnother);
   const next = useRef<Pick<FactorFormValues, 'component' | 'group'> | null>(null);
   const { errors, isSubmitting: busy } = form.formState;
-  const [group, actions, deadline, responsiblePerson, observations, gravity, probability] =
+  const [component, actions, deadline, responsiblePerson, observations, gravity, probability] =
     useWatch({
       control: form.control,
       name: [
-        'group',
+        'component',
         'actions',
         'deadline',
         'responsiblePerson',
@@ -313,7 +316,13 @@ function RiskFactorForm({
             id="risk-factor-component"
             data-testid="risk-factor-component"
             disabled={busy}
-            {...form.register('component')}
+            {...form.register('component', {
+              onChange: (event: ChangeEvent<HTMLSelectElement>) => {
+                const group = form.getValues('group');
+                const kept = groupUnder(event.target.value as WorkSystemComponent, group);
+                if (kept !== group) form.setValue('group', kept);
+              },
+            })}
           >
             {sheetComponents.map((component) => (
               <NativeSelectOption key={component} value={component}>
@@ -327,19 +336,25 @@ function RiskFactorForm({
           label="Grupa"
           mark="required"
           error={errors.group}
-          hint="„Factori de risc mecanic”, „Acțiuni greșite”."
+          hint="Alege una dintre grupele componentei sau scrie alta."
         >
-          <Input
-            id="risk-factor-group"
-            data-testid="risk-factor-group"
-            list="risk-factor-group-suggestions"
-            autoComplete="off"
-            disabled={busy}
-            aria-invalid={Boolean(errors.group)}
-            aria-describedby={describedBy('risk-factor-group', Boolean(errors.group))}
-            {...form.register('group')}
+          <Controller
+            control={form.control}
+            name="group"
+            render={({ field }) => (
+              <FactorGroupCombobox
+                id="risk-factor-group"
+                testId="risk-factor-group"
+                component={component}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                disabled={busy}
+                invalid={Boolean(errors.group)}
+                describedBy={describedBy('risk-factor-group', Boolean(errors.group))}
+              />
+            )}
           />
-          <Suggestions id="risk-factor-group-suggestions" field="group" query={group} />
         </Field>
         <Field
           id="risk-factor-description"

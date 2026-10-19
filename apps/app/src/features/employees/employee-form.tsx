@@ -404,6 +404,7 @@ export function EmployeeForm({
                 id="qualification"
                 data-testid="employee-qualification"
                 className="h-11"
+                placeholder="de exemplu, electrician, contabil"
                 {...register('qualification')}
                 autoComplete="off"
                 {...control('qualification')}
@@ -414,6 +415,7 @@ export function EmployeeForm({
                 id="education"
                 data-testid="employee-education"
                 className="h-11"
+                placeholder="de exemplu, medii, superioare tehnice"
                 {...register('education')}
                 autoComplete="off"
                 {...control('education')}

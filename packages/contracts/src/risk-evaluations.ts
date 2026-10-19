@@ -28,6 +28,30 @@ export const sheetComponents = [
   'work_task',
 ] as const satisfies readonly WorkSystemComponent[];
 
+// The INCDPM method's groups under each component. A factor's group stays free text: the
+// library and older evaluations hold groups outside this list.
+export const workSystemComponentGroups = {
+  means_of_production: [
+    'Factori de risc mecanic',
+    'Factori de risc termic',
+    'Factori de risc electric',
+    'Factori de risc chimic',
+    'Factori de risc biologic',
+  ],
+  work_environment: [
+    'Factori de risc fizic',
+    'Factori de risc chimic',
+    'Factori de risc biologic',
+    'Caracterul special al mediului',
+  ],
+  work_task: [
+    'Conținut necorespunzător al sarcinii de muncă',
+    'Suprasolicitare fizică',
+    'Suprasolicitare psihică',
+  ],
+  executant: ['Acțiuni greșite', 'Omisiuni'],
+} as const satisfies Record<WorkSystemComponent, readonly string[]>;
+
 export const preventionMeasureKinds = [
   'technical',
   'organizational',
