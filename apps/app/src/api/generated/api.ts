@@ -86,6 +86,7 @@ export const ApiErrorResponseMissingItem = {
   positionsequipment: 'positions.equipment',
   positionsinstructions: 'positions.instructions',
   positionsrisk_evaluation: 'positions.risk_evaluation',
+  risk_evaluationssensitive_groups: 'risk_evaluations.sensitive_groups',
   risk_evaluationsmeasures: 'risk_evaluations.measures',
   risk_evaluationsplan: 'risk_evaluations.plan',
   documentsown_instructions: 'documents.own_instructions',
@@ -2692,8 +2693,18 @@ export type RiskEvaluationListResponseItemsItem = {
   unacceptableFactorCount: number;
 };
 
+export type RiskEvaluationListResponseSensitiveGroupsState =
+  (typeof RiskEvaluationListResponseSensitiveGroupsState)[keyof typeof RiskEvaluationListResponseSensitiveGroupsState];
+
+export const RiskEvaluationListResponseSensitiveGroupsState = {
+  undecided: 'undecided',
+  none: 'none',
+  evaluated: 'evaluated',
+} as const;
+
 export interface RiskEvaluationListResponse {
   items: RiskEvaluationListResponseItemsItem[];
+  sensitiveGroupsState: RiskEvaluationListResponseSensitiveGroupsState;
 }
 
 export type RiskEvaluationResponseEvaluationKind =
@@ -3167,6 +3178,31 @@ export interface JobPositionRiskEvaluationResponse {
 
 export interface RiskFactorSuggestionsResponse {
   items: string[];
+}
+
+export type SensitiveGroupsStateResponseState =
+  (typeof SensitiveGroupsStateResponseState)[keyof typeof SensitiveGroupsStateResponseState];
+
+export const SensitiveGroupsStateResponseState = {
+  undecided: 'undecided',
+  none: 'none',
+  evaluated: 'evaluated',
+} as const;
+
+export interface SensitiveGroupsStateResponse {
+  state: SensitiveGroupsStateResponseState;
+}
+
+export type UpdateSensitiveGroupsStateRequestState =
+  (typeof UpdateSensitiveGroupsStateRequestState)[keyof typeof UpdateSensitiveGroupsStateRequestState];
+
+export const UpdateSensitiveGroupsStateRequestState = {
+  undecided: 'undecided',
+  none: 'none',
+} as const;
+
+export interface UpdateSensitiveGroupsStateRequest {
+  state: UpdateSensitiveGroupsStateRequestState;
 }
 
 export type EvaluationProfileListResponseItemsItem = {
@@ -5162,6 +5198,7 @@ export const RegenerationJobResponseJobItemsItemMissingItem = {
   positionsequipment: 'positions.equipment',
   positionsinstructions: 'positions.instructions',
   positionsrisk_evaluation: 'positions.risk_evaluation',
+  risk_evaluationssensitive_groups: 'risk_evaluations.sensitive_groups',
   risk_evaluationsmeasures: 'risk_evaluations.measures',
   risk_evaluationsplan: 'risk_evaluations.plan',
   documentsown_instructions: 'documents.own_instructions',
@@ -5296,6 +5333,7 @@ export const DocumentReadinessResponseMissingItem = {
   positionsequipment: 'positions.equipment',
   positionsinstructions: 'positions.instructions',
   positionsrisk_evaluation: 'positions.risk_evaluation',
+  risk_evaluationssensitive_groups: 'risk_evaluations.sensitive_groups',
   risk_evaluationsmeasures: 'risk_evaluations.measures',
   risk_evaluationsplan: 'risk_evaluations.plan',
   documentsown_instructions: 'documents.own_instructions',
@@ -16129,6 +16167,121 @@ export function useListRiskFactorSuggestions<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getUpdateSensitiveGroupsStateUrl = (clientId: string) => {
+  return `/clients/${clientId}/sensitive-groups-state`;
+};
+
+/**
+ * `none` declares that the client has no workers from the sensitive groups (pregnant, post-natal or breastfeeding women, young workers, people with disabilities), so the documents are generated without their evaluation; `undecided` leaves the question open again. `evaluated` is never sent: the database sets it while the sensitive groups evaluation exists, and `none` is refused meanwhile (`409`, reason `sensitive_groups_evaluated`).
+ * @summary Say whether a client has workers from the sensitive groups
+ */
+export const updateSensitiveGroupsState = async (
+  clientId: string,
+  updateSensitiveGroupsStateRequest: UpdateSensitiveGroupsStateRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SensitiveGroupsStateResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<SensitiveGroupsStateResponse>(getUpdateSensitiveGroupsStateUrl(clientId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateSensitiveGroupsStateRequest),
+  });
+};
+
+export const getUpdateSensitiveGroupsStateMutationKey = () =>
+  ['updateSensitiveGroupsState'] as const;
+
+export const getUpdateSensitiveGroupsStateMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSensitiveGroupsState>>,
+    TError,
+    UpdateSensitiveGroupsStateMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSensitiveGroupsState>>,
+  TError,
+  UpdateSensitiveGroupsStateMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateSensitiveGroupsStateMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSensitiveGroupsState>>,
+    UpdateSensitiveGroupsStateMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return updateSensitiveGroupsState(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSensitiveGroupsStateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSensitiveGroupsState>>
+>;
+export type UpdateSensitiveGroupsStateMutationBody = UpdateSensitiveGroupsStateRequest;
+export type UpdateSensitiveGroupsStateMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateSensitiveGroupsStateMutationVariables = {
+  clientId: string;
+  data: UpdateSensitiveGroupsStateRequest;
+};
+
+/**
+ * @summary Say whether a client has workers from the sensitive groups
+ */
+export const useUpdateSensitiveGroupsState = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateSensitiveGroupsState>>,
+      TError,
+      UpdateSensitiveGroupsStateMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateSensitiveGroupsState>>,
+  TError,
+  UpdateSensitiveGroupsStateMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateSensitiveGroupsStateMutationOptions(options), queryClient);
+};
 
 export const getListEvaluationProfilesUrl = () => {
   return `/evaluation-profiles`;

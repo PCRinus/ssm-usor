@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
-import { useId } from 'react';
+import { type ReactNode, useId } from 'react';
 
-import type { MissingGroup, MissingRow } from './missing-rows';
+import type { MissingAction, MissingGroup, MissingRow } from './missing-rows';
 
 const rowClass = 'flex min-h-12 items-center gap-3 px-4 py-2.5';
 
@@ -21,10 +21,12 @@ export function MissingDataList({
   groups,
   testId,
   onFollow,
+  renderAction,
 }: {
   groups: readonly MissingGroup[];
   testId: string;
   onFollow?: (row: MissingRow) => void;
+  renderAction?: (action: MissingAction, row: MissingRow) => ReactNode;
 }) {
   // Unique per list: a page can show one list per client.
   const id = useId();
@@ -47,28 +49,39 @@ export function MissingDataList({
               {group.hint && <p className="text-xs text-muted-foreground">{group.hint}</p>}
             </div>
             <ul className="divide-y overflow-hidden rounded-lg border">
-              {group.rows.map((row) => (
-                <li key={row.key}>
-                  {row.target ? (
-                    <Link
-                      {...row.target}
-                      data-testid={`${testId}-row`}
-                      onClick={() => onFollow?.(row)}
-                      className={`${rowClass} outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset`}
-                    >
-                      <RowText row={row} />
-                      <ChevronRight
-                        aria-hidden="true"
-                        className="size-4 shrink-0 text-muted-foreground"
-                      />
-                    </Link>
-                  ) : (
-                    <div data-testid={`${testId}-row`} className={rowClass}>
-                      <RowText row={row} />
-                    </div>
-                  )}
-                </li>
-              ))}
+              {group.rows.map((row) => {
+                const action = row.action && renderAction?.(row.action, row);
+                return (
+                  <li key={row.key} className={action ? 'sm:flex sm:items-center' : undefined}>
+                    {row.target ? (
+                      <Link
+                        {...row.target}
+                        data-testid={`${testId}-row`}
+                        onClick={() => onFollow?.(row)}
+                        className={`${rowClass} outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset sm:flex-1`}
+                      >
+                        <RowText row={row} />
+                        <ChevronRight
+                          aria-hidden="true"
+                          className="size-4 shrink-0 text-muted-foreground"
+                        />
+                      </Link>
+                    ) : (
+                      <div data-testid={`${testId}-row`} className={`${rowClass} sm:flex-1`}>
+                        <RowText row={row} />
+                      </div>
+                    )}
+                    {action && (
+                      <div
+                        data-testid={`${testId}-row-action`}
+                        className="flex justify-end px-4 pb-3 sm:py-0 sm:pl-0"
+                      >
+                        {action}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </section>
         );

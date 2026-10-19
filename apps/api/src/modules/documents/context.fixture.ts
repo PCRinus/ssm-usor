@@ -44,6 +44,7 @@ export const facts: DocumentFacts = {
     contactName: 'Florin-Cristian Taloș',
     contactPhone: ' 0722 111 222 ',
     contactEmail: 'office@pipetech.ro',
+    sensitiveGroupsState: 'evaluated',
   },
   workplaces: [
     {

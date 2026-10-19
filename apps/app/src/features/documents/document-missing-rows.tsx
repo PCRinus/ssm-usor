@@ -11,6 +11,7 @@ import { useMe } from '@/features/account/use-me';
 import { MissingDataList } from '@/features/missing-data/missing-data-list';
 import { documentMissingGroups } from '@/features/missing-data/missing-rows';
 import { startWayBack } from '@/features/missing-data/way-back';
+import { SensitiveGroupsNoneButton } from '@/features/risk-evaluations/sensitive-groups-none-button';
 
 import { setParams } from './document-sets';
 
@@ -57,6 +58,7 @@ export function DocumentMissingRows({
       groups={groups}
       testId={testId}
       onFollow={() => startWayBack({ userId, clientId, to: 'document', typeKey })}
+      renderAction={() => <SensitiveGroupsNoneButton clientId={clientId} />}
     />
   );
 }

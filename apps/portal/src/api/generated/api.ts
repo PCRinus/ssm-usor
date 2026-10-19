@@ -109,6 +109,7 @@ export const ApiErrorResponseMissingItem = {
   positionsequipment: 'positions.equipment',
   positionsinstructions: 'positions.instructions',
   positionsrisk_evaluation: 'positions.risk_evaluation',
+  risk_evaluationssensitive_groups: 'risk_evaluations.sensitive_groups',
   risk_evaluationsmeasures: 'risk_evaluations.measures',
   risk_evaluationsplan: 'risk_evaluations.plan',
   documentsown_instructions: 'documents.own_instructions',

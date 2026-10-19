@@ -91,7 +91,11 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
         occupational ? ['equipment', 'instructions'] : ['fire_instructions']
       ),
       incompleteRiskEvaluations: occupational
-        ? incompleteRiskEvaluations(facts.riskEvaluations, facts.jobPositions)
+        ? incompleteRiskEvaluations(
+            facts.riskEvaluations,
+            facts.jobPositions,
+            facts.client.sensitiveGroupsState
+          )
         : [],
     },
     200

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Badge } from '@ssm-usor/ui/components/badge';
+import type { SensitiveGroupsState } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -32,6 +32,8 @@ import {
   evaluationTitle,
   type RiskEvaluationSummary,
 } from './risk-evaluation-schema';
+import { noSensitiveGroupsLabel } from './sensitive-groups-none-button';
+import { useSensitiveGroupsState } from './use-sensitive-groups-state';
 import { useStartEvaluation } from './use-start-evaluation';
 
 export function ClientRiskEvaluationsCard({
@@ -49,10 +51,12 @@ export function ClientRiskEvaluationsCard({
     query: { queryKey: [...getListRiskEvaluationsQueryKey(clientId), userId] },
   });
   const { start, pending, failure } = useStartEvaluation(clientId);
+  const groupsState = useSensitiveGroupsState(clientId);
   const [adding, setAdding] = useState(false);
   const items = evaluations.data?.items ?? [];
   const sensitiveGroups = items.find((item) => item.kind === 'sensitive_groups') ?? null;
   const others = items.filter((item) => item.kind === 'other');
+  const error = failure?.message ?? groupsState.failure;
 
   return (
     <SectionCard
@@ -74,9 +78,9 @@ export function ClientRiskEvaluationsCard({
         )
       }
     >
-      {failure && (
+      {error && (
         <Notice variant="destructive" data-testid="client-risk-evaluations-error">
-          {failure.message}
+          {error}
         </Notice>
       )}
       {evaluations.isPending ? (
@@ -101,27 +105,13 @@ export function ClientRiskEvaluationsCard({
           {sensitiveGroups ? (
             <EvaluationRow evaluation={sensitiveGroups} />
           ) : (
-            <Row
-              title="Grupuri sensibile"
-              note="Numai dacă clientul are femei gravide sau care alăptează, tineri sub 18 ani, persoane cu dizabilități sau angajați cu restricții de la medicul de medicina muncii."
-              state={
-                <Badge variant="outline" className="text-muted-foreground">
-                  Opțional
-                </Badge>
-              }
-              action={
-                !readOnly && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    data-testid="sensitive-groups-start"
-                    disabled={pending}
-                    onClick={() => void start({ kind: 'sensitive_groups' })}
-                  >
-                    {pending ? 'Se pornește…' : 'Începe evaluarea'}
-                  </Button>
-                )
-              }
+            <SensitiveGroupsRow
+              state={evaluations.data.sensitiveGroupsState}
+              busy={pending || groupsState.pending}
+              starting={pending}
+              actions={!readOnly}
+              onStart={() => void start({ kind: 'sensitive_groups' })}
+              onDeclare={(state) => void groupsState.declare(state)}
             />
           )}
           {others.map((evaluation) => (
@@ -131,6 +121,75 @@ export function ClientRiskEvaluationsCard({
       )}
       <AddEvaluationDialog clientId={clientId} open={adding} onClose={() => setAdding(false)} />
     </SectionCard>
+  );
+}
+
+function SensitiveGroupsRow({
+  state,
+  busy,
+  starting,
+  actions,
+  onStart,
+  onDeclare,
+}: {
+  state: SensitiveGroupsState;
+  busy: boolean;
+  starting: boolean;
+  actions: boolean;
+  onStart: () => void;
+  onDeclare: (state: 'none' | 'undecided') => void;
+}) {
+  const declared = state === 'none';
+  return (
+    <Row
+      title="Grupuri sensibile"
+      note={
+        declared
+          ? 'Clientul a declarat că nu are astfel de lucrători; evaluarea riscurilor și planul de prevenire o menționează.'
+          : 'Femei gravide, lăuze sau care alăptează, tineri sub 18 ani, persoane cu dizabilități.'
+      }
+      state={
+        <DecisionBadge decision={declared ? false : null} data-testid="sensitive-groups-state">
+          {declared ? 'Declarat fără grupuri sensibile' : 'Neevaluat'}
+        </DecisionBadge>
+      }
+      action={
+        actions && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="sensitive-groups-start"
+              disabled={busy}
+              onClick={onStart}
+            >
+              {starting ? 'Se pornește…' : declared ? 'Evaluează totuși' : 'Evaluează'}
+            </Button>
+            {declared ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                data-testid="sensitive-groups-undo"
+                disabled={busy}
+                onClick={() => onDeclare('undecided')}
+              >
+                Modifică
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="sensitive-groups-none"
+                disabled={busy}
+                onClick={() => onDeclare('none')}
+              >
+                {noSensitiveGroupsLabel}
+              </Button>
+            )}
+          </>
+        )
+      }
+    />
   );
 }
 

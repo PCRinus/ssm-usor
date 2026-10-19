@@ -808,8 +808,9 @@ The API builds the data once per generation and merges every template with it
   instructions revision to cite (`documents.own_instructions`), as the fire-safety themes need
   an IPSU revision (`documents.fire_own_instructions`). The risk evaluations
   ([ADR 015](architecture/adr-015-risk-assessment.md)) need every current position evaluated
-  with at least one factor (`positions.risk_evaluation`), a prevention measure on every factor
-  above level 3
+  with at least one factor (`positions.risk_evaluation`), the sensitive groups evaluated with a
+  factor or declared absent by the client (`risk_evaluations.sensitive_groups`), a prevention
+  measure on every factor above level 3
   (`risk_evaluations.measures`), and a deadline and a person responsible on every factor with
   measures (`risk_evaluations.plan`); readiness names the evaluations behind those codes as
   `incompleteRiskEvaluations`.
@@ -859,6 +860,7 @@ The API builds the data once per generation and merges every template with it
   | `….unit.employeeCount`               | `6`, the current employees                                                                                                                                            |
   | `….unit.workplaces[]`                | `{ label: 'Punct de lucru „Atelier”', address }`, the registered office first, `Sediu social` alone for a name that only repeats the kind; `noWorkplaces` without any |
   | `riskAssessment.evaluationCountText` | `5 posturi de lucru, grupurile sensibile la riscuri specifice și o altă evaluare`; `un post de lucru`, `alte 2 evaluări`                                              |
+  | `riskAssessment.noSensitiveGroups`   | `true` when the client declared it has no workers from the sensitive groups: 9 and 10 print a sentence saying so                                                      |
   | `riskAssessment.globalLevel`         | `2,50`, the unit's: the evaluations' levels, each weighted by itself (Σ Nr² / Σ Nr)                                                                                   |
   | `riskAssessment.evaluations[]`       | One per subchapter of chapter V and per table of the plan, in the order below                                                                                         |
 

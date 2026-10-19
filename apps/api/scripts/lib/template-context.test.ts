@@ -205,6 +205,16 @@ describe('a document generated again while the set lacks data', () => {
       },
     ],
     [
+      'the sensitive groups, neither evaluated nor declared absent',
+      {
+        ...facts,
+        client: { ...facts.client, sensitiveGroupsState: 'undecided' },
+        riskEvaluations: facts.riskEvaluations.filter(
+          (evaluation) => evaluation.kind !== 'sensitive_groups'
+        ),
+      },
+    ],
+    [
       "the workers' representatives",
       {
         ...facts,
@@ -264,6 +274,7 @@ describe('a document generated again while the set lacks data', () => {
         'positions.equipment',
         'positions.instructions',
         'positions.risk_evaluation',
+        'risk_evaluations.sensitive_groups',
         'risk_evaluations.measures',
         'risk_evaluations.plan',
         'documents.own_instructions',
@@ -375,6 +386,40 @@ describe('the annex title pages', () => {
     expect(pages[0]).toContain('versiunea din 11.10.2026');
     expect(pages[0]).not.toContain('{{');
   }, 30_000);
+});
+
+describe('the risk assessment and the prevention plan', () => {
+  const render = (typeKey: string, variant: DocumentFacts) => {
+    const entry = manifest.templates.find((template) => template.typeKey === typeKey)!;
+    return documentText(
+      renderDocument(
+        readFileSync(new URL(entry.file, templatesUrl)),
+        documentData(buildDocumentContext(variant), typeKey)
+      )
+    );
+  };
+  const declaration =
+    'S.C. PIPETECH S.R.L. declară că nu are lucrători din grupurile sensibile la riscuri specifice (femei gravide, lăuze sau care alăptează, tineri, persoane cu dizabilități), astfel că';
+  const declared: DocumentFacts = {
+    ...facts,
+    client: { ...facts.client, sensitiveGroupsState: 'none' },
+    riskEvaluations: facts.riskEvaluations.filter(
+      (evaluation) => evaluation.kind !== 'sensitive_groups'
+    ),
+  };
+
+  it.each(['risk_assessment', 'prevention_plan'])(
+    '%s prints the declaration of a client without workers from the sensitive groups, and nothing of it otherwise',
+    (typeKey) => {
+      const text = render(typeKey, declared);
+      expect(text).toContain(declaration);
+      expect(text).not.toContain('GRUPURI SENSIBILE');
+      const evaluated = render(typeKey, facts);
+      expect(evaluated).not.toContain('declară că nu are lucrători');
+      expect(evaluated).toContain('GRUPURI SENSIBILE LA RISCURI SPECIFICE');
+    },
+    30_000
+  );
 });
 
 describe('the decisions', () => {

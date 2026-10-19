@@ -63,7 +63,7 @@ export async function loadDocumentFacts(
     db
       .from('clients')
       .select(
-        'legal_name, legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, caen_code, cui, trade_register_number, county_code, locality, address_line, contact_name, contact_phone, contact_email, archived_at'
+        'legal_name, legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, caen_code, cui, trade_register_number, county_code, locality, address_line, contact_name, contact_phone, contact_email, archived_at, sensitive_groups_state'
       )
       .eq('id', clientId)
       .maybeSingle(),
@@ -282,6 +282,7 @@ export async function loadDocumentFacts(
       contactName: client.data.contact_name,
       contactPhone: client.data.contact_phone,
       contactEmail: client.data.contact_email,
+      sensitiveGroupsState: client.data.sensitive_groups_state,
     },
     workplaces: workplaces.data.map((workplace) => ({
       id: workplace.id,

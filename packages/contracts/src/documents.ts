@@ -266,6 +266,8 @@ export const missingDocumentData = [
   'positions.instructions',
   // A current position without an evaluation, or with one that has no factor (ADR 015).
   'positions.risk_evaluation',
+  // The sensitive groups neither evaluated with a factor nor declared absent by the client.
+  'risk_evaluations.sensitive_groups',
   // An unacceptable factor without a prevention measure.
   'risk_evaluations.measures',
   // A factor with prevention measures but without a deadline or a person responsible.

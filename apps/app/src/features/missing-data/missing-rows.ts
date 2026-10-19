@@ -118,12 +118,15 @@ const to = {
 
 export type MissingTarget = ReturnType<(typeof to)[keyof typeof to]>;
 
+export type MissingAction = 'declare_no_sensitive_groups';
+
 export type MissingRow = {
   key: string;
   label: string;
   detail?: string;
   // Null when the person looking cannot fix it, such as a specialist and the organization's data.
   target: MissingTarget | null;
+  action?: MissingAction;
 };
 
 export type MissingGroup = {
@@ -295,6 +298,12 @@ export const documentMissingData: Record<
     detail: 'Fiecare post are nevoie de o evaluare cu cel puțin un factor de risc.',
     target: ({ clientId }) => to.positions(clientId),
   },
+  'risk_evaluations.sensitive_groups': {
+    place: 'riskEvaluations',
+    label: 'Evaluarea grupurilor sensibile',
+    detail: 'Evaluează-le sau declară că clientul nu are lucrători din grupurile sensibile.',
+    target: ({ clientId }) => to.clientEvaluations(clientId),
+  },
   'risk_evaluations.measures': {
     place: 'riskEvaluations',
     label: 'Măsurile pentru riscurile inacceptabile',
@@ -424,12 +433,14 @@ const evaluationGaps: Record<RiskEvaluationGap, { section: string; detail: strin
   },
 };
 
-const gapCode = (gap: RiskEvaluationGap): MissingDocumentData =>
+const gapCode = (kind: RiskEvaluationKind, gap: RiskEvaluationGap): MissingDocumentData =>
   gap === 'measures'
     ? 'risk_evaluations.measures'
     : gap === 'plan'
       ? 'risk_evaluations.plan'
-      : 'positions.risk_evaluation';
+      : kind === 'sensitive_groups'
+        ? 'risk_evaluations.sensitive_groups'
+        : 'positions.risk_evaluation';
 
 export function documentMissingGroups({
   missing,
@@ -472,24 +483,37 @@ export function documentMissingGroups({
   );
   const evaluationRows = incompleteRiskEvaluations.flatMap((evaluation) =>
     evaluation.missing
-      .filter((gap) => missing.includes(gapCode(gap)))
-      .map((gap): MissingRow => ({
-        key: `${evaluation.evaluationId ?? evaluation.jobPositionId ?? evaluation.kind}:${gap}`,
-        label: `${evaluation.name} · ${evaluationGaps[gap].section}`,
-        detail: evaluationGaps[gap].detail,
-        target: evaluation.jobPositionId
+      .filter((gap) => missing.includes(gapCode(evaluation.kind, gap)))
+      .map((gap): MissingRow => {
+        const code = gapCode(evaluation.kind, gap);
+        const target = evaluation.jobPositionId
           ? to.positionEvaluation(clientId, evaluation.jobPositionId)
           : evaluation.evaluationId
             ? to.clientEvaluation(clientId, evaluation.evaluationId)
-            : to.clientEvaluations(clientId),
-      }))
+            : to.clientEvaluations(clientId);
+        const key = `${evaluation.evaluationId ?? evaluation.jobPositionId ?? evaluation.kind}:${gap}`;
+        if (code === 'risk_evaluations.sensitive_groups') {
+          return {
+            ...rowOf(code),
+            key,
+            target,
+            ...(evaluation.evaluationId === null && { action: 'declare_no_sensitive_groups' }),
+          };
+        }
+        return {
+          key,
+          label: `${evaluation.name} · ${evaluationGaps[gap].section}`,
+          detail: evaluationGaps[gap].detail,
+          target,
+        };
+      })
   );
   const listed = new Set([
     ...undecidedJobPositions.flatMap((position) =>
       position.undecided.map((decision) => decisionRows[decision].code)
     ),
     ...incompleteRiskEvaluations.flatMap((evaluation) =>
-      evaluation.missing.map((gap) => gapCode(gap))
+      evaluation.missing.map((gap) => gapCode(evaluation.kind, gap))
     ),
   ]);
   return (Object.keys(documentPlaces) as DocumentPlace[])

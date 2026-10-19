@@ -15,6 +15,7 @@ import {
   type ResponsiblePersonRole,
   type RiskEvaluationGap,
   samePersonName,
+  type SensitiveGroupsState,
   type StaffCategory,
   trainingMonths,
 } from '@ssm-usor/contracts';
@@ -83,6 +84,7 @@ export type DocumentFacts = {
     contactName: string | null;
     contactPhone: string | null;
     contactEmail: string | null;
+    sensitiveGroupsState: SensitiveGroupsState;
   };
   /** The active workplaces, by name. */
   workplaces: (WorkplaceFacts & FireWorkplaceFacts)[];
@@ -345,8 +347,12 @@ export function missingDocumentData(facts: DocumentFacts, typeKey?: string): Mis
     typeKey === 'decision_workers_representative' ? 1 : 0
   );
   const representatives = currentWorkersRepresentatives(facts);
-  const incomplete = incompleteRiskEvaluations(facts.riskEvaluations, facts.jobPositions);
-  const lacks = (kind: 'job_position' | null, gap: RiskEvaluationGap) =>
+  const incomplete = incompleteRiskEvaluations(
+    facts.riskEvaluations,
+    facts.jobPositions,
+    client.sensitiveGroupsState
+  );
+  const lacks = (kind: 'job_position' | 'sensitive_groups' | null, gap: RiskEvaluationGap) =>
     incomplete.some(
       (evaluation) =>
         (kind === null || evaluation.kind === kind) && evaluation.missing.includes(gap)
@@ -380,6 +386,7 @@ export function missingDocumentData(facts: DocumentFacts, typeKey?: string): Mis
     ['positions.equipment', undecidedJobPositions(facts, ['equipment']).length === 0],
     ['positions.instructions', undecidedJobPositions(facts, ['instructions']).length === 0],
     ['positions.risk_evaluation', !lacks('job_position', 'factors')],
+    ['risk_evaluations.sensitive_groups', !lacks('sensitive_groups', 'factors')],
     ['risk_evaluations.measures', !lacks(null, 'measures')],
     ['risk_evaluations.plan', !lacks(null, 'plan')],
     ['documents.own_instructions', typeKey !== 'training_themes' || facts.ownInstructions !== null],
@@ -448,6 +455,7 @@ const printedAs = {
   'positions.equipment': ['equippedPositions', 'hasEquippedPositions', 'unequippedPositionsText'],
   'positions.instructions': ['annexes', 'noAnnexes', 'themes'],
   'positions.risk_evaluation': riskNames,
+  'risk_evaluations.sensitive_groups': riskNames,
   'risk_evaluations.measures': riskNames,
   'risk_evaluations.plan': riskNames,
   'documents.own_instructions': ['themes'],
@@ -664,6 +672,7 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
       riskAssessment({
         evaluations: facts.riskEvaluations,
         positions: facts.jobPositions,
+        sensitiveGroupsState: client.sensitiveGroupsState,
         caenCode: client.caenCode,
         workplaces: facts.workplaces,
         currentEmployeeCount: facts.currentEmployeeCount,

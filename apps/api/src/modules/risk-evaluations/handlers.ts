@@ -14,7 +14,12 @@ import {
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
-import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
+import {
+  archivedClientError,
+  createDataClient,
+  type DataClient,
+  fromDatabaseError,
+} from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { findJobPosition } from '../job-positions/handlers';
@@ -31,6 +36,7 @@ import type {
   riskFactorSuggestionsRoute,
   updateRiskEvaluationRoute,
   updateRiskFactorRoute,
+  updateSensitiveGroupsStateRoute,
 } from './routes';
 
 type Tables = Database['public']['Tables'];
@@ -229,9 +235,14 @@ const alreadyEvaluated = () =>
   );
 
 async function findClient(db: DataClient, clientId: string) {
-  const { data, error } = await db.from('clients').select('id').eq('id', clientId).maybeSingle();
+  const { data, error } = await db
+    .from('clients')
+    .select('id, sensitive_groups_state')
+    .eq('id', clientId)
+    .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find client');
   if (!data) throw noSuchClient();
+  return data;
 }
 
 export async function findEvaluation(db: DataClient, clientId: string, evaluationId: string) {
@@ -263,7 +274,7 @@ export const listRiskEvaluations: RouteHandler<typeof listRiskEvaluationsRoute, 
 ) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  const client = await findClient(db, clientId);
   const { data, error } = await db
     .from('risk_evaluations')
     .select(summaryColumns)
@@ -274,7 +285,35 @@ export const listRiskEvaluations: RouteHandler<typeof listRiskEvaluationsRoute, 
     .filter((row) => !row.job_positions?.archived_at)
     .map(toSummary)
     .sort(byEvaluationOrder);
-  return c.json({ items }, 200);
+  return c.json({ items, sensitiveGroupsState: client.sensitive_groups_state }, 200);
+};
+
+export const updateSensitiveGroupsState: RouteHandler<
+  typeof updateSensitiveGroupsStateRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const { state } = c.req.valid('json');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const { data, error } = await db
+    .from('clients')
+    .update({ sensitive_groups_state: state })
+    .eq('id', clientId)
+    .is('archived_at', null)
+    .select('sensitive_groups_state')
+    .maybeSingle();
+  if (error?.code === 'SGR01') {
+    throw new ApiError(
+      'conflict',
+      'The sensitive groups are evaluated; delete their evaluation before saying the client has none.',
+      undefined,
+      'sensitive_groups_evaluated'
+    );
+  }
+  if (error) throw fromDatabaseError(error, 'update sensitive groups state');
+  if (!data) throw archivedClientError();
+  return c.json({ state: data.sensitive_groups_state }, 200);
 };
 
 export const createRiskEvaluation: RouteHandler<typeof createRiskEvaluationRoute, ApiEnv> = async (

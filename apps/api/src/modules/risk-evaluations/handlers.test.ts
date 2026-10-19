@@ -4,6 +4,7 @@ import {
   riskEvaluationListResponseSchema,
   riskEvaluationResponseSchema,
   riskFactorSuggestionsResponseSchema,
+  sensitiveGroupsStateResponseSchema,
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -135,7 +136,10 @@ function mockUpstream(
       if (url.pathname.endsWith('/copy_risk_factors')) return Response.json(2);
     }
     if (url.pathname === '/rest/v1/clients') {
-      return handlers.clients?.(init, url) ?? Response.json([{ id: clientId }]);
+      return (
+        handlers.clients?.(init, url) ??
+        Response.json([{ id: clientId, sensitive_groups_state: 'undecided' }])
+      );
     }
     if (url.pathname === '/rest/v1/job_positions') {
       return (
@@ -270,7 +274,10 @@ describe('GET /clients/{clientId}/risk-evaluations', () => {
     });
     const response = await request(base);
     expect(response.status).toBe(200);
-    const { items } = riskEvaluationListResponseSchema.parse(await response.json());
+    const { items, sensitiveGroupsState } = riskEvaluationListResponseSchema.parse(
+      await response.json()
+    );
+    expect(sensitiveGroupsState).toBe('undecided');
     expect(
       items.map((item) => [
         item.kind,
@@ -290,6 +297,69 @@ describe('GET /clients/{clientId}/risk-evaluations', () => {
     mockUpstream({ clients: () => Response.json([]) });
     expect((await request(base)).status).toBe(404);
     expect(calls('risk_evaluations', 'GET')).toHaveLength(0);
+  });
+});
+
+describe('PUT /clients/{clientId}/sensitive-groups-state', () => {
+  const statePath = `/clients/${clientId}/sensitive-groups-state`;
+  const clientRows = (init: RequestInit | undefined, state: string) =>
+    init?.method === 'PATCH'
+      ? Response.json({ sensitive_groups_state: state })
+      : Response.json([{ id: clientId, sensitive_groups_state: 'undecided' }]);
+
+  it('records that the client has no workers from the sensitive groups', async () => {
+    mockUpstream({ clients: (init) => clientRows(init, 'none') });
+    const response = await request(statePath, 'PUT', { state: 'none' });
+    expect(response.status).toBe(200);
+    expect(sensitiveGroupsStateResponseSchema.parse(await response.json())).toEqual({
+      state: 'none',
+    });
+    expect(sent('clients', 'PATCH')).toEqual({ sensitive_groups_state: 'none' });
+    const [update] = calls('clients', 'PATCH');
+    expect(new URL(String(update![0])).searchParams.get('archived_at')).toBe('is.null');
+  });
+
+  it('opens the question again', async () => {
+    mockUpstream({ clients: (init) => clientRows(init, 'undecided') });
+    const response = await request(statePath, 'PUT', { state: 'undecided' });
+    expect(sensitiveGroupsStateResponseSchema.parse(await response.json()).state).toBe('undecided');
+  });
+
+  it('never takes evaluated, which follows the evaluation', async () => {
+    mockUpstream();
+    expect((await request(statePath, 'PUT', { state: 'evaluated' })).status).toBe(400);
+    expect(calls('clients', 'PATCH')).toHaveLength(0);
+  });
+
+  it('refuses none while the sensitive groups are evaluated', async () => {
+    mockUpstream({
+      clients: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json(
+              { code: 'SGR01', message: 'refused', details: null, hint: null },
+              { status: 400 }
+            )
+          : Response.json([{ id: clientId, sensitive_groups_state: 'evaluated' }]),
+    });
+    const response = await request(statePath, 'PUT', { state: 'none' });
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'sensitive_groups_evaluated'
+    );
+  });
+
+  it('answers 409 for an archived client and 404 for one outside the organization', async () => {
+    mockUpstream({
+      clients: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json(null)
+          : Response.json([{ id: clientId, sensitive_groups_state: 'undecided' }]),
+    });
+    const archived = await request(statePath, 'PUT', { state: 'none' });
+    expect(archived.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await archived.json()).reason).toBe('client_archived');
+    mockUpstream({ clients: () => Response.json([]) });
+    expect((await request(statePath, 'PUT', { state: 'none' })).status).toBe(404);
   });
 });
 

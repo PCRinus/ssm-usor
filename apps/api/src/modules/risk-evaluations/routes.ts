@@ -9,7 +9,9 @@ import {
   riskFactorRequestSchema,
   riskFactorSuggestionsQuerySchema,
   riskFactorSuggestionsResponseSchema,
+  sensitiveGroupsStateResponseSchema,
   updateRiskEvaluationRequestSchema,
+  updateSensitiveGroupsStateRequestSchema,
 } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
@@ -70,6 +72,48 @@ export const listRiskEvaluationsRoute = createRoute({
     },
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchClient,
+    ...membershipErrors,
+  },
+});
+
+export const updateSensitiveGroupsStateRoute = createRoute({
+  method: 'put',
+  path: '/clients/{clientId}/sensitive-groups-state',
+  operationId: 'updateSensitiveGroupsState',
+  summary: 'Say whether a client has workers from the sensitive groups',
+  description:
+    '`none` declares that the client has no workers from the sensitive groups (pregnant, post-natal or breastfeeding women, young workers, people with disabilities), so the documents are generated without their evaluation; `undecided` leaves the question open again. `evaluated` is never sent: the database sets it while the sensitive groups evaluation exists, and `none` is refused meanwhile (`409`, reason `sensitive_groups_evaluated`).',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: clientParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: updateSensitiveGroupsStateRequestSchema.meta({
+            id: 'UpdateSensitiveGroupsStateRequest',
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'The state after the change',
+      content: {
+        'application/json': {
+          schema: sensitiveGroupsStateResponseSchema.meta({ id: 'SensitiveGroupsStateResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path or request body', content: errorContent },
+    404: noSuchClient,
+    409: {
+      description:
+        'The client is archived (`client_archived`) or its sensitive groups are evaluated (`sensitive_groups_evaluated`)',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });

@@ -175,16 +175,19 @@ const fetchMock = vi.fn<typeof fetch>();
 function mockApi({
   client = sampleClient,
   evaluations = [welderEvaluation, cashierEvaluation, visitors],
+  sensitiveGroupsState = 'undecided',
   create,
   suggestions = (() =>
     Response.json({ items: ['Factori de risc mecanic', 'Permanent'] })) as Handler,
 }: {
   client?: typeof sampleClient;
   evaluations?: RiskEvaluation[];
+  sensitiveGroupsState?: 'undecided' | 'none' | 'evaluated';
   create?: Handler;
   suggestions?: Handler;
 } = {}) {
   const store = new Map(evaluations.map((evaluation) => [evaluation.id, evaluation]));
+  let groupsState = sensitiveGroupsState;
   const answer = (evaluation: RiskEvaluation, status = 200) => {
     const recomputed = makeEvaluation(evaluation);
     store.set(recomputed.id, recomputed);
@@ -256,10 +259,20 @@ function mockApi({
       );
       return Response.json({ evaluation: evaluation ?? null });
     }
+    if (pathname === `/clients/${clientId}/sensitive-groups-state`) {
+      groupsState = body.state as typeof groupsState;
+      return Response.json({ state: groupsState });
+    }
     if (pathname === evaluationsPath) {
-      return method === 'POST'
-        ? (create ?? created)(init, url)
-        : Response.json({ items: [...store.values()].map(summaryOf) });
+      if (method === 'POST') {
+        const response = (create ?? created)(init, url);
+        if (response.status === 201 && body.kind === 'sensitive_groups') groupsState = 'evaluated';
+        return response;
+      }
+      return Response.json({
+        items: [...store.values()].map(summaryOf),
+        sensitiveGroupsState: groupsState,
+      });
     }
     const match = pathname.match(
       /\/risk-evaluations\/([^/]+)(?:\/(factors|factor-order)(?:\/([^/]+))?)?$/
@@ -1025,25 +1038,84 @@ describe('the factor editor', () => {
 });
 
 describe("a client's evaluations outside its positions", () => {
-  it('starts the sensitive groups evaluation and opens it', async () => {
+  const sensitiveGroupsPath = `/clients/${clientId}/sensitive-groups-state`;
+
+  it('asks about the sensitive groups until they are evaluated or declared absent, and takes the declaration back', async () => {
     mockApi();
-    const runtime = mount(positionsPath);
+    mount(positionsPath);
+    const user = userEvent.setup();
     const card = await screen.findByTestId('client-risk-evaluations-card');
     const rows = await within(card).findAllByTestId('client-risk-evaluation-row');
     expect(rows.map((row) => row.firstChild?.firstChild?.textContent)).toEqual([
       'Grupuri sensibile',
       'Vizitatori',
     ]);
-    expect(within(rows[0]!).getByText('Opțional')).toBeTruthy();
-    expect(within(rows[0]!).queryByText('Neevaluat')).toBeNull();
-    expect(within(rows[0]!).getByTestId('client-risk-evaluation-note').textContent).toContain(
-      'femei gravide sau care alăptează'
+    const groups = rows[0]!;
+    expect(within(groups).getByTestId('sensitive-groups-state').textContent).toBe('Neevaluat');
+    expect(within(groups).getByTestId('client-risk-evaluation-note').textContent).toBe(
+      'Femei gravide, lăuze sau care alăptează, tineri sub 18 ani, persoane cu dizabilități.'
+    );
+    expect(within(groups).getByTestId('sensitive-groups-start').textContent).toBe('Evaluează');
+    expect(within(groups).getByTestId('sensitive-groups-none').textContent).toBe(
+      'Nu există grupuri sensibile'
     );
     expect(within(rows[1]!).getByTestId('client-risk-evaluation-state').getAttribute('href')).toBe(
       `${positionsPath}/risk-evaluations/${visitors.id}`
     );
 
-    await userEvent.setup().click(within(card).getByTestId('sensitive-groups-start'));
+    await user.click(within(groups).getByTestId('sensitive-groups-none'));
+    await waitFor(() => expect(requests(sensitiveGroupsPath, 'PUT')).toEqual([{ state: 'none' }]));
+    expect(
+      await screen.findByText('Am notat că clientul nu are lucrători din grupurile sensibile.')
+    ).toBeTruthy();
+    await waitFor(() =>
+      expect(within(card).getByTestId('sensitive-groups-state').textContent).toBe(
+        'Declarat fără grupuri sensibile'
+      )
+    );
+    expect(within(card).getByTestId('client-risk-evaluation-note').textContent).toContain(
+      'Clientul a declarat că nu are astfel de lucrători'
+    );
+    expect(within(card).getByTestId('sensitive-groups-start').textContent).toBe('Evaluează totuși');
+    expect(within(card).queryByTestId('sensitive-groups-none')).toBeNull();
+
+    await user.click(within(card).getByTestId('sensitive-groups-undo'));
+    await waitFor(() =>
+      expect(requests(sensitiveGroupsPath, 'PUT')).toEqual([
+        { state: 'none' },
+        { state: 'undecided' },
+      ])
+    );
+    await waitFor(() =>
+      expect(within(card).getByTestId('sensitive-groups-state').textContent).toBe('Neevaluat')
+    );
+    expect(within(card).getByTestId('sensitive-groups-none')).toBeTruthy();
+  });
+
+  it('shows what the server refused, in its words', async () => {
+    mockApi();
+    mount(positionsPath);
+    const card = await screen.findByTestId('client-risk-evaluations-card');
+    fetchMock.mockImplementationOnce(async () =>
+      Response.json(
+        { error: 'conflict', message: 'taken', reason: 'sensitive_groups_evaluated' },
+        { status: 409 }
+      )
+    );
+    await userEvent.setup().click(await within(card).findByTestId('sensitive-groups-none'));
+    expect((await within(card).findByTestId('client-risk-evaluations-error')).textContent).toBe(
+      'Grupurile sensibile au deja o evaluare; reîncarcă pagina ca s-o vezi.'
+    );
+  });
+
+  it('starts the sensitive groups evaluation and opens it, also over a declaration', async () => {
+    mockApi({ sensitiveGroupsState: 'none' });
+    const runtime = mount(positionsPath);
+    const card = await screen.findByTestId('client-risk-evaluations-card');
+    const start = await within(card).findByTestId('sensitive-groups-start');
+    expect(start.textContent).toBe('Evaluează totuși');
+
+    await userEvent.setup().click(start);
     await waitFor(() =>
       expect(requests(evaluationsPath, 'POST')).toEqual([{ kind: 'sensitive_groups' }])
     );

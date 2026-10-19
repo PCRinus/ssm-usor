@@ -128,6 +128,7 @@ const clientRow = {
   contact_phone: null,
   contact_email: null,
   archived_at: null,
+  sensitive_groups_state: 'evaluated',
 };
 const profileRow = {
   full_name: 'Maria POPESCU',
@@ -694,7 +695,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     const response = await request(`/clients/${clientId}/documents/readiness`);
     expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
       ready: false,
-      missing: ['risk_evaluations.measures'],
+      missing: ['risk_evaluations.sensitive_groups', 'risk_evaluations.measures'],
       incompleteRiskEvaluations: [
         {
           evaluationId: sudor!.id,
@@ -703,7 +704,32 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
           name: 'Sudor',
           missing: ['measures'],
         },
+        {
+          evaluationId: null,
+          kind: 'sensitive_groups',
+          jobPositionId: null,
+          name: 'Grupuri sensibile la riscuri specifice',
+          missing: ['factors'],
+        },
       ],
+    });
+    mockUpstream({
+      clients: () => Response.json({ ...clientRow, sensitive_groups_state: 'none' }),
+      riskEvaluations: () =>
+        Response.json([
+          {
+            ...sudor,
+            risk_factors: sudor!.risk_factors.map((factor) => ({
+              ...factor,
+              prevention_measures: [],
+            })),
+          },
+        ]),
+    });
+    const declared = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await declared.json())).toMatchObject({
+      missing: ['risk_evaluations.measures'],
+      incompleteRiskEvaluations: [{ evaluationId: sudor!.id, missing: ['measures'] }],
     });
     mockUpstream({ riskEvaluations: () => Response.json([groups]) });
     const unevaluated = await request(`/clients/${clientId}/documents/readiness`);
@@ -1482,6 +1508,7 @@ describe('POST /documents/{documentId}/regenerate', () => {
       'positions.equipment',
       'positions.instructions',
       'positions.risk_evaluation',
+      'risk_evaluations.sensitive_groups',
     ]);
 
     mockUpstream({ ...gapsOutsideTheCover, ...ofType('cover_decisions') });
