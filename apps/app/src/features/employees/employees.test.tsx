@@ -773,12 +773,63 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(options.map((option) => option.textContent)).toEqual([
       expect.stringContaining('Sediu Str. Lungă 5'),
       expect.stringContaining('Atelier Str. Fabricii 3'),
+      'Adaugă un punct de lucru nou…',
     ]);
     await user.click(options[1]!);
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
     expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
       workplaceId: workshop.id,
+    });
+  });
+
+  it('adds a workplace the client lacks from the picker and keeps what was typed in the form', async () => {
+    const warehouse = workplace('e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a8b', 'Depozit Florești');
+    let items = [registeredOffice, workshop];
+    mockApi({
+      workplaces: (init) => {
+        if (init?.method === 'POST') {
+          items = [...items, warehouse];
+          return Response.json({ workplace: warehouse }, { status: 201 });
+        }
+        return Response.json({ items });
+      },
+    });
+    mountApp(authFixture(makeSession()).client, `${employeesPath}/new`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await waitFor(() =>
+      expect(screen.getByTestId<HTMLButtonElement>('employee-workplace').disabled).toBe(false)
+    );
+    await fillRequired(user);
+    await user.type(screen.getByTestId('employee-qualification'), 'Stivuitorist');
+
+    await user.click(screen.getByTestId('employee-workplace'));
+    await user.type(screen.getByTestId('employee-workplace-search'), 'Depozit');
+    expect(screen.getByText('Clientul nu are un punct de lucru cu acest nume.')).toBeTruthy();
+    await user.click(screen.getByTestId('employee-workplace-add'));
+
+    const dialog = await screen.findByTestId('workplace-dialog');
+    const name = within(dialog).getByTestId<HTMLInputElement>('workplace-name');
+    expect(name.value).toBe('Depozit');
+    await user.type(name, ' Florești');
+    await user.click(within(dialog).getByTestId('workplace-save'));
+    await waitFor(() => expect(screen.queryByTestId('workplace-dialog')).toBeNull());
+    expect(screen.getByTestId('employee-workplace').textContent).toContain('Depozit Florești');
+    expect(screen.getByTestId<HTMLInputElement>('employee-last-name').value).toBe('Popescu');
+    expect(screen.getByTestId<HTMLInputElement>('employee-qualification').value).toBe(
+      'Stivuitorist'
+    );
+    // Saving the workplace did not submit the form it was opened from.
+    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+
+    await user.click(screen.getByTestId('employee-submit'));
+    await screen.findByTestId('employees-page');
+    const [, created] = requests(`/clients/${clientId}/workplaces`, 'POST')[0]!;
+    expect(JSON.parse(String(created?.body))).toMatchObject({ name: 'Depozit Florești' });
+    expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
+      workplaceId: warehouse.id,
+      qualification: 'Stivuitorist',
     });
   });
 
@@ -1256,6 +1307,9 @@ describe('job positions on employees (ADR 006)', () => {
     );
     await user.click(within(dialog).getByTestId('job-position-save'));
     await waitFor(() => expect(screen.queryByTestId('job-position-dialog')).toBeNull());
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByTestId('employee-job-position'))
+    );
     expect(screen.getByTestId<HTMLInputElement>('employee-job-title').value).toBe('Electrician');
     // Saving the post did not submit the form it was opened from.
     expect(requests(employeesPath, 'POST')).toHaveLength(0);

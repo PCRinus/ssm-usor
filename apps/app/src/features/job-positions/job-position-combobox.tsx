@@ -90,6 +90,12 @@ export function JobPositionCombobox({
         initialName={adding ?? ''}
         onSaved={(position) => onChange(position.id, position.name)}
         onClose={() => setAdding(null)}
+        // The dialog opens from the list, which has closed by then, so the picker takes the focus
+        // back.
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          document.getElementById(id)?.focus();
+        }}
       />
     </>
   );
