@@ -3,12 +3,6 @@ import {
   fireBuildingClassificationLabels,
   fireInstallationKindLabels,
 } from '@ssm-usor/contracts';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@ssm-usor/ui/components/accordion';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -100,107 +94,7 @@ export function WorkplaceMeansCard({
   const description = [workplace.activity, workplaceAddress(workplace)].filter(Boolean).join(' · ');
   const today = dateToIso(new Date());
 
-  const requiredFromTen = (
-    <>
-      <section
-        className="grid gap-3 border-t pt-5"
-        aria-label={`Alte verificări periodice, ${workplace.name}`}
-      >
-        <BlockHeading
-          title="Alte verificări periodice"
-          action={
-            !readOnly && (
-              <Button
-                variant="tonal"
-                size="sm"
-                data-testid="fire-maintenance-add"
-                onClick={onAddMaintenanceItem}
-              >
-                <Plus aria-hidden="true" />
-                Adaugă
-              </Button>
-            )
-          }
-        />
-        {maintenanceItems.length === 0 ? (
-          <p data-testid="fire-maintenance-empty" className="text-sm text-muted-foreground">
-            Opțional: ce nu reiese din stingătoare și instalații, de exemplu instalația de gaze sau
-            coșul de fum. Apar în graficele de întreținere și verificare, cerute de la 10 angajați.
-          </p>
-        ) : (
-          <Table className="max-sm:block">
-            <TableHeader className="max-sm:sr-only">
-              <TableRow>
-                <TableHead className={columns.what}>Ce se verifică</TableHead>
-                <TableHead className={columns.which}>Periodicitatea</TableHead>
-                <TableHead>Cine efectuează</TableHead>
-                {!readOnly && (
-                  <TableHead className="w-12">
-                    <span className="sr-only">Acțiuni</span>
-                  </TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody className="max-sm:block">
-              {maintenanceItems.map((item) => (
-                <TableRow
-                  key={item.id}
-                  data-testid="fire-maintenance-row"
-                  {...rowClickProps(readOnly ? undefined : () => onEditMaintenanceItem(item))}
-                  className={cn(rowClass, !readOnly && 'cursor-pointer')}
-                >
-                  <TableCell className={cn(stackedCell, 'font-medium')}>{item.subject}</TableCell>
-                  <TableCell className={stackedCell}>{item.intervalLabel}</TableCell>
-                  <TableCell className={cn(stackedCell, 'text-muted-foreground')}>
-                    {item.checkedBy}
-                  </TableCell>
-                  {!readOnly && (
-                    <TableCell className="max-sm:col-start-2 max-sm:row-span-3 max-sm:row-start-1 max-sm:p-0">
-                      <RowMenu
-                        name={item.subject}
-                        testId="fire-maintenance"
-                        onEdit={() => onEditMaintenanceItem(item)}
-                        onDelete={() => onDeleteMaintenanceItem(item)}
-                      />
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </section>
-
-      {workplace.kind === 'fixed_space' && (
-        <section className="grid gap-3 border-t pt-5" aria-label={`Clădirea, ${workplace.name}`}>
-          <BlockHeading
-            title="Clădirea"
-            action={
-              !readOnly && (
-                <Button
-                  variant="tonal"
-                  size="sm"
-                  data-testid="fire-building-edit"
-                  onClick={onEditBuilding}
-                >
-                  {building ? 'Modifică' : 'Completează'}
-                </Button>
-              )
-            }
-          />
-          {building ? (
-            <BuildingFacts building={building} />
-          ) : (
-            <p data-testid="fire-building-empty" className="text-sm text-muted-foreground">
-              Opțional: anul construirii, suprafața, structura, încălzirea, gazele, instalația
-              electrică și rezerva de apă. Apar în fișa obiectivului, cerută de la 10 angajați; ce
-              lipsește apare acolo ca de completat.
-            </p>
-          )}
-        </section>
-      )}
-    </>
-  );
+  const fromTen = currentEmployeeCount >= 10;
 
   return (
     <SectionCard
@@ -388,48 +282,105 @@ export function WorkplaceMeansCard({
         )}
       </section>
 
-      {currentEmployeeCount >= 10 ? (
-        requiredFromTen
-      ) : (
-        <FromTenEmployees currentEmployeeCount={currentEmployeeCount}>
-          {requiredFromTen}
-        </FromTenEmployees>
+      {(fromTen || maintenanceItems.length > 0) && (
+        <section
+          className="grid gap-3 border-t pt-5"
+          aria-label={`Alte verificări periodice, ${workplace.name}`}
+        >
+          <BlockHeading
+            title="Alte verificări periodice"
+            action={
+              !readOnly && (
+                <Button
+                  variant="tonal"
+                  size="sm"
+                  data-testid="fire-maintenance-add"
+                  onClick={onAddMaintenanceItem}
+                >
+                  <Plus aria-hidden="true" />
+                  Adaugă
+                </Button>
+              )
+            }
+          />
+          {maintenanceItems.length === 0 ? (
+            <p data-testid="fire-maintenance-empty" className="text-sm text-muted-foreground">
+              Opțional: ce nu reiese din stingătoare și instalații, de exemplu instalația de gaze
+              sau coșul de fum. Apar în graficele de întreținere și verificare.
+            </p>
+          ) : (
+            <Table className="max-sm:block">
+              <TableHeader className="max-sm:sr-only">
+                <TableRow>
+                  <TableHead className={columns.what}>Ce se verifică</TableHead>
+                  <TableHead className={columns.which}>Periodicitatea</TableHead>
+                  <TableHead>Cine efectuează</TableHead>
+                  {!readOnly && (
+                    <TableHead className="w-12">
+                      <span className="sr-only">Acțiuni</span>
+                    </TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody className="max-sm:block">
+                {maintenanceItems.map((item) => (
+                  <TableRow
+                    key={item.id}
+                    data-testid="fire-maintenance-row"
+                    {...rowClickProps(readOnly ? undefined : () => onEditMaintenanceItem(item))}
+                    className={cn(rowClass, !readOnly && 'cursor-pointer')}
+                  >
+                    <TableCell className={cn(stackedCell, 'font-medium')}>{item.subject}</TableCell>
+                    <TableCell className={stackedCell}>{item.intervalLabel}</TableCell>
+                    <TableCell className={cn(stackedCell, 'text-muted-foreground')}>
+                      {item.checkedBy}
+                    </TableCell>
+                    {!readOnly && (
+                      <TableCell className="max-sm:col-start-2 max-sm:row-span-3 max-sm:row-start-1 max-sm:p-0">
+                        <RowMenu
+                          name={item.subject}
+                          testId="fire-maintenance"
+                          onEdit={() => onEditMaintenanceItem(item)}
+                          onDelete={() => onDeleteMaintenanceItem(item)}
+                        />
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </section>
+      )}
+      {workplace.kind === 'fixed_space' && (fromTen || building) && (
+        <section className="grid gap-3 border-t pt-5" aria-label={`Clădirea, ${workplace.name}`}>
+          <BlockHeading
+            title="Clădirea"
+            action={
+              !readOnly && (
+                <Button
+                  variant="tonal"
+                  size="sm"
+                  data-testid="fire-building-edit"
+                  onClick={onEditBuilding}
+                >
+                  {building ? 'Modifică' : 'Completează'}
+                </Button>
+              )
+            }
+          />
+          {building ? (
+            <BuildingFacts building={building} />
+          ) : (
+            <p data-testid="fire-building-empty" className="text-sm text-muted-foreground">
+              Opțional: anul construirii, suprafața, structura, încălzirea, gazele, instalația
+              electrică și rezerva de apă. Apar în fișa obiectivului; ce lipsește apare acolo ca de
+              completat.
+            </p>
+          )}
+        </section>
       )}
     </SectionCard>
-  );
-}
-
-function FromTenEmployees({
-  currentEmployeeCount,
-  children,
-}: {
-  currentEmployeeCount: number;
-  children: ReactNode;
-}) {
-  const headcount =
-    currentEmployeeCount === 0
-      ? 'Clientul nu are încă angajați.'
-      : currentEmployeeCount === 1
-        ? 'Clientul are un angajat.'
-        : `Clientul are ${currentEmployeeCount} angajați.`;
-  return (
-    <Accordion type="single" collapsible data-testid="fire-from-ten">
-      <AccordionItem value="from-ten" className="border-t border-b-0">
-        <AccordionTrigger
-          data-testid="fire-from-ten-toggle"
-          className="items-center pt-5 pb-0 hover:no-underline"
-        >
-          <span className="grid gap-1">
-            <span className="text-base font-semibold">Cerute de la 10 angajați</span>
-            <span className="font-normal text-muted-foreground">
-              {headcount} Graficele de întreținere și fișa obiectivului nu intră în documentația
-              lui; completezi aici doar dacă vrei.
-            </span>
-          </span>
-        </AccordionTrigger>
-        <AccordionContent className="grid gap-4 pt-4 pb-0 text-base">{children}</AccordionContent>
-      </AccordionItem>
-    </Accordion>
   );
 }
 

@@ -4,6 +4,7 @@ import {
   cleanUp,
   createAccount,
   createClientCompany,
+  createEmployee,
   createOrganization,
   createWorkplace,
   signIn,
@@ -30,6 +31,13 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
     locality: 'Timișoara',
     address_line: 'Str. Goethe 2',
   });
+  for (let index = 1; index <= 10; index++) {
+    await createEmployee(organizationId, clientId, {
+      firstName: `Angajat${index}`,
+      lastName: 'Gelaterie',
+      jobTitle: 'Lucrător comercial',
+    });
+  }
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
 
@@ -88,8 +96,6 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(page.getByText('Instalația a fost adăugată.')).toBeVisible();
   await expect(means.getByTestId('fire-installation-row')).toContainText('Centrală la intrare');
 
-  await expect(means.getByTestId('fire-from-ten')).toContainText('Clientul nu are încă angajați.');
-  await means.getByTestId('fire-from-ten-toggle').click();
   await expect(means.getByTestId('fire-maintenance-empty')).toBeVisible();
   await means.getByTestId('fire-maintenance-add').click();
   const maintenance = page.getByTestId('fire-maintenance-dialog');
@@ -153,7 +159,6 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
     '1 stingător · minim orientativ 3 după anexa 6 la Normele generale PSI (OMAI 163/2007)'
   );
   await page.reload();
-  await means.getByTestId('fire-from-ten-toggle').click();
   await expect(means.getByTestId('fire-building-facts')).toContainText('P+1E');
 
   await page.getByTestId('client-section').filter({ hasText: 'Detalii' }).click();
@@ -172,7 +177,6 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await page.reload();
   await expect(means.getByTestId('fire-equipment-row')).toHaveCount(1);
   await expect(means.getByTestId('fire-installation-row')).toHaveCount(1);
-  await means.getByTestId('fire-from-ten-toggle').click();
   await expect(means.getByTestId('fire-maintenance-row')).toHaveCount(1);
   await expect(means.getByTestId('fire-building-edit')).toHaveCount(0);
   await expect(page.getByTestId('fire-substance-row')).toHaveCount(1);

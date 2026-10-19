@@ -537,46 +537,44 @@ describe('client fire-safety means', () => {
     );
     const shopCard = await cardOf('Gelaterie Timișoara');
     expect(within(shopCard).getByTestId('fire-maintenance-empty').textContent).toContain(
-      'cerute de la 10 angajați'
+      'Apar în graficele de întreținere și verificare.'
     );
   });
 
-  it('folds the other periodic checks and the building under a client of fewer than ten employees, and shows them on request', async () => {
+  it('leaves out the other periodic checks and the building under a client of fewer than ten employees, except where they already hold data', async () => {
     mockApi({
       client: { ...sampleClient, currentEmployeeCount: 1 },
-      workplaces: [office, { ...shop, id: 'site', name: 'Șantier', kind: 'mobile_site' }],
+      workplaces: [office, shop, { ...shop, id: 'site', name: 'Șantier', kind: 'mobile_site' }],
     });
     mount();
-    const user = userEvent.setup();
 
     const officeCard = await cardOf('Sediu social');
-    const fold = within(officeCard).getByTestId('fire-from-ten');
-    expect(fold.textContent).toContain('Cerute de la 10 angajați');
-    expect(fold.textContent).toContain(
-      'Clientul are un angajat. Graficele de întreținere și fișa obiectivului nu intră în documentația lui; completezi aici doar dacă vrei.'
-    );
-    expect(within(officeCard).queryByTestId('fire-maintenance-row')).toBeNull();
-    expect(within(officeCard).queryByTestId('fire-building-facts')).toBeNull();
-    expect(within(officeCard).getAllByTestId('fire-equipment-row')).toHaveLength(2);
-
-    await user.click(within(officeCard).getByTestId('fire-from-ten-toggle'));
     expect(within(officeCard).getByTestId('fire-maintenance-row')).toBeTruthy();
     expect(within(officeCard).getByTestId('fire-building-facts')).toBeTruthy();
+    expect(within(officeCard).getAllByTestId('fire-equipment-row')).toHaveLength(2);
+
+    const shopCard = await cardOf('Gelaterie Timișoara');
+    expect(within(shopCard).queryByTestId('fire-maintenance-empty')).toBeNull();
+    expect(within(shopCard).queryByTestId('fire-maintenance-add')).toBeNull();
+    expect(within(shopCard).queryByTestId('fire-building-empty')).toBeNull();
+    expect(within(shopCard).queryByTestId('fire-building-edit')).toBeNull();
 
     const siteCard = await cardOf('Șantier');
-    await user.click(within(siteCard).getByTestId('fire-from-ten-toggle'));
-    expect(within(siteCard).getByTestId('fire-maintenance-empty')).toBeTruthy();
+    expect(within(siteCard).queryByTestId('fire-maintenance-empty')).toBeNull();
     expect(within(siteCard).queryByTestId('fire-building-edit')).toBeNull();
   });
 
-  it('shows the other periodic checks and the building unfolded from ten employees', async () => {
+  it('shows the other periodic checks and the building from ten employees, filled or not', async () => {
     mockApi({ client: { ...sampleClient, currentEmployeeCount: 10 } });
     mount();
 
     const officeCard = await cardOf('Sediu social');
-    expect(within(officeCard).queryByTestId('fire-from-ten')).toBeNull();
     expect(within(officeCard).getByTestId('fire-maintenance-row')).toBeTruthy();
     expect(within(officeCard).getByTestId('fire-building-facts')).toBeTruthy();
+
+    const shopCard = await cardOf('Gelaterie Timișoara');
+    expect(within(shopCard).getByTestId('fire-maintenance-empty')).toBeTruthy();
+    expect(within(shopCard).getByTestId('fire-building-empty')).toBeTruthy();
   });
 
   it('adds a periodic check to the workplace whose card asked, asking all three texts', async () => {
@@ -680,7 +678,7 @@ describe('client fire-safety means', () => {
     expect(within(officeCard).getByTestId('fire-building-edit').textContent).toBe('Modifică');
     const shopCard = await cardOf('Gelaterie Timișoara');
     expect(within(shopCard).getByTestId('fire-building-empty').textContent).toContain(
-      'fișa obiectivului, cerută de la 10 angajați'
+      'Apar în fișa obiectivului; ce lipsește apare acolo ca de completat.'
     );
     expect(within(shopCard).getByTestId('fire-building-edit').textContent).toBe('Completează');
     expect(within(await cardOf('Șantier')).queryByTestId('fire-building-edit')).toBeNull();
