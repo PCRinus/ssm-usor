@@ -314,6 +314,29 @@ describe('client document data', () => {
     );
   });
 
+  it('warns about both categories at once when both are excluded while held', async () => {
+    mockApi({
+      details: {
+        ...savedDetails,
+        administrativeTrainingIntervalMonths: null,
+        administrativeTrainingNotApplicable: true,
+        workerTrainingIntervalMonths: null,
+        workerTrainingNotApplicable: true,
+      },
+      positions: [
+        { ...welder, employeeCount: 2 },
+        { ...welder, id: 'b', name: 'Contabil' },
+        { ...welder, id: 'c', name: 'Director', staffCategory: 'technical_administrative' },
+      ],
+    });
+    mount();
+
+    expect(await screen.findByTestId('training-program-form')).toBeTruthy();
+    expect((await screen.findByTestId('training-program-category-warning')).textContent).toBe(
+      '1 angajat pe postul Director este în categoria „Tehnico-administrativ și conducători de locuri de muncă”, marcată „Nu se aplică”. 3 angajați pe posturile Sudor (2) și Contabil (1) sunt în categoria „Personal de execuție”, marcată „Nu se aplică”. Alege un interval pentru aceste categorii înainte de a genera documentele.'
+    );
+  });
+
   it('edits a saved program from the summary, and clears a field that is emptied', async () => {
     mockApi({ details: savedDetails });
     mount();
