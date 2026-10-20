@@ -1459,12 +1459,12 @@ describe('manifest', () => {
   }>('');
   const ported = manifest.templates.filter((entry) => entry.file);
 
-  it('lists all 24 originals once, and the documents written without one', () => {
-    expect(manifest.templates.filter((entry) => entry.original)).toHaveLength(24);
+  it('lists all 23 originals once, and the documents written without one', () => {
+    expect(manifest.templates.filter((entry) => entry.original)).toHaveLength(23);
     expect(
       manifest.templates.filter((entry) => !entry.original).map((entry) => entry.typeKey)
     ).toEqual(['signing_regulation_annex']);
-    expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(25);
+    expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(24);
   });
 
   it('names each ported template after its original number and its type', () => {
@@ -2211,17 +2211,6 @@ describe('employer_briefing', () => {
       'Instruirea periodică durează 1 oră și 30 de minute și are periodicitatea stabilită prin programul de instruire-testare și prin instrucțiunile proprii ale unității.'
     );
     expect(text).not.toContain('1,30 ore');
-  });
-});
-
-describe('test_periodic', () => {
-  it('says under the title of the test and of the specimen that several answers may be right', () => {
-    const text = documentText(read('5.2_test_periodic.docx'));
-    expect(
-      text.match(
-        /^TESTARE DE VERIFICARE .*\(PERIODIC\)\nLa fiecare întrebare pot fi corecte unul sau mai multe răspunsuri\.$/gm
-      )
-    ).toHaveLength(2);
   });
 });
 

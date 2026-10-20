@@ -169,18 +169,6 @@
       }
     },
     {
-      "number": "5.2",
-      "original": "5.2._Test_anual_S.S.M",
-      "stage": 1,
-      "typeKey": "test_periodic",
-      "title": "Test de verificare periodică",
-      "file": "5.2_test_periodic.docx",
-      "change": {
-        "kind": "correction",
-        "note": "Sub titlul testului și al specimenului, rândul „La fiecare întrebare pot fi corecte unul sau mai multe răspunsuri.”; întrebările și răspunsurile corecte rămân aceleași."
-      }
-    },
-    {
       "number": "6",
       "original": "6._LEIP",
       "stage": 2,

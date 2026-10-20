@@ -5260,7 +5260,6 @@ export const StartRegenerationRequestTypeKey = {
   training_themes: 'training_themes',
   cover_tests: 'cover_tests',
   test_hiring: 'test_hiring',
-  test_periodic: 'test_periodic',
   protective_equipment_list: 'protective_equipment_list',
   cover_event_registers: 'cover_event_registers',
   event_registers: 'event_registers',
@@ -5635,7 +5634,6 @@ export const ClientDocumentListResponseNotApplicableItem = {
   training_themes: 'training_themes',
   cover_tests: 'cover_tests',
   test_hiring: 'test_hiring',
-  test_periodic: 'test_periodic',
   protective_equipment_list: 'protective_equipment_list',
   cover_event_registers: 'cover_event_registers',
   event_registers: 'event_registers',
@@ -23713,7 +23711,6 @@ export const getUploadClientDocumentUrl = (
     | 'training_themes'
     | 'cover_tests'
     | 'test_hiring'
-    | 'test_periodic'
     | 'protective_equipment_list'
     | 'cover_event_registers'
     | 'event_registers'
@@ -23790,7 +23787,6 @@ export const uploadClientDocument = async (
     | 'training_themes'
     | 'cover_tests'
     | 'test_hiring'
-    | 'test_periodic'
     | 'protective_equipment_list'
     | 'cover_event_registers'
     | 'event_registers'
@@ -23923,7 +23919,6 @@ export type UploadClientDocumentMutationVariables = {
     | 'training_themes'
     | 'cover_tests'
     | 'test_hiring'
-    | 'test_periodic'
     | 'protective_equipment_list'
     | 'cover_event_registers'
     | 'event_registers'
