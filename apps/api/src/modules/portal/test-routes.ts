@@ -23,11 +23,13 @@ const testParams = participantParams.extend({
 });
 const attemptParams = participantParams.extend({ attemptId: z.uuid() });
 const answerParams = attemptParams.extend({
-  questionIndex: z.coerce
-    .number()
-    .int()
-    .min(0)
-    .max(testSittingSize - 1),
+  // A string of digits: a coerced number would be described as an optional, nullable parameter.
+  questionIndex: z
+    .string()
+    .regex(/^[0-9]+$/)
+    .refine((index) => Number(index) < testSittingSize, {
+      message: `A sitting holds ${testSittingSize} questions.`,
+    }),
 });
 
 const ownErrors = {

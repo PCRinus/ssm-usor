@@ -194,7 +194,7 @@ export const answerPortalTestAttempt: RouteHandler<
   testedEmployee(c, participantId);
   const { data, error } = await createDataClient(c).rpc('answer_test_attempt', {
     p_attempt_id: attemptId,
-    p_question_index: questionIndex,
+    p_question_index: Number(questionIndex),
     p_chosen: chosen,
   });
   if (error) throw fromTestFunction(error, 'answer test attempt');
