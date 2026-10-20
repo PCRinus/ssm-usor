@@ -1330,13 +1330,13 @@ function sample(
               {
                 month: 'FEBRUARIE',
                 content:
-                  'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0165; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a015;',
+                  'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0165; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a015',
                 duration: '120 min',
               },
               {
                 month: 'AUGUST',
                 content:
-                  'I.P.S.S.M. Art.\u00a0166\u00a0–\u00a0287; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a015; Testare.',
+                  'I.P.S.S.M. Art.\u00a0166\u00a0–\u00a0287; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a015',
                 duration: '120 min',
               },
             ],
@@ -1370,9 +1370,9 @@ function sample(
               'OCTOMBRIE',
               'NOIEMBRIE',
               'DECEMBRIE',
-            ].map((month, index, months) => ({
+            ].map((month, index) => ({
               month,
-              content: `I.P.S.S.M. Art.\u00a0${index * 24 + 1}\u00a0–\u00a0${index * 24 + 24}; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a012; I.P.S.S.M. Aparat de sudură oxiacetilenică;${index === months.length - 1 ? ' Testare.' : ''}`,
+              content: `I.P.S.S.M. Art.\u00a0${index * 24 + 1}\u00a0–\u00a0${index * 24 + 24}; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a012; I.P.S.S.M. Aparat de sudură oxiacetilenică`,
               duration: '120 min',
             })),
           })),

@@ -343,7 +343,7 @@ describe('the training themes', () => {
       'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0290; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012; I.P.S.S.M. Sudură oxiacetilenică, Art.\u00a01\u00a0–\u00a031;'
     );
     expect(text).toContain('I.P.S.S.M. Activități de birou; I.P.S.S.M. Sudură oxiacetilenică');
-    expect(text.match(/Testare\.$/gm)).toHaveLength(2);
+    expect(text).not.toMatch(/Testare\.$/m);
     expect(text).toContain('I.P.S.S.M. Art.\u00a0236\u00a0–\u00a0290;');
   }, 30_000);
 });
