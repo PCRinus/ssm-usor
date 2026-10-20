@@ -41,6 +41,10 @@ msgstr "{0}. Trainer {1}, {2}."
 msgid "{0}. Instructor {1}."
 msgstr "{0}. Trainer {1}."
 
+#: src/features/tests/test-result.tsx
+msgid "{correct} din {total} răspunsuri corecte"
+msgstr "{correct} of {total} answers correct"
+
 #: src/features/training/training-sheets.tsx
 msgid "{count, plural, one {# instruire, actualizată {updated}} few {# instruiri, actualizată {updated}} other {# de instruiri, actualizată {updated}}}"
 msgstr "{count, plural, one {# session, updated {updated}} other {# sessions, updated {updated}}}"
@@ -60,6 +64,10 @@ msgstr "{count, plural, one {The sheet cannot be drawn up yet: the {items} is mi
 #: src/features/signing/signatures-panel.tsx
 msgid "{count, plural, one {O semnătură așteaptă la angajați} few {# semnături așteaptă la angajați} other {# de semnături așteaptă la angajați}}"
 msgstr "{count, plural, one {One signature still due from employees} other {# signatures still due from employees}}"
+
+#: src/features/tests/tests-section.tsx
+msgid "{grade}, {day}"
+msgstr "{grade}, {day}"
 
 #: src/lib/format.ts
 msgid "{hours, plural, one {# oră} few {# ore} other {# de ore}}"
@@ -84,6 +92,10 @@ msgstr "{phase}, {domain}"
 #: src/features/training/training-records-list.tsx
 msgid "{phase}, admis la lucru"
 msgstr "{phase}, cleared to work"
+
+#: src/features/tests/test-sitting.tsx
+msgid "{position} din {total}"
+msgstr "{position} of {total}"
 
 #: src/lib/format.ts
 msgid "{rest, plural, one {# minut} few {# minute} other {# de minute}}"
@@ -159,6 +171,10 @@ msgstr "The addendum changed since you asked for the code. Ask for a new code an
 msgid "Administratorul clientului"
 msgstr "Client administrator"
 
+#: src/lib/labels.ts
+msgid "Admis"
+msgstr "Passed"
+
 #: src/features/signing/signing-messages.ts
 msgid "admite la lucru"
 msgstr "admits to work"
@@ -188,6 +204,14 @@ msgstr "You ticked {0} of {1}."
 #: src/features/signing/signing-page.tsx
 msgid "Ai cerut un cod acum mai puțin de un minut."
 msgstr "You asked for a code less than a minute ago."
+
+#: src/features/tests/awaiting-tests-panel.tsx
+msgid "Ai început testul; continui de unde ai rămas."
+msgstr "You have started the test; you continue where you left off."
+
+#: src/features/tests/test-result.tsx
+msgid "Ai promovat testul"
+msgstr "You passed the test"
 
 #: src/features/signing/agreement-section.tsx
 msgid "Ai revenit la semnarea de mână: fișele tale se semnează pe hârtie."
@@ -283,6 +307,10 @@ msgstr "The employer must keep these records under Legea nr. 319/2006 (Law 319/2
 msgid "Angajatul nu a fost găsit"
 msgstr "Employee not found"
 
+#: src/lib/labels.ts
+msgid "Anual scadent"
+msgstr "Annual due"
+
 #: src/features/training/training-records-list.tsx
 msgid "Așteaptă semnătura ta ({roles})."
 msgstr "Waiting for your signature ({roles})."
@@ -309,6 +337,7 @@ msgid "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal 
 msgstr "The browser blocked the new window. Allow pop-up windows for the portal or download the sheet."
 
 #: src/features/signing/agreement-pdf-button.tsx
+#: src/features/tests/study-card.tsx
 msgid "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal."
 msgstr "The browser blocked the new window. Allow new windows for the portal."
 
@@ -345,6 +374,10 @@ msgstr "What we told you the first time you signed in to the portal."
 msgid "Ce tipăresc fișele tale de instruire, așa cum le ține angajatorul."
 msgstr "What your training sheets print, as your employer keeps it."
 
+#: src/features/tests/study-card.tsx
+msgid "Ce trebuie să știi"
+msgstr "What you need to know"
+
 #: src/features/signing/signing-page.tsx
 msgid "Cere un cod nou"
 msgstr "Ask for a new code"
@@ -365,6 +398,10 @@ msgstr "Something on the list no longer waits for your signature. We updated the
 #: src/features/my-data/provider-box.tsx
 msgid "Ceva nu e corect?"
 msgstr "Something not right?"
+
+#: src/features/tests/test-page.tsx
+msgid "Citește ce trebuie să știi, apoi răspunde la întrebări, câte una pe ecran."
+msgstr "Read what you need to know, then answer the questions, one per screen."
 
 #: src/features/signing/agreement-section.tsx
 msgid "Clauza este în contractul tău de muncă."
@@ -409,6 +446,15 @@ msgstr "The code is wrong. Check it and type it again."
 #: src/lib/labels.ts
 msgid "Conducător al locului de muncă"
 msgstr "Workplace manager"
+
+#: src/features/tests/test-sitting.tsx
+msgid "Continuă"
+msgstr "Continue"
+
+#: src/features/tests/study-card.tsx
+#: src/features/tests/tests-section.tsx
+msgid "Continuă testul"
+msgstr "Continue the test"
 
 #: src/features/participation/participant-gate.tsx
 msgid "Contul acesta nu are acces la portal"
@@ -482,6 +528,10 @@ msgid "Datele mele"
 msgstr "My data"
 
 #: src/lib/labels.ts
+msgid "De susținut"
+msgstr "To take"
+
+#: src/lib/labels.ts
 msgid "Depășită"
 msgstr "Overdue"
 
@@ -494,6 +544,7 @@ msgid "Descarcă fișa {label}"
 msgstr "Download the {label} sheet"
 
 #: src/features/signing/agreement-pdf-button.tsx
+#: src/features/tests/study-card.tsx
 #: src/features/training/training-sheets.tsx
 msgid "Deschide PDF"
 msgstr "Open PDF"
@@ -541,6 +592,10 @@ msgstr "examiner"
 #: src/lib/labels.ts
 msgid "Executarea unor lucrări speciale"
 msgstr "Carrying out special works"
+
+#: src/lib/labels.ts
+msgid "Fără test"
+msgstr "No test"
 
 #: src/features/signing/signing-page.tsx
 msgid "Fiecare document se semnează pe rând; poate dura câteva secunde."
@@ -669,9 +724,17 @@ msgstr "Blood group"
 msgid "Ieși din cont"
 msgstr "Sign out"
 
+#: src/features/tests/test-sitting.tsx
+msgid "Înapoi"
+msgstr "Back"
+
 #: src/features/signing/signing-page.tsx
 msgid "Înapoi la Acasă"
 msgstr "Back to Home"
+
+#: src/features/tests/test-result.tsx
+msgid "Înapoi la Instruiri"
+msgstr "Back to Training"
 
 #: src/app/App.tsx
 #: src/components/page.tsx
@@ -680,6 +743,14 @@ msgstr "Back to Home"
 #: src/features/signing/signing-page.tsx
 msgid "Încearcă din nou"
 msgstr "Try again"
+
+#: src/features/tests/study-card.tsx
+msgid "Începe testul"
+msgstr "Start the test"
+
+#: src/features/tests/study-card.tsx
+msgid "Instrucțiunile proprii PSI nu sunt emise încă; le găsești aici după ce le emite specialistul."
+msgstr "The own fire-safety instructions are not issued yet; you will find them here once the specialist issues them."
 
 #: src/features/signing/signing-messages.ts
 msgid "instructor"
@@ -719,6 +790,7 @@ msgstr "Your training"
 
 #: src/app/places.ts
 #: src/features/employees/employee-page.tsx
+#: src/features/tests/test-page.tsx
 msgid "Instruiri"
 msgstr "Training"
 
@@ -737,6 +809,10 @@ msgstr "Sign in"
 #: src/features/auth/sign-in-page.tsx
 msgid "Intră în portal"
 msgstr "Sign in to the portal"
+
+#: src/features/tests/test-result.tsx
+msgid "Întrebarea {number}"
+msgstr "Question {number}"
 
 #: src/features/account/account-page.tsx
 msgid "Intri cu"
@@ -783,6 +859,14 @@ msgstr "Less"
 #: src/features/my-data/my-data-page.tsx
 msgid "Marca"
 msgstr "Employee no."
+
+#: src/features/tests/study-card.tsx
+msgid "Materialul complet, emis pe {issuedOn}."
+msgstr "The full material, issued on {issuedOn}."
+
+#: src/features/tests/study-card.tsx
+msgid "Materialul de instruire nu este emis încă; îl găsești aici după ce îl emite specialistul."
+msgstr "The training material is not issued yet; you will find it here once the specialist issues it."
 
 #: src/routes/__root.tsx
 msgid "Mergi la pagina principală"
@@ -848,6 +932,10 @@ msgstr "It could not be signed. Try again; if it happens again, tell your specia
 msgid "Nu ai bifat nimic."
 msgstr "You have not ticked anything."
 
+#: src/features/tests/test-result.tsx
+msgid "Nu ai promovat de data aceasta"
+msgstr "You did not pass this time"
+
 #: src/features/signing/agreement-pdf-button.tsx
 msgid "Nu am putut deschide documentul. Încearcă din nou."
 msgstr "We could not open the document. Try again."
@@ -855,6 +943,10 @@ msgstr "We could not open the document. Try again."
 #: src/features/training/use-sheet-actions.ts
 msgid "Nu am putut deschide fișa. Verifică conexiunea la internet și încearcă din nou."
 msgstr "We could not open the sheet. Check your internet connection and try again."
+
+#: src/features/tests/study-card.tsx
+msgid "Nu am putut deschide materialul. Verifică conexiunea la internet și încearcă din nou."
+msgstr "We could not open the material. Check your internet connection and try again."
 
 #: src/app/account-menu.tsx
 msgid "Nu am putut ieși din cont."
@@ -868,9 +960,17 @@ msgstr "We could not load the page. Check your internet connection."
 msgid "Nu am putut închide sesiunea. Verifică conexiunea și încearcă din nou."
 msgstr "We could not end the session. Check your connection and try again."
 
+#: src/features/tests/test-page.tsx
+msgid "Nu am putut porni testul. Verifică conexiunea la internet și încearcă din nou."
+msgstr "We could not start the test. Check your internet connection and try again."
+
 #: src/app/App.tsx
 msgid "Nu am putut restabili sesiunea. Verifică conexiunea și încearcă din nou."
 msgstr "We could not restore the session. Check your connection and try again."
+
+#: src/features/tests/test-sitting.tsx
+msgid "Nu am putut salva răspunsul. Verifică conexiunea la internet și încearcă din nou."
+msgstr "We could not save the answer. Check your internet connection and try again."
 
 #: src/features/participation/privacy-notice.tsx
 msgid "Nu am putut salva. Verifică conexiunea la internet și încearcă din nou."
@@ -880,6 +980,10 @@ msgstr "We could not save. Check your internet connection and try again."
 msgid "Nu am putut trimite codul. Încearcă din nou peste câteva minute."
 msgstr "We could not send the code. Try again in a few minutes."
 
+#: src/features/tests/test-sitting.tsx
+msgid "Nu am putut trimite testul. Verifică conexiunea la internet și încearcă din nou; răspunsurile sunt păstrate."
+msgstr "We could not submit the test. Check your internet connection and try again; your answers are kept."
+
 #: src/features/signing/signatures-panel.tsx
 msgid "Nu am putut verifica ce ai de semnat."
 msgstr "We could not check what you have to sign."
@@ -887,6 +991,10 @@ msgstr "We could not check what you have to sign."
 #: src/features/training/training-sheets.tsx
 msgid "Nu am putut verifica fișele. Reîncarcă pagina."
 msgstr "We could not check the sheets. Reload the page."
+
+#: src/features/tests/tests-section.tsx
+msgid "Nu am putut verifica testele. Reîncarcă pagina."
+msgstr "We could not check your tests. Reload the page."
 
 #: src/features/signing/signing-messages.ts
 msgid "Nu avem o adresă de email sau un telefon la care să-ți trimitem codul. Spune-i specialistului."
@@ -973,6 +1081,10 @@ msgstr "SSM Ușor portal"
 msgid "Post de lucru"
 msgstr "Job position"
 
+#: src/features/tests/test-sitting.tsx
+msgid "Pot fi corecte unul sau mai multe răspunsuri."
+msgstr "One or more answers may be correct."
+
 #: src/features/signing/signing-page.tsx
 msgid "Poți cere altul în {secondsLeft} s."
 msgstr "You can ask for another in {secondsLeft} s."
@@ -1005,6 +1117,10 @@ msgid "Prima instruire {label} nu a fost încă înregistrată."
 msgstr "Your first {label} training has not been recorded yet."
 
 #: src/lib/labels.ts
+msgid "Promovat"
+msgstr "Passed"
+
+#: src/lib/labels.ts
 msgid "PSI"
 msgstr "PSI"
 
@@ -1016,6 +1132,18 @@ msgstr "Workplace"
 #: src/lib/labels.ts
 msgid "punctul de lucru"
 msgstr "workplace"
+
+#: src/features/tests/test-result.tsx
+msgid "Recitește ce trebuie să știi"
+msgstr "Read what you need to know again"
+
+#: src/features/tests/test-result.tsx
+msgid "Recitește întrebările de mai jos și reia testul. Întrebările și ordinea răspunsurilor se schimbă la fiecare încercare."
+msgstr "Read the questions below again and retake the test. The questions and the order of the answers change with every attempt."
+
+#: src/features/tests/test-result.tsx
+msgid "Reia testul"
+msgstr "Retake the test"
 
 #: src/routes/__root.tsx
 msgid "Reîncarcă pagina și încearcă din nou."
@@ -1032,6 +1160,10 @@ msgstr "Workers' representative"
 #: src/features/signing/signing-page.tsx
 msgid "Rezultatul"
 msgstr "Result"
+
+#: src/features/tests/test-result.tsx
+msgid "Rezultatul este înregistrat și apare în fișa ta individuală."
+msgstr "The result is recorded and appears on your individual sheet."
 
 #: src/features/my-data/my-data-page.tsx
 msgid "Rh negativ"
@@ -1110,6 +1242,10 @@ msgstr "Preparing the document…"
 msgid "Se pregătește fișa…"
 msgstr "Preparing the sheet…"
 
+#: src/features/tests/study-card.tsx
+msgid "Se pregătește materialul…"
+msgstr "Preparing the material…"
+
 #: src/features/participation/privacy-notice.tsx
 msgid "Se salvează…"
 msgstr "Saving…"
@@ -1125,6 +1261,7 @@ msgstr "Sending…"
 
 #: src/features/auth/sign-in-page.tsx
 #: src/features/signing/signatures-panel.tsx
+#: src/features/tests/tests-section.tsx
 #: src/features/training/training-sheets.tsx
 msgid "Se verifică…"
 msgstr "Checking…"
@@ -1262,6 +1399,74 @@ msgstr "The training state of each employee; open one for their training session
 msgid "Studii"
 msgstr "Education"
 
+#: src/features/tests/tests-section.tsx
+msgid "Susține testul"
+msgstr "Take the test"
+
+#: src/features/employees/employee-training-states.tsx
+msgid "Test"
+msgstr "Test"
+
+#: src/features/tests/tests-section.tsx
+msgid "Testare {label}"
+msgstr "{label} test"
+
+#: src/features/tests/awaiting-tests-panel.tsx
+msgid "Teste"
+msgstr "Tests"
+
+#: src/features/tests/tests-section.tsx
+msgid "Testele tale"
+msgstr "Your tests"
+
+#: src/features/tests/test-sitting.tsx
+msgid "Testul acesta a fost deja trimis. Întoarce-te la Instruiri pentru rezultat."
+msgstr "This test was already submitted. Go back to Training for the result."
+
+#: src/lib/labels.ts
+msgid "Testul anual PSI"
+msgstr "Annual PSI test"
+
+#: src/lib/labels.ts
+msgid "Testul anual PSI este scadent"
+msgstr "The annual PSI test is due"
+
+#: src/features/tests/tests-section.tsx
+msgid "Testul la angajare apare după ce este înregistrată instruirea introductiv-generală."
+msgstr "The hiring test appears once the introductory general training is recorded."
+
+#: src/features/tests/tests-section.tsx
+msgid "Testul la angajare apare după ce este înregistrată instruirea la locul de muncă."
+msgstr "The hiring test appears once the workplace training is recorded."
+
+#: src/lib/labels.ts
+msgid "Testul la angajare PSI"
+msgstr "PSI hiring test"
+
+#: src/lib/labels.ts
+msgid "Testul la angajare PSI te așteaptă"
+msgstr "The PSI hiring test awaits you"
+
+#: src/lib/labels.ts
+msgid "Testul la angajare SSM"
+msgstr "SSM hiring test"
+
+#: src/lib/labels.ts
+msgid "Testul la angajare SSM te așteaptă"
+msgstr "The SSM hiring test awaits you"
+
+#: src/features/tests/study-card.tsx
+msgid "Testul nu are explicații pe scurt."
+msgstr "This test has no short explanations."
+
+#: src/features/tests/study-card.tsx
+msgid "Testul nu te așteaptă acum. Când va fi de susținut, apare pe Acasă."
+msgstr "This test does not await you now. When it is due, it appears on Home."
+
+#: src/features/tests/test-page.tsx
+msgid "Testul nu te mai așteaptă."
+msgstr "This test no longer awaits you."
+
 #: src/features/signing/client-signatures-page.tsx
 msgid "Tot ce a fost trimis spre semnare este semnat."
 msgstr "Everything sent for signing is signed."
@@ -1295,6 +1500,10 @@ msgstr "Send another code in {secondsLeft} s"
 msgid "Trimite codul"
 msgstr "Send the code"
 
+#: src/features/tests/test-sitting.tsx
+msgid "Trimite testul"
+msgstr "Submit the test"
+
 #: src/features/training/training-summary.tsx
 msgid "Ultima"
 msgstr "Last held"
@@ -1303,9 +1512,17 @@ msgstr "Last held"
 msgid "Un câmp necompletat apare gol și pe fișă, în afară de traseul de deplasare, pe care fișa SSM îl cere."
 msgstr "A field left empty is also blank on the sheet, except the commute, which the SSM sheet requires."
 
+#: src/features/tests/test-result.tsx
+msgid "Unde ai greșit"
+msgstr "Where you went wrong"
+
 #: src/features/training/training-summary.tsx
 msgid "Următoarea"
 msgstr "Next due"
+
+#: src/features/tests/tests-section.tsx
+msgid "Următorul test anual: {nextAnnual}"
+msgstr "Next annual test: {nextAnnual}"
 
 #: src/features/participation/participant-gate.tsx
 msgid "Verifică conexiunea la internet și încearcă din nou."
@@ -1331,3 +1548,11 @@ msgstr "See your training"
 #: src/features/home/home-page.tsx
 msgid "Vezi tot"
 msgstr "See all"
+
+#: src/features/tests/awaiting-tests-panel.tsx
+msgid "Zece întrebări, fără limită de timp."
+msgstr "Ten questions, no time limit."
+
+#: src/features/tests/study-card.tsx
+msgid "Zece întrebări, fără limită de timp. Promovezi cu cel puțin {passScore} răspunsuri corecte și poți relua testul oricând."
+msgstr "Ten questions, no time limit. You pass with at least {passScore} correct answers, and you can take the test again at any time."

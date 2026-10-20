@@ -5,6 +5,8 @@ import type {
   MissingSheetData,
   ResponsiblePersonRole,
   SupplementaryTrainingReason,
+  TestGrade,
+  TestState,
   TrainingDomain,
   TrainingPhase,
   TrainingState,
@@ -21,11 +23,40 @@ export const trainingStateMessages: Record<TrainingState, MessageDescriptor> = {
   overdue: msg`Depășită`,
 };
 
+export const testStateMessages: Record<TestState, MessageDescriptor> = {
+  none: msg`Fără test`,
+  pending: msg`De susținut`,
+  passed: msg`Promovat`,
+  annual_due: msg`Anual scadent`,
+};
+
+export const testGradeMessages: Record<TestGrade, MessageDescriptor> = {
+  admis: msg`Admis`,
+};
+
+// Whole titles rather than the test and the domain joined, which reads wrong in English.
+const testTitleMessages = {
+  'ssm.hiring': msg`Testul la angajare SSM`,
+  'psi.hiring': msg`Testul la angajare PSI`,
+  'psi.annual': msg`Testul anual PSI`,
+};
+
+const testAwaitingMessages = {
+  'ssm.hiring': msg`Testul la angajare SSM te așteaptă`,
+  'psi.hiring': msg`Testul la angajare PSI te așteaptă`,
+  'psi.annual': msg`Testul anual PSI este scadent`,
+};
+
 // There is no annual occupational safety test (ADR 024); its key falls back to the hiring one.
 const testKeyOf = (domain: TrainingDomain, test: KnowledgeTest) =>
   domain === 'psi' && test === 'annual' ? 'psi.annual' : (`${domain}.hiring` as const);
 
-// Whole titles rather than the test and the domain joined, which reads wrong in English.
+export const testTitleMessage = (domain: TrainingDomain, test: KnowledgeTest) =>
+  testTitleMessages[testKeyOf(domain, test)];
+
+export const testAwaitingMessage = (domain: TrainingDomain, test: KnowledgeTest) =>
+  testAwaitingMessages[testKeyOf(domain, test)];
+
 const testSheetTitleMessages = {
   'ssm.hiring': msg`Fișa de test la angajare SSM`,
   'psi.hiring': msg`Fișa de test la angajare PSI`,

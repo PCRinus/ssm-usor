@@ -9,6 +9,7 @@ import {
   useGetPortalEmployeeData,
   useGetPortalMe,
   useGetPortalSigningAgreementState,
+  useGetPortalTests,
   useGetPortalTrainingSheets,
   useListPortalClientEmployees,
   useListPortalClientSignatureRequests,
@@ -34,6 +35,7 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/generated/api')>()),
   useGetPortalMe: vi.fn(),
   useListPortalTrainingRecords: vi.fn(),
+  useGetPortalTests: vi.fn(),
   useGetPortalEmployeeData: vi.fn(),
   useGetPortalTrainingSheets: vi.fn(),
   useListPortalClientEmployees: vi.fn(),
@@ -142,6 +144,7 @@ const refusal = (reason: string, message = 'Refused.', extra: Record<string, unk
 beforeEach(() => {
   vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [employee] }));
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
+  vi.mocked(useGetPortalTests).mockReturnValue(queryPending());
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
   vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
     queryResult({
