@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   continuationLine,
+  materialPlaceholder,
   printedSheets,
   rowKindOf,
   rowValues,
@@ -84,8 +85,8 @@ describe('signedSheetData', () => {
   it('turns the form on, the printed rows as text and every other row as fields', () => {
     const data = signedSheetData(sheetFacts, 'ssm', 1, printed);
     expect(data.form.on).toBe(true);
-    expect(data.form.h1).toEqual({ paper: true });
-    expect(data.form.h2).toEqual({ paper: false });
+    expect(data.form.h1).toEqual({ paper: true, materialPlaceholder: materialPlaceholder() });
+    expect(data.form.h2).toEqual({ paper: false, materialPlaceholder: materialPlaceholder() });
     expect(data.form.rows.p1).toBe(false);
     expect(data.form.rows.p2).toBe(true);
     expect(data.form.rows.s17).toBe(true);
@@ -93,6 +94,21 @@ describe('signedSheetData', () => {
     expect(data.periodic.map((row) => row.heldOn)).toEqual(['10.01.2025']);
     expect(data.hiring.introductory.heldOn).toBe('01.12.2024');
     expect(data.blankRows).toEqual({ periodic: [], supplementary: [] });
+  });
+
+  it('draws the material field of a hiring training it is drawn up with as tall as its text', () => {
+    const material = 'Legislația de securitate și sănătate în muncă; '.repeat(5).trim();
+    const data = signedSheetData(sheetFacts, 'ssm', 1, [], { h2: material });
+    const lines = (placeholder: string) => placeholder.split('\n');
+    expect(lines(data.form.h2.materialPlaceholder)).toHaveLength(
+      wrapToBox(material, { chars: 57, lines: 7 }).split('\n').length
+    );
+    expect(lines(data.form.h2.materialPlaceholder)).toHaveLength(5);
+    expect(lines(data.form.h1.materialPlaceholder)).toHaveLength(7);
+    expect(new Set(lines(data.form.h2.materialPlaceholder))).toEqual(
+      new Set(['\u2002'.repeat(57)])
+    );
+    expect(lines(materialPlaceholder(''))).toHaveLength(1);
   });
 
   it('says on a continuation sheet which sheet it continues', () => {

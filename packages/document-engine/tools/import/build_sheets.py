@@ -35,6 +35,13 @@ ROW_CAPACITY = 17
 FIELD_SIZE = 8
 PAPER_SIGNED = 'semnat pe hârtie'
 CONTROL_IDS = itertools.count(1)
+# Apple's viewers draw a multiline field's text at about 1.2 times the size plus 1.2 pt a line, and
+# take 3.5 pt more for the field (APPLE_LEADING, APPLE_LINE_GAP, APPLE_PADDING in the signer),
+# where LibreOffice gives a 10 pt line 11.7 pt: a field the merge sizes to its text has its lines
+# spaced to Apple's and a 7 pt line after them (the smallest size of the house style), so that it
+# holds the text at the body size.
+MERGED_FIELD_LINE = 272
+MERGED_FIELD_PADDING_SIZE = 7
 
 
 def escape(text):
@@ -282,14 +289,25 @@ def boxes(title, closing, count, footnote=None):
     return table(widths, rows)
 
 
-def control(name, width, lines=1, size=FIELD_SIZE):
+def control(name, width, lines=1, size=FIELD_SIZE, placeholder=None):
     """A plain-text content control titled `name`. LibreOffice exports it as a text field as wide
-    and as tall as its placeholder, so the placeholder is lines of en spaces across the cell."""
+    and as tall as its placeholder, so the placeholder is lines of en spaces across the cell, or
+    `placeholder`, a tag the merge fills with as many such lines as the field is to hold."""
     r = rpr(size)
-    count = max(1, int((width - 110 - 60) // (size * 10)))
-    filler = f'<w:r>{r}<w:t xml:space="preserve">{chr(0x2002) * count}</w:t></w:r>'
-    content = f'<w:r>{r}<w:br/></w:r>'.join([filler] * lines)
-    multiline = ' w:multiLine="1"' if lines > 1 else ''
+
+    def filler(size):
+        count = max(1, int((width - 110 - 60) // (size * 10)))
+        return f'<w:r>{rpr(size)}<w:t xml:space="preserve">{chr(0x2002) * count}</w:t></w:r>'
+
+    if placeholder:
+        # The last line as wide as the others: LibreOffice takes the field's width from it.
+        content = (
+            f'<w:r>{r}<w:t xml:space="preserve">{placeholder}</w:t></w:r>'
+            f'<w:r>{rpr(MERGED_FIELD_PADDING_SIZE)}<w:br/></w:r>{filler(MERGED_FIELD_PADDING_SIZE)}'
+        )
+    else:
+        content = f'<w:r>{r}<w:br/></w:r>'.join([filler(size)] * lines)
+    multiline = ' w:multiLine="1"' if lines > 1 or placeholder else ''
     return (
         f'<w:sdt><w:sdtPr>{r}<w:alias w:val="{name}"/><w:tag w:val="{name}"/>'
         f'<w:id w:val="{next(CONTROL_IDS)}"/><w:showingPlcHdr/><w:text{multiline}/></w:sdtPr>'
@@ -301,11 +319,12 @@ def run(text, size=FIELD_SIZE):
     return f'<w:r>{rpr(size)}<w:t xml:space="preserve">{escape(text)}</w:t></w:r>'
 
 
-def inline_paragraph(inner, *, size=FIELD_SIZE, align='left'):
+def inline_paragraph(inner, *, size=FIELD_SIZE, align='left', line=None):
+    spacing = f' w:line="{line}" w:lineRule="auto"' if line else ''
     props = (
         '<w:pStyle w:val="TableContents"/><w:keepNext w:val="false"/>'
         '<w:pageBreakBefore w:val="false"/><w:widowControl/><w:bidi w:val="0"/>'
-        '<w:spacing w:before="0" w:after="0"/><w:ind w:hanging="0" w:left="0"/>'
+        f'<w:spacing w:before="0" w:after="0"{spacing}/><w:ind w:hanging="0" w:left="0"/>'
         f'<w:jc w:val="{align}"/>{rpr(size)}'
     )
     return f'<w:p><w:pPr>{props}</w:pPr>{inner}</w:p>'
@@ -327,17 +346,20 @@ def form(xml):
 
 
 def control_fields(rows, label_width=3400, height=360):
-    """`fields` with a content control for each value: rows of `(label, name, lines, height)`."""
+    """`fields` with a content control for each value, at the body size: rows of `(label, name)`,
+    or `(label, name, height, placeholder)` for a field the merge sizes (`control`)."""
     value_width = TEXT_WIDTH - label_width
     drawn = []
     for label, name, *rest in rows:
-        lines = rest[0] if rest else 1
-        tall = rest[1] if len(rest) > 1 else height
+        tall = rest[0] if rest else height
+        placeholder = rest[1] if len(rest) > 1 else None
+        field = control(name, value_width, size=10, placeholder=placeholder)
+        line = MERGED_FIELD_LINE if placeholder else None
         drawn.append(
             row(
                 [
                     cell(label_width, [cell_paragraph(label)], valign='bottom'),
-                    cell(value_width, [inline_paragraph(control(name, value_width, lines))],
+                    cell(value_width, [inline_paragraph(field, size=10, line=line)],
                          borders=('bottom',), valign='bottom'),
                 ],
                 height=tall,
@@ -463,7 +485,7 @@ def ssm_hiring(number, title, line, signer, workplace=False):
         ('Timp de (ore)', f'{key}_duration'),
         ('De către', f'{key}_trainer'),
         ('Având funcția de', f'{key}_trainer_job_title'),
-        ('Conținutul instruirii', f'{key}_material', 3, 720),
+        ('Conținutul instruirii', f'{key}_material', 720, f'{{{{form.{key}.materialPlaceholder}}}}'),
     ]
     slots = [
         ('Semnătura celui instruit', None),
@@ -581,7 +603,7 @@ def psi_hiring(number, title, line, workplace=False):
         ('Timp de (ore)', f'{key}_duration'),
         ('De către', f'{key}_trainer'),
         ('Având funcția de', f'{key}_trainer_job_title'),
-        ('Conținutul instructajului', f'{key}_material', 3, 720),
+        ('Conținutul instructajului', f'{key}_material', 720, f'{{{{form.{key}.materialPlaceholder}}}}'),
     ]
     slots = [
         ('Semnătura salariatului (persoanei care a verificat însușirea cunoștințelor)',

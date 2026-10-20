@@ -118,7 +118,8 @@ versions stay, so the evidence's `digest_before` names a file that still exists.
 
 The text of a cell is broken into lines by the API (`wrapToBox`) in the field's proportions,
 and the signer sets a text too long for its field in a smaller size, never below what keeps every
-line inside it.
+line inside it. A hiring training's material field is drawn as tall as the text the sheet is
+drawn up with ([document engine](document-engine.md#the-signed-sheet)).
 
 Apple's PDF viewer (Preview, Safari, every iPhone) ignores a text field's appearance and draws
 the value itself, from the field's `/DA` font size and its multiline flag: top-aligned in a
@@ -127,7 +128,8 @@ included. LibreOffice exports every cell as multiline at the template's size, so
 short cells showed half a line and a long one lost its last lines. A fill therefore writes the
 size it drew into `/DA`, sets the multiline flag only for a value with several lines, and sizes a
 multiline value so that Apple's layout fits it too: about 1.2 times the size plus 1.2 pt a line,
-and 3.5 pt for the field, measured with PDFKit on the real sheet. Both keys are among those a
+and 3.5 pt for the field, measured with PDFKit on the real sheet. The appearance's lines are
+spaced with that same leading, so every viewer shows a multiline value filling its field alike. Both keys are among those a
 form fill may change after a certification, and only the filled fields are touched, so earlier
 signatures stay intact and permitted. A later fill of the same unsigned row starts from the size
 the previous one left.

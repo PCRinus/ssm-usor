@@ -604,18 +604,28 @@ starts, filled one row per training record and signed row by row
 (`apps/api/src/modules/signed-sheets`, [PDF](pdf.md#the-signed-sheet)). The merge data's `form`
 chooses the variant of each part:
 
-| `form`         | What it holds                                                                                                                                                                                                                  |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `on`           | False on the paper sheet, which prints exactly as before the form existed: `paperForm(domain)` in `sheet.ts` gives every flag false. True on the signed sheet                                                                  |
-| `continuation` | "Fișa nr. 2, în continuarea fișei nr. 1" under the title of a continuation sheet; empty on the first                                                                                                                           |
-| `h1`, `h2`     | `{ paper }`: the hiring block prints as text, each signature box saying _semnat pe hârtie_, for a training recorded from a paper sheet (`source` paper); else every value and signature is a field. The admission follows `h2` |
-| `rows`         | `p1`… (and `s1`… on the occupational safety sheet): true where the table row prints as fields; the rows taken by trainings from paper print as text above them, from `periodic` and `supplementary` as on paper                |
+| `form`         | What it holds                                                                                                                                                                                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `on`           | False on the paper sheet, which prints exactly as before the form existed: `paperForm(domain)` in `sheet.ts` gives every flag false. True on the signed sheet                                                                                                                                    |
+| `continuation` | "Fișa nr. 2, în continuarea fișei nr. 1" under the title of a continuation sheet; empty on the first                                                                                                                                                                                             |
+| `h1`, `h2`     | `{ paper, materialPlaceholder }`: the hiring block prints as text, each signature box saying _semnat pe hârtie_, for a training recorded from a paper sheet (`source` paper); else every value and signature is a field, the material's over the placeholder's lines. The admission follows `h2` |
+| `rows`         | `p1`… (and `s1`… on the occupational safety sheet): true where the table row prints as fields; the rows taken by trainings from paper print as text above them, from `periodic` and `supplementary` as on paper                                                                                  |
 
 On the signed sheet every cell a training or a signature fills is a Word plain-text content
 control (`w:sdt`) titled with the field's name. LibreOffice exports a content control as a PDF
 text field over the space its placeholder takes, so the builder fills each with lines of en
-spaces across its cell: one line for a date or a duration, three for an occupation, a material
-and a signature. LibreOffice names the fields `Widget`, `_2`, `_3`… and puts the title in the
+spaces across its cell: one line for a date or a duration, three for an occupation and a
+material in the tables, at 8 pt as the tables' text, four for a signature; the hiring blocks'
+and the admission's fields are at the body size, as the paper sheet prints them. A hiring
+training's material, as long as a paragraph, has the merge draw its placeholder: the API wraps
+the material it draws the sheet up with into at most seven lines of the field's width
+(`hiringBoxes` and `materialPlaceholder` in `signed-sheets/form.ts`) and sends as many lines of
+en spaces, or the seven for a material recorded later, so that the field is as tall as its
+text and the label sits beside its last line, as on paper. Those lines are spaced to the
+leading Apple's viewers draw a multiline field with, about 1.2 times the size plus 1.2 pt, with
+a 5 pt line after them for the 3.5 pt they take under the last one ([PDF](pdf.md#signer)):
+in a field of three 8 pt lines the signer set a material of a few hundred characters in a few
+points. LibreOffice names the fields `Widget`, `_2`, `_3`… and puts the title in the
 tooltip, and the signer's `prepareSheet` names each by its tooltip ([PDF](pdf.md#signer)). Word's
 legacy form fields (`FORMTEXT`) were the first choice and are not exported at all.
 

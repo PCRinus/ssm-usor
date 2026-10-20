@@ -92,11 +92,18 @@ export function continuationLine(sequence: number) {
   return sequence > 1 ? `Fișa nr. ${sequence}, în continuarea fișei nr. ${sequence - 1}` : '';
 }
 
+export type HiringMaterials = Partial<Record<'h1' | 'h2', string>>;
+
+/**
+ * `materials` are the hiring trainings recorded in the app that the sheet is drawn up with, whose
+ * material fields are then drawn as tall as their text.
+ */
 export function signedSheetData(
   facts: Omit<TrainingSheetFacts, 'domain' | 'records'>,
   domain: TrainingDomain,
   sequence: number,
-  printed: PrintedRow[]
+  printed: PrintedRow[],
+  materials: HiringMaterials = {}
 ): TrainingSheetData {
   const data = buildTrainingSheetData({
     ...facts,
@@ -111,8 +118,8 @@ export function signedSheetData(
     form: {
       on: true,
       continuation: continuationLine(sequence),
-      h1: { paper: keys.has('h1') },
-      h2: { paper: keys.has('h2') },
+      h1: { paper: keys.has('h1'), materialPlaceholder: materialPlaceholder(materials.h1) },
+      h2: { paper: keys.has('h2'), materialPlaceholder: materialPlaceholder(materials.h2) },
       rows: Object.fromEntries(Object.keys(form.rows).map((key) => [key, !keys.has(key)])),
     },
   };
@@ -126,16 +133,17 @@ export function signatureFieldsOf(domain: TrainingDomain, printed: PrintedRow[])
     .flatMap((key) => Object.values(sheetFieldNames(domain, key).signatures));
 }
 
-/** How many characters of 8 pt text a line of the field holds, and how many lines it has. */
+/** How many characters a line of the field holds at its size, and how many lines it has. */
 type Box = { chars: number; lines: number };
 
-// The en spaces build_sheets.py puts on each line of the field's placeholder, which LibreOffice
-// sizes the field by; 8 pt text averages about as wide as an en space.
+// The en spaces on each line of the field's placeholder, which LibreOffice sizes the field by;
+// text averages about as wide as an en space of its size. A table's boxes are build_sheets.py's
+// placeholders at 8 pt; the hiring material's is drawn here (`materialPlaceholder`) at 10 pt.
 const tableBoxes: Record<TrainingDomain, Record<string, Box>> = {
   ssm: { occupation: { chars: 14, lines: 3 }, material: { chars: 29, lines: 3 } },
   psi: { occupation: { chars: 16, lines: 3 }, material: { chars: 33, lines: 3 } },
 };
-const hiringBoxes: Record<string, Box> = { material: { chars: 72, lines: 3 } };
+const hiringBoxes: Record<string, Box> = { material: { chars: 57, lines: 7 } };
 
 function linesAt(text: string, width: number) {
   const lines: string[] = [];
@@ -158,6 +166,17 @@ export function wrapToBox(text: string, box: Box) {
     if (lines.length <= Math.floor(box.lines * scale)) return lines.join('\n');
   }
   return linesAt(text, box.chars * 8).join('\n');
+}
+
+/**
+ * The lines of en spaces a hiring block's material field is drawn over, which LibreOffice sizes
+ * the field by: as many as the material wraps to when the sheet is drawn up with it, else as
+ * many as the box holds, for a material recorded later.
+ */
+export function materialPlaceholder(material?: string) {
+  const box = hiringBoxes.material!;
+  const lines = material === undefined ? box.lines : wrapToBox(material, box).split('\n').length;
+  return Array.from({ length: lines }, () => '\u2002'.repeat(box.chars)).join('\n');
 }
 
 function boxed(values: Record<string, string>, boxes: Record<string, Box>, rowKey: string) {

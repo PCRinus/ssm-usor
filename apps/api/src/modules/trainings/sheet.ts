@@ -123,8 +123,12 @@ export type SheetForm = {
   on: boolean;
   /** The line under the title of a continuation sheet; empty on the first. */
   continuation: string;
-  h1: { paper: boolean };
-  h2: { paper: boolean };
+  /**
+   * `materialPlaceholder` is the lines of en spaces the hiring block's material field is drawn
+   * over, which the field takes its height from (signed-sheets/form.ts); empty on paper.
+   */
+  h1: { paper: boolean; materialPlaceholder: string };
+  h2: { paper: boolean; materialPlaceholder: string };
   rows: Record<string, boolean>;
 };
 
@@ -134,7 +138,13 @@ export function paperForm(domain: TrainingDomain): SheetForm {
       .filter((key) => tableRowOf(key))
       .map((key) => [key, false])
   );
-  return { on: false, continuation: '', h1: { paper: false }, h2: { paper: false }, rows };
+  return {
+    on: false,
+    continuation: '',
+    h1: { paper: false, materialPlaceholder: '' },
+    h2: { paper: false, materialPlaceholder: '' },
+    rows,
+  };
 }
 
 export function missingSheetDataOf(facts: TrainingSheetFacts): MissingSheetData[] {

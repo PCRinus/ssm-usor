@@ -5,6 +5,8 @@
 export type SheetDomain = 'ssm' | 'psi';
 
 const blank = (count: number) => Array.from({ length: count }, () => ({}));
+const materialFieldLines = (count: number) =>
+  Array.from({ length: count }, () => '\u2002'.repeat(57)).join('\n');
 
 /** The paper sheet's choice of every form variant (ADR 023): the template prints as on paper. */
 export function paperForm(domain: SheetDomain) {
@@ -12,7 +14,13 @@ export function paperForm(domain: SheetDomain) {
   for (const table of domain === 'ssm' ? ['p', 's'] : ['p']) {
     for (let index = 1; index <= 17; index++) rows[`${table}${index}`] = false;
   }
-  return { on: false, continuation: '', h1: { paper: false }, h2: { paper: false }, rows };
+  return {
+    on: false,
+    continuation: '',
+    h1: { paper: false, materialPlaceholder: '' },
+    h2: { paper: false, materialPlaceholder: '' },
+    rows,
+  };
 }
 
 const unrecorded = {
@@ -183,6 +191,12 @@ export function trainingSheetFormSample(domain: SheetDomain) {
     periodic: data.periodic.slice(0, 2),
     supplementary: [],
     blankRows: { periodic: [], supplementary: [] },
-    form: { ...form, on: true, h1: { paper: true } },
+    form: {
+      ...form,
+      on: true,
+      h1: { paper: true, materialPlaceholder: '' },
+      // Two lines of the field's width, as the API draws it for the sample's workplace material.
+      h2: { paper: false, materialPlaceholder: materialFieldLines(2) },
+    },
   };
 }

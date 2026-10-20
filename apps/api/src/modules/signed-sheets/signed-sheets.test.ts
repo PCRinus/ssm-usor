@@ -240,6 +240,17 @@ const add = (record: SheetTrainingRecord) => {
 const stored = async (sheet: StoredSheet) => decode(files.get(sheet.storagePath)!);
 
 describe('ensureSignedSheet', () => {
+  it('draws the material field of a hiring training recorded in the app as tall as its text', async () => {
+    const material = 'Legislația de securitate și sănătate în muncă; '.repeat(5).trim();
+    add(sheetRecord('introductory_general', '2026-03-01', { training: { material } }));
+
+    await ensureSignedSheet(ctx, employeeId, 'ssm');
+
+    const { h1, h2 } = drawn[0]!.form;
+    expect(h1.materialPlaceholder.split('\n')).toHaveLength(5);
+    expect(h2.materialPlaceholder.split('\n')).toHaveLength(7);
+  });
+
   it('stores a new sheet with the paper rows printed, and fills every other record into the next rows', async () => {
     const paper = add(sheetRecord('periodic', '2025-04-01', { source: 'paper' }));
     const recorded = add(sheetRecord('periodic', '2026-04-01'));
