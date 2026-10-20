@@ -1023,8 +1023,11 @@ describe('the fire-safety context', () => {
   });
 
   it('is what a fire-safety template is merged with, whatever the type or number', () => {
-    const { knowledgeTests: _, ...shared } = buildFireSafetyContext(facts);
-    expect(setRules.fire_safety.data(facts, 'fire_registers', 4)).toEqual(shared);
+    const context: Partial<ReturnType<typeof buildFireSafetyContext>> = {
+      ...buildFireSafetyContext(facts),
+    };
+    delete context.knowledgeTests;
+    expect(setRules.fire_safety.data(facts, 'fire_registers', 4)).toEqual(context);
   });
 
   it("gives each test its own questions, as the bank orders them, and no other document's", () => {
