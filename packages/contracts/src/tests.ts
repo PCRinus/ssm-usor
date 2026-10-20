@@ -153,16 +153,20 @@ export const testAttemptOutcomeSchema = z.object({
   score: z.int().min(0),
   total: z.int().min(1),
   passed: z.boolean(),
-  mistakes: z.array(z.object({ text: z.string(), explanation: z.string().nullable() })),
+  mistakes: z.array(
+    z.object({
+      // The question's index in the attempt, from 0.
+      index: z.int().min(0),
+      text: z.string(),
+      explanation: z.string().nullable(),
+    })
+  ),
 });
 
 export type TestAttemptOutcome = z.infer<typeof testAttemptOutcomeSchema>;
 
+/** The question is the path's index into the attempt's questions, from 0. */
 export const testAttemptAnswerRequestSchema = z.object({
-  questionIndex: z
-    .int()
-    .min(0)
-    .max(testSittingSize - 1),
   chosen: chosenOptions.refine((chosen) => new Set(chosen).size === chosen.length, {
     message: 'Each option is chosen once.',
   }),
@@ -266,3 +270,138 @@ export const employeeTestsSchema = z.object({
 });
 
 export type EmployeeTests = z.infer<typeof employeeTestsSchema>;
+
+/** "La zi" for tests: passed in both domains; any other state in either. */
+export const testStateFilters = ['passed', 'pending', 'annual_due', 'none'] as const;
+export const testStateFilterSchema = z.enum(testStateFilters);
+export type TestStateFilter = z.infer<typeof testStateFilterSchema>;
+
+export const knowledgeTestTitles = {
+  ssm: { hiring: 'Test de verificare a cunoștințelor la angajare (TASSM)' },
+  psi: {
+    hiring: 'Test de verificare a cunoștințelor la angajare (TASU)',
+    annual: 'Test de verificare a cunoștințelor anual (TPSU)',
+  },
+} as const;
+
+export const knowledgeTestCodeOf = (domain: TrainingDomain, test: KnowledgeTest): string =>
+  (knowledgeTestCodes[domain] as Record<string, string>)[test]!;
+
+export const knowledgeTestTitleOf = (domain: TrainingDomain, test: KnowledgeTest): string =>
+  (knowledgeTestTitles[domain] as Record<string, string>)[test]!;
+
+export const testBankQuerySchema = z
+  .object({ domain: trainingDomainSchema.optional(), test: knowledgeTestSchema.optional() })
+  .superRefine((value, ctx) => {
+    if (value.domain && value.test)
+      testOnItsDomain({ domain: value.domain, test: value.test }, ctx);
+  });
+
+export type TestBankQuery = z.infer<typeof testBankQuerySchema>;
+
+export const testBankTestSchema = z.object({
+  domain: trainingDomainSchema,
+  test: knowledgeTestSchema,
+  code: z.string(),
+  title: z.string(),
+  // Built-ins not hidden and own questions: what a sitting draws from and the printed test prints.
+  activeCount: z.int().min(0),
+  // In the printed order, hidden built-ins included.
+  questions: z.array(testQuestionSchema),
+});
+
+export type TestBankTest = z.infer<typeof testBankTestSchema>;
+
+export const testBankResponseSchema = z.object({
+  sittingSize: z.int(),
+  minimumActiveQuestions: z.int(),
+  passMarkPercent: z.int(),
+  tests: z.array(testBankTestSchema),
+});
+
+export type TestBankResponse = z.infer<typeof testBankResponseSchema>;
+
+export const testQuestionResponseSchema = z.object({ question: testQuestionSchema });
+
+export type TestQuestionResponse = z.infer<typeof testQuestionResponseSchema>;
+
+export const testResultResponseSchema = z.object({ result: testResultSchema });
+
+export type TestResultResponse = z.infer<typeof testResultResponseSchema>;
+
+export const testAttemptSummarySchema = z.object({
+  id: z.uuid(),
+  domain: trainingDomainSchema,
+  test: knowledgeTestSchema,
+  startedAt: z.iso.datetime({ offset: true }),
+  // The last three are null while the attempt is in progress.
+  finishedAt: z.iso.datetime({ offset: true }).nullable(),
+  score: z.int().min(0).nullable(),
+  total: z.int().min(1),
+  passed: z.boolean().nullable(),
+});
+
+export type TestAttemptSummary = z.infer<typeof testAttemptSummarySchema>;
+
+export const employeeDomainTestsSchema = z.object({
+  status: testStatusSchema,
+  // Newest first.
+  results: z.array(testResultSchema),
+  attempts: z.array(testAttemptSummarySchema),
+});
+
+export type EmployeeDomainTests = z.infer<typeof employeeDomainTestsSchema>;
+
+export const employeeTestsResponseSchema = z.object({
+  ssm: employeeDomainTestsSchema,
+  psi: employeeDomainTestsSchema,
+});
+
+export type EmployeeTestsResponse = z.infer<typeof employeeTestsResponseSchema>;
+
+/** `attempts` holds the finished ones; the one in progress comes apart, without its key. */
+export const portalDomainTestsSchema = employeeDomainTestsSchema.extend({
+  inProgress: testAttemptSchema.nullable(),
+});
+
+export type PortalDomainTests = z.infer<typeof portalDomainTestsSchema>;
+
+export const portalTestsResponseSchema = z.object({
+  ssm: portalDomainTestsSchema,
+  psi: portalDomainTestsSchema,
+});
+
+export type PortalTestsResponse = z.infer<typeof portalTestsResponseSchema>;
+
+/** The material a test closes (ADR 024): 2.2 for occupational safety, the IPSU for fire safety. */
+export const portalMaterialTypeKeys: Record<TrainingDomain, string> = {
+  ssm: 'general_training_material',
+  psi: 'fire_own_instructions',
+};
+
+export const testStudyCardSchema = z.object({
+  explanations: z.array(z.string()),
+  // The newest issued revision of the material; null while the client has none issued.
+  material: z
+    .object({ revisionId: z.uuid(), title: z.string(), issuedAt: z.iso.datetime({ offset: true }) })
+    .nullable(),
+});
+
+export type TestStudyCard = z.infer<typeof testStudyCardSchema>;
+
+export const testAttemptResponseSchema = z.object({ attempt: testAttemptSchema });
+
+export type TestAttemptResponse = z.infer<typeof testAttemptResponseSchema>;
+
+/** The `reason` of the API's refusals on the tests, for the app and the portal to word. */
+export const testErrorReasons = {
+  belowMinimum: 'test_below_minimum',
+  notBuiltIn: 'question_not_built_in',
+  builtIn: 'question_built_in',
+  attemptFinished: 'attempt_finished',
+  questionOutOfRange: 'question_out_of_range',
+  optionOutOfRange: 'option_out_of_range',
+  notAwaiting: 'test_not_awaiting',
+  resultFromAttempt: 'result_from_attempt',
+  materialNotIssued: 'material_not_issued',
+} as const;

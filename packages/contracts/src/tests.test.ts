@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createTestQuestionRequestSchema,
+  knowledgeTestCodeOf,
+  knowledgeTestTitleOf,
   paperTestResultRequestSchema,
   testAttemptAnswerRequestSchema,
+  testBankQuerySchema,
   testPassed,
   testResultMaterial,
 } from './tests';
@@ -48,14 +51,11 @@ describe('createTestQuestionRequestSchema', () => {
 
 describe('testAttemptAnswerRequestSchema', () => {
   it('refuses an option chosen twice', () => {
-    expect(
-      testAttemptAnswerRequestSchema.safeParse({ questionIndex: 0, chosen: [1, 1] }).success
-    ).toBe(false);
+    expect(testAttemptAnswerRequestSchema.safeParse({ chosen: [1, 1] }).success).toBe(false);
   });
 
   it('takes an empty answer', () => {
-    expect(testAttemptAnswerRequestSchema.parse({ questionIndex: 9, chosen: [] })).toEqual({
-      questionIndex: 9,
+    expect(testAttemptAnswerRequestSchema.parse({ chosen: [] })).toEqual({
       chosen: [],
     });
   });
@@ -93,5 +93,21 @@ describe('testResultMaterial', () => {
       'Test de verificare a cunoștințelor la angajare (TASU)'
     );
     expect(testResultMaterial('psi', 'annual')).toBe('Verificare anuală pe bază de test (TPSU)');
+  });
+});
+
+describe('knowledgeTestTitleOf', () => {
+  it('names each test with its code', () => {
+    expect(knowledgeTestCodeOf('psi', 'annual')).toBe('TPSU');
+    expect(knowledgeTestTitleOf('ssm', 'hiring')).toBe(
+      'Test de verificare a cunoștințelor la angajare (TASSM)'
+    );
+  });
+});
+
+describe('testBankQuerySchema', () => {
+  it('lists every test without a filter and refuses an annual occupational safety test', () => {
+    expect(testBankQuerySchema.parse({})).toEqual({});
+    expect(testBankQuerySchema.safeParse({ domain: 'ssm', test: 'annual' }).success).toBe(false);
   });
 });
