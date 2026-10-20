@@ -18,6 +18,7 @@ const sampleClient = {
   addressLine: null,
   legalRepresentativeName: 'Maria Popescu',
   declaredEmployeeCount: 6,
+  currentEmployeeCount: 12,
   createdAt: '2026-09-17T10:00:00+00:00',
   updatedAt: '2026-09-17T10:00:00+00:00',
   archivedAt: null as string | null,
@@ -138,6 +139,11 @@ const requests = (pathname: string, method: string) =>
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training`);
 
+const renderedRoles = () =>
+  Array.from(document.querySelectorAll('[data-testid^="responsible-role-"]')).map((checkbox) =>
+    checkbox.getAttribute('data-testid')!.replace('responsible-role-', '')
+  );
+
 beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
@@ -233,6 +239,158 @@ describe('client responsible persons', () => {
         },
       ])
     );
+  });
+
+  it('offers the legal representative first, filled in without an employee link', async () => {
+    mockApi({ items: [], details: { ...emptyDetails, legalRepresentativeName: 'Maria Popescu' } });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-add'));
+    await user.click(await screen.findByTestId('responsible-employee'));
+    const options = within(await screen.findByRole('listbox')).getAllByRole('option');
+    expect(options.map((option) => option.textContent)).toEqual([
+      'Maria PopescuAdministrator',
+      'Luca Paolo-AntonioManager magazin',
+    ]);
+    await user.click(options[0]!);
+
+    expect(screen.getByTestId('responsible-employee').textContent).toContain('Maria Popescu');
+    expect(screen.getByTestId<HTMLInputElement>('responsible-name').value).toBe('Maria Popescu');
+    expect(screen.getByTestId<HTMLInputElement>('responsible-job-title').value).toBe(
+      'Administrator'
+    );
+    const representative = screen.getByTestId('responsible-role-workers_representative');
+    expect(representative.hasAttribute('disabled')).toBe(true);
+    expect(
+      document.getElementById('responsible-role-workers_representative-description')?.textContent
+    ).toBe('Nu poate fi reprezentantul legal. Se alege dintre angajații clientului.');
+
+    await user.click(screen.getByTestId('responsible-role-first_aid'));
+    await user.click(screen.getByTestId('responsible-save'));
+    await waitFor(() =>
+      expect(requests(listPath, 'POST')).toEqual([
+        {
+          employeeId: null,
+          workplaceId: null,
+          fullName: 'Maria Popescu',
+          jobTitle: 'Administrator',
+          roles: ['first_aid'],
+        },
+      ])
+    );
+  });
+
+  it('unticks the workers’ representative when the legal representative is chosen', async () => {
+    mockApi({
+      items: [],
+      details: {
+        ...emptyDetails,
+        legalRepresentativeName: 'Maria Popescu',
+        legalRepresentativeRole: 'Asociat unic',
+      },
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-add'));
+    await user.click(await screen.findByTestId('responsible-role-workers_representative'));
+    await user.click(screen.getByTestId('responsible-employee'));
+    await user.click(
+      within(await screen.findByRole('listbox')).getByRole('option', { name: /Popescu/ })
+    );
+
+    expect(screen.getByTestId<HTMLInputElement>('responsible-job-title').value).toBe(
+      'Asociat unic'
+    );
+    expect(
+      screen.getByTestId('responsible-role-workers_representative').getAttribute('data-state')
+    ).toBe('unchecked');
+  });
+
+  it('says where to record the legal representative when the client has none', async () => {
+    mockApi({ items: [] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-add'));
+    await user.click(await screen.findByTestId('responsible-employee'));
+
+    expect((await screen.findByTestId('responsible-employee-note')).textContent).toBe(
+      'Administratorul nu este completat în Detalii. Completează'
+    );
+    expect(
+      screen.getByTestId('responsible-employee-administrator-missing').getAttribute('href')
+    ).toBe(`/clients/${clientId}/details?focus=legal-representative-name`);
+    expect(
+      within(screen.getByRole('listbox'))
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+    ).toEqual(['Luca Paolo-AntonioManager magazin']);
+  });
+
+  it('lists the occupational safety roles, the fire safety ones, then the representative', async () => {
+    mockApi({ items: [], client: { ...sampleClient, currentEmployeeCount: 10 } });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-add'));
+    await screen.findByTestId('responsible-role-workers_representative');
+    expect(renderedRoles()).toEqual([
+      'workplace_manager',
+      'first_aid',
+      'imminent_danger',
+      'risk_evaluation_team',
+      'fire_safety_coordinator',
+      'fire_intervention_leader',
+      'workers_representative',
+    ]);
+  });
+
+  it('leaves the workers’ representative out below 10 employees', async () => {
+    mockApi({ items: [], client: { ...sampleClient, currentEmployeeCount: 6 } });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-add'));
+    await screen.findByTestId('responsible-role-fire_intervention_leader');
+    expect(renderedRoles()).toEqual([
+      'workplace_manager',
+      'first_aid',
+      'imminent_danger',
+      'risk_evaluation_team',
+      'fire_safety_coordinator',
+      'fire_intervention_leader',
+    ]);
+  });
+
+  it('lets someone who holds the role below 10 employees keep or drop it', async () => {
+    mockApi({
+      items: [{ ...manager, roles: ['workplace_manager', 'workers_representative'] }],
+      client: { ...sampleClient, currentEmployeeCount: 6 },
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-actions'));
+    await user.click(await screen.findByTestId('responsible-edit'));
+    const representative = await screen.findByTestId('responsible-role-workers_representative');
+    expect(representative.getAttribute('data-state')).toBe('checked');
+    expect(representative.hasAttribute('disabled')).toBe(false);
+    await user.click(representative);
+    expect(representative.getAttribute('data-state')).toBe('unchecked');
+    expect(screen.getByTestId('responsible-role-workers_representative')).toBe(representative);
+  });
+
+  it('offers the role below 10 employees when a row of missing data asks for it', async () => {
+    mockApi({ items: [], client: { ...sampleClient, currentEmployeeCount: 6 } });
+    mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${clientId}/training?focus=workers-representative`
+    );
+    const representative = await screen.findByTestId('responsible-role-workers_representative');
+    expect(representative.getAttribute('data-state')).toBe('checked');
+    expect(representative.hasAttribute('disabled')).toBe(false);
   });
 
   it('ties a fire-safety coordinator to one workplace, and the row says which', async () => {

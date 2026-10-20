@@ -271,6 +271,14 @@ test("the workers' representative is an employee other than the legal representa
     lastName: 'Vasile',
     jobTitle: 'Vânzător',
   });
+  // The role exists from 10 employees.
+  for (let index = 1; index <= 8; index++) {
+    await createEmployee(organizationId, clientId, {
+      firstName: `Lucrător ${index}`,
+      lastName: 'Ionescu',
+      jobTitle: 'Ospătar',
+    });
+  }
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.goto(`/clients/${clientId}/training`);
@@ -284,7 +292,7 @@ test("the workers' representative is an employee other than the legal representa
     await page.getByTestId('responsible-save').click();
   };
 
-  await designate('popescu', /Popescu/i);
+  await designate('popescu', /Director general/);
   await expect(page.getByTestId('responsible-roles-error')).toContainText(
     'are același nume ca reprezentantul legal al clientului, „Maria Popescu”'
   );
