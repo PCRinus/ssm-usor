@@ -58,11 +58,13 @@ type Deleting =
 export function FireSafetyMeansPage({
   clientId,
   userId,
+  currentEmployeeCount,
   readOnly,
   focus,
 }: {
   clientId: string;
   userId: string;
+  currentEmployeeCount: number;
   readOnly: boolean;
   focus?: FireSafetyMeansFocus;
 }) {
@@ -305,6 +307,7 @@ export function FireSafetyMeansPage({
           building={
             buildings.data.items.find((building) => building.workplaceId === workplace.id) ?? null
           }
+          currentEmployeeCount={currentEmployeeCount}
           readOnly={readOnly}
           onAddEquipment={() => setEquipmentEditing({ workplaceId: workplace.id, unit: null })}
           onEditEquipment={(unit) => setEquipmentEditing({ workplaceId: workplace.id, unit })}

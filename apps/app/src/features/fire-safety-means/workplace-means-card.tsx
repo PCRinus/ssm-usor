@@ -58,6 +58,7 @@ export function WorkplaceMeansCard({
   installations,
   maintenanceItems,
   building,
+  currentEmployeeCount,
   readOnly,
   onAddEquipment,
   onEditEquipment,
@@ -75,6 +76,7 @@ export function WorkplaceMeansCard({
   installations: readonly FireInstallation[];
   maintenanceItems: readonly FireMaintenanceItem[];
   building: FireBuilding | null;
+  currentEmployeeCount: number;
   readOnly: boolean;
   onAddEquipment: () => void;
   onEditEquipment: (unit: FireEquipment) => void;
@@ -91,6 +93,8 @@ export function WorkplaceMeansCard({
   const hint = extinguisherHint(extinguishers, workplace);
   const description = [workplace.activity, workplaceAddress(workplace)].filter(Boolean).join(' · ');
   const today = dateToIso(new Date());
+
+  const fromTen = currentEmployeeCount >= 10;
 
   return (
     <SectionCard
@@ -278,76 +282,77 @@ export function WorkplaceMeansCard({
         )}
       </section>
 
-      <section
-        className="grid gap-3 border-t pt-5"
-        aria-label={`Alte verificări periodice, ${workplace.name}`}
-      >
-        <BlockHeading
-          title="Alte verificări periodice"
-          action={
-            !readOnly && (
-              <Button
-                variant="tonal"
-                size="sm"
-                data-testid="fire-maintenance-add"
-                onClick={onAddMaintenanceItem}
-              >
-                <Plus aria-hidden="true" />
-                Adaugă
-              </Button>
-            )
-          }
-        />
-        {maintenanceItems.length === 0 ? (
-          <p data-testid="fire-maintenance-empty" className="text-sm text-muted-foreground">
-            Opțional: ce nu reiese din stingătoare și instalații, de exemplu instalația de gaze sau
-            coșul de fum. Apar în graficele de întreținere și verificare, cerute de la 10 angajați.
-          </p>
-        ) : (
-          <Table className="max-sm:block">
-            <TableHeader className="max-sm:sr-only">
-              <TableRow>
-                <TableHead className={columns.what}>Ce se verifică</TableHead>
-                <TableHead className={columns.which}>Periodicitatea</TableHead>
-                <TableHead>Cine efectuează</TableHead>
-                {!readOnly && (
-                  <TableHead className="w-12">
-                    <span className="sr-only">Acțiuni</span>
-                  </TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody className="max-sm:block">
-              {maintenanceItems.map((item) => (
-                <TableRow
-                  key={item.id}
-                  data-testid="fire-maintenance-row"
-                  {...rowClickProps(readOnly ? undefined : () => onEditMaintenanceItem(item))}
-                  className={cn(rowClass, !readOnly && 'cursor-pointer')}
+      {(fromTen || maintenanceItems.length > 0) && (
+        <section
+          className="grid gap-3 border-t pt-5"
+          aria-label={`Alte verificări periodice, ${workplace.name}`}
+        >
+          <BlockHeading
+            title="Alte verificări periodice"
+            action={
+              !readOnly && (
+                <Button
+                  variant="tonal"
+                  size="sm"
+                  data-testid="fire-maintenance-add"
+                  onClick={onAddMaintenanceItem}
                 >
-                  <TableCell className={cn(stackedCell, 'font-medium')}>{item.subject}</TableCell>
-                  <TableCell className={stackedCell}>{item.intervalLabel}</TableCell>
-                  <TableCell className={cn(stackedCell, 'text-muted-foreground')}>
-                    {item.checkedBy}
-                  </TableCell>
+                  <Plus aria-hidden="true" />
+                  Adaugă
+                </Button>
+              )
+            }
+          />
+          {maintenanceItems.length === 0 ? (
+            <p data-testid="fire-maintenance-empty" className="text-sm text-muted-foreground">
+              Opțional: ce nu reiese din stingătoare și instalații, de exemplu instalația de gaze
+              sau coșul de fum. Apar în graficele de întreținere și verificare.
+            </p>
+          ) : (
+            <Table className="max-sm:block">
+              <TableHeader className="max-sm:sr-only">
+                <TableRow>
+                  <TableHead className={columns.what}>Ce se verifică</TableHead>
+                  <TableHead className={columns.which}>Periodicitatea</TableHead>
+                  <TableHead>Cine efectuează</TableHead>
                   {!readOnly && (
-                    <TableCell className="max-sm:col-start-2 max-sm:row-span-3 max-sm:row-start-1 max-sm:p-0">
-                      <RowMenu
-                        name={item.subject}
-                        testId="fire-maintenance"
-                        onEdit={() => onEditMaintenanceItem(item)}
-                        onDelete={() => onDeleteMaintenanceItem(item)}
-                      />
-                    </TableCell>
+                    <TableHead className="w-12">
+                      <span className="sr-only">Acțiuni</span>
+                    </TableHead>
                   )}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </section>
-
-      {workplace.kind === 'fixed_space' && (
+              </TableHeader>
+              <TableBody className="max-sm:block">
+                {maintenanceItems.map((item) => (
+                  <TableRow
+                    key={item.id}
+                    data-testid="fire-maintenance-row"
+                    {...rowClickProps(readOnly ? undefined : () => onEditMaintenanceItem(item))}
+                    className={cn(rowClass, !readOnly && 'cursor-pointer')}
+                  >
+                    <TableCell className={cn(stackedCell, 'font-medium')}>{item.subject}</TableCell>
+                    <TableCell className={stackedCell}>{item.intervalLabel}</TableCell>
+                    <TableCell className={cn(stackedCell, 'text-muted-foreground')}>
+                      {item.checkedBy}
+                    </TableCell>
+                    {!readOnly && (
+                      <TableCell className="max-sm:col-start-2 max-sm:row-span-3 max-sm:row-start-1 max-sm:p-0">
+                        <RowMenu
+                          name={item.subject}
+                          testId="fire-maintenance"
+                          onEdit={() => onEditMaintenanceItem(item)}
+                          onDelete={() => onDeleteMaintenanceItem(item)}
+                        />
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </section>
+      )}
+      {workplace.kind === 'fixed_space' && (fromTen || building) && (
         <section className="grid gap-3 border-t pt-5" aria-label={`Clădirea, ${workplace.name}`}>
           <BlockHeading
             title="Clădirea"
@@ -369,8 +374,8 @@ export function WorkplaceMeansCard({
           ) : (
             <p data-testid="fire-building-empty" className="text-sm text-muted-foreground">
               Opțional: anul construirii, suprafața, structura, încălzirea, gazele, instalația
-              electrică și rezerva de apă. Apar în fișa obiectivului, cerută de la 10 angajați; ce
-              lipsește apare acolo ca de completat.
+              electrică și rezerva de apă. Apar în fișa obiectivului; ce lipsește apare acolo ca de
+              completat.
             </p>
           )}
         </section>

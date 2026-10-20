@@ -80,6 +80,9 @@ const sheetTexts = [
   },
 ] as const;
 
+const kindHint =
+  'Spațiu fix (sediu, birou, magazin, hală) sau șantier temporar ori mobil. Activitatea se trece mai sus.';
+
 // `null` is closed, 'new' adds a workplace, and a workplace edits it.
 export type WorkplaceEditing = Workplace | 'new' | null;
 
@@ -336,8 +339,8 @@ function WorkplaceForm({
                 Apărare împotriva incendiilor
               </h3>
               <p className="text-sm text-muted-foreground">
-                Documentele PSI le cer pe toate, în afară de măsurile specifice. Poți salva și fără
-                ele.
+                Documentele PSI folosesc toate câmpurile fără „opțional”. Poți salva și fără ele; ce
+                lipsește apare la generare ca de completat.
               </p>
             </div>
             <Field
@@ -359,11 +362,11 @@ function WorkplaceForm({
             </Field>
             <Field
               id="workplace-kind"
-              label="Tipul locului de muncă"
+              label="Felul locului de muncă"
               hint={
                 hasAreaAndNorm
-                  ? undefined
-                  : 'Un șantier nu are suprafață utilă și normă de dotare din anexa 6. Documentele tipăresc „—” în locul lor.'
+                  ? kindHint
+                  : `${kindHint} Un șantier nu are suprafață utilă și normă de dotare cu stingătoare; documentele tipăresc „—” în locul lor.`
               }
               className="sm:col-span-2"
             >
@@ -371,7 +374,7 @@ function WorkplaceForm({
                 id="workplace-kind"
                 data-testid="workplace-kind"
                 disabled={busy}
-                aria-describedby={hasAreaAndNorm ? undefined : 'workplace-kind-hint'}
+                aria-describedby="workplace-kind-hint"
                 {...form.register('kind')}
               >
                 {workplaceKinds.map((value) => (
@@ -401,11 +404,19 @@ function WorkplaceForm({
                 </Field>
                 <Field
                   id="workplace-norm"
-                  label="Norma de dotare (anexa 6)"
+                  label="Norma de dotare cu stingătoare"
                   hint={
-                    norm
-                      ? fireExtinguisherNormLabels[norm as FireExtinguisherNorm].description
-                      : undefined
+                    <>
+                      <span className="block">
+                        Anexa 6 la Normele generale de apărare împotriva incendiilor (OMAI
+                        163/2007): câte stingătoare la suprafața utilă.
+                      </span>
+                      {norm && (
+                        <span className="mt-1 block">
+                          {fireExtinguisherNormLabels[norm as FireExtinguisherNorm].description}
+                        </span>
+                      )}
+                    </>
                   }
                   error={errors.extinguisherNorm}
                 >
@@ -415,11 +426,7 @@ function WorkplaceForm({
                     disabled={busy}
                     aria-invalid={Boolean(errors.extinguisherNorm)}
                     aria-describedby={
-                      errors.extinguisherNorm
-                        ? 'workplace-norm-error'
-                        : norm
-                          ? 'workplace-norm-hint'
-                          : undefined
+                      errors.extinguisherNorm ? 'workplace-norm-error' : 'workplace-norm-hint'
                     }
                     {...form.register('extinguisherNorm')}
                   >

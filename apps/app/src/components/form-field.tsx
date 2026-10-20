@@ -26,7 +26,7 @@ export function Field({
   label: string;
   // Left out where the distinction says nothing: a read-only value, a sign-in form.
   mark?: 'required' | 'optional';
-  hint?: string;
+  hint?: ReactNode;
   error?: FieldError;
   className?: string;
   children: ReactNode;

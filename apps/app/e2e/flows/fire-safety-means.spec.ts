@@ -4,6 +4,7 @@ import {
   cleanUp,
   createAccount,
   createClientCompany,
+  createEmployee,
   createOrganization,
   createWorkplace,
   signIn,
@@ -30,6 +31,13 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
     locality: 'Timișoara',
     address_line: 'Str. Goethe 2',
   });
+  for (let index = 1; index <= 10; index++) {
+    await createEmployee(organizationId, clientId, {
+      firstName: `Angajat${index}`,
+      lastName: 'Gelaterie',
+      jobTitle: 'Lucrător comercial',
+    });
+  }
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
 
@@ -148,7 +156,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await page.getByTestId('client-section').filter({ hasText: 'Mijloace PSI' }).click();
   await expect(means).toContainText('Gelaterie · Str. Goethe 2, Timișoara, Timiș');
   await expect(means.getByTestId('fire-equipment-hint')).toHaveText(
-    '1 stingător · minim orientativ 3 (anexa 6)'
+    '1 stingător · minim orientativ 3 după anexa 6 la Normele generale PSI (OMAI 163/2007)'
   );
   await page.reload();
   await expect(means.getByTestId('fire-building-facts')).toContainText('P+1E');
@@ -163,7 +171,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
   await expect(row.getByTestId('workplace-fire-incomplete')).toHaveCount(0);
   await page.getByTestId('client-section').filter({ hasText: 'Mijloace PSI' }).click();
   await expect(means.getByTestId('fire-equipment-hint')).toHaveText(
-    '1 stingător · fără normă din anexa 6'
+    '1 stingător · fără normă după anexa 6 la Normele generale PSI (OMAI 163/2007)'
   );
 
   await page.reload();

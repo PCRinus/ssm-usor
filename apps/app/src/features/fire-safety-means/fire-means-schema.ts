@@ -63,6 +63,8 @@ export function extinguisherCountLabel(count: number) {
   return tens === 0 || tens >= 20 ? `${count} de stingătoare` : `${count} stingătoare`;
 }
 
+const annexSix = 'anexa 6 la Normele generale PSI (OMAI 163/2007)';
+
 // Annex 6 is orientative, so this is a hint beside the count and never a warning.
 export function extinguisherHint(
   count: number,
@@ -74,13 +76,13 @@ export function extinguisherHint(
 ) {
   const { kind, floorAreaM2, extinguisherNorm } = workplace;
   if (!workplaceHasAreaAndNorm(kind) || extinguisherNorm === 'none') {
-    return `${extinguisherCountLabel(count)} · fără normă din anexa 6`;
+    return `${extinguisherCountLabel(count)} · fără normă după ${annexSix}`;
   }
   if (floorAreaM2 === null || extinguisherNorm === null) return null;
   const minimum = minimumExtinguishers(floorAreaM2, extinguisherNorm);
   return minimum === null
-    ? `${extinguisherCountLabel(count)} · cel puțin unul pe nivel (anexa 6)`
-    : `${extinguisherCountLabel(count)} · minim orientativ ${minimum} (anexa 6)`;
+    ? `${extinguisherCountLabel(count)} · cel puțin unul pe nivel după ${annexSix}`
+    : `${extinguisherCountLabel(count)} · minim orientativ ${minimum} după ${annexSix}`;
 }
 
 const optionalText = (min: number, max: number, what: string) =>
