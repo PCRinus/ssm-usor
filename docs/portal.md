@@ -8,17 +8,18 @@ the portal has no password.
 
 ## Pages
 
-| Route                   | What                                                                          |
-| ----------------------- | ----------------------------------------------------------------------------- |
-| `/sign-in`              | One field, email or phone, then the six-digit code                            |
-| `/alege`                | Which client to open, for an account with several participations              |
-| `/`                     | _Acasă_; for a client administrator also the client's responsible persons     |
-| `/instruiri`            | _Instruiri_: the participant's records and the two individual training sheets |
-| `/datele-mele`          | _Datele mele_: the identification data the sheets print                       |
-| `/contul-meu`           | _Contul meu_: the sign-in address, the client, the provider, sign out         |
-| `/informare`            | The privacy notice, read-only                                                 |
-| `/angajati`             | The client's employees with a filter by name, for a client administrator      |
-| `/angajati/$employeeId` | One employee's records and sheets, for a client administrator                 |
+| Route                           | What                                                                          |
+| ------------------------------- | ----------------------------------------------------------------------------- |
+| `/sign-in`                      | One field, email or phone, then the six-digit code                            |
+| `/alege`                        | Which client to open, for an account with several participations              |
+| `/`                             | _Acasă_; for a client administrator also the client's responsible persons     |
+| `/instruiri`                    | _Instruiri_: the participant's records and the two individual training sheets |
+| `/instruiri/test/$domain/$test` | A knowledge test: the study card, the sitting and the result                  |
+| `/datele-mele`                  | _Datele mele_: the identification data the sheets print                       |
+| `/contul-meu`                   | _Contul meu_: the sign-in address, the client, the provider, sign out         |
+| `/informare`                    | The privacy notice, read-only                                                 |
+| `/angajati`                     | The client's employees with a filter by name, for a client administrator      |
+| `/angajati/$employeeId`         | One employee's records and sheets, for a client administrator                 |
 
 Everything but `/sign-in` sits under `_participant` (a session, then `useGetPortalMe`; a `403`
 says the account has no access and offers to sign out) and, but `/alege`, under `_portal`
@@ -79,9 +80,15 @@ downloaded; a sheet that is not ready names what the specialist still has to fil
 
 ## Knowledge tests
 
-The tests of [ADR 024](architecture/adr-024-knowledge-tests.md) have their API and not yet their
-pages. What the pages will call, all in the portal's generated client
-([API, Portal](api.md#portal)):
+The tests of [ADR 024](architecture/adr-024-knowledge-tests.md) live in `src/features/tests/`.
+_Acasă_ lists an awaiting test above the signatures (`AwaitingTestsPanel`), _Instruiri_ shows per
+domain the test state, the results with their day and grade, and a link while a test awaits
+(`TestsSection`), and the client administrator's _Angajați_ shows the two test states beside the
+training states. The test page sits under _Instruiri_, with no place of its own, and keeps its
+three screens in local state: the study card, the sitting (one question a screen, every option a
+checkbox since several may be correct, `Continuă` saving the answer before it moves on) and the
+result, from which a failed attempt is retaken at once. What the pages call, all in the portal's
+generated client ([API, Portal](api.md#portal)):
 
 - _Acasă_ lists a test that awaits from `GET …/tests`: per domain `status.awaitingTest`, the
   hiring test while `pending`, the annual one once `annual_due`. A test is never sent; nothing
