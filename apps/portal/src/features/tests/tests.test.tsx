@@ -6,6 +6,8 @@ import {
   answerPortalTestAttempt,
   finishPortalTestAttempt,
   getPortalMaterial,
+  getPortalTestSheet,
+  type PortalTestsResponse,
   startPortalTestAttempt,
   type TestAttemptOutcome,
   type TestAttemptResponseAttempt,
@@ -50,6 +52,7 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   answerPortalTestAttempt: vi.fn(),
   finishPortalTestAttempt: vi.fn(),
   getPortalMaterial: vi.fn(),
+  getPortalTestSheet: vi.fn(),
 }));
 
 const { participantId } = participation();
@@ -137,6 +140,7 @@ afterEach(() => {
   vi.mocked(answerPortalTestAttempt).mockReset();
   vi.mocked(finishPortalTestAttempt).mockReset();
   vi.mocked(getPortalMaterial).mockReset();
+  vi.mocked(getPortalTestSheet).mockReset();
 });
 
 async function openSitting(path = '/instruiri/test/ssm/hiring') {
@@ -256,6 +260,10 @@ describe('Instruiri', () => {
       'Următorul test anual: 3 feb. 2027'
     );
     expect(within(psi).queryByTestId('training-test-open-psi')).toBeNull();
+    expect(within(result).getByTestId('training-test-sheet-slots').textContent).toBe(
+      'Semnătura ta: semnată. Examinatorul: de semnat.'
+    );
+    expect(within(result).queryByTestId('training-test-sheet-sign-hint')).toBeNull();
   });
 
   it('offers to continue a test in progress', async () => {
@@ -273,6 +281,112 @@ describe('Instruiri', () => {
     expect((await screen.findByTestId('training-test-open-ssm')).textContent).toBe(
       'Continuă testul'
     );
+  });
+});
+
+describe('the test sheet in Instruiri', () => {
+  type ResultRow = PortalTestsResponse['ssm']['results'][number];
+  const result = (overrides: Partial<ResultRow> = {}): ResultRow => ({
+    id: '6f0c3e43-0c1b-4f4b-8a1e-0000000e0002',
+    employeeId: participation().employeeId!,
+    domain: 'ssm',
+    test: 'hiring',
+    takenOn: '2026-10-21',
+    material: 'Test de verificare a cunoștințelor la angajare (TASSM)',
+    grade: 'admis',
+    examiner: { name: 'Ana Ionescu', jobTitle: 'Inspector SSM' },
+    source: 'portal',
+    attemptId: firstAttempt.id,
+    sheet: { available: true, signed: { trainee: 'pending', examiner: 'pending' } },
+    createdAt: '2026-10-21T08:10:00Z',
+    updatedAt: '2026-10-21T08:10:00Z',
+    ...overrides,
+  });
+
+  const passedWith = (results: ResultRow[]) =>
+    queryResult(
+      portalTests({
+        ssm: { status: testStatus({ state: 'passed', lastPassedOn: '2026-10-21' }), results },
+      })
+    );
+
+  it('shows the two slots and sends the trainee to Semnături while their signature waits', async () => {
+    vi.mocked(useGetPortalTests).mockReturnValue(passedWith([result()]));
+    mountPortal(signedIn(), '/instruiri');
+
+    const sheet = await screen.findByTestId('training-test-sheet');
+    expect(sheet.textContent).toContain('Fișa de test');
+    expect(within(sheet).getByTestId('training-test-sheet-slots').textContent).toBe(
+      'Semnătura ta: de semnat. Examinatorul: de semnat.'
+    );
+    expect(within(sheet).getByTestId('training-test-sheet-sign-hint').textContent).toContain(
+      'Fișa de test așteaptă semnătura ta, la Semnături.'
+    );
+    expect(within(sheet).getByTestId('training-test-sheet-sign').getAttribute('href')).toBe(
+      '/semneaza'
+    );
+  });
+
+  it('opens the test sheet as a PDF in a tab opened before the request', async () => {
+    vi.mocked(useGetPortalTests).mockReturnValue(passedWith([result()]));
+    const pending = document.createElement('p');
+    const tab = {
+      document: { write: vi.fn(), close: vi.fn(), title: '', querySelector: () => pending },
+      location: { replace: vi.fn() },
+      close: vi.fn(),
+    };
+    const open = vi.spyOn(window, 'open').mockReturnValue(tab as never);
+    URL.createObjectURL = vi.fn(() => 'blob:test-sheet');
+    URL.revokeObjectURL = vi.fn();
+    vi.mocked(getPortalTestSheet).mockResolvedValue(new Blob(['%PDF']));
+    mountPortal(signedIn(), '/instruiri');
+
+    await userEvent.click(await screen.findByTestId('training-test-sheet-open'));
+
+    expect(open).toHaveBeenCalledWith('', '_blank');
+    expect(getPortalTestSheet).toHaveBeenCalledWith(
+      participantId,
+      '6f0c3e43-0c1b-4f4b-8a1e-0000000e0002',
+      expect.objectContaining({ baseUrl: 'http://localhost:8787' })
+    );
+    expect(tab.document.title).toBe('Fișa de test la angajare SSM');
+    expect(tab.location.replace).toHaveBeenCalledWith('blob:test-sheet');
+  });
+
+  it('says when the test sheet is not ready', async () => {
+    vi.mocked(useGetPortalTests).mockReturnValue(passedWith([result()]));
+    vi.spyOn(window, 'open').mockReturnValue({
+      document: { write: vi.fn(), close: vi.fn(), title: '', querySelector: () => null },
+      location: { replace: vi.fn() },
+      close: vi.fn(),
+    } as never);
+    vi.mocked(getPortalTestSheet).mockRejectedValue(
+      new ApiHttpError(404, {
+        error: 'not_found',
+        message: 'Nu.',
+        reason: 'test_sheet_not_available',
+      })
+    );
+    mountPortal(signedIn(), '/instruiri');
+    await userEvent.click(await screen.findByTestId('training-test-sheet-open'));
+    expect((await screen.findByTestId('training-test-sheet-error')).textContent).toContain(
+      'Fișa de test nu este gata încă'
+    );
+  });
+
+  it('shows no test sheet for a paper result', async () => {
+    vi.mocked(useGetPortalTests).mockReturnValue(
+      passedWith([
+        result({
+          source: 'paper',
+          attemptId: null,
+          sheet: { available: false, signed: { trainee: 'unassigned', examiner: 'unassigned' } },
+        }),
+      ])
+    );
+    mountPortal(signedIn(), '/instruiri');
+    expect(await screen.findByTestId('training-test-result')).toBeTruthy();
+    expect(screen.queryByTestId('training-test-sheet')).toBeNull();
   });
 });
 
@@ -479,6 +593,12 @@ describe('the sitting', () => {
     );
     expect(screen.getByTestId('test-score').textContent).toBe('7 din 10 răspunsuri corecte');
     expect(screen.getByTestId('test-result-trainings').getAttribute('href')).toBe('/instruiri');
+    expect(screen.getByTestId('test-result-sheet').textContent).toBe(
+      'Fișa de test, cu întrebările și răspunsurile tale, așteaptă semnătura ta la Semnături.'
+    );
+    expect(
+      within(screen.getByTestId('test-result-sheet')).getByRole('link').getAttribute('href')
+    ).toBe('/semneaza');
   });
 });
 

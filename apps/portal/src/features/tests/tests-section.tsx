@@ -16,6 +16,7 @@ import {
 } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
 
+import { TestSheetLine } from './test-sheet-line';
 import { TestStateBadge } from './test-state-badge';
 
 export function TestsSection({
@@ -45,7 +46,12 @@ export function TestsSection({
         </p>
       ) : (
         trainingDomains.map((domain) => (
-          <DomainTests key={domain} domain={domain} tests={tests.data[domain]} />
+          <DomainTests
+            key={domain}
+            participantId={participantId}
+            domain={domain}
+            tests={tests.data[domain]}
+          />
         ))
       )}
     </section>
@@ -53,9 +59,11 @@ export function TestsSection({
 }
 
 function DomainTests({
+  participantId,
   domain,
   tests,
 }: {
+  participantId: string;
   domain: TrainingDomain;
   tests: PortalTestsResponse[TrainingDomain];
 }) {
@@ -85,18 +93,19 @@ function DomainTests({
         </p>
       )}
       {results.length > 0 && (
-        <ul data-testid={`training-test-results-${domain}`} className="grid gap-1.5 text-sm">
+        <ul data-testid={`training-test-results-${domain}`} className="grid gap-3 text-sm">
           {results.map((result) => {
             const grade = i18n._(testGradeMessages[result.grade]);
             const day = formatDate(result.takenOn, 'short');
             return (
-              <li
-                key={result.id}
-                data-testid="training-test-result"
-                className="flex flex-wrap items-baseline justify-between gap-x-3"
-              >
-                <span>{i18n._(testTitleMessage(result.domain, result.test))}</span>
-                <span className="text-muted-foreground tabular-nums">{t`${grade}, ${day}`}</span>
+              <li key={result.id} data-testid="training-test-result" className="grid gap-2">
+                <span className="flex flex-wrap items-baseline justify-between gap-x-3">
+                  <span>{i18n._(testTitleMessage(result.domain, result.test))}</span>
+                  <span className="text-muted-foreground tabular-nums">{t`${grade}, ${day}`}</span>
+                </span>
+                {result.source === 'portal' && (
+                  <TestSheetLine participantId={participantId} result={result} />
+                )}
               </li>
             );
           })}

@@ -38,6 +38,18 @@ export function TestResult({
         <p className="text-[0.9375rem] leading-relaxed text-foreground/80">
           <Trans>Rezultatul este înregistrat și apare în fișa ta individuală.</Trans>
         </p>
+        <p
+          data-testid="test-result-sheet"
+          className="text-[0.9375rem] leading-relaxed text-foreground/80"
+        >
+          <Trans>
+            Fișa de test, cu întrebările și răspunsurile tale, așteaptă semnătura ta la{' '}
+            <Link to="/semneaza" className="font-medium underline underline-offset-4">
+              Semnături
+            </Link>
+            .
+          </Trans>
+        </p>
         <Button asChild className="h-12 w-full text-base sm:w-fit sm:px-8">
           <Link to="/instruiri" data-testid="test-result-trainings">
             <Trans>Înapoi la Instruiri</Trans>

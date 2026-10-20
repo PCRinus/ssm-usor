@@ -15,7 +15,6 @@ import { useState } from 'react';
 
 import {
   getGetPortalTestsQueryKey,
-  getGetPortalTrainingSheetsQueryKey,
   startPortalTestAttempt,
   type TestAttemptOutcome,
   useGetPortalTests,
@@ -23,6 +22,7 @@ import {
 } from '@/api/generated/api';
 import { Page, PageFailed, PageHeader, PageLoading } from '@/components/page';
 import { useParticipation } from '@/features/participation/participation-context';
+import { invalidateSigningQueries } from '@/features/signing/signing-items';
 import { testTitleMessage } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
 
@@ -117,11 +117,7 @@ function KnowledgeTestFlow({
   function finished(outcome: TestAttemptOutcome) {
     setScreen({ kind: 'result', outcome });
     invalidateTests();
-    if (outcome.passed) {
-      void queryClient.invalidateQueries({
-        queryKey: getGetPortalTrainingSheetsQueryKey(participantId),
-      });
-    }
+    if (outcome.passed) void invalidateSigningQueries(queryClient);
   }
 
   if (screen.kind === 'sitting') {

@@ -311,6 +311,10 @@ msgstr "Angajatul nu a fost găsit"
 msgid "Anual scadent"
 msgstr "Anual scadent"
 
+#: src/features/tests/test-sheet-line.tsx
+msgid "anulată"
+msgstr "anulată"
+
 #: src/features/training/training-records-list.tsx
 msgid "Așteaptă semnătura ta ({roles})."
 msgstr "Așteaptă semnătura ta ({roles})."
@@ -338,6 +342,7 @@ msgstr "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal
 
 #: src/features/signing/agreement-pdf-button.tsx
 #: src/features/tests/study-card.tsx
+#: src/features/tests/test-sheet-line.tsx
 msgid "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal."
 msgstr "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal."
 
@@ -527,6 +532,10 @@ msgstr "Datele le ține angajatorul tău; specialistul SSM le corectează."
 msgid "Datele mele"
 msgstr "Datele mele"
 
+#: src/features/tests/test-sheet-line.tsx
+msgid "de semnat"
+msgstr "de semnat"
+
 #: src/lib/labels.ts
 msgid "De susținut"
 msgstr "De susținut"
@@ -545,6 +554,7 @@ msgstr "Descarcă fișa {label}"
 
 #: src/features/signing/agreement-pdf-button.tsx
 #: src/features/tests/study-card.tsx
+#: src/features/tests/test-sheet-line.tsx
 #: src/features/training/training-sheets.tsx
 msgid "Deschide PDF"
 msgstr "Deschide PDF"
@@ -625,9 +635,17 @@ msgstr "Fișa {sequence} (continuare)"
 msgid "Fișa 1"
 msgstr "Fișa 1"
 
+#: src/features/tests/test-sheet-line.tsx
+msgid "Fișa de test"
+msgstr "Fișa de test"
+
 #: src/lib/labels.ts
 msgid "Fișa de test anual PSI"
 msgstr "Fișa de test anual PSI"
+
+#: src/features/tests/test-sheet-line.tsx
+msgid "Fișa de test așteaptă semnătura ta, la Semnături."
+msgstr "Fișa de test așteaptă semnătura ta, la Semnături."
 
 #: src/lib/labels.ts
 msgid "Fișa de test la angajare PSI"
@@ -636,6 +654,14 @@ msgstr "Fișa de test la angajare PSI"
 #: src/lib/labels.ts
 msgid "Fișa de test la angajare SSM"
 msgstr "Fișa de test la angajare SSM"
+
+#: src/features/tests/test-sheet-line.tsx
+msgid "Fișa de test nu este gata încă. Încearcă din nou peste câteva minute."
+msgstr "Fișa de test nu este gata încă. Încearcă din nou peste câteva minute."
+
+#: src/features/tests/test-result.tsx
+msgid "Fișa de test, cu întrebările și răspunsurile tale, așteaptă semnătura ta la <0>Semnături</0>."
+msgstr "Fișa de test, cu întrebările și răspunsurile tale, așteaptă semnătura ta la <0>Semnături</0>."
 
 #: src/features/signing/signing-messages.ts
 msgid "Fișa era folosită chiar atunci de altă semnătură. Încearcă din nou peste un minut."
@@ -880,6 +906,10 @@ msgstr "Modificarea prevederilor de securitate și sănătate în muncă sau a i
 msgid "Modificarea tehnologiilor existente sau a procedurilor de lucru"
 msgstr "Modificarea tehnologiilor existente sau a procedurilor de lucru"
 
+#: src/features/tests/test-sheet-line.tsx
+msgid "necerută"
+msgstr "necerută"
+
 #: src/components/facts.tsx
 msgid "Necompletat"
 msgstr "Necompletat"
@@ -939,6 +969,10 @@ msgstr "Nu ai promovat de data aceasta"
 #: src/features/signing/agreement-pdf-button.tsx
 msgid "Nu am putut deschide documentul. Încearcă din nou."
 msgstr "Nu am putut deschide documentul. Încearcă din nou."
+
+#: src/features/tests/test-sheet-line.tsx
+msgid "Nu am putut deschide fișa de test. Verifică conexiunea la internet și încearcă din nou."
+msgstr "Nu am putut deschide fișa de test. Verifică conexiunea la internet și încearcă din nou."
 
 #: src/features/training/use-sheet-actions.ts
 msgid "Nu am putut deschide fișa. Verifică conexiunea la internet și încearcă din nou."
@@ -1237,6 +1271,7 @@ msgstr "Se întocmește după prima instruire {label}."
 msgid "Se pregătește documentul…"
 msgstr "Se pregătește documentul…"
 
+#: src/features/tests/test-sheet-line.tsx
 #: src/features/training/training-summary.tsx
 #: src/features/training/use-sheet-actions.ts
 msgid "Se pregătește fișa…"
@@ -1305,6 +1340,18 @@ msgstr "Semnat pe hârtie ({roles})."
 msgid "Semnat pe hârtie."
 msgstr "Semnat pe hârtie."
 
+#: src/features/tests/test-sheet-line.tsx
+msgid "semnată"
+msgstr "semnată"
+
+#: src/features/tests/test-sheet-line.tsx
+msgid "semnată pe hârtie"
+msgstr "semnată pe hârtie"
+
+#: src/features/tests/test-sheet-line.tsx
+msgid "Semnătura ta: {trainee}. Examinatorul: {examiner}."
+msgstr "Semnătura ta: {trainee}. Examinatorul: {examiner}."
+
 #: src/features/employees/employees-page.tsx
 #: src/features/signing/client-signatures-page.tsx
 #: src/features/signing/signatures-panel.tsx
@@ -1318,6 +1365,7 @@ msgstr "Semnături în așteptare"
 #: src/features/signing/agreement-section.tsx
 #: src/features/signing/client-signatures-page.tsx
 #: src/features/signing/signing-page.tsx
+#: src/features/tests/test-sheet-line.tsx
 #: src/features/training/training-records-list.tsx
 msgid "Semnează"
 msgstr "Semnează"

@@ -311,6 +311,10 @@ msgstr "Employee not found"
 msgid "Anual scadent"
 msgstr "Annual due"
 
+#: src/features/tests/test-sheet-line.tsx
+msgid "anulată"
+msgstr "voided"
+
 #: src/features/training/training-records-list.tsx
 msgid "Așteaptă semnătura ta ({roles})."
 msgstr "Waiting for your signature ({roles})."
@@ -338,6 +342,7 @@ msgstr "The browser blocked the new window. Allow pop-up windows for the portal 
 
 #: src/features/signing/agreement-pdf-button.tsx
 #: src/features/tests/study-card.tsx
+#: src/features/tests/test-sheet-line.tsx
 msgid "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal."
 msgstr "The browser blocked the new window. Allow new windows for the portal."
 
@@ -527,6 +532,10 @@ msgstr "Your employer keeps this data; the SSM specialist corrects it."
 msgid "Datele mele"
 msgstr "My data"
 
+#: src/features/tests/test-sheet-line.tsx
+msgid "de semnat"
+msgstr "to sign"
+
 #: src/lib/labels.ts
 msgid "De susținut"
 msgstr "To take"
@@ -545,6 +554,7 @@ msgstr "Download the {label} sheet"
 
 #: src/features/signing/agreement-pdf-button.tsx
 #: src/features/tests/study-card.tsx
+#: src/features/tests/test-sheet-line.tsx
 #: src/features/training/training-sheets.tsx
 msgid "Deschide PDF"
 msgstr "Open PDF"
@@ -625,9 +635,17 @@ msgstr "Sheet {sequence} (continued)"
 msgid "Fișa 1"
 msgstr "Sheet 1"
 
+#: src/features/tests/test-sheet-line.tsx
+msgid "Fișa de test"
+msgstr "Test sheet"
+
 #: src/lib/labels.ts
 msgid "Fișa de test anual PSI"
 msgstr "Annual PSI test sheet"
+
+#: src/features/tests/test-sheet-line.tsx
+msgid "Fișa de test așteaptă semnătura ta, la Semnături."
+msgstr "The test sheet awaits your signature, under Signatures."
 
 #: src/lib/labels.ts
 msgid "Fișa de test la angajare PSI"
@@ -636,6 +654,14 @@ msgstr "PSI hiring test sheet"
 #: src/lib/labels.ts
 msgid "Fișa de test la angajare SSM"
 msgstr "SSM hiring test sheet"
+
+#: src/features/tests/test-sheet-line.tsx
+msgid "Fișa de test nu este gata încă. Încearcă din nou peste câteva minute."
+msgstr "The test sheet is not ready yet. Try again in a few minutes."
+
+#: src/features/tests/test-result.tsx
+msgid "Fișa de test, cu întrebările și răspunsurile tale, așteaptă semnătura ta la <0>Semnături</0>."
+msgstr "The test sheet, with your questions and answers, awaits your signature under <0>Signatures</0>."
 
 #: src/features/signing/signing-messages.ts
 msgid "Fișa era folosită chiar atunci de altă semnătură. Încearcă din nou peste un minut."
@@ -880,6 +906,10 @@ msgstr "Changes to occupational safety and health rules or to the company's own 
 msgid "Modificarea tehnologiilor existente sau a procedurilor de lucru"
 msgstr "Changes to existing technologies or work procedures"
 
+#: src/features/tests/test-sheet-line.tsx
+msgid "necerută"
+msgstr "not requested"
+
 #: src/components/facts.tsx
 msgid "Necompletat"
 msgstr "Not filled in"
@@ -939,6 +969,10 @@ msgstr "You did not pass this time"
 #: src/features/signing/agreement-pdf-button.tsx
 msgid "Nu am putut deschide documentul. Încearcă din nou."
 msgstr "We could not open the document. Try again."
+
+#: src/features/tests/test-sheet-line.tsx
+msgid "Nu am putut deschide fișa de test. Verifică conexiunea la internet și încearcă din nou."
+msgstr "We could not open the test sheet. Check your internet connection and try again."
 
 #: src/features/training/use-sheet-actions.ts
 msgid "Nu am putut deschide fișa. Verifică conexiunea la internet și încearcă din nou."
@@ -1237,6 +1271,7 @@ msgstr "Drawn up after the first {label} training."
 msgid "Se pregătește documentul…"
 msgstr "Preparing the document…"
 
+#: src/features/tests/test-sheet-line.tsx
 #: src/features/training/training-summary.tsx
 #: src/features/training/use-sheet-actions.ts
 msgid "Se pregătește fișa…"
@@ -1305,6 +1340,18 @@ msgstr "Signed on paper ({roles})."
 msgid "Semnat pe hârtie."
 msgstr "Signed on paper."
 
+#: src/features/tests/test-sheet-line.tsx
+msgid "semnată"
+msgstr "signed"
+
+#: src/features/tests/test-sheet-line.tsx
+msgid "semnată pe hârtie"
+msgstr "signed on paper"
+
+#: src/features/tests/test-sheet-line.tsx
+msgid "Semnătura ta: {trainee}. Examinatorul: {examiner}."
+msgstr "Your signature: {trainee}. The examiner: {examiner}."
+
 #: src/features/employees/employees-page.tsx
 #: src/features/signing/client-signatures-page.tsx
 #: src/features/signing/signatures-panel.tsx
@@ -1318,6 +1365,7 @@ msgstr "Pending signatures"
 #: src/features/signing/agreement-section.tsx
 #: src/features/signing/client-signatures-page.tsx
 #: src/features/signing/signing-page.tsx
+#: src/features/tests/test-sheet-line.tsx
 #: src/features/training/training-records-list.tsx
 msgid "Semnează"
 msgstr "Sign"
