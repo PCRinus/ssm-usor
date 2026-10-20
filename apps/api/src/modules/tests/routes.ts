@@ -7,6 +7,8 @@ import {
   testBankResponseSchema,
   testQuestionResponseSchema,
   testResultResponseSchema,
+  testSheetPaperSignatureRequestSchema,
+  testSheetResponseSchema,
   updateTestQuestionRequestSchema,
   updateTestResultRequestSchema,
 } from '@ssm-usor/contracts';
@@ -265,9 +267,88 @@ export const updateTestResultRoute = createRoute({
     404: { description: 'The result does not exist for this employee', content: errorContent },
     409: {
       description:
-        'A portal result changes only in its examiner (reason `result_from_attempt`), or the client is archived',
+        'A portal result changes only in its examiner (reason `result_from_attempt`); its examiner no longer changes once they signed the test sheet, electronically or on paper (reason `examiner_signed`); or the client is archived',
       content: errorContent,
     },
     ...membershipErrors,
+  },
+});
+
+const pdfContent = {
+  'application/pdf': { schema: z.string().openapi({ type: 'string', format: 'binary' }) },
+};
+
+const noTestSheet = {
+  description:
+    'The result does not exist for this employee, or it has no test sheet (reason `test_sheet_not_available`)',
+  content: errorContent,
+};
+
+const sheetUnavailable = {
+  description:
+    'The sheet could not be drawn up: the converter, the signer or the template is unavailable (reasons `pdf_unavailable`, `signer_unavailable`, `template_missing`)',
+  content: errorContent,
+};
+
+export const getTestSheetRoute = createRoute({
+  method: 'get',
+  path: '/clients/{clientId}/employees/{employeeId}/tests/results/{resultId}/sheet',
+  operationId: 'getTestSheet',
+  summary: "A result's test sheet as its stored PDF",
+  description:
+    'The test sheet of a pass in the portal (ADR 024): the questions as the sitting showed them, the answers chosen, the score, the grade and the two signature fields, with every signature given so far. Drawn up and stored at the pass; drawn up here, with its requests, when that failed. Shown inline. A paper result has none.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: resultParams },
+  responses: {
+    200: { description: 'The PDF, named in `Content-Disposition`', content: pdfContent },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noTestSheet,
+    ...membershipErrors,
+    503: sheetUnavailable,
+  },
+});
+
+export const markTestSheetPaperSignatureRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/employees/{employeeId}/tests/results/{resultId}/sheet/paper-signatures',
+  operationId: 'markTestSheetPaperSignature',
+  summary: 'Mark a slot of a test sheet as signed on paper',
+  description:
+    "For a slot whose person has no account, or who signed the printed sheet: the trainee, whom the evidence names as the employee, or the examiner, named as the result's. A pending request of the slot is voided (`signed_on_paper`). A paper examiner fixes the result's examiner, as an electronic one does.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: {
+    params: resultParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: testSheetPaperSignatureRequestSchema.meta({
+            id: 'TestSheetPaperSignatureRequest',
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "The test sheet's slots after the mark",
+      content: {
+        'application/json': { schema: testSheetResponseSchema.meta({ id: 'TestSheetResponse' }) },
+      },
+    },
+    400: {
+      description:
+        'Invalid path or body, or the result names no examiner (reason `examiner_required`)',
+      content: errorContent,
+    },
+    404: noTestSheet,
+    409: {
+      description: 'The slot is signed already (reason `slot_signed`), or the client is archived',
+      content: errorContent,
+    },
+    ...membershipErrors,
+    503: sheetUnavailable,
   },
 });

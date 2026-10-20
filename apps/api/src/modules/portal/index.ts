@@ -32,6 +32,7 @@ import {
   finishPortalTestAttempt,
   getPortalMaterial,
   getPortalTests,
+  getPortalTestSheet,
   getPortalTestStudyCard,
   startPortalTestAttempt,
 } from './test-handlers';
@@ -39,6 +40,7 @@ import {
   answerPortalTestAttemptRoute,
   finishPortalTestAttemptRoute,
   getPortalMaterialRoute,
+  getPortalTestSheetRoute,
   getPortalTestsRoute,
   getPortalTestStudyCardRoute,
   startPortalTestAttemptRoute,
@@ -62,4 +64,5 @@ export const portalRouter = createRouter()
   .openapi(startPortalTestAttemptRoute, startPortalTestAttempt)
   .openapi(answerPortalTestAttemptRoute, answerPortalTestAttempt)
   .openapi(finishPortalTestAttemptRoute, finishPortalTestAttempt)
-  .openapi(getPortalMaterialRoute, getPortalMaterial);
+  .openapi(getPortalMaterialRoute, getPortalMaterial)
+  .openapi(getPortalTestSheetRoute, getPortalTestSheet);

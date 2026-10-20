@@ -18,6 +18,14 @@ import { participationOf } from '../../lib/participant';
 import { fileNameOf } from '../documents/documents';
 import { clientIpOf } from '../signing/session-signing';
 import {
+  afterTestPass,
+  summaryOf,
+  testSheetFileName,
+  testSheetNotAvailable,
+  testSheetPdf,
+  testSheetSummaries,
+} from '../test-sheets/test-sheets';
+import {
   afterResult,
   attemptSummaryColumns,
   markedQuestions,
@@ -32,6 +40,7 @@ import type {
   answerPortalTestAttemptRoute,
   finishPortalTestAttemptRoute,
   getPortalMaterialRoute,
+  getPortalTestSheetRoute,
   getPortalTestsRoute,
   getPortalTestStudyCardRoute,
   startPortalTestAttemptRoute,
@@ -127,6 +136,10 @@ export const getPortalTests: RouteHandler<typeof getPortalTestsRoute, ApiEnv> = 
   if (inProgress.error) throw fromDatabaseError(inProgress.error, 'portal attempts in progress');
   if (!employee.data) throw noSuchEmployee();
   const status = toEmployeeTests(employee.data.test_status);
+  const sheets = await testSheetSummaries(
+    db,
+    results.data.map((row) => row.id)
+  );
   // The start resumes only the attempt of the test that awaits; another one left open, after a
   // paper pass, is refused as not awaiting and would never close.
   const ofDomain = (domain: TrainingDomain): PortalDomainTests => {
@@ -135,7 +148,9 @@ export const getPortalTests: RouteHandler<typeof getPortalTestsRoute, ApiEnv> = 
     );
     return {
       status: status[domain],
-      results: results.data.filter((row) => row.domain === domain).map(toTestResult),
+      results: results.data
+        .filter((row) => row.domain === domain)
+        .map((row) => ({ ...toTestResult(row), sheet: summaryOf(sheets, row.id) })),
       attempts: finished.data.filter((row) => row.domain === domain).map(toAttemptSummary),
       inProgress: resumed ? toTestAttempt(resumed) : null,
     };
@@ -205,8 +220,7 @@ export const answerPortalTestAttempt: RouteHandler<
 
 /**
  * What a pass sets going once the finish has recorded its result: the result's row on the
- * employee's stored signed sheet. The test sheet of ADR 024 and its signature requests belong
- * here, from the same result; they are not issued yet.
+ * employee's stored signed sheet, and the test sheet with its trainee's and examiner's requests.
  */
 async function afterPass(c: Context<ApiEnv>, db: DataClient, attemptId: string) {
   const { data, error } = await db
@@ -220,7 +234,9 @@ async function afterPass(c: Context<ApiEnv>, db: DataClient, attemptId: string) 
     console.error(`Result of passing attempt ${attemptId} not read: ${error.code ?? 'no code'}`);
     return;
   }
-  if (data) await afterResult(c, [data.id]);
+  if (!data) return;
+  await afterResult(c, [data.id]);
+  await afterTestPass(c, data.id);
 }
 
 export const finishPortalTestAttempt: RouteHandler<
@@ -285,5 +301,36 @@ export const getPortalMaterial: RouteHandler<typeof getPortalMaterialRoute, ApiE
   return c.body(new Uint8Array(pdf), 200, {
     'Content-Type': 'application/pdf',
     'Content-Disposition': contentDisposition('inline', `${fileNameOf(material.title)}.pdf`),
+  });
+};
+
+// The employee reads their own results' sheets; the client administrator any employee's of the
+// client, checked here as for the client's requests, since an account that is also a member
+// reads every result of the organization through the members' policies.
+export const getPortalTestSheet: RouteHandler<typeof getPortalTestSheetRoute, ApiEnv> = async (
+  c
+) => {
+  const { participantId, resultId } = c.req.valid('param');
+  const participation = participationOf(c, participantId);
+  let query = createDataClient(c)
+    .from('test_results')
+    .select(
+      'id, domain, test, taken_on, source, employee_id, employees!test_results_employee_of_client(last_name, first_name)'
+    )
+    .eq('id', resultId)
+    .eq('client_id', participation.clientId);
+  if (participation.kind !== 'client_administrator') {
+    if (!participation.employeeId) throw testSheetNotAvailable();
+    query = query.eq('employee_id', participation.employeeId);
+  }
+  const { data, error } = await query.maybeSingle();
+  if (error) throw fromDatabaseError(error, 'portal test result');
+  if (!data) throw new ApiError('not_found', 'This test result is not yours to read.');
+  if (data.source !== 'portal') throw testSheetNotAvailable();
+  const employee = data.employees as unknown as { last_name: string; first_name: string };
+  const pdf = await testSheetPdf(c, data.id);
+  return c.body(new Uint8Array(pdf), 200, {
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': contentDisposition('inline', testSheetFileName(employee, data)),
   });
 };

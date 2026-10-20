@@ -112,7 +112,17 @@ const standing = (overrides: Record<string, unknown> = {}) => ({
 });
 
 type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined;
-type Upstream = 'questions' | 'hides' | 'employees' | 'results' | 'attempts' | 'sheets';
+type Upstream =
+  | 'questions'
+  | 'hides'
+  | 'employees'
+  | 'results'
+  | 'attempts'
+  | 'sheets'
+  | 'testSheets'
+  | 'requests'
+  | 'testSheetSignatures'
+  | 'paperMark';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -139,6 +149,10 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
           : Response.json([resultRow]),
     attempts: () => Response.json([attemptRow]),
     sheets: () => Response.json([]),
+    testSheets: () => Response.json([]),
+    requests: () => Response.json([]),
+    testSheetSignatures: () => Response.json([]),
+    paperMark: () => Response.json({}),
   };
   const paths: Record<string, Upstream> = {
     '/rest/v1/test_questions': 'questions',
@@ -147,6 +161,10 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     '/rest/v1/test_results': 'results',
     '/rest/v1/test_attempts': 'attempts',
     '/rest/v1/signed_sheets': 'sheets',
+    '/rest/v1/test_sheets': 'testSheets',
+    '/rest/v1/signature_requests': 'requests',
+    '/rest/v1/test_sheet_signatures': 'testSheetSignatures',
+    '/rest/v1/rpc/mark_test_sheet_paper_signature': 'paperMark',
   };
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
@@ -602,5 +620,123 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/tests/results/{result
       examiner: { name: 'Elena VOICU', jobTitle: 'Inspector SSM' },
     });
     expect(response.status).toBe(404);
+  });
+});
+
+describe('the test sheet of a result', () => {
+  const path = `${testsPath}/results/${resultId}`;
+  const withSecret = { ...env, SUPABASE_SECRET_KEY: 'sb_secret_test_key_value' };
+  const portalResult = {
+    ...resultRow,
+    source: 'portal',
+    attempt_id: 'a7a7a7a7-0000-4000-8000-000000000009',
+    employees: { last_name: 'Popescu', first_name: 'Ion' },
+  };
+  const sheetId = '75757575-0000-4000-8000-000000000001';
+
+  it('answers each result with its test sheet and the state of its two slots', async () => {
+    mockUpstream({
+      results: () => Response.json([{ ...resultRow, source: 'portal' }]),
+      testSheets: () => Response.json([{ id: sheetId, test_result_id: resultId }]),
+      requests: () =>
+        Response.json([
+          { test_sheet_id: sheetId, slot: 'trainee', state: 'pending' },
+          { test_sheet_id: sheetId, slot: 'examiner', state: 'signed' },
+        ]),
+      testSheetSignatures: () =>
+        Response.json([{ test_sheet_id: sheetId, slot: 'examiner', method: 'paper' }]),
+    });
+
+    const body = employeeTestsResponseSchema.parse(await (await request(testsPath)).json());
+
+    expect(body.ssm.results[0]!.sheet).toEqual({
+      available: true,
+      signed: { trainee: 'pending', examiner: 'paper' },
+    });
+    const sheets = new URL(String(calls('/rest/v1/test_sheets')[0]![0])).searchParams;
+    expect(sheets.get('test_result_id')).toBe(`in.(${resultId})`);
+  });
+
+  it('answers a paper result with no test sheet', async () => {
+    mockUpstream();
+
+    const body = employeeTestsResponseSchema.parse(await (await request(testsPath)).json());
+
+    expect(body.ssm.results[0]!.sheet).toEqual({
+      available: false,
+      signed: { trainee: 'unassigned', examiner: 'unassigned' },
+    });
+  });
+
+  it('answers 409 when the examiner has signed and the result names another', async () => {
+    mockUpstream({
+      results: (init) =>
+        init?.method === 'PATCH' ? raised('TST07', 'examiner_signed') : undefined,
+    });
+
+    const response = await request(path, 'PATCH', {
+      examiner: { name: 'Elena VOICU', jobTitle: 'Inspector SSM' },
+    });
+
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('examiner_signed');
+  });
+
+  it('answers 404 for the sheet of a paper result', async () => {
+    mockUpstream({ results: () => Response.json({ ...portalResult, source: 'paper' }) });
+
+    const response = await request(`${path}/sheet`);
+
+    expect(response.status).toBe(404);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'test_sheet_not_available'
+    );
+  });
+
+  it('marks a slot of the stored sheet as signed on paper', async () => {
+    mockUpstream({
+      results: () => Response.json(portalResult),
+      testSheets: (_, url) =>
+        url.searchParams.get('test_result_id')?.startsWith('in.')
+          ? Response.json([{ id: sheetId, test_result_id: resultId }])
+          : Response.json({ id: sheetId, test_result_id: resultId, storage_path: 'x.pdf' }),
+      testSheetSignatures: () =>
+        Response.json([{ test_sheet_id: sheetId, slot: 'examiner', method: 'paper' }]),
+    });
+
+    const response = await request(
+      `${path}/sheet/paper-signatures`,
+      'POST',
+      { slot: 'examiner' },
+      withSecret
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      resultId,
+      sheet: { available: true, signed: { trainee: 'unassigned', examiner: 'paper' } },
+    });
+    expect(sent('/rest/v1/rpc/mark_test_sheet_paper_signature', 'POST')).toEqual({
+      p_test_sheet_id: sheetId,
+      p_slot: 'examiner',
+    });
+  });
+
+  it('answers 400 when the examiner to mark is not named on the result', async () => {
+    mockUpstream({
+      results: () => Response.json(portalResult),
+      testSheets: () => Response.json({ id: sheetId, test_result_id: resultId }),
+      paperMark: () => raised('SIG04', 'examiner_required'),
+    });
+
+    const response = await request(
+      `${path}/sheet/paper-signatures`,
+      'POST',
+      { slot: 'examiner' },
+      withSecret
+    );
+
+    expect(response.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('examiner_required');
   });
 });

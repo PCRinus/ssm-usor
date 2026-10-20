@@ -14,6 +14,7 @@ import {
   renderDocument,
   renderTemplate,
   signingTypeKeys,
+  testSheetTypeKey,
 } from '@ssm-usor/document-engine';
 import { describe, expect, it } from 'vitest';
 
@@ -73,10 +74,11 @@ describe('the per-employee templates', () => {
       .map((entry) => entry.typeKey)
   );
 
-  it('are the two individual training sheets and the signing agreement', () => {
+  it('are the two individual training sheets, the signing agreement and the test sheet', () => {
     expect(perEmployee).toEqual([
       trainingSheetTypeKeys.ssm,
       signingTypeKeys.agreement,
+      testSheetTypeKey,
       trainingSheetTypeKeys.psi,
     ]);
   });

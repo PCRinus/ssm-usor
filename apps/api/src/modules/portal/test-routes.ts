@@ -221,3 +221,37 @@ export const getPortalMaterialRoute = createRoute({
     503: { description: 'Storage is unavailable', content: errorContent },
   },
 });
+
+export const getPortalTestSheetRoute = createRoute({
+  method: 'get',
+  path: '/portal/participants/{participantId}/tests/results/{resultId}/sheet',
+  operationId: 'getPortalTestSheet',
+  tags,
+  summary: "A result's test sheet as its stored PDF",
+  description:
+    "The test sheet of a pass in the portal (ADR 024), with the signatures given so far, shown inline: the employee's own, or for the client administrator any employee's of the client. A paper result has none (reason `test_sheet_not_available`).",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireParticipant] as const,
+  request: { params: participantParams.extend({ resultId: z.uuid() }) },
+  responses: {
+    200: {
+      description: 'The PDF, named in `Content-Disposition`',
+      content: {
+        'application/pdf': { schema: z.string().openapi({ type: 'string', format: 'binary' }) },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    ...authErrors,
+    403: ownErrors[403],
+    404: {
+      description:
+        "The participation is not the account's, the result is not one it reads, or the result has no test sheet (reason `test_sheet_not_available`)",
+      content: errorContent,
+    },
+    503: {
+      description:
+        'The sheet could not be drawn up or read (reasons `pdf_unavailable`, `signer_unavailable`, `template_missing`)',
+      content: errorContent,
+    },
+  },
+});

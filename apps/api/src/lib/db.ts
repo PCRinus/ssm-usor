@@ -126,6 +126,11 @@ const testErrors: Record<string, { code: 'conflict' | 'validation_error'; messag
     code: 'conflict',
     message: 'Un rezultat din portal se schimbă numai în examinator și nu se șterge.',
   },
+  TST07: {
+    code: 'conflict',
+    message: 'Examinatorul a semnat fișa de test, deci nu se mai schimbă.',
+  },
+  TST08: { code: 'conflict', message: 'Fișa de test nu se șterge și nu se întocmește din nou.' },
 };
 
 // Translate PostgREST/Postgres failures into API errors without leaking details.

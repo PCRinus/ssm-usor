@@ -14,16 +14,31 @@ import {
   trainingDomains,
 } from '@ssm-usor/contracts';
 
+import { contentDisposition } from '../../lib/content-disposition';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { romanianDay } from '../documents/context';
+import {
+  issueTestSheetRequests,
+  refillExaminer,
+  storedTestSheet,
+  summaryOf,
+  testSheetDeps,
+  testSheetFileName,
+  testSheetNotAvailable,
+  testSheetOf,
+  testSheetPdf,
+  testSheetSummaries,
+} from '../test-sheets/test-sheets';
 import type {
   createTestQuestionRoute,
   deleteTestQuestionRoute,
   getEmployeeTestsRoute,
   getTestBankRoute,
+  getTestSheetRoute,
   hideTestQuestionRoute,
+  markTestSheetPaperSignatureRoute,
   recordPaperTestResultRoute,
   restoreTestQuestionRoute,
   updateTestQuestionRoute,
@@ -267,9 +282,15 @@ export const getEmployeeTests: RouteHandler<typeof getEmployeeTestsRoute, ApiEnv
   if (results.error) throw fromDatabaseError(results.error, 'employee test results');
   if (attempts.error) throw fromDatabaseError(attempts.error, 'employee test attempts');
   const status = toEmployeeTests(employee.test_status);
+  const sheets = await testSheetSummaries(
+    db,
+    results.data.map((row) => row.id)
+  );
   const ofDomain = (domain: TrainingDomain): EmployeeDomainTests => ({
     status: status[domain],
-    results: results.data.filter((row) => row.domain === domain).map(toTestResult),
+    results: results.data
+      .filter((row) => row.domain === domain)
+      .map((row) => ({ ...toTestResult(row), sheet: summaryOf(sheets, row.id) })),
     attempts: attempts.data.filter((row) => row.domain === domain).map(toAttemptSummary),
   });
   return c.json({ ssm: ofDomain('ssm'), psi: ofDomain('psi') }, 200);
@@ -354,5 +375,78 @@ export const updateTestResult: RouteHandler<typeof updateTestResultRoute, ApiEnv
   if (error) throw fromDatabaseError(error, 'update test result');
   if (!data) throw new ApiError('not_found', 'This test result does not exist.');
   await afterResult(c, [data.id]);
+  await afterExaminerChange(c, data.id);
   return c.json({ result: toTestResult(data) }, 200);
+};
+
+/**
+ * The database has voided the pending examiner request (`signer_changed`). Best effort, as the
+ * signed sheet's row: the examiner's signature fills the fields from the result itself.
+ */
+async function afterExaminerChange(c: Parameters<typeof testSheetDeps>[0], resultId: string) {
+  try {
+    const deps = testSheetDeps(c);
+    const sheet = await storedTestSheet(deps.admin, resultId);
+    if (!sheet) return;
+    const refilled = (await refillExaminer(deps, resultId)) ?? sheet;
+    await issueTestSheetRequests(deps, refilled, c.get('user').id);
+  } catch (failure) {
+    console.error(
+      `Test sheet of ${resultId} not brought up to date with its examiner: ${failure instanceof ApiError ? (failure.reason ?? failure.code) : failure instanceof Error ? failure.name : 'unknown'}`
+    );
+  }
+}
+
+async function readResultOfEmployee(
+  db: DataClient,
+  { clientId, employeeId, resultId }: { clientId: string; employeeId: string; resultId: string }
+) {
+  const { data, error } = await db
+    .from('test_results')
+    .select(
+      'id, domain, test, taken_on, source, employees!test_results_employee_of_client(last_name, first_name)'
+    )
+    .eq('id', resultId)
+    .eq('employee_id', employeeId)
+    .eq('client_id', clientId)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find test result');
+  if (!data) throw new ApiError('not_found', 'This test result does not exist.');
+  return data as typeof data & { employees: { last_name: string; first_name: string } };
+}
+
+export const getTestSheet: RouteHandler<typeof getTestSheetRoute, ApiEnv> = async (c) => {
+  const params = c.req.valid('param');
+  const result = await readResultOfEmployee(createDataClient(c), params);
+  if (result.source !== 'portal') throw testSheetNotAvailable();
+  const pdf = await testSheetPdf(c, result.id);
+  return c.body(new Uint8Array(pdf), 200, {
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': contentDisposition(
+      'inline',
+      testSheetFileName(result.employees, result)
+    ),
+  });
+};
+
+export const markTestSheetPaperSignature: RouteHandler<
+  typeof markTestSheetPaperSignatureRoute,
+  ApiEnv
+> = async (c) => {
+  const params = c.req.valid('param');
+  const { slot } = c.req.valid('json');
+  const db = createDataClient(c);
+  const result = await readResultOfEmployee(db, params);
+  if (result.source !== 'portal') throw testSheetNotAvailable();
+  const sheet = await testSheetOf(c, result.id);
+  const { error } = await db.rpc('mark_test_sheet_paper_signature', {
+    p_test_sheet_id: sheet.id,
+    p_slot: slot,
+  });
+  if (error) {
+    if (error.code === 'P0002') throw testSheetNotAvailable();
+    throw fromDatabaseError(error, 'mark test sheet paper signature');
+  }
+  const summaries = await testSheetSummaries(db, [result.id]);
+  return c.json({ resultId: result.id, sheet: summaryOf(summaries, result.id) }, 200);
 };

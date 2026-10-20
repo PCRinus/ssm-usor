@@ -99,7 +99,10 @@ type Upstream =
   | 'start'
   | 'answer'
   | 'finish'
-  | 'sheets';
+  | 'sheets'
+  | 'testSheets'
+  | 'requests'
+  | 'testSheetSignatures';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -150,6 +153,9 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     answer: () => Response.json(attemptRow),
     finish: () => Response.json(finished([1, 4, 7, 8])),
     sheets: () => Response.json([]),
+    testSheets: () => Response.json([]),
+    requests: () => Response.json([]),
+    testSheetSignatures: () => Response.json([]),
   };
   const paths: Record<string, Upstream> = {
     '/rest/v1/employees': 'employees',
@@ -161,6 +167,9 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     '/rest/v1/rpc/answer_test_attempt': 'answer',
     '/rest/v1/rpc/finish_test_attempt': 'finish',
     '/rest/v1/signed_sheets': 'sheets',
+    '/rest/v1/test_sheets': 'testSheets',
+    '/rest/v1/signature_requests': 'requests',
+    '/rest/v1/test_sheet_signatures': 'testSheetSignatures',
   };
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
@@ -488,6 +497,47 @@ describe('POST /portal/participants/{participantId}/test-attempts/{attemptId}/fi
     expect(response.status).toBe(404);
     expect(calls('/rest/v1/test_attempts')).toEqual([]);
     expect(calls('/rest/v1/rpc/finish_test_attempt')).toEqual([]);
+  });
+
+  it("looks for the pass's test sheet with the secret key, a participant writing none", async () => {
+    mockUpstream({ finish: () => Response.json(finished([2])) });
+    await request(path, 'POST');
+    const [sheet] = calls('/rest/v1/test_sheets');
+    expect(new URL(String(sheet![0])).searchParams.get('test_result_id')).toBe(
+      'eq.7e7e7e7e-0000-4000-8000-000000000001'
+    );
+    expect(new Headers(sheet![1]?.headers).get('Authorization')).toBe(
+      'Bearer sb_secret_test_key_value'
+    );
+  });
+
+  it('draws no test sheet for a failed attempt', async () => {
+    mockUpstream();
+    await request(path, 'POST');
+    expect(calls('/rest/v1/test_sheets')).toEqual([]);
+  });
+});
+
+describe('GET /portal/participants/{participantId}/tests/results/{resultId}/sheet', () => {
+  const resultId = '7e7e7e7e-0000-4000-8000-000000000001';
+
+  it("reads only the employee's own result, as the participant", async () => {
+    mockUpstream();
+    const response = await request(own(`/tests/results/${resultId}/sheet`));
+    expect(response.status).toBe(404);
+    const [read] = calls('/rest/v1/test_results');
+    const query = new URL(String(read![0])).searchParams;
+    expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
+    expect(query.get('client_id')).toBe(`eq.${clientId}`);
+    expect(new Headers(read![1]?.headers).get('Authorization')).toBe('Bearer user-token');
+  });
+
+  it("reads any employee's result of the client for the client administrator", async () => {
+    mockUpstream();
+    await request(`/portal/participants/${administratorId}/tests/results/${resultId}/sheet`);
+    const query = new URL(String(calls('/rest/v1/test_results')[0]![0])).searchParams;
+    expect(query.has('employee_id')).toBe(false);
+    expect(query.get('client_id')).toBe(`eq.${clientId}`);
   });
 });
 
