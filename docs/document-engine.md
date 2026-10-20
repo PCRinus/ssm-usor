@@ -805,6 +805,54 @@ each is answered the texts say what the app does, and the app does what the ADR 
    registers the written request, and the sheets signed until then stay valid; a new hire's
    contract holds the clause instead of an agreement. Are both worded right?
 
+## The test sheet
+
+The test sheet of [ADR 024](architecture/adr-024-knowledge-tests.md), `test_sheet`
+(`templates/fisa_test.docx`), is a per-employee template like the sheets and the signing
+agreement (`perEmployee`, no number): the record of one passing attempt in the portal, signed by
+the trainee and the examiner. It is drawn by `tools/import/build_test_sheet.py`
+(`pnpm --filter @ssm-usor/document-engine build-test-sheet`) from `tools/import/test-sheet.ro.json`
+as plain OOXML on the sheets' package, `build_sheets.write`, so it has their styles and branding
+footer and no box of document details; the build gives the same bytes every time. It prints, in
+this order: "Întreprinderea/unitatea:" and the client, the title "FIȘA DE TEST" with the test's
+title under it, a bordered box with the employee's name and position, the day of the test and the
+test's code, the line "Răspunsurile alese de persoana testată sunt marcate cu ☒, celelalte cu ☐.",
+the questions as the sitting showed them, each option hanging after its mark, ☒ chosen and ☐ not,
+and its letter in bold, the table "Punctaj: 7 din 10 răspunsuri corecte (minimum 70%)" and
+"Rezultatul testării: Admis", then the two signature boxes side by side, _Instruit_ and
+_Examinator_, with the person under each.
+
+It is always the form a signature goes in: no paper variant and no `form` switch, since a test
+taken on paper is signed on the printed test and has no test sheet. Four content controls,
+titled with the names of `testSheetFieldNames` in the contracts, become PDF fields as on the
+signed sheet: `test_sig_trainee` and `test_sig_examiner`, four lines at the body size that the
+signer makes signature fields, and `test_examiner_name` and `test_examiner_job_title` under the
+examiner's box, one line each, which the API fills after the conversion. The trainee's name and
+position print as text, the examiner's only through those fields: the attempt is frozen and the
+sheet with it, but a member may change the result's examiner until the examiner signs, and the
+sheet is then filled again, never drawn up again.
+
+| Name        | What it holds                                                                                                                                                                       |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `branding`  | The footer line, as on every template                                                                                                                                               |
+| `client`    | `legalName`                                                                                                                                                                         |
+| `employee`  | `name` ("POPESCU Ion", as on the sheets) and `position`, the employee's job position, else their contract title                                                                     |
+| `test`      | `{ code, title }`: "TASSM" and "Test de verificare a cunoștințelor la angajare (TASSM)"                                                                                             |
+| `takenOn`   | The day of the pass, `dd.mm.yyyy`                                                                                                                                                   |
+| `questions` | As the sitting showed them, in its order: `{ number, text, options }`, `number` from 1, `options` a list of `{ letter, text, chosen }`, `letter` lower case without its parenthesis |
+| `score`     | The questions answered right, `total` the questions shown                                                                                                                           |
+| `grade`     | "Admis"                                                                                                                                                                             |
+| `examiner`  | `{ name, jobTitle }`, empty while none is named; not printed by the merge, the API's values for the examiner's fields                                                               |
+
+`buildTestSheetData(facts)` in `src/test-sheet.ts` builds it from what the API holds: the
+employee's names and position, the test's code and title, the ISO day, each question's text,
+options and the indexes chosen, the score, the total, the grade as printed and the examiner or
+null. `src/test-sheet.test.ts` holds the template to `tools/test-sheet-samples.ts`: every
+placeholder known, every question and option printed with its mark, as many ☒ as options chosen,
+the four fields by name, the examiner left to the fields, and an error without `questions`; the
+typesetting checks of every template apply to it. `preview` renders a hiring pass of seven of ten
+with an examiner and an annual pass without one.
+
 ## Registering the templates
 
 Three manifests are registered: the pack's, `templates/other/manifest.json`, and the

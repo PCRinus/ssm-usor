@@ -706,7 +706,10 @@ the domain, which for occupational safety is the specialist. A member records a 
 (only `source = 'paper'`, for an active client) and updates `taken_on`, `material` and the
 examiner; a portal result changes only in its examiner and is not deleted (`TST06`,
 `result_from_attempt`). Members read their organization's results, participants their own, the
-client administrator the client's.
+client administrator the client's. Once the examiner has signed the result's test sheet,
+electronically or on paper, its examiner no longer changes (`TST07`, `examiner_signed`); before
+that, a change of examiner voids the pending examiner request with `signer_changed`
+([test sheets](#test-sheets)).
 
 ### Test state
 
@@ -1258,9 +1261,12 @@ the rest to null. `clients.contact_phone` and `organizations.phone` stay free te
 ## Signatures
 
 The app makes an **advanced electronic signature** on training records
-([ADR 023](architecture/adr-023-advanced-electronic-signature.md)). A record has four
+([ADR 023](architecture/adr-023-advanced-electronic-signature.md)) and on test sheets
+([ADR 024](architecture/adr-024-knowledge-tests.md), [below](#test-sheets)). A record has four
 `signer_slot`s: `trainee`, `trainer`, `verifier` (only when the training has a verifier) and
-`admitter` (only when the record has an admission). Each slot is signed once live, electronically
+`admitter` (only when the record has an admission); a test sheet two, `trainee` and `examiner`,
+the value the enum gained for it (`20261021100000_examiner_slot.sql`, apart since a new enum
+value cannot be used in the transaction that adds it). Each slot is signed once live, electronically
 by a member or a participant, or marked as signed on paper by a member: one live signature per
 slot, by a partial unique index, and one request that is not void per slot.
 
@@ -1281,11 +1287,12 @@ to the client, as other tables under a client do. A request, a signature and a s
 their record through `(training_record_id, client_id)`, and a sheet row its sheet through
 `(signed_sheet_id, client_id)`, so none crosses clients.
 
-`signature_requests` is one slot of one record addressed to one signer.
+`signature_requests` is one slot of one record, or of one test sheet, addressed to one signer.
 
 | Column                       | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `training_record_id`, `slot` | The record, deleted with it, and the slot. One request per slot that is not `void`, by a partial unique index.                                                                                                                                                                                                                                                                                                                                                      |
+| `test_sheet_id`              | Or the test sheet, by `(test_sheet_id, client_id)`, restricting its deletion: exactly one of the two is set (`signature_requests_one_document`), a sheet's slot is `trainee` or `examiner` and a record's never `examiner` (`signature_requests_slot_of_document`), one request per sheet and slot that is not `void`. The trigger below checks a sheet's slot (`SIG03`, `slot_not_on_sheet`) and its signer as for a record.                                       |
 | `signer_account_id`          | The account addressed; null for a paper slot. The trainee must be the employee's own active participant; any other slot a member of the organization or an active participant of the client (`SIG05`, `signer_not_of_client`), checked on insert and on any update of the signer, slot, record or client. No pending trainee request goes to an employee whose agreement is `withdrawn` (`SIG05`, `agreement_withdrawn`). The slot must be on the record (`SIG03`). |
 | `issued_by`, `issued_at`     | Who issued it, the real user during an impersonation.                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `notified_at`                | When the signer was told.                                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -1407,6 +1414,47 @@ is never printed as text and no slot signs it, so it is filled again whenever th
 the freeze below concerns records only. A result with a row is not deleted (`23503`). What the rows' fields are, and how the API fills them, is in
 [the document engine's Sheets section](document-engine.md#the-signed-sheet).
 
+### Test sheets
+
+`test_sheets` is the **test sheet** of one passing attempt (ADR 024), stored as a PDF form for the
+trainee's and the examiner's signatures: `test_result_id` (unique, by `(test_result_id,
+client_id)`), the `employee_id` of the result by `(employee_id, client_id)`, the `storage_path`,
+`digest` (SHA-256, hex) and `version` of the current file, `generated_at`, and `certified_at` from
+its first signature. A trigger requires the result to be a portal one of the same employee
+(`23514`, `test_sheet_not_of_attempt`): a paper result has no test sheet, its test being signed on
+the printed test. A table of its own rather than columns on `test_results`: the sheet is a file
+every signature moves to a new version, written by the secret key only while members update a
+result's examiner, and most results have none. It keeps no state either: its two slots' states
+come from the requests and the evidence. The attempt behind it is frozen, so the sheet is never
+drawn up again or deleted: a trigger allows an update only to the next `version`, keeping the
+result, the employee, the client, `generated_at` and a set `certified_at`, and refuses any delete
+or truncate (`TST08`, `test_sheet_kept`). The examiner's name and function are fields of the PDF
+that the API fills again after a change of examiner, until the examiner's signature locks them.
+
+`test_sheet_signatures` is a test sheet's evidence, one row per slot signed, as
+`training_signatures` without a void: `test_sheet_id`, `slot` (`trainee` or `examiner`, one row
+each by a unique key), `request_id` (unique, by `(request_id, test_sheet_id, slot)` to its
+request), `method` (`electronic` or `paper`), the signer's account and printed name and function,
+the code's channel, address and moments, `signed_at`, both digests, the certificate serial, the
+client's address and agent, the session and `marked_by`, with the same evidence-of-method check. A
+trigger before the insert checks the request and the session as for a training signature
+(`SIG05`, `SIG08`, `SIG09`) and the signer's standing on the sheet; one after it sets the request
+`signed` with the session. Any update, delete or truncate raises `SIG06`. A sheet's signatures are
+never voided: the trainee signed what they sat, and the examiner's signature fixes the result's
+examiner.
+
+| Function                                       | Caller | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mark_test_sheet_paper_signature(sheet, slot)` | member | Voids a pending request of the slot with `signed_on_paper`, inserts a request without a signer and the paper evidence, which signs it, naming whom the sheet prints in the slot: the employee as the trainee, the result's examiner as the examiner (`SIG04`, `examiner_required`, when the result names none). Refuses a signed slot (`SIG02`), a slot the sheet lacks (`SIG03`), an archived client (`CLA01`) and a sheet of another organization (`P0002`, `test_sheet_not_found`). |
+
+The trainee of a sheet is the employee's own active participant; the examiner a member of the
+organization or an active participant of the client (`test_sheet_signer_has_standing`), checked
+on a request's insert and on its evidence, and lost as a record's is (`signer_left`). A withdrawn
+agreement voids the employee's pending trainee requests on their sheets too and refuses new ones
+(`agreement_withdrawn`). A change of a result's `examiner_name` or `examiner_job_title` voids the
+pending examiner request of its sheet with `signer_changed`; once the examiner has signed, on paper
+or electronically, the change is refused (`TST07`, `examiner_signed`).
+
 ### The freeze and the void
 
 A record with a live electronic signature (`method = 'electronic'`, `voided_at` null), or a record
@@ -1440,19 +1488,23 @@ client (`CLA01`) and a blank reason or name (`SIG04`, `reason_required` or
 
 ### Who reads what
 
-Members read the requests, signatures, agreements, sheets and sheet rows of their organization.
+Members read the requests, signatures, agreements, sheets, sheet rows, test sheets and test sheet
+signatures of their organization; a test sheet's requests are the API's to issue, with the secret
+key, since the member's column grant does not include `test_sheet_id`.
 They insert requests naming only `organization_id`, `client_id`, `training_record_id`, `slot` and
 `signer_account_id` (the column grant), `pending` and issued by themselves, for an active client,
 write the agreements, and change the rest only through the functions above.
 
-| Table                         | Anyone reads                   | An employee participant reads | An administrator also reads |
-| ----------------------------- | ------------------------------ | ----------------------------- | --------------------------- |
-| `signature_requests`          | the requests addressed to them | those on their own records    | the client's                |
-| `training_signatures`         | their own signatures           | those on their own records    | the client's                |
-| `employee_signing_agreements` |                                | their own                     | the client's                |
-| `agreement_signatures`        | their own signatures           | those on their own agreement  | the client's                |
-| `signed_sheets`               |                                | their own                     | the client's                |
-| `signed_sheet_rows`           |                                | the rows of their own sheets  | the client's                |
+| Table                         | Anyone reads                   | An employee participant reads              | An administrator also reads |
+| ----------------------------- | ------------------------------ | ------------------------------------------ | --------------------------- |
+| `signature_requests`          | the requests addressed to them | those on their own records and test sheets | the client's                |
+| `training_signatures`         | their own signatures           | those on their own records                 | the client's                |
+| `test_sheets`                 |                                | their own                                  | the client's                |
+| `test_sheet_signatures`       | their own signatures           | those on their own test sheets             | the client's                |
+| `employee_signing_agreements` |                                | their own                                  | the client's                |
+| `agreement_signatures`        | their own signatures           | those on their own agreement               | the client's                |
+| `signed_sheets`               |                                | their own                                  | the client's                |
+| `signed_sheet_rows`           |                                | the rows of their own sheets               | the client's                |
 
 "Them" is the real signed-in user, as in the other participant policies; the two evidence tables
 only in the columns above. Errors, raised with these SQLSTATEs:
@@ -1460,8 +1512,10 @@ only in the columns above. Errors, raised with these SQLSTATEs:
 - `SIG01` the record is signed: `record_signed` for a change to what it prints,
   `record_has_signatures` for a delete
 - `SIG02` the slot already has a live signature
-- `SIG03` the slot is not on the record
-- `SIG04` the request does not hold together: `reason_required`, `signer_name_required`
+- `SIG03` the slot is not on the record or the test sheet: `slot_not_on_record`,
+  `slot_not_on_sheet`
+- `SIG04` the request does not hold together: `reason_required`, `signer_name_required`,
+  `examiner_required`
 - `SIG05` the signer cannot sign this slot: `signer_not_of_client`, `signer_not_addressed`,
   `agreement_withdrawn`
 - `SIG06` a signature or an identity is written once: `signature_written_once`, `identity_kept`
@@ -1471,6 +1525,8 @@ only in the columns above. Errors, raised with these SQLSTATEs:
   `session_used`
 - `SIG10` the agreement does not take it: `agreement_not_awaiting`,
   `agreement_signer_not_party`, `agreement_recorded`
+- `TST07` the examiner has signed the test sheet: `examiner_signed`
+- `TST08` a test sheet is not deleted and moves only to its next version: `test_sheet_kept`
 
 ## Waitlist subscribers
 
