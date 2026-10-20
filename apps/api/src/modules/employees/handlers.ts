@@ -9,6 +9,7 @@ import {
   type OrganizationEmployeeSortKey,
   pageRange,
   searchTerms,
+  type TestStateFilter,
   type TrainingStateFilter,
 } from '@ssm-usor/contracts';
 
@@ -17,6 +18,7 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { refuseWorkplaceOfAnotherClient } from '../document-data/handlers';
+import { testStatusColumns, type TestStatusRow,toEmployeeTests } from '../tests/status';
 import { toEmployeeTraining, type TrainingStatusRow } from '../trainings/status';
 import type {
   createEmployeeRoute,
@@ -32,28 +34,49 @@ type EmployeeRow = Database['public']['Tables']['employees']['Row'];
 
 // The job position rides along by its foreign key: every employee has exactly one.
 export const employeeListColumns =
-  'id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name), workplace_id, client_workplaces!employees_workplace_in_client(id, name), training_status(ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, psi_state, psi_due_on, psi_last_periodic_on, psi_interval_months, psi_interval_source)';
+  `id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name), workplace_id, client_workplaces!employees_workplace_in_client(id, name), training_status(ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, psi_state, psi_due_on, psi_last_periodic_on, psi_interval_months, psi_interval_source), ${testStatusColumns}` as const;
 
-// Inner, so that a filter on the status drops the employees it leaves out.
-const employeeListColumnsFilteredByTraining = employeeListColumns.replace(
-  'training_status(',
-  'training_status!inner('
-) as typeof employeeListColumns;
+type StateFilters = { trainingState?: TrainingStateFilter; testState?: TestStateFilter };
 
-// "La zi" means up to date in both domains; every other state flags someone the specialist has
-// to see to in either.
-function inTrainingState<
-  Q extends { or(filters: string, options: { referencedTable: string }): Q },
->(query: Q, state: TrainingStateFilter) {
-  const filters =
-    state === 'current'
-      ? 'and(ssm_state.eq.current,psi_state.eq.current)'
-      : `ssm_state.eq.${state},psi_state.eq.${state}`;
-  return query.or(filters, { referencedTable: 'training_status' });
+// Inner, so that a filter on a status drops the employees it leaves out.
+function listColumnsFor<Columns extends string>(columns: Columns, filters: StateFilters) {
+  let filtered: string = columns;
+  if (filters.trainingState) {
+    filtered = filtered.replace('training_status(', 'training_status!inner(');
+  }
+  if (filters.testState) filtered = filtered.replace('test_status(', 'test_status!inner(');
+  return filtered as Columns;
+}
+
+// "La zi" means up to date in both domains, and a passed test passed in both; every other state
+// flags someone the specialist has to see to in either.
+function inStates<Q extends { or(filters: string, options: { referencedTable: string }): Q }>(
+  query: Q,
+  { trainingState, testState }: StateFilters
+) {
+  let filtered = query;
+  if (trainingState) {
+    filtered = filtered.or(
+      trainingState === 'current'
+        ? 'and(ssm_state.eq.current,psi_state.eq.current)'
+        : `ssm_state.eq.${trainingState},psi_state.eq.${trainingState}`,
+      { referencedTable: 'training_status' }
+    );
+  }
+  if (testState) {
+    filtered = filtered.or(
+      testState === 'passed'
+        ? 'and(ssm_state.eq.passed,psi_state.eq.passed)'
+        : `ssm_state.eq.${testState},psi_state.eq.${testState}`,
+      { referencedTable: 'test_status' }
+    );
+  }
+  return filtered;
 }
 
 // The CNP and the training-sheet details are read only for one employee at a time.
-export const employeeColumns = `${employeeListColumns}, cnp, birth_date, birth_place, home_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_minutes, contract_number`;
+export const employeeColumns =
+  `${employeeListColumns}, cnp, birth_date, birth_place, home_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_minutes, contract_number` as const;
 
 type EmployeeListRow = Pick<
   EmployeeRow,
@@ -75,6 +98,7 @@ type EmployeeListRow = Pick<
   job_positions: { id: string; name: string };
   client_workplaces: { id: string; name: string } | null;
   training_status: TrainingStatusRow | null;
+  test_status: TestStatusRow | null;
 };
 
 export function toEmployeeListItem(row: EmployeeListRow): EmployeeListItem {
@@ -95,6 +119,7 @@ export function toEmployeeListItem(row: EmployeeListRow): EmployeeListItem {
     updatedAt: row.updated_at,
     workplace: row.client_workplaces,
     training: toEmployeeTraining(row.training_status),
+    tests: toEmployeeTests(row.test_status),
   };
 }
 
@@ -109,7 +134,7 @@ export function toEmployee(
     | 'employee_search_name'
     | 'employee_client_search_name'
   > &
-    Pick<EmployeeListRow, 'job_positions' | 'client_workplaces' | 'training_status'>
+    Pick<EmployeeListRow, 'job_positions' | 'client_workplaces' | 'training_status' | 'test_status'>
 ): Employee {
   return {
     ...toEmployeeListItem(row),
@@ -218,17 +243,15 @@ function matchingEveryTerm<Query extends { or: (filters: string) => Query }>(
 
 export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
-  const { status, trainingState, q, page, pageSize, sort, order } = c.req.valid('query');
+  const { status, trainingState, testState, q, page, pageSize, sort, order } = c.req.valid('query');
+  const states = { trainingState, testState };
   const db = createDataClient(c);
   await findClient(db, clientId);
   const filtered = () => {
     const base = db
       .from('employees')
-      .select(trainingState ? employeeListColumnsFilteredByTraining : employeeListColumns, {
-        count: 'exact',
-      });
-    const trained = trainingState ? inTrainingState(base, trainingState) : base;
-    const scoped = trained.eq('client_id', clientId).is('archived_at', null);
+      .select(listColumnsFor(employeeListColumns, states), { count: 'exact' });
+    const scoped = inStates(base, states).eq('client_id', clientId).is('archived_at', null);
     const current = status ? scoped.eq('status', status) : scoped.neq('status', 'terminated');
     return matchingEveryTerm(current, q, employeeSearchFields);
   };
@@ -433,8 +456,6 @@ export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = 
 // Two foreign keys lead to clients, the plain one and the one that pins the organization.
 const clientColumns = 'client:clients!employees_client_id_fkey!inner(id, legal_name)';
 const organizationEmployeeListColumns = `${employeeListColumns}, ${clientColumns}` as const;
-const organizationEmployeeListColumnsFilteredByTraining =
-  `${employeeListColumnsFilteredByTraining}, ${clientColumns}` as typeof organizationEmployeeListColumns;
 
 type OrganizationEmployeeListRow = EmployeeListRow & { client: { id: string; legal_name: string } };
 
@@ -455,18 +476,15 @@ export const listOrganizationEmployees: RouteHandler<
   typeof listOrganizationEmployeesRoute,
   ApiEnv
 > = async (c) => {
-  const { status, clientId, trainingState, q, page, pageSize, sort, order } = c.req.valid('query');
+  const { status, clientId, trainingState, testState, q, page, pageSize, sort, order } =
+    c.req.valid('query');
+  const states = { trainingState, testState };
   const db = createDataClient(c);
   const filtered = () => {
     const base = db
       .from('employees')
-      .select(
-        trainingState
-          ? organizationEmployeeListColumnsFilteredByTraining
-          : organizationEmployeeListColumns,
-        { count: 'exact' }
-      );
-    let query = (trainingState ? inTrainingState(base, trainingState) : base)
+      .select(listColumnsFor(organizationEmployeeListColumns, states), { count: 'exact' });
+    let query = inStates(base, states)
       .is('archived_at', null)
       // Only an owner reads leads, and the list should not change with the role.
       .eq('client.stage', 'client')
