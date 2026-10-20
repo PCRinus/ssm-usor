@@ -74,11 +74,10 @@ msgid "{minutes, plural, one {# minut} few {# minute} other {# de minute}}"
 msgstr "{minutes, plural, one {# minute} other {# minutes}}"
 
 #: src/features/signing/signing-item-text.tsx
-msgid "{other}: {phase} {domain}"
-msgstr "{other}: {phase}, {domain}"
+msgid "{other}: {title}"
+msgstr "{other}: {title}"
 
-#: src/features/signing/client-signatures-page.tsx
-#: src/features/signing/signing-item-text.tsx
+#: src/features/signing/request-document.ts
 msgid "{phase} {domain}"
 msgstr "{phase}, {domain}"
 
@@ -201,6 +200,14 @@ msgstr "You signed the addendum for the employer."
 #: src/features/signing/signing-page.tsx
 msgid "Ai semnat actul adițional. Specialistul îl vede semnat de tine."
 msgstr "You signed the addendum. Your specialist sees it signed by you."
+
+#: src/features/signing/signing-page.tsx
+msgid "Ai semnat fișa de test a angajatului."
+msgstr "You signed the employee's test sheet."
+
+#: src/features/signing/signing-page.tsx
+msgid "Ai semnat fișa de test."
+msgstr "You signed the test sheet."
 
 #: src/features/signing/signing-page.tsx
 msgid "Ai semnat instruirea. Semnătura e pe fișa angajatului."
@@ -527,6 +534,10 @@ msgstr "Email or phone number"
 msgid "Evidența instruirilor de securitate și sănătate în muncă (SSM) și de situații de urgență (PSI) o ține <0>{organizationName}</0>, prestatorul de servicii SSM al companiei, în numele ei."
 msgstr "The records of occupational safety (SSM) and fire safety (PSI) training are kept by <0>{organizationName}</0>, the company's SSM service provider, on its behalf."
 
+#: src/features/signing/signing-messages.ts
+msgid "examinator"
+msgstr "examiner"
+
 #: src/lib/labels.ts
 msgid "Executarea unor lucrări speciale"
 msgstr "Carrying out special works"
@@ -558,6 +569,18 @@ msgstr "Sheet {sequence} (continued)"
 #: src/features/training/training-sheets.tsx
 msgid "Fișa 1"
 msgstr "Sheet 1"
+
+#: src/lib/labels.ts
+msgid "Fișa de test anual PSI"
+msgstr "Annual PSI test sheet"
+
+#: src/lib/labels.ts
+msgid "Fișa de test la angajare PSI"
+msgstr "PSI hiring test sheet"
+
+#: src/lib/labels.ts
+msgid "Fișa de test la angajare SSM"
+msgstr "SSM hiring test sheet"
 
 #: src/features/signing/signing-messages.ts
 msgid "Fișa era folosită chiar atunci de altă semnătură. Încearcă din nou peste un minut."
@@ -1172,6 +1195,10 @@ msgid "Semnează toate ({0})"
 msgstr "Sign all ({0})"
 
 #: src/features/signing/signing-messages.ts
+msgid "semnezi ca examinator"
+msgstr "you sign as the examiner"
+
+#: src/features/signing/signing-messages.ts
 msgid "semnezi ca instructor"
 msgstr "you sign as the trainer"
 
@@ -1236,8 +1263,8 @@ msgid "Studii"
 msgstr "Education"
 
 #: src/features/signing/client-signatures-page.tsx
-msgid "Toate instruirile trimise spre semnare sunt semnate."
-msgstr "Every training sent for signing is signed."
+msgid "Tot ce a fost trimis spre semnare este semnat."
+msgstr "Everything sent for signing is signed."
 
 #: src/features/training/training-material.tsx
 msgid "Tot textul"

@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 import type {
+  KnowledgeTest,
   MissingSheetData,
   ResponsiblePersonRole,
   SupplementaryTrainingReason,
@@ -19,6 +20,20 @@ export const trainingStateMessages: Record<TrainingState, MessageDescriptor> = {
   due: msg`Scadentă`,
   overdue: msg`Depășită`,
 };
+
+// There is no annual occupational safety test (ADR 024); its key falls back to the hiring one.
+const testKeyOf = (domain: TrainingDomain, test: KnowledgeTest) =>
+  domain === 'psi' && test === 'annual' ? 'psi.annual' : (`${domain}.hiring` as const);
+
+// Whole titles rather than the test and the domain joined, which reads wrong in English.
+const testSheetTitleMessages = {
+  'ssm.hiring': msg`Fișa de test la angajare SSM`,
+  'psi.hiring': msg`Fișa de test la angajare PSI`,
+  'psi.annual': msg`Fișa de test anual PSI`,
+};
+
+export const testSheetTitleMessage = (domain: TrainingDomain, test: KnowledgeTest) =>
+  testSheetTitleMessages[testKeyOf(domain, test)];
 
 export const trainingDomainMessages: Record<TrainingDomain, MessageDescriptor> = {
   ssm: msg`SSM`,
