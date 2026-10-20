@@ -1046,10 +1046,9 @@ describe("a client's evaluations outside its positions", () => {
     const user = userEvent.setup();
     const card = await screen.findByTestId('client-risk-evaluations-card');
     const rows = await within(card).findAllByTestId('client-risk-evaluation-row');
-    expect(rows.map((row) => row.firstChild?.firstChild?.textContent)).toEqual([
-      'Grupuri sensibile',
-      'Vizitatori',
-    ]);
+    expect(
+      rows.map((row) => within(row).getByTestId('client-risk-evaluation-title').textContent)
+    ).toEqual(['Grupuri sensibile', 'Vizitatori']);
     const groups = rows[0]!;
     expect(within(groups).getByTestId('sensitive-groups-state').textContent).toBe('Neevaluat');
     expect(within(groups).getByTestId('client-risk-evaluation-note').textContent).toBe(

@@ -210,17 +210,19 @@ function Row({
       className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3 text-sm"
     >
       <span className="grid min-w-0 flex-1 basis-64 gap-1">
-        <span className="font-medium wrap-anywhere">{title}</span>
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span data-testid="client-risk-evaluation-title" className="font-medium wrap-anywhere">
+            {title}
+          </span>
+          {state}
+        </span>
         {note && (
           <span data-testid="client-risk-evaluation-note" className="text-muted-foreground">
             {note}
           </span>
         )}
       </span>
-      <span className="flex flex-wrap items-center gap-2">
-        {state}
-        {action}
-      </span>
+      {action && <span className="flex flex-wrap items-center gap-2">{action}</span>}
     </li>
   );
 }
