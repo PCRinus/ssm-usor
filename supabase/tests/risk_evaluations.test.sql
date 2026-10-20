@@ -1,5 +1,5 @@
 begin;
-select plan(37);
+select plan(45);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -53,6 +53,57 @@ select is(
   (select exposure from public.risk_evaluations where id = 'e1e1e1e1-0000-4000-8000-000000000001'),
   '8 h / schimb',
   'the exposure is a shift unless said otherwise'
+);
+
+select is(
+  (select sensitive_groups_state::text from public.clients where id = 'c1c1c1c1-0000-4000-8000-000000000001'),
+  'undecided',
+  'a position''s evaluation leaves the sensitive groups undecided'
+);
+
+select is(
+  (select sensitive_groups_state::text from public.clients where id = 'c1c1c1c1-0000-4000-8000-000000000003'),
+  'evaluated',
+  'the state follows the sensitive groups evaluation'
+);
+
+select throws_ok(
+  $$ update public.clients set sensitive_groups_state = 'none' where id = 'c1c1c1c1-0000-4000-8000-000000000003' $$,
+  'SGR01',
+  null,
+  'a client with the sensitive groups evaluated cannot declare it has none'
+);
+
+select throws_ok(
+  $$ update public.clients set sensitive_groups_state = 'evaluated' where id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  'SGR01',
+  null,
+  'nobody writes evaluated by hand'
+);
+
+select lives_ok(
+  $$ update public.clients set sensitive_groups_state = 'none' where id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  'a member declares that the client has no workers from the sensitive groups'
+);
+
+select lives_ok(
+  $$ insert into public.risk_evaluations (id, organization_id, client_id, kind)
+     values ('e1e1e1e1-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'sensitive_groups') $$,
+  'the sensitive groups are evaluated after all, and the declaration gives way'
+);
+
+select is(
+  (select sensitive_groups_state::text from public.clients where id = 'c1c1c1c1-0000-4000-8000-000000000001'),
+  'evaluated',
+  'starting the evaluation marks the client evaluated'
+);
+
+delete from public.risk_evaluations where id = 'e1e1e1e1-0000-4000-8000-000000000008';
+
+select is(
+  (select sensitive_groups_state::text from public.clients where id = 'c1c1c1c1-0000-4000-8000-000000000001'),
+  'undecided',
+  'deleting the evaluation leaves the question open again'
 );
 
 select throws_ok(

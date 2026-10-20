@@ -220,6 +220,39 @@ describe('the rows of the generation form', () => {
       `/clients/${clientId}/job-positions#client-risk-evaluations`,
       `/clients/${clientId}/job-positions/risk-evaluations/e-vizitatori#factors`,
     ]);
+    const sensitiveGroups = groups
+      .flatMap((group) => group.rows)
+      .find((row) => row.key === 'sensitive_groups:factors');
+    expect(sensitiveGroups).toMatchObject({
+      detail: 'Evaluează-le sau declară că clientul nu are lucrători din grupurile sensibile.',
+      action: 'declare_no_sensitive_groups',
+    });
+  });
+
+  it('leads to the sensitive groups evaluation once it exists, without the declaration', () => {
+    const groups = documentMissingGroups({
+      missing: ['risk_evaluations.sensitive_groups'],
+      clientId,
+      clash: null,
+      undecidedJobPositions: [],
+      incompleteRiskEvaluations: [
+        {
+          evaluationId: 'e-grupuri',
+          kind: 'sensitive_groups',
+          jobPositionId: null,
+          name: 'Grupuri sensibile la riscuri specifice',
+          missing: ['factors'],
+        },
+      ],
+      canEditOrganization: true,
+    });
+    expect(groups[0]!.rows.map((row) => [row.key, row.label])).toEqual([
+      ['e-grupuri:factors', 'Evaluarea grupurilor sensibile'],
+    ]);
+    expect(hrefs(groups)).toEqual([
+      `/clients/${clientId}/job-positions/risk-evaluations/e-grupuri#factors`,
+    ]);
+    expect(groups[0]!.rows[0]!.action).toBeUndefined();
   });
 
   it('are grouped by place, in the order of the form', () => {

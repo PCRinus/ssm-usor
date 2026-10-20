@@ -212,8 +212,29 @@ export const riskEvaluationSummarySchema = z.object({
 
 export type RiskEvaluationSummary = z.infer<typeof riskEvaluationSummarySchema>;
 
+// The client's answer about the sensitive groups (ADR 015): `none` declares that it has no
+// workers from them, `evaluated` follows their evaluation and is set by the database alone.
+export const sensitiveGroupsStates = ['undecided', 'none', 'evaluated'] as const;
+
+export const sensitiveGroupsStateSchema = z.enum(sensitiveGroupsStates);
+
+export type SensitiveGroupsState = z.infer<typeof sensitiveGroupsStateSchema>;
+
+export const updateSensitiveGroupsStateRequestSchema = z.object({
+  state: z.enum(['undecided', 'none']),
+});
+
+export type UpdateSensitiveGroupsStateRequest = z.infer<
+  typeof updateSensitiveGroupsStateRequestSchema
+>;
+
+export const sensitiveGroupsStateResponseSchema = z.object({ state: sensitiveGroupsStateSchema });
+
+export type SensitiveGroupsStateResponse = z.infer<typeof sensitiveGroupsStateResponseSchema>;
+
 export const riskEvaluationListResponseSchema = z.object({
   items: z.array(riskEvaluationSummarySchema),
+  sensitiveGroupsState: sensitiveGroupsStateSchema,
 });
 
 export type RiskEvaluationListResponse = z.infer<typeof riskEvaluationListResponseSchema>;
@@ -267,6 +288,7 @@ export type RiskFactorSuggestionsResponse = z.infer<typeof riskFactorSuggestions
 export const riskEvaluationErrorReasons = [
   'risk_evaluation_exists',
   'risk_evaluation_name_taken',
+  'sensitive_groups_evaluated',
   'client_archived',
 ] as const;
 

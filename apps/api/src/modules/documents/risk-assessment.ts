@@ -11,6 +11,7 @@ import {
   type RiskEvaluationGap,
   type RiskEvaluationKind,
   riskLevel,
+  type SensitiveGroupsState,
   sheetComponents,
   unacceptableFactors,
   type WorkSystemComponent,
@@ -148,7 +149,8 @@ export function roman(value: number) {
 /**
  * The evaluations the documents print, in the ADR's order: the current positions in the order
  * of the positions table, the sensitive groups, then the others by name. An evaluation of a
- * position that is no longer current stays out, as does another one without a factor yet.
+ * position that is no longer current stays out, as does one that is not of a position and has
+ * no factor yet.
  */
 export function printedEvaluations(
   evaluations: readonly RiskEvaluationFacts[],
@@ -165,7 +167,7 @@ export function printedEvaluations(
     .filter((evaluation) =>
       evaluation.kind === 'job_position'
         ? positionOrder.has(evaluation.jobPositionId ?? '')
-        : evaluation.kind === 'sensitive_groups' || evaluation.factors.length > 0
+        : evaluation.factors.length > 0
     )
     .sort(
       (a, b) =>
@@ -188,12 +190,14 @@ const levelOf = (factor: Pick<RiskFactorFacts, 'gravityClass' | 'probabilityClas
 
 /**
  * What each evaluation lacks before the documents can be generated (ADR 015): every current
- * position and the sensitive groups evaluated with a factor; every unacceptable factor with a
- * measure; every factor with measures with a deadline and a person responsible.
+ * position evaluated with a factor; the sensitive groups evaluated with a factor unless the
+ * client declared it has no workers from them; every unacceptable factor with a measure; every
+ * factor with measures with a deadline and a person responsible.
  */
 export function incompleteRiskEvaluations(
   evaluations: readonly RiskEvaluationFacts[],
-  positions: readonly EvaluatedPosition[]
+  positions: readonly EvaluatedPosition[],
+  sensitiveGroupsState: SensitiveGroupsState
 ): IncompleteRiskEvaluation[] {
   const printed = printedEvaluations(evaluations, positions);
   const gapsOf = (evaluation: RiskEvaluationFacts | undefined): RiskEvaluationGap[] => {
@@ -221,7 +225,6 @@ export function incompleteRiskEvaluations(
       .filter((evaluation) => evaluation.kind === 'job_position')
       .map((evaluation) => [evaluation.jobPositionId, evaluation])
   );
-  const sensitiveGroups = printed.find((evaluation) => evaluation.kind === 'sensitive_groups');
   return [
     ...positions.map((position) => {
       const evaluation = byPosition.get(position.id);
@@ -233,13 +236,18 @@ export function incompleteRiskEvaluations(
         missing: gapsOf(evaluation),
       };
     }),
-    {
-      evaluationId: sensitiveGroups?.id ?? null,
-      kind: 'sensitive_groups' as const,
-      jobPositionId: null,
-      name: sensitiveGroupsName,
-      missing: gapsOf(sensitiveGroups),
-    },
+    ...(sensitiveGroupsState === 'none'
+      ? []
+      : [
+          {
+            evaluationId:
+              evaluations.find((evaluation) => evaluation.kind === 'sensitive_groups')?.id ?? null,
+            kind: 'sensitive_groups' as const,
+            jobPositionId: null,
+            name: sensitiveGroupsName,
+            missing: gapsOf(printed.find((evaluation) => evaluation.kind === 'sensitive_groups')),
+          },
+        ]),
     ...printed
       .filter((evaluation) => evaluation.kind === 'other')
       .map((evaluation) => ({
@@ -331,6 +339,8 @@ export type RiskAssessmentContext = {
   };
   /** "5 posturi de lucru, grupurile sensibile la riscuri specifice și o altă evaluare". */
   evaluationCountText: string;
+  /** The client declared it has no workers from the sensitive groups, for a sentence to say so. */
+  noSensitiveGroups: boolean;
   /** The unit's level: the evaluations' levels, each weighted by itself, as the method says. */
   globalLevel: string;
   evaluations: RiskAssessmentEvaluation[];
@@ -576,12 +586,14 @@ function workplaceLabel(workplace: Pick<WorkplaceFacts, 'name' | 'registeredOffi
 export function riskAssessment({
   evaluations,
   positions,
+  sensitiveGroupsState,
   caenCode,
   workplaces,
   currentEmployeeCount,
 }: {
   evaluations: readonly RiskEvaluationFacts[];
   positions: readonly EvaluatedPosition[];
+  sensitiveGroupsState: SensitiveGroupsState;
   caenCode: string | null;
   workplaces: readonly WorkplaceFacts[];
   currentEmployeeCount: number;
@@ -610,6 +622,7 @@ export function riskAssessment({
       noWorkplaces: workplaces.length === 0,
     },
     evaluationCountText: evaluationCountText(printedFacts),
+    noSensitiveGroups: sensitiveGroupsState === 'none',
     globalLevel: unitLevel === null ? dash : printedLevel(unitLevel),
     evaluations: printed,
   };

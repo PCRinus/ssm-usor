@@ -18,6 +18,9 @@ export function evaluationFailure(cause: unknown, fallback: string) {
   if (reason === 'risk_evaluation_name_taken') {
     return 'Clientul are deja o evaluare cu această denumire.';
   }
+  if (reason === 'sensitive_groups_evaluated') {
+    return 'Grupurile sensibile au deja o evaluare; reîncarcă pagina ca s-o vezi.';
+  }
   if (reason === 'client_archived') {
     return 'Clientul este arhivat; evaluările lui nu se mai schimbă.';
   }

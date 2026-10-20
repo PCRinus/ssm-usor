@@ -714,6 +714,7 @@ export type Database = {
           periodic_training_minutes: number | null;
           promoted_at: string | null;
           promoted_by: string | null;
+          sensitive_groups_state: Database['public']['Enums']['sensitive_groups_state'];
           stage: Database['public']['Enums']['client_stage'];
           trade_register_number: string | null;
           training_day_from: number | null;
@@ -748,6 +749,7 @@ export type Database = {
           periodic_training_minutes?: number | null;
           promoted_at?: string | null;
           promoted_by?: string | null;
+          sensitive_groups_state?: Database['public']['Enums']['sensitive_groups_state'];
           stage?: Database['public']['Enums']['client_stage'];
           trade_register_number?: string | null;
           training_day_from?: number | null;
@@ -781,6 +783,7 @@ export type Database = {
           periodic_training_minutes?: number | null;
           promoted_at?: string | null;
           promoted_by?: string | null;
+          sensitive_groups_state?: Database['public']['Enums']['sensitive_groups_state'];
           stage?: Database['public']['Enums']['client_stage'];
           trade_register_number?: string | null;
           training_day_from?: number | null;
@@ -4780,6 +4783,7 @@ export type Database = {
         | 'fire_safety_coordinator'
         | 'fire_intervention_leader';
       risk_evaluation_kind: 'job_position' | 'sensitive_groups' | 'other';
+      sensitive_groups_state: 'undecided' | 'none' | 'evaluated';
       signer_slot: 'trainee' | 'trainer' | 'verifier' | 'admitter';
       staff_category: 'technical_administrative' | 'execution';
       supplementary_training_reason:
@@ -4961,6 +4965,7 @@ export const Constants = {
         'fire_intervention_leader',
       ],
       risk_evaluation_kind: ['job_position', 'sensitive_groups', 'other'],
+      sensitive_groups_state: ['undecided', 'none', 'evaluated'],
       signer_slot: ['trainee', 'trainer', 'verifier', 'admitter'],
       staff_category: ['technical_administrative', 'execution'],
       supplementary_training_reason: [

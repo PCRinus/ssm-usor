@@ -94,6 +94,7 @@ const build = (list: RiskEvaluationFacts[] = evaluations) =>
   riskAssessment({
     evaluations: list,
     positions,
+    sensitiveGroupsState: 'evaluated',
     caenCode: '2562',
     workplaces: [],
     currentEmployeeCount: 24,
@@ -126,15 +127,32 @@ describe('the evaluations printed', () => {
       ).map((evaluation) => evaluation.id)
     ).toEqual([workshopFacts.id, sensitiveGroups.id]);
   });
+
+  it('leave out the sensitive groups until their evaluation has a factor', () => {
+    expect(
+      printedEvaluations([{ ...sensitiveGroups, factors: [] }, workshopFacts], [workshop]).map(
+        (evaluation) => evaluation.id
+      )
+    ).toEqual([workshopFacts.id]);
+  });
 });
 
 describe('what the evaluations lack', () => {
+  const groupsGap = {
+    kind: 'sensitive_groups',
+    jobPositionId: null,
+    name: 'Grupuri sensibile la riscuri specifice',
+    missing: ['factors'],
+  };
+
   it('is nothing for the fixture', () => {
-    expect(incompleteRiskEvaluations(evaluations, positions)).toEqual([]);
+    expect(incompleteRiskEvaluations(evaluations, positions, 'evaluated')).toEqual([]);
   });
 
   it('is an evaluation for every current position and for the sensitive groups', () => {
-    expect(incompleteRiskEvaluations([{ ...workshopFacts, factors: [] }], positions)).toEqual([
+    expect(
+      incompleteRiskEvaluations([{ ...workshopFacts, factors: [] }], positions, 'undecided')
+    ).toEqual([
       {
         evaluationId: null,
         kind: 'job_position',
@@ -149,12 +167,38 @@ describe('what the evaluations lack', () => {
         name: 'Sudor',
         missing: ['factors'],
       },
+      { ...groupsGap, evaluationId: null },
+    ]);
+  });
+
+  it('names the sensitive groups evaluation while it has no factor', () => {
+    expect(
+      incompleteRiskEvaluations(
+        [...evaluations.slice(1), { ...sensitiveGroups, factors: [] }],
+        positions,
+        'evaluated'
+      )
+    ).toEqual([{ ...groupsGap, evaluationId: sensitiveGroups.id }]);
+  });
+
+  it('asks nothing about the sensitive groups once the client declared it has none', () => {
+    expect(incompleteRiskEvaluations(evaluations.slice(1), positions, 'none')).toEqual([]);
+  });
+
+  it('is the measures and the plan of the sensitive groups once they have a factor', () => {
+    expect(
+      incompleteRiskEvaluations(
+        [...evaluations.slice(1), { ...sensitiveGroups, factors: [factor(5, 2)] }],
+        positions,
+        'evaluated'
+      )
+    ).toEqual([
       {
-        evaluationId: null,
+        evaluationId: sensitiveGroups.id,
         kind: 'sensitive_groups',
         jobPositionId: null,
         name: 'Grupuri sensibile la riscuri specifice',
-        missing: ['factors'],
+        missing: ['measures'],
       },
     ]);
   });
@@ -166,7 +210,7 @@ describe('what the evaluations lack', () => {
       [factor(5, 2), factor(2, 2, { ...measured, deadline: 'Anual', responsiblePerson: '  ' })],
       'e0e0e0e0-0000-4000-8000-000000000004'
     );
-    expect(incompleteRiskEvaluations([...evaluations, visitors], positions)).toEqual([
+    expect(incompleteRiskEvaluations([...evaluations, visitors], positions, 'evaluated')).toEqual([
       {
         evaluationId: visitors.id,
         kind: 'other',
@@ -178,7 +222,8 @@ describe('what the evaluations lack', () => {
     expect(
       incompleteRiskEvaluations(
         [...evaluations, other('Vizitatori', [factor(2, 2)], visitors.id)],
-        positions
+        positions,
+        'evaluated'
       )
     ).toEqual([]);
   });
@@ -234,6 +279,7 @@ describe('an evaluation of the risk assessment', () => {
       riskAssessment({
         evaluations: [officeFacts],
         positions: [{ ...office, currentEmployeeCount: 0 }],
+        sensitiveGroupsState: 'evaluated',
         caenCode: null,
         workplaces: [],
         currentEmployeeCount: 0,
@@ -482,6 +528,7 @@ describe('the risk assessment', () => {
     const context = riskAssessment({
       evaluations,
       positions,
+      sensitiveGroupsState: 'evaluated',
       caenCode: '2562',
       workplaces: [
         {
@@ -540,6 +587,7 @@ describe('the risk assessment', () => {
       riskAssessment({
         evaluations: [],
         positions: [],
+        sensitiveGroupsState: 'evaluated',
         caenCode: null,
         workplaces: workplaces.map((workplace) => ({
           ...workplace,
@@ -569,6 +617,7 @@ describe('the risk assessment', () => {
       riskAssessment({
         evaluations: [],
         positions: [],
+        sensitiveGroupsState: 'evaluated',
         caenCode: null,
         workplaces: [],
         currentEmployeeCount: 0,
@@ -576,9 +625,24 @@ describe('the risk assessment', () => {
     ).toEqual({
       unit: { activity: '—', employeeCount: 0, workplaces: [], noWorkplaces: true },
       evaluationCountText: '0 posturi de lucru',
+      noSensitiveGroups: false,
       globalLevel: '—',
       evaluations: [],
     });
+  });
+
+  it('says so when the client declared it has no workers from the sensitive groups', () => {
+    const declared = riskAssessment({
+      evaluations: evaluations.slice(1),
+      positions,
+      sensitiveGroupsState: 'none',
+      caenCode: null,
+      workplaces: [],
+      currentEmployeeCount: 0,
+    });
+    expect(declared.noSensitiveGroups).toBe(true);
+    expect(declared.evaluationCountText).toBe('2 posturi de lucru');
+    expect(build().noSensitiveGroups).toBe(false);
   });
 
   it('counts the posts, the sensitive groups and the other evaluations apart', () => {
@@ -586,6 +650,7 @@ describe('the risk assessment', () => {
       riskAssessment({
         evaluations: list,
         positions: evaluated,
+        sensitiveGroupsState: 'evaluated',
         caenCode: null,
         workplaces: [],
         currentEmployeeCount: 0,

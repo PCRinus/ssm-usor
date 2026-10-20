@@ -128,6 +128,7 @@ const clientRow = {
   contact_phone: null,
   contact_email: null,
   archived_at: null,
+  sensitive_groups_state: 'evaluated',
 };
 const profileRow = {
   full_name: 'Maria POPESCU',
@@ -711,6 +712,24 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
           missing: ['factors'],
         },
       ],
+    });
+    mockUpstream({
+      clients: () => Response.json({ ...clientRow, sensitive_groups_state: 'none' }),
+      riskEvaluations: () =>
+        Response.json([
+          {
+            ...sudor,
+            risk_factors: sudor!.risk_factors.map((factor) => ({
+              ...factor,
+              prevention_measures: [],
+            })),
+          },
+        ]),
+    });
+    const declared = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await declared.json())).toMatchObject({
+      missing: ['risk_evaluations.measures'],
+      incompleteRiskEvaluations: [{ evaluationId: sudor!.id, missing: ['measures'] }],
     });
     mockUpstream({ riskEvaluations: () => Response.json([groups]) });
     const unevaluated = await request(`/clients/${clientId}/documents/readiness`);

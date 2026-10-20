@@ -78,6 +78,19 @@ test('generating waits for the data the documents print, and says where it is fi
   ]);
   await expect(page.getByTestId('generate-submit')).toHaveCount(0);
 
+  await page.getByTestId('sensitive-groups-none').click();
+  await expect(
+    page.getByText('Am notat că clientul nu are lucrători din grupurile sensibile.')
+  ).toBeVisible();
+  await expect(page.getByTestId('generate-missing-count')).toHaveText('11 date de completat');
+  await expect(page.getByTestId('generate-missing-place').getByRole('heading')).toHaveText([
+    'Datele organizației',
+    'Profilul tău',
+    'Detaliile clientului',
+    'Instruire și responsabili',
+    'Posturile de lucru',
+  ]);
+
   await rows.nth(5).click();
   await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/training$`));
   await expect(page.getByTestId('details-administrative-interval')).toBeFocused();

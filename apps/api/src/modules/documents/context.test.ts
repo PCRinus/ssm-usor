@@ -230,9 +230,20 @@ describe('what is missing', () => {
     expect(
       missingDocumentData({ ...facts, riskEvaluations: [groups!, { ...sudor!, factors: [] }] })
     ).toEqual(['positions.risk_evaluation']);
-    expect(missingDocumentData({ ...facts, riskEvaluations: [sudor!, contabil!] })).toEqual([
-      'risk_evaluations.sensitive_groups',
-    ]);
+    const undecided = { ...facts.client, sensitiveGroupsState: 'undecided' as const };
+    expect(
+      missingDocumentData({ ...facts, client: undecided, riskEvaluations: [sudor!, contabil!] })
+    ).toEqual(['risk_evaluations.sensitive_groups']);
+    expect(
+      missingDocumentData({
+        ...facts,
+        riskEvaluations: [{ ...groups!, factors: [] }, sudor!, contabil!],
+      })
+    ).toEqual(['risk_evaluations.sensitive_groups']);
+    const declared = { ...facts.client, sensitiveGroupsState: 'none' as const };
+    expect(
+      missingDocumentData({ ...facts, client: declared, riskEvaluations: [sudor!, contabil!] })
+    ).toEqual([]);
     const unmeasured = {
       ...groups!,
       factors: groups!.factors.map((factor) => ({ ...factor, measures: [] })),

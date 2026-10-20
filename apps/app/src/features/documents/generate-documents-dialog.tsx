@@ -36,6 +36,7 @@ import {
   missingCountLabel,
 } from '@/features/missing-data/missing-rows';
 import { startWayBack } from '@/features/missing-data/way-back';
+import { SensitiveGroupsNoneButton } from '@/features/risk-evaluations/sensitive-groups-none-button';
 import { dateToIso } from '@/lib/dates';
 
 import {
@@ -243,6 +244,7 @@ function GenerateDocumentsForm({
                     to: occupationalSafety ? 'documents' : 'fire-safety-documents',
                   })
                 }
+                renderAction={() => <SensitiveGroupsNoneButton clientId={clientId} />}
               />
             </div>
           ) : (

@@ -1314,6 +1314,7 @@
       }
     ],
     "globalLevel": "3,15",
+    "noSensitiveGroups": false,
     "unit": {
       "activity": "2562 – Fabricarea articolelor de feronerie",
       "employeeCount": 6,

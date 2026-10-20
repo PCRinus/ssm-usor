@@ -3658,9 +3658,13 @@
                 "unacceptableFactorCount"
               ]
             }
+          },
+          "sensitiveGroupsState": {
+            "type": "string",
+            "enum": ["undecided", "none", "evaluated"]
           }
         },
-        "required": ["items"]
+        "required": ["items", "sensitiveGroupsState"]
       },
       "RiskEvaluationResponse": {
         "type": "object",
@@ -4348,6 +4352,26 @@
           }
         },
         "required": ["items"]
+      },
+      "SensitiveGroupsStateResponse": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["undecided", "none", "evaluated"]
+          }
+        },
+        "required": ["state"]
+      },
+      "UpdateSensitiveGroupsStateRequest": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["undecided", "none"]
+          }
+        },
+        "required": ["state"]
       },
       "EvaluationProfileListResponse": {
         "type": "object",
@@ -19129,6 +19153,121 @@
           },
           "403": {
             "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/sensitive-groups-state": {
+      "put": {
+        "operationId": "updateSensitiveGroupsState",
+        "summary": "Say whether a client has workers from the sensitive groups",
+        "description": "`none` declares that the client has no workers from the sensitive groups (pregnant, post-natal or breastfeeding women, young workers, people with disabilities), so the documents are generated without their evaluation; `undecided` leaves the question open again. `evaluated` is never sent: the database sets it while the sensitive groups evaluation exists, and `none` is refused meanwhile (`409`, reason `sensitive_groups_evaluated`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSensitiveGroupsStateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The state after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensitiveGroupsStateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (`client_archived`) or its sensitive groups are evaluated (`sensitive_groups_evaluated`)",
             "content": {
               "application/json": {
                 "schema": {

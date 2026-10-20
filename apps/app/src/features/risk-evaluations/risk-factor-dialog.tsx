@@ -42,6 +42,7 @@ import { useSavedToast } from '@/features/missing-data/saved-toast';
 import { FactorGroupCombobox } from './factor-group-combobox';
 import { groupUnder } from './factor-groups';
 import type { FactorStore } from './factor-store';
+import { ResponsiblePersonCombobox } from './responsible-person-combobox';
 import {
   componentLabels,
   emptyFactorForm,
@@ -89,6 +90,7 @@ export function RiskFactorDialog({
   editing,
   onClose,
   context,
+  clientId,
 }: {
   factors: RiskFactor[];
   store: FactorStore;
@@ -96,6 +98,8 @@ export function RiskFactorDialog({
   onClose: () => void;
   /** The position or profile the factors belong to, under the title. */
   context?: string;
+  /** The client whose people the person responsible is suggested from; none for a profile. */
+  clientId?: string;
 }) {
   const phone = useIsMobile();
   // Kept until the panel has slid out, after the parent has already let go of it.
@@ -111,6 +115,7 @@ export function RiskFactorDialog({
       key={shown === 'new' ? 'new' : shown.id}
       phone={phone}
       context={context}
+      clientId={clientId}
       after={factors.at(-1)}
       store={store}
       factor={shown === 'new' ? null : shown}
@@ -174,6 +179,7 @@ function Suggestions({
 function RiskFactorForm({
   phone,
   context,
+  clientId,
   after,
   store,
   factor,
@@ -181,6 +187,7 @@ function RiskFactorForm({
 }: {
   phone: boolean;
   context: string | undefined;
+  clientId: string | undefined;
   after: RiskFactor | undefined;
   store: FactorStore;
   factor: RiskFactor | null;
@@ -197,19 +204,10 @@ function RiskFactorForm({
   const [addAnother, setAddAnother] = useState(readAddAnother);
   const next = useRef<Pick<FactorFormValues, 'component' | 'group'> | null>(null);
   const { errors, isSubmitting: busy } = form.formState;
-  const [component, actions, deadline, responsiblePerson, observations, gravity, probability] =
-    useWatch({
-      control: form.control,
-      name: [
-        'component',
-        'actions',
-        'deadline',
-        'responsiblePerson',
-        'observations',
-        'gravityClass',
-        'probabilityClass',
-      ],
-    });
+  const [component, actions, deadline, observations, gravity, probability] = useWatch({
+    control: form.control,
+    name: ['component', 'actions', 'deadline', 'observations', 'gravityClass', 'probabilityClass'],
+  });
   const level = gravity && probability ? riskLevel(Number(gravity), Number(probability)) : null;
   const unacceptable = level !== null && isUnacceptableRiskLevel(level);
 
@@ -561,7 +559,8 @@ function RiskFactorForm({
           id="risk-factor-plan-note"
           className="-mt-3 text-sm text-muted-foreground @md:col-span-2"
         >
-          Termenul și persoana care răspunde sunt cerute când factorul are măsuri.
+          Cine răspunde de măsuri la client și până când. De obicei administratorul; apare în planul
+          de prevenire și protecție. Termenul și persoana sunt cerute când factorul are măsuri.
         </p>
         <Field
           id="risk-factor-actions"
@@ -588,6 +587,7 @@ function RiskFactorForm({
             data-testid="risk-factor-deadline"
             list="risk-factor-deadline-suggestions"
             autoComplete="off"
+            placeholder="Permanent, 30.11.2026, trimestrial…"
             disabled={busy}
             aria-invalid={Boolean(errors.deadline)}
             aria-describedby={describedBy(
@@ -604,24 +604,25 @@ function RiskFactorForm({
           label="Persoana care răspunde"
           error={errors.responsiblePerson}
         >
-          <Input
-            id="risk-factor-responsible"
-            data-testid="risk-factor-responsible"
-            list="risk-factor-responsible-suggestions"
-            autoComplete="off"
-            disabled={busy}
-            aria-invalid={Boolean(errors.responsiblePerson)}
-            aria-describedby={describedBy(
-              'risk-factor-responsible',
-              Boolean(errors.responsiblePerson),
-              'risk-factor-plan-note'
+          <Controller
+            control={form.control}
+            name="responsiblePerson"
+            render={({ field }) => (
+              <ResponsiblePersonCombobox
+                id="risk-factor-responsible"
+                clientId={clientId}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                disabled={busy}
+                invalid={Boolean(errors.responsiblePerson)}
+                describedBy={describedBy(
+                  'risk-factor-responsible',
+                  Boolean(errors.responsiblePerson),
+                  'risk-factor-plan-note'
+                )}
+              />
             )}
-            {...form.register('responsiblePerson')}
-          />
-          <Suggestions
-            id="risk-factor-responsible-suggestions"
-            field="responsiblePerson"
-            query={responsiblePerson}
           />
         </Field>
         <Field

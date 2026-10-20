@@ -90,6 +90,13 @@ function mockApi({
     currentEmployeeCount?: number;
     workersRepresentativeClash?: { representativeName: string; legalRepresentativeName: string };
     undecidedJobPositions?: { id: string; name: string; undecided: string[] }[];
+    incompleteRiskEvaluations?: {
+      evaluationId: string | null;
+      kind: string;
+      jobPositionId: string | null;
+      name: string;
+      missing: string[];
+    }[];
   },
   currentEmployeeCount = 6,
   generate = (() =>
@@ -128,8 +135,13 @@ function mockApi({
         currentEmployeeCount,
         workersRepresentativeClash: null,
         undecidedJobPositions: [],
+        incompleteRiskEvaluations: [],
         ...readiness,
       });
+    }
+    if (pathname === `/clients/${clientId}/sensitive-groups-state`) {
+      readiness = { ready: true, missing: [] };
+      return Response.json({ state: 'none' });
     }
     if (pathname === `/clients/${clientId}/document-details`) {
       return Response.json({ documentDetails });
@@ -393,6 +405,45 @@ describe('client documents', () => {
       `Sudor · /clients/${clientId}/job-positions/p2#protective-equipment`,
     ]);
     expect(screen.getByTestId('generate-missing-count').textContent).toBe('3 date de completat');
+  });
+
+  it('lets the sensitive groups be declared absent from the row that asks for them', async () => {
+    mockApi({
+      readiness: {
+        ready: false,
+        missing: ['risk_evaluations.sensitive_groups'],
+        incompleteRiskEvaluations: [
+          {
+            evaluationId: null,
+            kind: 'sensitive_groups',
+            jobPositionId: null,
+            name: 'Grupuri sensibile la riscuri specifice',
+            missing: ['factors'],
+          },
+        ],
+      },
+    });
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('documents-generate'));
+    const row = await screen.findByTestId('generate-missing-row');
+    expect(row.textContent).toBe(
+      'Evaluarea grupurilor sensibileEvaluează-le sau declară că clientul nu are lucrători din grupurile sensibile.'
+    );
+    expect(row.getAttribute('href')).toBe(
+      `/clients/${clientId}/job-positions#client-risk-evaluations`
+    );
+    const action = screen.getByTestId('generate-missing-row-action');
+    await user.click(within(action).getByTestId('sensitive-groups-none'));
+    await waitFor(() => expect(requests('/sensitive-groups-state', 'PUT')).toHaveLength(1));
+    expect(JSON.parse(String(requests('/sensitive-groups-state', 'PUT')[0]![1]?.body))).toEqual({
+      state: 'none',
+    });
+    expect(
+      await screen.findByText('Am notat că clientul nu are lucrători din grupurile sensibile.')
+    ).toBeTruthy();
+    await screen.findByTestId('generate-submit');
+    expect(screen.queryByTestId('generate-missing-row')).toBeNull();
   });
 
   it('shows the number of employees also while data is missing', async () => {

@@ -166,6 +166,7 @@ calendar will read the same columns:
 | `worker_training_not_applicable`          | Explicit exclusion; false with a null interval means undecided.          |
 | `training_first_month`                    | A month with a training; the others follow by interval, around the year. |
 | `training_day_from`, `training_day_to`    | The days of that month, for example 2 to 7; ordered by a check.          |
+| `sensitive_groups_state`                  | `undecided`, `none` (declared without such workers) or `evaluated`.      |
 
 **Workplaces.** `client_workplaces` holds the registered office and the points of work: a
 name, `is_registered_office` (one per client, by a partial unique index), and an address.
@@ -688,6 +689,13 @@ and `exposed_persons` ("Min. 3 persoane") as free text; a position's evaluation 
 from the position's activities and current employees, and a check constraint keeps them null
 there. It carries the same `client_id`, `organization_id` and composite foreign keys as the
 equipment entries, and an insert under a lead is refused (`CLL01`).
+
+`clients.sensitive_groups_state` says what the client answered about the sensitive groups:
+`undecided` until a member says, `none`, a declaration that the client has no workers from
+them, or `evaluated`. Two triggers keep it true: inserting or deleting the sensitive groups'
+evaluation sets `evaluated` or `undecided` (as the function's owner, so the seed and the flows
+count too), and an update by hand is refused unless it agrees with the evaluation's existence
+(`SGR01`), so `none` never sits beside an evaluation and nobody writes `evaluated`.
 
 `risk_factors` hangs off the evaluation, with the same `client_id` and `organization_id`, and
 goes with it:

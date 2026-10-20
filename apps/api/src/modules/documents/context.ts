@@ -15,6 +15,7 @@ import {
   type ResponsiblePersonRole,
   type RiskEvaluationGap,
   samePersonName,
+  type SensitiveGroupsState,
   type StaffCategory,
   trainingMonths,
 } from '@ssm-usor/contracts';
@@ -83,6 +84,7 @@ export type DocumentFacts = {
     contactName: string | null;
     contactPhone: string | null;
     contactEmail: string | null;
+    sensitiveGroupsState: SensitiveGroupsState;
   };
   /** The active workplaces, by name. */
   workplaces: (WorkplaceFacts & FireWorkplaceFacts)[];
@@ -345,7 +347,11 @@ export function missingDocumentData(facts: DocumentFacts, typeKey?: string): Mis
     typeKey === 'decision_workers_representative' ? 1 : 0
   );
   const representatives = currentWorkersRepresentatives(facts);
-  const incomplete = incompleteRiskEvaluations(facts.riskEvaluations, facts.jobPositions);
+  const incomplete = incompleteRiskEvaluations(
+    facts.riskEvaluations,
+    facts.jobPositions,
+    client.sensitiveGroupsState
+  );
   const lacks = (kind: 'job_position' | 'sensitive_groups' | null, gap: RiskEvaluationGap) =>
     incomplete.some(
       (evaluation) =>
@@ -666,6 +672,7 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
       riskAssessment({
         evaluations: facts.riskEvaluations,
         positions: facts.jobPositions,
+        sensitiveGroupsState: client.sensitiveGroupsState,
         caenCode: client.caenCode,
         workplaces: facts.workplaces,
         currentEmployeeCount: facts.currentEmployeeCount,

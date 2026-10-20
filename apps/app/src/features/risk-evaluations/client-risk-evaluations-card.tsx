@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { SensitiveGroupsState } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -31,6 +32,8 @@ import {
   evaluationTitle,
   type RiskEvaluationSummary,
 } from './risk-evaluation-schema';
+import { noSensitiveGroupsLabel } from './sensitive-groups-none-button';
+import { useSensitiveGroupsState } from './use-sensitive-groups-state';
 import { useStartEvaluation } from './use-start-evaluation';
 
 export function ClientRiskEvaluationsCard({
@@ -48,10 +51,12 @@ export function ClientRiskEvaluationsCard({
     query: { queryKey: [...getListRiskEvaluationsQueryKey(clientId), userId] },
   });
   const { start, pending, failure } = useStartEvaluation(clientId);
+  const groupsState = useSensitiveGroupsState(clientId);
   const [adding, setAdding] = useState(false);
   const items = evaluations.data?.items ?? [];
   const sensitiveGroups = items.find((item) => item.kind === 'sensitive_groups') ?? null;
   const others = items.filter((item) => item.kind === 'other');
+  const error = failure?.message ?? groupsState.failure;
 
   return (
     <SectionCard
@@ -73,9 +78,9 @@ export function ClientRiskEvaluationsCard({
         )
       }
     >
-      {failure && (
+      {error && (
         <Notice variant="destructive" data-testid="client-risk-evaluations-error">
-          {failure.message}
+          {error}
         </Notice>
       )}
       {evaluations.isPending ? (
@@ -100,22 +105,13 @@ export function ClientRiskEvaluationsCard({
           {sensitiveGroups ? (
             <EvaluationRow evaluation={sensitiveGroups} />
           ) : (
-            <Row
-              title="Grupuri sensibile"
-              state={<DecisionBadge decision={null}>Neevaluat</DecisionBadge>}
-              action={
-                !readOnly && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    data-testid="sensitive-groups-start"
-                    disabled={pending}
-                    onClick={() => void start({ kind: 'sensitive_groups' })}
-                  >
-                    {pending ? 'Se pornește…' : 'Începe evaluarea'}
-                  </Button>
-                )
-              }
+            <SensitiveGroupsRow
+              state={evaluations.data.sensitiveGroupsState}
+              busy={pending || groupsState.pending}
+              starting={pending}
+              actions={!readOnly}
+              onStart={() => void start({ kind: 'sensitive_groups' })}
+              onDeclare={(state) => void groupsState.declare(state)}
             />
           )}
           {others.map((evaluation) => (
@@ -128,17 +124,105 @@ export function ClientRiskEvaluationsCard({
   );
 }
 
-function Row({ title, state, action }: { title: ReactNode; state: ReactNode; action?: ReactNode }) {
+function SensitiveGroupsRow({
+  state,
+  busy,
+  starting,
+  actions,
+  onStart,
+  onDeclare,
+}: {
+  state: SensitiveGroupsState;
+  busy: boolean;
+  starting: boolean;
+  actions: boolean;
+  onStart: () => void;
+  onDeclare: (state: 'none' | 'undecided') => void;
+}) {
+  const declared = state === 'none';
+  return (
+    <Row
+      title="Grupuri sensibile"
+      note={
+        declared
+          ? 'Clientul a declarat că nu are astfel de lucrători; evaluarea riscurilor și planul de prevenire o menționează.'
+          : 'Femei gravide, lăuze sau care alăptează, tineri sub 18 ani, persoane cu dizabilități.'
+      }
+      state={
+        <DecisionBadge decision={declared ? false : null} data-testid="sensitive-groups-state">
+          {declared ? 'Declarat fără grupuri sensibile' : 'Neevaluat'}
+        </DecisionBadge>
+      }
+      action={
+        actions && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="sensitive-groups-start"
+              disabled={busy}
+              onClick={onStart}
+            >
+              {starting ? 'Se pornește…' : declared ? 'Evaluează totuși' : 'Evaluează'}
+            </Button>
+            {declared ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                data-testid="sensitive-groups-undo"
+                disabled={busy}
+                onClick={() => onDeclare('undecided')}
+              >
+                Modifică
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="sensitive-groups-none"
+                disabled={busy}
+                onClick={() => onDeclare('none')}
+              >
+                {noSensitiveGroupsLabel}
+              </Button>
+            )}
+          </>
+        )
+      }
+    />
+  );
+}
+
+function Row({
+  title,
+  note,
+  state,
+  action,
+}: {
+  title: ReactNode;
+  note?: string;
+  state: ReactNode;
+  action?: ReactNode;
+}) {
   return (
     <li
       data-testid="client-risk-evaluation-row"
       className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3 text-sm"
     >
-      <span className="min-w-0 font-medium wrap-anywhere">{title}</span>
-      <span className="flex flex-wrap items-center gap-2">
-        {state}
-        {action}
+      <span className="grid min-w-0 flex-1 basis-64 gap-1">
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span data-testid="client-risk-evaluation-title" className="font-medium wrap-anywhere">
+            {title}
+          </span>
+          {state}
+        </span>
+        {note && (
+          <span data-testid="client-risk-evaluation-note" className="text-muted-foreground">
+            {note}
+          </span>
+        )}
       </span>
+      {action && <span className="flex flex-wrap items-center gap-2">{action}</span>}
     </li>
   );
 }

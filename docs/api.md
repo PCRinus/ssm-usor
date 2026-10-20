@@ -179,6 +179,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PATCH …/job-positions/{jobPositionId}/instructions-decision`          | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none of `domain` (`false`) or taking back (`null`)                                                                    |
 | `GET /clients/{clientId}/risk-evaluations`                             | Verified user with a membership       | `{ "items": [ … ] }`, the client's evaluations without factors, with counts and global levels                                                                                |
 | `POST /clients/{clientId}/risk-evaluations`                            | Verified user with a membership       | `201 { "evaluation": { … } }` for a position, the sensitive groups or another named one                                                                                      |
+| `PUT /clients/{clientId}/sensitive-groups-state`                       | Verified user with a membership       | `{ "state" }` after setting `undecided` or `none`; `none` is `409` while the sensitive groups are evaluated                                                                  |
 | `GET …/risk-evaluations/{evaluationId}`                                | Verified user with a membership       | `{ "evaluation": { … } }` with its factors, measures, levels and global level                                                                                                |
 | `PATCH …/risk-evaluations/{evaluationId}`                              | Verified user with a membership       | `{ "evaluation": { … } }` after changing its work system texts or name                                                                                                       |
 | `DELETE …/risk-evaluations/{evaluationId}`                             | Verified user with a membership       | `204`, with its factors                                                                                                                                                      |
@@ -563,7 +564,12 @@ sensitive groups answers `409` with `risk_evaluation_exists`, a name the client 
 optional text; a `name` for an evaluation that is not `other`, or a `workTask` or
 `exposedPersons` for a position's, answers `400`. `GET …/risk-evaluations` lists
 the evaluations of current positions in name order, then the sensitive groups, then the
-others by name, each with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`.
+others by name, each with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel`, and
+carries the client's `sensitiveGroupsState`: `undecided`, `none` once the client declared that
+it has no workers from the sensitive groups, or `evaluated` while their evaluation exists.
+`PUT …/sensitive-groups-state` takes `undecided` or `none`; `none` while the evaluation exists
+answers `409` with `sensitive_groups_evaluated`, and `evaluated` is never sent, since the
+database sets it when the evaluation is created and clears it when it is deleted.
 `GET …/job-positions/{jobPositionId}/risk-evaluation` reads a position's evaluation by the
 position, `null` until one is started.
 
@@ -1221,7 +1227,8 @@ one is undecided about the instruction modules it applies
 so the form can send someone to each. The risk evaluations
 ([ADR 015](architecture/adr-015-risk-assessment.md)) add four: `positions.risk_evaluation`
 while a current position has no evaluation or one without a factor,
-`risk_evaluations.sensitive_groups` likewise for the sensitive groups,
+`risk_evaluations.sensitive_groups` while the client has neither evaluated the sensitive groups
+with a factor nor declared that it has no workers from them (`sensitiveGroupsState` `none`),
 `risk_evaluations.measures` while an unacceptable factor (level above 3) has no prevention
 measure, and `risk_evaluations.plan` while a factor with measures lacks its deadline or its
 person responsible. `incompleteRiskEvaluations` names the evaluations behind them, each with

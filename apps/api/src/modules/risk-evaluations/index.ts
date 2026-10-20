@@ -12,6 +12,7 @@ import {
   reorderRiskFactors,
   updateRiskEvaluation,
   updateRiskFactor,
+  updateSensitiveGroupsState,
 } from './handlers';
 import {
   copyRiskFactorsRoute,
@@ -26,6 +27,7 @@ import {
   riskFactorSuggestionsRoute,
   updateRiskEvaluationRoute,
   updateRiskFactorRoute,
+  updateSensitiveGroupsStateRoute,
 } from './routes';
 
 export const riskEvaluationsRouter = createRouter()
@@ -40,4 +42,5 @@ export const riskEvaluationsRouter = createRouter()
   .openapi(removeRiskFactorRoute, removeRiskFactor)
   .openapi(reorderRiskFactorsRoute, reorderRiskFactors)
   .openapi(getJobPositionRiskEvaluationRoute, getJobPositionRiskEvaluation)
-  .openapi(riskFactorSuggestionsRoute, listRiskFactorSuggestions);
+  .openapi(riskFactorSuggestionsRoute, listRiskFactorSuggestions)
+  .openapi(updateSensitiveGroupsStateRoute, updateSensitiveGroupsState);
