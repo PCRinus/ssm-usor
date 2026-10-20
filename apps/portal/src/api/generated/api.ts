@@ -676,6 +676,85 @@ export type PortalClientEmployeesResponseItemsItemTraining = {
   psi: PortalClientEmployeesResponseItemsItemTrainingPsi;
 };
 
+/**
+ * @nullable
+ */
+export type PortalClientEmployeesResponseItemsItemTestsSsmState =
+  | (typeof PortalClientEmployeesResponseItemsItemTestsSsmState)[keyof typeof PortalClientEmployeesResponseItemsItemTestsSsmState]
+  | null;
+
+export const PortalClientEmployeesResponseItemsItemTestsSsmState = {
+  none: 'none',
+  pending: 'pending',
+  passed: 'passed',
+  annual_due: 'annual_due',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PortalClientEmployeesResponseItemsItemTestsSsmAwaitingTest =
+  | (typeof PortalClientEmployeesResponseItemsItemTestsSsmAwaitingTest)[keyof typeof PortalClientEmployeesResponseItemsItemTestsSsmAwaitingTest]
+  | null;
+
+export const PortalClientEmployeesResponseItemsItemTestsSsmAwaitingTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type PortalClientEmployeesResponseItemsItemTestsSsm = {
+  /** @nullable */
+  state: PortalClientEmployeesResponseItemsItemTestsSsmState;
+  /** @nullable */
+  awaitingTest: PortalClientEmployeesResponseItemsItemTestsSsmAwaitingTest;
+  /** @nullable */
+  lastPassedOn: string | null;
+  /** @nullable */
+  dueOn: string | null;
+};
+
+/**
+ * @nullable
+ */
+export type PortalClientEmployeesResponseItemsItemTestsPsiState =
+  | (typeof PortalClientEmployeesResponseItemsItemTestsPsiState)[keyof typeof PortalClientEmployeesResponseItemsItemTestsPsiState]
+  | null;
+
+export const PortalClientEmployeesResponseItemsItemTestsPsiState = {
+  none: 'none',
+  pending: 'pending',
+  passed: 'passed',
+  annual_due: 'annual_due',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PortalClientEmployeesResponseItemsItemTestsPsiAwaitingTest =
+  | (typeof PortalClientEmployeesResponseItemsItemTestsPsiAwaitingTest)[keyof typeof PortalClientEmployeesResponseItemsItemTestsPsiAwaitingTest]
+  | null;
+
+export const PortalClientEmployeesResponseItemsItemTestsPsiAwaitingTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type PortalClientEmployeesResponseItemsItemTestsPsi = {
+  /** @nullable */
+  state: PortalClientEmployeesResponseItemsItemTestsPsiState;
+  /** @nullable */
+  awaitingTest: PortalClientEmployeesResponseItemsItemTestsPsiAwaitingTest;
+  /** @nullable */
+  lastPassedOn: string | null;
+  /** @nullable */
+  dueOn: string | null;
+};
+
+export type PortalClientEmployeesResponseItemsItemTests = {
+  ssm: PortalClientEmployeesResponseItemsItemTestsSsm;
+  psi: PortalClientEmployeesResponseItemsItemTestsPsi;
+};
+
 export type PortalClientEmployeesResponseItemsItem = {
   id: string;
   lastName: string;
@@ -684,6 +763,7 @@ export type PortalClientEmployeesResponseItemsItem = {
   /** @nullable */
   workplace: string | null;
   training: PortalClientEmployeesResponseItemsItemTraining;
+  tests: PortalClientEmployeesResponseItemsItemTests;
 };
 
 export interface PortalClientEmployeesResponse {
@@ -717,6 +797,476 @@ export type PortalResponsiblePersonsResponseItemsItem = {
 
 export interface PortalResponsiblePersonsResponse {
   items: PortalResponsiblePersonsResponseItemsItem[];
+}
+
+/**
+ * @nullable
+ */
+export type PortalTestsResponseSsmStatusState =
+  (typeof PortalTestsResponseSsmStatusState)[keyof typeof PortalTestsResponseSsmStatusState] | null;
+
+export const PortalTestsResponseSsmStatusState = {
+  none: 'none',
+  pending: 'pending',
+  passed: 'passed',
+  annual_due: 'annual_due',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PortalTestsResponseSsmStatusAwaitingTest =
+  | (typeof PortalTestsResponseSsmStatusAwaitingTest)[keyof typeof PortalTestsResponseSsmStatusAwaitingTest]
+  | null;
+
+export const PortalTestsResponseSsmStatusAwaitingTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type PortalTestsResponseSsmStatus = {
+  /** @nullable */
+  state: PortalTestsResponseSsmStatusState;
+  /** @nullable */
+  awaitingTest: PortalTestsResponseSsmStatusAwaitingTest;
+  /** @nullable */
+  lastPassedOn: string | null;
+  /** @nullable */
+  dueOn: string | null;
+};
+
+export type PortalTestsResponseSsmResultsItemDomain =
+  (typeof PortalTestsResponseSsmResultsItemDomain)[keyof typeof PortalTestsResponseSsmResultsItemDomain];
+
+export const PortalTestsResponseSsmResultsItemDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type PortalTestsResponseSsmResultsItemTest =
+  (typeof PortalTestsResponseSsmResultsItemTest)[keyof typeof PortalTestsResponseSsmResultsItemTest];
+
+export const PortalTestsResponseSsmResultsItemTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type PortalTestsResponseSsmResultsItemGrade =
+  (typeof PortalTestsResponseSsmResultsItemGrade)[keyof typeof PortalTestsResponseSsmResultsItemGrade];
+
+export const PortalTestsResponseSsmResultsItemGrade = {
+  admis: 'admis',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PortalTestsResponseSsmResultsItemExaminer = {
+  name: string;
+  jobTitle: string;
+} | null;
+
+export type PortalTestsResponseSsmResultsItemSource =
+  (typeof PortalTestsResponseSsmResultsItemSource)[keyof typeof PortalTestsResponseSsmResultsItemSource];
+
+export const PortalTestsResponseSsmResultsItemSource = {
+  portal: 'portal',
+  paper: 'paper',
+} as const;
+
+export type PortalTestsResponseSsmResultsItem = {
+  id: string;
+  employeeId: string;
+  domain: PortalTestsResponseSsmResultsItemDomain;
+  test: PortalTestsResponseSsmResultsItemTest;
+  takenOn: string;
+  material: string;
+  grade: PortalTestsResponseSsmResultsItemGrade;
+  /** @nullable */
+  examiner: PortalTestsResponseSsmResultsItemExaminer;
+  source: PortalTestsResponseSsmResultsItemSource;
+  /** @nullable */
+  attemptId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PortalTestsResponseSsmAttemptsItemDomain =
+  (typeof PortalTestsResponseSsmAttemptsItemDomain)[keyof typeof PortalTestsResponseSsmAttemptsItemDomain];
+
+export const PortalTestsResponseSsmAttemptsItemDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type PortalTestsResponseSsmAttemptsItemTest =
+  (typeof PortalTestsResponseSsmAttemptsItemTest)[keyof typeof PortalTestsResponseSsmAttemptsItemTest];
+
+export const PortalTestsResponseSsmAttemptsItemTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type PortalTestsResponseSsmAttemptsItem = {
+  id: string;
+  domain: PortalTestsResponseSsmAttemptsItemDomain;
+  test: PortalTestsResponseSsmAttemptsItemTest;
+  startedAt: string;
+  /** @nullable */
+  finishedAt: string | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  score: number | null;
+  /** @minimum 1 */
+  total: number;
+  /** @nullable */
+  passed: boolean | null;
+};
+
+export type PortalTestsResponseSsmInProgressDomain =
+  (typeof PortalTestsResponseSsmInProgressDomain)[keyof typeof PortalTestsResponseSsmInProgressDomain];
+
+export const PortalTestsResponseSsmInProgressDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type PortalTestsResponseSsmInProgressTest =
+  (typeof PortalTestsResponseSsmInProgressTest)[keyof typeof PortalTestsResponseSsmInProgressTest];
+
+export const PortalTestsResponseSsmInProgressTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type PortalTestsResponseSsmInProgressQuestionsItemOptionsItem = {
+  text: string;
+};
+
+export type PortalTestsResponseSsmInProgressQuestionsItem = {
+  questionId: string;
+  text: string;
+  options: PortalTestsResponseSsmInProgressQuestionsItemOptionsItem[];
+  /**
+   * @maxItems 4
+   * @items.minimum 0
+   * @items.maximum 3
+   */
+  chosen: number[];
+};
+
+/**
+ * @nullable
+ */
+export type PortalTestsResponseSsmInProgress = {
+  id: string;
+  domain: PortalTestsResponseSsmInProgressDomain;
+  test: PortalTestsResponseSsmInProgressTest;
+  startedAt: string;
+  /** @minimum 1 */
+  total: number;
+  questions: PortalTestsResponseSsmInProgressQuestionsItem[];
+} | null;
+
+export type PortalTestsResponseSsm = {
+  status: PortalTestsResponseSsmStatus;
+  results: PortalTestsResponseSsmResultsItem[];
+  attempts: PortalTestsResponseSsmAttemptsItem[];
+  /** @nullable */
+  inProgress: PortalTestsResponseSsmInProgress;
+};
+
+/**
+ * @nullable
+ */
+export type PortalTestsResponsePsiStatusState =
+  (typeof PortalTestsResponsePsiStatusState)[keyof typeof PortalTestsResponsePsiStatusState] | null;
+
+export const PortalTestsResponsePsiStatusState = {
+  none: 'none',
+  pending: 'pending',
+  passed: 'passed',
+  annual_due: 'annual_due',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PortalTestsResponsePsiStatusAwaitingTest =
+  | (typeof PortalTestsResponsePsiStatusAwaitingTest)[keyof typeof PortalTestsResponsePsiStatusAwaitingTest]
+  | null;
+
+export const PortalTestsResponsePsiStatusAwaitingTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type PortalTestsResponsePsiStatus = {
+  /** @nullable */
+  state: PortalTestsResponsePsiStatusState;
+  /** @nullable */
+  awaitingTest: PortalTestsResponsePsiStatusAwaitingTest;
+  /** @nullable */
+  lastPassedOn: string | null;
+  /** @nullable */
+  dueOn: string | null;
+};
+
+export type PortalTestsResponsePsiResultsItemDomain =
+  (typeof PortalTestsResponsePsiResultsItemDomain)[keyof typeof PortalTestsResponsePsiResultsItemDomain];
+
+export const PortalTestsResponsePsiResultsItemDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type PortalTestsResponsePsiResultsItemTest =
+  (typeof PortalTestsResponsePsiResultsItemTest)[keyof typeof PortalTestsResponsePsiResultsItemTest];
+
+export const PortalTestsResponsePsiResultsItemTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type PortalTestsResponsePsiResultsItemGrade =
+  (typeof PortalTestsResponsePsiResultsItemGrade)[keyof typeof PortalTestsResponsePsiResultsItemGrade];
+
+export const PortalTestsResponsePsiResultsItemGrade = {
+  admis: 'admis',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PortalTestsResponsePsiResultsItemExaminer = {
+  name: string;
+  jobTitle: string;
+} | null;
+
+export type PortalTestsResponsePsiResultsItemSource =
+  (typeof PortalTestsResponsePsiResultsItemSource)[keyof typeof PortalTestsResponsePsiResultsItemSource];
+
+export const PortalTestsResponsePsiResultsItemSource = {
+  portal: 'portal',
+  paper: 'paper',
+} as const;
+
+export type PortalTestsResponsePsiResultsItem = {
+  id: string;
+  employeeId: string;
+  domain: PortalTestsResponsePsiResultsItemDomain;
+  test: PortalTestsResponsePsiResultsItemTest;
+  takenOn: string;
+  material: string;
+  grade: PortalTestsResponsePsiResultsItemGrade;
+  /** @nullable */
+  examiner: PortalTestsResponsePsiResultsItemExaminer;
+  source: PortalTestsResponsePsiResultsItemSource;
+  /** @nullable */
+  attemptId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PortalTestsResponsePsiAttemptsItemDomain =
+  (typeof PortalTestsResponsePsiAttemptsItemDomain)[keyof typeof PortalTestsResponsePsiAttemptsItemDomain];
+
+export const PortalTestsResponsePsiAttemptsItemDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type PortalTestsResponsePsiAttemptsItemTest =
+  (typeof PortalTestsResponsePsiAttemptsItemTest)[keyof typeof PortalTestsResponsePsiAttemptsItemTest];
+
+export const PortalTestsResponsePsiAttemptsItemTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type PortalTestsResponsePsiAttemptsItem = {
+  id: string;
+  domain: PortalTestsResponsePsiAttemptsItemDomain;
+  test: PortalTestsResponsePsiAttemptsItemTest;
+  startedAt: string;
+  /** @nullable */
+  finishedAt: string | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  score: number | null;
+  /** @minimum 1 */
+  total: number;
+  /** @nullable */
+  passed: boolean | null;
+};
+
+export type PortalTestsResponsePsiInProgressDomain =
+  (typeof PortalTestsResponsePsiInProgressDomain)[keyof typeof PortalTestsResponsePsiInProgressDomain];
+
+export const PortalTestsResponsePsiInProgressDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type PortalTestsResponsePsiInProgressTest =
+  (typeof PortalTestsResponsePsiInProgressTest)[keyof typeof PortalTestsResponsePsiInProgressTest];
+
+export const PortalTestsResponsePsiInProgressTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type PortalTestsResponsePsiInProgressQuestionsItemOptionsItem = {
+  text: string;
+};
+
+export type PortalTestsResponsePsiInProgressQuestionsItem = {
+  questionId: string;
+  text: string;
+  options: PortalTestsResponsePsiInProgressQuestionsItemOptionsItem[];
+  /**
+   * @maxItems 4
+   * @items.minimum 0
+   * @items.maximum 3
+   */
+  chosen: number[];
+};
+
+/**
+ * @nullable
+ */
+export type PortalTestsResponsePsiInProgress = {
+  id: string;
+  domain: PortalTestsResponsePsiInProgressDomain;
+  test: PortalTestsResponsePsiInProgressTest;
+  startedAt: string;
+  /** @minimum 1 */
+  total: number;
+  questions: PortalTestsResponsePsiInProgressQuestionsItem[];
+} | null;
+
+export type PortalTestsResponsePsi = {
+  status: PortalTestsResponsePsiStatus;
+  results: PortalTestsResponsePsiResultsItem[];
+  attempts: PortalTestsResponsePsiAttemptsItem[];
+  /** @nullable */
+  inProgress: PortalTestsResponsePsiInProgress;
+};
+
+export interface PortalTestsResponse {
+  ssm: PortalTestsResponseSsm;
+  psi: PortalTestsResponsePsi;
+}
+
+/**
+ * @nullable
+ */
+export type TestStudyCardMaterial = {
+  revisionId: string;
+  title: string;
+  issuedAt: string;
+} | null;
+
+export interface TestStudyCard {
+  explanations: string[];
+  /** @nullable */
+  material: TestStudyCardMaterial;
+}
+
+export type TestAttemptResponseAttemptDomain =
+  (typeof TestAttemptResponseAttemptDomain)[keyof typeof TestAttemptResponseAttemptDomain];
+
+export const TestAttemptResponseAttemptDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type TestAttemptResponseAttemptTest =
+  (typeof TestAttemptResponseAttemptTest)[keyof typeof TestAttemptResponseAttemptTest];
+
+export const TestAttemptResponseAttemptTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type TestAttemptResponseAttemptQuestionsItemOptionsItem = {
+  text: string;
+};
+
+export type TestAttemptResponseAttemptQuestionsItem = {
+  questionId: string;
+  text: string;
+  options: TestAttemptResponseAttemptQuestionsItemOptionsItem[];
+  /**
+   * @maxItems 4
+   * @items.minimum 0
+   * @items.maximum 3
+   */
+  chosen: number[];
+};
+
+export type TestAttemptResponseAttempt = {
+  id: string;
+  domain: TestAttemptResponseAttemptDomain;
+  test: TestAttemptResponseAttemptTest;
+  startedAt: string;
+  /** @minimum 1 */
+  total: number;
+  questions: TestAttemptResponseAttemptQuestionsItem[];
+};
+
+export interface TestAttemptResponse {
+  attempt: TestAttemptResponseAttempt;
+}
+
+export interface TestAttemptAnswerRequest {
+  /**
+   * @maxItems 4
+   * @items.minimum 0
+   * @items.maximum 3
+   */
+  chosen: number[];
+}
+
+export type TestAttemptOutcomeDomain =
+  (typeof TestAttemptOutcomeDomain)[keyof typeof TestAttemptOutcomeDomain];
+
+export const TestAttemptOutcomeDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type TestAttemptOutcomeTest =
+  (typeof TestAttemptOutcomeTest)[keyof typeof TestAttemptOutcomeTest];
+
+export const TestAttemptOutcomeTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type TestAttemptOutcomeMistakesItem = {
+  /** @minimum 0 */
+  index: number;
+  text: string;
+  /** @nullable */
+  explanation: string | null;
+};
+
+export interface TestAttemptOutcome {
+  id: string;
+  domain: TestAttemptOutcomeDomain;
+  test: TestAttemptOutcomeTest;
+  finishedAt: string;
+  /** @minimum 0 */
+  score: number;
+  /** @minimum 1 */
+  total: number;
+  passed: boolean;
+  mistakes: TestAttemptOutcomeMistakesItem[];
 }
 
 export type PortalSignatureRequestsResponseItemsItemSlot =
@@ -2904,6 +3454,743 @@ export function useListPortalResponsiblePersons<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getListPortalResponsiblePersonsQueryOptions(participantId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetPortalTestsUrl = (participantId: string) => {
+  return `/portal/participants/${participantId}/tests`;
+};
+
+/**
+ * Per domain: the test state and the test that awaits, which _Acasă_ lists beside the signature requests; the results newest first; the finished attempts with their score, newest first; and the attempt in progress, if any, as it was drawn and answered so far, without its key.
+ * @summary The participant's knowledge tests
+ */
+export const getPortalTests = async (
+  participantId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<PortalTestsResponse> => {
+  return apiFetch<PortalTestsResponse>(getGetPortalTestsUrl(participantId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetPortalTestsQueryKey = (participantId: string) => {
+  return [`/portal/participants/${participantId}/tests`] as const;
+};
+
+export const getGetPortalTestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPortalTests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalTests>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPortalTestsQueryKey(participantId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalTests>>> = ({ signal }) =>
+    getPortalTests(participantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: participantId !== null && participantId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getPortalTests>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetPortalTestsQueryResult = NonNullable<Awaited<ReturnType<typeof getPortalTests>>>;
+export type GetPortalTestsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetPortalTests<
+  TData = Awaited<ReturnType<typeof getPortalTests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalTests>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalTests>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalTests>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalTests<
+  TData = Awaited<ReturnType<typeof getPortalTests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalTests>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalTests>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalTests>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalTests<
+  TData = Awaited<ReturnType<typeof getPortalTests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalTests>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The participant's knowledge tests
+ */
+
+export function useGetPortalTests<
+  TData = Awaited<ReturnType<typeof getPortalTests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalTests>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPortalTestsQueryOptions(participantId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetPortalTestStudyCardUrl = (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  test: 'hiring' | 'annual'
+) => {
+  return `/portal/participants/${participantId}/tests/${domain}/${test}/study-card`;
+};
+
+/**
+ * The explanations of the test's active questions that have one, and the client's issued revision of the material the test closes, whose PDF `GET …/materials/{domain}` serves; `material` is null while none is issued.
+ * @summary What to know before a test (_ce trebuie să știi_)
+ */
+export const getPortalTestStudyCard = async (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  test: 'hiring' | 'annual',
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TestStudyCard> => {
+  return apiFetch<TestStudyCard>(getGetPortalTestStudyCardUrl(participantId, domain, test), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetPortalTestStudyCardQueryKey = (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  test: 'hiring' | 'annual'
+) => {
+  return [`/portal/participants/${participantId}/tests/${domain}/${test}/study-card`] as const;
+};
+
+export const getGetPortalTestStudyCardQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPortalTestStudyCard>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  test: 'hiring' | 'annual',
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTestStudyCard>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPortalTestStudyCardQueryKey(participantId, domain, test);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalTestStudyCard>>> = ({ signal }) =>
+    getPortalTestStudyCard(participantId, domain, test, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      participantId !== null &&
+      participantId !== undefined &&
+      domain !== null &&
+      domain !== undefined &&
+      test !== null &&
+      test !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getPortalTestStudyCard>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetPortalTestStudyCardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPortalTestStudyCard>>
+>;
+export type GetPortalTestStudyCardQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetPortalTestStudyCard<
+  TData = Awaited<ReturnType<typeof getPortalTestStudyCard>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  test: 'hiring' | 'annual',
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTestStudyCard>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalTestStudyCard>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalTestStudyCard>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalTestStudyCard<
+  TData = Awaited<ReturnType<typeof getPortalTestStudyCard>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  test: 'hiring' | 'annual',
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTestStudyCard>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalTestStudyCard>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalTestStudyCard>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalTestStudyCard<
+  TData = Awaited<ReturnType<typeof getPortalTestStudyCard>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  test: 'hiring' | 'annual',
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTestStudyCard>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary What to know before a test (_ce trebuie să știi_)
+ */
+
+export function useGetPortalTestStudyCard<
+  TData = Awaited<ReturnType<typeof getPortalTestStudyCard>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  test: 'hiring' | 'annual',
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTestStudyCard>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPortalTestStudyCardQueryOptions(participantId, domain, test, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getStartPortalTestAttemptUrl = (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  test: 'hiring' | 'annual'
+) => {
+  return `/portal/participants/${participantId}/tests/${domain}/${test}/attempts`;
+};
+
+/**
+ * Ten of the active questions drawn at random, each with its options shuffled. The attempt in progress is answered as it stands, so a dropped connection resumes where it stopped. The attempt records the issued material shown with the test, the client address and the user agent. Refused while the test does not await the employee (reason `test_not_awaiting`): the hiring test while it is pending, the annual test once it is due.
+ * @summary Start a test, or resume the attempt in progress
+ */
+export const startPortalTestAttempt = async (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  test: 'hiring' | 'annual',
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TestAttemptResponse> => {
+  return apiFetch<TestAttemptResponse>(getStartPortalTestAttemptUrl(participantId, domain, test), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getStartPortalTestAttemptMutationKey = () => ['startPortalTestAttempt'] as const;
+
+export const getStartPortalTestAttemptMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startPortalTestAttempt>>,
+    TError,
+    StartPortalTestAttemptMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startPortalTestAttempt>>,
+  TError,
+  StartPortalTestAttemptMutationVariables,
+  TContext
+> => {
+  const mutationKey = getStartPortalTestAttemptMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startPortalTestAttempt>>,
+    StartPortalTestAttemptMutationVariables
+  > = (props) => {
+    const { participantId, domain, test } = props ?? {};
+
+    return startPortalTestAttempt(participantId, domain, test, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartPortalTestAttemptMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startPortalTestAttempt>>
+>;
+
+export type StartPortalTestAttemptMutationError = ErrorType<ApiErrorResponse>;
+export type StartPortalTestAttemptMutationVariables = {
+  participantId: string;
+  domain: 'ssm' | 'psi';
+  test: 'hiring' | 'annual';
+};
+
+/**
+ * @summary Start a test, or resume the attempt in progress
+ */
+export const useStartPortalTestAttempt = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof startPortalTestAttempt>>,
+      TError,
+      StartPortalTestAttemptMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof startPortalTestAttempt>>,
+  TError,
+  StartPortalTestAttemptMutationVariables,
+  TContext
+> => {
+  return useMutation(getStartPortalTestAttemptMutationOptions(options), queryClient);
+};
+
+export const getAnswerPortalTestAttemptUrl = (
+  participantId: string,
+  attemptId: string,
+  questionIndex: string
+) => {
+  return `/portal/participants/${participantId}/test-attempts/${attemptId}/answers/${questionIndex}`;
+};
+
+/**
+ * `questionIndex` is the question's place in the attempt, from 0; `chosen` the indices of the options as shown, empty to leave it unanswered. Saved as it is given.
+ * @summary Save the options chosen for one question
+ */
+export const answerPortalTestAttempt = async (
+  participantId: string,
+  attemptId: string,
+  questionIndex: string,
+  testAttemptAnswerRequest: TestAttemptAnswerRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TestAttemptResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<TestAttemptResponse>(
+    getAnswerPortalTestAttemptUrl(participantId, attemptId, questionIndex),
+    {
+      ...options,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(testAttemptAnswerRequest),
+    }
+  );
+};
+
+export const getAnswerPortalTestAttemptMutationKey = () => ['answerPortalTestAttempt'] as const;
+
+export const getAnswerPortalTestAttemptMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof answerPortalTestAttempt>>,
+    TError,
+    AnswerPortalTestAttemptMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof answerPortalTestAttempt>>,
+  TError,
+  AnswerPortalTestAttemptMutationVariables,
+  TContext
+> => {
+  const mutationKey = getAnswerPortalTestAttemptMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof answerPortalTestAttempt>>,
+    AnswerPortalTestAttemptMutationVariables
+  > = (props) => {
+    const { participantId, attemptId, questionIndex, data } = props ?? {};
+
+    return answerPortalTestAttempt(participantId, attemptId, questionIndex, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnswerPortalTestAttemptMutationResult = NonNullable<
+  Awaited<ReturnType<typeof answerPortalTestAttempt>>
+>;
+export type AnswerPortalTestAttemptMutationBody = TestAttemptAnswerRequest;
+export type AnswerPortalTestAttemptMutationError = ErrorType<ApiErrorResponse>;
+export type AnswerPortalTestAttemptMutationVariables = {
+  participantId: string;
+  attemptId: string;
+  questionIndex: string;
+  data: TestAttemptAnswerRequest;
+};
+
+/**
+ * @summary Save the options chosen for one question
+ */
+export const useAnswerPortalTestAttempt = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof answerPortalTestAttempt>>,
+      TError,
+      AnswerPortalTestAttemptMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof answerPortalTestAttempt>>,
+  TError,
+  AnswerPortalTestAttemptMutationVariables,
+  TContext
+> => {
+  return useMutation(getAnswerPortalTestAttemptMutationOptions(options), queryClient);
+};
+
+export const getFinishPortalTestAttemptUrl = (participantId: string, attemptId: string) => {
+  return `/portal/participants/${participantId}/test-attempts/${attemptId}/finish`;
+};
+
+/**
+ * A question counts when the options chosen are exactly the correct ones; seven of ten pass. A failed attempt lists each question answered wrong with its explanation, the correct option never marked, and the test can be taken again at once. A pass records the test result, the examiner proposed, and fills its row of the stored signed sheet.
+ * @summary Finish an attempt and see the outcome
+ */
+export const finishPortalTestAttempt = async (
+  participantId: string,
+  attemptId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TestAttemptOutcome> => {
+  return apiFetch<TestAttemptOutcome>(getFinishPortalTestAttemptUrl(participantId, attemptId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getFinishPortalTestAttemptMutationKey = () => ['finishPortalTestAttempt'] as const;
+
+export const getFinishPortalTestAttemptMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof finishPortalTestAttempt>>,
+    TError,
+    FinishPortalTestAttemptMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof finishPortalTestAttempt>>,
+  TError,
+  FinishPortalTestAttemptMutationVariables,
+  TContext
+> => {
+  const mutationKey = getFinishPortalTestAttemptMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof finishPortalTestAttempt>>,
+    FinishPortalTestAttemptMutationVariables
+  > = (props) => {
+    const { participantId, attemptId } = props ?? {};
+
+    return finishPortalTestAttempt(participantId, attemptId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type FinishPortalTestAttemptMutationResult = NonNullable<
+  Awaited<ReturnType<typeof finishPortalTestAttempt>>
+>;
+
+export type FinishPortalTestAttemptMutationError = ErrorType<ApiErrorResponse>;
+export type FinishPortalTestAttemptMutationVariables = { participantId: string; attemptId: string };
+
+/**
+ * @summary Finish an attempt and see the outcome
+ */
+export const useFinishPortalTestAttempt = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof finishPortalTestAttempt>>,
+      TError,
+      FinishPortalTestAttemptMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof finishPortalTestAttempt>>,
+  TError,
+  FinishPortalTestAttemptMutationVariables,
+  TContext
+> => {
+  return useMutation(getFinishPortalTestAttemptMutationOptions(options), queryClient);
+};
+
+export const getGetPortalMaterialUrl = (participantId: string, domain: 'ssm' | 'psi') => {
+  return `/portal/participants/${participantId}/materials/${domain}`;
+};
+
+/**
+ * The newest issued revision of the client's general training material (`ssm`) or fire-safety own instructions (`psi`), the IPSU with its annexes. 404 with reason `material_not_issued` while there is none.
+ * @summary The material a test closes, as its issued PDF
+ */
+export const getPortalMaterial = async (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getGetPortalMaterialUrl(participantId, domain), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetPortalMaterialQueryKey = (participantId: string, domain: 'ssm' | 'psi') => {
+  return [`/portal/participants/${participantId}/materials/${domain}`] as const;
+};
+
+export const getGetPortalMaterialQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPortalMaterial>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterial>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPortalMaterialQueryKey(participantId, domain);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalMaterial>>> = ({ signal }) =>
+    getPortalMaterial(participantId, domain, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      participantId !== null &&
+      participantId !== undefined &&
+      domain !== null &&
+      domain !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterial>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetPortalMaterialQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPortalMaterial>>
+>;
+export type GetPortalMaterialQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetPortalMaterial<
+  TData = Awaited<ReturnType<typeof getPortalMaterial>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterial>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalMaterial>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalMaterial>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalMaterial<
+  TData = Awaited<ReturnType<typeof getPortalMaterial>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterial>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalMaterial>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalMaterial>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalMaterial<
+  TData = Awaited<ReturnType<typeof getPortalMaterial>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterial>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The material a test closes, as its issued PDF
+ */
+
+export function useGetPortalMaterial<
+  TData = Awaited<ReturnType<typeof getPortalMaterial>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterial>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPortalMaterialQueryOptions(participantId, domain, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

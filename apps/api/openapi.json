@@ -1223,6 +1223,64 @@
                     }
                   },
                   "required": ["ssm", "psi"]
+                },
+                "tests": {
+                  "type": "object",
+                  "properties": {
+                    "ssm": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["none", "pending", "passed", "annual_due", null]
+                        },
+                        "awaitingTest": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["hiring", "annual", null]
+                        },
+                        "lastPassedOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        }
+                      },
+                      "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
+                    },
+                    "psi": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["none", "pending", "passed", "annual_due", null]
+                        },
+                        "awaitingTest": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["hiring", "annual", null]
+                        },
+                        "lastPassedOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        }
+                      },
+                      "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
+                    }
+                  },
+                  "required": ["ssm", "psi"]
                 }
               },
               "required": [
@@ -1241,7 +1299,8 @@
                 "workplace",
                 "createdAt",
                 "updatedAt",
-                "training"
+                "training",
+                "tests"
               ]
             }
           },
@@ -1483,6 +1542,64 @@
                   }
                 },
                 "required": ["ssm", "psi"]
+              },
+              "tests": {
+                "type": "object",
+                "properties": {
+                  "ssm": {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "nullable": true,
+                        "enum": ["none", "pending", "passed", "annual_due", null]
+                      },
+                      "awaitingTest": {
+                        "type": "string",
+                        "nullable": true,
+                        "enum": ["hiring", "annual", null]
+                      },
+                      "lastPassedOn": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "date"
+                      },
+                      "dueOn": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "date"
+                      }
+                    },
+                    "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
+                  },
+                  "psi": {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "nullable": true,
+                        "enum": ["none", "pending", "passed", "annual_due", null]
+                      },
+                      "awaitingTest": {
+                        "type": "string",
+                        "nullable": true,
+                        "enum": ["hiring", "annual", null]
+                      },
+                      "lastPassedOn": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "date"
+                      },
+                      "dueOn": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "date"
+                      }
+                    },
+                    "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
+                  }
+                },
+                "required": ["ssm", "psi"]
               }
             },
             "required": [
@@ -1515,7 +1632,8 @@
               "createdAt",
               "updatedAt",
               "archivedAt",
-              "training"
+              "training",
+              "tests"
             ]
           }
         },
@@ -1981,6 +2099,64 @@
                   },
                   "required": ["ssm", "psi"]
                 },
+                "tests": {
+                  "type": "object",
+                  "properties": {
+                    "ssm": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["none", "pending", "passed", "annual_due", null]
+                        },
+                        "awaitingTest": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["hiring", "annual", null]
+                        },
+                        "lastPassedOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        }
+                      },
+                      "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
+                    },
+                    "psi": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["none", "pending", "passed", "annual_due", null]
+                        },
+                        "awaitingTest": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["hiring", "annual", null]
+                        },
+                        "lastPassedOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        }
+                      },
+                      "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
+                    }
+                  },
+                  "required": ["ssm", "psi"]
+                },
                 "client": {
                   "type": "object",
                   "properties": {
@@ -2012,6 +2188,7 @@
                 "createdAt",
                 "updatedAt",
                 "training",
+                "tests",
                 "client"
               ]
             }
@@ -2829,6 +3006,822 @@
           }
         },
         "required": ["error", "message", "reason", "missing"]
+      },
+      "TestBankResponse": {
+        "type": "object",
+        "properties": {
+          "sittingSize": {
+            "type": "integer"
+          },
+          "minimumActiveQuestions": {
+            "type": "integer"
+          },
+          "passMarkPercent": {
+            "type": "integer"
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "domain": {
+                  "type": "string",
+                  "enum": ["ssm", "psi"]
+                },
+                "test": {
+                  "type": "string",
+                  "enum": ["hiring", "annual"]
+                },
+                "code": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "activeCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "domain": {
+                        "type": "string",
+                        "enum": ["ssm", "psi"]
+                      },
+                      "test": {
+                        "type": "string",
+                        "enum": ["hiring", "annual"]
+                      },
+                      "position": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "text": {
+                        "type": "string"
+                      },
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "text": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 500
+                            },
+                            "correct": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": ["text", "correct"]
+                        }
+                      },
+                      "explanation": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "citation": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "builtIn": {
+                        "type": "boolean"
+                      },
+                      "hidden": {
+                        "type": "boolean"
+                      },
+                      "replacesQuestionId": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uuid"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "domain",
+                      "test",
+                      "position",
+                      "text",
+                      "options",
+                      "explanation",
+                      "citation",
+                      "builtIn",
+                      "hidden",
+                      "replacesQuestionId",
+                      "createdAt",
+                      "updatedAt"
+                    ]
+                  }
+                }
+              },
+              "required": ["domain", "test", "code", "title", "activeCount", "questions"]
+            }
+          }
+        },
+        "required": ["sittingSize", "minimumActiveQuestions", "passMarkPercent", "tests"]
+      },
+      "TestQuestionResponse": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "domain": {
+                "type": "string",
+                "enum": ["ssm", "psi"]
+              },
+              "test": {
+                "type": "string",
+                "enum": ["hiring", "annual"]
+              },
+              "position": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "text": {
+                "type": "string"
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 500
+                    },
+                    "correct": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["text", "correct"]
+                }
+              },
+              "explanation": {
+                "type": "string",
+                "nullable": true
+              },
+              "citation": {
+                "type": "string",
+                "nullable": true
+              },
+              "builtIn": {
+                "type": "boolean"
+              },
+              "hidden": {
+                "type": "boolean"
+              },
+              "replacesQuestionId": {
+                "type": "string",
+                "nullable": true,
+                "format": "uuid"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "domain",
+              "test",
+              "position",
+              "text",
+              "options",
+              "explanation",
+              "citation",
+              "builtIn",
+              "hidden",
+              "replacesQuestionId",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        },
+        "required": ["question"]
+      },
+      "CreateTestQuestionRequest": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "enum": ["ssm", "psi"]
+          },
+          "test": {
+            "type": "string",
+            "enum": ["hiring", "annual"]
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "text": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 1000
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                "correct": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["text", "correct"]
+            },
+            "minItems": 2,
+            "maxItems": 4
+          },
+          "explanation": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "citation": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "replacesQuestionId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          }
+        },
+        "required": ["domain", "test", "text", "options"]
+      },
+      "UpdateTestQuestionRequest": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "text": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 1000
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                "correct": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["text", "correct"]
+            },
+            "minItems": 2,
+            "maxItems": 4
+          },
+          "explanation": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "citation": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "replacesQuestionId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          }
+        },
+        "required": ["text", "options"]
+      },
+      "EmployeeTestsResponse": {
+        "type": "object",
+        "properties": {
+          "ssm": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["none", "pending", "passed", "annual_due", null]
+                  },
+                  "awaitingTest": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["hiring", "annual", null]
+                  },
+                  "lastPassedOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "dueOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  }
+                },
+                "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "employeeId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": ["ssm", "psi"]
+                    },
+                    "test": {
+                      "type": "string",
+                      "enum": ["hiring", "annual"]
+                    },
+                    "takenOn": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "material": {
+                      "type": "string"
+                    },
+                    "grade": {
+                      "type": "string",
+                      "enum": ["admis"]
+                    },
+                    "examiner": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "jobTitle": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["name", "jobTitle"]
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": ["portal", "paper"]
+                    },
+                    "attemptId": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "employeeId",
+                    "domain",
+                    "test",
+                    "takenOn",
+                    "material",
+                    "grade",
+                    "examiner",
+                    "source",
+                    "attemptId",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              },
+              "attempts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": ["ssm", "psi"]
+                    },
+                    "test": {
+                      "type": "string",
+                      "enum": ["hiring", "annual"]
+                    },
+                    "startedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "finishedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "score": {
+                      "type": "integer",
+                      "nullable": true,
+                      "minimum": 0
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "passed": {
+                      "type": "boolean",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "domain",
+                    "test",
+                    "startedAt",
+                    "finishedAt",
+                    "score",
+                    "total",
+                    "passed"
+                  ]
+                }
+              }
+            },
+            "required": ["status", "results", "attempts"]
+          },
+          "psi": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["none", "pending", "passed", "annual_due", null]
+                  },
+                  "awaitingTest": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["hiring", "annual", null]
+                  },
+                  "lastPassedOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "dueOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  }
+                },
+                "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "employeeId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": ["ssm", "psi"]
+                    },
+                    "test": {
+                      "type": "string",
+                      "enum": ["hiring", "annual"]
+                    },
+                    "takenOn": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "material": {
+                      "type": "string"
+                    },
+                    "grade": {
+                      "type": "string",
+                      "enum": ["admis"]
+                    },
+                    "examiner": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "jobTitle": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["name", "jobTitle"]
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": ["portal", "paper"]
+                    },
+                    "attemptId": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "employeeId",
+                    "domain",
+                    "test",
+                    "takenOn",
+                    "material",
+                    "grade",
+                    "examiner",
+                    "source",
+                    "attemptId",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              },
+              "attempts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": ["ssm", "psi"]
+                    },
+                    "test": {
+                      "type": "string",
+                      "enum": ["hiring", "annual"]
+                    },
+                    "startedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "finishedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "score": {
+                      "type": "integer",
+                      "nullable": true,
+                      "minimum": 0
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "passed": {
+                      "type": "boolean",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "domain",
+                    "test",
+                    "startedAt",
+                    "finishedAt",
+                    "score",
+                    "total",
+                    "passed"
+                  ]
+                }
+              }
+            },
+            "required": ["status", "results", "attempts"]
+          }
+        },
+        "required": ["ssm", "psi"]
+      },
+      "TestResultResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "employeeId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "domain": {
+                "type": "string",
+                "enum": ["ssm", "psi"]
+              },
+              "test": {
+                "type": "string",
+                "enum": ["hiring", "annual"]
+              },
+              "takenOn": {
+                "type": "string",
+                "format": "date"
+              },
+              "material": {
+                "type": "string"
+              },
+              "grade": {
+                "type": "string",
+                "enum": ["admis"]
+              },
+              "examiner": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "jobTitle": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name", "jobTitle"]
+              },
+              "source": {
+                "type": "string",
+                "enum": ["portal", "paper"]
+              },
+              "attemptId": {
+                "type": "string",
+                "nullable": true,
+                "format": "uuid"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "employeeId",
+              "domain",
+              "test",
+              "takenOn",
+              "material",
+              "grade",
+              "examiner",
+              "source",
+              "attemptId",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        },
+        "required": ["result"]
+      },
+      "PaperTestResultRequest": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "enum": ["ssm", "psi"]
+          },
+          "test": {
+            "type": "string",
+            "enum": ["hiring", "annual"]
+          },
+          "takenOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "material": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "grade": {
+            "type": "string",
+            "enum": ["admis"],
+            "default": "admis"
+          },
+          "examiner": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "jobTitle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            },
+            "required": ["name", "jobTitle"]
+          }
+        },
+        "required": ["domain", "test", "takenOn", "examiner"]
+      },
+      "UpdateTestResultRequest": {
+        "type": "object",
+        "properties": {
+          "takenOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "material": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "examiner": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "jobTitle": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            },
+            "required": ["name", "jobTitle"]
+          }
+        },
+        "required": ["examiner"]
       },
       "JobPositionListResponse": {
         "type": "object",
@@ -11134,9 +12127,75 @@
                     }
                   },
                   "required": ["ssm", "psi"]
+                },
+                "tests": {
+                  "type": "object",
+                  "properties": {
+                    "ssm": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["none", "pending", "passed", "annual_due", null]
+                        },
+                        "awaitingTest": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["hiring", "annual", null]
+                        },
+                        "lastPassedOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        }
+                      },
+                      "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
+                    },
+                    "psi": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["none", "pending", "passed", "annual_due", null]
+                        },
+                        "awaitingTest": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": ["hiring", "annual", null]
+                        },
+                        "lastPassedOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        },
+                        "dueOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        }
+                      },
+                      "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
+                    }
+                  },
+                  "required": ["ssm", "psi"]
                 }
               },
-              "required": ["id", "lastName", "firstName", "position", "workplace", "training"]
+              "required": [
+                "id",
+                "lastName",
+                "firstName",
+                "position",
+                "workplace",
+                "training",
+                "tests"
+              ]
             }
           }
         },
@@ -11191,6 +12250,633 @@
           }
         },
         "required": ["items"]
+      },
+      "PortalTestsResponse": {
+        "type": "object",
+        "properties": {
+          "ssm": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["none", "pending", "passed", "annual_due", null]
+                  },
+                  "awaitingTest": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["hiring", "annual", null]
+                  },
+                  "lastPassedOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "dueOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  }
+                },
+                "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "employeeId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": ["ssm", "psi"]
+                    },
+                    "test": {
+                      "type": "string",
+                      "enum": ["hiring", "annual"]
+                    },
+                    "takenOn": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "material": {
+                      "type": "string"
+                    },
+                    "grade": {
+                      "type": "string",
+                      "enum": ["admis"]
+                    },
+                    "examiner": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "jobTitle": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["name", "jobTitle"]
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": ["portal", "paper"]
+                    },
+                    "attemptId": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "employeeId",
+                    "domain",
+                    "test",
+                    "takenOn",
+                    "material",
+                    "grade",
+                    "examiner",
+                    "source",
+                    "attemptId",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              },
+              "attempts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": ["ssm", "psi"]
+                    },
+                    "test": {
+                      "type": "string",
+                      "enum": ["hiring", "annual"]
+                    },
+                    "startedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "finishedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "score": {
+                      "type": "integer",
+                      "nullable": true,
+                      "minimum": 0
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "passed": {
+                      "type": "boolean",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "domain",
+                    "test",
+                    "startedAt",
+                    "finishedAt",
+                    "score",
+                    "total",
+                    "passed"
+                  ]
+                }
+              },
+              "inProgress": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "enum": ["ssm", "psi"]
+                  },
+                  "test": {
+                    "type": "string",
+                    "enum": ["hiring", "annual"]
+                  },
+                  "startedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "questions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "questionId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "text": {
+                          "type": "string"
+                        },
+                        "options": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "text": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["text"]
+                          }
+                        },
+                        "chosen": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 3
+                          },
+                          "maxItems": 4
+                        }
+                      },
+                      "required": ["questionId", "text", "options", "chosen"]
+                    }
+                  }
+                },
+                "required": ["id", "domain", "test", "startedAt", "total", "questions"]
+              }
+            },
+            "required": ["status", "results", "attempts", "inProgress"]
+          },
+          "psi": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["none", "pending", "passed", "annual_due", null]
+                  },
+                  "awaitingTest": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["hiring", "annual", null]
+                  },
+                  "lastPassedOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "dueOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  }
+                },
+                "required": ["state", "awaitingTest", "lastPassedOn", "dueOn"]
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "employeeId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": ["ssm", "psi"]
+                    },
+                    "test": {
+                      "type": "string",
+                      "enum": ["hiring", "annual"]
+                    },
+                    "takenOn": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "material": {
+                      "type": "string"
+                    },
+                    "grade": {
+                      "type": "string",
+                      "enum": ["admis"]
+                    },
+                    "examiner": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "jobTitle": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["name", "jobTitle"]
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": ["portal", "paper"]
+                    },
+                    "attemptId": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "employeeId",
+                    "domain",
+                    "test",
+                    "takenOn",
+                    "material",
+                    "grade",
+                    "examiner",
+                    "source",
+                    "attemptId",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              },
+              "attempts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": ["ssm", "psi"]
+                    },
+                    "test": {
+                      "type": "string",
+                      "enum": ["hiring", "annual"]
+                    },
+                    "startedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "finishedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "score": {
+                      "type": "integer",
+                      "nullable": true,
+                      "minimum": 0
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "passed": {
+                      "type": "boolean",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "domain",
+                    "test",
+                    "startedAt",
+                    "finishedAt",
+                    "score",
+                    "total",
+                    "passed"
+                  ]
+                }
+              },
+              "inProgress": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "enum": ["ssm", "psi"]
+                  },
+                  "test": {
+                    "type": "string",
+                    "enum": ["hiring", "annual"]
+                  },
+                  "startedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "questions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "questionId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "text": {
+                          "type": "string"
+                        },
+                        "options": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "text": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["text"]
+                          }
+                        },
+                        "chosen": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 3
+                          },
+                          "maxItems": 4
+                        }
+                      },
+                      "required": ["questionId", "text", "options", "chosen"]
+                    }
+                  }
+                },
+                "required": ["id", "domain", "test", "startedAt", "total", "questions"]
+              }
+            },
+            "required": ["status", "results", "attempts", "inProgress"]
+          }
+        },
+        "required": ["ssm", "psi"]
+      },
+      "TestStudyCard": {
+        "type": "object",
+        "properties": {
+          "explanations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "material": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "revisionId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "title": {
+                "type": "string"
+              },
+              "issuedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": ["revisionId", "title", "issuedAt"]
+          }
+        },
+        "required": ["explanations", "material"]
+      },
+      "TestAttemptResponse": {
+        "type": "object",
+        "properties": {
+          "attempt": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "domain": {
+                "type": "string",
+                "enum": ["ssm", "psi"]
+              },
+              "test": {
+                "type": "string",
+                "enum": ["hiring", "annual"]
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "questions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "questionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "options": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "text": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["text"]
+                      }
+                    },
+                    "chosen": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3
+                      },
+                      "maxItems": 4
+                    }
+                  },
+                  "required": ["questionId", "text", "options", "chosen"]
+                }
+              }
+            },
+            "required": ["id", "domain", "test", "startedAt", "total", "questions"]
+          }
+        },
+        "required": ["attempt"]
+      },
+      "TestAttemptAnswerRequest": {
+        "type": "object",
+        "properties": {
+          "chosen": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "maxItems": 4
+          }
+        },
+        "required": ["chosen"]
+      },
+      "TestAttemptOutcome": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "domain": {
+            "type": "string",
+            "enum": ["ssm", "psi"]
+          },
+          "test": {
+            "type": "string",
+            "enum": ["hiring", "annual"]
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "score": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "mistakes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "text": {
+                  "type": "string"
+                },
+                "explanation": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": ["index", "text", "explanation"]
+            }
+          }
+        },
+        "required": ["id", "domain", "test", "finishedAt", "score", "total", "passed", "mistakes"]
       },
       "SignerCandidatesResponse": {
         "type": "object",
@@ -13487,6 +15173,15 @@
           {
             "schema": {
               "type": "string",
+              "enum": ["passed", "pending", "annual_due", "none"]
+            },
+            "required": false,
+            "name": "testState",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
               "maxLength": 100
             },
             "required": false,
@@ -14210,6 +15905,15 @@
             },
             "required": false,
             "name": "trainingState",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["passed", "pending", "annual_due", "none"]
+            },
+            "required": false,
+            "name": "testState",
             "in": "query"
           },
           {
@@ -15332,6 +17036,962 @@
           },
           "503": {
             "description": "Supabase is unavailable, the template is not registered (reason `template_missing`), there is no converter or it failed (reason `pdf_unavailable`), or the signer that stamps a merged copy did (reason `signer_unavailable`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/tests/questions": {
+      "get": {
+        "operationId": "getTestBank",
+        "summary": "The organization's question bank, by test",
+        "description": "Each knowledge test (ADR 024) with its code, its title, every question in the printed order, built-in and own, each flagged `builtIn` and `hidden`, and how many are active. The sitting size, the minimum of active questions and the pass mark are fixed for every organization and answered beside them. `domain` and `test` narrow the list.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "psi"]
+            },
+            "required": false,
+            "name": "domain",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["hiring", "annual"]
+            },
+            "required": false,
+            "name": "test",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tests and their questions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestBankResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createTestQuestion",
+        "summary": "Write an own question",
+        "description": "Two to four options, at least one correct, an optional explanation and citation. Without a `position` the question goes after the test's others. `replacesQuestionId` names the built-in of the same test it departs from, as provenance only (reason `question_not_built_in` otherwise).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTestQuestionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The question",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestQuestionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The question it replaces is not a built-in of the same test",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/tests/questions/{questionId}": {
+      "patch": {
+        "operationId": "updateTestQuestion",
+        "summary": "Edit an own question",
+        "description": "A built-in question is edited by none (reason `question_built_in`): it is hidden and replaced by an own one. A question never moves to another test.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "questionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTestQuestionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The question after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestQuestionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The question is neither a built-in nor one of the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The question is a built-in, or the one it replaces is not a built-in of the same test",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTestQuestion",
+        "summary": "Delete an own question",
+        "description": "Refused for a built-in (reason `question_built_in`), which is hidden instead, and when the test would keep fewer than ten active questions (reason `test_below_minimum`). The attempts that drew it keep their copy.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "questionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The question is neither a built-in nor one of the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The test would keep fewer than ten active questions (reason `test_below_minimum`): add before hiding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/tests/questions/{questionId}/hidden": {
+      "put": {
+        "operationId": "hideTestQuestion",
+        "summary": "Hide a built-in question from the tests",
+        "description": "Idempotent. Only a built-in is hidden (reason `question_not_built_in`); an own question is deleted. Refused when the test would keep fewer than ten active questions (reason `test_below_minimum`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "questionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The question, hidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestQuestionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The question is neither a built-in nor one of the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The test would keep fewer than ten active questions (reason `test_below_minimum`): add before hiding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "restoreTestQuestion",
+        "summary": "Restore a hidden built-in question",
+        "description": "Idempotent.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "questionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The question, active again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestQuestionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The question is neither a built-in nor one of the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/tests": {
+      "get": {
+        "operationId": "getEmployeeTests",
+        "summary": "An employee's knowledge tests",
+        "description": "Per domain: the test state and the test that awaits, the results newest first with their day, material, grade, examiner, source and attempt, and the attempts in the portal newest first with their score.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tests of both domains",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeTestsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The employee does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/tests/results": {
+      "post": {
+        "operationId": "recordPaperTestResult",
+        "summary": "Record a pass of the printed test",
+        "description": "A test filled in on paper and passed: the day, the examiner and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken while the hiring test awaits the employee (a hiring training recorded, no pass yet); an annual one once the employee has a fire-safety pass. Otherwise reason `test_not_awaiting`. The day is not in the future. The result fills its row of the employee's stored signed sheet.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaperTestResultRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResultResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The employee does not exist under this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The test does not await the employee (reason `test_not_awaiting`), or the client is archived (reason `client_archived`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/tests/results/{resultId}": {
+      "patch": {
+        "operationId": "updateTestResult",
+        "summary": "Correct the examiner of a result, or the day and material of a paper one",
+        "description": "A result from the portal changes only in its examiner (reason `result_from_attempt`). Its row on the stored signed sheet is filled again.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "resultId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTestResultRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The result after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResultResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The result does not exist for this employee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A portal result changes only in its examiner (reason `result_from_attempt`), or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -30640,6 +33300,695 @@
           },
           "503": {
             "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/tests": {
+      "get": {
+        "operationId": "getPortalTests",
+        "tags": ["portal"],
+        "summary": "The participant's knowledge tests",
+        "description": "Per domain: the test state and the test that awaits, which _Acasă_ lists beside the signature requests; the results newest first; the finished attempts with their score, newest first; and the attempt in progress, if any, as it was drawn and answered so far, without its key.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tests of both domains",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalTestsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, or it is a client administrator's who is not an employee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/tests/{domain}/{test}/study-card": {
+      "get": {
+        "operationId": "getPortalTestStudyCard",
+        "tags": ["portal"],
+        "summary": "What to know before a test (_ce trebuie să știi_)",
+        "description": "The explanations of the test's active questions that have one, and the client's issued revision of the material the test closes, whose PDF `GET …/materials/{domain}` serves; `material` is null while none is issued.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "psi"]
+            },
+            "required": true,
+            "name": "domain",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["hiring", "annual"]
+            },
+            "required": true,
+            "name": "test",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The study card",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestStudyCard"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path, or an annual occupational safety test",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, or it is a client administrator's who is not an employee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/tests/{domain}/{test}/attempts": {
+      "post": {
+        "operationId": "startPortalTestAttempt",
+        "tags": ["portal"],
+        "summary": "Start a test, or resume the attempt in progress",
+        "description": "Ten of the active questions drawn at random, each with its options shuffled. The attempt in progress is answered as it stands, so a dropped connection resumes where it stopped. The attempt records the issued material shown with the test, the client address and the user agent. Refused while the test does not await the employee (reason `test_not_awaiting`): the hiring test while it is pending, the annual test once it is due.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "psi"]
+            },
+            "required": true,
+            "name": "domain",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["hiring", "annual"]
+            },
+            "required": true,
+            "name": "test",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The attempt, without its key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestAttemptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path, or an annual occupational safety test",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, or it is a client administrator's who is not an employee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The test does not await the employee (reason `test_not_awaiting`), the bank holds fewer than ten active questions (reason `test_below_minimum`), or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/test-attempts/{attemptId}/answers/{questionIndex}": {
+      "put": {
+        "operationId": "answerPortalTestAttempt",
+        "tags": ["portal"],
+        "summary": "Save the options chosen for one question",
+        "description": "`questionIndex` is the question's place in the attempt, from 0; `chosen` the indices of the options as shown, empty to leave it unanswered. Saved as it is given.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "attemptId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            "required": true,
+            "name": "questionIndex",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestAttemptAnswerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The attempt with the answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestAttemptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, or a question or option the attempt does not have (reasons `question_out_of_range`, `option_out_of_range`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation or the attempt is not the account's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The attempt is finished (reason `attempt_finished`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/test-attempts/{attemptId}/finish": {
+      "post": {
+        "operationId": "finishPortalTestAttempt",
+        "tags": ["portal"],
+        "summary": "Finish an attempt and see the outcome",
+        "description": "A question counts when the options chosen are exactly the correct ones; seven of ten pass. A failed attempt lists each question answered wrong with its explanation, the correct option never marked, and the test can be taken again at once. A pass records the test result, the examiner proposed, and fills its row of the stored signed sheet.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "attemptId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The outcome",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestAttemptOutcome"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation or the attempt is not the account's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The attempt is finished (reason `attempt_finished`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/materials/{domain}": {
+      "get": {
+        "operationId": "getPortalMaterial",
+        "tags": ["portal"],
+        "summary": "The material a test closes, as its issued PDF",
+        "description": "The newest issued revision of the client's general training material (`ssm`) or fire-safety own instructions (`psi`), the IPSU with its annexes. 404 with reason `material_not_issued` while there is none.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "psi"]
+            },
+            "required": true,
+            "name": "domain",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The PDF, named in `Content-Disposition`",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, or the material is not issued (reason `material_not_issued`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage is unavailable",
             "content": {
               "application/json": {
                 "schema": {
