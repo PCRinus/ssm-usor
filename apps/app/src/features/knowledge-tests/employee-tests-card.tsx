@@ -24,7 +24,12 @@ import { formatDate } from '@/features/employees/employee-format';
 import { formatDay } from '@/features/participants/participant-format';
 
 import { type TestResult, TestResultDialog, type TestResultTarget } from './test-result-dialog';
+import { TestSheetLine } from './test-sheet-line';
 import { TestStateBadge } from './test-state-badge';
+
+// Once the examiner has signed the sheet the API keeps the result's examiner (examiner_signed).
+const examinerSigned = (result: TestResult) =>
+  result.sheet.signed.examiner === 'signed' || result.sheet.signed.examiner === 'paper';
 
 type Attempt = EmployeeTestsResponse['ssm']['attempts'][number];
 
@@ -125,6 +130,8 @@ export function EmployeeTestsCard({
         <Skeleton className="h-24 w-full" aria-busy="true" />
       ) : (
         <TestsBody
+          clientId={clientId}
+          employeeId={employeeId}
           domain={domain}
           tests={domainTests}
           readOnly={readOnly}
@@ -144,6 +151,8 @@ export function EmployeeTestsCard({
 }
 
 function TestsBody({
+  clientId,
+  employeeId,
   domain,
   tests,
   readOnly,
@@ -152,6 +161,8 @@ function TestsBody({
   domain: TrainingDomain;
   tests: EmployeeTestsResponse[TrainingDomain];
   readOnly: boolean;
+  clientId: string;
+  employeeId: string;
   onEditExaminer: (result: TestResult) => void;
 }) {
   const { status, results, attempts } = tests;
@@ -196,36 +207,46 @@ function TestsBody({
                 key={result.id}
                 data-testid="tests-result"
                 data-source={result.source}
-                className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-4 py-3"
+                className="grid gap-2 px-4 py-3"
               >
-                <div className="grid min-w-0 gap-0.5 text-sm">
-                  <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="font-medium tabular-nums">{formatDate(result.takenOn)}</span>
-                    <span>{testGradeLabels[result.grade]}</span>
-                    <Badge variant="outline" data-testid="tests-result-source">
-                      {testResultSourceLabels[result.source]}
-                    </Badge>
-                  </p>
-                  <p className="text-muted-foreground">{result.material}</p>
-                  <p data-testid="tests-result-examiner">
-                    <span className="text-muted-foreground">Examinator: </span>
-                    {result.examiner ? (
-                      `${result.examiner.name}, ${result.examiner.jobTitle}`
-                    ) : (
-                      <span className="text-muted-foreground">nenumit încă</span>
-                    )}
-                  </p>
+                <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+                  <div className="grid min-w-0 gap-0.5 text-sm">
+                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="font-medium tabular-nums">{formatDate(result.takenOn)}</span>
+                      <span>{testGradeLabels[result.grade]}</span>
+                      <Badge variant="outline" data-testid="tests-result-source">
+                        {testResultSourceLabels[result.source]}
+                      </Badge>
+                    </p>
+                    <p className="text-muted-foreground">{result.material}</p>
+                    <p data-testid="tests-result-examiner">
+                      <span className="text-muted-foreground">Examinator: </span>
+                      {result.examiner ? (
+                        `${result.examiner.name}, ${result.examiner.jobTitle}`
+                      ) : (
+                        <span className="text-muted-foreground">nenumit încă</span>
+                      )}
+                    </p>
+                  </div>
+                  {!readOnly && !examinerSigned(result) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      data-testid="tests-result-examiner-edit"
+                      onClick={() => onEditExaminer(result)}
+                    >
+                      <Pencil aria-hidden="true" />
+                      {result.examiner ? 'Modifică examinatorul' : 'Numește examinatorul'}
+                    </Button>
+                  )}
                 </div>
-                {!readOnly && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    data-testid="tests-result-examiner-edit"
-                    onClick={() => onEditExaminer(result)}
-                  >
-                    <Pencil aria-hidden="true" />
-                    {result.examiner ? 'Modifică examinatorul' : 'Numește examinatorul'}
-                  </Button>
+                {result.sheet.available && (
+                  <TestSheetLine
+                    clientId={clientId}
+                    employeeId={employeeId}
+                    result={result}
+                    readOnly={readOnly}
+                  />
                 )}
               </li>
             ))}

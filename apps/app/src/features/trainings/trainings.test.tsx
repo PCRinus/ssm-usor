@@ -871,6 +871,7 @@ const paperResult = {
   attemptId: null,
   createdAt: '2026-09-02T10:00:00+00:00',
   updatedAt: '2026-09-02T10:00:00+00:00',
+  sheet: { available: false, signed: { trainee: 'unassigned', examiner: 'unassigned' } },
 };
 
 const portalResult = {
@@ -883,6 +884,7 @@ const portalResult = {
   examiner: null,
   source: 'portal',
   attemptId: '8d9e0f1a-2b3c-4d4e-8f5a-6b7c8d9e0f1a',
+  sheet: { available: true, signed: { trainee: 'pending', examiner: 'unassigned' } },
 };
 
 const attempt = (overrides: Record<string, unknown> = {}) => ({
@@ -1152,5 +1154,161 @@ describe('test state in the employee lists', () => {
         'annual_due'
       )
     );
+  });
+});
+
+describe("a portal pass's test sheet", () => {
+  const signedBy = (trainee: string, examiner: string) => ({
+    ...portalResult,
+    examiner: { name: 'Radu Stan', jobTitle: 'Cadru tehnic PSI' },
+    sheet: { available: true, signed: { trainee, examiner } },
+  });
+  const resultPath = `${testsPath}/results/${portalResult.id}`;
+  const withResult = (result: unknown) => () =>
+    Response.json({
+      ...employeeTests(),
+      psi: {
+        status: testStatus('passed', null, '2026-09-15', '2027-09-15'),
+        results: [result],
+        attempts: [],
+      },
+    });
+
+  it('shows the two slots, and none for a paper result', async () => {
+    mockApi({
+      [`GET ${testsPath}`]: () =>
+        Response.json({
+          ssm: {
+            status: testStatus('passed', null, '2026-09-02'),
+            results: [paperResult],
+            attempts: [],
+          },
+          psi: {
+            status: testStatus('passed', null, '2026-09-15', '2027-09-15'),
+            results: [signedBy('signed', 'pending')],
+            attempts: [],
+          },
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    const sheet = within(await screen.findByTestId('tests-sheet'));
+    const slots = sheet.getAllByTestId('tests-sheet-slot');
+    expect(slots.map((slot) => slot.textContent)).toEqual([
+      'InstruitSemnat electronic',
+      'ExaminatorDe semnatMarchează semnat pe hârtie',
+    ]);
+    expect(within(slots[1]!).getByTestId('signature-slot-state').className).toContain('bg-warning');
+    expect(screen.getByTestId('tests-result-examiner-edit')).toBeTruthy();
+
+    await userEvent.setup().click(screen.getAllByTestId('employee-section')[1]!);
+    await screen.findByTestId('employee-tests');
+    await waitFor(() => expect(screen.getByTestId('employee-tests').dataset.domain).toBe('ssm'));
+    expect(await screen.findByTestId('tests-result')).toBeTruthy();
+    expect(screen.queryByTestId('tests-sheet')).toBeNull();
+  });
+
+  it('opens the sheet in a new tab', async () => {
+    mockApi({
+      [`GET ${testsPath}`]: withResult(signedBy('pending', 'unassigned')),
+      [`GET ${resultPath}/sheet`]: () =>
+        new Response(new Uint8Array([37, 80, 68, 70]), {
+          headers: { 'Content-Type': 'application/pdf' },
+        }),
+    });
+    const tab = {
+      document: { write: vi.fn(), close: vi.fn(), title: '' },
+      location: { replace: vi.fn() },
+      close: vi.fn(),
+    };
+    const open = vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, { createObjectURL: () => 'blob:test-sheet', revokeObjectURL: () => {} })
+    );
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('tests-sheet-preview'));
+    expect(open).toHaveBeenCalledWith('', '_blank');
+    await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith('blob:test-sheet'));
+    expect(tab.document.title).toBe('Fișa de test');
+    open.mockRestore();
+  });
+
+  it('marks a slot signed on paper after a confirmation, and words a refusal', async () => {
+    let marked = false;
+    mockApi({
+      [`GET ${testsPath}`]: () =>
+        withResult(marked ? signedBy('paper', 'unassigned') : signedBy('pending', 'unassigned'))(),
+      [`POST ${resultPath}/sheet/paper-signatures`]: (_url, init) => {
+        const { slot } = JSON.parse(String(init?.body)) as { slot: string };
+        if (slot === 'examiner') {
+          return Response.json(
+            { error: 'validation_error', message: 'x', reason: 'examiner_required' },
+            { status: 400 }
+          );
+        }
+        marked = true;
+        return Response.json({
+          resultId: portalResult.id,
+          sheet: signedBy('paper', 'unassigned').sheet,
+        });
+      },
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    const user = userEvent.setup();
+    const marks = await screen.findAllByTestId('tests-sheet-paper');
+    expect(marks).toHaveLength(2);
+
+    await user.click(marks[1]!);
+    let dialog = within(await screen.findByTestId('tests-sheet-paper-dialog'));
+    expect(dialog.getByRole('heading').textContent).toBe('Marchezi „Examinator” semnat pe hârtie?');
+    await user.click(dialog.getByTestId('tests-sheet-paper-confirm'));
+    expect((await dialog.findByTestId('tests-sheet-paper-error')).textContent).toBe(
+      'Rezultatul nu are examinator. Numește-l întâi, ca fișa să-l tipărească în rubrică.'
+    );
+    await user.click(dialog.getByRole('button', { name: 'Renunță' }));
+    await waitFor(() => expect(screen.queryByTestId('tests-sheet-paper-dialog')).toBeNull());
+
+    await user.click(screen.getAllByTestId('tests-sheet-paper')[0]!);
+    dialog = within(await screen.findByTestId('tests-sheet-paper-dialog'));
+    await user.click(dialog.getByTestId('tests-sheet-paper-confirm'));
+    await waitFor(() => expect(screen.queryByTestId('tests-sheet-paper-dialog')).toBeNull());
+    expect(
+      requests('POST', `${resultPath}/sheet/paper-signatures`).map((call) => call.body)
+    ).toEqual([{ slot: 'examiner' }, { slot: 'trainee' }]);
+    await waitFor(() =>
+      expect(
+        within(screen.getAllByTestId('tests-sheet-slot')[0]!).getByTestId('signature-slot-state')
+          .textContent
+      ).toBe('Semnat pe hârtie')
+    );
+    expect(screen.getAllByTestId('tests-sheet-paper')).toHaveLength(1);
+  });
+
+  it('keeps the examiner once they signed, and says so when the API refuses a change', async () => {
+    mockApi({
+      [`GET ${testsPath}`]: withResult(signedBy('pending', 'pending')),
+      [`PATCH ${resultPath}`]: () =>
+        Response.json(
+          { error: 'conflict', message: 'x', reason: 'examiner_signed' },
+          { status: 409 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('tests-result-examiner-edit'));
+    const dialog = within(await screen.findByTestId('test-result-dialog'));
+    await user.click(dialog.getByTestId('test-result-submit'));
+    expect((await dialog.findByTestId('test-result-error')).textContent).toBe(
+      'Examinatorul a semnat deja fișa de test, așa că examinatorul rezultatului nu se mai schimbă.'
+    );
+  });
+
+  it('offers no examiner change once the examiner signed', async () => {
+    mockApi({ [`GET ${testsPath}`]: withResult(signedBy('pending', 'paper')) });
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    expect(await screen.findByTestId('tests-sheet')).toBeTruthy();
+    expect(screen.queryByTestId('tests-result-examiner-edit')).toBeNull();
+    expect(screen.getAllByTestId('tests-sheet-paper')).toHaveLength(1);
   });
 });
