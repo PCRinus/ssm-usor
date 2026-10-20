@@ -1,6 +1,7 @@
 import { isSheetRowKey, type SheetRowKey, type TrainingDomain } from '@ssm-usor/contracts';
 
 import { type DataClient, fromDatabaseError } from '../../lib/db';
+import { type SheetTestResult, toSheetTestResult } from '../trainings/sheet';
 import { toAdmission, toTraining, trainingColumns } from '../trainings/training-rows';
 import type { SheetTrainingRecord } from './form';
 
@@ -25,7 +26,9 @@ export type StoredRow = {
   id: string;
   signedSheetId: string;
   rowKey: SheetRowKey;
-  trainingRecordId: string;
+  /** Exactly one of the two: what the row holds, a training record or a test result (ADR 024). */
+  trainingRecordId: string | null;
+  testResultId: string | null;
   /** When the record took the row, on the database's clock; a refill leaves it. */
   filledAt: string;
   voidedAt: string | null;
@@ -37,9 +40,19 @@ export type StoredRow = {
   voidNotedAt: string | null;
 };
 
-export type NewRow = Pick<StoredRow, 'signedSheetId' | 'rowKey' | 'trainingRecordId'> & {
+export type NewRow = Pick<StoredRow, 'signedSheetId' | 'rowKey'> & {
   clientId: string;
   printedAsText?: boolean;
+} & (
+    | { trainingRecordId: string; testResultId?: never }
+    | { testResultId: string; trainingRecordId?: never }
+  );
+
+/** A test result as its row prints it. */
+export type SheetResult = SheetTestResult & {
+  id: string;
+  employeeId: string;
+  domain: TrainingDomain;
 };
 
 export type NewSheet = Omit<StoredSheet, 'id' | 'version' | 'certifiedAt' | 'createdAt'>;
@@ -54,11 +67,14 @@ export interface SignedSheetStore {
   employee(employeeId: string): Promise<RecordOwner | null>;
   record(recordId: string): Promise<(SheetTrainingRecord & RecordOwner) | null>;
   records(employeeId: string, domain: TrainingDomain): Promise<SheetTrainingRecord[]>;
+  result(resultId: string): Promise<(SheetResult & RecordOwner) | null>;
+  results(employeeId: string, domain: TrainingDomain): Promise<SheetResult[]>;
   /** In sequence order; `clientId` narrows them to one client. */
   sheets(employeeId: string, domain: TrainingDomain, clientId?: string): Promise<StoredSheet[]>;
   sheet(sheetId: string): Promise<StoredSheet | null>;
   rowsOf(sheetId: string): Promise<StoredRow[]>;
   liveRowOf(recordId: string): Promise<StoredRow | null>;
+  liveRowOfResult(resultId: string): Promise<StoredRow | null>;
   /** Every row the record has taken, voided ones included. */
   rowsOfRecord(recordId: string): Promise<StoredRow[]>;
   /** Null when the employee already has a sheet of that sequence. */
@@ -84,7 +100,10 @@ const sheetColumns =
   'id, organization_id, client_id, employee_id, domain, sequence, storage_path, digest, version, row_capacity, rows_used, certified_at, created_at';
 
 const rowColumns =
-  'id, signed_sheet_id, row_key, training_record_id, filled_at, voided_at, filled_digest, printed_as_text, void_noted_at';
+  'id, signed_sheet_id, row_key, training_record_id, test_result_id, filled_at, voided_at, filled_digest, printed_as_text, void_noted_at';
+
+const resultColumns =
+  'id, employee_id, client_id, organization_id, domain, test, taken_on, material, examiner_name, examiner_job_title, created_at';
 
 const recordColumns = `id, employee_id, client_id, organization_id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, trainings!inner(${trainingColumns})`;
 
@@ -124,7 +143,8 @@ type RowRow = {
   id: string;
   signed_sheet_id: string;
   row_key: string;
-  training_record_id: string;
+  training_record_id: string | null;
+  test_result_id: string | null;
   filled_at: string;
   voided_at: string | null;
   filled_digest: string | null;
@@ -139,6 +159,7 @@ function toRow(row: RowRow): StoredRow {
     signedSheetId: row.signed_sheet_id,
     rowKey: row.row_key,
     trainingRecordId: row.training_record_id,
+    testResultId: row.test_result_id,
     filledAt: row.filled_at,
     voidedAt: row.voided_at,
     filledDigest: row.filled_digest,
@@ -171,6 +192,25 @@ function toRecord(row: RecordRow): SheetTrainingRecord & RecordOwner {
     occupation: row.occupation,
     admission: toAdmission(row),
     training,
+  };
+}
+
+type ResultRow = Parameters<typeof toSheetTestResult>[0] & {
+  id: string;
+  employee_id: string;
+  client_id: string;
+  organization_id: string;
+  domain: TrainingDomain;
+};
+
+function toResult(row: ResultRow): SheetResult & RecordOwner {
+  return {
+    ...toSheetTestResult(row),
+    id: row.id,
+    employeeId: row.employee_id,
+    clientId: row.client_id,
+    organizationId: row.organization_id,
+    domain: row.domain,
   };
 }
 
@@ -222,6 +262,37 @@ export function supabaseSheetStore(db: DataClient): SignedSheetStore {
         .eq('trainings.domain', domain);
       if (error) throw fromDatabaseError(error, 'signed sheet records');
       return data.map(toRecord);
+    },
+
+    async result(resultId) {
+      const { data, error } = await db
+        .from('test_results')
+        .select(resultColumns)
+        .eq('id', resultId)
+        .maybeSingle();
+      if (error) throw fromDatabaseError(error, 'signed sheet test result');
+      return data && toResult(data);
+    },
+
+    async results(employeeId, domain) {
+      const { data, error } = await db
+        .from('test_results')
+        .select(resultColumns)
+        .eq('employee_id', employeeId)
+        .eq('domain', domain);
+      if (error) throw fromDatabaseError(error, 'signed sheet test results');
+      return data.map(toResult);
+    },
+
+    async liveRowOfResult(resultId) {
+      const { data, error } = await db
+        .from('signed_sheet_rows')
+        .select(rowColumns)
+        .eq('test_result_id', resultId)
+        .is('voided_at', null)
+        .maybeSingle();
+      if (error) throw fromDatabaseError(error, 'signed sheet row of a test result');
+      return data && toRow(data);
     },
 
     async sheets(employeeId, domain, clientId) {
@@ -304,7 +375,8 @@ export function supabaseSheetStore(db: DataClient): SignedSheetStore {
             signed_sheet_id: row.signedSheetId,
             client_id: row.clientId,
             row_key: row.rowKey,
-            training_record_id: row.trainingRecordId,
+            training_record_id: row.trainingRecordId ?? null,
+            test_result_id: row.testResultId ?? null,
             printed_as_text: row.printedAsText ?? false,
           }))
         )

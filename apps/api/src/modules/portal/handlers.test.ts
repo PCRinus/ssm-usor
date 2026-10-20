@@ -218,6 +218,10 @@ const upstreamDefaults = {
   language: () => Response.json(true),
   employees: () => Response.json([employeeRow]),
   records: () => Response.json([recordRow]),
+  testResults: (url: URL): Response => {
+    void url;
+    return Response.json([]);
+  },
   responsiblePersons: () => Response.json([responsiblePersonRow]),
   signedSheets: (url: URL): Response => {
     void url;
@@ -288,6 +292,8 @@ function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
         return upstream.employees();
       case '/rest/v1/training_records':
         return upstream.records();
+      case '/rest/v1/test_results':
+        return upstream.testResults(url);
       case '/rest/v1/client_responsible_persons':
         return upstream.responsiblePersons();
       case '/rest/v1/signed_sheets':
