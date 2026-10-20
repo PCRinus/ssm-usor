@@ -40,6 +40,7 @@ import {
   Briefcase,
   Building2,
   ChevronsUpDown,
+  ClipboardCheck,
   Handshake,
   LayoutDashboard,
   LogOut,
@@ -57,6 +58,7 @@ import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
 import { instructionSections } from '@/features/instructions/instruction-sections';
+import { testBankSections } from '@/features/knowledge-tests/test-bank-sections';
 import { legislationSections } from '@/features/legislation/legislation-sections';
 
 import { CommitVersion } from './commit-version';
@@ -79,6 +81,13 @@ const navigation = [
     children: instructionSections,
   },
   { to: '/risks', label: 'Riscuri', icon: ShieldAlert, ownerOnly: false },
+  {
+    to: '/tests',
+    label: 'Teste',
+    icon: ClipboardCheck,
+    ownerOnly: false,
+    children: testBankSections,
+  },
   {
     to: '/legislatie',
     label: 'Legislație',
