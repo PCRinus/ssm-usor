@@ -11,9 +11,13 @@ import {
   lastSignInCode,
 } from './support';
 
-// The test sheet is drawn up at the pass with the PDF converter, and only then requested from the
-// trainee: without GOTENBERG_URL exported the flow stops at what the pages show of it.
-const sheets = Boolean(process.env.GOTENBERG_URL);
+// The test sheet is drawn up at the pass with the PDF converter, the signer container and the
+// signing authority, and only then requested from the trainee: without GOTENBERG_URL, SIGNER_URL
+// and the SIGNING_* values exported (docs/local-development.md#signing-locally) the flow stops at
+// what the pages show of it.
+const sheets = Boolean(
+  process.env.GOTENBERG_URL && process.env.SIGNER_URL && process.env.SIGNING_CA_KEY
+);
 
 test.afterAll(cleanUp);
 
