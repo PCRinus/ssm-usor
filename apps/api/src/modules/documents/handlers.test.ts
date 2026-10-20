@@ -11,6 +11,8 @@ import { unzipSync } from 'fflate';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
+import { bankQuestions } from './context.fixture';
+import { printedTest } from './knowledge-tests';
 import { sensitiveGroupsEvaluation, workshopEvaluation } from './risk-evaluations.fixture';
 
 // The engine is tested in its own package, against the real templates. Here it prints the
@@ -377,7 +379,8 @@ type Upstream =
   | 'fireSubstances'
   | 'fireMaintenanceItems'
   | 'fireBuildings'
-  | 'participants';
+  | 'participants'
+  | 'testQuestions';
 
 const fetchMock = vi.fn<typeof fetch>();
 const confirmedCopy = {
@@ -414,6 +417,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return Response.json(user);
       case '/rest/v1/rpc/current_membership':
         return Response.json([membership]);
+      case '/rest/v1/rpc/active_test_questions':
+        return handlers.testQuestions?.(init, url) ?? Response.json(bankQuestions('muncă', 10));
       case '/rest/v1/organizations':
         return handlers.organizations?.() ?? Response.json(organizationRow);
       case '/rest/v1/clients':
@@ -941,6 +946,60 @@ describe('GET /clients/{clientId}/documents', () => {
       await (await request(`/clients/${clientId}/documents`)).json()
     );
     expect(body.items[0]!.draft!.dataChanged).toBe(true);
+  });
+
+  describe('a test drafted from the question bank', () => {
+    const testDraft = (questions: unknown) => () =>
+      Response.json([
+        {
+          ...documentRow,
+          type_key: 'test_hiring',
+          title: 'Test de verificare a cunoștințelor la angajare',
+          decision_number: null,
+          document_revisions: [{ ...revisionRow, data_snapshot: { questions } }],
+        },
+      ]);
+    const printed = printedTest('test_hiring', bankQuestions('muncă', 10)).questions;
+    const listed = async () =>
+      clientDocumentListResponseSchema.parse(
+        await (await request(`/clients/${clientId}/documents`)).json()
+      ).items[0]!.draft!.dataChanged;
+
+    it('is unchanged while the bank prints the same questions', async () => {
+      mockUpstream({ documents: testDraft(printed) });
+      expect(await listed()).toBe(false);
+    });
+
+    it('is changed by an edited, hidden or new question', async () => {
+      const bank = bankQuestions('muncă', 10);
+      for (const changed of [
+        bank.map((question, index) =>
+          index === 4 ? { ...question, text: 'Un text corectat?' } : question
+        ),
+        bank.slice(1),
+        [...bank, ...bankQuestions('incendii', 1)],
+      ]) {
+        mockUpstream({
+          documents: testDraft(printed),
+          testQuestions: () => Response.json(changed),
+        });
+        expect(await listed()).toBe(true);
+      }
+    });
+
+    it('asks the bank of each test for the organization', async () => {
+      mockUpstream({ documents: testDraft(printed) });
+      await listed();
+      expect(
+        calls('/rest/v1/rpc/active_test_questions', 'POST').map(([, init]) =>
+          JSON.parse(String(init?.body))
+        )
+      ).toEqual([
+        { p_organization_id: organizationId, p_domain: 'ssm', p_test: 'hiring' },
+        { p_organization_id: organizationId, p_domain: 'psi', p_test: 'hiring' },
+        { p_organization_id: organizationId, p_domain: 'psi', p_test: 'annual' },
+      ]);
+    });
   });
 
   it('ignores data the document did not print, and the key order of jsonb', async () => {

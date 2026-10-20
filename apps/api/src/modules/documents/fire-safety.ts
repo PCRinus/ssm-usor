@@ -37,6 +37,7 @@ import {
 import { extinguisherGroups, firmsOf, isGasAgent, otherEquipmentGroups } from './equipment';
 import { type ContextParts, gapRules } from './gaps';
 import { installationParts, installationText } from './installations';
+import { knowledgeTestData, type PrintedTest, printedTests } from './knowledge-tests';
 import {
   asPerson,
   distinctByName,
@@ -371,6 +372,8 @@ export type FireSafetyContext = {
    * 2026-10-11).
    */
   fireThemes?: FireThemesContext;
+  /** Never merged as a name of its own: `fireSafetyDocumentData` gives each test its questions. */
+  knowledgeTests: Record<'fire_test_hiring' | 'fire_test_annual', PrintedTest>;
 };
 
 export type FireSafetySetFacts = Pick<
@@ -388,6 +391,7 @@ export type FireSafetySetFacts = Pick<
   | 'jobPositions'
   | 'fireSafety'
   | 'fireOwnInstructions'
+  | 'testQuestions'
 >;
 
 const requiredWorkplaceFacts = [
@@ -534,7 +538,19 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): ContextParts<FireSaf
     annexes: () => annexedModules(facts, 'psi'),
     noAnnexes: () => annexedModules(facts, 'psi').length === 0,
     fireThemes: () => fireThemes(facts, firePeople(facts)),
+    knowledgeTests: () =>
+      printedTests(facts.testQuestions, ['fire_test_hiring', 'fire_test_annual']),
   };
+}
+
+/** What one fire-safety template is merged with: a test also gets its own questions. */
+export function fireSafetyDocumentData(context: Partial<FireSafetyContext>, typeKey: string) {
+  const data: Record<string, unknown> = {
+    ...context,
+    ...knowledgeTestData(context.knowledgeTests, typeKey),
+  };
+  delete data.knowledgeTests;
+  return data;
 }
 
 const asRunOnPerson = (person: DocumentFacts['responsiblePersons'][number]): Person => ({

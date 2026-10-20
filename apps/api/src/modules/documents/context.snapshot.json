@@ -93,6 +93,206 @@
   "imminentDangerText": "Florin Cristian TALOȘ, având funcția de Administrator, și Ioana PETRE, având funcția de Șef de echipă",
   "issueDate": "19.01.2026",
   "issueYear": "2026",
+  "knowledgeTests": {
+    "test_hiring": {
+      "questions": [
+        {
+          "key": "A",
+          "number": 1,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 1 despre securitatea și sănătatea în muncă: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 2,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 2 despre securitatea și sănătatea în muncă: ce prevede legea?"
+        },
+        {
+          "key": "A, B",
+          "number": 3,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "tot un răspuns corect;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Care dintre următoarele obligații privind securitatea și sănătatea în muncă vă revin?"
+        },
+        {
+          "key": "A",
+          "number": 4,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 4 despre securitatea și sănătatea în muncă: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 5,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 5 despre securitatea și sănătatea în muncă: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 6,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 6 despre securitatea și sănătatea în muncă: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 7,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 7 despre securitatea și sănătatea în muncă: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 8,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 8 despre securitatea și sănătatea în muncă: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 9,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 9 despre securitatea și sănătatea în muncă: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 10,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 10 despre securitatea și sănătatea în muncă: ce prevede legea?"
+        }
+      ],
+      "test": {
+        "code": "TASSM",
+        "title": "Test de verificare a cunoștințelor la angajare (TASSM)"
+      }
+    }
+  },
   "noAnnexes": false,
   "noUnitRisks": false,
   "positions": [

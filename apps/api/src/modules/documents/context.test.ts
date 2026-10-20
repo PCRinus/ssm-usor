@@ -467,6 +467,29 @@ describe('the merge context', () => {
     expect(documentData(context, 'decision_training')).not.toHaveProperty('decisionNumbers');
   });
 
+  it('gives the hiring test every active question, numbered, lettered and keyed, and no other document', () => {
+    const data = documentData(context, 'test_hiring');
+    expect(data.test).toEqual({
+      code: 'TASSM',
+      title: 'Test de verificare a cunoștințelor la angajare (TASSM)',
+    });
+    const questions = data.questions as { number: number; text: string; key: string }[];
+    expect(questions).toHaveLength(10);
+    expect(questions[2]).toEqual({
+      number: 3,
+      text: 'Care dintre următoarele obligații privind securitatea și sănătatea în muncă vă revin?',
+      options: [
+        { letter: 'a', text: 'răspunsul corect, conform legii;' },
+        { letter: 'b', text: 'tot un răspuns corect;' },
+        { letter: 'c', text: 'alt răspuns greșit.' },
+      ],
+      key: 'A, B',
+    });
+    expect(questions[0]!.key).toBe('A');
+    expect(documentData(context, 'decision_training')).not.toHaveProperty('questions');
+    expect(documentData(context, 'decision_training')).not.toHaveProperty('knowledgeTests');
+  });
+
   it('lists every position for the table of posts, and the equipped ones with their entries', () => {
     expect(context.positions).toEqual([
       {
@@ -894,6 +917,7 @@ describe('a document generated again', () => {
       'followingYear',
       'issueDate',
       'issueYear',
+      'knowledgeTests',
       'provider',
       'specialist',
       'workersRepresentativeDecision',

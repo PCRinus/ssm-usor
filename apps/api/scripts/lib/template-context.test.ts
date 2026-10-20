@@ -32,6 +32,7 @@ import { merge } from '../../src/modules/documents/documents';
 import {
   buildFireSafetyContext,
   buildPartialFireSafetyContext,
+  fireSafetyDocumentData,
   fireSafetyGapConcerns,
   missingFireSafetyData,
 } from '../../src/modules/documents/fire-safety';
@@ -931,7 +932,10 @@ describe('the fire-safety templates', () => {
   )(
     '%s renders from %s with nothing missing',
     (typeKey, _, file, variant) => {
-      const data = { ...buildFireSafetyContext(datedFor(typeKey, variant)) };
+      const data = fireSafetyDocumentData(
+        buildFireSafetyContext(datedFor(typeKey, variant)),
+        typeKey
+      );
       const text = documentText(renderDocument(readFileSync(new URL(file, fireUrl)), data));
       expect(text).not.toContain('{{');
       expect(text).toContain('PIPETECH');
@@ -941,13 +945,13 @@ describe('the fire-safety templates', () => {
   );
 
   it('print only names the fire-safety context holds, so no other set can change a draft', () => {
-    const names = Object.keys(buildFireSafetyContext(facts));
     for (const entry of fireManifest.templates) {
-      const { snapshot } = merge(
-        readFileSync(new URL(entry.file, fireUrl)),
-        { ...buildFireSafetyContext(datedFor(entry.typeKey, facts)) },
+      const data = fireSafetyDocumentData(
+        buildFireSafetyContext(datedFor(entry.typeKey, facts)),
         entry.typeKey
       );
+      const names = Object.keys(data);
+      const { snapshot } = merge(readFileSync(new URL(entry.file, fireUrl)), data, entry.typeKey);
       expect(names).toEqual(expect.arrayContaining(Object.keys(snapshot as object)));
     }
   });
@@ -1244,15 +1248,19 @@ describe('the fire-safety templates', () => {
     '%s is generated again or refused for exactly the gaps it prints, lacking %s',
     (typeKey, _, file, variant) => {
       const template = readFileSync(new URL(file, fireUrl));
-      const { usedNames } = renderTemplate(template, {
-        ...buildFireSafetyContext(datedFor(typeKey, facts)),
-      });
+      const { usedNames } = renderTemplate(
+        template,
+        fireSafetyDocumentData(buildFireSafetyContext(datedFor(typeKey, facts)), typeKey)
+      );
       const missing = missingFireSafetyData(variant, typeKey);
       expect(
         refusedFor(() =>
           merge(
             template,
-            { ...buildPartialFireSafetyContext(datedFor(typeKey, variant), typeKey) },
+            fireSafetyDocumentData(
+              buildPartialFireSafetyContext(datedFor(typeKey, variant), typeKey),
+              typeKey
+            ),
             typeKey,
             (absentNames) => missing.filter((code) => fireSafetyGapConcerns(code, absentNames))
           )

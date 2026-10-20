@@ -1023,8 +1023,22 @@ describe('the fire-safety context', () => {
   });
 
   it('is what a fire-safety template is merged with, whatever the type or number', () => {
-    expect(setRules.fire_safety.data(facts, 'fire_registers', 4)).toEqual(
-      buildFireSafetyContext(facts)
+    const { knowledgeTests: _, ...shared } = buildFireSafetyContext(facts);
+    expect(setRules.fire_safety.data(facts, 'fire_registers', 4)).toEqual(shared);
+  });
+
+  it("gives each test its own questions, as the bank orders them, and no other document's", () => {
+    const hiring = setRules.fire_safety.data(facts, 'fire_test_hiring', null);
+    const annual = setRules.fire_safety.data(facts, 'fire_test_annual', null);
+    expect(hiring.test).toEqual({
+      code: 'TASU',
+      title: 'Test de verificare a cunoștințelor la angajare (TASU)',
+    });
+    expect(hiring.questions).toHaveLength(12);
+    expect(annual.test).toMatchObject({ code: 'TPSU' });
+    expect(annual.questions).toHaveLength(10);
+    expect(setRules.fire_safety.data(facts, 'fire_registers', null)).not.toHaveProperty(
+      'questions'
     );
   });
 });
@@ -1069,6 +1083,7 @@ describe('a fire-safety document generated again', () => {
       'fireSafetyTechnician',
       'installationRegister',
       'issueDate',
+      'knowledgeTests',
       'noAnnexes',
       'provider',
       'seasonsDecision',
@@ -1095,6 +1110,7 @@ describe('a fire-safety document generated again', () => {
       'fireThemes',
       'installationRegister',
       'issueDate',
+      'knowledgeTests',
       'noAnnexes',
       'provider',
       'seasonsDecision',
@@ -1115,6 +1131,7 @@ describe('a fire-safety document generated again', () => {
       'fireThemes',
       'installationRegister',
       'issueDate',
+      'knowledgeTests',
       'noAnnexes',
       'seasonsDecision',
     ]);
