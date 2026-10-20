@@ -2,6 +2,7 @@ import {
   employeeSortKeys,
   employeeStatuses,
   sortOrderSchema,
+  testStateFilters,
   trainingStateFilters,
 } from '@ssm-usor/contracts';
 import { createFileRoute } from '@tanstack/react-router';
@@ -14,6 +15,7 @@ import { EmployeesPage } from '@/features/employees/employees-page';
 const searchSchema = z.object({
   status: z.enum(employeeStatuses).optional(),
   trainingState: z.enum(trainingStateFilters).optional().catch(undefined),
+  testState: z.enum(testStateFilters).optional().catch(undefined),
   page: z.number().int().min(1).optional().catch(undefined),
   sort: z.enum(employeeSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
