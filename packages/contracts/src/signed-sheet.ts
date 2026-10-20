@@ -4,6 +4,17 @@ import type { TrainingDomain } from './trainings';
 // the document engine writes; the signer names the PDF field after it (ADR 023).
 
 export const sheetSignerSlots = ['trainee', 'trainer', 'verifier', 'admitter'] as const;
+
+/**
+ * The test sheet's fields (ADR 024), titled so in build_test_sheet.py: the two signatures, and
+ * the examiner's name and function, filled after the conversion and again when the result's
+ * examiner changes, until the examiner's signature locks them.
+ */
+export const testSheetFieldNames = {
+  signatures: { trainee: 'test_sig_trainee', examiner: 'test_sig_examiner' },
+  examinerName: 'test_examiner_name',
+  examinerJobTitle: 'test_examiner_job_title',
+} as const;
 export type SheetSignerSlot = (typeof sheetSignerSlots)[number];
 
 /**

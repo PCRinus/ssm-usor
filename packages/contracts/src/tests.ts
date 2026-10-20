@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { signatureSlotStateSchema } from './signature-slot-states';
 import { type TrainingDomain, trainingDomainSchema } from './trainings';
 
 export const knowledgeTests = ['hiring', 'annual'] as const;
@@ -343,10 +344,39 @@ export const testAttemptSummarySchema = z.object({
 
 export type TestAttemptSummary = z.infer<typeof testAttemptSummarySchema>;
 
+/**
+ * The test sheet of a result (ADR 024): `available` once a portal pass has its stored PDF, never
+ * for a paper result, whose test was signed on the printed test; the state of each of its two
+ * slots as the record slots have them, `unassigned` while there is no sheet.
+ */
+export const testSheetSummarySchema = z.object({
+  available: z.boolean(),
+  signed: z.object({ trainee: signatureSlotStateSchema, examiner: signatureSlotStateSchema }),
+});
+
+export type TestSheetSummary = z.infer<typeof testSheetSummarySchema>;
+
+export const employeeTestResultSchema = testResultSchema.extend({ sheet: testSheetSummarySchema });
+
+export type EmployeeTestResult = z.infer<typeof employeeTestResultSchema>;
+
+export const testSheetPaperSignatureRequestSchema = z.object({
+  slot: z.enum(['trainee', 'examiner']),
+});
+
+export type TestSheetPaperSignatureRequest = z.infer<typeof testSheetPaperSignatureRequestSchema>;
+
+export const testSheetResponseSchema = z.object({
+  resultId: z.uuid(),
+  sheet: testSheetSummarySchema,
+});
+
+export type TestSheetResponse = z.infer<typeof testSheetResponseSchema>;
+
 export const employeeDomainTestsSchema = z.object({
   status: testStatusSchema,
   // Newest first.
-  results: z.array(testResultSchema),
+  results: z.array(employeeTestResultSchema),
   attempts: z.array(testAttemptSummarySchema),
 });
 
@@ -404,4 +434,7 @@ export const testErrorReasons = {
   notAwaiting: 'test_not_awaiting',
   resultFromAttempt: 'result_from_attempt',
   materialNotIssued: 'material_not_issued',
+  // The examiner has signed the test sheet, on paper or electronically: the result's stays.
+  examinerSigned: 'examiner_signed',
+  testSheetNotAvailable: 'test_sheet_not_available',
 } as const;
