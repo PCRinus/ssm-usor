@@ -1098,8 +1098,17 @@ their tab bars read.
   examiner, proposed from `GET …/trainings/proposal` for the introductory general training: the
   caller as specialist for SSM, the organization's fire-safety technician for PSI. A result's
   "Modifică examinatorul" (or "Numește examinatorul" for a portal pass without one) sends
-  `PATCH …/tests/results/{resultId}` with the examiner only. Both refresh the card, the employee
-  and both lists.
+  `PATCH …/tests/results/{resultId}` with the examiner only; it is offered no more once the
+  examiner has signed the test sheet, and a `409 examiner_signed` shows in the dialog. Both
+  refresh the card, the employee and both lists. A portal pass whose `sheet.available` holds has a
+  "Fișa de test" line: the "Instruit" and "Examinator" slots with the records' slot-state badges,
+  "Previzualizează", which opens `GET …/tests/results/{resultId}/sheet` in a new tab as the
+  training sheet's preview does, and for a slot `unassigned` or `pending` "Marchează semnat pe
+  hârtie", which after a confirmation posts `{ slot }` to `…/sheet/paper-signatures` (an
+  `examiner_required` refusal asks to name the examiner first) and refreshes the card and the
+  request lists. A test sheet's signature requests show in "Semnături", on the client's pending
+  signatures and in the signing dialog beside the trainings, named by the request's `label` and
+  linking to the employee's tab of its domain; one code signs both kinds.
 - Test state in the lists: after the two training columns, one "Testare" column with the SSM
   and PSI states as badges, each after its domain's name; chips "Toate / Promovate / De susținut /
   Anual scadent / Fără test" beside the training chips set `?testState=` the same way, and are
