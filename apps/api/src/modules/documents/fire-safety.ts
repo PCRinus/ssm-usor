@@ -543,7 +543,6 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): ContextParts<FireSaf
   };
 }
 
-/** What one fire-safety template is merged with: a test also gets its own questions. */
 export function fireSafetyDocumentData(context: Partial<FireSafetyContext>, typeKey: string) {
   const data: Record<string, unknown> = {
     ...context,

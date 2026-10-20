@@ -36,7 +36,6 @@ export type PrintedTest = {
 
 const letters = 'abcd';
 
-/** What a test's template prints: every active question, numbered, lettered and keyed. */
 export function printedTest(typeKey: KnowledgeTestTypeKey, questions: BankQuestion[]): PrintedTest {
   const { domain, test } = knowledgeTestDocuments[typeKey];
   return {

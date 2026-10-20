@@ -36,7 +36,6 @@ export type SheetRecord = Pick<EmployeeTrainingRecord, 'occupation' | 'admission
   >;
 };
 
-/** A pass of a knowledge test (ADR 024), as the sheets print it. */
 export type SheetTestResult = {
   test: KnowledgeTest;
   takenOn: string;
@@ -95,11 +94,9 @@ export type TrainingSheetFacts = {
   };
   /** The employee's training records of `domain`. */
   records: SheetRecord[];
-  /** The employee's test results of `domain`. */
   testResults: SheetTestResult[];
 };
 
-/** What a sheet is drawn up from before its records and results: the employee and the client. */
 export type SheetIdentity = Omit<TrainingSheetFacts, 'domain' | 'records' | 'testResults'>;
 
 /** Every value is text, empty where the form leaves its line blank. */
@@ -122,7 +119,6 @@ export type SheetRow = {
   verifier: string;
 };
 
-/** A row of annex 11's block "Rezultatele testărilor". */
 export type TestResultRow = { date: string; material: string; grade: string; examiner: string };
 
 export type TrainingSheetData = {

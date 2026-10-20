@@ -388,7 +388,6 @@ export async function ensureSignedSheet(
 
 type StoreResult = SheetResult & RecordOwner;
 
-/** What takes a row: a training record, or a test result (ADR 024). */
 type Placeable = { kind: 'record'; item: StoreRecord } | { kind: 'result'; item: StoreResult };
 
 const dayOf = (placeable: Placeable) =>

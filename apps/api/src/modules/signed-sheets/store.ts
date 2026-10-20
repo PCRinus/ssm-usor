@@ -48,7 +48,6 @@ export type NewRow = Pick<StoredRow, 'signedSheetId' | 'rowKey'> & {
     | { testResultId: string; trainingRecordId?: never }
   );
 
-/** A test result as its row prints it. */
 export type SheetResult = SheetTestResult & {
   id: string;
   employeeId: string;
