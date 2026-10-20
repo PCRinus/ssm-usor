@@ -165,7 +165,7 @@
       "file": "5.1_test_hiring.docx",
       "change": {
         "kind": "layout",
-        "note": "Etichetele listelor (literele răspunsurilor) au mărimea textului, nu mai mici."
+        "note": "Întrebările vin din banca de întrebări a organizației: testul le tipărește pe toate cele active, foaia de răspunsuri are un rând pentru fiecare, iar răspunsurile corecte se tipăresc din aceleași date. Sub titlu, rândul „La fiecare întrebare pot fi corecte unul sau mai multe răspunsuri.”, iar rezultatul arată pragul de 70% de răspunsuri corecte. Întrebarea cu pictograme nu mai există."
       }
     },
     {
@@ -294,7 +294,7 @@
       "file": "fisa_instruire_ssm.docx",
       "change": {
         "kind": "layout",
-        "note": "Semnăturile de la instruirile la angajare au casete mai înalte, fiecare cu linia ei, iar semnătura electronică se tipărește mai mare, pe trei rânduri."
+        "note": "Rezultatele testărilor tipăresc testele promovate, câte un rând fiecare, urmate de rânduri goale până la cinci; pe fișa semnată electronic, fiecare rând se completează ca un câmp."
       }
     },
     {

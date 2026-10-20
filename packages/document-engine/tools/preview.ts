@@ -4,6 +4,11 @@ import { fileURLToPath } from 'node:url';
 
 import { renderDocument, TemplateError } from '../src/render';
 import { signingTypeKeys } from '../src/signing';
+import {
+  type KnowledgeTestCode,
+  knowledgeTestData,
+  knowledgeTestTemplates,
+} from './knowledge-test-samples';
 import { signingAgreementSamples } from './signing-samples';
 import { trainingSheetSamples } from './training-sheet-samples';
 
@@ -1489,13 +1494,23 @@ const employeeSamples = new Map<string, { label: string; data: Record<string, un
         ])
     )
 );
+const knowledgeTestCodes = new Map(
+  (Object.entries(knowledgeTestTemplates) as [KnowledgeTestCode, string][]).map(([code, file]) => [
+    `${templates}${file}`,
+    code,
+  ])
+);
 for (const { folder, name } of files) {
   const template = new Uint8Array(readFileSync(`${folder}${name}`));
+  const testCode = knowledgeTestCodes.get(`${folder}${name}`);
   for (const { label, data } of employeeSamples.get(`${folder}${name}`) ?? samples) {
+    const merged = testCode
+      ? { ...data, ...knowledgeTestData(testCode, label === 'long' ? 12 : 10) }
+      : data;
     try {
       writeFileSync(
         `${output}${name.replace(/\.docx$/, '')}.${label}.docx`,
-        renderDocument(template, data)
+        renderDocument(template, merged)
       );
     } catch (error) {
       if (!(error instanceof TemplateError)) throw error;
