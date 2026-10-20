@@ -87,8 +87,17 @@ domain the test state, the results with their day and grade, and a link while a 
 training states. The test page sits under _Instruiri_, with no place of its own, and keeps its
 three screens in local state: the study card, the sitting (one question a screen, every option a
 checkbox since several may be correct, `Continuă` saving the answer before it moves on) and the
-result, from which a failed attempt is retaken at once. What the pages call, all in the portal's
-generated client ([API, Portal](api.md#portal)):
+result, from which a failed attempt is retaken at once.
+
+**The test sheet.** Under each portal result _Instruiri_ shows "Fișa de test" with the state of
+its two slots, the trainee's and the examiner's, and opens its PDF (`GET …/tests/results/{id}/sheet`)
+in a tab opened before the request, as the training sheets do; while the trainee's slot is
+`pending` it points to Semnături, and so does the result screen of a pass. A paper result has no
+sheet. Its request is listed and signed with the records' (`SigningItemText`, the signing screen,
+the client administrator's pending list), named through Lingui from `testSheet` rather than the
+API's Romanian `label`, with the examiner as a slot of its own.
+
+What the pages call, all in the portal's generated client ([API, Portal](api.md#portal)):
 
 - _Acasă_ lists a test that awaits from `GET …/tests`: per domain `status.awaitingTest`, the
   hiring test while `pending`, the annual one once `annual_due`. A test is never sent; nothing
