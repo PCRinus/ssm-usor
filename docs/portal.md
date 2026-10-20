@@ -77,6 +77,29 @@ that the app's login pages use too, with the portal's own version line as its fo
 A sheet opens as a PDF in a tab opened before the request, as the app's preview does, or is
 downloaded; a sheet that is not ready names what the specialist still has to fill.
 
+## Knowledge tests
+
+The tests of [ADR 024](architecture/adr-024-knowledge-tests.md) have their API and not yet their
+pages. What the pages will call, all in the portal's generated client
+([API, Portal](api.md#portal)):
+
+- _Acasă_ lists a test that awaits from `GET …/tests`: per domain `status.awaitingTest`, the
+  hiring test while `pending`, the annual one once `annual_due`. A test is never sent; nothing
+  else says it awaits.
+- The test page opens with `GET …/tests/{domain}/{test}/study-card`, the explanations of the
+  test's questions and, when the client has one issued, the material it closes, whose PDF
+  `GET …/materials/{domain}` serves inline: the general training material for `ssm`, the IPSU
+  with its annexes for `psi`. A missing material answers `404 material_not_issued`, and the card
+  then shows the explanations alone.
+- `POST …/tests/{domain}/{test}/attempts` starts the sitting, or answers the one in progress,
+  which `GET …/tests` also returns as `inProgress`: ten questions, one a screen, with
+  `chosen` as answered so far. Each answer is saved as it is given with
+  `PUT …/test-attempts/{attemptId}/answers/{index}`, so a dropped connection resumes.
+- `POST …/test-attempts/{attemptId}/finish` answers the score and `passed`, and for a failed
+  attempt the questions answered wrong with their explanations, never the correct option; the
+  retake is the same start route again, drawn and shuffled anew. A pass is recorded as the
+  employee's test result, which `GET …/tests` lists.
+
 ## Languages
 
 Every string the portal shows goes through Lingui 6 (`@lingui/core`, `@lingui/react`; the CLI,

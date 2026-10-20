@@ -736,6 +736,11 @@ Errors, raised with these SQLSTATEs:
 - `TST05` the test does not await the employee
 - `TST06` a portal result changes only in its examiner and is not deleted
 
+`portal_material(participant, domain)`, security definer, answers the caller's own client's
+newest issued revision, with its PDF path, of the general training material (`ssm`) or the
+fire-safety own instructions (`psi`): what the portal shows with a test, read by the API with the
+secret key, since a participant reads no document row.
+
 ## Protective equipment
 
 `job_position_equipment` holds what the holders of a job position receive against the risks
@@ -1389,7 +1394,17 @@ employee and domain (`23514`, `row_not_of_sheet`). `printed_as_text` marks a rec
 sheet printed as text when it was drawn up, which has no fields to fill; `filled_digest` is the
 SHA-256 of the values last filled into the other rows' fields. The workplace training's record
 takes `h2` and fills the admission block with it, so the API never writes `adm`. Only the secret key
-writes either. What the rows' fields are, and how the API fills them, is in
+writes either.
+
+A row holds a training record or a **test result** (ADR 024), exactly one of `training_record_id`
+and `test_result_id` (`signed_sheet_rows_record_or_result`), the result by a composite key with
+the row's `client_id`, one live row per result. A result of the occupational safety sheet takes
+a `t` row, `t1` to `t5`, annex 11's block "Rezultatele testărilor", which only results take; a
+result of the fire-safety sheet, whose form has no such block, takes the next `p` row of the
+periodic table and so counts in `rows_used`. The trigger requires a result to be of the sheet's
+employee and domain and in the table of its domain (`23514`, `row_not_of_sheet`). A result's row
+is never printed as text and no slot signs it, so it is filled again whenever the result changes;
+the freeze below concerns records only. A result with a row is not deleted (`23503`). What the rows' fields are, and how the API fills them, is in
 [the document engine's Sheets section](document-engine.md#the-signed-sheet).
 
 ### The freeze and the void
