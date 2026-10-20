@@ -3427,6 +3427,29 @@
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "sheet": {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "signed": {
+                          "type": "object",
+                          "properties": {
+                            "trainee": {
+                              "type": "string",
+                              "enum": ["unassigned", "pending", "signed", "paper", "void"]
+                            },
+                            "examiner": {
+                              "type": "string",
+                              "enum": ["unassigned", "pending", "signed", "paper", "void"]
+                            }
+                          },
+                          "required": ["trainee", "examiner"]
+                        }
+                      },
+                      "required": ["available", "signed"]
                     }
                   },
                   "required": [
@@ -3441,7 +3464,8 @@
                     "source",
                     "attemptId",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "sheet"
                   ]
                 }
               },
@@ -3590,6 +3614,29 @@
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "sheet": {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "signed": {
+                          "type": "object",
+                          "properties": {
+                            "trainee": {
+                              "type": "string",
+                              "enum": ["unassigned", "pending", "signed", "paper", "void"]
+                            },
+                            "examiner": {
+                              "type": "string",
+                              "enum": ["unassigned", "pending", "signed", "paper", "void"]
+                            }
+                          },
+                          "required": ["trainee", "examiner"]
+                        }
+                      },
+                      "required": ["available", "signed"]
                     }
                   },
                   "required": [
@@ -3604,7 +3651,8 @@
                     "source",
                     "attemptId",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "sheet"
                   ]
                 }
               },
@@ -3822,6 +3870,49 @@
           }
         },
         "required": ["examiner"]
+      },
+      "TestSheetResponse": {
+        "type": "object",
+        "properties": {
+          "resultId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sheet": {
+            "type": "object",
+            "properties": {
+              "available": {
+                "type": "boolean"
+              },
+              "signed": {
+                "type": "object",
+                "properties": {
+                  "trainee": {
+                    "type": "string",
+                    "enum": ["unassigned", "pending", "signed", "paper", "void"]
+                  },
+                  "examiner": {
+                    "type": "string",
+                    "enum": ["unassigned", "pending", "signed", "paper", "void"]
+                  }
+                },
+                "required": ["trainee", "examiner"]
+              }
+            },
+            "required": ["available", "signed"]
+          }
+        },
+        "required": ["resultId", "sheet"]
+      },
+      "TestSheetPaperSignatureRequest": {
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": "string",
+            "enum": ["trainee", "examiner"]
+          }
+        },
+        "required": ["slot"]
       },
       "JobPositionListResponse": {
         "type": "object",
@@ -12344,6 +12435,29 @@
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "sheet": {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "signed": {
+                          "type": "object",
+                          "properties": {
+                            "trainee": {
+                              "type": "string",
+                              "enum": ["unassigned", "pending", "signed", "paper", "void"]
+                            },
+                            "examiner": {
+                              "type": "string",
+                              "enum": ["unassigned", "pending", "signed", "paper", "void"]
+                            }
+                          },
+                          "required": ["trainee", "examiner"]
+                        }
+                      },
+                      "required": ["available", "signed"]
                     }
                   },
                   "required": [
@@ -12358,7 +12472,8 @@
                     "source",
                     "attemptId",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "sheet"
                   ]
                 }
               },
@@ -12571,6 +12686,29 @@
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "sheet": {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "signed": {
+                          "type": "object",
+                          "properties": {
+                            "trainee": {
+                              "type": "string",
+                              "enum": ["unassigned", "pending", "signed", "paper", "void"]
+                            },
+                            "examiner": {
+                              "type": "string",
+                              "enum": ["unassigned", "pending", "signed", "paper", "void"]
+                            }
+                          },
+                          "required": ["trainee", "examiner"]
+                        }
+                      },
+                      "required": ["available", "signed"]
                     }
                   },
                   "required": [
@@ -12585,7 +12723,8 @@
                     "source",
                     "attemptId",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "sheet"
                   ]
                 }
               },
@@ -13051,9 +13190,16 @@
                   "type": "string",
                   "format": "uuid"
                 },
+                "kind": {
+                  "type": "string",
+                  "enum": ["training_record", "test_sheet"]
+                },
+                "label": {
+                  "type": "string"
+                },
                 "slot": {
                   "type": "string",
-                  "enum": ["trainee", "trainer", "verifier", "admitter"]
+                  "enum": ["trainee", "trainer", "verifier", "admitter", "examiner"]
                 },
                 "state": {
                   "type": "string",
@@ -13081,8 +13227,25 @@
                   },
                   "required": ["id", "name"]
                 },
+                "employee": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "lastName": {
+                      "type": "string"
+                    },
+                    "firstName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "lastName", "firstName"]
+                },
                 "record": {
                   "type": "object",
+                  "nullable": true,
                   "properties": {
                     "id": {
                       "type": "string",
@@ -13122,6 +13285,33 @@
                     }
                   },
                   "required": ["id", "trainingId", "employee", "domain", "phase", "heldOn"]
+                },
+                "testSheet": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": ["ssm", "psi"]
+                    },
+                    "test": {
+                      "type": "string",
+                      "enum": ["hiring", "annual"]
+                    },
+                    "takenOn": {
+                      "type": "string",
+                      "format": "date"
+                    }
+                  },
+                  "required": ["id", "resultId", "domain", "test", "takenOn"]
                 },
                 "signer": {
                   "type": "object",
@@ -13168,12 +13358,16 @@
               },
               "required": [
                 "id",
+                "kind",
+                "label",
                 "slot",
                 "state",
                 "issuedAt",
                 "notifiedAt",
                 "client",
+                "employee",
                 "record",
+                "testSheet",
                 "signer",
                 "agreement"
               ]
@@ -13505,9 +13699,16 @@
                   "type": "string",
                   "format": "uuid"
                 },
+                "kind": {
+                  "type": "string",
+                  "enum": ["training_record", "test_sheet"]
+                },
+                "label": {
+                  "type": "string"
+                },
                 "slot": {
                   "type": "string",
-                  "enum": ["trainee", "trainer", "verifier", "admitter"]
+                  "enum": ["trainee", "trainer", "verifier", "admitter", "examiner"]
                 },
                 "issuedAt": {
                   "type": "string",
@@ -13516,8 +13717,25 @@
                 "signerName": {
                   "type": "string"
                 },
+                "employee": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "lastName": {
+                      "type": "string"
+                    },
+                    "firstName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "lastName", "firstName"]
+                },
                 "record": {
                   "type": "object",
+                  "nullable": true,
                   "properties": {
                     "id": {
                       "type": "string",
@@ -13632,6 +13850,69 @@
                     "admission"
                   ]
                 },
+                "testSheet": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "domain": {
+                      "type": "string",
+                      "enum": ["ssm", "psi"]
+                    },
+                    "test": {
+                      "type": "string",
+                      "enum": ["hiring", "annual"]
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "takenOn": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "score": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "examiner": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "jobTitle": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["name", "jobTitle"]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "resultId",
+                    "domain",
+                    "test",
+                    "code",
+                    "title",
+                    "takenOn",
+                    "score",
+                    "total",
+                    "examiner"
+                  ]
+                },
                 "agreement": {
                   "type": "object",
                   "nullable": true,
@@ -13660,7 +13941,18 @@
                   "required": ["state", "employeeSignedAt", "employerSignedAt"]
                 }
               },
-              "required": ["id", "slot", "issuedAt", "signerName", "record", "agreement"]
+              "required": [
+                "id",
+                "kind",
+                "label",
+                "slot",
+                "issuedAt",
+                "signerName",
+                "employee",
+                "record",
+                "testSheet",
+                "agreement"
+              ]
             }
           }
         },
@@ -17971,7 +18263,7 @@
             }
           },
           "409": {
-            "description": "A portal result changes only in its examiner (reason `result_from_attempt`), or the client is archived",
+            "description": "A portal result changes only in its examiner (reason `result_from_attempt`); its examiner no longer changes once they signed the test sheet, electronically or on paper (reason `examiner_signed`); or the client is archived",
             "content": {
               "application/json": {
                 "schema": {
@@ -17992,6 +18284,253 @@
           },
           "503": {
             "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/tests/results/{resultId}/sheet": {
+      "get": {
+        "operationId": "getTestSheet",
+        "summary": "A result's test sheet as its stored PDF",
+        "description": "The test sheet of a pass in the portal (ADR 024): the questions as the sitting showed them, the answers chosen, the score, the grade and the two signature fields, with every signature given so far. Drawn up and stored at the pass; drawn up here, with its requests, when that failed. Shown inline. A paper result has none.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "resultId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The PDF, named in `Content-Disposition`",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The result does not exist for this employee, or it has no test sheet (reason `test_sheet_not_available`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The sheet could not be drawn up: the converter, the signer or the template is unavailable (reasons `pdf_unavailable`, `signer_unavailable`, `template_missing`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/employees/{employeeId}/tests/results/{resultId}/sheet/paper-signatures": {
+      "post": {
+        "operationId": "markTestSheetPaperSignature",
+        "summary": "Mark a slot of a test sheet as signed on paper",
+        "description": "For a slot whose person has no account, or who signed the printed sheet: the trainee, whom the evidence names as the employee, or the examiner, named as the result's. A pending request of the slot is voided (`signed_on_paper`). A paper examiner fixes the result's examiner, as an electronic one does.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "employeeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "resultId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestSheetPaperSignatureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The test sheet's slots after the mark",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestSheetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body, or the result names no examiner (reason `examiner_required`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The result does not exist for this employee, or it has no test sheet (reason `test_sheet_not_available`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The slot is signed already (reason `slot_signed`), or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The sheet could not be drawn up: the converter, the signer or the template is unavailable (reasons `pdf_unavailable`, `signer_unavailable`, `template_missing`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -33989,6 +34528,112 @@
           },
           "503": {
             "description": "Storage is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/participants/{participantId}/tests/results/{resultId}/sheet": {
+      "get": {
+        "operationId": "getPortalTestSheet",
+        "tags": ["portal"],
+        "summary": "A result's test sheet as its stored PDF",
+        "description": "The test sheet of a pass in the portal (ADR 024), with the signatures given so far, shown inline: the employee's own, or for the client administrator any employee's of the client. A paper result has none (reason `test_sheet_not_available`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "participantId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "resultId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The PDF, named in `Content-Disposition`",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a participant of any client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The participation is not the account's, the result is not one it reads, or the result has no test sheet (reason `test_sheet_not_available`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The sheet could not be drawn up or read (reasons `pdf_unavailable`, `signer_unavailable`, `template_missing`)",
             "content": {
               "application/json": {
                 "schema": {

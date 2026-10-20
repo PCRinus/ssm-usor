@@ -2703,6 +2703,38 @@ export const EmployeeTestsResponseSsmResultsItemSource = {
   paper: 'paper',
 } as const;
 
+export type EmployeeTestsResponseSsmResultsItemSheetSignedTrainee =
+  (typeof EmployeeTestsResponseSsmResultsItemSheetSignedTrainee)[keyof typeof EmployeeTestsResponseSsmResultsItemSheetSignedTrainee];
+
+export const EmployeeTestsResponseSsmResultsItemSheetSignedTrainee = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type EmployeeTestsResponseSsmResultsItemSheetSignedExaminer =
+  (typeof EmployeeTestsResponseSsmResultsItemSheetSignedExaminer)[keyof typeof EmployeeTestsResponseSsmResultsItemSheetSignedExaminer];
+
+export const EmployeeTestsResponseSsmResultsItemSheetSignedExaminer = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type EmployeeTestsResponseSsmResultsItemSheetSigned = {
+  trainee: EmployeeTestsResponseSsmResultsItemSheetSignedTrainee;
+  examiner: EmployeeTestsResponseSsmResultsItemSheetSignedExaminer;
+};
+
+export type EmployeeTestsResponseSsmResultsItemSheet = {
+  available: boolean;
+  signed: EmployeeTestsResponseSsmResultsItemSheetSigned;
+};
+
 export type EmployeeTestsResponseSsmResultsItem = {
   id: string;
   employeeId: string;
@@ -2718,6 +2750,7 @@ export type EmployeeTestsResponseSsmResultsItem = {
   attemptId: string | null;
   createdAt: string;
   updatedAt: string;
+  sheet: EmployeeTestsResponseSsmResultsItemSheet;
 };
 
 export type EmployeeTestsResponseSsmAttemptsItemDomain =
@@ -2836,6 +2869,38 @@ export const EmployeeTestsResponsePsiResultsItemSource = {
   paper: 'paper',
 } as const;
 
+export type EmployeeTestsResponsePsiResultsItemSheetSignedTrainee =
+  (typeof EmployeeTestsResponsePsiResultsItemSheetSignedTrainee)[keyof typeof EmployeeTestsResponsePsiResultsItemSheetSignedTrainee];
+
+export const EmployeeTestsResponsePsiResultsItemSheetSignedTrainee = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type EmployeeTestsResponsePsiResultsItemSheetSignedExaminer =
+  (typeof EmployeeTestsResponsePsiResultsItemSheetSignedExaminer)[keyof typeof EmployeeTestsResponsePsiResultsItemSheetSignedExaminer];
+
+export const EmployeeTestsResponsePsiResultsItemSheetSignedExaminer = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type EmployeeTestsResponsePsiResultsItemSheetSigned = {
+  trainee: EmployeeTestsResponsePsiResultsItemSheetSignedTrainee;
+  examiner: EmployeeTestsResponsePsiResultsItemSheetSignedExaminer;
+};
+
+export type EmployeeTestsResponsePsiResultsItemSheet = {
+  available: boolean;
+  signed: EmployeeTestsResponsePsiResultsItemSheetSigned;
+};
+
 export type EmployeeTestsResponsePsiResultsItem = {
   id: string;
   employeeId: string;
@@ -2851,6 +2916,7 @@ export type EmployeeTestsResponsePsiResultsItem = {
   attemptId: string | null;
   createdAt: string;
   updatedAt: string;
+  sheet: EmployeeTestsResponsePsiResultsItemSheet;
 };
 
 export type EmployeeTestsResponsePsiAttemptsItemDomain =
@@ -3028,6 +3094,55 @@ export interface UpdateTestResultRequest {
    */
   material?: string;
   examiner: UpdateTestResultRequestExaminer;
+}
+
+export type TestSheetResponseSheetSignedTrainee =
+  (typeof TestSheetResponseSheetSignedTrainee)[keyof typeof TestSheetResponseSheetSignedTrainee];
+
+export const TestSheetResponseSheetSignedTrainee = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type TestSheetResponseSheetSignedExaminer =
+  (typeof TestSheetResponseSheetSignedExaminer)[keyof typeof TestSheetResponseSheetSignedExaminer];
+
+export const TestSheetResponseSheetSignedExaminer = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type TestSheetResponseSheetSigned = {
+  trainee: TestSheetResponseSheetSignedTrainee;
+  examiner: TestSheetResponseSheetSignedExaminer;
+};
+
+export type TestSheetResponseSheet = {
+  available: boolean;
+  signed: TestSheetResponseSheetSigned;
+};
+
+export interface TestSheetResponse {
+  resultId: string;
+  sheet: TestSheetResponseSheet;
+}
+
+export type TestSheetPaperSignatureRequestSlot =
+  (typeof TestSheetPaperSignatureRequestSlot)[keyof typeof TestSheetPaperSignatureRequestSlot];
+
+export const TestSheetPaperSignatureRequestSlot = {
+  trainee: 'trainee',
+  examiner: 'examiner',
+} as const;
+
+export interface TestSheetPaperSignatureRequest {
+  slot: TestSheetPaperSignatureRequestSlot;
 }
 
 export type JobPositionListResponseItemsItemStaffCategory =
@@ -8322,6 +8437,14 @@ export interface VoidSignaturesRequest {
   reason: string;
 }
 
+export type SignatureRequestListResponseItemsItemKind =
+  (typeof SignatureRequestListResponseItemsItemKind)[keyof typeof SignatureRequestListResponseItemsItemKind];
+
+export const SignatureRequestListResponseItemsItemKind = {
+  training_record: 'training_record',
+  test_sheet: 'test_sheet',
+} as const;
+
 export type SignatureRequestListResponseItemsItemSlot =
   (typeof SignatureRequestListResponseItemsItemSlot)[keyof typeof SignatureRequestListResponseItemsItemSlot];
 
@@ -8330,6 +8453,7 @@ export const SignatureRequestListResponseItemsItemSlot = {
   trainer: 'trainer',
   verifier: 'verifier',
   admitter: 'admitter',
+  examiner: 'examiner',
 } as const;
 
 export type SignatureRequestListResponseItemsItemState =
@@ -8344,6 +8468,12 @@ export const SignatureRequestListResponseItemsItemState = {
 export type SignatureRequestListResponseItemsItemClient = {
   id: string;
   name: string;
+};
+
+export type SignatureRequestListResponseItemsItemEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
 };
 
 export type SignatureRequestListResponseItemsItemRecordEmployee = {
@@ -8370,6 +8500,9 @@ export const SignatureRequestListResponseItemsItemRecordPhase = {
   supplementary: 'supplementary',
 } as const;
 
+/**
+ * @nullable
+ */
 export type SignatureRequestListResponseItemsItemRecord = {
   id: string;
   trainingId: string;
@@ -8377,7 +8510,34 @@ export type SignatureRequestListResponseItemsItemRecord = {
   domain: SignatureRequestListResponseItemsItemRecordDomain;
   phase: SignatureRequestListResponseItemsItemRecordPhase;
   heldOn: string;
-};
+} | null;
+
+export type SignatureRequestListResponseItemsItemTestSheetDomain =
+  (typeof SignatureRequestListResponseItemsItemTestSheetDomain)[keyof typeof SignatureRequestListResponseItemsItemTestSheetDomain];
+
+export const SignatureRequestListResponseItemsItemTestSheetDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type SignatureRequestListResponseItemsItemTestSheetTest =
+  (typeof SignatureRequestListResponseItemsItemTestSheetTest)[keyof typeof SignatureRequestListResponseItemsItemTestSheetTest];
+
+export const SignatureRequestListResponseItemsItemTestSheetTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SignatureRequestListResponseItemsItemTestSheet = {
+  id: string;
+  resultId: string;
+  domain: SignatureRequestListResponseItemsItemTestSheetDomain;
+  test: SignatureRequestListResponseItemsItemTestSheetTest;
+  takenOn: string;
+} | null;
 
 /**
  * @nullable
@@ -8412,13 +8572,19 @@ export type SignatureRequestListResponseItemsItemAgreement = {
 
 export type SignatureRequestListResponseItemsItem = {
   id: string;
+  kind: SignatureRequestListResponseItemsItemKind;
+  label: string;
   slot: SignatureRequestListResponseItemsItemSlot;
   state: SignatureRequestListResponseItemsItemState;
   issuedAt: string;
   /** @nullable */
   notifiedAt: string | null;
   client: SignatureRequestListResponseItemsItemClient;
+  employee: SignatureRequestListResponseItemsItemEmployee;
+  /** @nullable */
   record: SignatureRequestListResponseItemsItemRecord;
+  /** @nullable */
+  testSheet: SignatureRequestListResponseItemsItemTestSheet;
   /** @nullable */
   signer: SignatureRequestListResponseItemsItemSigner;
   /** @nullable */
@@ -13972,6 +14138,276 @@ export const useUpdateTestResult = <TError = ErrorType<ApiErrorResponse>, TConte
   TContext
 > => {
   return useMutation(getUpdateTestResultMutationOptions(options), queryClient);
+};
+
+export const getGetTestSheetUrl = (clientId: string, employeeId: string, resultId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/tests/results/${resultId}/sheet`;
+};
+
+/**
+ * The test sheet of a pass in the portal (ADR 024): the questions as the sitting showed them, the answers chosen, the score, the grade and the two signature fields, with every signature given so far. Drawn up and stored at the pass; drawn up here, with its requests, when that failed. Shown inline. A paper result has none.
+ * @summary A result's test sheet as its stored PDF
+ */
+export const getTestSheet = async (
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getGetTestSheetUrl(clientId, employeeId, resultId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetTestSheetQueryKey = (clientId: string, employeeId: string, resultId: string) => {
+  return [`/clients/${clientId}/employees/${employeeId}/tests/results/${resultId}/sheet`] as const;
+};
+
+export const getGetTestSheetQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheet>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTestSheetQueryKey(clientId, employeeId, resultId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTestSheet>>> = ({ signal }) =>
+    getTestSheet(clientId, employeeId, resultId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined &&
+      resultId !== null &&
+      resultId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getTestSheet>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetTestSheetQueryResult = NonNullable<Awaited<ReturnType<typeof getTestSheet>>>;
+export type GetTestSheetQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetTestSheet<
+  TData = Awaited<ReturnType<typeof getTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheet>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTestSheet>>,
+          TError,
+          Awaited<ReturnType<typeof getTestSheet>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTestSheet<
+  TData = Awaited<ReturnType<typeof getTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheet>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTestSheet>>,
+          TError,
+          Awaited<ReturnType<typeof getTestSheet>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTestSheet<
+  TData = Awaited<ReturnType<typeof getTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheet>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A result's test sheet as its stored PDF
+ */
+
+export function useGetTestSheet<
+  TData = Awaited<ReturnType<typeof getTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheet>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetTestSheetQueryOptions(clientId, employeeId, resultId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getMarkTestSheetPaperSignatureUrl = (
+  clientId: string,
+  employeeId: string,
+  resultId: string
+) => {
+  return `/clients/${clientId}/employees/${employeeId}/tests/results/${resultId}/sheet/paper-signatures`;
+};
+
+/**
+ * For a slot whose person has no account, or who signed the printed sheet: the trainee, whom the evidence names as the employee, or the examiner, named as the result's. A pending request of the slot is voided (`signed_on_paper`). A paper examiner fixes the result's examiner, as an electronic one does.
+ * @summary Mark a slot of a test sheet as signed on paper
+ */
+export const markTestSheetPaperSignature = async (
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  testSheetPaperSignatureRequest: TestSheetPaperSignatureRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TestSheetResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<TestSheetResponse>(
+    getMarkTestSheetPaperSignatureUrl(clientId, employeeId, resultId),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(testSheetPaperSignatureRequest),
+    }
+  );
+};
+
+export const getMarkTestSheetPaperSignatureMutationKey = () =>
+  ['markTestSheetPaperSignature'] as const;
+
+export const getMarkTestSheetPaperSignatureMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markTestSheetPaperSignature>>,
+    TError,
+    MarkTestSheetPaperSignatureMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markTestSheetPaperSignature>>,
+  TError,
+  MarkTestSheetPaperSignatureMutationVariables,
+  TContext
+> => {
+  const mutationKey = getMarkTestSheetPaperSignatureMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markTestSheetPaperSignature>>,
+    MarkTestSheetPaperSignatureMutationVariables
+  > = (props) => {
+    const { clientId, employeeId, resultId, data } = props ?? {};
+
+    return markTestSheetPaperSignature(clientId, employeeId, resultId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkTestSheetPaperSignatureMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markTestSheetPaperSignature>>
+>;
+export type MarkTestSheetPaperSignatureMutationBody = TestSheetPaperSignatureRequest;
+export type MarkTestSheetPaperSignatureMutationError = ErrorType<ApiErrorResponse>;
+export type MarkTestSheetPaperSignatureMutationVariables = {
+  clientId: string;
+  employeeId: string;
+  resultId: string;
+  data: TestSheetPaperSignatureRequest;
+};
+
+/**
+ * @summary Mark a slot of a test sheet as signed on paper
+ */
+export const useMarkTestSheetPaperSignature = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof markTestSheetPaperSignature>>,
+      TError,
+      MarkTestSheetPaperSignatureMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof markTestSheetPaperSignature>>,
+  TError,
+  MarkTestSheetPaperSignatureMutationVariables,
+  TContext
+> => {
+  return useMutation(getMarkTestSheetPaperSignatureMutationOptions(options), queryClient);
 };
 
 export const getListJobPositionsUrl = (clientId: string) => {

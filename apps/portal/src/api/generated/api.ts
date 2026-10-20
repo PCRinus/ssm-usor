@@ -874,6 +874,38 @@ export const PortalTestsResponseSsmResultsItemSource = {
   paper: 'paper',
 } as const;
 
+export type PortalTestsResponseSsmResultsItemSheetSignedTrainee =
+  (typeof PortalTestsResponseSsmResultsItemSheetSignedTrainee)[keyof typeof PortalTestsResponseSsmResultsItemSheetSignedTrainee];
+
+export const PortalTestsResponseSsmResultsItemSheetSignedTrainee = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type PortalTestsResponseSsmResultsItemSheetSignedExaminer =
+  (typeof PortalTestsResponseSsmResultsItemSheetSignedExaminer)[keyof typeof PortalTestsResponseSsmResultsItemSheetSignedExaminer];
+
+export const PortalTestsResponseSsmResultsItemSheetSignedExaminer = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type PortalTestsResponseSsmResultsItemSheetSigned = {
+  trainee: PortalTestsResponseSsmResultsItemSheetSignedTrainee;
+  examiner: PortalTestsResponseSsmResultsItemSheetSignedExaminer;
+};
+
+export type PortalTestsResponseSsmResultsItemSheet = {
+  available: boolean;
+  signed: PortalTestsResponseSsmResultsItemSheetSigned;
+};
+
 export type PortalTestsResponseSsmResultsItem = {
   id: string;
   employeeId: string;
@@ -889,6 +921,7 @@ export type PortalTestsResponseSsmResultsItem = {
   attemptId: string | null;
   createdAt: string;
   updatedAt: string;
+  sheet: PortalTestsResponseSsmResultsItemSheet;
 };
 
 export type PortalTestsResponseSsmAttemptsItemDomain =
@@ -1053,6 +1086,38 @@ export const PortalTestsResponsePsiResultsItemSource = {
   paper: 'paper',
 } as const;
 
+export type PortalTestsResponsePsiResultsItemSheetSignedTrainee =
+  (typeof PortalTestsResponsePsiResultsItemSheetSignedTrainee)[keyof typeof PortalTestsResponsePsiResultsItemSheetSignedTrainee];
+
+export const PortalTestsResponsePsiResultsItemSheetSignedTrainee = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type PortalTestsResponsePsiResultsItemSheetSignedExaminer =
+  (typeof PortalTestsResponsePsiResultsItemSheetSignedExaminer)[keyof typeof PortalTestsResponsePsiResultsItemSheetSignedExaminer];
+
+export const PortalTestsResponsePsiResultsItemSheetSignedExaminer = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type PortalTestsResponsePsiResultsItemSheetSigned = {
+  trainee: PortalTestsResponsePsiResultsItemSheetSignedTrainee;
+  examiner: PortalTestsResponsePsiResultsItemSheetSignedExaminer;
+};
+
+export type PortalTestsResponsePsiResultsItemSheet = {
+  available: boolean;
+  signed: PortalTestsResponsePsiResultsItemSheetSigned;
+};
+
 export type PortalTestsResponsePsiResultsItem = {
   id: string;
   employeeId: string;
@@ -1068,6 +1133,7 @@ export type PortalTestsResponsePsiResultsItem = {
   attemptId: string | null;
   createdAt: string;
   updatedAt: string;
+  sheet: PortalTestsResponsePsiResultsItemSheet;
 };
 
 export type PortalTestsResponsePsiAttemptsItemDomain =
@@ -1269,6 +1335,14 @@ export interface TestAttemptOutcome {
   mistakes: TestAttemptOutcomeMistakesItem[];
 }
 
+export type PortalSignatureRequestsResponseItemsItemKind =
+  (typeof PortalSignatureRequestsResponseItemsItemKind)[keyof typeof PortalSignatureRequestsResponseItemsItemKind];
+
+export const PortalSignatureRequestsResponseItemsItemKind = {
+  training_record: 'training_record',
+  test_sheet: 'test_sheet',
+} as const;
+
 export type PortalSignatureRequestsResponseItemsItemSlot =
   (typeof PortalSignatureRequestsResponseItemsItemSlot)[keyof typeof PortalSignatureRequestsResponseItemsItemSlot];
 
@@ -1277,7 +1351,14 @@ export const PortalSignatureRequestsResponseItemsItemSlot = {
   trainer: 'trainer',
   verifier: 'verifier',
   admitter: 'admitter',
+  examiner: 'examiner',
 } as const;
+
+export type PortalSignatureRequestsResponseItemsItemEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
+};
 
 export type PortalSignatureRequestsResponseItemsItemRecordEmployee = {
   id: string;
@@ -1342,6 +1423,9 @@ export type PortalSignatureRequestsResponseItemsItemRecordAdmission = {
   jobTitle: string;
 } | null;
 
+/**
+ * @nullable
+ */
 export type PortalSignatureRequestsResponseItemsItemRecord = {
   id: string;
   employee: PortalSignatureRequestsResponseItemsItemRecordEmployee;
@@ -1358,7 +1442,48 @@ export type PortalSignatureRequestsResponseItemsItemRecord = {
   occupation: string;
   /** @nullable */
   admission: PortalSignatureRequestsResponseItemsItemRecordAdmission;
-};
+} | null;
+
+export type PortalSignatureRequestsResponseItemsItemTestSheetDomain =
+  (typeof PortalSignatureRequestsResponseItemsItemTestSheetDomain)[keyof typeof PortalSignatureRequestsResponseItemsItemTestSheetDomain];
+
+export const PortalSignatureRequestsResponseItemsItemTestSheetDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type PortalSignatureRequestsResponseItemsItemTestSheetTest =
+  (typeof PortalSignatureRequestsResponseItemsItemTestSheetTest)[keyof typeof PortalSignatureRequestsResponseItemsItemTestSheetTest];
+
+export const PortalSignatureRequestsResponseItemsItemTestSheetTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PortalSignatureRequestsResponseItemsItemTestSheetExaminer = {
+  name: string;
+  jobTitle: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type PortalSignatureRequestsResponseItemsItemTestSheet = {
+  id: string;
+  resultId: string;
+  domain: PortalSignatureRequestsResponseItemsItemTestSheetDomain;
+  test: PortalSignatureRequestsResponseItemsItemTestSheetTest;
+  code: string;
+  title: string;
+  takenOn: string;
+  score: number;
+  total: number;
+  /** @nullable */
+  examiner: PortalSignatureRequestsResponseItemsItemTestSheetExaminer;
+} | null;
 
 export type PortalSignatureRequestsResponseItemsItemAgreementState =
   (typeof PortalSignatureRequestsResponseItemsItemAgreementState)[keyof typeof PortalSignatureRequestsResponseItemsItemAgreementState];
@@ -1384,10 +1509,16 @@ export type PortalSignatureRequestsResponseItemsItemAgreement = {
 
 export type PortalSignatureRequestsResponseItemsItem = {
   id: string;
+  kind: PortalSignatureRequestsResponseItemsItemKind;
+  label: string;
   slot: PortalSignatureRequestsResponseItemsItemSlot;
   issuedAt: string;
   signerName: string;
+  employee: PortalSignatureRequestsResponseItemsItemEmployee;
+  /** @nullable */
   record: PortalSignatureRequestsResponseItemsItemRecord;
+  /** @nullable */
+  testSheet: PortalSignatureRequestsResponseItemsItemTestSheet;
   /** @nullable */
   agreement: PortalSignatureRequestsResponseItemsItemAgreement;
 };
@@ -4191,6 +4322,145 @@ export function useGetPortalMaterial<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getGetPortalMaterialQueryOptions(participantId, domain, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetPortalTestSheetUrl = (participantId: string, resultId: string) => {
+  return `/portal/participants/${participantId}/tests/results/${resultId}/sheet`;
+};
+
+/**
+ * The test sheet of a pass in the portal (ADR 024), with the signatures given so far, shown inline: the employee's own, or for the client administrator any employee's of the client. A paper result has none (reason `test_sheet_not_available`).
+ * @summary A result's test sheet as its stored PDF
+ */
+export const getPortalTestSheet = async (
+  participantId: string,
+  resultId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getGetPortalTestSheetUrl(participantId, resultId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetPortalTestSheetQueryKey = (participantId: string, resultId: string) => {
+  return [`/portal/participants/${participantId}/tests/results/${resultId}/sheet`] as const;
+};
+
+export const getGetPortalTestSheetQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPortalTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalTestSheet>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPortalTestSheetQueryKey(participantId, resultId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalTestSheet>>> = ({ signal }) =>
+    getPortalTestSheet(participantId, resultId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      participantId !== null &&
+      participantId !== undefined &&
+      resultId !== null &&
+      resultId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getPortalTestSheet>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetPortalTestSheetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPortalTestSheet>>
+>;
+export type GetPortalTestSheetQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetPortalTestSheet<
+  TData = Awaited<ReturnType<typeof getPortalTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  resultId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalTestSheet>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalTestSheet>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalTestSheet>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalTestSheet<
+  TData = Awaited<ReturnType<typeof getPortalTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTestSheet>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalTestSheet>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalTestSheet>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalTestSheet<
+  TData = Awaited<ReturnType<typeof getPortalTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalTestSheet>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A result's test sheet as its stored PDF
+ */
+
+export function useGetPortalTestSheet<
+  TData = Awaited<ReturnType<typeof getPortalTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getPortalTestSheet>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPortalTestSheetQueryOptions(participantId, resultId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
