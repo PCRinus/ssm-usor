@@ -105,6 +105,7 @@ export function toEmployee(
     | 'created_by'
     | 'job_position_id'
     | 'training_status'
+    | 'test_status'
     | 'employee_search_name'
     | 'employee_client_search_name'
   > &

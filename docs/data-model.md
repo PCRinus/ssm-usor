@@ -611,6 +611,130 @@ filter when the list is filtered by a training state. A row costs a few index re
 `training_records (employee_id)` and the primary keys; `trainings (client_id, domain, phase,
 held_on)` serves a client's list of trainings.
 
+## Knowledge tests
+
+The **knowledge tests** of [ADR 024](architecture/adr-024-knowledge-tests.md) are three: the
+hiring test of each domain and the fire-safety annual test (`knowledge_test`: `hiring` or
+`annual`; `annual` goes with `psi` only, a check on every table below). Their questions live in
+a **question bank**, a sitting of ten of them is a **test attempt** a participant takes in the
+portal, and a pass is a **test result**, from an attempt or from the printed test.
+
+### The question bank
+
+`test_questions` holds the bank of every organization at once. A **built-in question** has no
+`organization_id`: the app's, seeded by migration with fixed ids, read by every member and
+written by none, so that a later migration corrects one in place. An **own question** belongs
+to its organization, written, edited and deleted by any member.
+
+| Column                 | Notes                                                                                                                                                    |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain`, `test`       | `training_domain` and `knowledge_test`; never updated, so a question never moves to another test.                                                        |
+| `position`             | The order the printed test lists the questions in, from 1; an own question with a built-in's position comes after it. Built-ins are unique per position. |
+| `text`                 | Trimmed, 5 to 1000 characters.                                                                                                                           |
+| `options`              | Two to four `{ "text", "correct" }`, the text trimmed, 1 to 500 characters, at least one correct (`test_options_are_valid`, a check).                    |
+| `explanation`          | Optional, up to 1000 characters: what the study card shows, and a failed attempt after a wrong answer.                                                   |
+| `citation`             | Optional, up to 300 characters: the act and article the question rests on.                                                                               |
+| `replaces_question_id` | On an own question only: the built-in of the same test it departs from, provenance only (`TST02` otherwise); set null if that built-in goes.             |
+
+`test_question_hides` holds `(organization_id, question_id)` for each built-in an organization
+hides; deleting the row restores it. Members read, insert and delete their organization's; an
+own question is not hidden (`TST02`) but deleted.
+
+A question is **active** for an organization when it is a built-in the organization has not
+hidden, or one of its own; `active_test_questions(organization, domain, test)` lists them in the
+printed order, as the caller, so a participant gets nothing. A test keeps at least ten: hiding a
+built-in or deleting an own question that would leave fewer raises `TST01`
+(`test_below_minimum`), under an advisory lock per organization and test so that two at once
+cannot both pass. The seeded sets hold ten, twelve and ten, so the occupational safety hiring
+test needs an own question before anything is hidden.
+
+The options carry the key, so `test_questions` is the members' alone: both select policies ask
+for a membership. The seeded content is reviewed in [test-questions-seed.md](test-questions-seed.md).
+
+### Test attempts
+
+A **test attempt** (`test_attempts`) is one sitting by a participant: `client_id` with the
+denormalized `organization_id`, `employee_id` and `participant_id` by composite keys to the
+client, the domain and test, `started_at` and `finished_at`, `language` (`ro` only), `total`,
+`score` and `passed` (the last two set at the finish, with `finished_at`),
+`material_revision_id` (the issued revision of the material the portal showed, if any),
+`client_address` and `user_agent`. One attempt is in progress per participant and test.
+
+`questions` is the sitting as shown, in the shown order:
+`[{ "question_id", "text", "options": [{ "text" }], "chosen": [i, ...] }]`, `chosen` holding
+indices into the shown options, empty while unanswered. In progress the row carries no key: the
+correct options in the shown order and the explanations wait in `test_attempt_keys`, which has
+no policy and no grant, and the finish moves them into the row, each option gaining `correct`
+and each question `correct` and `explanation`. A finished attempt is frozen: an update or a
+delete raises `TST03` (`attempt_finished`), whoever makes it, and the table is never truncated.
+Archived clients and leads take no attempt.
+
+Nobody writes the table directly. The portal's routes run as the participant and call these
+functions, security definer, which act only for the caller's own active participation as an
+employee (`P0002`, `participant_not_found` or `attempt_not_found`, otherwise):
+
+| Function                                                                           | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `start_test_attempt(participant, domain, test, material_revision, address, agent)` | Refuses a test that does not await the employee (`TST05`, `test_not_awaiting`): the hiring test awaits while the state is `pending`, the annual test while it is `annual_due`. Returns the attempt in progress if there is one; otherwise draws ten active questions of the client's organization at random, shuffles each one's options and inserts the attempt. A material revision must be an issued one of the client's (`P0002`, `material_not_found`). |
+| `answer_test_attempt(attempt, question_index, chosen)`                             | Stores the options chosen for one question, sorted and distinct; `TST04` for a question or an option out of range (`question_out_of_range`, `option_out_of_range`), `TST03` once finished.                                                                                                                                                                                                                                                                   |
+| `finish_test_attempt(attempt, address, agent)`                                     | Scores and finishes: a question counts only when the options chosen are exactly the correct ones, and `passed` is a score of at least 70% of `total`, seven of ten. A pass inserts the test result.                                                                                                                                                                                                                                                          |
+| `test_study_card(participant, domain, test)`                                       | The explanations of the test's active questions, for the study card.                                                                                                                                                                                                                                                                                                                                                                                         |
+
+Members read their organization's attempts and participants their own employee's, the finished
+ones with the key of their draw, since a retake is drawn and shuffled again. The client
+administrator reads none.
+
+### Test results
+
+A **test result** (`test_results`) is a pass, under a client as the training records are, with
+`employee_id` in any status.
+
+| Column                                | Notes                                                                                                                             |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `domain`, `test`, `taken_on`          | The test and the Romanian day it was passed.                                                                                      |
+| `material`                            | What the sheet prints as the material examined, as "Test de verificare a cunoștințelor la angajare (TASSM)"; 1 to 300 characters. |
+| `grade`                               | `admis` only: a failed test is not recorded.                                                                                      |
+| `examiner_name`, `examiner_job_title` | Both or neither; required on paper. Null on a portal pass the organization had nobody to propose for, until a member names them.  |
+| `source`                              | `test_result_source`: `portal`, exactly when `attempt_id` is set, or `paper`.                                                     |
+| `attempt_id`                          | The passing attempt, unique, by a composite key to the attempt's employee, domain and test.                                       |
+
+`finish_test_attempt` inserts the portal result, the day being the finish's, with the examiner
+proposed: for fire safety the organization's `fire_safety_technician_name` as "Cadru tehnic
+PSI", else the trainer and job title of the employee's latest introductory general training in
+the domain, which for occupational safety is the specialist. A member records a paper result
+(only `source = 'paper'`, for an active client) and updates `taken_on`, `material` and the
+examiner; a portal result changes only in its examiner and is not deleted (`TST06`,
+`result_from_attempt`). Members read their organization's results, participants their own, the
+client administrator the client's.
+
+### Test state
+
+`employee_test_status` is a view, security invoker, beside `employee_training_status`: one row
+per employee with, for each domain, `<domain>_hiring_trained_on`, `<domain>_last_passed_on`,
+`<domain>_state` and `<domain>_awaiting_test`, and `psi_due_on`. Nothing of it is stored.
+
+- The hiring training the test closes is the latest `introductory_general` record for `ssm` and
+  the latest `workplace` record for `psi`, whose one test closes both hiring trainings.
+- Any result in the domain is a pass, an annual one included; `psi_due_on` is twelve months
+  after the last.
+- The state (`test_state`) is `none` with neither a pass nor a hiring record, `pending` with the
+  record and no pass, `annual_due` for `psi` once `psi_due_on` is today or past, else `passed`. A
+  terminated employee has a null state. `<domain>_awaiting_test` is `hiring` while `pending` and
+  `annual` while `annual_due`.
+
+`employee_test_due(...)` computes one domain for one employee and is inlined, as
+`employee_training_due` is; the employee lists embed the view through `test_status(employees)`,
+a PostgREST computed relationship (to-one), as they embed `training_status`.
+
+Errors, raised with these SQLSTATEs:
+
+- `TST01` the test would keep fewer than ten active questions
+- `TST02` only a built-in of the same test is hidden or replaced
+- `TST03` a finished attempt is frozen
+- `TST04` the answer does not fit the attempt
+- `TST05` the test does not await the employee
+- `TST06` a portal result changes only in its examiner and is not deleted
+
 ## Protective equipment
 
 `job_position_equipment` holds what the holders of a job position receive against the risks
@@ -1037,7 +1161,8 @@ A **participant** is a person of a client who signs in to the portal
 ([ADR 022](architecture/adr-022-participants-and-the-portal.md)): an `employee` or the
 `client_administrator` (`participant_kind`). A participant is not a member: the account has no
 row in `organization_members`, so `current_organization_id()` is null and every members' policy
-yields nothing. They read through policies of their own and write nothing. One account may hold
+yields nothing. They read through policies of their own and write only their test attempts, through the
+functions of [Knowledge tests](#knowledge-tests). One account may hold
 a membership and participations at once; the app's routes act on the membership, the portal's
 on the participations.
 
