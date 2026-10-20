@@ -27,6 +27,22 @@ import {
   recordPortalNoticeRoute,
   setPortalLanguageRoute,
 } from './routes';
+import {
+  answerPortalTestAttempt,
+  finishPortalTestAttempt,
+  getPortalMaterial,
+  getPortalTests,
+  getPortalTestStudyCard,
+  startPortalTestAttempt,
+} from './test-handlers';
+import {
+  answerPortalTestAttemptRoute,
+  finishPortalTestAttemptRoute,
+  getPortalMaterialRoute,
+  getPortalTestsRoute,
+  getPortalTestStudyCardRoute,
+  startPortalTestAttemptRoute,
+} from './test-routes';
 
 export const portalRouter = createRouter()
   .openapi(getPortalMeRoute, getPortalMe)
@@ -40,4 +56,10 @@ export const portalRouter = createRouter()
   .openapi(listPortalEmployeeTrainingRecordsRoute, listPortalEmployeeTrainingRecords)
   .openapi(getPortalEmployeeTrainingSheetsRoute, getPortalEmployeeTrainingSheets)
   .openapi(getPortalEmployeeTrainingSheetRoute, getPortalEmployeeTrainingSheet)
-  .openapi(listPortalResponsiblePersonsRoute, listPortalResponsiblePersons);
+  .openapi(listPortalResponsiblePersonsRoute, listPortalResponsiblePersons)
+  .openapi(getPortalTestsRoute, getPortalTests)
+  .openapi(getPortalTestStudyCardRoute, getPortalTestStudyCard)
+  .openapi(startPortalTestAttemptRoute, startPortalTestAttempt)
+  .openapi(answerPortalTestAttemptRoute, answerPortalTestAttempt)
+  .openapi(finishPortalTestAttemptRoute, finishPortalTestAttempt)
+  .openapi(getPortalMaterialRoute, getPortalMaterial);
