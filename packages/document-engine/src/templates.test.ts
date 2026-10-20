@@ -49,8 +49,8 @@ const manifestOf = (folder: string) =>
   JSON.parse(readFileSync(new URL(`${folder}manifest.json`, templatesUrl), 'utf8')) as {
     templates: ManifestEntry[];
   };
-// The individual training sheets (ADR 021) and the signing agreement (ADR 023) sit beside a
-// set's templates and belong to no set.
+// The individual training sheets (ADR 021), the signing agreement (ADR 023) and the test sheet
+// (ADR 024) sit beside a set's templates and belong to no set.
 const setManifest = <Entry>(folder: string) => ({
   templates: manifestOf(folder).templates.filter((entry) => !entry.perEmployee) as Entry[],
 });
@@ -2651,10 +2651,11 @@ describe('prevention_plan', () => {
 });
 
 describe('the individual training sheets', () => {
-  it('are, with the signing agreement, the per-employee entries of their manifests, with no number', () => {
+  it('are, with the signing agreement and the test sheet, the per-employee entries of their manifests, with no number', () => {
     expect(perEmployeeEntries.map(({ typeKey, path }) => [typeKey, path])).toEqual([
       ['training_sheet_ssm', 'fisa_instruire_ssm.docx'],
       ['signing_agreement', 'act_aditional_semnare_electronica.docx'],
+      ['test_sheet', 'fisa_test.docx'],
       ['training_sheet_psi', 'fire/fisa_instructaj_psi.docx'],
     ]);
     for (const entry of perEmployeeEntries) expect(entry).not.toHaveProperty('number');

@@ -306,6 +306,16 @@
         "kind": "layout",
         "note": "Numele părților apar îngroșat, numărul contractului se completează când este cunoscut, blocurile de semnătură sunt aliniate, cu numele reprezentantului și câmpuri de dată completate la semnarea electronică."
       }
+    },
+    {
+      "perEmployee": true,
+      "typeKey": "test_sheet",
+      "title": "Fișa de test",
+      "file": "fisa_test.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială: întrebările testului susținut în portal, cu răspunsurile alese, punctajul, rezultatul și semnăturile persoanei testate și ale examinatorului."
+      }
     }
   ]
 }

@@ -4,12 +4,14 @@ import { fileURLToPath } from 'node:url';
 
 import { renderDocument, TemplateError } from '../src/render';
 import { signingTypeKeys } from '../src/signing';
+import { testSheetTypeKey } from '../src/test-sheet';
 import {
   type KnowledgeTestCode,
   knowledgeTestData,
   knowledgeTestTemplates,
 } from './knowledge-test-samples';
 import { signingAgreementSamples } from './signing-samples';
+import { testSheetSamples } from './test-sheet-samples';
 import { trainingSheetSamples } from './training-sheet-samples';
 
 // The PDFs land in `originals/preview/`, which git ignores. Two sample clients: one person in
@@ -1490,7 +1492,9 @@ const employeeSamples = new Map<string, { label: string; data: Record<string, un
           `${folder}${entry.file}`,
           entry.typeKey === signingTypeKeys.agreement
             ? signingAgreementSamples()
-            : trainingSheetSamples(entry.typeKey.endsWith('_psi') ? 'psi' : 'ssm'),
+            : entry.typeKey === testSheetTypeKey
+              ? testSheetSamples()
+              : trainingSheetSamples(entry.typeKey.endsWith('_psi') ? 'psi' : 'ssm'),
         ])
     )
 );
