@@ -117,7 +117,7 @@
       "file": "3.2_own_instructions.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: „procesul-verbal de predare-primire” a echipamentului individual de protecție, cu cratimă, nu cu linie de pauză."
+        "note": "Capitolul III: în locul testării anuale (TPSSM), verificarea instruirii periodice de către șeful ierarhic și, prin sondaj, de către angajator/ lucrătorul desemnat/ serviciul extern de prevenire și protecție, conform H.G. 1425/2006 – Art. 96."
       }
     },
     {
@@ -149,11 +149,11 @@
       "original": "5.0._Coperta_Testari",
       "stage": 1,
       "typeKey": "cover_tests",
-      "title": "Copertă – Teste de verificare a cunoștințelor",
+      "title": "Copertă – Test de verificare a cunoștințelor",
       "file": "5.0_cover_tests.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "note": "Coperta numește un singur test, cel la angajare (TASSM): testul de verificare periodică a fost scos din set, nicio prevedere legală nu îl cere."
       }
     },
     {
@@ -273,7 +273,7 @@
       "file": "11_employer_briefing.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință” în blocul de predare-primire."
+        "note": "Lista documentelor predate nu mai cuprinde testul de verificare periodică (TPSSM), scos din set."
       }
     },
     {
