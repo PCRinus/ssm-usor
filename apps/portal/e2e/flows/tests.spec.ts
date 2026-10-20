@@ -11,6 +11,10 @@ import {
   lastSignInCode,
 } from './support';
 
+// The test sheet is drawn up at the pass with the PDF converter, and only then requested from the
+// trainee: without GOTENBERG_URL exported the flow stops at what the pages show of it.
+const sheets = Boolean(process.env.GOTENBERG_URL);
+
 test.afterAll(cleanUp);
 
 async function signIn(page: Page, email: string) {
@@ -39,7 +43,7 @@ async function answer(page: Page, key: Map<string, string[]>, position: number) 
   await page.getByTestId(position === 10 ? 'test-submit' : 'test-next').click();
 }
 
-test('an employee with an awaiting hiring test reads the study card, answers ten questions and passes', async ({
+test('an employee with an awaiting hiring test reads the study card, answers ten questions, passes and finds the test sheet to sign', async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -98,14 +102,41 @@ test('an employee with an awaiting hiring test reads the study card, answers ten
   await expect(result).toHaveAttribute('data-passed', 'true');
   await expect(result.getByRole('heading', { level: 1 })).toHaveText('Ai promovat testul');
   await expect(page.getByTestId('test-score')).toHaveText('10 din 10 răspunsuri corecte');
+  await expect(page.getByTestId('test-result-sheet')).toContainText(
+    'Fișa de test, cu întrebările și răspunsurile tale, așteaptă semnătura ta la Semnături.'
+  );
 
   await page.getByTestId('test-result-trainings').click();
   await expect(page.getByTestId('training-test-state-ssm')).toHaveText('Promovat');
   await expect(page.getByTestId('training-test-result')).toContainText('Testul la angajare SSM');
   await expect(page.getByTestId('training-test-result')).toContainText('Admis');
   await expect(page.getByTestId('training-test-open-ssm')).toHaveCount(0);
+  const sheet = page.getByTestId('training-test-sheet');
+  await expect(sheet).toContainText('Fișa de test');
+  await expect(sheet.getByTestId('training-test-sheet-open')).toBeVisible();
 
   await page.getByTestId('portal-bar-home').click();
   await expect(page.getByTestId('portal-home')).toBeVisible();
   await expect(page.getByTestId('home-tests')).toHaveCount(0);
+  if (!sheets) return;
+
+  const request = page
+    .getByTestId('home-todo-item')
+    .filter({ hasText: 'Fișa de test la angajare SSM' });
+  await expect(request).toHaveAttribute('data-kind', 'request');
+  await expect(request).toContainText('semnezi ca instruit');
+
+  await page.getByTestId('portal-bar-instruiri').click();
+  await expect(page.getByTestId('training-test-sheet-slots')).toHaveAttribute(
+    'data-trainee',
+    'pending'
+  );
+  await expect(page.getByTestId('training-test-sheet-sign-hint')).toContainText(
+    'Fișa de test așteaptă semnătura ta, la Semnături.'
+  );
+  await page.getByTestId('training-test-sheet-sign').click();
+  await expect(page).toHaveURL(/\/semneaza$/);
+  await expect(
+    page.getByTestId('signing-item').filter({ hasText: 'Fișa de test la angajare SSM' })
+  ).toHaveCount(1);
 });
