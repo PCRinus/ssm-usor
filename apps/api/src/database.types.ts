@@ -3353,7 +3353,8 @@ export type Database = {
           signing_session_id: string | null;
           slot: Database['public']['Enums']['signer_slot'];
           state: string;
-          training_record_id: string;
+          test_sheet_id: string | null;
+          training_record_id: string | null;
           updated_at: string;
           void_reason: string | null;
           voided_at: string | null;
@@ -3371,7 +3372,8 @@ export type Database = {
           signing_session_id?: string | null;
           slot: Database['public']['Enums']['signer_slot'];
           state?: string;
-          training_record_id: string;
+          test_sheet_id?: string | null;
+          training_record_id?: string | null;
           updated_at?: string;
           void_reason?: string | null;
           voided_at?: string | null;
@@ -3389,7 +3391,8 @@ export type Database = {
           signing_session_id?: string | null;
           slot?: Database['public']['Enums']['signer_slot'];
           state?: string;
-          training_record_id?: string;
+          test_sheet_id?: string | null;
+          training_record_id?: string | null;
           updated_at?: string;
           void_reason?: string | null;
           voided_at?: string | null;
@@ -3429,6 +3432,13 @@ export type Database = {
             columns: ['training_record_id', 'client_id'];
             isOneToOne: false;
             referencedRelation: 'training_records';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'signature_requests_sheet_of_client';
+            columns: ['test_sheet_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'test_sheets';
             referencedColumns: ['id', 'client_id'];
           },
           {
@@ -4141,6 +4151,236 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
+          },
+        ];
+      };
+      test_sheet_signatures: {
+        Row: {
+          address: string | null;
+          certificate_serial: string | null;
+          channel: string | null;
+          client_id: string;
+          client_ip: unknown;
+          code_sent_at: string | null;
+          code_verified_at: string | null;
+          created_at: string;
+          digest_after: string | null;
+          digest_before: string | null;
+          id: string;
+          marked_by: string | null;
+          method: string;
+          organization_id: string;
+          request_id: string;
+          signed_at: string;
+          signer_account_id: string | null;
+          signer_job_title: string | null;
+          signer_name: string;
+          signing_session_id: string | null;
+          slot: Database['public']['Enums']['signer_slot'];
+          test_sheet_id: string;
+          user_agent: string | null;
+        };
+        Insert: {
+          address?: string | null;
+          certificate_serial?: string | null;
+          channel?: string | null;
+          client_id: string;
+          client_ip?: unknown;
+          code_sent_at?: string | null;
+          code_verified_at?: string | null;
+          created_at?: string;
+          digest_after?: string | null;
+          digest_before?: string | null;
+          id?: string;
+          marked_by?: string | null;
+          method: string;
+          organization_id: string;
+          request_id: string;
+          signed_at?: string;
+          signer_account_id?: string | null;
+          signer_job_title?: string | null;
+          signer_name: string;
+          signing_session_id?: string | null;
+          slot: Database['public']['Enums']['signer_slot'];
+          test_sheet_id: string;
+          user_agent?: string | null;
+        };
+        Update: {
+          address?: string | null;
+          certificate_serial?: string | null;
+          channel?: string | null;
+          client_id?: string;
+          client_ip?: unknown;
+          code_sent_at?: string | null;
+          code_verified_at?: string | null;
+          created_at?: string;
+          digest_after?: string | null;
+          digest_before?: string | null;
+          id?: string;
+          marked_by?: string | null;
+          method?: string;
+          organization_id?: string;
+          request_id?: string;
+          signed_at?: string;
+          signer_account_id?: string | null;
+          signer_job_title?: string | null;
+          signer_name?: string;
+          signing_session_id?: string | null;
+          slot?: Database['public']['Enums']['signer_slot'];
+          test_sheet_id?: string;
+          user_agent?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'test_sheet_signatures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_request_of_slot';
+            columns: ['request_id', 'test_sheet_id', 'slot'];
+            isOneToOne: false;
+            referencedRelation: 'signature_requests';
+            referencedColumns: ['id', 'test_sheet_id', 'slot'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_sheet_of_client';
+            columns: ['test_sheet_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'test_sheets';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_signing_session_id_fkey';
+            columns: ['signing_session_id'];
+            isOneToOne: false;
+            referencedRelation: 'signing_sessions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      test_sheets: {
+        Row: {
+          certified_at: string | null;
+          client_id: string;
+          created_at: string;
+          digest: string;
+          employee_id: string;
+          generated_at: string;
+          id: string;
+          organization_id: string;
+          storage_path: string;
+          test_result_id: string;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          certified_at?: string | null;
+          client_id: string;
+          created_at?: string;
+          digest: string;
+          employee_id: string;
+          generated_at?: string;
+          id?: string;
+          organization_id: string;
+          storage_path: string;
+          test_result_id: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          certified_at?: string | null;
+          client_id?: string;
+          created_at?: string;
+          digest?: string;
+          employee_id?: string;
+          generated_at?: string;
+          id?: string;
+          organization_id?: string;
+          storage_path?: string;
+          test_result_id?: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'test_sheets_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_result_of_client';
+            columns: ['test_result_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'test_results';
+            referencedColumns: ['id', 'client_id'];
           },
         ];
       };
@@ -5071,6 +5311,43 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      mark_test_sheet_paper_signature: {
+        Args: {
+          p_slot: Database['public']['Enums']['signer_slot'];
+          p_test_sheet_id: string;
+        };
+        Returns: {
+          address: string | null;
+          certificate_serial: string | null;
+          channel: string | null;
+          client_id: string;
+          client_ip: unknown;
+          code_sent_at: string | null;
+          code_verified_at: string | null;
+          created_at: string;
+          digest_after: string | null;
+          digest_before: string | null;
+          id: string;
+          marked_by: string | null;
+          method: string;
+          organization_id: string;
+          request_id: string;
+          signed_at: string;
+          signer_account_id: string | null;
+          signer_job_title: string | null;
+          signer_name: string;
+          signing_session_id: string | null;
+          slot: Database['public']['Enums']['signer_slot'];
+          test_sheet_id: string;
+          user_agent: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'test_sheet_signatures';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       my_open_invitations: {
         Args: never;
         Returns: {
@@ -5389,6 +5666,16 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      test_sheet_signer_has_standing: {
+        Args: {
+          p_account_id: string;
+          p_client_id: string;
+          p_organization_id: string;
+          p_slot: Database['public']['Enums']['signer_slot'];
+          p_test_sheet_id: string;
+        };
+        Returns: boolean;
+      };
       test_status: {
         Args: { '': Database['public']['Tables']['employees']['Row'] };
         Returns: {
@@ -5527,7 +5814,7 @@ export type Database = {
         | 'fire_intervention_leader';
       risk_evaluation_kind: 'job_position' | 'sensitive_groups' | 'other';
       sensitive_groups_state: 'undecided' | 'none' | 'evaluated';
-      signer_slot: 'trainee' | 'trainer' | 'verifier' | 'admitter';
+      signer_slot: 'trainee' | 'trainer' | 'verifier' | 'admitter' | 'examiner';
       staff_category: 'technical_administrative' | 'execution';
       supplementary_training_reason:
         | 'absence_over_thirty_days'
@@ -5712,7 +5999,7 @@ export const Constants = {
       ],
       risk_evaluation_kind: ['job_position', 'sensitive_groups', 'other'],
       sensitive_groups_state: ['undecided', 'none', 'evaluated'],
-      signer_slot: ['trainee', 'trainer', 'verifier', 'admitter'],
+      signer_slot: ['trainee', 'trainer', 'verifier', 'admitter', 'examiner'],
       staff_category: ['technical_administrative', 'execution'],
       supplementary_training_reason: [
         'absence_over_thirty_days',
