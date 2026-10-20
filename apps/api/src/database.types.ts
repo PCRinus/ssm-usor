@@ -3450,7 +3450,8 @@ export type Database = {
           printed_as_text: boolean;
           row_key: string;
           signed_sheet_id: string;
-          training_record_id: string;
+          test_result_id: string | null;
+          training_record_id: string | null;
           void_noted_at: string | null;
           voided_at: string | null;
         };
@@ -3463,7 +3464,8 @@ export type Database = {
           printed_as_text?: boolean;
           row_key: string;
           signed_sheet_id: string;
-          training_record_id: string;
+          test_result_id?: string | null;
+          training_record_id?: string | null;
           void_noted_at?: string | null;
           voided_at?: string | null;
         };
@@ -3476,7 +3478,8 @@ export type Database = {
           printed_as_text?: boolean;
           row_key?: string;
           signed_sheet_id?: string;
-          training_record_id?: string;
+          test_result_id?: string | null;
+          training_record_id?: string | null;
           void_noted_at?: string | null;
           voided_at?: string | null;
         };
@@ -3486,6 +3489,13 @@ export type Database = {
             columns: ['training_record_id', 'client_id'];
             isOneToOne: false;
             referencedRelation: 'training_records';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'signed_sheet_rows_result_of_client';
+            columns: ['test_result_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'test_results';
             referencedColumns: ['id', 'client_id'];
           },
           {
@@ -5124,6 +5134,18 @@ export type Database = {
       };
       participant_client_ids: { Args: never; Returns: string[] };
       participant_employee_ids: { Args: never; Returns: string[] };
+      portal_material: {
+        Args: {
+          p_domain: Database['public']['Enums']['training_domain'];
+          p_participant_id: string;
+        };
+        Returns: {
+          issued_at: string;
+          pdf_path: string;
+          revision_id: string;
+          title: string;
+        }[];
+      };
       record_participant_notice: {
         Args: { p_participant_id: string; p_version: string };
         Returns: boolean;
