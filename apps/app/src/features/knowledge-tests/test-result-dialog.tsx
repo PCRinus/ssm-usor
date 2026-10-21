@@ -223,7 +223,8 @@ function ResultForm({
       form.setError('root.server', {
         message: testFailure(
           cause,
-          'Nu am putut salva rezultatul. Verifică conexiunea și încearcă din nou.'
+          'Nu am putut salva rezultatul. Verifică conexiunea și încearcă din nou.',
+          'Angajatul sau rezultatul nu mai există. Reîncarcă pagina.'
         ),
       });
     }

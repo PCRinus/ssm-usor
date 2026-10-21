@@ -367,6 +367,25 @@ describe('the question bank', () => {
     });
   });
 
+  it('says when the question being edited was deleted meanwhile', async () => {
+    mockApi(
+      {
+        [`PATCH /organization/tests/questions/${ownQuestion.id}`]: () =>
+          Response.json({ error: 'not_found', message: 'x' }, { status: 404 }),
+      },
+      ssmQuestions([ownQuestion])
+    );
+    mount('/tests/ssm');
+    const user = userEvent.setup();
+    const questions = await screen.findAllByTestId('test-question');
+    await user.click(within(questions[10]!).getByTestId('test-question-edit'));
+    const dialog = within(await screen.findByTestId('test-question-dialog'));
+    await user.click(dialog.getByTestId('test-question-submit'));
+    expect((await dialog.findByTestId('test-question-error')).textContent).toBe(
+      'Întrebarea nu mai există: altcineva a șters-o între timp. Reîncarcă pagina.'
+    );
+  });
+
   it('deletes an own question after a confirmation, and words a refusal below ten', async () => {
     let refuse = true;
     mockApi(

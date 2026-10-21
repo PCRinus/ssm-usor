@@ -31,7 +31,11 @@ export function bankTestFacts(
 
 export const optionLetter = (index: number) => String.fromCharCode(97 + index);
 
-export function testFailure(cause: unknown, fallback: string) {
+export function testFailure(
+  cause: unknown,
+  fallback: string,
+  gone = 'Întrebarea nu mai există: altcineva a șters-o între timp. Reîncarcă pagina.'
+) {
   const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
   switch (body?.reason) {
     case testErrorReasons.belowMinimum:
@@ -47,9 +51,7 @@ export function testFailure(cause: unknown, fallback: string) {
     case clientConflictReasons.clientArchived:
       return 'Clientul este arhivat; rezultatele testelor lui nu se mai schimbă.';
   }
-  if (cause instanceof ApiHttpError && cause.status === 404) {
-    return 'Nu mai există: altcineva l-a șters între timp. Reîncarcă pagina.';
-  }
+  if (cause instanceof ApiHttpError && cause.status === 404) return gone;
   if (cause instanceof ApiHttpError && cause.status === 401) {
     return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
   }
