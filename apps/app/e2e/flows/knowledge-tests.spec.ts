@@ -130,4 +130,11 @@ test('a specialist keeps ten questions in the bank and records a paper pass', as
   const row = page.getByTestId('employees-row').filter({ hasText: 'Testatu Ion' });
   await expect(row.getByTestId('test-status-ssm')).toHaveText('Promovat');
   await expect(row.getByTestId('test-status-psi')).toHaveText('Fără test');
+
+  await page.getByTestId('employees-test-filter-none').click();
+  await expect(page).toHaveURL(/testState=none/);
+  await expect(row).toBeVisible();
+  await page.getByTestId('employees-test-filter-passed').click();
+  await expect(page).toHaveURL(/testState=passed/);
+  await expect(page.getByTestId('employees-empty')).toBeVisible();
 });
