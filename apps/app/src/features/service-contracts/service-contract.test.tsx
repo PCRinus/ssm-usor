@@ -389,9 +389,11 @@ describe('the service contract of a lead', () => {
     await user.click(screen.getByTestId('contract-issued-actions'));
     await user.click(await screen.findByTestId('contract-print-issued'));
     const issuedDownload = `/documents/${documentId}/revisions/${issuedId}/download`;
-    await waitFor(() => expect(requests(issuedDownload, 'GET')).toHaveLength(1));
-    const [[url]] = requests(issuedDownload, 'GET') as [[string]];
-    expect(new URL(String(url)).searchParams.get('format')).toBe('pdf');
+    await waitFor(() => expect(screen.getAllByTestId('print-frame')).toHaveLength(1));
+    const formats = (requests(issuedDownload, 'GET') as [string][]).map((call) =>
+      new URL(String(call[0])).searchParams.get('format')
+    );
+    expect(formats).toContain('pdf');
     expect(requests(`/documents/${documentId}/print`, 'POST')).toHaveLength(1);
   });
 
@@ -624,7 +626,15 @@ describe('the signed copy', () => {
     expect(screen.getByTestId('contract-signed-copy').textContent).toContain(
       'Exemplarul semnat este atașat reviziei 1.'
     );
-    expect(screen.getByTestId('contract-signed-download')).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByTestId('contract-signed-open').getAttribute('href')).toContain(
+        '/files/download?'
+      )
+    );
+    const open = screen.getByTestId('contract-signed-open');
+    const address = new URL(open.getAttribute('href')!);
+    expect(address.searchParams.get('disposition')).toBe('inline');
+    expect(open.getAttribute('target')).toBe('_blank');
     await user.click(screen.getByTestId('contract-signed-actions'));
     expect(await screen.findByTestId('contract-signed-replace')).toBeTruthy();
   });

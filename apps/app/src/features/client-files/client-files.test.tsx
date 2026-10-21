@@ -43,6 +43,12 @@ const certificate = {
   canChange: true,
   createdAt: '2026-09-29T09:00:00+00:00',
   updatedAt: '2026-09-29T09:00:00+00:00',
+  link: {
+    url: 'http://127.0.0.1:54321/storage/v1/object/sign/client-files/certificat',
+    fileName: 'certificat.pdf',
+    disposition: 'inline' as 'inline' | 'attachment',
+    expiresInSeconds: 600,
+  },
 };
 
 const offer = {
@@ -55,6 +61,12 @@ const offer = {
   mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   sizeBytes: 48_000,
   canChange: false,
+  link: {
+    url: 'http://127.0.0.1:54321/storage/v1/object/sign/client-files/oferta',
+    fileName: 'oferta.xlsx',
+    disposition: 'attachment' as 'inline' | 'attachment',
+    expiresInSeconds: 600,
+  },
 };
 
 const employee = {
@@ -91,6 +103,7 @@ const trainingSheet = {
   originalFileName: 'IMG_2041.jpg',
   mimeType: 'image/jpeg',
   sizeBytes: 800_000,
+  link: { ...certificate.link, fileName: 'IMG_2041.jpg' },
 };
 
 const filesPath = `/clients/${clientId}/files`;
@@ -109,13 +122,6 @@ function mockApi({
   ownersOnly = ((init) =>
     Response.json({ file: { ...certificate, ...JSON.parse(String(init?.body)) } })) as Handler,
   remove = (() => new Response(null, { status: 204 })) as Handler,
-  download = ((_, url) =>
-    Response.json({
-      url: 'http://127.0.0.1:54321/storage/v1/object/sign/client-files/x',
-      fileName: url.pathname.includes(offer.id) ? 'oferta.xlsx' : 'certificat.pdf',
-      disposition: url.pathname.includes(offer.id) ? 'attachment' : 'inline',
-      expiresInSeconds: 60,
-    })) as Handler,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
@@ -134,7 +140,6 @@ function mockApi({
     if (pathname === `/clients/${clientId}`) return Response.json({ client: company });
     if (pathname === employeePath) return Response.json({ employee });
     if (pathname === filesPath) return Response.json({ items });
-    if (pathname.endsWith('/download')) return download(init, url);
     if (pathname.endsWith('/owners-only')) return ownersOnly(init, url);
     if (pathname.startsWith(`${filesPath}/`)) {
       return method === 'DELETE' ? remove(init, url) : update(init, url);
@@ -593,32 +598,30 @@ describe('changing a client file', () => {
     expect(await screen.findByText('„Certificat de înregistrare” a fost șters.')).toBeTruthy();
   });
 
-  it('opens a PDF in a tab opened on the click, and downloads a spreadsheet', async () => {
+  it('is a real link for every file: a PDF shown in a tab of its own, a spreadsheet downloaded', async () => {
     mockApi();
-    const tab = { opener: {}, location: { href: '' }, close: vi.fn() };
-    const open = vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
-    const clicked: string[] = [];
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
-      this: HTMLAnchorElement
-    ) {
-      clicked.push(this.href);
-    });
     mount();
-    const user = userEvent.setup();
 
     const [first, second] = await screen.findAllByTestId('client-file-row');
-    await user.click(within(first!).getByTestId('client-file-open'));
-    expect(open).toHaveBeenCalledWith('', '_blank');
-    expect(tab.opener).toBeNull();
-    await waitFor(() => expect(tab.location.href).toContain('/files/download?'));
-    const shown = new URL(tab.location.href);
-    expect(shown.searchParams.get('disposition')).toBe('inline');
-    expect(shown.searchParams.get('name')).toBe('certificat.pdf');
+    const shown = within(first!).getByTestId('client-file-open');
+    const shownAddress = new URL(shown.getAttribute('href')!);
+    expect(shownAddress.origin + shownAddress.pathname).toBe(
+      'http://localhost:8787/files/download'
+    );
+    expect(shownAddress.searchParams.get('source')).toBe(certificate.link.url);
+    expect(shownAddress.searchParams.get('disposition')).toBe('inline');
+    expect(shownAddress.searchParams.get('name')).toBe('certificat.pdf');
+    expect(shown.getAttribute('target')).toBe('_blank');
+    const saved = within(first!).getByTestId('client-file-download');
+    expect(new URL(saved.getAttribute('href')!).searchParams.get('disposition')).toBe('attachment');
+    expect(saved.getAttribute('target')).toBeNull();
 
-    await user.click(within(second!).getByTestId('client-file-open'));
-    await waitFor(() => expect(clicked).toHaveLength(1));
-    expect(open).toHaveBeenCalledTimes(1);
-    expect(new URL(clicked[0]!).searchParams.get('disposition')).toBe('attachment');
+    const downloaded = within(second!).getByTestId('client-file-open');
+    const downloadedAddress = new URL(downloaded.getAttribute('href')!);
+    expect(downloadedAddress.searchParams.get('disposition')).toBe('attachment');
+    expect(downloadedAddress.searchParams.get('name')).toBe('oferta.xlsx');
+    expect(downloaded.getAttribute('target')).toBeNull();
+    expect(requests(filesPath, 'GET')).toHaveLength(1);
   });
 });
 

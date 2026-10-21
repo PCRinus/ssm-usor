@@ -8,24 +8,19 @@ import {
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
-import { Link } from '@tanstack/react-router';
+import { Link, useRouteContext } from '@tanstack/react-router';
 import { MoreHorizontal } from 'lucide-react';
 
+import { getInstructionModuleFileLink } from '@/api/generated/api';
+import { FileMenuItem } from '@/components/file-menu-item';
 import { formatRoDate } from '@/lib/dates';
 
 const day = (timestamp: string) => formatRoDate(timestamp.slice(0, 10));
 
 // Named as the annex chapter of either set's own instructions lists it, and opened at the
 // version the revision cites: what it prints and what the employer approved by name (ADR 012).
-export function AnnexRow({
-  annex,
-  typeKey,
-  onDownload,
-}: {
-  annex: DocumentAnnex;
-  typeKey: string;
-  onDownload: () => void;
-}) {
+export function AnnexRow({ annex, typeKey }: { annex: DocumentAnnex; typeKey: string }) {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
   const code = typeKey === 'fire_own_instructions' ? 'I.P.S.U.' : 'I.P.S.S.M.';
   const label = `Anexa ${annex.number}: ${code} ${annex.title}`;
   return (
@@ -82,9 +77,29 @@ export function AnnexRow({
                 Deschide
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem data-testid="document-annex-download" onSelect={onDownload}>
+            <FileMenuItem
+              testId="document-annex-download"
+              apiRequest={apiRequest}
+              disposition="attachment"
+              queryKey={['instruction-module-file', annex.moduleId, annex.version.id]}
+              load={async (signal) => {
+                const link = await getInstructionModuleFileLink(
+                  annex.moduleId,
+                  { versionId: annex.version.id },
+                  { ...apiRequest, signal }
+                );
+                return {
+                  url: link.url,
+                  fileName: link.fileName,
+                  expiresInSeconds: Math.max(
+                    0,
+                    Math.round((Date.parse(link.expiresAt) - Date.now()) / 1_000)
+                  ),
+                };
+              }}
+            >
               Descarcă
-            </DropdownMenuItem>
+            </FileMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>

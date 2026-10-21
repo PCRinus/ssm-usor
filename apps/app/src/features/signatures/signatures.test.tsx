@@ -894,6 +894,49 @@ describe("the employee's signing agreement", () => {
     );
   });
 
+  it('offers the stored file as a real link once a party has signed electronically', async () => {
+    mockApi({
+      [`GET ${agreementPath}/state`]: () =>
+        Response.json({
+          agreement: {
+            state: 'generated',
+            generatedAt: '2026-10-18T09:00:00.000Z',
+            signedAt: null,
+            clientFileId: null,
+            employeeSignedAt: '2026-10-19T09:00:00.000Z',
+            employerSignedAt: null,
+            awaiting: 'employer',
+          },
+          unavailable: null,
+        }),
+      [`GET ${agreementPath}/link`]: () =>
+        Response.json({
+          url: 'http://127.0.0.1:54321/storage/v1/object/sign/documents/agreement',
+          fileName: 'Act-aditional-semnare-electronica-Popescu-Ion.pdf',
+          expiresInSeconds: 600,
+        }),
+    });
+    mount(employeePath);
+    const card = await screen.findByTestId('signing-agreement-card');
+    await waitFor(() =>
+      expect(within(card).getByTestId('signing-agreement-download').getAttribute('href')).toContain(
+        '/files/download?'
+      )
+    );
+    const address = new URL(
+      within(card).getByTestId('signing-agreement-download').getAttribute('href')!
+    );
+    expect(address.searchParams.get('source')).toBe(
+      'http://127.0.0.1:54321/storage/v1/object/sign/documents/agreement'
+    );
+    expect(address.searchParams.get('name')).toBe(
+      'Act-aditional-semnare-electronica-Popescu-Ion.pdf'
+    );
+    expect(address.searchParams.get('disposition')).toBe('attachment');
+    expect(requests('GET', agreementPath)).toHaveLength(0);
+    expect(saved).toEqual([]);
+  });
+
   it('marks a generated agreement signed on paper with its scan', async () => {
     let signed = false;
     mockApi({
@@ -923,6 +966,12 @@ describe("the employee's signing agreement", () => {
               canChange: true,
               createdAt: '2026-10-18T08:00:00.000Z',
               updatedAt: '2026-10-18T08:00:00.000Z',
+              link: {
+                url: 'http://127.0.0.1:54321/storage/v1/object/sign/client-files/act',
+                fileName: 'act.pdf',
+                disposition: 'inline',
+                expiresInSeconds: 600,
+              },
             },
           ],
         }),

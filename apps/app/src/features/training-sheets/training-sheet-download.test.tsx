@@ -47,6 +47,14 @@ function mockApi({
     if (url.pathname === `${employeePath}/training-sheets`)
       return Response.json({ ssm: sheetStatus(ssm), psi: sheetStatus(psi) });
     if (url.pathname === `${employeePath}/training-sheet`) return sheet();
+    if (url.pathname === `${employeePath}/training-sheet/link`) {
+      const sequence = url.searchParams.get('sequence');
+      return Response.json({
+        url: `https://files.example.test/signed/${url.searchParams.get('domain')}-${sequence}`,
+        fileName: `Fisa-SSM-Popescu-Ion${sequence === '1' ? '' : `-${sequence}`}.pdf`,
+        expiresInSeconds: 600,
+      });
+    }
     throw new Error(`Unexpected request: ${url}`);
   });
 }
@@ -122,7 +130,7 @@ describe('TrainingSheetDownload', () => {
     expect(screen.queryByRole('status')).toBeNull();
   });
 
-  it('calls a merged sheet a reading copy and offers each original by its sequence', async () => {
+  it('calls a merged sheet a reading copy and offers each original as a real link, by its sequence', async () => {
     mockApi({ ssm: { ready: true, missing: [], stored: true, sequences: [1, 2] } });
     mount('ssm');
     await screen.findByRole('button', { name: 'Descarcă fișa SSM (copie de citire)' });
@@ -131,20 +139,36 @@ describe('TrainingSheetDownload', () => {
     await userEvent.click(originals);
     const items = await screen.findAllByTestId('training-sheet-ssm-original');
     expect(items.map((item) => item.textContent)).toEqual(['Fișa 1', 'Fișa 2 (continuare)']);
-    await userEvent.click(items[1]!);
-
-    await waitFor(() => expect(saved).toHaveLength(1));
-    const sheetCall = fetchMock.mock.calls
-      .map(([input]) => new URL(String(input)))
-      .find((url) => url.pathname.endsWith('/training-sheet'))!;
-    expect(sheetCall.searchParams.get('sequence')).toBe('2');
+    await waitFor(() => expect(items[1]!.getAttribute('href')).toContain('/files/download?'));
+    const second = new URL(items[1]!.getAttribute('href')!);
+    expect(second.searchParams.get('source')).toBe('https://files.example.test/signed/ssm-2');
+    expect(second.searchParams.get('name')).toBe('Fisa-SSM-Popescu-Ion-2.pdf');
+    expect(second.searchParams.get('disposition')).toBe('attachment');
+    expect(saved).toHaveLength(0);
   });
 
-  it('offers no originals for a single sheet', async () => {
+  it('is a pair of real links for a single stored sheet: a download and a preview in a tab', async () => {
     mockApi({ ssm: { ready: true, missing: [], stored: true, sequences: [1] } });
     mount('ssm');
-    await screen.findByRole('button', { name: 'Descarcă fișa SSM' });
+    await waitFor(() =>
+      expect(screen.getByTestId('training-sheet-ssm').getAttribute('href')).toContain(
+        '/files/download?'
+      )
+    );
+    const download = screen.getByTestId('training-sheet-ssm');
+    expect(download.textContent).toBe('Descarcă fișa SSM');
+    const saved = new URL(download.getAttribute('href')!);
+    expect(saved.searchParams.get('source')).toBe('https://files.example.test/signed/ssm-1');
+    expect(saved.searchParams.get('name')).toBe('Fisa-SSM-Popescu-Ion.pdf');
+    expect(saved.searchParams.get('disposition')).toBe('attachment');
+    expect(download.getAttribute('target')).toBeNull();
+    const preview = screen.getByTestId('training-sheet-ssm-preview');
+    expect(new URL(preview.getAttribute('href')!).searchParams.get('disposition')).toBe('inline');
+    expect(preview.getAttribute('target')).toBe('_blank');
     expect(screen.queryByTestId('training-sheet-ssm-originals')).toBeNull();
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/training-sheet/link'))
+    ).toHaveLength(1);
   });
 
   it('is disabled while data is missing', async () => {

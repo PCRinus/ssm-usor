@@ -20,11 +20,10 @@ import {
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { Download, FileUp, Lock, MoreHorizontal, Pencil, Trash2, Upload } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { type MouseEvent, useEffect, useState } from 'react';
 
 import {
   type ClientFileListResponse,
-  getClientFileDownload,
   getListClientFilesQueryKey,
   setClientFileOwnersOnly,
   useListClientFiles,
@@ -34,7 +33,8 @@ import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useMe } from '@/features/account/use-me';
 import type { Client } from '@/features/clients/client-form-schema';
-import { fileAddress, openDownload } from '@/lib/save-file';
+import { type Disposition, linkTarget, openAddress, renewalMs } from '@/lib/file-link';
+import { fileAddress } from '@/lib/save-file';
 
 import { DeleteClientFileDialog, RenameClientFileDialog } from './client-file-dialogs';
 import {
@@ -43,7 +43,6 @@ import {
   fileKind,
   formatFileSize,
   formatUploadDate,
-  opensInTab,
 } from './client-file-format';
 import { UploadClientFilesDialog } from './client-file-upload-dialog';
 import { hasFiles, useFileDrop } from './use-file-drop';
@@ -65,9 +64,14 @@ export function ClientFilesCard({
   const lead = client.stage === 'lead';
   const params = employee ? { employeeId: employee.id } : undefined;
   const queryKey = [...getListClientFilesQueryKey(client.id, params), userId];
+  // Every file comes with a signed link, so the list fetches itself again before they expire.
   const files = useListClientFiles(client.id, params, {
     request: apiRequest,
-    query: { queryKey },
+    query: {
+      queryKey,
+      staleTime: (current) => renewalMs(current.state.data?.items[0]?.link.expiresInSeconds),
+      refetchInterval: (current) => renewalMs(current.state.data?.items[0]?.link.expiresInSeconds),
+    },
   });
   const [uploading, setUploading] = useState<File[] | null>(null);
   const [renaming, setRenaming] = useState<ClientFile | null>(null);
@@ -93,25 +97,47 @@ export function ClientFilesCard({
     };
   }, []);
 
-  // A tab opened after the link arrives would be taken for a popup and blocked, so it opens
-  // on the click and is pointed at the file once the link is there.
+  const addressOf = (file: ClientFile, how: 'open' | 'download') => {
+    const disposition: Disposition =
+      how === 'open' && file.link.disposition === 'inline' ? 'inline' : 'attachment';
+    return { href: fileAddress(apiRequest.baseUrl, file.link, disposition), disposition };
+  };
+
+  // A phone that slept may keep a link past its expiry before the list fetches itself again, so
+  // a tap past that point asks for the list first.
+  const linksStaleAt =
+    files.dataUpdatedAt + ((files.data?.items[0]?.link.expiresInSeconds ?? 0) - 30) * 1_000;
+
   async function openFile(file: ClientFile, how: 'open' | 'download') {
     setError(null);
-    const tab = how === 'open' && opensInTab(file.mimeType) ? window.open('', '_blank') : null;
-    if (tab) tab.opener = null;
-    try {
-      const link = await getClientFileDownload(client.id, file.id, apiRequest);
-      if (tab && link.disposition === 'inline') {
-        tab.location.href = fileAddress(apiRequest.baseUrl, link, 'inline');
-      } else {
-        tab?.close();
-        openDownload(apiRequest.baseUrl, link);
-      }
-    } catch {
-      tab?.close();
+    const { data } = await files.refetch();
+    const fresh = data?.items.find((item) => item.id === file.id);
+    if (!fresh) {
       setError(`Nu am putut deschide „${file.name}”. Verifică conexiunea și încearcă din nou.`);
-      await queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(client.id) });
+      return;
     }
+    const { href, disposition } = addressOf(fresh, how);
+    openAddress(href, disposition);
+  }
+
+  const linkProps = (file: ClientFile, how: 'open' | 'download') => {
+    const { href, disposition } = addressOf(file, how);
+    return {
+      href,
+      target: linkTarget(disposition),
+      onClick: (event: MouseEvent<HTMLAnchorElement>) => {
+        if (event.timeStamp + performance.timeOrigin < linksStaleAt) return;
+        event.preventDefault();
+        void openFile(file, how);
+      },
+    };
+  };
+
+  function openRow(file: ClientFile, event: MouseEvent<HTMLElement>) {
+    if (event.timeStamp + performance.timeOrigin >= linksStaleAt)
+      return void openFile(file, 'open');
+    const { href, disposition } = addressOf(file, 'open');
+    openAddress(href, disposition);
   }
 
   async function setOwnersOnly(file: ClientFile, ownersOnly: boolean) {
@@ -241,8 +267,9 @@ export function ClientFilesCard({
                   showOwnersOnly={!lead}
                   canSwitch={isOwner && !lead && !readOnly}
                   switching={switching.includes(file.id)}
-                  onOpen={() => void openFile(file, 'open')}
-                  onDownload={() => void openFile(file, 'download')}
+                  open={linkProps(file, 'open')}
+                  download={linkProps(file, 'download')}
+                  onActivate={(event) => openRow(file, event)}
                   onRename={() => setRenaming(file)}
                   onDelete={() => setDeleting(file)}
                   onOwnersOnly={(ownersOnly) => void setOwnersOnly(file, ownersOnly)}
@@ -289,14 +316,21 @@ export function ClientFilesCard({
   );
 }
 
+type FileAnchor = {
+  href: string;
+  target: string | undefined;
+  onClick: (event: MouseEvent<HTMLAnchorElement>) => void;
+};
+
 function FileRow({
   file,
   changeable,
   showOwnersOnly,
   canSwitch,
   switching,
-  onOpen,
-  onDownload,
+  open,
+  download,
+  onActivate,
   onRename,
   onDelete,
   onOwnersOnly,
@@ -306,8 +340,9 @@ function FileRow({
   showOwnersOnly: boolean;
   canSwitch: boolean;
   switching: boolean;
-  onOpen: () => void;
-  onDownload: () => void;
+  open: FileAnchor;
+  download: FileAnchor;
+  onActivate: (event: MouseEvent<HTMLElement>) => void;
   onRename: () => void;
   onDelete: () => void;
   onOwnersOnly: (ownersOnly: boolean) => void;
@@ -320,21 +355,20 @@ function FileRow({
   return (
     <TableRow
       data-testid="client-file-row"
-      {...rowClickProps(onOpen)}
+      {...rowClickProps(onActivate)}
       className="cursor-pointer max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-2 max-sm:py-3"
     >
       <TableCell className="whitespace-normal max-sm:p-0">
         <div className="flex min-w-0 items-start gap-3">
           <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div className="grid min-w-0 gap-1">
-            <button
-              type="button"
+            <a
               data-testid="client-file-open"
               className="w-fit rounded-sm text-left font-medium wrap-anywhere underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              onClick={onOpen}
+              {...open}
             >
               {file.name}
-            </button>
+            </a>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
               <span data-testid="client-file-kind">{kind.label}</span>
               <span className="sm:hidden">· {size}</span>
@@ -371,15 +405,15 @@ function FileRow({
       </TableCell>
       <TableCell className="align-top max-sm:col-start-2 max-sm:row-start-1 max-sm:p-0">
         <div className="flex gap-1 max-sm:justify-end">
-          <Button
-            variant="ghost"
-            size="icon"
-            data-testid="client-file-download"
-            aria-label={`Descarcă ${file.name}`}
-            title="Descarcă"
-            onClick={onDownload}
-          >
-            <Download aria-hidden="true" />
+          <Button asChild variant="ghost" size="icon">
+            <a
+              data-testid="client-file-download"
+              aria-label={`Descarcă ${file.name}`}
+              title="Descarcă"
+              {...download}
+            >
+              <Download aria-hidden="true" />
+            </a>
           </Button>
           {changeable && (
             <DropdownMenu>

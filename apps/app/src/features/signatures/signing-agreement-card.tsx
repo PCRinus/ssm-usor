@@ -23,17 +23,20 @@ import {
   getListClientDocumentsQueryKey,
   getListClientFilesQueryKey,
   getSigningAgreement,
+  getSigningAgreementLink,
   putSigningAgreementState,
   type SigningAgreementResponseAgreement,
   useGetOrganizationCompanyDetails,
   useListClientDocuments,
   useListClientFiles,
 } from '@/api/generated/api';
+import { FileLinkButton } from '@/components/file-link-button';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useMe } from '@/features/account/use-me';
 import { formatDay } from '@/features/participants/participant-format';
+import { useFileLink } from '@/lib/file-link';
 import { saveFile } from '@/lib/save-file';
 
 import {
@@ -118,6 +121,17 @@ export function SigningAgreementCard({
     state === 'signed_on_paper' ||
     state === 'in_contract' ||
     awaitsEmployer;
+  // Signed electronically by either party, the agreement is a stored file with a link of its
+  // own; before that it is drawn up when asked for, and comes through the page.
+  const stored = Boolean(agreement?.employeeSignedAt || agreement?.employerSignedAt);
+  const storedLink = useFileLink({
+    queryKey: ['signing-agreement-link', employee.clientId, employee.id],
+    load: (signal) =>
+      getSigningAgreementLink(employee.clientId, employee.id, { ...apiRequest, signal }),
+    enabled: stored,
+    apiRequest,
+    disposition: 'attachment',
+  });
   const annexIssued = documents.data
     ? documents.data.notApplicable.includes('signing_regulation_annex') ||
       documents.data.items.some(
@@ -183,7 +197,18 @@ export function SigningAgreementCard({
                 Marchează semnat pe hârtie
               </Button>
             )}
-            {state !== 'in_contract' && (
+            {state !== 'in_contract' && stored && (
+              <FileLinkButton
+                variant="outline"
+                size="sm"
+                data-testid="signing-agreement-download"
+                link={storedLink}
+              >
+                <FileDown aria-hidden="true" />
+                Descarcă
+              </FileLinkButton>
+            )}
+            {state !== 'in_contract' && !stored && (
               <Button
                 variant="outline"
                 size="sm"
