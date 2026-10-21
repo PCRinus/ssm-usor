@@ -246,7 +246,7 @@ export const finishPortalTestAttempt: RouteHandler<
   if (error) throw fromTestFunction(error, 'finish test attempt');
   const attempt = ownAttempt(data, participantId);
   if (attempt.passed) await afterPass(c, db, attempt.id);
-  // Which option was correct is never answered: the retake draws and shuffles again (ADR 024).
+  // Which option was correct is never answered (ADR 024).
   const mistakes = attempt.passed
     ? []
     : markedQuestions(attempt.questions).flatMap((question, index) =>

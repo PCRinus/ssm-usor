@@ -92,7 +92,7 @@ export function toTestResult(
   };
 }
 
-// Never `questions`: a finished attempt carries the key of its draw.
+// Never `questions`: a summary lists no answers.
 export const attemptSummaryColumns =
   'id, participant_id, domain, test, started_at, finished_at, score, total, passed';
 

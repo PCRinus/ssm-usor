@@ -955,8 +955,7 @@ handlers answer the definer functions' `P0002` (`participant_not_found`, `attemp
 (`state`, `awaitingTest`, `lastPassedOn`, and `dueOn` for fire safety), the `results` newest
 first (`takenOn`, `material`, `grade` `admis`, `examiner` `{ name, jobTitle }` or null, `source`
 `portal` or `paper`, `attemptId`), and the `attempts` newest first as summaries: `startedAt`,
-`finishedAt`, `score`, `total`, `passed`, never the questions, since a finished attempt carries
-the key of its draw. The client's employee lists and the organization's _Angajați_ answer
+`finishedAt`, `score`, `total`, `passed`, never the questions. The client's employee lists and the organization's _Angajați_ answer
 `tests: { ssm, psi }` beside `training`, from the computed relationship `test_status`, and
 `?testState=passed|pending|annual_due|none` filters as `?trainingState=` does: `passed` keeps
 those passed in both domains, any other state those in it in either, through an inner embed.
