@@ -1,4 +1,4 @@
-import { testErrorReasons } from '@ssm-usor/contracts';
+import { clientConflictReasons, testErrorReasons } from '@ssm-usor/contracts';
 import type { QueryClient } from '@tanstack/react-query';
 
 import {
@@ -44,6 +44,8 @@ export function testFailure(cause: unknown, fallback: string) {
       return 'Examinatorul a semnat deja fișa de test, așa că examinatorul rezultatului nu se mai schimbă.';
     case testErrorReasons.resultFromAttempt:
       return 'La un rezultat din portal se schimbă doar examinatorul.';
+    case clientConflictReasons.clientArchived:
+      return 'Clientul este arhivat; rezultatele testelor lui nu se mai schimbă.';
   }
   if (cause instanceof ApiHttpError && cause.status === 404) {
     return 'Nu mai există: altcineva l-a șters între timp. Reîncarcă pagina.';

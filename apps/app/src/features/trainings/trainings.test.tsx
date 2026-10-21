@@ -1061,6 +1061,27 @@ describe("an employee's knowledge tests", () => {
     );
   });
 
+  it('says so when the client was archived meanwhile', async () => {
+    mockApi({
+      [`GET ${testsPath}`]: () => Response.json(employeeTests(testStatus('pending', 'hiring'))),
+      [`GET ${trainingsPath}/proposal`]: () =>
+        Response.json(proposal({ trainer: { name: 'Dan Marin', jobTitle: 'Inspector SSM' } })),
+      [`POST ${testsPath}/results`]: () =>
+        Response.json(
+          { error: 'conflict', message: 'x', reason: 'client_archived' },
+          { status: 409 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('tests-record-paper'));
+    const dialog = within(await screen.findByTestId('test-result-dialog'));
+    await user.click(dialog.getByTestId('test-result-submit'));
+    expect((await dialog.findByTestId('test-result-error')).textContent).toBe(
+      'Clientul este arhivat; rezultatele testelor lui nu se mai schimbă.'
+    );
+  });
+
   it("corrects a result's examiner, and the request lists follow the examiner", async () => {
     mockApi({
       [`GET ${testsPath}`]: () =>
