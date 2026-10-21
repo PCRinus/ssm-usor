@@ -563,6 +563,32 @@ describe('the sitting', () => {
     expect(screen.getByTestId('test-counter').textContent).toBe('1 din 10');
   });
 
+  it('holds the options while the answer is being saved', async () => {
+    let save!: () => void;
+    vi.mocked(answerPortalTestAttempt).mockImplementationOnce(
+      (_participant, attemptId, questionIndex, { chosen }) =>
+        new Promise((resolve) => {
+          save = () => {
+            const answered = attempt(attemptId);
+            answered.questions[Number(questionIndex)]!.chosen = chosen;
+            resolve({ attempt: answered });
+          };
+        })
+    );
+    const user = await openSitting();
+    await user.click(option('Varianta A'));
+    await user.click(screen.getByTestId('test-next'));
+
+    expect(option('Varianta B')).toHaveProperty('disabled', true);
+    await user.click(option('Varianta B'));
+    expect(option('Varianta B')).toHaveProperty('checked', false);
+    save();
+    await screen.findByText('2 din 10');
+    await user.click(screen.getByTestId('test-back'));
+    expect(option('Varianta A')).toHaveProperty('checked', true);
+    expect(option('Varianta B')).toHaveProperty('checked', false);
+  });
+
   it('sends the test from the last question and shows a pass', async () => {
     vi.mocked(startPortalTestAttempt).mockResolvedValue({
       attempt: attempt(firstAttempt.id, 9),

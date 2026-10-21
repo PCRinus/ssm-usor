@@ -68,6 +68,7 @@ export function TestSitting({
   const position = index + 1;
 
   const toggle = (option: number) => {
+    if (busy) return;
     const next = chosen.includes(option)
       ? chosen.filter((each) => each !== option)
       : [...chosen, option].sort((a, b) => a - b);
@@ -155,7 +156,7 @@ export function TestSitting({
                   data-testid="test-option"
                   data-checked={checked}
                   className={cn(
-                    'flex min-h-14 cursor-pointer items-start gap-3.5 rounded-xl border bg-card px-4 py-3.5 transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 sm:px-5',
+                    'flex min-h-14 cursor-pointer items-start gap-3.5 rounded-xl border bg-card px-4 py-3.5 transition-colors has-[:disabled]:cursor-default has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 sm:px-5',
                     checked ? 'border-primary bg-accent/60' : 'hover:bg-muted/50'
                   )}
                 >
@@ -163,6 +164,7 @@ export function TestSitting({
                     type="checkbox"
                     className="sr-only"
                     checked={checked}
+                    disabled={busy}
                     onChange={() => toggle(at)}
                   />
                   <span
