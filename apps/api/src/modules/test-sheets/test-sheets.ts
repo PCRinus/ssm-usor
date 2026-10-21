@@ -611,6 +611,16 @@ export function testSheetFileName(
   );
 }
 
+async function issueQuietly(deps: TestSheetDeps, sheet: TestSheetRow, resultId: string) {
+  try {
+    await issueTestSheetRequests(deps, sheet, null);
+  } catch (error) {
+    console.error(
+      `Test sheet requests of ${resultId} not issued: ${error instanceof ApiError ? (error.reason ?? error.code) : 'unknown'}`
+    );
+  }
+}
+
 /**
  * With the secret key, after the caller has read the result: a participant reads no document
  * file, and a test sheet's requests are the API's to issue.
@@ -621,17 +631,18 @@ export async function testSheetOf(c: Context<ApiEnv>, resultId: string) {
   if (existing) return existing;
   const sheet = await ensureTestSheet(deps, resultId);
   if (!sheet) throw testSheetNotAvailable();
-  try {
-    await issueTestSheetRequests(deps, sheet, null);
-  } catch (error) {
-    console.error(
-      `Test sheet requests of ${resultId} not issued: ${error instanceof ApiError ? (error.reason ?? error.code) : 'unknown'}`
-    );
-  }
+  await issueQuietly(deps, sheet, resultId);
   return sheet;
 }
 
-export async function testSheetPdf(c: Context<ApiEnv>, resultId: string) {
-  const sheet = await testSheetOf(c, resultId);
-  return testSheetDeps(c).sheets.files.readDocument(sheet.storage_path);
+// A stored sheet is asked for its missing requests as well: the pass may have stored it and then
+// failed to issue them, and nothing else tries again.
+export async function readTestSheet(deps: TestSheetDeps, resultId: string) {
+  const sheet = await ensureTestSheet(deps, resultId);
+  if (!sheet) throw testSheetNotAvailable();
+  await issueQuietly(deps, sheet, resultId);
+  return deps.sheets.files.readDocument(sheet.storage_path);
 }
+
+export const testSheetPdf = (c: Context<ApiEnv>, resultId: string) =>
+  readTestSheet(testSheetDeps(c), resultId);

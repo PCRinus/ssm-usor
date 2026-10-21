@@ -17,6 +17,7 @@ import {
   applyTestSheetSignature,
   ensureTestSheet,
   issueTestSheetRequests,
+  readTestSheet,
   refillExaminer,
   type TestSheetDeps,
   testSheetFileName,
@@ -328,6 +329,47 @@ describe('issueTestSheetRequests', () => {
     });
 
     expect(await issueTestSheetRequests(deps(), sheetRow(), null)).toBe(0);
+  });
+});
+
+describe('readTestSheet', () => {
+  it('asks a stored sheet for the requests its pass did not issue, then reads it', async () => {
+    mockUpstream({
+      'GET /rest/v1/test_sheets': () => [sheetRow()],
+      'GET /rest/v1/signature_requests': () => [],
+      'POST /rest/v1/signature_requests': () => [],
+      '/rest/v1/test_sheet_signatures': () => [],
+      '/rest/v1/test_results': () => [resultRow()],
+      '/rest/v1/client_participants': ({ url }) =>
+        url.searchParams.get('employee_id') ? [{ user_id: traineeAccount, kind: 'employee' }] : [],
+      '/rest/v1/employee_signing_agreements': () => [],
+      '/rest/v1/organization_members': () => [{ user_id: memberAccount }],
+      '/rest/v1/profiles': () => [{ user_id: memberAccount, full_name: 'Ana Specialist' }],
+    });
+    files.readDocument.mockResolvedValue(bytes('%PDF stored'));
+
+    expect(await readTestSheet(deps(), resultId)).toEqual(bytes('%PDF stored'));
+
+    expect(convertForm).not.toHaveBeenCalled();
+    expect(files.readDocument).toHaveBeenCalledWith(sheetRow().storage_path);
+    expect(
+      callsTo('/rest/v1/signature_requests', 'POST').map(
+        (call) => (call.body as { slot: string }).slot
+      )
+    ).toEqual(['trainee', 'examiner']);
+  });
+
+  it('reads the sheet even when its requests cannot be issued', async () => {
+    mockUpstream({
+      'GET /rest/v1/test_sheets': () => [sheetRow()],
+      'GET /rest/v1/signature_requests': () =>
+        Response.json({ code: 'XX000', message: 'boom' }, { status: 500 }),
+      '/rest/v1/test_sheet_signatures': () => [],
+      '/rest/v1/test_results': () => [resultRow()],
+    });
+    files.readDocument.mockResolvedValue(bytes('%PDF stored'));
+
+    expect(await readTestSheet(deps(), resultId)).toEqual(bytes('%PDF stored'));
   });
 });
 
