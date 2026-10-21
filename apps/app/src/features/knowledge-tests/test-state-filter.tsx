@@ -4,7 +4,7 @@ import { FilterChips } from '@/components/filter-chips';
 
 const chips: { value: TestStateFilterValue | undefined; label: string }[] = [
   { value: undefined, label: 'Toate' },
-  { value: 'passed', label: 'Promovate' },
+  { value: 'passed', label: 'La zi' },
   { value: 'pending', label: 'De susținut' },
   { value: 'annual_due', label: 'Anual scadent' },
   { value: 'none', label: 'Fără test' },

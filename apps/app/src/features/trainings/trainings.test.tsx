@@ -1156,7 +1156,7 @@ describe('test state in the employee lists', () => {
       within(screen.getByTestId('employees-test-filter'))
         .getAllByRole('button')
         .map((chip) => chip.textContent)
-    ).toEqual(['Toate', 'Promovate', 'De susținut', 'Anual scadent', 'Fără test']);
+    ).toEqual(['Toate', 'La zi', 'De susținut', 'Anual scadent', 'Fără test']);
     await user.click(screen.getByTestId('employees-test-filter-pending'));
     await waitFor(() =>
       expect(runtime.router.state.location.search).toEqual({ testState: 'pending' })

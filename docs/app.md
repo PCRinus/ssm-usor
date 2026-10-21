@@ -1110,9 +1110,10 @@ their tab bars read.
   signatures and in the signing dialog beside the trainings, named by the request's `label` and
   linking to the employee's tab of its domain; one code signs both kinds.
 - Test state in the lists: after the two training columns, one "Testare" column with the SSM
-  and PSI states as badges, each after its domain's name; chips "Toate / Promovate / De susținut /
-  Anual scadent / Fără test" beside the training chips set `?testState=` the same way, and are
-  hidden on the former employees.
+  and PSI states as badges, each after its domain's name; chips "Toate / La zi / De susținut /
+  Anual scadent / Fără test" beside the training chips set `?testState=` the same way ("La zi"
+  is passed in both domains, any other chip that state in either), and are hidden on the former
+  employees.
 - `/legislatie`: the "Legislație" page ([ADR 017](architecture/adr-017-legislation-monitoring.md)),
   in `src/features/legislation/`, the sidebar entry after "Teste" for owners and specialists
   alike, which opens to its three tabs while the page is open. `legislation-layout.tsx` keeps the title, its one-line description and the last check
