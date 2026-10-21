@@ -126,8 +126,7 @@ test('an employee signs the agreement and a training with one code, and the clie
     await expect(page.getByTestId('training-sheet-ssm-stored')).toHaveText(
       'Fișă semnată electronic'
     );
-    // A stored sheet is a real link shown inline, which the in-app browser of a mail client can
-    // open where it cannot download; the test reads what the link serves.
+    // The link opens in a tab of its own, so the test reads what it serves.
     const open = page.getByTestId('training-sheet-ssm-open');
     await expect(open).toHaveAttribute('href', /\/files\/download\?/);
     await expect(open).toHaveAttribute('target', '_blank');

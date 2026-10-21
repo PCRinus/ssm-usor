@@ -1,9 +1,7 @@
 import { z } from 'zod';
 
-/**
- * A signed link to a stored file, for the page to put on a real anchor that opens it through
- * `GET /files/download`; the link authorizes the read by itself and expires on its own.
- */
+// Opened by the browser from a real anchor through `GET /files/download`: the signed link
+// authorizes the read on its own, so the anchor needs no bearer token.
 export const fileLinkResponseSchema = z.object({
   url: z.url(),
   fileName: z.string(),
