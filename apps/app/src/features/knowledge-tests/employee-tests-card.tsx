@@ -240,7 +240,7 @@ function TestsBody({
                     </Button>
                   )}
                 </div>
-                {result.sheet.available && (
+                {result.source === 'portal' && (
                   <TestSheetLine
                     clientId={clientId}
                     employeeId={employeeId}

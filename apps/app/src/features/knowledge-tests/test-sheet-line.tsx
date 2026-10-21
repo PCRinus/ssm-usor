@@ -2,6 +2,7 @@ import {
   signatureErrorReasons,
   type SignatureSlotState,
   signerSlotLabels,
+  testErrorReasons,
   type TestSheetSignerSlot,
   testSheetSignerSlots,
 } from '@ssm-usor/contracts';
@@ -36,6 +37,17 @@ import type { TestResult } from './test-result-dialog';
 
 const markable = (state: SignatureSlotState) => state === 'unassigned' || state === 'pending';
 
+function previewFailure(cause: unknown) {
+  if (cause instanceof PreviewBlockedError) {
+    return 'Browserul a blocat fereastra nouă. Permite ferestrele noi pentru această pagină.';
+  }
+  const reason = reasonOf(cause);
+  if (reason === testErrorReasons.testSheetNotAvailable || reason === 'pdf_unavailable') {
+    return 'Fișa de test nu a putut fi întocmită acum. Încearcă din nou peste câteva minute.';
+  }
+  return 'Nu am putut deschide fișa de test. Verifică conexiunea și încearcă din nou.';
+}
+
 export function TestSheetLine({
   clientId,
   employeeId,
@@ -47,7 +59,7 @@ export function TestSheetLine({
   result: TestResult;
   readOnly: boolean;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const [previewing, setPreviewing] = useState(false);
   const [marking, setMarking] = useState<TestSheetSignerSlot | null>(null);
   const { signed } = result.sheet;
@@ -59,12 +71,15 @@ export function TestSheetLine({
         () => getTestSheet(clientId, employeeId, result.id, apiRequest),
         'Fișa de test'
       );
+      // Opening draws up a sheet the pass could not, and requests its signatures.
+      if (!result.sheet.available) {
+        await Promise.all([
+          invalidateEmployeeTests(queryClient, clientId, employeeId),
+          invalidateSignatures(queryClient, clientId),
+        ]);
+      }
     } catch (cause) {
-      toast.error(
-        cause instanceof PreviewBlockedError
-          ? 'Browserul a blocat fereastra nouă. Permite ferestrele noi pentru această pagină.'
-          : 'Nu am putut deschide fișa de test. Verifică conexiunea și încearcă din nou.'
-      );
+      toast.error(previewFailure(cause));
     } finally {
       setPreviewing(false);
     }
@@ -89,6 +104,12 @@ export function TestSheetLine({
           Previzualizează
         </Button>
       </div>
+      {!result.sheet.available && (
+        <p data-testid="tests-sheet-pending" className="text-sm text-muted-foreground">
+          Fișa nu a putut fi întocmită la promovare. Previzualizarea o întocmește și cere
+          semnăturile.
+        </p>
+      )}
       <ul className="grid gap-1.5 text-sm">
         {testSheetSignerSlots.map((slot) => (
           <li

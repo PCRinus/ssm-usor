@@ -1270,6 +1270,70 @@ describe("a portal pass's test sheet", () => {
     open.mockRestore();
   });
 
+  it('offers a sheet the pass could not draw up, and opening it draws it up', async () => {
+    let drawnUp = false;
+    let attempts = 0;
+    mockApi({
+      [`GET ${testsPath}`]: () =>
+        withResult(
+          drawnUp
+            ? signedBy('pending', 'pending')
+            : {
+                ...signedBy('unassigned', 'unassigned'),
+                sheet: {
+                  available: false,
+                  signed: { trainee: 'unassigned', examiner: 'unassigned' },
+                },
+              }
+        )(),
+      [`GET ${resultPath}/sheet`]: () => {
+        attempts += 1;
+        if (attempts === 1) {
+          return Response.json(
+            { error: 'service_unavailable', message: 'x', reason: 'pdf_unavailable' },
+            { status: 503 }
+          );
+        }
+        drawnUp = true;
+        return new Response(new Uint8Array([37, 80, 68, 70]), {
+          headers: { 'Content-Type': 'application/pdf' },
+        });
+      },
+    });
+    const tab = {
+      document: { write: vi.fn(), close: vi.fn(), title: '' },
+      location: { replace: vi.fn() },
+      close: vi.fn(),
+    };
+    const open = vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, { createObjectURL: () => 'blob:test-sheet', revokeObjectURL: () => {} })
+    );
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    const user = userEvent.setup();
+    const sheet = within(await screen.findByTestId('tests-sheet'));
+    expect(sheet.getByTestId('tests-sheet-pending')).toBeTruthy();
+
+    await user.click(sheet.getByTestId('tests-sheet-preview'));
+    expect(
+      await screen.findByText(
+        'Fișa de test nu a putut fi întocmită acum. Încearcă din nou peste câteva minute.'
+      )
+    ).toBeTruthy();
+    expect(tab.close).toHaveBeenCalled();
+
+    await user.click(sheet.getByTestId('tests-sheet-preview'));
+    await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith('blob:test-sheet'));
+    await waitFor(() => expect(screen.queryByTestId('tests-sheet-pending')).toBeNull());
+    expect(
+      within(screen.getByTestId('tests-sheet'))
+        .getAllByTestId('signature-slot-state')
+        .map((badge) => badge.dataset.state)
+    ).toEqual(['pending', 'pending']);
+    open.mockRestore();
+  });
+
   it('marks a slot signed on paper after a confirmation, and words a refusal', async () => {
     let marked = false;
     mockApi({
