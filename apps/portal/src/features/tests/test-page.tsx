@@ -181,10 +181,7 @@ function KnowledgeTestFlow({
           participantId={participantId}
           domain={domain}
           card={card.data}
-          awaiting={
-            domainTests.status.awaitingTest === knowledgeTest ||
-            domainTests.inProgress?.test === knowledgeTest
-          }
+          awaiting={domainTests.status.awaitingTest === knowledgeTest}
           inProgress={domainTests.inProgress?.test === knowledgeTest}
           starting={starting}
           startFailure={startFailure}

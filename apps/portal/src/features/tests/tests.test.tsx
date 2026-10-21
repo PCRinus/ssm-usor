@@ -503,6 +503,22 @@ describe('the study card', () => {
     expect(screen.queryByTestId('test-start')).toBeNull();
   });
 
+  it('offers no continuation of an attempt left open once the test no longer awaits', async () => {
+    vi.mocked(useGetPortalTests).mockReturnValue(
+      queryResult(
+        portalTests({
+          ssm: {
+            status: testStatus({ state: 'passed', lastPassedOn: '2026-10-21' }),
+            inProgress: attempt(firstAttempt.id, 3),
+          },
+        })
+      )
+    );
+    mountPortal(signedIn(), '/instruiri/test/ssm/hiring');
+    expect(await screen.findByTestId('test-not-awaiting')).toBeTruthy();
+    expect(screen.queryByTestId('test-start')).toBeNull();
+  });
+
   it('sends an unknown test back to Instruiri', async () => {
     mountPortal(signedIn(), '/instruiri/test/ssm/annual');
     expect(await screen.findByTestId('training-page')).toBeTruthy();
