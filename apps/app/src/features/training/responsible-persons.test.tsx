@@ -308,6 +308,53 @@ describe('client responsible persons', () => {
     ).toBe('unchecked');
   });
 
+  it('offers a linked administrator as that employee, once, and links the person to them', async () => {
+    mockApi({
+      items: [],
+      details: {
+        ...emptyDetails,
+        legalRepresentativeName: 'Paolo-Antonio Luca',
+        legalRepresentativeRole: 'Administrator',
+        legalRepresentativeEmployeeId: employee.id,
+      },
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-add'));
+    await user.click(await screen.findByTestId('responsible-role-workers_representative'));
+    await user.click(screen.getByTestId('responsible-employee'));
+    const options = within(await screen.findByRole('listbox')).getAllByRole('option');
+    expect(options.map((option) => option.textContent)).toEqual([
+      'Paolo-Antonio LucaAdministrator',
+    ]);
+    await user.click(options[0]!);
+
+    expect(screen.getByTestId<HTMLInputElement>('responsible-name').value).toBe(
+      'Paolo-Antonio Luca'
+    );
+    expect(screen.getByTestId<HTMLInputElement>('responsible-job-title').value).toBe(
+      'Administrator'
+    );
+    const representative = screen.getByTestId('responsible-role-workers_representative');
+    expect(representative.getAttribute('data-state')).toBe('unchecked');
+    expect(representative.hasAttribute('disabled')).toBe(true);
+
+    await user.click(screen.getByTestId('responsible-role-first_aid'));
+    await user.click(screen.getByTestId('responsible-save'));
+    await waitFor(() =>
+      expect(requests(listPath, 'POST')).toEqual([
+        {
+          employeeId: employee.id,
+          workplaceId: null,
+          fullName: 'Paolo-Antonio Luca',
+          jobTitle: 'Administrator',
+          roles: ['first_aid'],
+        },
+      ])
+    );
+  });
+
   it('says where to record the legal representative when the client has none', async () => {
     mockApi({ items: [] });
     mount();

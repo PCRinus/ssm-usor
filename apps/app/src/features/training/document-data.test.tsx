@@ -7,6 +7,7 @@ import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
 type Details = ClientDocumentDetailsResponse['documentDetails'];
+type DetailsInput = Omit<Details, 'legalRepresentativeEmployee'>;
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const sampleClient = {
@@ -29,6 +30,7 @@ const sampleClient = {
 const emptyDetails = {
   legalRepresentativeName: null as string | null,
   legalRepresentativeRole: null,
+  legalRepresentativeEmployeeId: null,
   periodicTrainingMinutes: null,
   administrativeTrainingIntervalMonths: null,
   administrativeTrainingNotApplicable: false,
@@ -42,6 +44,7 @@ const emptyDetails = {
 const savedDetails = {
   legalRepresentativeName: 'Maria Popescu',
   legalRepresentativeRole: 'Administrator',
+  legalRepresentativeEmployeeId: null,
   periodicTrainingMinutes: 120,
   administrativeTrainingIntervalMonths: 6,
   administrativeTrainingNotApplicable: false,
@@ -73,7 +76,7 @@ const welder = {
 
 function mockApi({
   client = sampleClient,
-  details = emptyDetails as Details,
+  details = emptyDetails as DetailsInput,
   positions = [] as (typeof welder)[],
   save = undefined as Route | undefined,
 } = {}) {
@@ -92,10 +95,14 @@ function mockApi({
       return Response.json({ items: positions });
     }
     if (pathname === detailsPath) {
-      if (method !== 'PUT') return Response.json({ documentDetails: current });
+      const read = () =>
+        Response.json({
+          documentDetails: { legalRepresentativeEmployee: null, ...(current as object) },
+        });
+      if (method !== 'PUT') return read();
       if (save) return save(init);
       current = JSON.parse(String(init?.body));
-      return Response.json({ documentDetails: current });
+      return read();
     }
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
@@ -411,7 +418,7 @@ describe('client document data', () => {
     ],
     ['a complete schedule', {}, 'details-administrative-interval'],
   ])('opens %s at the first choice to make when a row asks for it', async (_, change, field) => {
-    mockApi({ details: { ...savedDetails, ...change } as Details });
+    mockApi({ details: { ...savedDetails, ...change } as DetailsInput });
     const runtime = mountApp(
       authFixture(makeSession()).client,
       `/clients/${clientId}/training?focus=training-schedule`
@@ -422,7 +429,7 @@ describe('client document data', () => {
   });
 
   it("opens the legal representative's card at the field a row asks for", async () => {
-    mockApi({ details: savedDetails as Details });
+    mockApi({ details: savedDetails as DetailsInput });
     const runtime = mountApp(
       authFixture(makeSession()).client,
       `/clients/${clientId}/details?focus=legal-representative-name`

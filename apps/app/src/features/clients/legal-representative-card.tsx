@@ -1,13 +1,20 @@
+import { formatEmployeeName, maxPageSize, samePersonName } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
+import { useRouteContext } from '@tanstack/react-router';
+import { useEffect, useRef } from 'react';
+import { Controller, useWatch } from 'react-hook-form';
 
+import { getListEmployeesQueryKey, useListEmployees } from '@/api/generated/api';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { type LegalRepresentativeFocus, useFocusRequest } from '@/features/missing-data/focus';
+import { EmployeeCombobox } from '@/features/training/employee-combobox';
 import {
   type ClientSummary,
   describedBy,
@@ -16,7 +23,14 @@ import {
   useDocumentDetailsForm,
 } from '@/features/training/use-document-details-form';
 
-const fields = ['legalRepresentativeName', 'legalRepresentativeRole'] as const;
+const fields = [
+  'legalRepresentativeName',
+  'legalRepresentativeRole',
+  'legalRepresentativeIsEmployee',
+  'legalRepresentativeEmployeeId',
+] as const;
+
+const listParams = { page: 1, pageSize: maxPageSize, sort: 'name', order: 'asc' } as const;
 
 export function LegalRepresentativeCard({
   client,
@@ -99,6 +113,12 @@ export function LegalRepresentativeCard({
           <Fact label="Funcția" testId="legal-representative-role">
             {details.data.documentDetails.legalRepresentativeRole}
           </Fact>
+          {details.data.documentDetails.legalRepresentativeEmployee && (
+            <Fact label="Și angajat al firmei" testId="legal-representative-employee">
+              {formatEmployeeName(details.data.documentDetails.legalRepresentativeEmployee)},{' '}
+              {details.data.documentDetails.legalRepresentativeEmployee.jobTitle}
+            </Fact>
+          )}
         </FactList>
       )}
     </SectionCard>
@@ -126,6 +146,38 @@ function LegalRepresentativeForm({
   });
   const formRef = useRevealErrors(form);
   const { errors, isDirty } = form.formState;
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const [isEmployee, employeeId, typedName] = useWatch({
+    control: form.control,
+    name: [
+      'legalRepresentativeIsEmployee',
+      'legalRepresentativeEmployeeId',
+      'legalRepresentativeName',
+    ],
+  });
+  const employees = useListEmployees(client.id, listParams, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getListEmployeesQueryKey(client.id, listParams), userId],
+      enabled: isEmployee,
+    },
+  });
+  // Once per tick: a suggestion the user clears is not made again until the box is ticked anew.
+  const suggested = useRef(false);
+  useEffect(() => {
+    if (!isEmployee) {
+      suggested.current = false;
+      return;
+    }
+    if (suggested.current || employeeId || !employees.data) return;
+    suggested.current = true;
+    const matching = employees.data.items.filter((employee) =>
+      samePersonName(formatEmployeeName(employee), typedName)
+    );
+    if (matching.length === 1) {
+      form.setValue('legalRepresentativeEmployeeId', matching[0]!.id, { shouldDirty: true });
+    }
+  }, [isEmployee, employeeId, employees.data, typedName, form]);
 
   return (
     <form
@@ -179,6 +231,84 @@ function LegalRepresentativeForm({
           {...form.register('legalRepresentativeRole')}
         />
       </Field>
+      <div className="grid gap-3 sm:col-span-2">
+        <Controller
+          control={form.control}
+          name="legalRepresentativeIsEmployee"
+          render={({ field }) => (
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="details-representative-is-employee"
+                data-testid="details-representative-is-employee"
+                className="mt-0.5"
+                checked={field.value}
+                disabled={locked}
+                aria-describedby="details-representative-is-employee-description"
+                onCheckedChange={(checked) => {
+                  field.onChange(checked === true);
+                  if (checked !== true) {
+                    form.setValue('legalRepresentativeEmployeeId', '', { shouldDirty: true });
+                    form.clearErrors('legalRepresentativeEmployeeId');
+                  }
+                }}
+              />
+              <div className="grid gap-0.5">
+                <label htmlFor="details-representative-is-employee" className="text-sm font-medium">
+                  Administratorul este și angajat al firmei
+                </label>
+                <p
+                  id="details-representative-is-employee-description"
+                  className="text-xs text-muted-foreground"
+                >
+                  Documentele îl numesc o singură dată, nu o dată ca administrator și încă o dată ca
+                  angajat.
+                </p>
+              </div>
+            </div>
+          )}
+        />
+        {isEmployee && (
+          <Field
+            id="details-representative-employee"
+            label="Angajatul"
+            mark="required"
+            error={errors.legalRepresentativeEmployeeId}
+          >
+            <Controller
+              control={form.control}
+              name="legalRepresentativeEmployeeId"
+              render={({ field }) => (
+                <EmployeeCombobox
+                  id="details-representative-employee"
+                  testId="details-representative-employee"
+                  clientId={client.id}
+                  userId={userId}
+                  value={field.value}
+                  disabled={locked}
+                  invalid={Boolean(errors.legalRepresentativeEmployeeId)}
+                  describedBy={
+                    errors.legalRepresentativeEmployeeId
+                      ? 'details-representative-employee-error'
+                      : undefined
+                  }
+                  onSelect={(employee) => {
+                    field.onChange(employee?.id ?? '');
+                    form.clearErrors('legalRepresentativeEmployeeId');
+                    if (employee && !form.getValues('legalRepresentativeName').trim()) {
+                      // Documents print the first names, then the family name.
+                      form.setValue(
+                        'legalRepresentativeName',
+                        `${employee.firstName} ${employee.lastName}`,
+                        { shouldDirty: true, shouldValidate: true }
+                      );
+                    }
+                  }}
+                />
+              )}
+            />
+          </Field>
+        )}
+      </div>
       {errors.root?.server && (
         <Notice
           variant="destructive"
