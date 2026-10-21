@@ -123,21 +123,23 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         ? Response.json({ id: '7e7e7e7e-0000-4000-8000-000000000001' })
         : Response.json([]),
     attempts: (_, url) =>
-      url.searchParams.get('finished_at') === 'is.null'
-        ? Response.json([attemptRow])
-        : Response.json([
-            {
-              id: 'a7a7a7a7-0000-4000-8000-000000000000',
-              participant_id: participantId,
-              domain: 'ssm',
-              test: 'hiring',
-              started_at: '2026-10-19T09:00:00+00:00',
-              finished_at: '2026-10-19T09:10:00+00:00',
-              score: 5,
-              total: 10,
-              passed: false,
-            },
-          ]),
+      url.searchParams.has('id')
+        ? Response.json([{ id: attemptId }])
+        : url.searchParams.get('finished_at') === 'is.null'
+          ? Response.json([attemptRow])
+          : Response.json([
+              {
+                id: 'a7a7a7a7-0000-4000-8000-000000000000',
+                participant_id: participantId,
+                domain: 'ssm',
+                test: 'hiring',
+                started_at: '2026-10-19T09:00:00+00:00',
+                finished_at: '2026-10-19T09:10:00+00:00',
+                score: 5,
+                total: 10,
+                passed: false,
+              },
+            ]),
     studyCard: () =>
       Response.json([
         { explanation: 'Legea 319/2006 obligă angajatorul.' },
@@ -426,6 +428,34 @@ describe('POST /portal/participants/{participantId}/test-attempts/{attemptId}/fi
     expect(result.get('attempt_id')).toBe(`eq.${attemptId}`);
     const sheets = new URL(String(calls('/rest/v1/signed_sheets')[0]![0])).searchParams;
     expect(sheets.get('employee_id')).toBe(`eq.${employeeId}`);
+  });
+
+  it("finishes nothing for an attempt of the account's other participation", async () => {
+    mockUpstream({ attempts: () => Response.json([]) });
+    const response = await request(path, 'POST');
+    expect(response.status).toBe(404);
+    const drawn = new URL(String(calls('/rest/v1/test_attempts')[0]![0])).searchParams;
+    expect(drawn.get('id')).toBe(`eq.${attemptId}`);
+    expect(drawn.get('participant_id')).toBe(`eq.${participantId}`);
+    expect(calls('/rest/v1/rpc/finish_test_attempt')).toEqual([]);
+  });
+
+  it('answers 409 to an attempt finished already', async () => {
+    mockUpstream({ finish: () => raised('TST03', 'attempt_finished') });
+    const response = await request(path, 'POST');
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('attempt_finished');
+  });
+
+  it("answers 404 to a participation that is not the account's, asking nothing", async () => {
+    mockUpstream();
+    const response = await request(
+      `/portal/participants/88888888-0000-4000-8000-000000000009/test-attempts/${attemptId}/finish`,
+      'POST'
+    );
+    expect(response.status).toBe(404);
+    expect(calls('/rest/v1/test_attempts')).toEqual([]);
+    expect(calls('/rest/v1/rpc/finish_test_attempt')).toEqual([]);
   });
 });
 

@@ -223,6 +223,15 @@ export const finishPortalTestAttempt: RouteHandler<
   const { participantId, attemptId } = c.req.valid('param');
   testedEmployee(c, participantId);
   const db = createDataClient(c);
+  // Checked before the finish, which answers for the account and cannot be taken back.
+  const drawn = await db
+    .from('test_attempts')
+    .select('id')
+    .eq('id', attemptId)
+    .eq('participant_id', participantId)
+    .maybeSingle();
+  if (drawn.error) throw fromDatabaseError(drawn.error, 'attempt to finish');
+  if (!drawn.data) throw new ApiError('not_found', 'This attempt is not of this participation.');
   const { data, error } = await db.rpc('finish_test_attempt', {
     p_attempt_id: attemptId,
     ...evidenceOf(c),
