@@ -45,10 +45,6 @@ export function chosenFileKind(fileName: string) {
   return kinds[clientFileExtensions[extension as keyof typeof clientFileExtensions]];
 }
 
-// The types `/files/download` shows in a tab; the rest download.
-export const opensInTab = (mimeType: ClientFileType) =>
-  mimeType === 'application/pdf' || mimeType.startsWith('image/');
-
 const decimal = new Intl.NumberFormat('ro-RO', { maximumFractionDigits: 1 });
 
 // In binary units, so that the 25 MiB limit reads as the "25 MB" the messages promise.

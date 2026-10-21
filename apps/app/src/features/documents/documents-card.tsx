@@ -68,6 +68,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { rowClickProps } from '@/components/data-table/row-click';
+import { FileMenuItem } from '@/components/file-menu-item';
 import { Notice } from '@/components/notice';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { endWayBack } from '@/features/missing-data/way-back';
@@ -441,6 +442,11 @@ export function DocumentsCard<Set extends DocumentSet>({
           state: { openedFromList: true },
         })
     );
+    const fileOf = (revision: Revision, format: 'docx' | 'pdf') => ({
+      queryKey: ['document-file', document.id, revision.id, format],
+      load: (signal: AbortSignal) =>
+        getDocumentDownload(document.id, revision.id, { format }, { ...apiRequest, signal }),
+    });
     return (
       <Fragment key={document.id}>
         <TableRow id={rowId} data-testid="document-row" {...click} className={click.className}>
@@ -562,6 +568,7 @@ export function DocumentsCard<Set extends DocumentSet>({
                         Emite
                       </DropdownMenuItem>
                     )}
+                    {document.draft.annexes.length > 0 ? (
                     <DropdownMenuItem
                       data-testid="document-download-draft"
                       onSelect={() => void download(document, document.draft!)}
@@ -569,6 +576,17 @@ export function DocumentsCard<Set extends DocumentSet>({
                       <Download aria-hidden="true" />
                       Descarcă Word
                     </DropdownMenuItem>
+                    ) : (
+                      <FileMenuItem
+                        testId="document-download-draft"
+                        apiRequest={apiRequest}
+                        disposition="attachment"
+                        {...fileOf(document.draft, 'docx')}
+                      >
+                        <Download aria-hidden="true" />
+                        Descarcă Word
+                      </FileMenuItem>
+                    )}
                     <DropdownMenuItem
                       data-testid="document-print-draft"
                       disabled={printing}
@@ -584,6 +602,7 @@ export function DocumentsCard<Set extends DocumentSet>({
                     <DropdownMenuLabel id={`${document.id}-issued-label`} className={menuLabel}>
                       Documentul emis · rev. {document.issued.revision}
                     </DropdownMenuLabel>
+                    {document.issued.annexes.length > 0 ? (
                     <DropdownMenuItem
                       data-testid="document-download-issued"
                       onSelect={() => void download(document, document.issued!)}
@@ -591,14 +610,27 @@ export function DocumentsCard<Set extends DocumentSet>({
                       <Download aria-hidden="true" />
                       Descarcă Word
                     </DropdownMenuItem>
+                    ) : (
+                      <FileMenuItem
+                        testId="document-download-issued"
+                        apiRequest={apiRequest}
+                        disposition="attachment"
+                        {...fileOf(document.issued, 'docx')}
+                      >
+                        <Download aria-hidden="true" />
+                        Descarcă Word
+                      </FileMenuItem>
+                    )}
                     {document.issued.hasPdf && (
-                      <DropdownMenuItem
-                        data-testid="document-download-pdf"
-                        onSelect={() => void download(document, document.issued!, 'pdf')}
+                      <FileMenuItem
+                        testId="document-open-pdf"
+                        apiRequest={apiRequest}
+                        disposition="inline"
+                        {...fileOf(document.issued, 'pdf')}
                       >
                         <FileDown aria-hidden="true" />
-                        Descarcă PDF
-                      </DropdownMenuItem>
+                        Deschide PDF
+                      </FileMenuItem>
                     )}
                     <DropdownMenuItem
                       data-testid="document-print-issued"

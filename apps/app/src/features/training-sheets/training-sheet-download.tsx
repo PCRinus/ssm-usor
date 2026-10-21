@@ -7,7 +7,6 @@ import { Button } from '@ssm-usor/ui/components/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
@@ -16,8 +15,15 @@ import { useRouteContext } from '@tanstack/react-router';
 import { ChevronDown, Eye, FileDown, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 
-import { getGetTrainingSheetsQueryKey, getTrainingSheet } from '@/api/generated/api';
+import {
+  getGetTrainingSheetsQueryKey,
+  getTrainingSheet,
+  getTrainingSheetLink,
+} from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { FileLinkButton } from '@/components/file-link-button';
+import { FileMenuItem } from '@/components/file-menu-item';
+import { useFileLink } from '@/lib/file-link';
 import { openPreview, PreviewBlockedError, saveFile } from '@/lib/save-file';
 
 import { useTrainingSheets } from './use-training-sheets';
@@ -49,22 +55,28 @@ export function TrainingSheetDownload({
 }: TrainingSheetDownloadProps) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const readiness = useTrainingSheets(clientId, employeeId);
-  const [busy, setBusy] = useState<'download' | 'preview' | 'original' | null>(null);
+  const [busy, setBusy] = useState<'download' | 'preview' | null>(null);
   const sheet = readiness.data?.[domain];
   const domainLabel = trainingDomainLabels[domain];
   const disabled = !sheet?.ready || busy !== null;
   // Several sheets are served merged into a copy whose signatures no longer verify.
   const originals = sheet && sheet.sequences.length > 1 ? sheet.sequences : [];
+  // One stored sheet is a file with a link of its own; a sheet drawn up on the spot and the
+  // merged reading copy are built when asked for, so they come through the page.
+  const storedSequence = sheet?.stored && sheet.sequences.length === 1 ? sheet.sequences[0]! : null;
 
-  const loadSheet = (sequence?: number) =>
-    getTrainingSheet(
-      clientId,
-      employeeId,
-      sequence ? { domain, sequence } : { domain },
-      apiRequest
-    );
+  const linkOf = (sequence: number) => ({
+    queryKey: ['training-sheet-link', clientId, employeeId, domain, sequence],
+    load: (signal: AbortSignal) =>
+      getTrainingSheetLink(clientId, employeeId, { domain, sequence }, { ...apiRequest, signal }),
+  });
+  const stored = { ...linkOf(storedSequence ?? 0), enabled: storedSequence !== null, apiRequest };
+  const storedDownload = useFileLink({ ...stored, disposition: 'attachment' });
+  const storedPreview = useFileLink({ ...stored, disposition: 'inline' });
 
-  async function run(kind: 'download' | 'preview' | 'original', action: () => Promise<void>) {
+  const loadSheet = () => getTrainingSheet(clientId, employeeId, { domain }, apiRequest);
+
+  async function run(kind: 'download' | 'preview', action: () => Promise<void>) {
     setBusy(kind);
     try {
       await action();
@@ -86,31 +98,39 @@ export function TrainingSheetDownload({
       saveFile(file, file instanceof File ? file.name : `Fisa-${domainLabel}.pdf`);
     });
 
-  const preview = () => run('preview', () => openPreview(() => loadSheet(), `Fișa ${domainLabel}`));
+  const preview = () => run('preview', () => openPreview(loadSheet, `Fișa ${domainLabel}`));
 
-  const downloadOriginal = (sequence: number) =>
-    run('original', async () => {
-      const file = await loadSheet(sequence);
-      saveFile(file, file instanceof File ? file.name : `Fisa-${domainLabel}-${sequence}.pdf`);
-    });
+  const downloadLabel =
+    originals.length > 0
+      ? `Descarcă fișa ${domainLabel} (copie de citire)`
+      : `Descarcă fișa ${domainLabel}`;
 
   return (
     <>
-      <Button
-        data-testid={`training-sheet-${domain}`}
-        variant="outline"
-        disabled={disabled}
-        onClick={() => void download()}
-      >
-        {busy === 'download' ? (
-          <LoaderCircle aria-hidden="true" className="animate-spin" />
-        ) : (
+      {storedSequence !== null ? (
+        <FileLinkButton
+          data-testid={`training-sheet-${domain}`}
+          variant="outline"
+          link={storedDownload}
+        >
           <FileDown aria-hidden="true" />
-        )}
-        {originals.length > 0
-          ? `Descarcă fișa ${domainLabel} (copie de citire)`
-          : `Descarcă fișa ${domainLabel}`}
-      </Button>
+          {downloadLabel}
+        </FileLinkButton>
+      ) : (
+        <Button
+          data-testid={`training-sheet-${domain}`}
+          variant="outline"
+          disabled={disabled}
+          onClick={() => void download()}
+        >
+          {busy === 'download' ? (
+            <LoaderCircle aria-hidden="true" className="animate-spin" />
+          ) : (
+            <FileDown aria-hidden="true" />
+          )}
+          {downloadLabel}
+        </Button>
+      )}
       {originals.length > 0 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -119,11 +139,7 @@ export function TrainingSheetDownload({
               data-testid={`training-sheet-${domain}-originals`}
               disabled={busy !== null}
             >
-              {busy === 'original' ? (
-                <LoaderCircle aria-hidden="true" className="animate-spin" />
-              ) : (
-                <ShieldCheck aria-hidden="true" />
-              )}
+              <ShieldCheck aria-hidden="true" />
               Originalele
               <ChevronDown aria-hidden="true" />
             </Button>
@@ -133,32 +149,46 @@ export function TrainingSheetDownload({
               Fișele semnate, fiecare cu semnăturile ei verificabile
             </DropdownMenuLabel>
             {originals.map((sequence) => (
-              <DropdownMenuItem
+              <FileMenuItem
                 key={sequence}
-                data-testid={`training-sheet-${domain}-original`}
-                onSelect={() => void downloadOriginal(sequence)}
+                testId={`training-sheet-${domain}-original`}
+                apiRequest={apiRequest}
+                disposition="attachment"
+                {...linkOf(sequence)}
               >
                 <FileDown aria-hidden="true" />
                 {sequence === 1 ? 'Fișa 1' : `Fișa ${sequence} (continuare)`}
-              </DropdownMenuItem>
+              </FileMenuItem>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-      <Button
-        data-testid={`training-sheet-${domain}-preview`}
-        variant="outline"
-        aria-label={`Previzualizează fișa ${domainLabel}`}
-        disabled={disabled}
-        onClick={() => void preview()}
-      >
-        {busy === 'preview' ? (
-          <LoaderCircle aria-hidden="true" className="animate-spin" />
-        ) : (
+      {storedSequence !== null ? (
+        <FileLinkButton
+          data-testid={`training-sheet-${domain}-preview`}
+          variant="outline"
+          aria-label={`Previzualizează fișa ${domainLabel}`}
+          link={storedPreview}
+        >
           <Eye aria-hidden="true" />
-        )}
-        Previzualizează
-      </Button>
+          Previzualizează
+        </FileLinkButton>
+      ) : (
+        <Button
+          data-testid={`training-sheet-${domain}-preview`}
+          variant="outline"
+          aria-label={`Previzualizează fișa ${domainLabel}`}
+          disabled={disabled}
+          onClick={() => void preview()}
+        >
+          {busy === 'preview' ? (
+            <LoaderCircle aria-hidden="true" className="animate-spin" />
+          ) : (
+            <Eye aria-hidden="true" />
+          )}
+          Previzualizează
+        </Button>
+      )}
     </>
   );
 }

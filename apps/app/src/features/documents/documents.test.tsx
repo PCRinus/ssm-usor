@@ -1109,24 +1109,24 @@ describe('client documents', () => {
     );
   });
 
-  it('downloads a draft through the API under its name, without fetching it into the page', async () => {
+  it('offers a draft as a real link through the API under its name, signed when the menu opens', async () => {
     mockApi({ items: [firstAid] });
-    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     mount();
     const user = userEvent.setup();
+    expect(requests(`/revisions/${firstAid.draft!.id}/download`, 'GET')).toHaveLength(0);
 
     await openMenu(user, 'primul ajutor');
-    await user.click(await screen.findByTestId('document-download-draft'));
+    const anchor = await screen.findByTestId('document-download-draft');
+    await waitFor(() => expect(anchor.getAttribute('href')).toContain('/files/download?'));
 
-    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
-    const anchor = click.mock.contexts[0] as HTMLAnchorElement;
-    const address = new URL(anchor.href);
+    const address = new URL(anchor.getAttribute('href')!);
     expect(address.origin + address.pathname).toBe('http://localhost:8787/files/download');
     expect(address.searchParams.get('source')).toBe('https://files.example.test/signed');
     expect(address.searchParams.get('name')).toBe(
       'Decizia privind responsabilii cu primul ajutor - rev. 1.docx'
     );
-    expect(anchor.target).toBe('');
+    expect(address.searchParams.get('disposition')).toBe('attachment');
+    expect(anchor.getAttribute('target')).toBeNull();
     expect(requests(`/revisions/${firstAid.draft!.id}/download`, 'GET')).toHaveLength(1);
     expect(requests('/signed', 'GET')).toHaveLength(0);
   });
@@ -1193,24 +1193,24 @@ describe('client documents', () => {
         { ...report, draft: null, issued },
       ],
     });
-    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-    vi.stubGlobal(
-      'URL',
-      Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} })
-    );
     mount();
     const user = userEvent.setup();
 
     await openMenu(user, 'primul ajutor');
-    await user.click(await screen.findByTestId('document-download-pdf'));
-    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
-    const [[url]] = requests('/download', 'GET') as [[string]];
-    expect(new URL(String(url)).searchParams.get('format')).toBe('pdf');
+    const pdf = await screen.findByTestId('document-open-pdf');
+    await waitFor(() => expect(pdf.getAttribute('href')).toContain('/files/download?'));
+    expect(new URL(pdf.getAttribute('href')!).searchParams.get('disposition')).toBe('inline');
+    expect(pdf.getAttribute('target')).toBe('_blank');
+    const formats = (requests('/download', 'GET') as [string][]).map((call) =>
+      new URL(String(call[0])).searchParams.get('format')
+    );
+    expect(formats).toContain('pdf');
+    await user.keyboard('{Escape}');
 
     // Issued before PDFs were made, or where no converter runs.
     await openMenu(user, report.title, '8');
     expect(await screen.findByTestId('document-download-issued')).toBeTruthy();
-    expect(screen.queryByTestId('document-download-pdf')).toBeNull();
+    expect(screen.queryByTestId('document-open-pdf')).toBeNull();
   });
 
   it('prints a draft through a PDF made of its file, and an issued revision from its own PDF', async () => {
@@ -1233,7 +1233,7 @@ describe('client documents', () => {
     await openMenu(user, 'primul ajutor');
     await user.click(await screen.findByTestId('document-print-draft'));
     await waitFor(() => expect(requests('/print', 'POST')).toHaveLength(1));
-    expect(requests(`/revisions/${firstAid.draft!.id}/download`, 'GET')).toHaveLength(1);
+    expect(requests(`/revisions/${firstAid.draft!.id}/download`, 'GET')).not.toHaveLength(0);
     expect(await screen.findByTestId('print-frame')).toBeTruthy();
 
     await openMenu(user, 'primul ajutor');
@@ -1241,8 +1241,10 @@ describe('client documents', () => {
     await waitFor(() =>
       expect(requests(`/revisions/${issued.id}/download`, 'GET').length).toBeGreaterThan(0)
     );
-    const [[url]] = requests(`/revisions/${issued.id}/download`, 'GET') as [[string]];
-    expect(new URL(String(url)).searchParams.get('format')).toBe('pdf');
+    const formats = (requests(`/revisions/${issued.id}/download`, 'GET') as [string][]).map(
+      (call) => new URL(String(call[0])).searchParams.get('format')
+    );
+    expect(formats).toContain('pdf');
     expect(requests('/print', 'POST')).toHaveLength(1);
   });
 
