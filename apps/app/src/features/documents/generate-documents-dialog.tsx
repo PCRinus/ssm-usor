@@ -12,7 +12,7 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
+import { Link, useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm } from 'react-hook-form';
 
 import {
@@ -144,6 +144,7 @@ function GenerateDocumentsForm({
   // The cached answer predates what was filled in since, so it waits for the one asked above.
   const checking = readiness.isPending || (readiness.isFetching && !readiness.isFetchedAfterMount);
   const ready = !checking && readiness.data?.ready === true;
+  const evaluatorHint = readiness.data?.hints.includes('provider.riskEvaluator') === true;
   const datedTypeKeys = readiness.data
     ? documentSetTypeKeys[set]
         .filter(isDatedDocumentType)
@@ -222,6 +223,29 @@ function GenerateDocumentsForm({
                     generatedTypeKeys.includes('decision_workers_representative')
                   )
                 : fireSafetyHeadcountRule(readiness.data.currentEmployeeCount, generatedTypeKeys)}
+            </Notice>
+          )}
+          {ready && evaluatorHint && (
+            <Notice
+              variant="info"
+              data-testid="generate-evaluator-hint"
+              action={
+                isOwner && (
+                  <Button asChild variant="outline" size="sm">
+                    <Link
+                      to="/organization/authorizations"
+                      search={{ focus: 'risk-evaluator' }}
+                      onClick={() => startWayBack({ userId, clientId, to: 'documents' })}
+                    >
+                      Completează evaluatorul
+                    </Link>
+                  </Button>
+                )
+              }
+            >
+              Niciun evaluator de riscuri în Abilitări: decizia privind echipa de evaluare și
+              evaluarea riscurilor te numesc pe tine coordonator, cu titlul din profilul tău.
+              {isOwner ? '' : ' Îl completează proprietarul organizației.'}
             </Notice>
           )}
           {checking || !readiness.data ? null : !ready ? (

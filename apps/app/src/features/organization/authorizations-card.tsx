@@ -32,6 +32,11 @@ import {
 type Authorizations = OrganizationAuthorizationsResponse['authorizations'];
 
 function fieldFor(focus: AuthorizationsFocus, saved: Authorizations) {
+  if (focus === 'risk-evaluator') {
+    return saved.riskEvaluatorName
+      ? 'authorizations-riskEvaluatorTitle'
+      : 'authorizations-riskEvaluatorName';
+  }
   if (focus === 'fire-safety-technician') {
     return saved.fireSafetyTechnicianName
       ? 'authorizations-fireSafetyTechnicianCertificate'
@@ -216,6 +221,32 @@ function AuthorizationsForm({
           })}
           {text('fireSafetyAuthorization', 'Autorizație ISU', {
             hint: 'Autorizația inspectoratului după Legea 307/2006 art. 12², de exemplu „nr. 12 din 15.09.2026, ISU Cluj”. Dacă o completezi, apare în decizia privind cadrul tehnic PSI.',
+            className: 'sm:col-span-2',
+          })}
+        </FormSection>
+
+        <FormSection
+          title="Evaluator de riscuri"
+          description="Coordonatorul evaluării riscurilor, numit în decizia privind echipa de evaluare și în evaluarea riscurilor."
+        >
+          {!saved.riskEvaluatorName && (
+            <Notice
+              variant="info"
+              className="sm:col-span-2"
+              data-testid="authorizations-risk-evaluator-hint"
+            >
+              Fără un evaluator, documentele îl numesc coordonator pe cel care le generează, cu
+              titlul profesional din profilul lui.
+            </Notice>
+          )}
+          {text('riskEvaluatorName', 'Nume și prenume', {
+            hint: 'De exemplu „Ing. Maria IONESCU”.',
+          })}
+          {text('riskEvaluatorTitle', 'Calitate', {
+            hint: 'Apare după nume, de exemplu „evaluator de riscuri atestat”.',
+          })}
+          {text('riskEvaluatorCertificate', 'Certificat', {
+            hint: 'Seria și numărul certificatului de evaluator. Dacă îl completezi, apare după calitate.',
             className: 'sm:col-span-2',
           })}
         </FormSection>

@@ -70,7 +70,11 @@ export const organizationCompanyFocus = [
   'bank-account',
 ] as const;
 
-export const authorizationsFocus = ['certificate', 'fire-safety-technician'] as const;
+export const authorizationsFocus = [
+  'certificate',
+  'fire-safety-technician',
+  'risk-evaluator',
+] as const;
 
 export const profileFocus = ['full-name', 'professional-title'] as const;
 

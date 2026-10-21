@@ -63,6 +63,9 @@ test('an owner fills in the authorizations, and they are still there after a rel
 
   await page.getByTestId('authorizations-authorizationCertificateNumber').fill('17664');
   await page.getByTestId('authorizations-authorizationCertificateDate').fill('30.09.2022');
+  await expect(page.getByTestId('authorizations-risk-evaluator-hint')).toBeVisible();
+  await page.getByTestId('authorizations-riskEvaluatorName').fill('Ing. Maria IONESCU');
+  await page.getByTestId('authorizations-riskEvaluatorTitle').fill('evaluator de riscuri atestat');
   await page.getByTestId('authorizations-save').click();
   await expect(page.getByText('Abilitările au fost salvate.')).toBeVisible();
 
@@ -73,6 +76,10 @@ test('an owner fills in the authorizations, and they are still there after a rel
   await expect(page.getByTestId('authorizations-authorizationCertificateDate')).toHaveValue(
     '30.09.2022'
   );
+  await expect(page.getByTestId('authorizations-riskEvaluatorName')).toHaveValue(
+    'Ing. Maria IONESCU'
+  );
+  await expect(page.getByTestId('authorizations-risk-evaluator-hint')).toHaveCount(0);
   await expect(page.getByTestId('authorizations-save')).toBeDisabled();
 });
 

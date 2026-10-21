@@ -87,6 +87,7 @@ function mockApi({
   readiness = { ready: true, missing: [] as string[] } as {
     ready: boolean;
     missing: string[];
+    hints?: string[];
     currentEmployeeCount?: number;
     workersRepresentativeClash?: { representativeName: string; legalRepresentativeName: string };
     undecidedJobPositions?: { id: string; name: string; undecided: string[] }[];
@@ -133,6 +134,7 @@ function mockApi({
     if (pathname === `/clients/${clientId}/documents/readiness`) {
       return Response.json({
         currentEmployeeCount,
+        hints: [],
         workersRepresentativeClash: null,
         undecidedJobPositions: [],
         incompleteRiskEvaluations: [],
@@ -298,6 +300,7 @@ describe('client documents', () => {
         currentEmployeeCount: 6,
         ready: true,
         missing: [],
+        hints: [],
         workersRepresentativeClash: null,
         undecidedJobPositions: [],
       });
@@ -308,6 +311,44 @@ describe('client documents', () => {
     release();
     await screen.findByTestId('generate-submit');
     expect(screen.queryByTestId('generate-missing-place')).toBeNull();
+  });
+
+  it('hints at the missing risk evaluator, with the way to the authorizations for an owner', async () => {
+    mockApi({ readiness: { ready: true, missing: [], hints: ['provider.riskEvaluator'] } });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-generate'));
+    const hint = await screen.findByTestId('generate-evaluator-hint');
+    expect(hint.textContent).toContain('te numesc pe tine coordonator');
+    expect(within(hint).getByRole('link').getAttribute('href')).toBe(
+      '/organization/authorizations?focus=risk-evaluator'
+    );
+    expect(screen.getByTestId('generate-submit')).toBeTruthy();
+  });
+
+  it('tells a specialist that the owner fills in the risk evaluator', async () => {
+    mockApi({
+      role: 'specialist',
+      readiness: { ready: true, missing: [], hints: ['provider.riskEvaluator'] },
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-generate'));
+    const hint = await screen.findByTestId('generate-evaluator-hint');
+    expect(within(hint).queryByRole('link')).toBeNull();
+    expect(hint.textContent).toContain('Îl completează proprietarul organizației.');
+  });
+
+  it('does not hint once the organization has named its risk evaluator', async () => {
+    mockApi({ readiness: { ready: true, missing: [], hints: [] } });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('documents-generate'));
+    await screen.findByTestId('generate-submit');
+    expect(screen.queryByTestId('generate-evaluator-hint')).toBeNull();
   });
 
   it('does not tell an owner to ask the owner', async () => {
