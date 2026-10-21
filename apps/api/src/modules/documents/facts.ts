@@ -70,7 +70,7 @@ export async function loadDocumentFacts(
     db
       .from('organizations')
       .select(
-        'legal_name, legal_representative_name, legal_representative_role, fire_safety_technician_name, fire_safety_technician_certificate, fire_safety_authorization, phone'
+        'legal_name, legal_representative_name, legal_representative_role, fire_safety_technician_name, fire_safety_technician_certificate, fire_safety_authorization, risk_evaluator_name, risk_evaluator_title, risk_evaluator_certificate, phone'
       )
       .eq('id', preparer.organizationId)
       .single(),
@@ -253,6 +253,9 @@ export async function loadDocumentFacts(
       fireSafetyTechnicianName: organization.data.fire_safety_technician_name,
       fireSafetyTechnicianCertificate: organization.data.fire_safety_technician_certificate,
       fireSafetyAuthorization: organization.data.fire_safety_authorization,
+      riskEvaluatorName: organization.data.risk_evaluator_name,
+      riskEvaluatorTitle: organization.data.risk_evaluator_title,
+      riskEvaluatorCertificate: organization.data.risk_evaluator_certificate,
       phone: organization.data.phone,
     },
     specialist: membership.data

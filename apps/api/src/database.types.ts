@@ -2583,6 +2583,9 @@ export type Database = {
           locality: string | null;
           name: string;
           phone: string | null;
+          risk_evaluator_certificate: string | null;
+          risk_evaluator_name: string | null;
+          risk_evaluator_title: string | null;
           terms_accepted_at: string | null;
           terms_accepted_by: string | null;
           terms_version: string | null;
@@ -2610,6 +2613,9 @@ export type Database = {
           locality?: string | null;
           name: string;
           phone?: string | null;
+          risk_evaluator_certificate?: string | null;
+          risk_evaluator_name?: string | null;
+          risk_evaluator_title?: string | null;
           terms_accepted_at?: string | null;
           terms_accepted_by?: string | null;
           terms_version?: string | null;
@@ -2637,6 +2643,9 @@ export type Database = {
           locality?: string | null;
           name?: string;
           phone?: string | null;
+          risk_evaluator_certificate?: string | null;
+          risk_evaluator_name?: string | null;
+          risk_evaluator_title?: string | null;
           terms_accepted_at?: string | null;
           terms_accepted_by?: string | null;
           terms_version?: string | null;

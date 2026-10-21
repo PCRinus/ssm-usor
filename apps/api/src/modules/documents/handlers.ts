@@ -8,7 +8,7 @@ import type { ApiEnv } from '../../lib/env';
 import { createFileStore } from '../../lib/files';
 import { createPdfConverter, requirePdfConverter } from '../../lib/pdf';
 import { documentArchive } from './archive';
-import { undecidedJobPositions, workersRepresentativeClash } from './context';
+import { hasRiskEvaluator, undecidedJobPositions, workersRepresentativeClash } from './context';
 import {
   type Actor,
   attachSignedCopy,
@@ -80,6 +80,7 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
     {
       ready: missing.length === 0,
       missing,
+      hints: occupational && !hasRiskEvaluator(facts) ? ['provider.riskEvaluator' as const] : [],
       currentEmployeeCount: facts.currentEmployeeCount,
       workersRepresentativeClash: missing.includes(
         'responsible.workers_representative_is_legal_representative'

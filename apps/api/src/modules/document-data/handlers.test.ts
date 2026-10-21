@@ -236,6 +236,9 @@ describe('/organization/authorizations', () => {
     fire_safety_technician_name: 'Radu Stan',
     fire_safety_technician_certificate: 'CT 123/2024',
     fire_safety_authorization: 'nr. 12 din 15.09.2026, ISU Cluj',
+    risk_evaluator_name: 'Ing. Maria IONESCU',
+    risk_evaluator_title: 'evaluator de riscuri atestat',
+    risk_evaluator_certificate: null,
   };
 
   it('reads them for any member', async () => {
@@ -253,6 +256,9 @@ describe('/organization/authorizations', () => {
         fireSafetyTechnicianName: 'Radu Stan',
         fireSafetyTechnicianCertificate: 'CT 123/2024',
         fireSafetyAuthorization: 'nr. 12 din 15.09.2026, ISU Cluj',
+        riskEvaluatorName: 'Ing. Maria IONESCU',
+        riskEvaluatorTitle: 'evaluator de riscuri atestat',
+        riskEvaluatorCertificate: null,
       },
     });
   });
@@ -272,7 +278,34 @@ describe('/organization/authorizations', () => {
       fire_safety_technician_name: null,
       fire_safety_technician_certificate: null,
       fire_safety_authorization: null,
+      risk_evaluator_name: null,
+      risk_evaluator_title: null,
+      risk_evaluator_certificate: null,
     });
+  });
+
+  it('saves the risk evaluator, and refuses a name without a title or a title without a name', async () => {
+    mockUpstream({ organizations: () => Response.json(authorizationsRow) });
+    await request('/organization/authorizations', 'PUT', {
+      riskEvaluatorName: ' Ing. Maria IONESCU ',
+      riskEvaluatorTitle: 'evaluator de riscuri atestat',
+      riskEvaluatorCertificate: 'seria A nr. 1842/2024',
+    });
+    expect(sentBody('/rest/v1/organizations')).toMatchObject({
+      risk_evaluator_name: 'Ing. Maria IONESCU',
+      risk_evaluator_title: 'evaluator de riscuri atestat',
+      risk_evaluator_certificate: 'seria A nr. 1842/2024',
+    });
+
+    for (const [body, path] of [
+      [{ riskEvaluatorName: 'Ing. Maria IONESCU' }, 'riskEvaluatorTitle'],
+      [{ riskEvaluatorTitle: 'evaluator de riscuri atestat' }, 'riskEvaluatorName'],
+    ] as const) {
+      const response = await request('/organization/authorizations', 'PUT', body);
+      expect(response.status).toBe(400);
+      expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(path);
+    }
+    expect(calls('/rest/v1/organizations')).toHaveLength(1);
   });
 
   it('saves the fire-safety authorization trimmed, and refuses one longer than 200 characters', async () => {
