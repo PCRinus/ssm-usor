@@ -114,7 +114,7 @@ export async function loadDocumentFacts(
     db
       .from('job_positions')
       .select(
-        'id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, needs_fire_instructions, employees(id), job_position_equipment(risk, item, quantity, duration_months, allocation, created_at, id), job_position_instructions(module_id, domain, instruction_modules(title, module_group, instruction_module_versions(id, number, created_at)))'
+        'id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, needs_fire_instructions, employees(id, last_name, first_name), job_position_equipment(risk, item, quantity, duration_months, allocation, created_at, id), job_position_instructions(module_id, domain, instruction_modules(title, module_group, instruction_module_versions(id, number, created_at)))'
       )
       .eq('client_id', clientId)
       .is('archived_at', null)
@@ -414,6 +414,10 @@ export async function loadDocumentFacts(
       workZone: position.work_zone,
       activities: position.activities,
       currentEmployeeCount: position.employees.length,
+      currentEmployees: position.employees.map((employee) => ({
+        employeeId: employee.id,
+        fullName: `${employee.first_name} ${employee.last_name}`,
+      })),
       trainingIntervalMonths: position.training_interval_months,
       needsProtectiveEquipment: position.needs_protective_equipment,
       needsInstructions: position.needs_instructions,

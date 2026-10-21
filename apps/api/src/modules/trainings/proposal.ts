@@ -6,7 +6,9 @@ import type {
   TrainingProposal,
 } from '@ssm-usor/contracts';
 
+import type { Identified } from '../documents/people';
 import { monthNames } from '../documents/themes';
+import { resolveTrainer } from '../documents/trainer';
 
 // The content lines of the hiring plans, as the 4.2 and 3.1 templates print them in chapters I
 // and II: static text there, so a plan edited in a Word file is never read back (ADR 021).
@@ -41,12 +43,15 @@ type Session = { month: string; content: string; duration: string };
 
 export type ThemesRevision = { id: string; snapshot: unknown };
 
+/** With the employee behind the person where the data knows one, which the answer leaves out. */
+export type ProposalPerson = ProposedTrainingPerson & { employeeId?: string | null };
+
 export type ProposalPeople = {
-  specialist: ProposedTrainingPerson | null;
+  specialist: ProposalPerson | null;
   /** The first workplace manager in the order they were designated. */
-  workplaceManager: ProposedTrainingPerson | null;
-  legalRepresentative: ProposedTrainingPerson | null;
-  fireSafetyTechnician: ProposedTrainingPerson | null;
+  workplaceManager: ProposalPerson | null;
+  legalRepresentative: ProposalPerson | null;
+  fireSafetyTechnician: ProposalPerson | null;
 };
 
 export type ProposalFacts = {
@@ -57,6 +62,8 @@ export type ProposalFacts = {
   position: { name: string; staffCategory: StaffCategory } | null;
   themes: ThemesRevision | null;
   people: ProposalPeople;
+  /** The attendees chosen so far; empty before any is. */
+  trainees?: readonly Identified[];
   /** The schedules' periodic duration, for a periodic training the themes have no session for. */
   periodicMinutes: number | null;
 };
@@ -158,33 +165,64 @@ function fireWorkplaceMaterial(facts: ProposalFacts) {
   };
 }
 
+const identified = (person: ProposalPerson): Identified => ({
+  employeeId: person.employeeId ?? null,
+  fullName: person.name,
+});
+
+const printed = (person: ProposalPerson | null): ProposedTrainingPerson | null =>
+  person && { name: person.name, jobTitle: person.jobTitle };
+
 /**
  * The trainer the themes name for a post: the specialist, or in fire safety the technician,
  * trains the technical-administrative staff, a workplace manager the others, and the legal
- * representative where the client names no manager. Without a post, a workplace manager.
+ * representative where the client names no manager, or where the manager would train only
+ * themself; the specialist or the technician where that is the same person again (ADR 014,
+ * ADR 019, amendments of 2026-10-22). Without a post, a workplace manager.
  */
 function positionTrainer(facts: ProposalFacts) {
   const { people } = facts;
-  if (facts.position?.staffCategory === 'technical_administrative') {
-    return facts.domain === 'ssm' ? people.specialist : people.fireSafetyTechnician;
+  const external = facts.domain === 'ssm' ? people.specialist : people.fireSafetyTechnician;
+  if (facts.position?.staffCategory === 'technical_administrative') return external;
+  const resolved = resolveTrainer(
+    facts.trainees ?? [],
+    {
+      managers: people.workplaceManager ? [identified(people.workplaceManager)] : [],
+      legalRepresentative: people.legalRepresentative && identified(people.legalRepresentative),
+      specialist: external && identified(external),
+    },
+    {
+      employeeId: people.legalRepresentative?.employeeId ?? null,
+      fullName: people.legalRepresentative?.name ?? null,
+    }
+  );
+  switch (resolved?.kind) {
+    case 'managers':
+      return people.workplaceManager;
+    case 'legal_representative':
+      return people.legalRepresentative;
+    case 'specialist':
+      return external;
+    default:
+      return null;
   }
-  return people.workplaceManager ?? people.legalRepresentative;
 }
 
 /** ADR 021, "Who signs what": the fire-safety sheet has no verifier's signature. */
 export function trainingProposal(facts: ProposalFacts): TrainingProposal {
   const { domain, phase, people, themes } = facts;
-  const verifier = domain === 'ssm' ? people.specialist : null;
+  const verifier = domain === 'ssm' ? printed(people.specialist) : null;
   const proposal = (
-    values: Pick<TrainingProposal, 'durationMinutes' | 'material' | 'trainer'> & {
+    values: Pick<TrainingProposal, 'durationMinutes' | 'material'> & {
+      trainer: ProposalPerson | null;
       fromThemes: boolean;
     }
   ): TrainingProposal => ({
     durationMinutes: values.durationMinutes,
     material: values.material,
-    trainer: values.trainer,
+    trainer: printed(values.trainer),
     verifier,
-    admittedBy: phase === 'workplace' ? positionTrainer(facts) : null,
+    admittedBy: phase === 'workplace' ? printed(positionTrainer(facts)) : null,
     themesRevisionId: values.fromThemes ? (themes?.id ?? null) : null,
   });
   switch (phase) {

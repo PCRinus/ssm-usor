@@ -40,6 +40,7 @@ import { installationParts, installationText } from './installations';
 import {
   asPerson,
   distinctPeople,
+  type Identified,
   legalRepresentativeOf,
   type Person as BasePerson,
   withRole,
@@ -53,6 +54,7 @@ import {
   type TrainingSession,
   workplaceManagersTrainer,
 } from './themes';
+import { resolveTrainer } from './trainer';
 
 type FireSafetyMissingData = (typeof fireSafetyMissingDocumentData)[number];
 
@@ -533,7 +535,7 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): ContextParts<FireSaf
     installationRegister: () => inSet('fire_installation_register'),
     annexes: () => annexedModules(facts, 'psi'),
     noAnnexes: () => annexedModules(facts, 'psi').length === 0,
-    fireThemes: () => fireThemes(facts, firePeople(facts)),
+    fireThemes: () => fireThemes(facts),
   };
 }
 
@@ -1002,18 +1004,46 @@ const fireModuleCitation = ({ title, articleCount }: { title: string; articleCou
  * category do not; a module the revision does not annex waits for the IPSU to be generated again
  * (ADR 014, ADR 012 amendment of 2026-10-11).
  */
-function fireThemes(
-  facts: FireSafetySetFacts,
-  people: Pick<FirePeople, 'managerNames'>
-): FireThemesContext | undefined {
+function fireThemes(facts: FireSafetySetFacts): FireThemesContext | undefined {
   const ipsu = facts.fireOwnInstructions;
   if (!ipsu) return undefined;
   const card = facts.fireSafety.card!;
   const firstMonth = card.trainingFirstMonth!;
   const periodicMinutes = card.periodicTrainingHours! * 60;
   const instructionsDecision = fireDecisionNumbers(facts.firstDecisionNumber).instructions;
-  // The line runs on after the title ("… sau, după caz, …"), where glued words only break it early.
-  const managers = workplaceManagersTrainer(people.managerNames, ' ');
+  const legalRepresentative = legalRepresentativeOf(facts);
+  const managerRows = distinctPeople(
+    withRole(facts.responsiblePersons, 'workplace_manager'),
+    legalRepresentative
+  );
+  const representative = facts.client.representativeName?.trim();
+  const technician = facts.organization.fireSafetyTechnicianName?.trim();
+  // The heads of the workplaces, or whoever trains the execution posts in their stead: the line
+  // runs on after the title ("… sau, după caz, …"), where glued words only break it early.
+  const executionTrainers = (trainees: readonly Identified[]) => {
+    const resolved = resolveTrainer(
+      trainees,
+      {
+        managers: managerRows,
+        legalRepresentative: representative
+          ? { employeeId: legalRepresentative.employeeId, fullName: representative }
+          : null,
+        specialist: technician ? { employeeId: null, fullName: technician } : null,
+      },
+      legalRepresentative
+    );
+    switch (resolved?.kind) {
+      case 'managers':
+        return workplaceManagersTrainer(
+          resolved.managers.map((person) => person.fullName.trim()),
+          ' '
+        );
+      case 'legal_representative':
+        return `${representative} – ${facts.client.representativeRole?.trim() ?? 'administrator'}`;
+      default:
+        return null;
+    }
+  };
   return {
     ownInstructionsRevision: {
       id: ipsu.revisionId,
@@ -1043,6 +1073,9 @@ function fireThemes(
           ];
         });
         const execution = category === 'execution';
+        const managers = execution
+          ? executionTrainers(positions.flatMap((position) => position.currentEmployees))
+          : null;
         const sessionMonths = trainingMonths(firstMonth, intervalMonths);
         const ranges = dealChapters(fireOwnInstructionsChapters, sessionMonths.length);
         return {
@@ -1050,13 +1083,10 @@ function fireThemes(
           label,
           posts,
           postsText: posts.join(', '),
-          workplaceTrainers: {
-            workplaceManagers: execution ? managers : null,
-            technician: !execution,
-          },
+          workplaceTrainers: { workplaceManagers: managers, technician: managers === null },
           // Decision 2 has the heads of the workplaces give the periodic training "și, după caz",
           // the technician, who alone trains the heads themselves.
-          periodicTrainers: { workplaceManagers: execution ? managers : null, technician: true },
+          periodicTrainers: { workplaceManagers: managers, technician: true },
           intervalLabel: themeIntervalLabel(intervalMonths),
           sessions: sessionMonths.map((month, index) => {
             const range = ranges[index]!;

@@ -28,6 +28,7 @@ import {
   asPerson,
   distinctHolders,
   distinctPeople,
+  type Identified,
   legalRepresentativeOf,
   type Person,
   withRole,
@@ -43,9 +44,12 @@ import {
 import {
   monthNames,
   type OwnInstructionsRevision,
+  providerTrainer,
   type ThemesContext,
   trainingThemes,
+  workplaceManagersTrainer,
 } from './themes';
+import { resolveTrainer } from './trainer';
 
 // Pure: reading the database and merging happen elsewhere. The result is also what a revision
 // keeps as its data snapshot.
@@ -117,6 +121,8 @@ export type DocumentFacts = {
     workZone: string | null;
     activities: string | null;
     currentEmployeeCount: number;
+    /** The same people, for who may train them (nobody trains themself). */
+    currentEmployees: Identified[];
     /** The post's own interval, or null for the client's interval of its category. */
     trainingIntervalMonths: number | null;
     /** Null until decided; false when the post needs none; true while it has entries (ADR 011). */
@@ -575,6 +581,35 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
   const holding = (role: ResponsiblePersonRole) =>
     distinctHolders(facts.responsiblePersons, role, legalRepresentative).map(asPerson);
   const workplaceManagers = holding('workplace_manager');
+  const managerRows = distinctHolders(
+    facts.responsiblePersons,
+    'workplace_manager',
+    legalRepresentative
+  );
+  const trainerOf = (position: DocumentFacts['jobPositions'][number]) => {
+    const provider = providerTrainer(organization.legalName!, facts.specialist!.fullName!);
+    if (position.staffCategory !== 'execution') return provider;
+    const resolved = resolveTrainer(
+      position.currentEmployees,
+      {
+        managers: managerRows,
+        legalRepresentative: {
+          employeeId: legalRepresentative.employeeId,
+          fullName: client.representativeName!,
+        },
+        specialist: { employeeId: null, fullName: facts.specialist!.fullName! },
+      },
+      legalRepresentative
+    );
+    switch (resolved?.kind) {
+      case 'managers':
+        return workplaceManagersTrainer(resolved.managers.map((person) => person.fullName.trim()));
+      case 'legal_representative':
+        return `${client.representativeName!.trim()} – ${client.representativeRole!.trim()}`;
+      default:
+        return provider;
+    }
+  };
   const firstAiders = holding('first_aid');
   const imminentDanger = holding('imminent_danger');
   const imminentDangerWording = imminentDangerWordingOf(facts);
@@ -734,14 +769,10 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
               moduleIds: position.instructions
                 .filter((module) => module.domain === 'ssm')
                 .map((module) => module.moduleId),
+              trainer: trainerOf(position),
             })),
             firstMonth: client.trainingFirstMonth!,
             periodicTrainingMinutes: client.periodicTrainingMinutes!,
-            names: {
-              workplaceManagers: workplaceManagers.map((person) => person.name),
-              provider: organization.legalName!.trim(),
-              specialist: facts.specialist!.fullName!.trim(),
-            },
           })
         : undefined,
   };

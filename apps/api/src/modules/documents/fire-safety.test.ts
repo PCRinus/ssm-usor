@@ -853,6 +853,56 @@ describe('the fire-safety context', () => {
     ]);
   });
 
+  it('has nobody train themself: the representative steps in for the heads, then the technician alone', () => {
+    const owner = 'e1e1e1e1-0000-4000-8000-000000000009';
+    const onePerson = {
+      ...facts,
+      jobPositions: facts.jobPositions.map((position) =>
+        position.staffCategory === 'execution'
+          ? { ...position, currentEmployees: [{ employeeId: owner, fullName: 'Ioana PETRE' }] }
+          : position
+      ),
+      responsiblePersons: facts.responsiblePersons.flatMap((person) =>
+        person.fullName === 'Florin Cristian TALOȘ'
+          ? []
+          : [
+              {
+                ...person,
+                employeeId: owner,
+                roles: [...person.roles, 'fire_safety_coordinator' as const],
+              },
+            ]
+      ),
+    };
+    const execution = (built: ReturnType<typeof buildFireSafetyContext>) =>
+      built.fireThemes!.categories.find((block) => block.staffCategory === 'execution')!;
+    expect(execution(buildFireSafetyContext(onePerson))).toMatchObject({
+      workplaceTrainers: {
+        workplaceManagers: 'Florin Cristian TALOȘ – Administrator',
+        technician: false,
+      },
+      periodicTrainers: {
+        workplaceManagers: 'Florin Cristian TALOȘ – Administrator',
+        technician: true,
+      },
+    });
+    expect(
+      execution(
+        buildFireSafetyContext({
+          ...onePerson,
+          client: {
+            ...facts.client,
+            representativeName: 'Ioana Petre',
+            representativeEmployeeId: owner,
+          },
+        })
+      )
+    ).toMatchObject({
+      workplaceTrainers: { workplaceManagers: null, technician: true },
+      periodicTrainers: { workplaceManagers: null, technician: true },
+    });
+  });
+
   it('leaves a staff category without posts out of the themes, and names a manager once', () => {
     const themes = buildFireSafetyContext({
       ...withCard({ periodicTrainingHours: 3, workerTrainingIntervalMonths: 1 }),

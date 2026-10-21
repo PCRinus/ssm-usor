@@ -702,6 +702,36 @@ describe('GET /clients/{clientId}/trainings/proposal', () => {
     );
   });
 
+  it('reads the attendees named, and has the specialist train the owner of a one-person firm', async () => {
+    mockUpstream({
+      clients: () => Response.json([{ ...client, legal_representative_employee_id: employeeId }]),
+      persons: () =>
+        Response.json([
+          { full_name: 'Maria IONESCU', job_title: 'Administrator', employee_id: employeeId },
+        ]),
+      employees: () =>
+        Response.json([{ id: employeeId, last_name: 'Ionescu', first_name: 'Maria' }]),
+    });
+    const response = await request(
+      `${proposalPath}?domain=ssm&phase=periodic&heldOn=2026-10-01&jobPositionId=${positionId}&employeeIds=${employeeId}`
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      trainer: { name: 'Dan MARIN', jobTitle: 'Inspector SSM' },
+      verifier: { name: 'Dan MARIN', jobTitle: 'Inspector SSM' },
+    });
+    const employees = searchOf('/rest/v1/employees');
+    expect(employees.get('client_id')).toBe(`eq.${clientId}`);
+    expect(employees.get('id')).toBe(`in.(${employeeId})`);
+    expect(
+      (
+        await request(
+          `${proposalPath}?domain=ssm&phase=periodic&heldOn=2026-10-01&employeeIds=not-an-id`
+        )
+      ).status
+    ).toBe(400);
+  });
+
   it('proposes no specialist when the profile names nobody', async () => {
     mockUpstream({ profiles: () => Response.json([]), persons: () => Response.json([]) });
     const response = await request(`${proposalPath}?domain=ssm&phase=workplace&heldOn=2026-10-01`);

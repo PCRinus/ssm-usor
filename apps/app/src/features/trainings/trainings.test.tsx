@@ -439,6 +439,7 @@ describe("an employee's training tabs", () => {
     expect(asked.get('phase')).toBe('periodic');
     expect(asked.get('jobPositionId')).toBe(welderId);
     expect(asked.get('heldOn')).toBe(todayIso());
+    expect(asked.get('employeeIds')).toBe(popescu.id);
     expect((within(dialog).getByTestId('training-duration') as HTMLInputElement).value).toBe('120');
     await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
     await user.selectOptions(within(dialog).getByTestId('training-source'), 'paper');

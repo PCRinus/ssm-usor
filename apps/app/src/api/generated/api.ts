@@ -7939,6 +7939,10 @@ export type GetTrainingProposalParams = {
   phase: GetTrainingProposalPhase;
   heldOn: string;
   jobPositionId?: string;
+  /**
+   * @pattern ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})*$
+   */
+  employeeIds?: string;
 };
 
 export type GetTrainingProposalDomain =

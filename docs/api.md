@@ -150,7 +150,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /clients/{clientId}/employees/{employeeId}/training-sheets`       | Verified user with a membership       | `{ "ssm": { ready, missing, stored, sequences }, "psi": { … } }`: whether each individual training sheet can be drawn up, or is stored                                                             |
 | `GET /clients/{clientId}/employees/{employeeId}/training-sheet`        | Verified user with a membership       | `200 application/pdf`, the stored signed sheet, a merged copy, or the sheet built on the spot; `?domain=ssm\|psi&sequence=`; `409 missing_sheet_data`, `503 pdf_unavailable`                       |
 | `GET /clients/{clientId}/trainings`                                    | Verified user with a membership       | `{ "items": [ … ] }`, newest first, each with `attendeeCount`, `attendees`, `signed`, `hasSignatures`; `?domain=&phase=`                                                                           |
-| `GET /clients/{clientId}/trainings/proposal`                           | Verified user with a membership       | `{ durationMinutes, material, trainer, … }`; `?domain=&phase=&heldOn=&jobPositionId=`                                                                                                              |
+| `GET /clients/{clientId}/trainings/proposal`                           | Verified user with a membership       | `{ durationMinutes, material, trainer, … }`; `?domain=&phase=&heldOn=&jobPositionId=&employeeIds=` (the attendees so far, comma-separated)                                                         |
 | `POST /clients/{clientId}/trainings`                                   | Verified user with a membership       | `201 { "training": { …, "records": [ … ] } }`                                                                                                                                                      |
 | `GET /clients/{clientId}/trainings/{trainingId}`                       | Verified user with a membership       | `{ "training": { …, "records": [ … ] } }`                                                                                                                                                          |
 | `PUT /clients/{clientId}/trainings/{trainingId}`                       | Verified user with a membership       | `{ "training": { … } }` after replacing its facts and attendees                                                                                                                                    |
@@ -436,7 +436,11 @@ training's edit and delete, and `hasSignatures`, true once any record has a sign
 and paper ones included, or a row on a stored sheet, when the app locks its delete.
 
 `GET …/trainings/proposal` proposes what the flow pre-fills, every value the specialist may
-change and null where nothing can be proposed. A periodic training takes the content line and
+change and null where nothing can be proposed. With `employeeIds`, the attendees chosen so far,
+nobody is proposed as their own trainer or admitter: where the head of the workplace would train
+only themself, the client's legal representative is proposed, and where that is the same person
+again (the employee linked as the representative), the specialist, or the fire-safety technician
+for a fire-safety training. A periodic training takes the content line and
 duration of the session of `heldOn`'s month, else the last session before it, from the client's
 newest training themes revision of the domain, draft or issued: by the position for
 occupational safety, by the position's staff category for fire safety, with

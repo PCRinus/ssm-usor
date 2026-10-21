@@ -3,10 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   dealChapters,
   ownInstructionsChapters,
+  providerTrainer,
   themeIntervalLabel,
-  trainerOf,
   trainingSessions,
   trainingThemes,
+  workplaceManagersTrainer,
 } from './themes';
 
 const ranges = (sessions: number, document = ownInstructionsChapters) =>
@@ -179,25 +180,18 @@ describe('the periodic sessions of a post', () => {
   });
 });
 
-describe('who trains a post', () => {
-  const names = {
-    workplaceManagers: ['Ion POP'],
-    provider: 'S.C. SSM S.R.L.',
-    specialist: 'Dan MARIN',
-  };
-
-  it('is the workplace manager for execution posts', () => {
-    expect(trainerOf('execution', names)).toBe('Ion POP – conducătorul locului\u00a0de\u00a0muncă');
+describe('the trainer lines', () => {
+  it('name the workplace manager with the role, one or several', () => {
+    expect(workplaceManagersTrainer(['Ion POP'])).toBe(
+      'Ion POP – conducătorul locului\u00a0de\u00a0muncă'
+    );
+    expect(workplaceManagersTrainer(['Steliana GAL', 'Lucrețiu ANDREI'])).toBe(
+      'Steliana GAL și Lucrețiu ANDREI – conducătorii locurilor\u00a0de\u00a0muncă'
+    );
   });
 
-  it('is every workplace manager for execution posts, where there are several', () => {
-    expect(
-      trainerOf('execution', { ...names, workplaceManagers: ['Steliana GAL', 'Lucrețiu ANDREI'] })
-    ).toBe('Steliana GAL și Lucrețiu ANDREI – conducătorii locurilor\u00a0de\u00a0muncă');
-  });
-
-  it('is the provider and its specialist for technical-administrative posts', () => {
-    expect(trainerOf('technical_administrative', names)).toBe('S.C. SSM S.R.L. – Dan MARIN');
+  it('name the provider through its specialist', () => {
+    expect(providerTrainer(' S.C. SSM S.R.L. ', 'Dan MARIN ')).toBe('S.C. SSM S.R.L. – Dan MARIN');
   });
 });
 
@@ -219,26 +213,19 @@ describe('the themes', () => {
       { moduleId: 'm-ladder', versionId: 'v-ladder', title: 'Scări', articleCount: 0 },
     ],
   };
-  const names = {
-    workplaceManagers: ['Ion POP'],
-    provider: 'S.C. SSM S.R.L.',
-    specialist: 'Dan MARIN',
-  };
-
   it("cite a post's modules in the revision's order, an uncounted one by title, and none the revision does not annex", () => {
     const themes = trainingThemes({
       ownInstructions,
       positions: [
         {
           name: ' șofer ',
-          staffCategory: 'execution',
           intervalMonths: 6,
           moduleIds: ['m-new', 'm-ladder', 'm-office'],
+          trainer: 'Ion POP – conducătorul locului de muncă',
         },
       ],
       firstMonth: 7,
       periodicTrainingMinutes: 120,
-      names,
     });
     expect(themes.annexTitles).toBe('I.P.S.S.M. Birou; I.P.S.S.M. Scări');
     expect(themes.ownInstructionsRevision).toEqual({
@@ -248,6 +235,7 @@ describe('the themes', () => {
     });
     expect(themes.positions[0]).toMatchObject({
       name: 'ȘOFER',
+      trainer: 'Ion POP – conducătorul locului de muncă',
       modules: [
         { citation: 'I.P.S.S.M. Birou, Art.\u00a01\u00a0–\u00a012' },
         { citation: 'I.P.S.S.M. Scări' },
@@ -262,14 +250,13 @@ describe('the themes', () => {
       positions: [
         {
           name: 'Contabil',
-          staffCategory: 'technical_administrative',
           intervalMonths: null,
           moduleIds: [],
+          trainer: 'S.C. SSM S.R.L. – Dan MARIN',
         },
       ],
       firstMonth: 2,
       periodicTrainingMinutes: 120,
-      names,
     });
     expect(themes.annexTitles).toBe('—');
     expect(themes.positions[0]).toMatchObject({ intervalLabel: '—', sessions: [] });
