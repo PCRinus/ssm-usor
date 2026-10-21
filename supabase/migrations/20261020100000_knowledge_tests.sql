@@ -741,6 +741,7 @@ declare
   right_count integer;
   examiner_name text;
   examiner_job_title text;
+  still_awaiting boolean;
 begin
   select k.key into answer_key from public.test_attempt_keys k where k.attempt_id = attempt.id;
 
@@ -781,7 +782,14 @@ begin
   where a.id = attempt.id
   returning * into attempt;
 
-  if attempt.passed then
+  -- An attempt left open while a paper pass was recorded would otherwise give a second pass.
+  select d.state = (case attempt.test when 'hiring' then 'pending' else 'annual_due' end)::public.test_state
+  into still_awaiting
+  from public.employees e
+  cross join lateral public.employee_test_due(e.id, e.status, attempt.domain) as d
+  where e.id = attempt.employee_id;
+
+  if attempt.passed and still_awaiting then
     if attempt.domain = 'psi' then
       -- As the API's fireSafetyTechnicianJobTitle, which the training proposals use.
       select o.fire_safety_technician_name, 'Cadru tehnic PSI'

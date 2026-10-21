@@ -1,5 +1,5 @@
 begin;
-select plan(78);
+select plan(80);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -519,6 +519,13 @@ select results_eq(
   'an annual pass names the organization''s fire-safety technician'
 );
 
+select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
+
+insert into attempt_ids
+select 'overtaken', (public.start_test_attempt('9e9e9e9e-0000-4000-8000-000000000001', 'psi', 'hiring')).id;
+
+select pg_temp.act_as_postgres();
+select pg_temp.keep_key('overtaken');
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 
 select lives_ok(
@@ -526,6 +533,26 @@ select lives_ok(
      values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'psi', 'hiring', (select today from day), 'Test de verificare a cunoștințelor la angajare (TASU)', 'Vasile TEHNIC', 'Cadru tehnic PSI', 'paper') $$,
   'a member records a paper result'
 );
+
+select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
+
+select count(public.answer_test_attempt(a.id, k.place, k.correct))
+from answer_keys k, attempt_ids a
+where k.name = 'overtaken' and a.name = 'overtaken';
+
+select results_eq(
+  $$ select passed from public.finish_test_attempt((select id from attempt_ids where name = 'overtaken')) $$,
+  $$ values (true) $$,
+  'an attempt left open across a paper pass still finishes'
+);
+
+select is(
+  (select count(*)::integer from public.test_results where attempt_id = (select id from attempt_ids where name = 'overtaken')),
+  0,
+  'but gives no second pass'
+);
+
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 
 select throws_ok(
   $$ insert into public.test_results (organization_id, client_id, employee_id, domain, test, taken_on, material, source)
@@ -556,7 +583,7 @@ select throws_ok(
 
 select is(
   (select count(*)::integer from public.test_attempts),
-  3,
+  4,
   'a member reads the attempts of their clients'' employees'
 );
 
