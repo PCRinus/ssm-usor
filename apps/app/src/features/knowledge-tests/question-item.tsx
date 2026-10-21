@@ -3,12 +3,15 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, Eye, EyeOff, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 
+import { Notice } from '@/components/notice';
+
 import { type BankQuestion, optionLetter } from './test-format';
 
 export function QuestionItem({
   question,
   number,
   busy,
+  error,
   onPreview,
   onHide,
   onRestore,
@@ -19,6 +22,7 @@ export function QuestionItem({
   // Null for a hidden question, which the tests leave out.
   number: number | null;
   busy: boolean;
+  error: string | null;
   onPreview: () => void;
   onHide: () => void;
   onRestore: () => void;
@@ -155,6 +159,11 @@ export function QuestionItem({
           </>
         )}
       </div>
+      {error && (
+        <Notice variant="destructive" data-testid="test-bank-error" className="ml-9 max-w-prose">
+          {error}
+        </Notice>
+      )}
     </li>
   );
 }

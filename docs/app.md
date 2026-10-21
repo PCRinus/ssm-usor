@@ -1077,7 +1077,7 @@ their tab bars read.
   the active ones numbered. A question shows its text, its options with the correct ones marked
   "corect", the explanation and "Temei: …" when present, and a "Predefinită" or "Proprie" badge;
   a hidden built-in stays in place, muted, with "Ascunsă". A built-in is hidden and restored
-  without a confirmation; the API's `409 test_below_minimum` shows in the card as "Un test
+  without a confirmation; the API's `409 test_below_minimum` shows under the question as "Un test
   trebuie să păstreze cel puțin zece întrebări active." "Adaugă o întrebare" opens the dialog on
   the card's test (the fire-safety tab offers both tests): the text, two to four options each with
   a "corect" box, at least one ticked, an optional explanation and an optional citation. An own

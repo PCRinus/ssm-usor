@@ -237,15 +237,16 @@ describe('the question bank', () => {
     expect(cards[1]!.textContent).toContain('TPSU');
   });
 
-  it('says why a built-in cannot be hidden at ten active questions', async () => {
+  it('says beside the question why a built-in cannot be hidden at ten active questions', async () => {
     mockApi({ [`PUT /organization/tests/questions/${uuid(2)}/hidden`]: refused });
     mount('/tests/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
     await user.click(within(questions[1]!).getByTestId('test-question-hide'));
-    expect((await screen.findByTestId('test-bank-error')).textContent).toBe(
+    expect((await within(questions[1]!).findByTestId('test-bank-error')).textContent).toBe(
       'Un test trebuie să păstreze cel puțin zece întrebări active.'
     );
+    expect(screen.getAllByTestId('test-bank-error')).toHaveLength(1);
     expect(requests('PUT', `/organization/tests/questions/${uuid(2)}/hidden`)).toHaveLength(1);
   });
 

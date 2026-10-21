@@ -107,20 +107,24 @@ function BankTestCard({
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const hide = useHideTestQuestion({ request: apiRequest });
   const restore = useRestoreTestQuestion({ request: apiRequest });
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{ questionId: string; message: string } | null>(null);
   const busy = hide.isPending || restore.isPending;
 
   async function setHidden(question: BankQuestion, hidden: boolean) {
-    setError(null);
+    setFailure(null);
     try {
       await (hidden ? hide : restore).mutateAsync({ questionId: question.id });
       toast.success(
         hidden ? 'Întrebarea a fost ascunsă din test.' : 'Întrebarea a fost repusă în test.'
       );
     } catch (cause) {
-      setError(
-        testFailure(cause, 'Nu am putut salva schimbarea. Verifică conexiunea și încearcă din nou.')
-      );
+      setFailure({
+        questionId: question.id,
+        message: testFailure(
+          cause,
+          'Nu am putut salva schimbarea. Verifică conexiunea și încearcă din nou.'
+        ),
+      });
     }
     await invalidateTestBank(queryClient);
   }
@@ -151,11 +155,6 @@ function BankTestCard({
         </Button>
       }
     >
-      {error && (
-        <Notice variant="destructive" data-testid="test-bank-error" className="mt-4">
-          {error}
-        </Notice>
-      )}
       <ol aria-label={`Întrebările testului ${test.code}`} className="-mx-6 mt-5 divide-y border-t">
         {numbered.map(({ question, number }) => (
           <QuestionItem
@@ -163,6 +162,7 @@ function BankTestCard({
             question={question}
             number={number}
             busy={busy}
+            error={failure?.questionId === question.id ? failure.message : null}
             onPreview={() => onPreview(question)}
             onHide={() => void setHidden(question, true)}
             onRestore={() => void setHidden(question, false)}
