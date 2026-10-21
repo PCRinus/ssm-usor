@@ -204,6 +204,7 @@ function QuestionForm({
                             <Checkbox
                               id={`${id}-correct`}
                               data-testid="test-question-option-correct"
+                              aria-label={`Varianta ${optionLetter(index)} este corectă`}
                               checked={field.value}
                               disabled={busy}
                               onCheckedChange={(checked) => field.onChange(checked === true)}

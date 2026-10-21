@@ -302,7 +302,7 @@ describe('the question bank', () => {
     expect((await dialog.findByTestId('test-question-options-error')).textContent).toBe(
       'Marchează cel puțin o variantă corectă.'
     );
-    await user.click(dialog.getAllByTestId('test-question-option-correct')[0]!);
+    await user.click(dialog.getByRole('checkbox', { name: 'Varianta a este corectă' }));
     await user.type(dialog.getByTestId('test-question-citation'), 'HG 1425/2006, art. 89');
     await user.click(dialog.getByTestId('test-question-submit'));
     await waitFor(() => expect(screen.queryByTestId('test-question-dialog')).toBeNull());
