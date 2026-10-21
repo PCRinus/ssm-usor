@@ -882,7 +882,8 @@ draw, the answers and the finish are the definer functions `start_test_attempt`,
 `answer_test_attempt` and `finish_test_attempt`, the study card `test_study_card`, called as the
 participant ([data model](data-model.md#knowledge-tests)). `GET …/tests` reads the employee's
 `test_status`, their results and their finished attempts as summaries without the questions,
-and the attempt in progress of the participation, which carries no key until the finish, as
+and the participation's attempt in progress of the test that awaits, which carries no key until
+the finish, as
 `{ questionId, text, options: [{ text }], chosen }`. Starting passes the newest issued material
 revision as the attempt's `material_revision_id`, and `CF-Connecting-IP` and the user agent as
 the signing evidence does; finishing passes them again. The answer's question is the path's

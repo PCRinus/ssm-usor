@@ -127,10 +127,12 @@ export const getPortalTests: RouteHandler<typeof getPortalTestsRoute, ApiEnv> = 
   if (inProgress.error) throw fromDatabaseError(inProgress.error, 'portal attempts in progress');
   if (!employee.data) throw noSuchEmployee();
   const status = toEmployeeTests(employee.data.test_status);
-  // One attempt is in progress per test; the one of the awaiting test is the one to resume.
+  // The start resumes only the attempt of the test that awaits; another one left open, after a
+  // paper pass, is refused as not awaiting and would never close.
   const ofDomain = (domain: TrainingDomain): PortalDomainTests => {
-    const open = inProgress.data.filter((row) => row.domain === domain);
-    const resumed = open.find((row) => row.test === status[domain].awaitingTest) ?? open[0];
+    const resumed = inProgress.data.find(
+      (row) => row.domain === domain && row.test === status[domain].awaitingTest
+    );
     return {
       status: status[domain],
       results: results.data.filter((row) => row.domain === domain).map(toTestResult),

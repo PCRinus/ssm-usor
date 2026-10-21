@@ -266,6 +266,27 @@ describe('GET /portal/participants/{participantId}/tests', () => {
     expect(openQuery!.get('participant_id')).toBe(`eq.${participantId}`);
   });
 
+  it('leaves out an attempt left open of a test that no longer awaits, which no start resumes', async () => {
+    mockUpstream({
+      employees: () =>
+        Response.json({
+          id: employeeId,
+          test_status: {
+            ssm_state: 'passed',
+            ssm_awaiting_test: null,
+            ssm_last_passed_on: '2026-10-20',
+            psi_state: 'none',
+            psi_awaiting_test: null,
+            psi_last_passed_on: null,
+            psi_due_on: null,
+          },
+        }),
+    });
+    const body = portalTestsResponseSchema.parse(await (await request(own('/tests'))).json());
+    expect(body.ssm.inProgress).toBeNull();
+    expect(body.psi.inProgress).toBeNull();
+  });
+
   it('answers 404 to a client administrator who is not an employee', async () => {
     mockUpstream();
     const response = await request(`/portal/participants/${administratorId}/tests`);

@@ -65,7 +65,7 @@ export const getPortalTestsRoute = createRoute({
   tags,
   summary: "The participant's knowledge tests",
   description:
-    'Per domain: the test state and the test that awaits, which _Acasă_ lists beside the signature requests; the results newest first; the finished attempts with their score, newest first; and the attempt in progress, if any, as it was drawn and answered so far, without its key.',
+    'Per domain: the test state and the test that awaits, which _Acasă_ lists beside the signature requests; the results newest first; the finished attempts with their score, newest first; and the attempt in progress of the test that awaits, if any, as it was drawn and answered so far, without its key.',
   security: bearerSecurity,
   middleware: [requireAuth, requireParticipant] as const,
   request: { params: participantParams },
