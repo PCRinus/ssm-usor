@@ -12,7 +12,8 @@ export function TestBankLayout() {
         <p className="mt-1 text-sm text-muted-foreground">
           Întrebările testelor de verificare a cunoștințelor. Angajatul susține testul în portal,
           zece întrebări extrase la întâmplare, iar testul tipărit din documentație le cuprinde pe
-          toate cele active.
+          toate cele active. Întrebările predefinite nu se modifică: ascunde-o pe cea care nu ți se
+          potrivește și adaugă una proprie în locul ei.
         </p>
       </div>
       <SectionNav label="Secțiunile băncii de întrebări">
