@@ -33,7 +33,7 @@
       "file": "1.2_decision_risk_evaluation_team.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
+        "note": "Coordonatorul echipei de evaluare este evaluatorul de riscuri al organizației, cu calitatea și certificatul lui, când este completat în Abilitări; altfel, ca până acum, cel care generează documentele, cu titlul din profil."
       }
     },
     {
@@ -45,7 +45,7 @@
       "file": "1.3_decision_first_aid.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
+        "note": "Coordonatorul echipei de evaluare este evaluatorul de riscuri al organizației, cu calitatea și certificatul lui, când este completat în Abilitări; altfel, ca până acum, cel care generează documentele, cu titlul din profil."
       }
     },
     {
@@ -57,7 +57,7 @@
       "file": "1.4_decision_imminent_danger.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
+        "note": "Coordonatorul echipei de evaluare este evaluatorul de riscuri al organizației, cu calitatea și certificatul lui, când este completat în Abilitări; altfel, ca până acum, cel care generează documentele, cu titlul din profil."
       }
     },
     {
@@ -69,7 +69,7 @@
       "file": "1.5_decision_workers_representative.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: titlul „Proces-verbal de luare de cunoștință” și, în textul lui, „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
+        "note": "Coordonatorul echipei de evaluare este evaluatorul de riscuri al organizației, cu calitatea și certificatul lui, când este completat în Abilitări; altfel, ca până acum, cel care generează documentele, cu titlul din profil."
       }
     },
     {
@@ -236,8 +236,8 @@
       "title": "Evaluarea riscurilor de accidentare și îmbolnăvire profesională",
       "file": "9_risk_assessment.docx",
       "change": {
-        "kind": "layout",
-        "note": "Etichetele listelor (numerele titlurilor și liniuțele) au mărimea textului, nu mai mici; liniuțele sunt tipărite ca „–”, iar titlurile „1.1.”, „1.2.” au mai mult loc între număr și text, iar rândul unui post din tabelul posturilor nu se mai rupe între două pagini."
+        "kind": "correction",
+        "note": "Evaluatorul numit pe prima pagină, în echipa de evaluare și la fiecare loc de muncă este evaluatorul de riscuri al organizației, cu calitatea și certificatul lui, când este completat în Abilitări; altfel, ca până acum, cel care generează documentele."
       }
     },
     {
