@@ -1,7 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
-  clientFileDownloadResponseSchema,
-  clientFileListResponseSchema,
+    clientFileListResponseSchema,
   clientFileResponseSchema,
   listClientFilesQuerySchema,
   setClientFileOwnersOnlyRequestSchema,
@@ -159,31 +158,6 @@ export const setClientFileOwnersOnlyRoute = createRoute({
       content: errorContent,
     },
     ...ownerErrors,
-  },
-});
-
-export const getClientFileDownloadRoute = createRoute({
-  method: 'get',
-  path: '/clients/{clientId}/files/{fileId}/download',
-  operationId: 'getClientFileDownload',
-  summary: 'Get a short-lived link to a file',
-  description:
-    'A signed link valid for a minute, with the name the file was uploaded under. `disposition` says how to open it through `/files/download`: a PDF or an image in a tab, anything else as a download. Also for an archived client.',
-  security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
-  request: { params: fileParams },
-  responses: {
-    200: {
-      description: 'The link',
-      content: {
-        'application/json': {
-          schema: clientFileDownloadResponseSchema.meta({ id: 'ClientFileDownloadResponse' }),
-        },
-      },
-    },
-    400: { description: 'Invalid path', content: errorContent },
-    404: noSuchFile,
-    ...membershipErrors,
   },
 });
 

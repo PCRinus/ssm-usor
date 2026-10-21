@@ -1,10 +1,13 @@
 import { createRouter } from '../../router';
 import {
   getPortalEmployeeSigningAgreement,
+  getPortalEmployeeSigningAgreementLink,
   getPortalSigningAgreement,
+  getPortalSigningAgreementLink,
   getPortalSigningAgreementState,
   getRecordSignatures,
   getSigningAgreement,
+  getSigningAgreementLink,
   getSigningAgreementState,
   listClientSignatureRequests,
   listMySignatureRequests,
@@ -19,10 +22,13 @@ import {
 import {
   createMySigningSessionRoute,
   createPortalSigningSessionRoute,
+  getPortalEmployeeSigningAgreementLinkRoute,
   getPortalEmployeeSigningAgreementRoute,
+  getPortalSigningAgreementLinkRoute,
   getPortalSigningAgreementRoute,
   getPortalSigningAgreementStateRoute,
   getRecordSignaturesRoute,
+  getSigningAgreementLinkRoute,
   getSigningAgreementRoute,
   getSigningAgreementStateRoute,
   listClientSignatureRequestsRoute,
@@ -52,6 +58,7 @@ export const signingRouter = createRouter()
   .openapi(listMySignatureRequestsRoute, listMySignatureRequests)
   .openapi(listClientSignatureRequestsRoute, listClientSignatureRequests)
   .openapi(getSigningAgreementRoute, getSigningAgreement)
+  .openapi(getSigningAgreementLinkRoute, getSigningAgreementLink)
   .openapi(getSigningAgreementStateRoute, getSigningAgreementState)
   .openapi(putSigningAgreementStateRoute, putSigningAgreementState)
   .openapi(createMySigningSessionRoute, createMySigningSession)
@@ -60,7 +67,9 @@ export const signingRouter = createRouter()
   .openapi(listPortalClientSignatureRequestsRoute, listPortalClientSignatureRequests)
   .openapi(listPortalSigningAgreementsRoute, listPortalSigningAgreements)
   .openapi(getPortalEmployeeSigningAgreementRoute, getPortalEmployeeSigningAgreement)
+  .openapi(getPortalEmployeeSigningAgreementLinkRoute, getPortalEmployeeSigningAgreementLink)
   .openapi(getPortalSigningAgreementRoute, getPortalSigningAgreement)
+  .openapi(getPortalSigningAgreementLinkRoute, getPortalSigningAgreementLink)
   .openapi(getPortalSigningAgreementStateRoute, getPortalSigningAgreementState)
   .openapi(createPortalSigningSessionRoute, createPortalSigningSession)
   .openapi(signPortalSigningSessionRoute, signPortalSigningSession);

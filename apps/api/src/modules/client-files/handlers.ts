@@ -21,7 +21,6 @@ import { createFileStore } from '../../lib/files';
 import { contentMatches, splitFileName, typeOfExtension } from './file-type';
 import type {
   deleteClientFileRoute,
-  getClientFileDownloadRoute,
   listClientFilesRoute,
   setClientFileOwnersOnlyRoute,
   updateClientFileRoute,
@@ -189,8 +188,32 @@ export const listClientFiles: RouteHandler<typeof listClientFilesRoute, ApiEnv> 
     .order('created_at', { ascending: false })
     .order('id');
   if (error) throw fromDatabaseError(error, 'list client files');
-  const names = await uploaderNames(db, data);
-  return c.json({ items: data.map((row) => toClientFile(c, row, names)) }, 200);
+  // Ten minutes: the list puts each link on a real anchor and fetches itself again before they
+  // expire; a phone may sleep in between.
+  const expiresInSeconds = 600;
+  const [names, links] = await Promise.all([
+    uploaderNames(db, data),
+    createFileStore(c).clientFileLinks(
+      data.map((row) => row.storage_path),
+      expiresInSeconds
+    ),
+  ]);
+  return c.json(
+    {
+      items: data.map((row) => ({
+        ...toClientFile(c, row, names),
+        link: {
+          url: links.get(row.storage_path)!,
+          fileName: downloadName(row.original_file_name),
+          disposition: shownInline.has(row.mime_type)
+            ? ('inline' as const)
+            : ('attachment' as const),
+          expiresInSeconds,
+        },
+      })),
+    },
+    200
+  );
 };
 
 export const uploadClientFile: RouteHandler<typeof uploadClientFileRoute, ApiEnv> = async (c) => {
@@ -283,24 +306,6 @@ export const setClientFileOwnersOnly: RouteHandler<
 };
 
 const shownInline = new Set<string>(['application/pdf', 'image/jpeg', 'image/png']);
-
-export const getClientFileDownload: RouteHandler<
-  typeof getClientFileDownloadRoute,
-  ApiEnv
-> = async (c) => {
-  const { clientId, fileId } = c.req.valid('param');
-  const file = await findFile(createDataClient(c), clientId, fileId);
-  const expiresInSeconds = 60;
-  return c.json(
-    {
-      url: await createFileStore(c).clientFileLink(file.storage_path, expiresInSeconds),
-      fileName: downloadName(file.original_file_name),
-      disposition: shownInline.has(file.mime_type) ? ('inline' as const) : ('attachment' as const),
-      expiresInSeconds,
-    },
-    200
-  );
-};
 
 // `/files/download` takes a name of at most 200 characters; the extension is what must stay.
 function downloadName(fileName: string) {

@@ -1,5 +1,6 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
+  type FileLinkResponse,
   type PortalSignatureRequest,
   type RecordSignaturesResponse,
   signatureErrorReasons,
@@ -39,10 +40,13 @@ import {
   type SignatureRow,
 } from './record-slots';
 import type {
+  getPortalEmployeeSigningAgreementLinkRoute,
   getPortalEmployeeSigningAgreementRoute,
+  getPortalSigningAgreementLinkRoute,
   getPortalSigningAgreementRoute,
   getPortalSigningAgreementStateRoute,
   getRecordSignaturesRoute,
+  getSigningAgreementLinkRoute,
   getSigningAgreementRoute,
   getSigningAgreementStateRoute,
   listClientSignatureRequestsRoute,
@@ -753,6 +757,49 @@ export async function signingAgreementPdf(
   return { pdf: await pdf.convertDocx(docx), fileName };
 }
 
+/** A signed link to the stored agreement, for the page to put on a real anchor. */
+export async function storedAgreementLink(
+  c: Context<ApiEnv>,
+  db: DataClient,
+  ids: { clientId: string; employeeId: string }
+): Promise<FileLinkResponse> {
+  const stored = await db
+    .from('employee_signing_agreements')
+    .select('storage_path')
+    .eq('employee_id', ids.employeeId)
+    .eq('client_id', ids.clientId)
+    .maybeSingle();
+  if (stored.error) throw fromDatabaseError(stored.error, 'stored signing agreement');
+  if (!stored.data?.storage_path) {
+    throw new ApiError(
+      'not_found',
+      'Nobody has signed the agreement electronically, so it has no stored file.',
+      undefined,
+      'agreement_not_stored'
+    );
+  }
+  const employee = await db
+    .from('employees')
+    .select('last_name, first_name')
+    .eq('id', ids.employeeId)
+    .eq('client_id', ids.clientId)
+    .maybeSingle();
+  if (employee.error) throw fromDatabaseError(employee.error, 'agreement employee');
+  if (!employee.data) throw noSuchEmployee();
+  // Ten minutes: the page keeps the link on a real anchor and renews it before then; a phone may
+  // sleep in between.
+  const expiresInSeconds = 600;
+  return {
+    // The caller's own policies have shown the row, so its file is one they may read.
+    url: await createAdminFileStore(c).documentLink(stored.data.storage_path, expiresInSeconds),
+    fileName: agreementFileName({
+      lastName: employee.data.last_name,
+      firstName: employee.data.first_name,
+    }),
+    expiresInSeconds,
+  };
+}
+
 const pdfHeaders = (fileName: string) => ({
   'Content-Type': 'application/pdf',
   'Content-Disposition': contentDisposition('attachment', fileName),
@@ -770,6 +817,12 @@ export const getSigningAgreement: RouteHandler<typeof getSigningAgreementRoute, 
   );
   return c.body(new Uint8Array(drawn.pdf), 200, pdfHeaders(drawn.fileName));
 };
+
+export const getSigningAgreementLink: RouteHandler<
+  typeof getSigningAgreementLinkRoute,
+  ApiEnv
+> = async (c) =>
+  c.json(await storedAgreementLink(c, createDataClient(c), c.req.valid('param')), 200);
 
 export const getSigningAgreementState: RouteHandler<
   typeof getSigningAgreementStateRoute,
@@ -861,6 +914,17 @@ export const getPortalSigningAgreement: RouteHandler<
   return c.body(new Uint8Array(drawn.pdf), 200, pdfHeaders(drawn.fileName));
 };
 
+export const getPortalSigningAgreementLink: RouteHandler<
+  typeof getPortalSigningAgreementLinkRoute,
+  ApiEnv
+> = async (c) => {
+  const { participantId } = c.req.valid('param');
+  return c.json(
+    await storedAgreementLink(c, createDataClient(c), ownEmployee(c, participantId)),
+    200
+  );
+};
+
 export const getPortalSigningAgreementState: RouteHandler<
   typeof getPortalSigningAgreementStateRoute,
   ApiEnv
@@ -933,4 +997,13 @@ export const getPortalEmployeeSigningAgreement: RouteHandler<
     createAdminFileStore(c).readTemplate
   );
   return c.body(new Uint8Array(drawn.pdf), 200, pdfHeaders(drawn.fileName));
+};
+
+export const getPortalEmployeeSigningAgreementLink: RouteHandler<
+  typeof getPortalEmployeeSigningAgreementLinkRoute,
+  ApiEnv
+> = async (c) => {
+  const { participantId, employeeId } = c.req.valid('param');
+  const clientId = administeredClient(c, participantId);
+  return c.json(await storedAgreementLink(c, createDataClient(c), { clientId, employeeId }), 200);
 };

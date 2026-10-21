@@ -1,5 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
+  fileLinkResponseSchema,
   clientSignatureRequestsQuerySchema,
   paperSignatureRequestSchema,
   portalSignatureRequestsResponseSchema,
@@ -42,6 +43,15 @@ const portalRequestsContent = json(
 const agreementContent = json(signingAgreementResponseSchema, 'SigningAgreementResponse');
 const pdfContent = {
   'application/pdf': { schema: z.string().openapi({ type: 'string', format: 'binary' }) },
+};
+
+const linkContent = {
+  'application/json': { schema: fileLinkResponseSchema.meta({ id: 'FileLinkResponse' }) },
+};
+const notStored = {
+  description:
+    'Nobody has signed the agreement electronically, so there is no stored file to link to (reason `agreement_not_stored`)',
+  content: errorContent,
 };
 
 const noRecord = {
@@ -222,6 +232,27 @@ export const getSigningAgreementRoute = createRoute({
   },
 });
 
+export const getSigningAgreementLinkRoute = createRoute({
+  method: 'get',
+  path: '/clients/{clientId}/employees/{employeeId}/signing-agreement/link',
+  operationId: 'getSigningAgreementLink',
+  summary: "A short-lived link to an employee's stored signing agreement",
+  description:
+    "For a real link on the page, which the browser opens through `GET /files/download`. Only an agreement a party has signed electronically has a stored file; before that, the PDF route draws it up. Valid for ten minutes.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: employeeParams },
+  responses: {
+    200: { description: 'The link', content: linkContent },
+    400: { description: 'Invalid path', content: errorContent },
+    404: {
+      description: `${noEmployee.description}, or ${notStored.description[0]!.toLowerCase()}${notStored.description.slice(1)}`,
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
 export const getSigningAgreementStateRoute = createRoute({
   method: 'get',
   path: '/clients/{clientId}/employees/{employeeId}/signing-agreement/state',
@@ -334,6 +365,27 @@ export const getPortalSigningAgreementRoute = createRoute({
     409: noAddress,
     ...ownAgreementErrors,
     503: agreementUnavailable,
+  },
+});
+
+export const getPortalSigningAgreementLinkRoute = createRoute({
+  method: 'get',
+  path: '/portal/participants/{participantId}/signing-agreement/link',
+  operationId: 'getPortalSigningAgreementLink',
+  tags: portalTags,
+  summary: "A short-lived link to the participant's own stored signing agreement",
+  description: "As the employee's page in the app has it; `404` before anyone has signed it.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireParticipant] as const,
+  request: { params: participantParams },
+  responses: {
+    200: { description: 'The link', content: linkContent },
+    400: { description: 'Invalid path', content: errorContent },
+    ...ownAgreementErrors,
+    404: {
+      description: `${ownAgreementErrors[404].description}, or nobody has signed the agreement electronically yet (reason \`agreement_not_stored\`)`,
+      content: errorContent,
+    },
   },
 });
 
@@ -550,5 +602,27 @@ export const getPortalEmployeeSigningAgreementRoute = createRoute({
       content: errorContent,
     },
     503: agreementUnavailable,
+  },
+});
+
+export const getPortalEmployeeSigningAgreementLinkRoute = createRoute({
+  method: 'get',
+  path: '/portal/participants/{participantId}/employees/{employeeId}/signing-agreement/link',
+  operationId: 'getPortalEmployeeSigningAgreementLink',
+  tags: portalTags,
+  summary: "A short-lived link to an employee's stored signing agreement, for the client administrator",
+  description: "As the participant's own; `404` before anyone has signed it.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireParticipant] as const,
+  request: { params: participantParams.extend({ employeeId: z.uuid() }) },
+  responses: {
+    200: { description: 'The link', content: linkContent },
+    400: { description: 'Invalid path', content: errorContent },
+    ...administratorErrors,
+    404: {
+      description:
+        "The participation is not the account's, the employee is not of the client, or nobody has signed the agreement electronically yet (reason `agreement_not_stored`)",
+      content: errorContent,
+    },
   },
 });

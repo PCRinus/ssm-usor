@@ -2,9 +2,11 @@ import { createRouter } from '../../router';
 import {
   getPortalEmployeeData,
   getPortalEmployeeTrainingSheet,
+  getPortalEmployeeTrainingSheetLink,
   getPortalEmployeeTrainingSheets,
   getPortalMe,
   getPortalTrainingSheet,
+  getPortalTrainingSheetLink,
   getPortalTrainingSheets,
   listPortalClientEmployees,
   listPortalEmployeeTrainingRecords,
@@ -15,9 +17,11 @@ import {
 } from './handlers';
 import {
   getPortalEmployeeDataRoute,
+  getPortalEmployeeTrainingSheetLinkRoute,
   getPortalEmployeeTrainingSheetRoute,
   getPortalEmployeeTrainingSheetsRoute,
   getPortalMeRoute,
+  getPortalTrainingSheetLinkRoute,
   getPortalTrainingSheetRoute,
   getPortalTrainingSheetsRoute,
   listPortalClientEmployeesRoute,
@@ -36,8 +40,10 @@ export const portalRouter = createRouter()
   .openapi(getPortalEmployeeDataRoute, getPortalEmployeeData)
   .openapi(getPortalTrainingSheetsRoute, getPortalTrainingSheets)
   .openapi(getPortalTrainingSheetRoute, getPortalTrainingSheet)
+  .openapi(getPortalTrainingSheetLinkRoute, getPortalTrainingSheetLink)
   .openapi(listPortalClientEmployeesRoute, listPortalClientEmployees)
   .openapi(listPortalEmployeeTrainingRecordsRoute, listPortalEmployeeTrainingRecords)
   .openapi(getPortalEmployeeTrainingSheetsRoute, getPortalEmployeeTrainingSheets)
   .openapi(getPortalEmployeeTrainingSheetRoute, getPortalEmployeeTrainingSheet)
+  .openapi(getPortalEmployeeTrainingSheetLinkRoute, getPortalEmployeeTrainingSheetLink)
   .openapi(listPortalResponsiblePersonsRoute, listPortalResponsiblePersons);

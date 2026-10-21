@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import {
   apiErrorResponseSchema,
+  fileLinkResponseSchema,
   missingSheetDataResponseSchema,
   trainingSheetsResponseSchema,
 } from '@ssm-usor/contracts';
@@ -412,5 +413,64 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
     mockUpstream();
     expect((await request(sheetPath('fire'))).status).toBe(400);
     expect(calls('/rest/v1/employees')).toHaveLength(0);
+  });
+
+  describe('the link to a stored sheet', () => {
+    const linkPath = (query: string) =>
+      `/clients/${clientId}/employees/${employeeId}/training-sheet/link?${query}`;
+
+    it('signs a ten-minute link to the only stored sheet with the secret key, named as the sheet', async () => {
+      mockUpstream({ sheets: () => Response.json([storedSheet(1)]) });
+      const response = await request(linkPath('domain=ssm'), withSecretKey);
+      expect(response.status).toBe(200);
+      expect(fileLinkResponseSchema.parse(await response.json())).toEqual({
+        url: expect.stringContaining(
+          `/storage/v1/object/sign/documents/${storedSheet(1).storage_path}`
+        ),
+        fileName: 'Fisa-SSM-Popescu-Ion.pdf',
+        expiresInSeconds: 600,
+      });
+      const [signing] = calls(
+        `/storage/v1/object/sign/documents/${storedSheet(1).storage_path}`
+      );
+      expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(
+        'Bearer sb_secret_test_key_value'
+      );
+      expect(JSON.parse(String(signing![1]?.body))).toEqual({ expiresIn: 600 });
+      expect(calls('/rest/v1/document_templates')).toHaveLength(0);
+      expect(convertDocx).not.toHaveBeenCalled();
+    });
+
+    it('names one of several by its number, and asks for the number when none is given', async () => {
+      mockUpstream({ sheets: () => Response.json([storedSheet(1), storedSheet(2)]) });
+      const second = await request(linkPath('domain=ssm&sequence=2'), withSecretKey);
+      expect(second.status).toBe(200);
+      expect(fileLinkResponseSchema.parse(await second.json())).toMatchObject({
+        url: expect.stringContaining(storedSheet(2).storage_path),
+        fileName: 'Fisa-SSM-Popescu-Ion-2.pdf',
+      });
+
+      const unnamed = await request(linkPath('domain=ssm'), withSecretKey);
+      expect(unnamed.status).toBe(409);
+      expect(await unnamed.json()).toMatchObject({ reason: 'several_sheets' });
+
+      expect((await request(linkPath('domain=ssm&sequence=3'), withSecretKey)).status).toBe(404);
+    });
+
+    it('has no link before signing has started, when nothing is stored', async () => {
+      mockUpstream();
+      const response = await request(linkPath('domain=ssm'), withSecretKey);
+      expect(response.status).toBe(404);
+      expect(
+        fetchMock.mock.calls.filter(([input]) =>
+          String(input).includes('/storage/v1/object/sign/')
+        )
+      ).toHaveLength(0);
+    });
+
+    it('answers 404 for an employee who is not of the client', async () => {
+      mockUpstream({ employees: () => Response.json([]), sheets: () => Response.json([]) });
+      expect((await request(linkPath('domain=ssm'), withSecretKey)).status).toBe(404);
+    });
   });
 });

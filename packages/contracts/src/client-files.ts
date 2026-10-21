@@ -63,9 +63,6 @@ export const listClientFilesQuerySchema = z.object({
 
 export type ListClientFilesQuery = z.infer<typeof listClientFilesQuerySchema>;
 
-export const clientFileListResponseSchema = z.object({ items: z.array(clientFileSchema) });
-
-export type ClientFileListResponse = z.infer<typeof clientFileListResponseSchema>;
 
 export const clientFileResponseSchema = z.object({ file: clientFileSchema });
 
@@ -97,7 +94,8 @@ export const setClientFileOwnersOnlyRequestSchema = z.object({ ownersOnly: z.boo
 
 export type SetClientFileOwnersOnlyRequest = z.infer<typeof setClientFileOwnersOnlyRequestSchema>;
 
-export const clientFileDownloadResponseSchema = z.object({
+/** The signed link each listed file carries, opened through `GET /files/download`. */
+export const clientFileLinkSchema = z.object({
   url: z.url(),
   // The name the file was uploaded under.
   fileName: z.string(),
@@ -106,7 +104,13 @@ export const clientFileDownloadResponseSchema = z.object({
   expiresInSeconds: z.int(),
 });
 
-export type ClientFileDownloadResponse = z.infer<typeof clientFileDownloadResponseSchema>;
+export type ClientFileLink = z.infer<typeof clientFileLinkSchema>;
+
+export const clientFileListResponseSchema = z.object({
+  items: z.array(clientFileSchema.extend({ link: clientFileLinkSchema })),
+});
+
+export type ClientFileListResponse = z.infer<typeof clientFileListResponseSchema>;
 
 /** `reason` values on client file errors, so the SPA can word them itself. */
 export const clientFileErrorReasons = {

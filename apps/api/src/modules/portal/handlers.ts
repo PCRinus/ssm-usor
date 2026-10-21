@@ -20,15 +20,18 @@ import { recordSlots, requestColumns, signatureColumns } from '../signing/record
 import {
   drawTrainingSheet,
   missingSheetDataResponse,
+  storedSheetLink,
   trainingSheetReadiness,
 } from '../trainings/sheet-handlers';
 import { toEmployeeTraining } from '../trainings/status';
 import { toAdmission } from '../trainings/training-rows';
 import type {
   getPortalEmployeeDataRoute,
+  getPortalEmployeeTrainingSheetLinkRoute,
   getPortalEmployeeTrainingSheetRoute,
   getPortalEmployeeTrainingSheetsRoute,
   getPortalMeRoute,
+  getPortalTrainingSheetLinkRoute,
   getPortalTrainingSheetRoute,
   getPortalTrainingSheetsRoute,
   listPortalClientEmployeesRoute,
@@ -361,6 +364,19 @@ export const listPortalEmployeeTrainingRecords: RouteHandler<
   return c.json(await trainingRecords(createDataClient(c), employee), 200);
 };
 
+export const getPortalTrainingSheetLink: RouteHandler<
+  typeof getPortalTrainingSheetLinkRoute,
+  ApiEnv
+> = async (c) => {
+  const { participantId, domain } = c.req.valid('param');
+  const { sequence } = c.req.valid('query');
+  const employee = ownEmployee(participationOf(c, participantId));
+  return c.json(
+    await storedSheetLink(c, createDataClient(c), { ...employee, domain, sequence }),
+    200
+  );
+};
+
 export const getPortalEmployeeTrainingSheets: RouteHandler<
   typeof getPortalEmployeeTrainingSheetsRoute,
   ApiEnv
@@ -386,4 +402,17 @@ export const getPortalEmployeeTrainingSheet: RouteHandler<
     'Content-Type': 'application/pdf',
     'Content-Disposition': contentDisposition('attachment', drawn.fileName),
   });
+};
+
+export const getPortalEmployeeTrainingSheetLink: RouteHandler<
+  typeof getPortalEmployeeTrainingSheetLinkRoute,
+  ApiEnv
+> = async (c) => {
+  const { participantId, employeeId, domain } = c.req.valid('param');
+  const { sequence } = c.req.valid('query');
+  const employee = administeredEmployee(c, participantId, employeeId);
+  return c.json(
+    await storedSheetLink(c, createDataClient(c), { ...employee, domain, sequence }),
+    200
+  );
 };

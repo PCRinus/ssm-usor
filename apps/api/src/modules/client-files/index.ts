@@ -1,7 +1,6 @@
 import { createRouter } from '../../router';
 import {
   deleteClientFile,
-  getClientFileDownload,
   listClientFiles,
   setClientFileOwnersOnly,
   updateClientFile,
@@ -9,7 +8,6 @@ import {
 } from './handlers';
 import {
   deleteClientFileRoute,
-  getClientFileDownloadRoute,
   listClientFilesRoute,
   setClientFileOwnersOnlyRoute,
   updateClientFileRoute,
@@ -21,5 +19,4 @@ export const clientFilesRouter = createRouter()
   .openapi(uploadClientFileRoute, uploadClientFile)
   .openapi(updateClientFileRoute, updateClientFile)
   .openapi(setClientFileOwnersOnlyRoute, setClientFileOwnersOnly)
-  .openapi(getClientFileDownloadRoute, getClientFileDownload)
   .openapi(deleteClientFileRoute, deleteClientFile);
