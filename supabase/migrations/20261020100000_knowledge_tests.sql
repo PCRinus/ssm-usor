@@ -228,8 +228,8 @@ create table public.test_attempts (
   -- Served in Romanian only (ADR 024); a translation widens this (#532).
   language text not null default 'ro' constraint test_attempts_language_valid check (language = 'ro'),
   -- As shown, in the shown order: [{"question_id", "text", "options": [{"text"}], "chosen": [i]}].
-  -- The finish adds each option's "correct", the question's "correct" and its "explanation";
-  -- before it, the row carries no key.
+  -- The finish adds the question's "correct" and its "explanation", never an option's: the
+  -- participant reads this row.
   questions jsonb not null,
   total smallint not null constraint test_attempts_total_range check (total between 1 and 100),
   score smallint,
@@ -267,9 +267,9 @@ create index test_attempts_material_revision_id_idx on public.test_attempts (mat
 comment on table public.test_attempts is
   'One sitting of a knowledge test by a participant in the portal: the questions and options as shown, the answers, the score (ADR 024). Frozen once finished.';
 
--- The key of an attempt in progress, apart from the row the participant reads: the correct
--- options in the shown order and the explanations, moved into the attempt at the finish.
--- Definer functions only.
+-- The key of an attempt, apart from the row the participant reads: the correct options in the
+-- shown order and the explanations. It stays after the finish, frozen with the attempt, because
+-- a bank of ten shows the same questions at every retake. Definer functions only.
 create table public.test_attempt_keys (
   attempt_id uuid primary key references public.test_attempts (id) on delete cascade,
   key jsonb not null,
@@ -277,7 +277,7 @@ create table public.test_attempt_keys (
 );
 
 comment on table public.test_attempt_keys is
-  'The answer key of a test attempt in progress (ADR 024). No policy: definer functions only.';
+  'The answer key of a test attempt, kept and frozen once it is finished (ADR 024). No policy: definer functions only.';
 
 -- Truncate included: what the employee saw and answered is the traceability art. 81(3^3) of
 -- H.G. 1425/2006 asks for (ADR 024).
@@ -303,6 +303,29 @@ create trigger test_attempts_frozen
   for each row execute function public.protect_finished_test_attempt();
 create trigger test_attempts_never_truncated
   before truncate on public.test_attempts
+  for each statement execute function public.protect_finished_test_attempt();
+
+create function public.protect_finished_test_attempt_key()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if exists (
+    select 1 from public.test_attempts a where a.id = old.attempt_id and a.finished_at is not null
+  ) then
+    raise exception 'attempt_finished' using errcode = 'TST03';
+  end if;
+  return coalesce(new, old);
+end;
+$$;
+
+create trigger test_attempt_keys_frozen
+  before update or delete on public.test_attempt_keys
+  for each row execute function public.protect_finished_test_attempt_key();
+create trigger test_attempt_keys_never_truncated
+  before truncate on public.test_attempt_keys
   for each statement execute function public.protect_finished_test_attempt();
 
 create trigger test_attempts_protect_archived_client
@@ -724,7 +747,6 @@ begin
   select
     jsonb_agg(
       scored.question || jsonb_build_object(
-        'options', scored.options,
         'correct', scored.chosen = scored.correct,
         'explanation', scored.explanation
       )
@@ -744,16 +766,7 @@ begin
       (
         select coalesce(array_agg(c.value::integer order by c.value::integer), '{}')
         from jsonb_array_elements_text(k.value -> 'correct') as c (value)
-      ) as correct,
-      (
-        select jsonb_agg(
-          o.value || jsonb_build_object(
-            'correct', (k.value -> 'correct') @> to_jsonb(o.place - 1)
-          )
-          order by o.place
-        )
-        from jsonb_array_elements(q.value -> 'options') with ordinality as o (value, place)
-      ) as options
+      ) as correct
     from jsonb_array_elements(attempt.questions) with ordinality as q (value, place)
     join jsonb_array_elements(answer_key) with ordinality as k (value, place) on k.place = q.place
   ) as scored;
@@ -767,8 +780,6 @@ begin
       user_agent = coalesce(p_user_agent, a.user_agent)
   where a.id = attempt.id
   returning * into attempt;
-
-  delete from public.test_attempt_keys k where k.attempt_id = attempt.id;
 
   if attempt.passed then
     if attempt.domain = 'psi' then
@@ -814,6 +825,7 @@ revoke all on function public.active_test_questions(uuid, public.training_domain
 revoke all on function public.check_test_question_replaces() from public, anon, authenticated;
 revoke all on function public.protect_test_minimum() from public, anon, authenticated;
 revoke all on function public.protect_finished_test_attempt() from public, anon, authenticated;
+revoke all on function public.protect_finished_test_attempt_key() from public, anon, authenticated;
 revoke all on function public.protect_test_result_from_attempt() from public, anon, authenticated;
 revoke all on function public.employee_test_due(uuid, public.employee_status, public.training_domain) from public, anon;
 revoke all on function public.test_status(public.employees) from public, anon;
@@ -888,8 +900,6 @@ create policy "members read their clients' test attempts"
   on public.test_attempts for select to authenticated
   using (organization_id = (select public.current_organization_id()));
 
--- A finished attempt carries the key of its own draw; a retake is drawn and shuffled again, so
--- reading it gives nothing toward the next one (ADR 024).
 create policy "participants read their own test attempts"
   on public.test_attempts for select to authenticated
   using (employee_id = any ((select public.participant_employee_ids())::uuid[]));

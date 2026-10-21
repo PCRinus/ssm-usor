@@ -662,11 +662,12 @@ client, the domain and test, `started_at` and `finished_at`, `language` (`ro` on
 
 `questions` is the sitting as shown, in the shown order:
 `[{ "question_id", "text", "options": [{ "text" }], "chosen": [i, ...] }]`, `chosen` holding
-indices into the shown options, empty while unanswered. In progress the row carries no key: the
-correct options in the shown order and the explanations wait in `test_attempt_keys`, which has
-no policy and no grant, and the finish moves them into the row, each option gaining `correct`
-and each question `correct` and `explanation`. A finished attempt is frozen: an update or a
-delete raises `TST03` (`attempt_finished`), whoever makes it, and the table is never truncated.
+indices into the shown options, empty while unanswered. The row never carries the key: the
+correct options in the shown order and the explanations are in `test_attempt_keys`, which has
+no policy and no grant, and the finish adds to each question only `correct` and `explanation`.
+The key stays after the finish, since a bank of ten shows the same questions at every retake. A
+finished attempt and its key are frozen: an update or a delete raises `TST03`
+(`attempt_finished`), whoever makes it, and neither table is truncated.
 Archived clients and leads take no attempt.
 
 Nobody writes the table directly. The portal's routes run as the participant and call these
@@ -680,9 +681,9 @@ employee (`P0002`, `participant_not_found` or `attempt_not_found`, otherwise):
 | `finish_test_attempt(attempt, address, agent)`                                     | Scores and finishes: a question counts only when the options chosen are exactly the correct ones, and `passed` is a score of at least 70% of `total`, seven of ten. A pass inserts the test result.                                                                                                                                                                                                                                                          |
 | `test_study_card(participant, domain, test)`                                       | The explanations of the test's active questions, for the study card.                                                                                                                                                                                                                                                                                                                                                                                         |
 
-Members read their organization's attempts and participants their own employee's, the finished
-ones with the key of their draw, since a retake is drawn and shuffled again. The client
-administrator reads none.
+Members read their organization's attempts and participants their own employee's, each finished
+question marked right or wrong but never which option is correct. The client administrator
+reads none.
 
 ### Test results
 

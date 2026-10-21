@@ -1,5 +1,5 @@
 begin;
-select plan(75);
+select plan(78);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -379,10 +379,13 @@ select results_eq(
 );
 
 select ok(
-  (select bool_and(q.value ? 'correct' and q.value ? 'explanation' and (q.value -> 'options' -> 0) ? 'correct')
+  (select bool_and(
+     q.value ? 'correct' and q.value ? 'explanation'
+     and not exists (select 1 from jsonb_array_elements(q.value -> 'options') as o (value) where o.value ? 'correct')
+   )
    from public.test_attempts a, jsonb_array_elements(a.questions) as q (value)
    where a.id = (select id from attempt_ids where name = 'failed')),
-  'the finish writes the key and the explanations into the attempt'
+  'the finish marks each question and adds its explanation, never which option is correct'
 );
 
 select is(
@@ -405,8 +408,18 @@ select pg_temp.act_as_postgres();
 
 select is(
   (select count(*)::integer from public.test_attempt_keys where attempt_id = (select id from attempt_ids where name = 'failed')),
-  0,
-  'the key leaves its table at the finish'
+  1,
+  'the key stays with the finished attempt'
+);
+
+select throws_ok(
+  $$ update public.test_attempt_keys set key = '[]' where attempt_id = (select id from attempt_ids where name = 'failed') $$,
+  'TST03', 'attempt_finished', 'a finished attempt''s key is frozen, whoever writes'
+);
+
+select throws_ok(
+  $$ delete from public.test_attempt_keys where attempt_id = (select id from attempt_ids where name = 'failed') $$,
+  'TST03', 'attempt_finished', 'a finished attempt''s key is never deleted'
 );
 
 select throws_ok(
@@ -432,6 +445,24 @@ select isnt(
 
 select pg_temp.act_as_postgres();
 select pg_temp.keep_key('passed');
+
+update public.test_questions b
+set text = b.text || ' (modificat)',
+    options = (
+      select jsonb_agg(jsonb_build_object('text', o.value ->> 'text', 'correct', not (o.value ->> 'correct')::boolean) order by o.place)
+      from jsonb_array_elements(b.options) with ordinality as o (value, place)
+    )
+where b.organization_id is null and b.domain = 'ssm' and b.test = 'hiring';
+
+select ok(
+  (select bool_and((q.value ->> 'text') || ' (modificat)' = b.text)
+   from public.test_attempts a
+   cross join lateral jsonb_array_elements(a.questions) as q (value)
+   join public.test_questions b on b.id = (q.value ->> 'question_id')::uuid
+   where a.id = (select id from attempt_ids where name = 'passed')),
+  'a sitting keeps its questions as drawn when the bank changes'
+);
+
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');
 
 select count(public.answer_test_attempt(a.id, k.place, k.correct))
@@ -441,7 +472,7 @@ where k.name = 'passed' and a.name = 'passed';
 select results_eq(
   $$ select score::integer, passed from public.finish_test_attempt((select id from attempt_ids where name = 'passed'), '198.51.100.4', 'Mozilla/5.0 (Android)') $$,
   $$ values (10, true) $$,
-  'a sitting answered with the key passes'
+  'a sitting answered with its key passes, whatever the bank became'
 );
 
 select results_eq(
