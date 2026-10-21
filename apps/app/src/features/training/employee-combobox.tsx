@@ -35,6 +35,7 @@ const listParams = { page: 1, pageSize: maxPageSize, sort: 'name', order: 'asc' 
 // most of the roles at a small client and is often not an employee, so they can come first.
 export function EmployeeCombobox({
   id,
+  testId = 'responsible-employee',
   clientId,
   userId,
   value,
@@ -46,6 +47,7 @@ export function EmployeeCombobox({
   describedBy,
 }: {
   id: string;
+  testId?: string;
   clientId: string;
   userId: string;
   value: string;
@@ -81,7 +83,7 @@ export function EmployeeCombobox({
   return (
     <SearchCombobox
       id={id}
-      testId="responsible-employee"
+      testId={testId}
       items={items}
       value={value}
       onChange={(choice) => {

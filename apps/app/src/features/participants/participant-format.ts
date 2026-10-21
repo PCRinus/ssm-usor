@@ -1,6 +1,8 @@
-import type { ParticipantChannel } from '@ssm-usor/contracts';
+import type { ParticipantChannel, PortalLanguage } from '@ssm-usor/contracts';
 
 export const channelLabels: Record<ParticipantChannel, string> = { email: 'email', sms: 'SMS' };
+
+export const languageLabels: Record<PortalLanguage, string> = { ro: 'română', en: 'engleză' };
 
 const dayFormat = new Intl.DateTimeFormat('ro-RO', {
   day: 'numeric',

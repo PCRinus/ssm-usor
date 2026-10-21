@@ -41,7 +41,6 @@ import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { formatDate } from '@/features/employees/employee-format';
-import { ClientSignatureRequests } from '@/features/signatures/client-signature-requests';
 import { trainingLocks } from '@/features/signatures/use-record-signatures';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
@@ -109,7 +108,6 @@ export function ClientTrainingsPage() {
           </Button>
         )}
       </div>
-      <ClientSignatureRequests clientId={clientId} userId={userId} />
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
           <nav aria-label="Filtrează după domeniu" className="flex gap-1">

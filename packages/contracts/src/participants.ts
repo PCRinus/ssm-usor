@@ -105,6 +105,12 @@ export const participantInvitationSchema = z.object({
 
 export type ParticipantInvitation = z.infer<typeof participantInvitationSchema>;
 
+export const portalLanguages = ['ro', 'en'] as const;
+
+export const portalLanguageSchema = z.enum(portalLanguages);
+
+export type PortalLanguage = z.infer<typeof portalLanguageSchema>;
+
 export const clientParticipantSchema = z.object({
   id: z.uuid(),
   clientId: z.uuid(),
@@ -118,6 +124,8 @@ export const clientParticipantSchema = z.object({
   revokedAt: z.iso.datetime({ offset: true }).nullable(),
   // Null until the portal has shown the privacy notice.
   noticeVersion: z.string().nullable(),
+  // Null until the participant chose a language on the portal, which then follows the browser.
+  language: portalLanguageSchema.nullable(),
 });
 
 export type ClientParticipant = z.infer<typeof clientParticipantSchema>;
@@ -159,12 +167,6 @@ export const participantErrorReasons = {
 
 export type ParticipantErrorReason =
   (typeof participantErrorReasons)[keyof typeof participantErrorReasons];
-
-export const portalLanguages = ['ro', 'en'] as const;
-
-export const portalLanguageSchema = z.enum(portalLanguages);
-
-export type PortalLanguage = z.infer<typeof portalLanguageSchema>;
 
 /** One client the signed-in account is a participant of, from `current_participations()`. */
 export const portalParticipationSchema = z.object({

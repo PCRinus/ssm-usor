@@ -10169,6 +10169,11 @@
               "noticeVersion": {
                 "type": "string",
                 "nullable": true
+              },
+              "language": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["ro", "en", null]
               }
             },
             "required": [
@@ -10181,7 +10186,8 @@
               "address",
               "createdAt",
               "revokedAt",
-              "noticeVersion"
+              "noticeVersion",
+              "language"
             ]
           },
           "invitation": {
@@ -10410,6 +10416,11 @@
                 "noticeVersion": {
                   "type": "string",
                   "nullable": true
+                },
+                "language": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["ro", "en", null]
                 }
               },
               "required": [
@@ -10422,7 +10433,8 @@
                 "address",
                 "createdAt",
                 "revokedAt",
-                "noticeVersion"
+                "noticeVersion",
+                "language"
               ]
             }
           },

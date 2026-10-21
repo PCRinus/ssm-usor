@@ -777,6 +777,10 @@ portal's client.
 | `POST /participant-invitations/{invitationId}/revoke`                     | `204`                                                                       |
 | `POST /client-participants/{participantId}/revoke`                        | `204`; the person's records stay                                            |
 
+A participant carries the `channel` and `address` of the accepted invitation, which is what
+they sign in with, `noticeVersion`, and `language`, `ro` or `en` once they chose one in the
+portal, else null. The client's "Portal" tab lists them from this route.
+
 An employee is invited with `{ channel, address }`, `channel` `email` or `sms`; the address
 must be the employee's own email or phone as their row holds it, which the database checks. The
 client administrator is invited with `{ channel, address, employeeId?, fullName? }`: an
