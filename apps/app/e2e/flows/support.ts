@@ -648,8 +648,8 @@ export async function signOut(page: Page) {
   await expect(page).toHaveURL(/\/login$/);
 }
 
-// The PDF of an issued revision is a real link shown in a tab of its own, so the browser's
-// viewer handles it; the test reads what the link serves instead of waiting for a download.
+// A PDF link opens in a tab of its own, so there is no download event to wait for: the test
+// reads what the link serves.
 export async function openedPdf(page: Page, row: Locator) {
   await expect(page.getByRole('menu')).toHaveCount(0);
   await row.getByTestId('document-actions').click();

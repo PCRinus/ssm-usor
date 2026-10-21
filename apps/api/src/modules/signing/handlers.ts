@@ -757,7 +757,6 @@ export async function signingAgreementPdf(
   return { pdf: await pdf.convertDocx(docx), fileName };
 }
 
-/** A signed link to the stored agreement, for the page to put on a real anchor. */
 export async function storedAgreementLink(
   c: Context<ApiEnv>,
   db: DataClient,

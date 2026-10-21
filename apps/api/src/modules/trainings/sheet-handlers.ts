@@ -225,11 +225,8 @@ export async function drawTrainingSheet(
   };
 }
 
-/**
- * A signed link to a stored sheet, the original of `sequence` or the only one, for the page to put
- * on a real anchor. A sheet drawn up on the spot and the merged reading copy have no stored file,
- * so only the PDF route serves them.
- */
+// Only a stored sheet has a file to link to: a sheet drawn up on the spot and the merged reading
+// copy come from the PDF route.
 export async function storedSheetLink(
   c: Context<ApiEnv>,
   db: DataClient,

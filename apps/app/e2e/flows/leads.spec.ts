@@ -288,7 +288,6 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
     buffer: Buffer.from('%PDF-1.4\n% exemplar semnat, scanat\n'),
   });
   await expect(page.getByTestId('contract-signed')).toHaveText('Semnat');
-  // A real link that shows the PDF in the browser's viewer, in a tab of its own.
   const signedOpen = page.getByTestId('contract-signed-open');
   await expect(signedOpen).toHaveAttribute('href', /\/files\/download\?/);
   const signedCopy = await page.request.get((await signedOpen.getAttribute('href'))!);

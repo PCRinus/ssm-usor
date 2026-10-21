@@ -28,8 +28,8 @@ function failureOf(cause: unknown): MessageDescriptor {
 // Without a sequence, a sheet with continuation sheets comes as one merged copy to read.
 export type LoadSheet = (domain: TrainingDomain, sequence?: number) => Promise<Blob>;
 
-// A signed link to one stored sheet, for a real anchor; a sheet drawn up on the spot and the
-// merged reading copy have none and come through `LoadSheet`.
+// Only a stored sheet has a link; a sheet drawn up on the spot and the merged reading copy come
+// through `LoadSheet`.
 export type LoadSheetLink = (
   domain: TrainingDomain,
   sequence: number,

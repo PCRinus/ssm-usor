@@ -94,7 +94,6 @@ export const setClientFileOwnersOnlyRequestSchema = z.object({ ownersOnly: z.boo
 
 export type SetClientFileOwnersOnlyRequest = z.infer<typeof setClientFileOwnersOnlyRequestSchema>;
 
-/** The signed link each listed file carries, opened through `GET /files/download`. */
 export const clientFileLinkSchema = z.object({
   url: z.url(),
   // The name the file was uploaded under.
