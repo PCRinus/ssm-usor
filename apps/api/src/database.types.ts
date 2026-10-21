@@ -4106,10 +4106,12 @@ export type Database = {
       };
       documents_behind: {
         Row: {
+          behind_template: boolean | null;
           client_id: string | null;
           client_name: string | null;
           document_id: string | null;
           edited_draft: boolean | null;
+          instruction_changes: Json | null;
           newest_kind: string | null;
           newest_note: string | null;
           newest_version: number | null;
