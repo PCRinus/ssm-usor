@@ -1,6 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
-    clientFileListResponseSchema,
+  clientFileListResponseSchema,
   clientFileResponseSchema,
   listClientFilesQuerySchema,
   setClientFileOwnersOnlyRequestSchema,
