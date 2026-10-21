@@ -38,6 +38,7 @@ import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { todayIso } from '@/features/employees/employee-format';
+import { invalidateSignatures } from '@/features/signatures/signature-queries';
 
 import { invalidateEmployeeTests, testFailure } from './test-format';
 
@@ -211,7 +212,11 @@ function ResultForm({
           },
         });
       }
-      await invalidateEmployeeTests(queryClient, clientId, employeeId);
+      await Promise.all([
+        invalidateEmployeeTests(queryClient, clientId, employeeId),
+        // A new examiner voids the pending request on the test sheet and is asked in its place.
+        ...(result ? [invalidateSignatures(queryClient, clientId)] : []),
+      ]);
       toast.success(result ? 'Examinatorul a fost salvat.' : 'Rezultatul a fost înregistrat.');
       onClose();
     } catch (cause) {

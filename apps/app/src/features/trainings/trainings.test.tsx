@@ -2,6 +2,10 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  getListClientSignatureRequestsQueryKey,
+  getListMySignatureRequestsQueryKey,
+} from '@/api/generated/api';
 import { todayIso } from '@/features/employees/employee-format';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
@@ -1057,7 +1061,7 @@ describe("an employee's knowledge tests", () => {
     );
   });
 
-  it("corrects a result's examiner", async () => {
+  it("corrects a result's examiner, and the request lists follow the examiner", async () => {
     mockApi({
       [`GET ${testsPath}`]: () =>
         Response.json({
@@ -1071,12 +1075,20 @@ describe("an employee's knowledge tests", () => {
       [`PATCH ${testsPath}/results/${paperResult.id}`]: (_url, init) =>
         Response.json({ result: { ...paperResult, ...JSON.parse(String(init?.body)) } }),
     });
-    mountApp(authFixture(makeSession()).client, `${employeePath}/training/ssm`);
+    const { queryClient } = mountApp(
+      authFixture(makeSession()).client,
+      `${employeePath}/training/ssm`
+    );
+    const requestLists = [
+      getListMySignatureRequestsQueryKey(),
+      getListClientSignatureRequestsQueryKey(clientId),
+    ];
     const user = userEvent.setup();
     const card = within(await screen.findByTestId('employee-tests'));
     expect((await card.findByTestId('tests-result-examiner')).textContent).toBe(
       'Examinator: Dan Marin, Inspector SSM'
     );
+    for (const key of requestLists) queryClient.setQueryData(key, { items: [] });
     expect(card.queryByTestId('tests-record-paper')).toBeNull();
     await user.click(card.getByTestId('tests-result-examiner-edit'));
     const dialog = within(await screen.findByTestId('test-result-dialog'));
@@ -1090,6 +1102,9 @@ describe("an employee's knowledge tests", () => {
       examiner: { name: 'Elena Voicu', jobTitle: 'Inspector SSM' },
     });
     expect(requests('GET', `${trainingsPath}/proposal`)).toHaveLength(0);
+    for (const key of requestLists) {
+      expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
+    }
   });
 });
 
