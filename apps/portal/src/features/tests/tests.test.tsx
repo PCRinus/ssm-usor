@@ -1,3 +1,4 @@
+import { QueryClient } from '@tanstack/react-query';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -351,6 +352,32 @@ describe('the test sheet in Instruiri', () => {
     );
     expect(tab.document.title).toBe('Fișa de test la angajare SSM');
     expect(tab.location.replace).toHaveBeenCalledWith('blob:test-sheet');
+  });
+
+  it('refreshes the slots once opening has drawn up a sheet the pass could not', async () => {
+    const notDrawnUp = result({
+      sheet: { available: false, signed: { trainee: 'unassigned', examiner: 'unassigned' } },
+    });
+    vi.mocked(useGetPortalTests).mockReturnValue(passedWith([notDrawnUp]));
+    vi.spyOn(window, 'open').mockReturnValue({
+      document: { write: vi.fn(), close: vi.fn(), title: '', querySelector: () => null },
+      location: { replace: vi.fn() },
+      close: vi.fn(),
+    } as never);
+    URL.createObjectURL = vi.fn(() => 'blob:test-sheet');
+    URL.revokeObjectURL = vi.fn();
+    vi.mocked(getPortalTestSheet).mockResolvedValue(new Blob(['%PDF']));
+    const invalidate = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+    mountPortal(signedIn(), '/instruiri');
+
+    await userEvent.click(await screen.findByTestId('training-test-sheet-open'));
+
+    await waitFor(() => expect(invalidate).toHaveBeenCalled());
+    const predicate = invalidate.mock.calls.at(-1)![0]!.predicate!;
+    expect(predicate({ queryKey: [`/portal/participants/${participantId}/tests`] } as never)).toBe(
+      true
+    );
+    invalidate.mockRestore();
   });
 
   it('says when the test sheet is not ready', async () => {

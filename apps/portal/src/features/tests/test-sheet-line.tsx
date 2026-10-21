@@ -3,12 +3,14 @@ import { msg } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { type SignatureSlotState, testErrorReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { LoaderCircle, PenLine } from 'lucide-react';
 import { useState } from 'react';
 
 import { getPortalTestSheet, type PortalTestsResponse } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
+import { invalidateSigningQueries } from '@/features/signing/signing-items';
 import { testSheetTitleMessage } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
 import { openPreview, PreviewBlockedError } from '@/lib/save-file';
@@ -44,6 +46,7 @@ export function TestSheetLine({
 }) {
   const { t, i18n } = useLingui();
   const apiRequest = useApiRequest();
+  const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<MessageDescriptor | null>(null);
   const trainee = i18n._(slotStateMessages[result.sheet.signed.trainee]);
@@ -57,6 +60,8 @@ export function TestSheetLine({
         title: i18n._(testSheetTitleMessage(result.domain, result.test)),
         pending: t`Se pregătește fișa…`,
       });
+      // Opening draws up a sheet the pass could not and requests its signatures.
+      if (!result.sheet.available) void invalidateSigningQueries(queryClient);
     } catch (cause) {
       setFailure(failureOf(cause));
     } finally {
