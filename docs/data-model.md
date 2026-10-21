@@ -202,6 +202,14 @@ unknown. Decision 5 of the fire-safety set prints it when set, and no readiness 
 ([ADR 019](architecture/adr-019-fire-safety-stage-three.md)). It joins the columns a member may
 write, under the same owners' update policy.
 
+`risk_evaluator_name`, `risk_evaluator_title` (2 to 160 characters each) and
+`risk_evaluator_certificate` (1 to 80), all optional, are the organization's risk evaluator
+([ADR 015](architecture/adr-015-risk-assessment.md), amendment of 2026-10-22), text like the
+technician because the person may not be a member. Decision 1.2 and the risk assessment name
+them as the coordinator of the evaluation when the name and the title are set, the member who
+generates otherwise; the API keeps the name and the title together. Added by
+`20261022090000_organization_risk_evaluator`, under the same owners' update policy.
+
 ## Fire-safety data
 
 Decided by [ADR 018](architecture/adr-018-fire-safety-means.md) and created by the migrations

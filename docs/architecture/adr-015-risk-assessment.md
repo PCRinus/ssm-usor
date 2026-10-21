@@ -104,3 +104,33 @@ A document belongs to the client, not to a workplace, and that stays. The Inspec
    - the plan template, its move, and the unit risks of the general training material;
    - the profiles: table, API, library page, save-as and apply.
 5. Registration of the templates on hosted after the merge.
+
+## Amendment 2026-10-22: a named risk evaluator
+
+Mircea's decision on the tester feedback round three (item 23). Decision 1.2 and the
+assessment named as coordinator of the evaluation whoever clicked Generate, with the
+professional title from their profile; the tester expected a named, qualified evaluator, who
+is often not the member doing the data entry.
+
+The organization now keeps a **risk evaluator** on its Abilitări tab, beside the fire-safety
+technician and in the same shape: `risk_evaluator_name`, `risk_evaluator_title` (the
+qualification printed after the name, "evaluator de riscuri atestat") and
+`risk_evaluator_certificate`, all text, all optional, written by owners through
+`/organization/authorizations`. A name and a title go together; the API refuses one without
+the other, since the documents print the pair.
+
+The merge data gains `riskEvaluator` (`name`, `professionalTitle`, `certificate` or null),
+which decision 1.2 and document 9 print wherever they printed `specialist`: the coordinator's
+line of the decision, the assessment's title page, its team chapter and the team line of every
+evaluation. The certificate follows the title only where there is one ("titular al
+certificatului seria A nr. 1842/2024" in the decision, "certificat …" on the assessment). The
+training themes and the signing annex keep `specialist`: they name who trains and who signs,
+not who evaluates.
+
+Without an evaluator the data falls back to the specialist, as before, so no client's
+generation changes until the organization names one. The gap is therefore not in the
+readiness list: readiness returns it under a new `hints` array (`provider.riskEvaluator`), the
+generation form shows it as a notice with the way to the Abilitări tab, and the tab itself
+says what the fallback does while the name is empty. Making it a blocking gap, as the
+technician is for the fire-safety set, was rejected: the technician has no stand-in, the
+evaluator has one.
