@@ -614,6 +614,7 @@ describe('the sitting', () => {
     );
     const result = await screen.findByTestId('test-result');
     expect(result.dataset.passed).toBe('true');
+    expect(document.activeElement).toBe(result);
     expect(within(result).getByRole('heading', { level: 1 }).textContent).toBe(
       'Ai promovat testul'
     );

@@ -3,6 +3,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { LoaderCircle } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 import type { TestAttemptOutcome } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
@@ -24,12 +25,23 @@ export function TestResult({
   onStudy: () => void;
 }) {
   const { t } = useLingui();
+  const resultRef = useRef<HTMLDivElement>(null);
   const { score: correct, total } = outcome;
   const score = t`${correct} din ${total} răspunsuri corecte`;
 
+  useEffect(() => {
+    resultRef.current?.focus();
+  }, [outcome.id]);
+
   if (outcome.passed) {
     return (
-      <div className="grid gap-6" data-testid="test-result" data-passed="true">
+      <div
+        ref={resultRef}
+        tabIndex={-1}
+        className="grid gap-6 outline-none"
+        data-testid="test-result"
+        data-passed="true"
+      >
         <PageHeader
           eyebrow={title}
           title={t`Ai promovat testul`}
@@ -60,7 +72,13 @@ export function TestResult({
   }
 
   return (
-    <div className="grid gap-6" data-testid="test-result" data-passed="false">
+    <div
+      ref={resultRef}
+      tabIndex={-1}
+      className="grid gap-6 outline-none"
+      data-testid="test-result"
+      data-passed="false"
+    >
       <PageHeader
         eyebrow={title}
         title={t`Nu ai promovat de data aceasta`}
