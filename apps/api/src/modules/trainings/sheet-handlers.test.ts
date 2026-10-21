@@ -430,9 +430,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
         fileName: 'Fisa-SSM-Popescu-Ion.pdf',
         expiresInSeconds: 600,
       });
-      const [signing] = calls(
-        `/storage/v1/object/sign/documents/${storedSheet(1).storage_path}`
-      );
+      const [signing] = calls(`/storage/v1/object/sign/documents/${storedSheet(1).storage_path}`);
       expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(
         'Bearer sb_secret_test_key_value'
       );
@@ -462,9 +460,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
       const response = await request(linkPath('domain=ssm'), withSecretKey);
       expect(response.status).toBe(404);
       expect(
-        fetchMock.mock.calls.filter(([input]) =>
-          String(input).includes('/storage/v1/object/sign/')
-        )
+        fetchMock.mock.calls.filter(([input]) => String(input).includes('/storage/v1/object/sign/'))
       ).toHaveLength(0);
     });
 

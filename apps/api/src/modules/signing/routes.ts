@@ -238,7 +238,7 @@ export const getSigningAgreementLinkRoute = createRoute({
   operationId: 'getSigningAgreementLink',
   summary: "A short-lived link to an employee's stored signing agreement",
   description:
-    "For a real link on the page, which the browser opens through `GET /files/download`. Only an agreement a party has signed electronically has a stored file; before that, the PDF route draws it up. Valid for ten minutes.",
+    'For a real link on the page, which the browser opens through `GET /files/download`. Only an agreement a party has signed electronically has a stored file; before that, the PDF route draws it up. Valid for ten minutes.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: employeeParams },
@@ -610,7 +610,8 @@ export const getPortalEmployeeSigningAgreementLinkRoute = createRoute({
   path: '/portal/participants/{participantId}/employees/{employeeId}/signing-agreement/link',
   operationId: 'getPortalEmployeeSigningAgreementLink',
   tags: portalTags,
-  summary: "A short-lived link to an employee's stored signing agreement, for the client administrator",
+  summary:
+    "A short-lived link to an employee's stored signing agreement, for the client administrator",
   description: "As the participant's own; `404` before anyone has signed it.",
   security: bearerSecurity,
   middleware: [requireAuth, requireParticipant] as const,

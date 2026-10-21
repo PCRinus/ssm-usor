@@ -63,7 +63,6 @@ export const listClientFilesQuerySchema = z.object({
 
 export type ListClientFilesQuery = z.infer<typeof listClientFilesQuerySchema>;
 
-
 export const clientFileResponseSchema = z.object({ file: clientFileSchema });
 
 export type ClientFileResponse = z.infer<typeof clientFileResponseSchema>;
