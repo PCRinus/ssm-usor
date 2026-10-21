@@ -153,6 +153,7 @@ function mockApi({
     if (pathname === `/clients/${clientId}/documents/readiness`) {
       return Response.json({
         currentEmployeeCount,
+        hints: [],
         workersRepresentativeClash: null,
         undecidedJobPositions: [],
         incompleteRiskEvaluations: [],
