@@ -207,7 +207,7 @@ msgstr "You asked for a code less than a minute ago."
 
 #: src/features/tests/awaiting-tests-panel.tsx
 msgid "Ai început testul; continui de unde ai rămas."
-msgstr "You have started the test; you continue where you left off."
+msgstr "You have started this test; pick up where you left off."
 
 #: src/features/tests/test-result.tsx
 msgid "Ai promovat testul"
@@ -309,7 +309,7 @@ msgstr "Employee not found"
 
 #: src/lib/labels.ts
 msgid "Anual scadent"
-msgstr "Annual due"
+msgstr "Annual test due"
 
 #: src/features/tests/test-sheet-line.tsx
 msgid "anulată"
@@ -776,7 +776,7 @@ msgstr "Start the test"
 
 #: src/features/tests/study-card.tsx
 msgid "Instrucțiunile proprii PSI nu sunt emise încă; le găsești aici după ce le emite specialistul."
-msgstr "The own fire-safety instructions are not issued yet; you will find them here once the specialist issues them."
+msgstr "The company's own fire-safety instructions are not issued yet; you will find them here once the specialist issues them."
 
 #: src/features/signing/signing-messages.ts
 msgid "instructor"
@@ -1169,7 +1169,7 @@ msgstr "workplace"
 
 #: src/features/tests/test-result.tsx
 msgid "Recitește ce trebuie să știi"
-msgstr "Read what you need to know again"
+msgstr "Reread what you need to know"
 
 #: src/features/tests/test-result.tsx
 msgid "Recitește întrebările de mai jos și reia testul. Întrebările și ordinea răspunsurilor se schimbă la fiecare încercare."
@@ -1509,11 +1509,11 @@ msgstr "This test has no short explanations."
 
 #: src/features/tests/study-card.tsx
 msgid "Testul nu te așteaptă acum. Când va fi de susținut, apare pe Acasă."
-msgstr "This test does not await you now. When it is due, it appears on Home."
+msgstr "This test is not waiting for you now. When it is due, it appears on Home."
 
 #: src/features/tests/test-page.tsx
 msgid "Testul nu te mai așteaptă."
-msgstr "This test no longer awaits you."
+msgstr "This test is no longer waiting for you."
 
 #: src/features/signing/client-signatures-page.tsx
 msgid "Tot ce a fost trimis spre semnare este semnat."
