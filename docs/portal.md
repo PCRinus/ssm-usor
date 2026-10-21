@@ -74,8 +74,14 @@ privacy policy and the commit version. The public pages, sign-in, `/alege`, the 
 privacy notice, no access and not found, render inside the `PublicFrame` of `@ssm-usor/ui`
 that the app's login pages use too, with the portal's own version line as its footer.
 
-A sheet opens as a PDF in a tab opened before the request, as the app's preview does, or is
-downloaded; a sheet that is not ready names what the specialist still has to fill.
+A stored sheet, its originals and a signed agreement are real anchors to `GET /files/download`
+(`useFileLink` in `src/lib/file-link.ts`, the link signed through the portal's `…/link` routes
+and renewed before it expires): the PDF is shown `inline`, in a tab of its own, which the in-app
+browser of a mail client can open where it cannot download, and _Descarcă_ is an attachment. A
+sheet drawn up on the spot, the merged reading copy and an agreement nobody has signed yet have
+no stored file, so they still open as a PDF in a tab opened before the request, as the app's
+preview does, or are downloaded; a sheet that is not ready names what the specialist still has
+to fill.
 
 ## Languages
 

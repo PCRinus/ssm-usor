@@ -599,15 +599,20 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   takes the client, the employee and a domain and renders the button "Descarcă fișa SSM" or
   "Descarcă fișa PSI": it reads both sheets' readiness from
   `GET …/employees/{employeeId}/training-sheets` (`useTrainingSheets`, one cache entry for both
-  components), fetches the PDF from `GET …/training-sheet?domain=` and saves it under the name
-  the API gives. Beside it, "Previzualizează" (`training-sheet-{domain}-preview`) shows the same
-  PDF in a new browser tab, in the browser's own viewer, without saving it: `openPreview` in
-  `src/lib/save-file.ts` opens the tab inside the click, before the fetch, so pop-up blockers let
-  it through, writes a "Se pregătește fișa…" line into it, then replaces it with a blob URL of
-  the PDF, revoked ten minutes later; a failure closes the tab, and a blocked tab is the toast
-  "Browserul a blocat fereastra nouă". While data is missing both buttons are disabled; a
-  failed download or preview is a toast, "Convertorul PDF nu este disponibil" when there is no
-  converter, and a 409 reloads the readiness. Each training view of the employee page holds the
+  components). For one stored sheet (ADR 023) the button and "Previzualizează"
+  (`training-sheet-{domain}-preview`) are real anchors to `GET /files/download`, one
+  `attachment` and one `inline` in a tab of its own, signed through
+  `GET …/training-sheet/link` by `useFileLink` (`src/lib/file-link.ts`) and renewed before they
+  expire; the originals of a sheet with continuation sheets are anchors of the same kind in
+  their menu, signed when it opens. A sheet drawn up on the spot and the merged reading copy
+  have no stored file, so they still come through the page: the download fetches the PDF from
+  `GET …/training-sheet?domain=` and saves it under the name the API gives, and the preview
+  (`openPreview` in `src/lib/save-file.ts`) opens the tab inside the click, before the fetch, so
+  pop-up blockers let it through, writes a "Se pregătește fișa…" line into it, then replaces it
+  with a blob URL of the PDF, revoked ten minutes later; a failure closes the tab, and a blocked
+  tab is the toast "Browserul a blocat fereastra nouă". While data is missing both buttons are
+  disabled; a failed download or preview is a toast, "Convertorul PDF nu este disponibil" when
+  there is no converter, and a 409 reloads the readiness. Each training view of the employee page holds the
   pair in its `training-tab-actions` container, beside "Înregistrează o instruire".
 - `TrainingSheetReadiness` (`src/features/training-sheets/training-sheet-readiness.tsx`) is the
   row under that header: nothing while the sheet can be drawn up, otherwise a warning "Fișa SSM
@@ -721,13 +726,16 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   completat", and "Emite oricum" sends `acceptUnfilled`. Every row's menu has "Încarcă un
   fișier", which asks first when it would replace a draft. One hidden file input
   serves the card and posts the chosen `.docx` to `POST …/documents/{typeKey}/upload`. An issued
-  revision with `hasPdf` also offers "Descarcă PDF-ul documentului emis"; the issuing dialog
+  revision with `hasPdf` also offers "Deschide PDF-ul documentului emis"; the issuing dialog
   says that making the PDF can take a few seconds, and a `503` with `pdf_unavailable` says
   that nothing was issued.
-  A `400` says the file is not a `.docx` or is over 15 MB, and how to get one from a `.doc`. A download fetches the signed link and
-  saves a blob, so the file gets the document's name with its diacritics: browsers ignore
-  `download` on a link to another origin, and Storage percent-encodes the name in its own
-  header. A `404` or `409` reloads the list. An archived client only gets the downloads.
+  A `400` says the file is not a `.docx` or is over 15 MB, and how to get one from a `.doc`. The
+  Word files and the PDF are real anchors (`FileMenuItem`, `src/components/file-menu-item.tsx`)
+  to `GET /files/download`, which names the file with its diacritics; the link behind each is
+  signed through `GET …/revisions/{revisionId}/download` when the menu opens and renewed on a
+  stale tap. The Word files are served as attachments and the PDF `inline`, in a tab of its
+  own, which is what the in-app browser of a mail client can open. A `404` or `409` reloads the
+  list. An archived client only gets the downloads.
   "Descarcă documentația" in the card's header downloads the whole set as one zip, of the Word
   files or of the issued PDFs (disabled until one exists, with the count of issued documents);
   `apiFetch` returns a zip or PDF as a `File` named from `Content-Disposition`.
