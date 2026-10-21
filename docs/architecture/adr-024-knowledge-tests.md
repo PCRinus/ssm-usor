@@ -81,7 +81,7 @@ The attempt itself is signed, as the paper test is: the passing attempt renders 
 - The three test templates become merge templates with a loop over questions, and their citations move from the templates' citation list to the questions' own; the themes' content line changes and the guard snapshots with it.
 - A participant writes for the first time: the attempt, through routes of the portal's own. The draw, each answer and the finish are database functions that check the caller is the participant, never an insert policy, since a participant must not read the questions, whose options carry the key; policies let a participant read their own attempts and results and nobody else's.
 - The signing pipeline signs a second document kind: requests on a test sheet beside requests on a training record, with the same identities, sessions and evidence, which ADR 023 anticipated.
-- The portal reads issued document files for the first time: a manifest flag marks the two materials for the portal and a Storage policy lets a participant read their client's issued revision of them.
+- The portal shows issued document files for the first time: a database function gives a participant the latest issued revision of their client's material for the domain, and the API streams its PDF with the secret key. A participant reads no document row and no Storage object directly; the two materials are named in the contracts, not flagged in the manifest.
 - Four more states to compute per employee and domain, on the lists and the page, after the training states.
 - The glossary gains knowledge test, hiring test, annual test, question bank, test question, built-in question, own question, explanation, pass mark, test state, study card, test attempt, test result, examiner and test sheet; `docs/data-model.md`, `docs/api.md`, `docs/document-engine.md` and `docs/portal.md` change with the pull requests.
 
@@ -94,7 +94,7 @@ The attempt itself is signed, as the paper test is: the passing attempt renders 
 5. The API: the bank, the employee's test state, results and attempts, the paper result; the portal's routes for the awaiting test, the material, the attempt and the result; the test sheet and its requests on the signing pipeline; the test state on the employee lists. On steps 3 and 4.
 6. The app: the _Teste_ page, the employee's page, the lists' state and filter. On step 5.
 7. The portal: _Acasă_'s entry, the test page with the card, the material, the attempt, the result and the retake, the signed test sheet. On step 5.
-8. The material in the portal: the manifest flag and the Storage policy. Independent of steps 3 to 7.
+8. The material in the portal: the function that finds it and the route that streams it. Independent of steps 3 to 6; step 7 shows it.
 9. The templates registered on hosted after the merge; #449 closed by this ADR, #388 closed with the decision above.
 
 ## Defaults taken instead of asking the provider
