@@ -5138,6 +5138,22 @@ export type DocumentsBehindResponseItemsItemNewestVersion = {
   note: string | null;
 };
 
+export type DocumentsBehindResponseItemsItemClientsItemInstructionChangesItemCode =
+  (typeof DocumentsBehindResponseItemsItemClientsItemInstructionChangesItemCode)[keyof typeof DocumentsBehindResponseItemsItemClientsItemInstructionChangesItemCode];
+
+export const DocumentsBehindResponseItemsItemClientsItemInstructionChangesItemCode = {
+  module_version: 'module_version',
+  module_added: 'module_added',
+  module_removed: 'module_removed',
+} as const;
+
+export type DocumentsBehindResponseItemsItemClientsItemInstructionChangesItem = {
+  code: DocumentsBehindResponseItemsItemClientsItemInstructionChangesItemCode;
+  title: string;
+  /** @nullable */
+  newestVersionAt: string | null;
+};
+
 export type DocumentsBehindResponseItemsItemClientsItem = {
   documentId: string;
   clientId: string;
@@ -5145,6 +5161,8 @@ export type DocumentsBehindResponseItemsItemClientsItem = {
   /** @minimum 1 */
   version: number;
   editedDraft: boolean;
+  behindTemplate: boolean;
+  instructionChanges: DocumentsBehindResponseItemsItemClientsItemInstructionChangesItem[];
 };
 
 export type DocumentsBehindResponseItemsItem = {
@@ -21662,8 +21680,8 @@ export const getListDocumentsBehindUrl = () => {
 };
 
 /**
- * A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: the template's newest version, the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from and whether it is a draft edited by hand. Types with nobody behind are left out.
- * @summary List the organization's documents behind their template, by document type
+ * A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. The own instructions and the training themes of either set are also behind when the library holds a newer version of an instruction module they were built from, or when the client's current positions apply another set of modules than they cite (ADR 012, ADR 014): an issued revision is frozen, so only regenerating brings the change in. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: the template's newest version, the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from, whether it is a draft edited by hand, `behindTemplate`, and the `instructionChanges` per module (`module_version` with the date of the library's newest version, `module_added`, `module_removed`). Types with nobody behind are left out.
+ * @summary List the organization's documents behind their template or their instructions, by document type
  */
 export const listDocumentsBehind = async (
   options?: Parameters<typeof apiFetch>[1]
@@ -21757,7 +21775,7 @@ export function useListDocumentsBehind<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List the organization's documents behind their template, by document type
+ * @summary List the organization's documents behind their template or their instructions, by document type
  */
 
 export function useListDocumentsBehind<
@@ -21787,7 +21805,7 @@ export const getStartDocumentRegenerationUrl = () => {
 
 /**
  * Starts a regeneration job with one queued item per client behind, each regenerated in the background as `POST /documents/{documentId}/regenerate` would, with the caller as the specialist. A draft edited by hand is skipped, since regenerating would discard the edits; an issued document gets a new draft, and issuing stays per client. Follow the progress with `GET /documents/regeneration-jobs/{jobId}`. `409` with the reason `nothing_behind` when no client is behind, and `regeneration_running` while a job of the same type is under way.
- * @summary Regenerate one document type for every client behind its template
+ * @summary Regenerate one document type for every client behind it
  */
 export const startDocumentRegeneration = async (
   startRegenerationRequest: StartRegenerationRequest,
@@ -21866,7 +21884,7 @@ export type StartDocumentRegenerationMutationError = ErrorType<ApiErrorResponse>
 export type StartDocumentRegenerationMutationVariables = { data: StartRegenerationRequest };
 
 /**
- * @summary Regenerate one document type for every client behind its template
+ * @summary Regenerate one document type for every client behind it
  */
 export const useStartDocumentRegeneration = <
   TError = ErrorType<ApiErrorResponse>,

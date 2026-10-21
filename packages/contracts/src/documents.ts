@@ -562,6 +562,27 @@ export const issueDocumentRequestSchema = z.object({
 
 export type IssueDocumentRequest = z.infer<typeof issueDocumentRequestSchema>;
 
+/**
+ * What moved in the instruction library, or in the positions' applied modules, since a document
+ * that cites modules (ADR 012, ADR 014) was built: the library holds a newer version of a module
+ * the document cites, a current position applies a module it does not cite, or no current
+ * position applies a module it cites.
+ */
+export const instructionChangeCodes = ['module_version', 'module_added', 'module_removed'] as const;
+
+export const instructionChangeCodeSchema = z.enum(instructionChangeCodes);
+
+export type InstructionChangeCode = z.infer<typeof instructionChangeCodeSchema>;
+
+export const instructionChangeSchema = z.object({
+  code: instructionChangeCodeSchema,
+  title: z.string(),
+  // When the library's newest version of the module was saved; only for `module_version`.
+  newestVersionAt: z.iso.datetime({ offset: true }).nullable(),
+});
+
+export type InstructionChange = z.infer<typeof instructionChangeSchema>;
+
 export const documentsBehindClientSchema = z.object({
   documentId: z.uuid(),
   clientId: z.uuid(),
@@ -570,6 +591,10 @@ export const documentsBehindClientSchema = z.object({
   version: z.int().min(1),
   // That revision is a draft edited by hand, which regenerating for every client skips.
   editedDraft: z.boolean(),
+  // A legal or correction version of the template is newer than `version`.
+  behindTemplate: z.boolean(),
+  // Empty for a document behind its template alone; at least one entry otherwise.
+  instructionChanges: z.array(instructionChangeSchema),
 });
 
 export type DocumentsBehindClient = z.infer<typeof documentsBehindClientSchema>;
