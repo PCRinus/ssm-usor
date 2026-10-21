@@ -430,6 +430,17 @@ describe('POST /portal/participants/{participantId}/test-attempts/{attemptId}/fi
     expect(sheets.get('employee_id')).toBe(`eq.${employeeId}`);
   });
 
+  it('answers the outcome of a pass whose result could not be read', async () => {
+    mockUpstream({
+      finish: () => Response.json(finished([2])),
+      results: () => Response.json({ code: 'XX000', message: 'boom' }, { status: 500 }),
+    });
+    const response = await request(path, 'POST');
+    expect(response.status).toBe(200);
+    expect(testAttemptOutcomeSchema.parse(await response.json())).toMatchObject({ passed: true });
+    expect(calls('/rest/v1/signed_sheets')).toEqual([]);
+  });
+
   it("finishes nothing for an attempt of the account's other participation", async () => {
     mockUpstream({ attempts: () => Response.json([]) });
     const response = await request(path, 'POST');

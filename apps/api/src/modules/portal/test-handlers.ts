@@ -212,7 +212,12 @@ async function afterPass(c: Context<ApiEnv>, db: DataClient, attemptId: string) 
     .select('id')
     .eq('attempt_id', attemptId)
     .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'result of a passing attempt');
+  // The finish has committed: a failure here must not keep the outcome from the participant,
+  // who would then find the attempt finished and never see it.
+  if (error) {
+    console.error(`Result of passing attempt ${attemptId} not read: ${error.code ?? 'no code'}`);
+    return;
+  }
   if (data) await afterResult(c, [data.id]);
 }
 
