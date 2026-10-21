@@ -2,6 +2,8 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 import { unzipSync } from 'fflate';
 
 import {
+  accessTokenOf,
+  addressOf,
   cleanUp,
   completeDocumentData,
   createAccount,
@@ -335,6 +337,76 @@ test('the own instructions are issued with their annex, which opens in the edito
   await expect(page.getByTestId('editor-save')).toHaveCount(0);
   await page.getByTestId('editor-back').click();
   await expect(annex).toBeVisible();
+});
+
+test('the issued training themes fall behind when a cited instruction gets a new version, and regenerating the own instructions then the themes catches up', async ({
+  page,
+}) => {
+  const rows = await generateDocumentation(page, 'documents-themes-behind', 'TEMATICĂ ÎN URMĂ E2E');
+  await openDocumentSection(page, '4');
+  const themes = rows.filter({ hasText: /^Tematica și programul de instruire/ });
+  await act(page, themes, 'document-issue');
+  await page.getByTestId('document-confirm').click();
+  await expect(themes.getByTestId('document-issued')).toHaveText('Emis · rev. 1', {
+    timeout: 30_000,
+  });
+  await expect(themes.getByTestId('document-instructions-behind')).toHaveCount(0);
+
+  const token = await accessTokenOf(addressOf('documents-themes-behind'));
+  const headers = { Authorization: `Bearer ${token}` };
+  const modules = (await (
+    await fetch(`${process.env.E2E_API_URL}/instruction-modules`, { headers })
+  ).json()) as { items: { id: string; title: string }[] };
+  const module = modules.items.find((item) => item.title === 'Scări metalice')!;
+  const { readFile } = await import('node:fs/promises');
+  const saved = await fetch(`${process.env.E2E_API_URL}/instruction-modules/${module.id}/file`, {
+    method: 'PUT',
+    headers: {
+      ...headers,
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    },
+    body: await readFile(
+      new URL(
+        '../../../api/scripts/fixtures/instruction-modules/metal-ladders.docx',
+        import.meta.url
+      )
+    ),
+  });
+  expect(saved.status).toBe(200);
+
+  await page.reload();
+  await openDocumentSection(page, '4');
+  await expect(themes.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
+  await expect(themes.getByTestId('document-instructions-behind')).toHaveText(
+    'Instrucțiuni actualizate'
+  );
+  await expect(themes.getByTestId('document-instructions-behind-reason')).toContainText(
+    /^Instrucțiunea „Scări metalice” are o versiune nouă din \d\d\.\d\d\.\d{4}\. Generează din nou mai întâi instrucțiunile proprii, apoi acest document\.$/
+  );
+
+  await openDocumentSection(page, '3');
+  const instructions = rows.filter({ hasText: /^Instrucțiuni proprii de securitate/ });
+  await expect(instructions.getByTestId('document-instructions-behind')).toBeVisible();
+  await expect(instructions.getByTestId('document-instructions-behind-reason')).toContainText(
+    /^Instrucțiunea „Scări metalice” are o versiune nouă din .*\. Generează documentul din nou\.$/
+  );
+  await act(page, instructions, 'document-regenerate');
+  await page.getByTestId('document-confirm').click();
+  await expect(page.getByText(/a fost generat din nou\.$/)).toBeVisible();
+  await expect(instructions.getByTestId('document-instructions-behind')).toHaveCount(0);
+
+  await openDocumentSection(page, '4');
+  await expect(themes.getByTestId('document-instructions-behind-reason')).toContainText(
+    /Generează documentul din nou\.$/
+  );
+  await act(page, themes, 'document-regenerate');
+  await page.getByTestId('document-confirm').click();
+  await expect(
+    page.getByText('„Tematica și programul de instruire” a fost generat din nou.')
+  ).toBeVisible();
+  await expect(themes.getByTestId('document-draft')).toHaveText('Ciornă · rev. 2');
+  await expect(themes.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
+  await expect(themes.getByTestId('document-instructions-behind')).toHaveCount(0);
 });
 
 test('the risk assessment is issued', async ({ page }) => {
