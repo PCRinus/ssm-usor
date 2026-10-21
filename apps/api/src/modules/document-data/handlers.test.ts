@@ -51,9 +51,12 @@ const companyDetailsRow = {
   bank_name: 'Banca Transilvania',
 };
 
+const employeeId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
 const documentDetailsRow = {
   legal_representative_name: 'Maria Popescu',
   legal_representative_role: 'Administrator',
+  legal_representative_employee_id: null,
+  legal_representative_employee: null,
   periodic_training_minutes: 120,
   administrative_training_interval_months: 6,
   administrative_training_not_applicable: false,
@@ -85,7 +88,6 @@ const workplaceRow = {
   updated_at: '2026-09-18T10:00:00+00:00',
 };
 
-const employeeId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
 const responsiblePersonRow = {
   id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
   client_id: clientId,
@@ -100,7 +102,8 @@ const responsiblePersonRow = {
 };
 
 type Handler = (init?: RequestInit, url?: URL) => Response | Promise<Response>;
-type Upstream = 'membership' | 'organizations' | 'clients' | 'workplaces' | 'responsiblePersons';
+type Upstream =
+  'membership' | 'organizations' | 'clients' | 'employees' | 'workplaces' | 'responsiblePersons';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -116,6 +119,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>>) {
         return handlers.organizations?.(init, url) ?? Response.json(companyDetailsRow);
       case '/rest/v1/clients':
         return handlers.clients?.(init, url) ?? Response.json(activeClient);
+      case '/rest/v1/employees':
+        return handlers.employees?.(init, url) ?? Response.json({ id: employeeId });
       case '/rest/v1/client_workplaces':
         return handlers.workplaces?.(init, url) ?? Response.json([workplaceRow]);
       case '/rest/v1/client_responsible_persons':
@@ -326,6 +331,8 @@ describe('/clients/{clientId}/document-details', () => {
       documentDetails: {
         legalRepresentativeName: 'Maria Popescu',
         legalRepresentativeRole: 'Administrator',
+        legalRepresentativeEmployeeId: null,
+        legalRepresentativeEmployee: null,
         periodicTrainingMinutes: 120,
         administrativeTrainingIntervalMonths: 6,
         administrativeTrainingNotApplicable: false,
@@ -349,6 +356,7 @@ describe('/clients/{clientId}/document-details', () => {
     expect(sentBody('/rest/v1/clients')).toEqual({
       legal_representative_name: 'Maria Popescu',
       legal_representative_role: 'Administrator',
+      legal_representative_employee_id: null,
       periodic_training_minutes: 120,
       administrative_training_interval_months: null,
       administrative_training_not_applicable: false,
@@ -358,6 +366,56 @@ describe('/clients/{clientId}/document-details', () => {
       training_day_from: null,
       training_day_to: null,
     });
+  });
+
+  it("links the representative to one of the client's current employees, and reads them back", async () => {
+    mockUpstream({
+      clients: () =>
+        Response.json({
+          ...documentDetailsRow,
+          legal_representative_employee_id: employeeId,
+          legal_representative_employee: {
+            id: employeeId,
+            last_name: 'Popescu',
+            first_name: 'Maria',
+            job_title: 'Tâmplar',
+          },
+        }),
+    });
+    const response = await request(path, 'PUT', {
+      legalRepresentativeName: 'Maria Popescu',
+      legalRepresentativeRole: 'Administrator',
+      legalRepresentativeEmployeeId: employeeId,
+    });
+    expect(response.status).toBe(200);
+    const lookup = new URL(String(calls('/rest/v1/employees')[0]![0]));
+    expect(lookup.searchParams.get('id')).toBe(`eq.${employeeId}`);
+    expect(lookup.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+    expect(lookup.searchParams.get('archived_at')).toBe('is.null');
+    expect(sentBody('/rest/v1/clients')).toMatchObject({
+      legal_representative_employee_id: employeeId,
+    });
+    expect(clientDocumentDetailsResponseSchema.parse(await response.json())).toMatchObject({
+      documentDetails: {
+        legalRepresentativeEmployeeId: employeeId,
+        legalRepresentativeEmployee: {
+          id: employeeId,
+          lastName: 'Popescu',
+          firstName: 'Maria',
+          jobTitle: 'Tâmplar',
+        },
+      },
+    });
+  });
+
+  it('refuses an employee who is not a current employee of the client', async () => {
+    mockUpstream({ employees: () => Response.json(null) });
+    const response = await request(path, 'PUT', { legalRepresentativeEmployeeId: employeeId });
+    expect(response.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
+      'legalRepresentativeEmployeeId'
+    );
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('refuses days out of order and a worker interval above six months', async () => {

@@ -1,6 +1,7 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type ClientDocumentDetails,
+  isLegalRepresentative,
   normalizeCui,
   normalizeIban,
   type OrganizationAuthorizations,
@@ -8,7 +9,6 @@ import {
   type ResponsiblePerson,
   responsiblePersonConflictReasons,
   type ResponsiblePersonRequest,
-  samePersonName,
   type Workplace,
   type WorkplaceRequest,
 } from '@ssm-usor/contracts';
@@ -194,12 +194,13 @@ async function findActiveClient(db: DataClient, clientId: string, refusal: strin
 }
 
 const documentDetailsColumns =
-  'legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to';
+  'legal_representative_name, legal_representative_role, legal_representative_employee_id, legal_representative_employee:employees!clients_legal_representative_employee_of_client(id, last_name, first_name, job_title), periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to';
 
 type DocumentDetailsRow = Pick<
   Tables['clients']['Row'],
   | 'legal_representative_name'
   | 'legal_representative_role'
+  | 'legal_representative_employee_id'
   | 'periodic_training_minutes'
   | 'administrative_training_interval_months'
   | 'administrative_training_not_applicable'
@@ -208,12 +209,25 @@ type DocumentDetailsRow = Pick<
   | 'training_first_month'
   | 'training_day_from'
   | 'training_day_to'
->;
+> & {
+  legal_representative_employee: Pick<
+    Tables['employees']['Row'],
+    'id' | 'last_name' | 'first_name' | 'job_title'
+  > | null;
+};
 
 function toDocumentDetails(row: DocumentDetailsRow): ClientDocumentDetails {
+  const employee = row.legal_representative_employee;
   return {
     legalRepresentativeName: row.legal_representative_name,
     legalRepresentativeRole: row.legal_representative_role,
+    legalRepresentativeEmployeeId: row.legal_representative_employee_id,
+    legalRepresentativeEmployee: employee && {
+      id: employee.id,
+      lastName: employee.last_name,
+      firstName: employee.first_name,
+      jobTitle: employee.job_title,
+    },
     periodicTrainingMinutes: row.periodic_training_minutes,
     administrativeTrainingIntervalMonths: row.administrative_training_interval_months,
     administrativeTrainingNotApplicable: row.administrative_training_not_applicable,
@@ -246,11 +260,14 @@ export const updateClientDocumentDetails: RouteHandler<
 > = async (c) => {
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
-  const { data, error } = await createDataClient(c)
+  const db = createDataClient(c);
+  await refuseEmployeeOfAnotherClient(db, clientId, body.legalRepresentativeEmployeeId);
+  const { data, error } = await db
     .from('clients')
     .update({
       legal_representative_name: body.legalRepresentativeName ?? null,
       legal_representative_role: body.legalRepresentativeRole ?? null,
+      legal_representative_employee_id: body.legalRepresentativeEmployeeId ?? null,
       periodic_training_minutes: body.periodicTrainingMinutes ?? null,
       administrative_training_interval_months: body.administrativeTrainingIntervalMonths ?? null,
       administrative_training_not_applicable: body.administrativeTrainingNotApplicable ?? false,
@@ -263,10 +280,36 @@ export const updateClientDocumentDetails: RouteHandler<
     .eq('id', clientId)
     .select(documentDetailsColumns)
     .maybeSingle();
+  if (error?.code === '23503') throw employeeNotOfClient();
   if (error) throw fromDatabaseError(error, 'update client document details');
   if (!data) throw noSuchClient();
   return c.json({ documentDetails: toDocumentDetails(data) }, 200);
 };
+
+const employeeNotOfClient = () => {
+  const message = 'This employee is not a current employee of this client.';
+  return new ApiError('validation_error', message, [
+    { path: 'legalRepresentativeEmployeeId', message },
+  ]);
+};
+
+// The foreign key alone would take an archived employee, who is on no list the picker shows.
+async function refuseEmployeeOfAnotherClient(
+  db: DataClient,
+  clientId: string,
+  employeeId: string | null | undefined
+) {
+  if (!employeeId) return;
+  const { data, error } = await db
+    .from('employees')
+    .select('id')
+    .eq('id', employeeId)
+    .eq('client_id', clientId)
+    .is('archived_at', null)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find employee');
+  if (!data) throw employeeNotOfClient();
+}
 
 const workplaceColumns =
   'id, client_id, name, is_registered_office, county_code, locality, address_line, activity, kind, floor_area_m2, extinguisher_norm, assembly_point, combustible_materials, ignition_sources, fire_risk_equipment, specific_measures, created_at, updated_at';
@@ -453,13 +496,21 @@ async function refuseLegalRepresentative(
   if (!person.roles.includes('workers_representative')) return;
   const { data, error } = await db
     .from('clients')
-    .select('legal_representative_name')
+    .select('legal_representative_name, legal_representative_employee_id')
     .eq('id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'client legal representative');
   if (!data) throw noSuchClient();
-  const legalRepresentative = data.legal_representative_name;
-  if (legalRepresentative && samePersonName(person.fullName, legalRepresentative)) {
+  const legalRepresentative = {
+    employeeId: data.legal_representative_employee_id,
+    fullName: data.legal_representative_name,
+  };
+  if (
+    isLegalRepresentative(
+      { employeeId: person.employeeId ?? null, fullName: person.fullName },
+      legalRepresentative
+    )
+  ) {
     throw new ApiError(
       'conflict',
       `${person.fullName} is the client's legal representative and cannot also represent the workers.`,

@@ -3734,11 +3734,25 @@ export interface UpdateOrganizationAuthorizationsRequest {
   fireSafetyAuthorization?: string | null;
 }
 
+/**
+ * @nullable
+ */
+export type ClientDocumentDetailsResponseDocumentDetailsLegalRepresentativeEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
+  jobTitle: string;
+} | null;
+
 export type ClientDocumentDetailsResponseDocumentDetails = {
   /** @nullable */
   legalRepresentativeName: string | null;
   /** @nullable */
   legalRepresentativeRole: string | null;
+  /** @nullable */
+  legalRepresentativeEmployeeId: string | null;
+  /** @nullable */
+  legalRepresentativeEmployee: ClientDocumentDetailsResponseDocumentDetailsLegalRepresentativeEmployee;
   /** @nullable */
   periodicTrainingMinutes: number | null;
   /**
@@ -3792,6 +3806,8 @@ export interface UpdateClientDocumentDetailsRequest {
    * @nullable
    */
   legalRepresentativeRole?: string | null;
+  /** @nullable */
+  legalRepresentativeEmployeeId?: string | null;
   /** @nullable */
   periodicTrainingMinutes?: number | null;
   /**

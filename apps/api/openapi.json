@@ -5195,6 +5195,31 @@
                 "type": "string",
                 "nullable": true
               },
+              "legalRepresentativeEmployeeId": {
+                "type": "string",
+                "nullable": true,
+                "format": "uuid"
+              },
+              "legalRepresentativeEmployee": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "jobTitle": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "lastName", "firstName", "jobTitle"]
+              },
               "periodicTrainingMinutes": {
                 "type": "integer",
                 "nullable": true
@@ -5239,6 +5264,8 @@
             "required": [
               "legalRepresentativeName",
               "legalRepresentativeRole",
+              "legalRepresentativeEmployeeId",
+              "legalRepresentativeEmployee",
               "periodicTrainingMinutes",
               "administrativeTrainingIntervalMonths",
               "administrativeTrainingNotApplicable",
@@ -5266,6 +5293,11 @@
             "nullable": true,
             "minLength": 2,
             "maxLength": 80
+          },
+          "legalRepresentativeEmployeeId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
           },
           "periodicTrainingMinutes": {
             "type": "integer",
