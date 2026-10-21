@@ -33,6 +33,7 @@ import { ApiHttpError } from '@/api/http';
 import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
+import { behindInstructions, instructionChangesHint } from '@/features/documents/behind-labels';
 import { documentRowLink, documentSetCopy } from '@/features/documents/document-sets';
 
 import { countOf, kindLabels } from './legislation-labels';
@@ -141,6 +142,7 @@ export function DocumentsBehind({ userId }: { userId: string }) {
       <BehindTypeCard
         key={type.typeKey}
         type={type}
+        items={items}
         action={
           running ? null : (
             <Button
@@ -175,7 +177,8 @@ export function DocumentsBehind({ userId }: { userId: string }) {
     <section aria-label="Documente de actualizat" className="grid gap-6">
       <p className="max-w-2xl text-sm text-muted-foreground">
         Documentele generate dintr-o versiune mai veche a șablonului, de dinaintea unei modificări
-        legislative sau a unei corecturi.
+        legislative sau a unei corecturi, și instrucțiunile proprii și tematicile generate din
+        instrucțiuni schimbate între timp în bibliotecă sau la posturile de lucru.
       </p>
       {behind.isPending ? (
         <Skeleton className="h-40 w-full" />
@@ -197,8 +200,9 @@ export function DocumentsBehind({ userId }: { userId: string }) {
       ) : rows.length === 0 ? (
         <div className="rounded-lg border bg-card px-5 py-12" data-testid="documents-behind-empty">
           <EmptyState icon={FileCheck2}>
-            Toate documentele sunt generate din cea mai nouă versiune a șablonului lor. Când un
-            șablon se schimbă, clienții care trebuie regenerați apar aici.
+            Toate documentele sunt generate din cea mai nouă versiune a șablonului lor și din
+            instrucțiunile de acum. Când un șablon sau o instrucțiune se schimbă, clienții care
+            trebuie regenerați apar aici.
           </EmptyState>
         </div>
       ) : (
@@ -266,6 +270,8 @@ function TypeTitle({ typeKey, title }: { typeKey: string; title: string }) {
   );
 }
 
+const behindTemplate = (type: BehindType) => type.clients.some((client) => client.behindTemplate);
+
 function confirmationText(type: BehindType) {
   const edited = type.clients.filter((client) => client.editedDraft).length;
   const regenerated = type.clients.length - edited;
@@ -273,15 +279,20 @@ function confirmationText(type: BehindType) {
     edited > 0
       ? ` ${countOf(edited, 'ciornă editată manual este sărită', 'ciorne editate manual sunt sărite')}, ca să nu se piardă modificările.`
       : '';
-  return `„${type.title}” se generează din nou din versiunea ${type.newestVersion.version} a șablonului pentru ${countOf(regenerated, 'client', 'clienți')}, cu datele lor de acum. O ciornă este înlocuită; un document emis primește o ciornă nouă și rămâne în vigoare până o emiți de pe pagina clientului.${skipped}`;
+  const from = behindTemplate(type)
+    ? `din versiunea ${type.newestVersion.version} a șablonului`
+    : 'din instrucțiunile de acum';
+  return `„${type.title}” se generează din nou ${from} pentru ${countOf(regenerated, 'client', 'clienți')}, cu datele lor de acum. O ciornă este înlocuită; un document emis primește o ciornă nouă și rămâne în vigoare până o emiți de pe pagina clientului.${skipped}`;
 }
 
 function BehindTypeCard({
   type,
+  items,
   action,
   children,
 }: {
   type: BehindType;
+  items: readonly BehindType[];
   action: ReactNode;
   children: ReactNode;
 }) {
@@ -292,18 +303,28 @@ function BehindTypeCard({
       title={<TypeTitle typeKey={type.typeKey} title={type.title} />}
       action={action}
     >
-      <div className="grid gap-1.5">
-        <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <Badge variant="outline">{kindLabels[type.newestVersion.kind]}</Badge>
-          Versiunea {type.newestVersion.version} a șablonului
-        </p>
+      {behindTemplate(type) ? (
+        <div className="grid gap-1.5">
+          <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <Badge variant="outline">{kindLabels[type.newestVersion.kind]}</Badge>
+            Versiunea {type.newestVersion.version} a șablonului
+          </p>
+          <p
+            data-testid="behind-note"
+            className="max-w-prose border-l-2 border-primary/50 pl-3 text-sm leading-relaxed"
+          >
+            {type.newestVersion.note ?? 'Versiunea nu are o descriere a ce s-a schimbat.'}
+          </p>
+        </div>
+      ) : (
         <p
-          data-testid="behind-note"
-          className="max-w-prose border-l-2 border-primary/50 pl-3 text-sm leading-relaxed"
+          data-testid="behind-instructions-note"
+          className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
         >
-          {type.newestVersion.note ?? 'Versiunea nu are o descriere a ce s-a schimbat.'}
+          <Badge variant="outline">Instrucțiuni actualizate</Badge>
+          Instrucțiunile citate s-au schimbat de când a fost generat documentul.
         </p>
-      </div>
+      )}
       <div className="grid gap-2">
         <h4 className="text-sm font-medium">
           {countOf(type.clients.length, 'client în urmă', 'clienți în urmă')}
@@ -321,11 +342,21 @@ function BehindTypeCard({
               >
                 {client.clientName}
               </Link>
-              <span className="text-muted-foreground">pe versiunea {client.version}</span>
+              {client.behindTemplate && (
+                <span className="text-muted-foreground">pe versiunea {client.version}</span>
+              )}
               {client.editedDraft && (
                 <Badge variant="outline" data-testid="behind-client-edited">
                   ciornă editată manual – va fi sărită
                 </Badge>
+              )}
+              {behindInstructions(client) && (
+                <span
+                  data-testid="behind-client-instructions"
+                  className="basis-full text-xs text-muted-foreground"
+                >
+                  {instructionChangesHint(type.typeKey, client, items)}
+                </span>
               )}
             </li>
           ))}

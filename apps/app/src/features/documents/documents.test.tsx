@@ -607,6 +607,8 @@ describe('client documents', () => {
               clientName: sampleClient.legalName,
               version: 3,
               editedDraft: false,
+              behindTemplate: true,
+              instructionChanges: [],
             },
           ],
         },
@@ -710,6 +712,8 @@ describe('client documents', () => {
               clientName: sampleClient.legalName,
               version: 3,
               editedDraft: false,
+              behindTemplate: true,
+              instructionChanges: [],
             },
           ],
         },
@@ -725,6 +729,8 @@ describe('client documents', () => {
               clientName: 'ALT CLIENT SRL',
               version: 3,
               editedDraft: false,
+              behindTemplate: true,
+              instructionChanges: [],
             },
           ],
         },
@@ -784,6 +790,91 @@ describe('client documents', () => {
     expect(within(form!).queryByTestId('document-data-changed')).toBeNull();
     expect(runtime.router.history.location.search).toBe('?section=control-report');
     expect(runtime.router.history.length).toBe(1);
+  });
+
+  it('flags a document behind its instructions, saying which module moved and what to regenerate first', async () => {
+    const instructionsId = '0a1b2c3d-4e5f-4a6b-8c7d-0e9f8a7b6c5e';
+    const themesId = '0a1b2c3d-4e5f-4a6b-8c7d-0e9f8a7b6c5f';
+    const behindClient = (documentId: string, changes: unknown[]) => ({
+      documentId,
+      clientId,
+      clientName: sampleClient.legalName,
+      version: 2,
+      editedDraft: false,
+      behindTemplate: false,
+      instructionChanges: changes,
+    });
+    const newVersion = {
+      code: 'module_version',
+      title: 'Lucrul la înălțime',
+      newestVersionAt: '2026-10-12T09:30:00+00:00',
+    };
+    mockApi({
+      items: [
+        {
+          ...report,
+          id: instructionsId,
+          typeKey: 'own_instructions',
+          title: 'Instrucțiuni proprii de securitate și sănătate în muncă',
+          draft: null,
+          issued: revision({ id: '1b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5e', status: 'issued' }),
+        },
+        {
+          ...report,
+          id: themesId,
+          typeKey: 'training_themes',
+          title: 'Tematica și programul de instruire',
+          draft: null,
+          issued: revision({ id: '1b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5f', status: 'issued' }),
+        },
+      ],
+      behind: [
+        {
+          typeKey: 'own_instructions',
+          title: 'Instrucțiuni proprii de securitate și sănătate în muncă',
+          newestVersion: { version: 2, kind: 'layout', note: null },
+          runningJobId: null,
+          clients: [behindClient(instructionsId, [newVersion])],
+        },
+        {
+          typeKey: 'training_themes',
+          title: 'Tematica și programul de instruire',
+          newestVersion: { version: 2, kind: 'layout', note: null },
+          runningJobId: null,
+          clients: [
+            behindClient(themesId, [
+              newVersion,
+              { code: 'module_added', title: 'Scări metalice', newestVersionAt: null },
+            ]),
+          ],
+        },
+      ],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await openSection(user, '3');
+    const [instructions] = await screen.findAllByTestId('document-row');
+    expect(within(instructions!).getByTestId('document-instructions-behind').textContent).toBe(
+      'Instrucțiuni actualizate'
+    );
+    expect(within(instructions!).queryByTestId('document-behind')).toBeNull();
+    expect(
+      within(instructions!).getByTestId('document-instructions-behind-reason').textContent
+    ).toBe(
+      'Instrucțiunea „Lucrul la înălțime” are o versiune nouă din 12.10.2026. Generează documentul din nou.'
+    );
+
+    await openSection(user, '4');
+    await waitFor(() => expect(screen.getAllByTestId('document-row')).toHaveLength(1));
+    const themes = screen.getByTestId('document-row');
+    expect(within(themes).getByTestId('document-issued').textContent).toBe('Emis · rev. 1');
+    expect(within(themes).getByTestId('document-instructions-behind')).toBeTruthy();
+    expect(within(themes).getByTestId('document-instructions-behind-reason').textContent).toBe(
+      'Instrucțiunea „Lucrul la înălțime” are o versiune nouă din 12.10.2026. Instrucțiunea „Scări metalice” este aplicată de un post, dar documentul nu o cuprinde. Generează din nou mai întâi instrucțiunile proprii, apoi acest document.'
+    );
+    await user.click(within(themes).getByTestId('document-actions'));
+    expect(await screen.findByTestId('document-regenerate')).toBeTruthy();
   });
 
   it('lists the instruction modules the own instructions annex, at the version they cite', async () => {

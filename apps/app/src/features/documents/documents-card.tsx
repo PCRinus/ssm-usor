@@ -76,6 +76,7 @@ import { formatRoDate } from '@/lib/dates';
 import { openDownload, saveFile } from '@/lib/save-file';
 
 import { AnnexRow } from './annex-row';
+import { behindInstructions, instructionChangesHint } from './behind-labels';
 import {
   appliesAt,
   type ClientDocument,
@@ -224,11 +225,12 @@ export function DocumentsCard<Set extends DocumentSet>({
     startDraft.isPending;
 
   const items = documents.data?.items ?? [];
-  const newerTemplate = new Map(
-    (behind.data?.items ?? []).flatMap((type) =>
+  const behindTypes = behind.data?.items ?? [];
+  const behindRows = new Map(
+    behindTypes.flatMap((type) =>
       type.clients
         .filter((client) => client.clientId === clientId)
-        .map((client) => [client.documentId, type.newestVersion] as const)
+        .map((client) => [client.documentId, { type, client }] as const)
     )
   );
   const existing = new Set(items.map((item) => item.typeKey));
@@ -464,6 +466,7 @@ export function DocumentsCard<Set extends DocumentSet>({
 
   function documentRow(document: ClientDocument, title: string, rowId?: string) {
     const current = document.draft ?? document.issued;
+    const behindRow = behindRows.get(document.id);
     return (
       <Fragment key={document.id}>
         <TableRow
@@ -520,14 +523,27 @@ export function DocumentsCard<Set extends DocumentSet>({
                   Date modificate
                 </Badge>
               )}
-              {newerTemplate.has(document.id) && (
+              {behindRow?.client.behindTemplate && (
                 <Badge
                   variant="outline"
                   data-testid="document-behind"
-                  title={newerTemplateHint(newerTemplate.get(document.id)!)}
+                  title={newerTemplateHint(behindRow.type.newestVersion)}
                 >
                   Șablon actualizat
                 </Badge>
+              )}
+              {behindRow && behindInstructions(behindRow.client) && (
+                <>
+                  <Badge variant="outline" data-testid="document-instructions-behind">
+                    Instrucțiuni actualizate
+                  </Badge>
+                  <span
+                    data-testid="document-instructions-behind-reason"
+                    className="min-w-64 max-w-md basis-full text-xs whitespace-normal text-muted-foreground"
+                  >
+                    {instructionChangesHint(document.typeKey, behindRow.client, behindTypes)}
+                  </span>
+                </>
               )}
             </span>
           </TableCell>

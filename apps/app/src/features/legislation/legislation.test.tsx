@@ -114,6 +114,8 @@ const firstAidBehind = {
       clientName: 'ALFA CONSTRUCT SRL',
       version: 3,
       editedDraft: false,
+      behindTemplate: true,
+      instructionChanges: [],
     },
     {
       documentId: '3c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f',
@@ -121,6 +123,8 @@ const firstAidBehind = {
       clientName: 'BETA CAFE SRL',
       version: 2,
       editedDraft: true,
+      behindTemplate: true,
+      instructionChanges: [],
     },
   ],
 };
@@ -137,6 +141,8 @@ const extinguisherBehind = {
       clientName: 'ALFA CONSTRUCT SRL',
       version: 1,
       editedDraft: false,
+      behindTemplate: true,
+      instructionChanges: [],
     },
   ],
 };
@@ -542,6 +548,49 @@ describe('the Legislație page', () => {
     );
     expect(within(type).getByTestId('behind-regenerate').textContent).toBe(
       'Regenerează pentru toți clienții (2)'
+    );
+  });
+
+  it('lists the clients behind their instructions, naming the module that moved instead of a template version', async () => {
+    const themesBehind = {
+      typeKey: 'training_themes',
+      title: 'Tematica și programul de instruire',
+      newestVersion: { version: 2, kind: 'layout', note: null },
+      runningJobId: null,
+      clients: [
+        {
+          ...firstAidBehind.clients[0]!,
+          documentId: '6f7a8b9c-0d1e-4f2a-8b3c-4d5e6f7a8b9c',
+          behindTemplate: false,
+          instructionChanges: [
+            {
+              code: 'module_version',
+              title: 'Lucrul la înălțime',
+              newestVersionAt: '2026-10-12T09:30:00+00:00',
+            },
+          ],
+        },
+      ],
+    };
+    mockApi({ behind: [themesBehind] });
+    mount();
+    const user = userEvent.setup();
+
+    const type = await screen.findByTestId('behind-type');
+    expect(within(type).queryByTestId('behind-note')).toBeNull();
+    expect(within(type).getByTestId('behind-instructions-note').textContent).toBe(
+      'Instrucțiuni actualizateInstrucțiunile citate s-au schimbat de când a fost generat documentul.'
+    );
+    const [client] = within(type).getAllByTestId('behind-client');
+    expect(client!.textContent).not.toContain('pe versiunea');
+    expect(within(client!).getByTestId('behind-client-instructions').textContent).toBe(
+      'Instrucțiunea „Lucrul la înălțime” are o versiune nouă din 12.10.2026. Generează documentul din nou.'
+    );
+
+    await user.click(within(type).getByTestId('behind-regenerate'));
+    const dialog = await screen.findByTestId('behind-confirm-dialog');
+    expect(dialog.textContent).toContain(
+      '„Tematica și programul de instruire” se generează din nou din instrucțiunile de acum pentru 1 client'
     );
   });
 
