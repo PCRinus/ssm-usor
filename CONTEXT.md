@@ -190,7 +190,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Legal change** (_modificare legislativă_): a newer consolidated form of a watched act, with the act that produced it. **Open** (_în verificare_) until **resolved**: as **no impact** (_fără impact_) when no cited text differs, or by the template version that answers it. ADR 017. Avoid: amendment (which is the act that produced it), update, alert.
 
-**Behind** (_în urmă_): a document whose newest revision was generated from an older template version of a kind that prompts regeneration. Decided by the version alone, never by the document's edits. Avoid: outdated, stale (kept for a draft whose data changed).
+**Behind** (_în urmă_): a document whose newest revision was generated from an older template version of a kind that prompts regeneration, or, for the own instructions and the training themes of either set, built from instruction module versions the library has since replaced or citing another set of modules than the client's positions apply (ADR 014, amendment of 2026-10-22). Decided by the versions and the applied modules alone, never by the document's edits; an issued revision counts as much as a draft. Avoid: outdated, stale (kept for a draft whose data changed).
 
 ## Product feedback
 

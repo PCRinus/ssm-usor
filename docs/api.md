@@ -1388,18 +1388,27 @@ inside `workerd` as well as in Node.
 A document is **behind** when its newest revision was generated from a template version older
 than a `legal` or `correction` version of the same template
 ([ADR 017](architecture/adr-017-legislation-monitoring.md)). A `layout` version alone prompts
-nothing, an uploaded file is never behind, and a hand edit changes nothing about it. Only
-active clients count (not archived, not leads), and the service contract never does: its data
-comes from its own page. Of a dated type only the client's newest period counts (ADR 020): an
-earlier year's report is what was written for that year. The database view `documents_behind` decides it, under the caller's
-policies.
+nothing, an uploaded file is never behind, and a hand edit changes nothing about it. The own
+instructions and the training themes of either set are also behind when the library holds a
+newer version of an instruction module their newest revision was built from, when a current
+position of the client applies a module it does not cite, or when no current position applies
+a module it cites ([ADR 014](architecture/adr-014-training-themes.md), amendment of
+2026-10-22): an issued revision is frozen and never "Date modificate", so this is what tells
+someone the themes went stale after issuing. Only active clients count (not archived, not
+leads), and the service contract never does: its data comes from its own page. Of a dated type
+only the client's newest period counts (ADR 020): an earlier year's report is what was written
+for that year. The database view `documents_behind` decides it, under the caller's policies.
 
 `GET /documents/behind` lists the organization's documents behind by type, in the pack's
 order: the template's `title`, its `newestVersion` (`version`, `kind`, `note`), the
 `runningJobId` of a regeneration of that type still under way, or null, and the `clients`
-behind, by name, each with its `documentId`, the `version` its newest revision came from, and
-`editedDraft` when that revision is a draft edited by hand. A type nobody is behind on is left
-out.
+behind, by name, each with its `documentId`, the `version` its newest revision came from,
+`editedDraft` when that revision is a draft edited by hand, `behindTemplate`, and
+`instructionChanges`: per module, `module_version` with `newestVersionAt`, the date of the
+library's newest version, `module_added` or `module_removed`, with the module's `title`; empty
+for a document behind its template alone. A type nobody is behind on is left out. The themes
+cite the newest own instructions revision, so regenerating 4.2 while 3.2 is itself behind
+leaves 4.2 behind: the app says to regenerate the own instructions first.
 
 `POST /documents/behind/regenerate` takes `{ typeKey }`, a built-in type of either set, and
 starts a **regeneration job**: one item per client behind, read with the caller's token, and
