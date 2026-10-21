@@ -1,5 +1,6 @@
 import { useLingui } from '@lingui/react/macro';
 
+import { romanianDayOf } from '@/lib/format';
 import { testSheetTitleMessage, trainingDomainMessages, trainingPhaseMessages } from '@/lib/labels';
 
 import type { PortalSignatureRequest } from './signing-items';
@@ -23,6 +24,6 @@ export function useRequestDocument() {
         day: testSheet.takenOn,
       };
     }
-    return { title: request.label, day: request.issuedAt.slice(0, 10) };
+    return { title: request.label, day: romanianDayOf(request.issuedAt) };
   };
 }

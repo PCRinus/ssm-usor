@@ -261,6 +261,28 @@ describe('test-sheet requests', () => {
     expect(items[2]!.textContent).toContain('semnezi ca instruit');
   });
 
+  it("dates a request without its document's payload by its day in Romania", async () => {
+    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
+      queryResult({
+        items: [
+          request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r5', {
+            kind: 'test_sheet',
+            label: 'Fișa de test · Test la angajare SSM · 21.10.2026',
+            issuedAt: '2026-10-20T22:30:00Z',
+            record: null,
+            testSheet: null,
+          }),
+        ],
+      })
+    );
+    mountPortal(signedIn());
+    const item = (await screen.findAllByTestId('home-todo-item')).find(
+      (each) => each.dataset.kind === 'request'
+    )!;
+    expect(item.textContent).toContain('Fișa de test · Test la angajare SSM · 21.10.2026');
+    expect(item.textContent).toContain('21 oct. 2026');
+  });
+
   it('sends the test sheet with a record in one session', async () => {
     vi.mocked(useListPortalSignatureRequests).mockReturnValue(
       queryResult({ items: [requestA, testSheetRequest] })
