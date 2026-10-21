@@ -126,7 +126,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Pass mark** (_pragul de promovare_): 70%, seven of a sitting's ten questions answered fully right. Retakes are free and immediate, drawn and shuffled again each time. ADR 024. Avoid: threshold, score when the mark is meant.
 
-**Test attempt** (_încercarea_): one sitting of a test by a participant in the portal: the questions and options as shown, the answers chosen, the score, whether it passed, when, and from where. Written once at the finish and frozen; resumable until then. ADR 024. Avoid: submission, session, which is a signing session.
+**Test attempt** (_încercarea_): one sitting of a test by a participant in the portal: the questions and options as shown, the answers chosen, the score, whether it passed, when, and from where. Saved answer by answer, so that it resumes where it stopped, and frozen at the finish. ADR 024. Avoid: submission, session, which is a signing session.
 
 **Test result** (_rezultatul testării_): a pass, from a passing attempt or from the printed test (_de pe hârtie_): the day, the material examined, the grade _admis_ and the **examiner** (_examinatorul_), the specialist or the fire-safety technician by default. What the occupational safety sheet prints in its test block and the fire-safety sheet prints as a periodic row. ADR 024. Avoid: grade on its own, which is one column, and score, which is the attempt's.
 
