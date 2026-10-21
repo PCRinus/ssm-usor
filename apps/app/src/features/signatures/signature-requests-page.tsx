@@ -214,7 +214,7 @@ function RequestRow({
     >
       <Checkbox
         className="mt-0.5"
-        aria-label={`Alege ${document.noun} lui ${name} din ${formatDate(document.day)}`}
+        aria-label={`Alege ${document.ofEmployee} ${name} din ${formatDate(document.day)}`}
         data-testid="signature-request-select"
         checked={checked}
         onCheckedChange={(next) => onCheckedChange(next === true)}

@@ -51,12 +51,12 @@ export function requestDocument(request: RequestDocument) {
     return {
       domain,
       day: heldOn,
-      noun: 'instruirea',
+      ofEmployee: 'instruirea lui',
       summary: `${trainingPhaseLabels[phase]} · ${formatDate(heldOn)}`,
     };
   }
   const { domain, takenOn } = request.testSheet!;
-  return { domain, day: takenOn, noun: 'fișa de test', summary: request.label };
+  return { domain, day: takenOn, ofEmployee: 'fișa de test a lui', summary: request.label };
 }
 
 const voidReasonLabels: Record<SignatureVoidReason, string> = {

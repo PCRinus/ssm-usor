@@ -815,7 +815,7 @@ describe('the Semnături place', () => {
     );
     expect(sheet.getByText('PSI')).toBeTruthy();
     expect(sheet.getByTestId('signature-request-select').getAttribute('aria-label')).toBe(
-      'Alege fișa de test lui Popescu Ion din 15 oct. 2026'
+      'Alege fișa de test a lui Popescu Ion din 15 oct. 2026'
     );
   });
 
