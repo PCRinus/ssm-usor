@@ -78,7 +78,7 @@ The app gains a root page _Angajați_, every current employee of every client of
 ## What is left out
 
 - The electronic signature itself and the `training_signatures` table; the records are shaped for it.
-- Tests and their results: the test block of the SSM sheet stays empty until #449 decides how tests are served. (Decided by [ADR 024](adr-024-knowledge-tests.md), 2026-10-20: the block prints the test results, and the fire-safety sheet prints the annual pass as a row of its periodic table.)
+- Tests and their results: the test block of the SSM sheet stays empty until #449 decides how tests are served. (Decided by [ADR 024](adr-024-knowledge-tests.md), 2026-10-20: the block prints the test results, and the fire-safety sheet prints each pass as a row of its periodic table.)
 - Membership of the first-intervention team per employee and its monthly sessions (ADR 019): the fire-safety sheet prints the same periodic rows for everyone until the themes get the team's block.
 - Absences as dated events, and the supplementary training derived from them.
 - Extracting records from photographs of paper sheets.
