@@ -745,6 +745,10 @@ msgstr "La zi"
 msgid "Limba"
 msgstr "Limba"
 
+#: src/components/file-link-button.tsx
+msgid "Linkul nu s-a putut pregăti. Apasă ca să încerci din nou."
+msgstr "Linkul nu s-a putut pregăti. Apasă ca să încerci din nou."
+
 #: src/app/portal-header.tsx
 msgid "Locurile portalului"
 msgstr "Locurile portalului"

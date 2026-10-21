@@ -10,6 +10,7 @@ import type {
   PortalTrainingRecordsResponse,
   PortalTrainingSheetsResponse,
 } from '@/api/generated/api';
+import { FileLinkButton } from '@/components/file-link-button';
 import { Notice } from '@/components/notice';
 import { cardClass, SectionLabel } from '@/components/page';
 import { useFormatDate } from '@/lib/format';
@@ -17,7 +18,13 @@ import { trainingDomainMessages } from '@/lib/labels';
 
 import { useMissingSheetDataSentence } from './missing-sheet-data';
 import { signedSheet } from './signed-sheet';
-import { type LoadSheet, useSheetActions } from './use-sheet-actions';
+import {
+  type LoadSheet,
+  type LoadSheetLink,
+  storedSequenceOf,
+  useSheetActions,
+  useStoredSheetLink,
+} from './use-sheet-actions';
 
 type TrainingRecord = PortalTrainingRecordsResponse['items'][number];
 type Sheet = PortalTrainingSheetsResponse[TrainingDomain];
@@ -30,6 +37,7 @@ type TrainingSheetsProps = {
   records: TrainingRecord[] | null | undefined;
   failed: boolean;
   loadSheet: LoadSheet;
+  loadLink: LoadSheetLink;
   onStale: () => void;
   className?: string;
 };
@@ -40,6 +48,7 @@ export function TrainingSheets({
   records,
   failed,
   loadSheet,
+  loadLink,
   onStale,
   className,
 }: TrainingSheetsProps) {
@@ -62,6 +71,7 @@ export function TrainingSheets({
             sheet={sheets?.[domain]}
             records={records && records.filter((record) => record.domain === domain)}
             loadSheet={loadSheet}
+            loadLink={loadLink}
             onStale={onStale}
           />
         ))
@@ -75,23 +85,24 @@ function TrainingSheetCard({
   sheet,
   records,
   loadSheet,
+  loadLink,
   onStale,
 }: {
   domain: TrainingDomain;
   sheet: Sheet | undefined;
   records: TrainingRecord[] | null | undefined;
   loadSheet: LoadSheet;
+  loadLink: LoadSheetLink;
   onStale: () => void;
 }) {
   const { t, i18n } = useLingui();
   const formatDate = useFormatDate();
   const missingSentence = useMissingSheetDataSentence();
-  const { busy, failure, open, download, downloadOriginal } = useSheetActions(
-    domain,
-    loadSheet,
-    onStale
-  );
+  const { busy, failure, open, download } = useSheetActions(domain, loadSheet, onStale);
   const originals = sheet && sheet.sequences.length > 1 ? sheet.sequences : [];
+  const storedSequence = storedSequenceOf(sheet);
+  const storedOpen = useStoredSheetLink(domain, storedSequence, loadLink, 'inline');
+  const storedDownload = useStoredSheetLink(domain, storedSequence, loadLink, 'attachment');
   const label = i18n._(trainingDomainMessages[domain]);
   const untrained = records?.length === 0;
   const openable = sheet?.ready === true && records !== undefined && !untrained;
@@ -139,6 +150,28 @@ function TrainingSheetCard({
         <p role="status" className="text-sm text-muted-foreground">
           <Trans>Se verifică…</Trans>
         </p>
+      ) : openable && storedSequence !== null ? (
+        <div className="flex gap-2">
+          <FileLinkButton
+            data-testid={`training-sheet-${domain}-open`}
+            className="h-10 flex-1 px-3.5 whitespace-nowrap"
+            link={storedOpen}
+          >
+            <Trans>Deschide PDF</Trans>
+          </FileLinkButton>
+          <FileLinkButton
+            variant="outline"
+            data-testid={`training-sheet-${domain}-download`}
+            className="size-10 lg:h-10 lg:w-auto lg:flex-1"
+            aria-label={t`Descarcă fișa ${label}`}
+            link={storedDownload}
+          >
+            <FileDown aria-hidden="true" className="lg:hidden" />
+            <span aria-hidden="true" className="hidden lg:inline">
+              <Trans>Descarcă</Trans>
+            </span>
+          </FileLinkButton>
+        </div>
       ) : openable ? (
         <div className="flex gap-2">
           <Button
@@ -193,20 +226,7 @@ function TrainingSheetCard({
           <ul className="flex flex-wrap gap-x-4 gap-y-1">
             {originals.map((sequence) => (
               <li key={sequence}>
-                <button
-                  type="button"
-                  data-testid={`training-sheet-${domain}-original`}
-                  disabled={busy !== null}
-                  onClick={() => void downloadOriginal(sequence)}
-                  className="inline-flex min-h-8 items-center gap-1 rounded-sm font-medium underline underline-offset-4 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60"
-                >
-                  {busy === `original-${sequence}` ? (
-                    <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />
-                  ) : (
-                    <FileDown aria-hidden="true" className="size-3.5" />
-                  )}
-                  {sequence === 1 ? t`Fișa 1` : t`Fișa ${sequence} (continuare)`}
-                </button>
+                <OriginalLink domain={domain} sequence={sequence} loadLink={loadLink} />
               </li>
             ))}
           </ul>
@@ -222,5 +242,50 @@ function TrainingSheetCard({
         </Notice>
       )}
     </article>
+  );
+}
+
+function OriginalLink({
+  domain,
+  sequence,
+  loadLink,
+}: {
+  domain: TrainingDomain;
+  sequence: number;
+  loadLink: LoadSheetLink;
+}) {
+  const { t } = useLingui();
+  const link = useStoredSheetLink(domain, sequence, loadLink, 'attachment');
+  const text = sequence === 1 ? t`Fișa 1` : t`Fișa ${sequence} (continuare)`;
+  const className =
+    'inline-flex min-h-8 items-center gap-1 rounded-sm font-medium underline underline-offset-4 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60';
+  if (link.href) {
+    return (
+      <a
+        data-testid={`training-sheet-${domain}-original`}
+        href={link.href}
+        onClick={(event) => void link.onClick(event)}
+        className={className}
+      >
+        <FileDown aria-hidden="true" className="size-3.5" />
+        {text}
+      </a>
+    );
+  }
+  return (
+    <button
+      type="button"
+      data-testid={`training-sheet-${domain}-original`}
+      disabled={!link.error}
+      onClick={() => void link.refetch()}
+      className={className}
+    >
+      {link.error ? (
+        <FileDown aria-hidden="true" className="size-3.5" />
+      ) : (
+        <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />
+      )}
+      {text}
+    </button>
   );
 }

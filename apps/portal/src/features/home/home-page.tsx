@@ -7,6 +7,7 @@ import { ChevronRight } from 'lucide-react';
 import {
   getGetPortalTrainingSheetsQueryKey,
   getPortalTrainingSheet,
+  getPortalTrainingSheetLink,
   type PortalClientEmployeesResponse,
   type PortalEmployeeDataResponse,
   useGetPortalEmployeeData,
@@ -139,6 +140,13 @@ function OwnTraining({ participantId }: { participantId: string }) {
             domain,
             sequence ? { sequence } : undefined,
             apiRequest
+          ),
+        loadLink: (domain, sequence, signal) =>
+          getPortalTrainingSheetLink(
+            participantId,
+            domain,
+            { sequence },
+            { ...apiRequest, signal }
           ),
         onStale: () =>
           void queryClient.invalidateQueries({

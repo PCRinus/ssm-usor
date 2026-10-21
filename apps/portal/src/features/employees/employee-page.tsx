@@ -6,6 +6,7 @@ import { ChevronLeft } from 'lucide-react';
 import {
   getGetPortalEmployeeTrainingSheetsQueryKey,
   getPortalEmployeeTrainingSheet,
+  getPortalEmployeeTrainingSheetLink,
   useGetPortalEmployeeTrainingSheets,
   useListPortalClientEmployees,
   useListPortalClientSignatureRequests,
@@ -93,6 +94,15 @@ function EmployeeDetail({
               domain,
               sequence ? { sequence } : undefined,
               apiRequest
+            )
+          }
+          loadLink={(domain, sequence, signal) =>
+            getPortalEmployeeTrainingSheetLink(
+              participantId,
+              employeeId,
+              domain,
+              { sequence },
+              { ...apiRequest, signal }
             )
           }
           onStale={() =>

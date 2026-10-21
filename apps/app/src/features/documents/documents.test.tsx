@@ -809,7 +809,6 @@ describe('client documents', () => {
         },
       ],
     });
-    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     const fallback = fetchMock.getMockImplementation()!;
     fetchMock.mockImplementation(async (input, init) =>
       new URL(String(input)).pathname === `/instruction-modules/${moduleId}/file-link`

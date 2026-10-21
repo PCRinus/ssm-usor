@@ -2,10 +2,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { type TrainingDomain, trainingDomains } from '@ssm-usor/contracts';
 import { Link } from '@tanstack/react-router';
 
-import type {
-  PortalTrainingRecordsResponse,
-  PortalTrainingSheetsResponse,
-} from '@/api/generated/api';
+import type { PortalTrainingRecordsResponse } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 import { cardClass } from '@/components/page';
 import { useFormatDate } from '@/lib/format';
@@ -13,13 +10,12 @@ import { trainingDomainMessages } from '@/lib/labels';
 
 import { signedSheet } from './signed-sheet';
 import { TrainingStateBadge } from './training-state-badge';
-import { type LoadSheet, useSheetActions } from './use-sheet-actions';
-
-type SheetAccess = {
-  sheets: PortalTrainingSheetsResponse | undefined;
-  loadSheet: LoadSheet;
-  onStale: () => void;
-};
+import {
+  type SheetAccess,
+  storedSequenceOf,
+  useSheetActions,
+  useStoredSheetLink,
+} from './use-sheet-actions';
 
 export function TrainingSummary({
   records,
@@ -133,20 +129,37 @@ function SheetLink({
     sheetAccess.loadSheet,
     sheetAccess.onStale
   );
+  const sheet = sheetAccess.sheets?.[domain];
+  const link = useStoredSheetLink(domain, storedSequenceOf(sheet), sheetAccess.loadLink, 'inline');
+  const text = signedSheet(sheet)
+    ? t`Fișa individuală ${label}, semnată electronic, PDF`
+    : t`Fișa individuală ${label}, PDF`;
+  const className =
+    'w-fit rounded-sm text-left text-sm font-medium underline underline-offset-4 hover:text-foreground/80 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60';
+  if (link.href) {
+    return (
+      <a
+        data-testid={`training-summary-sheet-${domain}`}
+        href={link.href}
+        target={link.target}
+        onClick={(event) => void link.onClick(event)}
+        className={className}
+      >
+        {text}
+      </a>
+    );
+  }
+  const stored = storedSequenceOf(sheet) !== null;
   return (
     <>
       <button
         type="button"
         data-testid={`training-summary-sheet-${domain}`}
-        disabled={busy !== null}
-        onClick={() => void open()}
-        className="w-fit rounded-sm text-left text-sm font-medium underline underline-offset-4 hover:text-foreground/80 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60"
+        disabled={stored ? !link.error : busy !== null}
+        onClick={() => void (stored ? link.refetch() : open())}
+        className={className}
       >
-        {busy
-          ? t`Se pregătește fișa…`
-          : signedSheet(sheetAccess.sheets?.[domain])
-            ? t`Fișa individuală ${label}, semnată electronic, PDF`
-            : t`Fișa individuală ${label}, PDF`}
+        {busy || (stored && !link.error) ? t`Se pregătește fișa…` : text}
       </button>
       {failure && <Notice variant="destructive">{failure}</Notice>}
     </>

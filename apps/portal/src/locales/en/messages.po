@@ -745,6 +745,10 @@ msgstr "Up to date"
 msgid "Limba"
 msgstr "Language"
 
+#: src/components/file-link-button.tsx
+msgid "Linkul nu s-a putut pregăti. Apasă ca să încerci din nou."
+msgstr "The link could not be prepared. Tap to try again."
+
 #: src/app/portal-header.tsx
 msgid "Locurile portalului"
 msgstr "Portal sections"

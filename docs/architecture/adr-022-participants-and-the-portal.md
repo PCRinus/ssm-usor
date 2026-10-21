@@ -66,6 +66,8 @@ The participant's data is processed under the employer's legal obligations (Lege
 
 A participant whose employee is terminated keeps the portal: the records stay, as ADR 021 decided, and the person's right of access does not end with the contract. The member can revoke the participant when the employer asks. Revoking on termination was rejected as the default.
 
+(Amended 2026-10-22, Mircea's decision on the tester feedback round three. A tester opening the portal from Gmail's in-app browser on Android could not open a sheet: that browser, a Firefox custom tab, shows a blob URL blank and cannot download. The portal now puts a stored sheet and a stored agreement on real anchors to `GET /files/download?…&disposition=inline`, from link routes of their own (`…/sheets/{domain}/link`, `…/signing-agreement/link`) that sign for ten minutes and are renewed on the page. A sheet drawn up on the spot, the merged reading copy and an agreement nobody has signed yet have no stored file and still come through the page; giving them a link would mean storing what is built on request, which is left for a later decision.)
+
 ## What is left out
 
 - The electronic signature, the `training_signatures` table, signature requests and the "what needs you" list that they fill: the next ADR. This one creates the people and the sole-control step it will use.

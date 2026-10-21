@@ -11,6 +11,7 @@ import {
   createOrganization,
   evaluateRisks,
   openDocumentSection,
+  openedPdf,
   signIn,
   updateClient,
 } from './support';
@@ -238,14 +239,11 @@ test('a decision is issued with its PDF, and a new draft of it can be made and d
 
   // Where a converter runs, issuing also made the PDF, locked beside the Word file.
   if (process.env.GOTENBERG_URL) {
-    const pdfDownload = page.waitForEvent('download');
-    await act(page, firstAid, 'document-download-pdf');
-    const pdf = await pdfDownload;
-    expect(pdf.suggestedFilename()).toBe(
-      'Decizia privind responsabilii cu primul ajutor - rev. 1.pdf'
+    const pdf = await openedPdf(page, firstAid);
+    expect(pdf.disposition).toMatch(
+      /^inline; filename="Decizia privind responsabilii cu primul ajutor - rev\. 1\.pdf"; filename\*=UTF-8''/
     );
-    const { readFile } = await import('node:fs/promises');
-    expect((await readFile(await pdf.path())).subarray(0, 5).toString()).toBe('%PDF-');
+    expect(pdf.body.subarray(0, 5).toString()).toBe('%PDF-');
   }
 
   await act(page, firstAid, 'document-regenerate');
@@ -292,7 +290,7 @@ test('the own instructions are issued with their annex, which opens in the edito
     timeout: 30_000,
   });
   await instructions.getByTestId('document-actions').click();
-  await expect(page.getByTestId('document-download-pdf')).toBeVisible();
+  await expect(page.getByTestId('document-open-pdf')).toBeVisible();
   await page.keyboard.press('Escape');
 
   const wordArchive = await downloadArchive(page, 'documents-archive-docx');

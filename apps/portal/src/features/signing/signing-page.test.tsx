@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createPortalSigningSession,
+  getPortalSigningAgreementLink,
+  getPortalTrainingSheetLink,
   type PortalSignatureRequestsResponse,
   signPortalSigningSession,
   useGetPortalEmployeeData,
@@ -44,6 +46,8 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   useGetPortalSigningAgreementState: vi.fn(),
   createPortalSigningSession: vi.fn(),
   signPortalSigningSession: vi.fn(),
+  getPortalTrainingSheetLink: vi.fn(),
+  getPortalSigningAgreementLink: vi.fn(),
 }));
 
 const employee = participation();
@@ -136,6 +140,18 @@ beforeEach(() => {
     queryResult({ unavailable: null, agreement: agreementAwaitingEmployee })
   );
   vi.mocked(createPortalSigningSession).mockResolvedValue(session);
+  vi.mocked(getPortalTrainingSheetLink).mockImplementation(async (_participant, domain, params) =>
+    Promise.resolve({
+      url: `https://files.example.test/signed/${domain}-${params?.sequence ?? 0}`,
+      fileName: `Fisa-${domain.toUpperCase()}-Pop-Ana.pdf`,
+      expiresInSeconds: 600,
+    })
+  );
+  vi.mocked(getPortalSigningAgreementLink).mockResolvedValue({
+    url: 'https://files.example.test/signed/agreement',
+    fileName: 'Act-aditional-semnare-electronica-Pop-Ana.pdf',
+    expiresInSeconds: 600,
+  });
 });
 
 afterEach(() => {
@@ -589,6 +605,48 @@ describe('Instruiri and Contul meu', () => {
     expect(screen.queryByTestId('training-sheet-ssm-originals')).toBeNull();
   });
 
+  it('opens a stored sheet from real links, shown inline in a tab, and a draft through the page', async () => {
+    mountPortal(signedIn(), '/instruiri');
+    await waitFor(() =>
+      expect(screen.getByTestId('training-sheet-ssm-open').getAttribute('href')).toContain(
+        '/files/download?'
+      )
+    );
+    const open = screen.getByTestId('training-sheet-ssm-open');
+    const address = new URL(open.getAttribute('href')!);
+    expect(address.origin + address.pathname).toBe('http://localhost:8787/files/download');
+    expect(address.searchParams.get('source')).toBe('https://files.example.test/signed/ssm-1');
+    expect(address.searchParams.get('name')).toBe('Fisa-SSM-Pop-Ana.pdf');
+    expect(address.searchParams.get('disposition')).toBe('inline');
+    expect(open.getAttribute('target')).toBe('_blank');
+    const download = screen.getByTestId('training-sheet-ssm-download');
+    expect(new URL(download.getAttribute('href')!).searchParams.get('disposition')).toBe(
+      'attachment'
+    );
+    expect(download.getAttribute('target')).toBeNull();
+    expect(vi.mocked(getPortalTrainingSheetLink)).toHaveBeenCalledWith(
+      employee.participantId,
+      'ssm',
+      { sequence: 1 },
+      expect.anything()
+    );
+    const draft = screen.getByTestId('training-sheet-psi-open');
+    expect(draft.tagName).toBe('BUTTON');
+    expect(draft.getAttribute('href')).toBeNull();
+  });
+
+  it('links the stored sheet from the home page too', async () => {
+    mountPortal(signedIn());
+    await waitFor(() =>
+      expect(screen.getByTestId('training-summary-sheet-ssm').getAttribute('href')).toContain(
+        'disposition=inline'
+      )
+    );
+    expect(screen.getByTestId('training-summary-sheet-ssm').textContent).toBe(
+      'Fișa individuală SSM, semnată electronic, PDF'
+    );
+  });
+
   it('offers the originals of a sheet continued on a second one beside the reading copy', async () => {
     vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
       queryResult({
@@ -604,6 +662,33 @@ describe('Instruiri and Contul meu', () => {
         .getAllByTestId('training-sheet-ssm-original')
         .map((button) => button.textContent)
     ).toEqual(['Fișa 1', 'Fișa 2 (continuare)']);
+    await waitFor(() =>
+      expect(
+        within(originals)
+          .getAllByTestId('training-sheet-ssm-original')
+          .map((link) => new URL(link.getAttribute('href')!).searchParams.get('source'))
+      ).toEqual([
+        'https://files.example.test/signed/ssm-1',
+        'https://files.example.test/signed/ssm-2',
+      ])
+    );
+    // The reading copy is built when asked for, so it still comes through the page.
+    expect(screen.getByTestId('training-sheet-ssm-open').tagName).toBe('BUTTON');
+  });
+
+  it('opens a signed agreement from a real link', async () => {
+    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+      queryResult({ unavailable: null, agreement: agreementAwaitingEmployer })
+    );
+    mountPortal(signedIn(), '/contul-meu');
+    await waitFor(() =>
+      expect(screen.getByTestId('agreement-pdf').getAttribute('href')).toContain('/files/download?')
+    );
+    const address = new URL(screen.getByTestId('agreement-pdf').getAttribute('href')!);
+    expect(address.searchParams.get('source')).toBe('https://files.example.test/signed/agreement');
+    expect(address.searchParams.get('disposition')).toBe('inline');
+    expect(screen.getByTestId('agreement-pdf').getAttribute('target')).toBe('_blank');
+    expect(screen.getByTestId('agreement-pdf').tagName).toBe('A');
   });
 
   it.each([
