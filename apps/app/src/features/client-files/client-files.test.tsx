@@ -235,14 +235,14 @@ afterEach(() => {
 });
 
 describe('the other documents of a client', () => {
-  it('is the last tab of the client, and lists each file with its size, date and uploader', async () => {
+  it('is the tab before Portal, and lists each file with its size, date and uploader', async () => {
     mockApi();
     mount();
 
     const rows = await screen.findAllByTestId('client-file-row');
     await waitFor(() => expect(document.title).toBe('Alte documente — VELOCE CAFE SRL — SSM Ușor'));
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
-    expect(sections.at(-1)).toBe('Alte documente');
+    expect(sections.slice(-2)).toEqual(['Alte documente', 'Portal']);
     expect(rows).toHaveLength(2);
     const [first, second] = rows;
     expect(within(first!).getByTestId('client-file-open').textContent).toBe(

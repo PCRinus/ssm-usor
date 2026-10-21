@@ -872,7 +872,7 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   the way back); `DocumentEditorPage` builds one from the client's list of documents, and
   `ServiceContractEditor` from `GET …/service-contract`, because that list is the
   documentation set only. "Modifică" on an issued contract works as for any document.
-- `/clients/:clientId/other-documents`: "Alte documente", the last tab of a client, for owners
+- `/clients/:clientId/other-documents`: "Alte documente", the tab before "Portal", for owners
   and specialists alike, in `src/features/client-files/` ([ADR 013](architecture/adr-013-client-files.md)).
   `ClientFilesCard` lists `GET /clients/{clientId}/files`: the kind as an icon and a word (PDF,
   Imagine, Word, Excel), the name with the note under it, the size, the day of the upload and
