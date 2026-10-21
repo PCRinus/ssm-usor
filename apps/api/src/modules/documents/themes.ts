@@ -47,17 +47,39 @@ export function dealChapters(document: ChapterStructure, sessions: number): Arti
   if (!Number.isInteger(sessions) || sessions < 1 || sessions > chapters) {
     throw new RangeError(`Between 1 and ${chapters} training sessions, not ${sessions}.`);
   }
-  const size = Math.floor(chapters / sessions);
-  const larger = chapters % sessions;
+  const articlesBefore = [...chapterStarts.map((start) => start - 1), articleCount];
+  const articlesIn = (first: number, last: number) =>
+    articlesBefore[last + 1]! - articlesBefore[first]!;
+
+  const smallestLargest: number[][] = Array.from({ length: chapters }, () => []);
+  for (let first = chapters - 1; first >= 0; first -= 1) {
+    smallestLargest[first]![1] = articlesIn(first, chapters - 1);
+    for (let groups = 2; groups <= Math.min(sessions, chapters - first); groups += 1) {
+      let best = Infinity;
+      for (let last = first; last <= chapters - groups; last += 1) {
+        const largest = Math.max(articlesIn(first, last), smallestLargest[last + 1]![groups - 1]!);
+        best = Math.min(best, largest);
+      }
+      smallestLargest[first]![groups] = best;
+    }
+  }
+
+  // Of the equally even deals, the one that cuts earliest, so that a document always deals the same.
   const ranges: ArticleRange[] = [];
   let first = 0;
-  for (let session = 0; session < sessions; session += 1) {
-    const next = first + size + (session < larger ? 1 : 0);
-    ranges.push({
-      from: chapterStarts[first]!,
-      to: next < chapters ? chapterStarts[next]! - 1 : articleCount,
-    });
-    first = next;
+  for (let groups = sessions; groups >= 1; groups -= 1) {
+    let last = chapters - 1;
+    if (groups > 1) {
+      last = first;
+      while (
+        Math.max(articlesIn(first, last), smallestLargest[last + 1]![groups - 1]!) >
+        smallestLargest[first]![groups]!
+      ) {
+        last += 1;
+      }
+    }
+    ranges.push({ from: chapterStarts[first]!, to: articlesBefore[last + 1]! });
+    first = last + 1;
   }
   return ranges;
 }

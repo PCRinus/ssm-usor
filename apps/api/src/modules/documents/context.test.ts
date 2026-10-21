@@ -694,13 +694,13 @@ describe('the training themes', () => {
       {
         month: 'FEBRUARIE',
         content:
-          'I.P.S.S.M. Art.\u00a01\u00a0–\u00a095; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012',
+          'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0159; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012',
         duration: '120 min',
       },
       {
         month: 'AUGUST',
         content:
-          'I.P.S.S.M. Art.\u00a096\u00a0–\u00a0290; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012; Testare.',
+          'I.P.S.S.M. Art.\u00a0160\u00a0–\u00a0290; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a012; Testare.',
         duration: '120 min',
       },
     ]);

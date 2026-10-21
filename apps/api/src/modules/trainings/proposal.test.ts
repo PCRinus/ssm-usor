@@ -54,7 +54,7 @@ describe('trainingProposal', () => {
     expect(trainingProposal(base)).toEqual({
       durationMinutes: 120,
       material:
-        'I.P.S.S.M. Art. 45 – 56; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31',
+        'I.P.S.S.M. Art. 45 – 95; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31',
       trainer: manager,
       verifier: specialist,
       admittedBy: null,
@@ -64,7 +64,7 @@ describe('trainingProposal', () => {
 
   it('takes the last session before the month when none falls in it', () => {
     expect(trainingProposal({ ...base, heldOn: '2026-05-30' }).material).toMatch(
-      /^I\.P\.S\.S\.M\. Art\. 45 – 56;/
+      /^I\.P\.S\.S\.M\. Art\. 45 – 95;/
     );
     expect(trainingProposal({ ...base, heldOn: '2026-01-05' }).material).toMatch(/Testare\.$/);
   });
@@ -73,7 +73,7 @@ describe('trainingProposal', () => {
     expect(trainingProposal({ ...base, position: accountant, heldOn: '2026-08-01' })).toMatchObject(
       {
         durationMinutes: 120,
-        material: expect.stringMatching(/^I\.P\.S\.S\.M\. Art\. 96 – 290;/),
+        material: expect.stringMatching(/^I\.P\.S\.S\.M\. Art\. 160 – 290;/),
         trainer: specialist,
         verifier: specialist,
       }
@@ -103,7 +103,7 @@ describe('trainingProposal', () => {
     ).toEqual({
       durationMinutes: 120,
       material:
-        'IPSU art. 77–130; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă',
+        'IPSU art. 74–146; I.P.S.U. Lucrul cu foc deschis, art. 1–7; instrucțiunile afișate la locul de muncă (Decizia nr. 10 PSI); organizarea apărării împotriva incendiilor la locul de muncă',
       trainer: manager,
       verifier: null,
       admittedBy: null,

@@ -1175,9 +1175,9 @@ describe('the fire-safety templates', () => {
     expect(text).toContain(
       'CINE EFECTUEAZĂ INSTRUIREA: Florin Cristian TALOȘ și Ioana PETRE – conducătorii locurilor de muncă sau, după caz, S.C. SERVICIU EXTERN DEMO S.R.L. – Radu STAN (cadru tehnic PSI)'
     );
-    expect(text).toMatch(/^NOIEMBRIE\nIPSU art\.\u00a0236–257; .+; testare\.\n120 min$/m);
+    expect(text).toMatch(/^NOIEMBRIE\nIPSU art\.\u00a0215–257; .+; testare\.\n120 min$/m);
     expect(text).toMatch(
-      /^FEBRUARIE\nIPSU art\.\u00a01–76; I\.P\.S\.U\. Lucrul cu foc deschis, art\.\u00a01–7; instrucțiunile afișate/m
+      /^FEBRUARIE\nIPSU art\.\u00a01–73; I\.P\.S\.U\. Lucrul cu foc deschis, art\.\u00a01–7; instrucțiunile afișate/m
     );
   });
 
