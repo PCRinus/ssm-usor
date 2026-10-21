@@ -863,6 +863,7 @@ describe('the fire-safety context', () => {
       responsiblePersons: [
         ...facts.responsiblePersons,
         {
+          employeeId: null,
           fullName: 'florin cristian talos',
           jobTitle: 'Administrator',
           roles: ['workplace_manager'],

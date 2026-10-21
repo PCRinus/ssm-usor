@@ -63,7 +63,7 @@ export async function loadDocumentFacts(
     db
       .from('clients')
       .select(
-        'legal_name, legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, caen_code, cui, trade_register_number, county_code, locality, address_line, contact_name, contact_phone, contact_email, archived_at, sensitive_groups_state'
+        'legal_name, legal_representative_name, legal_representative_role, legal_representative_employee_id, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, caen_code, cui, trade_register_number, county_code, locality, address_line, contact_name, contact_phone, contact_email, archived_at, sensitive_groups_state'
       )
       .eq('id', clientId)
       .maybeSingle(),
@@ -87,7 +87,9 @@ export async function loadDocumentFacts(
       .maybeSingle(),
     db
       .from('client_responsible_persons')
-      .select('full_name, job_title, roles, workplace_id, employees(status, archived_at)')
+      .select(
+        'employee_id, full_name, job_title, roles, workplace_id, employees(status, archived_at)'
+      )
       .eq('client_id', clientId)
       .is('archived_at', null)
       // The order people were designated in is the order the decisions list them in.
@@ -265,6 +267,7 @@ export async function loadDocumentFacts(
       legalName: client.data.legal_name,
       representativeName: client.data.legal_representative_name,
       representativeRole: client.data.legal_representative_role,
+      representativeEmployeeId: client.data.legal_representative_employee_id,
       periodicTrainingMinutes: client.data.periodic_training_minutes,
       administrativeTrainingIntervalMonths: client.data.administrative_training_interval_months,
       administrativeTrainingNotApplicable: client.data.administrative_training_not_applicable,
@@ -396,6 +399,7 @@ export async function loadDocumentFacts(
       },
     },
     responsiblePersons: persons.data.map((person) => ({
+      employeeId: person.employee_id,
       fullName: person.full_name,
       jobTitle: person.job_title,
       roles: person.roles as ResponsiblePersonRole[],

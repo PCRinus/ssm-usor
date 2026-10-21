@@ -36,6 +36,7 @@ describe('what is missing', () => {
         client: { ...facts.client, representativeRole: null, trainingDayTo: null },
         responsiblePersons: [
           {
+            employeeId: null,
             fullName: 'A B',
             jobTitle: 'C',
             roles: ['first_aid'],
@@ -131,7 +132,12 @@ describe('what is missing', () => {
   });
 
   describe("workers' representatives", () => {
-    const representative = (fullName: string, currentEmployee = true) => ({
+    const representative = (
+      fullName: string,
+      currentEmployee = true,
+      employeeId: string | null = null
+    ) => ({
+      employeeId,
       fullName,
       jobTitle: 'Vânzător',
       roles: ['workers_representative' as const],
@@ -186,6 +192,44 @@ describe('what is missing', () => {
         legalRepresentativeName: 'Florin Cristian TALOȘ',
       });
       expect(workersRepresentativeClash(facts)).toBeNull();
+    });
+
+    it('go by the linked employee once the representative is one, not by the name', () => {
+      const owner = 'e1e1e1e1-0000-4000-8000-000000000009';
+      const linked = {
+        ...facts,
+        currentEmployeeCount: 12,
+        client: { ...facts.client, representativeEmployeeId: owner },
+      };
+      const namesake = representative(
+        'Florin Cristian TALOȘ',
+        true,
+        'e1e1e1e1-0000-4000-8000-000000000010'
+      );
+      expect(
+        workersRepresentativeClash({
+          ...linked,
+          responsiblePersons: [...facts.responsiblePersons, namesake],
+        })
+      ).toBeNull();
+      expect(
+        workersRepresentativeClash({
+          ...linked,
+          responsiblePersons: [
+            ...facts.responsiblePersons,
+            representative('F. C. Taloș', true, owner),
+          ],
+        })
+      ).toEqual({
+        representativeName: 'F. C. Taloș',
+        legalRepresentativeName: 'Florin Cristian TALOȘ',
+      });
+      expect(
+        missingDocumentData({
+          ...linked,
+          responsiblePersons: [...facts.responsiblePersons, namesake],
+        })
+      ).toEqual([]);
     });
 
     it('are still needed to generate a 1.5 again under 10 employees', () => {
@@ -284,6 +328,48 @@ describe('the merge context', () => {
     expect(context).not.toHaveProperty('workplaceManager');
   });
 
+  it('names a person once, by the linked employee when the representative is one, else by name', () => {
+    const owner = 'e1e1e1e1-0000-4000-8000-000000000009';
+    const asEmployee = {
+      employeeId: owner,
+      fullName: 'Taloș Florin-Cristian',
+      jobTitle: 'Tâmplar',
+      roles: ['first_aid' as const],
+      currentEmployee: true,
+      workplaceId: null,
+    };
+    const byName = buildDocumentContext({
+      ...facts,
+      responsiblePersons: [...facts.responsiblePersons, asEmployee],
+    });
+    expect(byName.firstAiders.map((person) => person.name)).toEqual([
+      'Florin Cristian TALOȘ',
+      'Ioana PETRE',
+    ]);
+    const linked = buildDocumentContext({
+      ...facts,
+      client: { ...facts.client, representativeEmployeeId: owner },
+      responsiblePersons: [...facts.responsiblePersons, asEmployee],
+    });
+    expect(linked.firstAiders.map((person) => person.name)).toEqual([
+      'Florin Cristian TALOȘ',
+      'Ioana PETRE',
+    ]);
+    const namesake = buildDocumentContext({
+      ...facts,
+      client: { ...facts.client, representativeEmployeeId: owner },
+      responsiblePersons: [
+        ...facts.responsiblePersons,
+        { ...asEmployee, employeeId: 'e1e1e1e1-0000-4000-8000-000000000010' },
+      ],
+    });
+    expect(namesake.firstAiders.map((person) => person.name)).toEqual([
+      'Florin Cristian TALOȘ',
+      'Ioana PETRE',
+      'Taloș Florin-Cristian',
+    ]);
+  });
+
   it('names every holder of a role in a sentence that reads for one person or several', () => {
     expect(context.workplaceManagersText).toBe(
       'Florin Cristian TALOȘ, având funcția de Administrator, și Ioana PETRE, având funcția de Șef de echipă'
@@ -297,6 +383,7 @@ describe('the merge context', () => {
     );
 
     const third: DocumentFacts['responsiblePersons'][number] = {
+      employeeId: null,
       fullName: 'Dan RUS',
       jobTitle: 'Magaziner',
       roles: ['workplace_manager', 'first_aid', 'imminent_danger'],
@@ -329,6 +416,7 @@ describe('the merge context', () => {
       const built = buildDocumentContext({
         ...facts,
         responsiblePersons: roles.map((personRoles, index) => ({
+          employeeId: null,
           fullName: `Persoana ${index + 1}`,
           jobTitle: 'Administrator',
           roles: [...personRoles, 'first_aid', 'risk_evaluation_team'],
@@ -740,6 +828,7 @@ describe('decision 1.5', () => {
     responsiblePersons: [
       ...facts.responsiblePersons,
       {
+        employeeId: null,
         fullName: 'Mihai DOBRE ',
         jobTitle: 'Vânzător',
         roles: ['workers_representative' as const],
@@ -747,6 +836,7 @@ describe('decision 1.5', () => {
         workplaceId: null,
       },
       {
+        employeeId: null,
         fullName: 'Radu ENE',
         jobTitle: 'Vânzător',
         roles: ['workers_representative' as const],

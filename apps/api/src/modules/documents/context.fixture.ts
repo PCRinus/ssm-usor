@@ -27,6 +27,7 @@ export const facts: DocumentFacts = {
     legalName: ' S.C. PIPETECH S.R.L. ',
     representativeName: 'Florin Cristian TALOȘ',
     representativeRole: 'Administrator',
+    representativeEmployeeId: null,
     periodicTrainingMinutes: 120,
     administrativeTrainingIntervalMonths: 6,
     administrativeTrainingNotApplicable: false,
@@ -84,6 +85,7 @@ export const facts: DocumentFacts = {
   ],
   responsiblePersons: [
     {
+      employeeId: null,
       fullName: 'Florin Cristian TALOȘ',
       jobTitle: 'Administrator',
       roles: [
@@ -97,6 +99,7 @@ export const facts: DocumentFacts = {
       workplaceId: null,
     },
     {
+      employeeId: 'e1e1e1e1-0000-4000-8000-000000000002',
       fullName: 'Ioana PETRE',
       jobTitle: 'Șef de echipă',
       roles: ['workplace_manager', 'first_aid', 'imminent_danger', 'fire_intervention_leader'],

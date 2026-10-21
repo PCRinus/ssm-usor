@@ -8,13 +8,13 @@ import {
   formatTrainingDuration,
   type InstructionDomain,
   type InstructionModuleGroup,
+  isLegalRepresentative,
   type JobPositionDecision,
   jobPositionDecisions,
   type MissingDocumentData,
   requiredWorkersRepresentatives,
   type ResponsiblePersonRole,
   type RiskEvaluationGap,
-  samePersonName,
   type SensitiveGroupsState,
   type StaffCategory,
   trainingMonths,
@@ -24,7 +24,14 @@ import { collator, countOf, listed } from '../../lib/romanian';
 import { filled } from '../../lib/text';
 import type { FireSafetyClientFacts, FireWorkplaceFacts } from './fire-safety';
 import { type ContextParts, gapRules } from './gaps';
-import { asPerson, distinctHolders, distinctRowsByName, type Person, withRole } from './people';
+import {
+  asPerson,
+  distinctHolders,
+  distinctPeople,
+  legalRepresentativeOf,
+  type Person,
+  withRole,
+} from './people';
 import {
   incompleteRiskEvaluations,
   riskAssessment,
@@ -66,6 +73,8 @@ export type DocumentFacts = {
     legalName: string;
     representativeName: string | null;
     representativeRole: string | null;
+    /** The employee the representative also is, in a firm whose owner works in it; usually null. */
+    representativeEmployeeId: string | null;
     periodicTrainingMinutes: number | null;
     administrativeTrainingIntervalMonths: number | null;
     administrativeTrainingNotApplicable: boolean;
@@ -90,6 +99,8 @@ export type DocumentFacts = {
   workplaces: (WorkplaceFacts & FireWorkplaceFacts)[];
   /** In the order they should be printed. */
   responsiblePersons: {
+    /** Null for someone designated by name, who is not on the employee list. */
+    employeeId: string | null;
     fullName: string;
     jobTitle: string;
     roles: ResponsiblePersonRole[];
@@ -480,13 +491,17 @@ const currentWorkersRepresentatives = (facts: Pick<DocumentFacts, 'responsiblePe
 export function workersRepresentativeClash(
   facts: Pick<DocumentFacts, 'client' | 'responsiblePersons'>
 ): { representativeName: string; legalRepresentativeName: string } | null {
-  const legalRepresentativeName = facts.client.representativeName?.trim();
-  if (!legalRepresentativeName) return null;
+  const legalRepresentative = legalRepresentativeOf(facts);
+  const legalRepresentativeName = legalRepresentative.fullName?.trim();
+  if (!legalRepresentativeName && !legalRepresentative.employeeId) return null;
   const representative = currentWorkersRepresentatives(facts).find((person) =>
-    samePersonName(person.fullName, legalRepresentativeName)
+    isLegalRepresentative(person, legalRepresentative)
   );
   return representative
-    ? { representativeName: representative.fullName.trim(), legalRepresentativeName }
+    ? {
+        representativeName: representative.fullName.trim(),
+        legalRepresentativeName: legalRepresentativeName || representative.fullName.trim(),
+      }
     : null;
 }
 
@@ -507,15 +522,18 @@ export const months = (firstMonth: number, intervalMonths: number) => {
   return `${names.length === 1 ? 'luna' : 'lunile'} ${listed(names)}`;
 };
 
-function imminentDangerWordingOf(people: DocumentFacts['responsiblePersons']) {
+function imminentDangerWordingOf(facts: Pick<DocumentFacts, 'client' | 'responsiblePersons'>) {
+  const people = facts.responsiblePersons;
+  const legalRepresentative = legalRepresentativeOf(facts);
   const managerRows = withRole(people, 'workplace_manager');
-  const managers = distinctRowsByName(managerRows);
-  const designatedManagers = distinctHolders(managerRows, 'imminent_danger');
-  const others = distinctRowsByName(
+  const managers = distinctPeople(managerRows, legalRepresentative);
+  const designatedManagers = distinctHolders(managerRows, 'imminent_danger', legalRepresentative);
+  const others = distinctPeople(
     people.filter(
       (person) =>
         person.roles.includes('imminent_danger') && !person.roles.includes('workplace_manager')
-    )
+    ),
+    legalRepresentative
   );
   if (designatedManagers.length === 0) return { wording: 'designate', designatedManagers, others };
   const wording =
@@ -553,15 +571,17 @@ export function romanianDay(timestamp: string) {
 function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
   const { organization, client } = facts;
   const year = Number(facts.issueDate.slice(0, 4));
+  const legalRepresentative = legalRepresentativeOf(facts);
   const holding = (role: ResponsiblePersonRole) =>
-    distinctHolders(facts.responsiblePersons, role).map(asPerson);
+    distinctHolders(facts.responsiblePersons, role, legalRepresentative).map(asPerson);
   const workplaceManagers = holding('workplace_manager');
   const firstAiders = holding('first_aid');
   const imminentDanger = holding('imminent_danger');
-  const imminentDangerWording = imminentDangerWordingOf(facts.responsiblePersons);
-  const workersRepresentatives = distinctRowsByName(currentWorkersRepresentatives(facts)).map(
-    asPerson
-  );
+  const imminentDangerWording = imminentDangerWordingOf(facts);
+  const workersRepresentatives = distinctPeople(
+    currentWorkersRepresentatives(facts),
+    legalRepresentative
+  ).map(asPerson);
   const intervalOf = (position: DocumentFacts['jobPositions'][number]) =>
     position.trainingIntervalMonths ??
     (position.staffCategory === 'execution'

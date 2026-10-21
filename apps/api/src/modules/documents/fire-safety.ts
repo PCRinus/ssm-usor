@@ -39,8 +39,8 @@ import { type ContextParts, gapRules } from './gaps';
 import { installationParts, installationText } from './installations';
 import {
   asPerson,
-  distinctByName,
-  distinctPeopleByName,
+  distinctPeople,
+  legalRepresentativeOf,
   type Person as BasePerson,
   withRole,
 } from './people';
@@ -550,31 +550,33 @@ export type FireNamedPeople = {
 };
 
 // The themes are built without `fire`, whose gaps may leave no coordinator or leader to name.
-function firePeople({
-  responsiblePersons,
-  workplaces,
-}: Pick<FireSafetySetFacts, 'responsiblePersons' | 'workplaces'>) {
-  const firstHolding = (role: ResponsiblePersonRole) => {
-    const person = withRole(responsiblePersons, role)[0];
-    return person && asRunOnPerson(person);
-  };
-  const coordinator = firstHolding('fire_safety_coordinator');
-  const interventionLeader = firstHolding('fire_intervention_leader');
-  const workplaceManagers = withRole(responsiblePersons, 'workplace_manager').map((person) => ({
+function firePeople(
+  facts: Pick<FireSafetySetFacts, 'client' | 'responsiblePersons' | 'workplaces'>
+) {
+  const { responsiblePersons, workplaces } = facts;
+  const legalRepresentative = legalRepresentativeOf(facts);
+  const firstHolding = (role: ResponsiblePersonRole) => withRole(responsiblePersons, role)[0];
+  const coordinatorRow = firstHolding('fire_safety_coordinator');
+  const interventionLeaderRow = firstHolding('fire_intervention_leader');
+  const managerRows = withRole(responsiblePersons, 'workplace_manager');
+  const workplaceManagers = managerRows.map((person) => ({
     ...asRunOnPerson(person),
     workplaceName:
       workplaces.find((workplace) => workplace.id === person.workplaceId)?.name.trim() ?? null,
   }));
   return {
-    coordinator,
-    interventionLeader,
+    coordinator: coordinatorRow && asRunOnPerson(coordinatorRow),
+    interventionLeader: interventionLeaderRow && asRunOnPerson(interventionLeaderRow),
     workplaceManagers,
-    managerNames: distinctByName(workplaceManagers.map((person) => person.name)),
-    designated: distinctPeopleByName(
-      [coordinator, interventionLeader, ...workplaceManagers].filter(
+    managerNames: distinctPeople(managerRows, legalRepresentative).map((person) =>
+      person.fullName.trim()
+    ),
+    designated: distinctPeople(
+      [coordinatorRow, interventionLeaderRow, ...managerRows].filter(
         (person) => person !== undefined
-      )
-    ).map(({ name, jobTitle }) => ({ name, jobTitle })),
+      ),
+      legalRepresentative
+    ).map(asPerson),
   };
 }
 
