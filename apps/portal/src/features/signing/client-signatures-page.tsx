@@ -158,7 +158,11 @@ function AgreementRow({
         </span>
       </span>
       <span className="flex gap-2">
-        <AgreementPdfButton participation={participation} employeeId={item.employee.id} />
+        <AgreementPdfButton
+          participation={participation}
+          employeeId={item.employee.id}
+          stored={Boolean(agreement.employeeSignedAt || agreement.employerSignedAt)}
+        />
         {item.awaitingEmployer && (
           <Button asChild className="h-10 px-4">
             <Link to="/semneaza" search={{ acord: item.employee.id }} data-testid="agreement-sign">

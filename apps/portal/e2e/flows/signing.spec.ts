@@ -126,6 +126,22 @@ test('an employee signs the agreement and a training with one code, and the clie
     await expect(page.getByTestId('training-sheet-ssm-stored')).toHaveText(
       'Fișă semnată electronic'
     );
+    // A stored sheet is a real link shown inline, which the in-app browser of a mail client can
+    // open where it cannot download; the test reads what the link serves.
+    const open = page.getByTestId('training-sheet-ssm-open');
+    await expect(open).toHaveAttribute('href', /\/files\/download\?/);
+    await expect(open).toHaveAttribute('target', '_blank');
+    const sheet = await page.request.get((await open.getAttribute('href'))!);
+    expect(sheet.status()).toBe(200);
+    expect(sheet.headers()['content-type']).toBe('application/pdf');
+    expect(sheet.headers()['content-disposition']).toMatch(
+      /^inline; filename="Fisa-SSM-Pop-Ana\.pdf"/
+    );
+    expect((await sheet.body()).subarray(0, 5).toString()).toBe('%PDF-');
+    await expect(page.getByTestId('training-sheet-ssm-download')).toHaveAttribute(
+      'href',
+      /disposition=attachment/
+    );
 
     await page.getByTestId('portal-bar-home').click();
     await expect(page.getByTestId('home-todo')).toContainText('Nimic de semnat deocamdată');

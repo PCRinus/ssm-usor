@@ -244,6 +244,10 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /evaluation-profiles/{profileId}/factors`                        | Verified user with a membership       | `201 { "profile": { … } }` after adding a factor with its measures                                                                                                                                 |
 | `PUT /evaluation-profiles/{profileId}/factors/{factorId}`              | Verified user with a membership       | `{ "profile": { … } }` after replacing a factor and its measures                                                                                                                                   |
 | `DELETE /evaluation-profiles/{profileId}/factors/{factorId}`           | Verified user with a membership       | `{ "profile": { … } }` after removing a factor                                                                                                                                                     |
+| `GET /clients/{clientId}/employees/{employeeId}/training-sheet/link`   | Verified user with a membership       | `{ "url", "fileName", "expiresInSeconds" }`, a ten-minute link to one stored sheet; `?domain=&sequence=`; `404` while nothing is stored, `409 several_sheets`                |
+| `POST /instruction-modules/upload`                                     | Verified user with a membership       | `201 { "module": { … } }` from the `.docx` in the body; `?title=&group=&domain=`                                                                                             |
+| `GET /instruction-modules/{moduleId}/file-link`                        | Verified user with a membership       | `{ "url", "fileName", "expiresAt" }`, a one-minute link to the current file                                                                                                  |
+| `PUT /instruction-modules/{moduleId}/file`                             | Verified user with a membership       | `{ "module": { … } }` with the body stored as the next version                                                                                                               |
 
 `/health` checks the Worker, not Supabase connectivity. `/me` returns the user's ID and email
 (nullable), their profile, and their organization with their role. It answers an account
@@ -551,7 +555,12 @@ copy to read, in which the signatures no longer verify: the signer stamps every 
 "Copie de citire – semnăturile se verifică pe fișele originale" (`stampPages`) and it is named
 `…-copie.pdf`. `?sequence=n` answers the original of sheet n as stored, signatures verifiable,
 named `…-n.pdf` from the second on; a number the employee has no stored sheet of is `404`. The
-portal's two sheet routes take the same `?sequence=`. The row of the stored sheet is read
+portal's two sheet routes take the same `?sequence=`. `GET …/training-sheet/link` (and the
+portal's `…/sheets/{domain}/link`) signs a ten-minute link to one stored original, the one of
+`?sequence=` or the only one, for the page to put on a real anchor; it answers `404` while
+nothing is stored or for a number the employee has no sheet of, and `409` with the reason
+`several_sheets` when several are stored and no `sequence` names one. The link is signed with
+the secret key after the caller's own read of the row, as the file is read. The row of the stored sheet is read
 with the caller's token, so its policies decide who sees it, and its file with the secret key,
 since Storage's policies on the documents bucket know only the members' own folders. Missing data answers `409` with the reason `missing_sheet_data`
 and the codes under `missing`, before anything is merged; no converter, `503` with the reason
@@ -760,15 +769,29 @@ client, `404`. `DELETE` removes the stored file and then the row; there is no re
 Every write under an archived client answers `409` with `client_archived`, asked first by the
 upload and the delete, which touch files; the list and the download link still answer.
 
-`GET …/download` signs a one-minute link, with the name the file was uploaded under (cut to
-200 characters, keeping the extension) and `disposition`: `inline` for a PDF, a JPEG or a
-PNG, `attachment` for the rest. The SPA opens every Storage link through `GET
-/files/download`, which streams the object under `name`, because Storage names a file in a
-way browsers do not read correctly. It accepts only a signed read link of the configured
-Supabase project, so it is not an open proxy. With `disposition=inline` it shows a PDF, a
-JPEG or a PNG and downloads any other type, HTML and SVG among them, which would run script
-in the API's origin; responses carry `X-Content-Type-Options: nosniff`. An expired link
-answers `404`.
+Every listed file carries `link`: `url`, a signed link valid for ten minutes, made for the
+whole list in one Storage request as the caller; `fileName`, the name the file was uploaded
+under (cut to 200 characters, keeping the extension); `disposition`, `inline` for a PDF, a
+JPEG or a PNG, `attachment` for the rest; and `expiresInSeconds`. The SPA puts each on a real
+anchor and fetches the list again before the links expire.
+
+**Real links to files.** Every file a person opens from the app or the portal is a plain anchor
+to `GET /files/download?source=<signed Storage link>&name=&disposition=`, never a blob the page
+fetched with its bearer token: the in-app browser a mail client opens on Android (Gmail's is a
+Firefox custom tab) shows a blob URL blank and cannot download at all, but opens a PDF served
+`inline` in its viewer, which can save it. `/files/download` streams the object under `name`,
+because Storage names a file in a way browsers do not read correctly. It accepts only a signed
+read link of the configured Supabase project, so it is not an open proxy. With
+`disposition=inline` it shows a PDF, a JPEG or a PNG and downloads any other type, HTML and
+SVG among them, which would run script in the API's origin; responses carry
+`X-Content-Type-Options: nosniff`. An expired link answers `404`. The link routes that feed
+those anchors sign for ten minutes when the page keeps the link ready and renews it (a client
+file's `link`, a stored training sheet's `…/training-sheet/link`, a stored signing
+agreement's `…/signing-agreement/link`, the public contract return's), and for a minute when
+the app signs on opening a menu (a document revision's `…/download`, an instruction module's
+`…/file-link`). Only a file that exists in Storage has a link: a sheet drawn up on the spot, the
+merged reading copy of several sheets, an agreement nobody has signed yet and the pack archive
+are built when asked for, and still come through the page as a blob.
 
 Data access goes through `src/lib/db.ts`: a per-request supabase-js client that forwards the
 user's bearer token to PostgREST, so row-level security runs as that user. Database types in
@@ -1284,6 +1307,10 @@ no route outside the prefix has the tag.
 | `POST …/{participantId}/test-attempts/{attemptId}/finish`         | Employee             | `{ id, score, total, passed, mistakes, … }`                                                     |
 | `GET …/{participantId}/materials/{domain}`                        | Participant          | `200 application/pdf`, the issued material; `404 material_not_issued`                           |
 | `GET …/{participantId}/tests/results/{resultId}/sheet`            | Participant          | `200 application/pdf` inline, the [test sheet](#the-test-sheet); `404 test_sheet_not_available` |
+| `GET …/{participantId}/sheets/{domain}/link`                          | Employee             | `{ url, fileName, expiresInSeconds }`, a ten-minute link to one stored sheet        |
+| `GET …/{participantId}/employees/{employeeId}/sheets/{domain}/link`   | Client administrator | As the employee's own                                                               |
+| `GET …/{participantId}/signing-agreement/link`                        | Employee             | `{ url, fileName, expiresInSeconds }`, a ten-minute link to the stored agreement    |
+| `GET …/{participantId}/employees/{employeeId}/signing-agreement/link` | Client administrator | As the employee's own                                                               |
 
 `…` stands for `/portal/participants`. `requireParticipant` (`src/lib/participant.ts`) runs
 after `requireAuth` on every one of them: as the caller it calls
@@ -1510,6 +1537,7 @@ routes below, the signing sessions among them; the signed sheet they sign on is 
 | `GET /me/signature-requests`                                             | `{ items }`: the caller's own pending requests across clients, oldest first   |
 | `GET /clients/{clientId}/signature-requests`                             | `{ items }`: the client's requests in `?state=` (`pending` by default)        |
 | `GET /clients/{clientId}/employees/{employeeId}/signing-agreement`       | `200 application/pdf`, the act adițional drawn up on the spot                 |
+| `GET /clients/{clientId}/employees/{employeeId}/signing-agreement/link`  | `{ url, fileName, expiresInSeconds }`, a ten-minute link to the stored file   |
 | `GET /clients/{clientId}/employees/{employeeId}/signing-agreement/state` | `{ agreement, unavailable }`: the state, or null, and why it cannot be signed |
 | `PUT /clients/{clientId}/employees/{employeeId}/signing-agreement/state` | The agreement after `{ state: generated \| signed_on_paper, clientFileId? }`  |
 | `POST /me/signing-sessions`                                              | `201 { sessionId, channel, addressHint, expiresAt, items }`; the code is sent |

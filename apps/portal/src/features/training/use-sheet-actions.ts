@@ -4,8 +4,11 @@ import { useLingui } from '@lingui/react/macro';
 import type { ApiErrorResponse, TrainingDomain } from '@ssm-usor/contracts';
 import { useState } from 'react';
 
+import type { PortalTrainingSheetsResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { type Disposition, type FileLink, useFileLink } from '@/lib/file-link';
 import { trainingDomainMessages } from '@/lib/labels';
+import { useApiRequest } from '@/lib/request';
 import { openPreview, PreviewBlockedError, saveFile } from '@/lib/save-file';
 
 function failureOf(cause: unknown): MessageDescriptor {
@@ -24,6 +27,41 @@ function failureOf(cause: unknown): MessageDescriptor {
 
 // Without a sequence, a sheet with continuation sheets comes as one merged copy to read.
 export type LoadSheet = (domain: TrainingDomain, sequence?: number) => Promise<Blob>;
+
+// A signed link to one stored sheet, for a real anchor; a sheet drawn up on the spot and the
+// merged reading copy have none and come through `LoadSheet`.
+export type LoadSheetLink = (
+  domain: TrainingDomain,
+  sequence: number,
+  signal: AbortSignal
+) => Promise<FileLink>;
+
+export type SheetAccess = {
+  sheets: PortalTrainingSheetsResponse | undefined;
+  loadSheet: LoadSheet;
+  loadLink: LoadSheetLink;
+  onStale: () => void;
+};
+
+export const storedSequenceOf = (
+  sheet: PortalTrainingSheetsResponse[TrainingDomain] | undefined
+) => (sheet?.stored && sheet.sequences.length === 1 ? sheet.sequences[0]! : null);
+
+export function useStoredSheetLink(
+  domain: TrainingDomain,
+  sequence: number | null,
+  loadLink: LoadSheetLink,
+  disposition: Disposition
+) {
+  const apiRequest = useApiRequest();
+  return useFileLink({
+    queryKey: ['training-sheet-link', domain, sequence],
+    load: (signal) => loadLink(domain, sequence ?? 0, signal),
+    enabled: sequence !== null,
+    apiRequest,
+    disposition,
+  });
+}
 
 type Busy = 'open' | 'download' | `original-${number}`;
 
