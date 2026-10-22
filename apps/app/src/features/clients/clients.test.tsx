@@ -72,6 +72,8 @@ const sampleCompany = {
 const emptyDetails = {
   legalRepresentativeName: null,
   legalRepresentativeRole: null,
+  legalRepresentativeEmployeeId: null,
+  legalRepresentativeEmployee: null,
   periodicTrainingMinutes: null,
   administrativeTrainingIntervalMonths: null,
   administrativeTrainingNotApplicable: false,
@@ -105,7 +107,8 @@ function mockApi(
       | 'archive'
       | 'restore'
       | 'details'
-      | 'saveDetails',
+      | 'saveDetails'
+      | 'employees',
       Route
     >
   > = {}
@@ -147,7 +150,7 @@ function mockApi(
       });
     }
     if (url.pathname === `/clients/${sampleClient.id}/employees` && method === 'GET') {
-      return Response.json(page([]));
+      return routes.employees?.(init, url) ?? Response.json(page([]));
     }
     if (url.pathname === `/clients/${sampleClient.id}/document-details`) {
       return method === 'PUT'
@@ -880,6 +883,114 @@ describe('client details', () => {
       legalRepresentativeRole: 'Director general',
     });
     await waitFor(() => expect(screen.queryByTestId('legal-representative-form')).toBeNull());
+  });
+
+  const owner = {
+    id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+    clientId: sampleClient.id,
+    lastName: 'Popescu',
+    firstName: 'Maria',
+    employeeNumber: null,
+    email: null,
+    phone: null,
+    jobTitle: 'Tâmplar',
+    hiredAt: '2020-03-01',
+    status: 'active',
+    terminatedAt: null,
+    createdAt: '2026-09-17T10:00:00+00:00',
+    updatedAt: '2026-09-17T10:00:00+00:00',
+  };
+  const namesake = { ...owner, id: '7c9e6679-7425-40de-944b-e07fc1f90ae7', jobTitle: 'Vânzător' };
+  const representative = {
+    ...emptyDetails,
+    legalRepresentativeName: 'Maria Popescu',
+    legalRepresentativeRole: 'Administrator',
+  };
+
+  it('links the representative to the one employee of the same name when the box is ticked', async () => {
+    let saved: Record<string, unknown> = representative;
+    mockApi({
+      details: () => Response.json({ documentDetails: saved }),
+      saveDetails: (init) => {
+        saved = {
+          ...representative,
+          ...(JSON.parse(String(init?.body)) as Record<string, unknown>),
+          legalRepresentativeEmployee: owner,
+        };
+        return Response.json({ documentDetails: saved });
+      },
+      employees: () => Response.json(page([owner, { ...namesake, firstName: 'Ana' }])),
+    });
+    mountApp(authFixture(makeSession()).client, detailsPath);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('legal-representative-edit'));
+    expect(screen.queryByTestId('details-representative-employee')).toBeNull();
+    await user.click(screen.getByTestId('details-representative-is-employee'));
+    await waitFor(() =>
+      expect(screen.getByTestId('details-representative-employee').textContent).toContain(
+        'Popescu Maria'
+      )
+    );
+    await user.click(screen.getByTestId('legal-representative-save'));
+    expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
+    expect(
+      JSON.parse(String(requests(`${clientPath}/document-details`, 'PUT')[0]![1]?.body))
+    ).toMatchObject({
+      legalRepresentativeName: 'Maria Popescu',
+      legalRepresentativeEmployeeId: owner.id,
+    });
+    expect((await screen.findByTestId('legal-representative-employee')).textContent).toBe(
+      'Popescu Maria, Tâmplar'
+    );
+  });
+
+  it('suggests nobody between two namesakes, and asks for a choice before saving', async () => {
+    mockApi({
+      details: () => Response.json({ documentDetails: representative }),
+      employees: () => Response.json(page([owner, namesake])),
+    });
+    mountApp(authFixture(makeSession()).client, detailsPath);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('legal-representative-edit'));
+    await user.click(screen.getByTestId('details-representative-is-employee'));
+    const picker = await screen.findByTestId('details-representative-employee');
+    await waitFor(() => expect(picker.hasAttribute('disabled')).toBe(false));
+    expect(picker.textContent).toContain('Alege un angajat');
+    await user.click(screen.getByTestId('legal-representative-save'));
+    expect((await screen.findByTestId('details-representative-employee-error')).textContent).toBe(
+      'Alege angajatul din listă sau debifează căsuța.'
+    );
+    expect(requests(`${clientPath}/document-details`, 'PUT')).toHaveLength(0);
+  });
+
+  it('clears the link when the box is unticked', async () => {
+    mockApi({
+      details: () =>
+        Response.json({
+          documentDetails: {
+            ...representative,
+            legalRepresentativeEmployeeId: owner.id,
+            legalRepresentativeEmployee: owner,
+          },
+        }),
+      employees: () => Response.json(page([owner])),
+    });
+    mountApp(authFixture(makeSession()).client, detailsPath);
+    const user = userEvent.setup();
+    expect((await screen.findByTestId('legal-representative-employee')).textContent).toBe(
+      'Popescu Maria, Tâmplar'
+    );
+    await user.click(screen.getByTestId('legal-representative-edit'));
+    expect(
+      screen.getByTestId('details-representative-is-employee').getAttribute('data-state')
+    ).toBe('checked');
+    await user.click(screen.getByTestId('details-representative-is-employee'));
+    expect(screen.queryByTestId('details-representative-employee')).toBeNull();
+    await user.click(screen.getByTestId('legal-representative-save'));
+    expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
+    expect(
+      JSON.parse(String(requests(`${clientPath}/document-details`, 'PUT')[0]![1]?.body))
+    ).toMatchObject({ legalRepresentativeEmployeeId: null });
   });
 
   it('keeps an archived client read-only on every card', async () => {

@@ -1,11 +1,11 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import type {
   EmployeeTrainingRecord,
-  ProposedTrainingPerson,
   TrainingDetail,
   TrainingDomain,
   TrainingRequest,
 } from '@ssm-usor/contracts';
+import { proposalEmployeeIds } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
 import type { Json } from '../../database.types';
@@ -20,7 +20,7 @@ import {
   planSignatureRequests,
   type SignaturePlan,
 } from '../signing/requests';
-import { fireSafetyTechnicianJobTitle, trainingProposal } from './proposal';
+import { fireSafetyTechnicianJobTitle, type ProposalPerson, trainingProposal } from './proposal';
 import type {
   createTrainingRoute,
   deleteTrainingRoute,
@@ -67,7 +67,9 @@ const noSuchTraining = () =>
 async function findClient(db: DataClient, clientId: string) {
   const { data, error } = await db
     .from('clients')
-    .select('id, legal_representative_name, legal_representative_role, periodic_training_minutes')
+    .select(
+      'id, legal_representative_name, legal_representative_role, legal_representative_employee_id, periodic_training_minutes'
+    )
     .eq('id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find client');
@@ -376,63 +378,73 @@ export const listEmployeeTrainingRecords: RouteHandler<
 
 const person = (
   name: string | null | undefined,
-  jobTitle: string | null | undefined
-): ProposedTrainingPerson | null =>
-  name?.trim() ? { name: name.trim(), jobTitle: jobTitle?.trim() || null } : null;
+  jobTitle: string | null | undefined,
+  employeeId: string | null = null
+): ProposalPerson | null =>
+  name?.trim() ? { name: name.trim(), jobTitle: jobTitle?.trim() || null, employeeId } : null;
 
 export const getTrainingProposal: RouteHandler<typeof getTrainingProposalRoute, ApiEnv> = async (
   c
 ) => {
   const { clientId } = c.req.valid('param');
-  const { domain, phase, heldOn, jobPositionId } = c.req.valid('query');
+  const { domain, phase, heldOn, jobPositionId, employeeIds } = c.req.valid('query');
+  const attendeeIds = proposalEmployeeIds(employeeIds);
   const db = createDataClient(c);
   const client = await findClient(db, clientId);
-  const [position, profile, organization, manager, fireSafety, themes] = await Promise.all([
-    jobPositionId
-      ? db
-          .from('job_positions')
-          .select('name, staff_category')
-          .eq('id', jobPositionId)
-          .eq('client_id', clientId)
-          .maybeSingle()
-      : null,
-    db
-      .from('profiles')
-      .select('full_name, professional_title')
-      .eq('user_id', c.get('user').id)
-      .maybeSingle(),
-    db
-      .from('organizations')
-      .select('fire_safety_technician_name')
-      .eq('id', c.get('membership').organizationId)
-      .maybeSingle(),
-    // The order people were designated in is the order the decisions list them in.
-    db
-      .from('client_responsible_persons')
-      .select('full_name, job_title')
-      .eq('client_id', clientId)
-      .contains('roles', ['workplace_manager'])
-      .is('archived_at', null)
-      .order('created_at')
-      .order('id')
-      .limit(1)
-      .maybeSingle(),
-    db
-      .from('client_fire_safety')
-      .select('periodic_training_hours')
-      .eq('client_id', clientId)
-      .maybeSingle(),
-    phase === 'periodic' || phase === 'workplace'
-      ? db
-          .from('document_revisions')
-          .select('id, data_snapshot, client_documents!inner(client_id, type_key)')
-          .eq('client_documents.client_id', clientId)
-          .eq('client_documents.type_key', themesTypeKeys[domain])
-          .order('revision', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-      : null,
-  ]);
+  const [position, profile, organization, manager, fireSafety, themes, attendees] =
+    await Promise.all([
+      jobPositionId
+        ? db
+            .from('job_positions')
+            .select('name, staff_category')
+            .eq('id', jobPositionId)
+            .eq('client_id', clientId)
+            .maybeSingle()
+        : null,
+      db
+        .from('profiles')
+        .select('full_name, professional_title')
+        .eq('user_id', c.get('user').id)
+        .maybeSingle(),
+      db
+        .from('organizations')
+        .select('fire_safety_technician_name')
+        .eq('id', c.get('membership').organizationId)
+        .maybeSingle(),
+      // The order people were designated in is the order the decisions list them in.
+      db
+        .from('client_responsible_persons')
+        .select('full_name, job_title, employee_id')
+        .eq('client_id', clientId)
+        .contains('roles', ['workplace_manager'])
+        .is('archived_at', null)
+        .order('created_at')
+        .order('id')
+        .limit(1)
+        .maybeSingle(),
+      db
+        .from('client_fire_safety')
+        .select('periodic_training_hours')
+        .eq('client_id', clientId)
+        .maybeSingle(),
+      phase === 'periodic' || phase === 'workplace'
+        ? db
+            .from('document_revisions')
+            .select('id, data_snapshot, client_documents!inner(client_id, type_key)')
+            .eq('client_documents.client_id', clientId)
+            .eq('client_documents.type_key', themesTypeKeys[domain])
+            .order('revision', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : null,
+      attendeeIds.length > 0
+        ? db
+            .from('employees')
+            .select('id, last_name, first_name')
+            .eq('client_id', clientId)
+            .in('id', attendeeIds)
+        : null,
+    ]);
   for (const [result, context] of [
     [position, 'proposal: job position'],
     [profile, 'proposal: profile'],
@@ -440,6 +452,7 @@ export const getTrainingProposal: RouteHandler<typeof getTrainingProposalRoute, 
     [manager, 'proposal: workplace manager'],
     [fireSafety, 'proposal: fire safety'],
     [themes, 'proposal: themes'],
+    [attendees, 'proposal: attendees'],
   ] as const) {
     if (result?.error) throw fromDatabaseError(result.error, context);
   }
@@ -461,16 +474,25 @@ export const getTrainingProposal: RouteHandler<typeof getTrainingProposalRoute, 
         : null,
       people: {
         specialist: person(profile.data?.full_name, profile.data?.professional_title),
-        workplaceManager: person(manager.data?.full_name, manager.data?.job_title),
+        workplaceManager: person(
+          manager.data?.full_name,
+          manager.data?.job_title,
+          manager.data?.employee_id ?? null
+        ),
         legalRepresentative: person(
           client.legal_representative_name,
-          client.legal_representative_role
+          client.legal_representative_role,
+          client.legal_representative_employee_id
         ),
         fireSafetyTechnician: person(
           organization.data?.fire_safety_technician_name,
           fireSafetyTechnicianJobTitle
         ),
       },
+      trainees: (attendees?.data ?? []).map((employee) => ({
+        employeeId: employee.id,
+        fullName: `${employee.first_name} ${employee.last_name}`,
+      })),
       periodicMinutes:
         domain === 'ssm' ? client.periodic_training_minutes : hours ? hours * 60 : null,
     }),

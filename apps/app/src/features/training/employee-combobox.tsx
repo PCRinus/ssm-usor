@@ -14,9 +14,14 @@ export type EmployeeOption = EmployeeListResponse['items'][number];
 export interface Administrator {
   fullName: string;
   jobTitle: string;
+  // The employee the administrator also is; their entry then stands for both.
+  employeeId: string | null;
 }
 
 export const administratorValue = 'administrator';
+
+const administratorChoice = (administrator: Administrator) =>
+  administrator.employeeId ?? administratorValue;
 
 // Item search text is "<last name> <first name>|<job title>|<id>". Any word of the name or
 // the job title may start the match; the id only keeps two namesakes apart.
@@ -65,18 +70,21 @@ export function EmployeeCombobox({
     query: { queryKey: [...getListEmployeesQueryKey(clientId, listParams), userId] },
   });
   const options = employees.data?.items ?? [];
-  const items: ComboboxItem[] = options.map((employee) => ({
-    value: employee.id,
-    label: formatEmployeeName(employee),
-    description: employee.jobTitle,
-    search: `${formatEmployeeName(employee)}|${employee.jobTitle}|${employee.id}`,
-  }));
+  const items: ComboboxItem[] = options
+    .filter((employee) => employee.id !== administrator?.employeeId)
+    .map((employee) => ({
+      value: employee.id,
+      label: formatEmployeeName(employee),
+      description: employee.jobTitle,
+      search: `${formatEmployeeName(employee)}|${employee.jobTitle}|${employee.id}`,
+    }));
   if (administrator) {
+    const choice = administratorChoice(administrator);
     items.unshift({
-      value: administratorValue,
+      value: choice,
       label: administrator.fullName,
       description: administrator.jobTitle,
-      search: `${administrator.fullName}|${administrator.jobTitle}|${administratorValue}`,
+      search: `${administrator.fullName}|${administrator.jobTitle}|${choice}`,
     });
   }
 
@@ -87,8 +95,9 @@ export function EmployeeCombobox({
       items={items}
       value={value}
       onChange={(choice) => {
-        if (choice === administratorValue) onSelectAdministrator?.();
-        else onSelect(options.find((employee) => employee.id === choice) ?? null);
+        if (administrator && choice === administratorChoice(administrator)) {
+          onSelectAdministrator?.();
+        } else onSelect(options.find((employee) => employee.id === choice) ?? null);
       }}
       filter={employeeFilter}
       placeholder={employees.isPending ? 'Se încarcă angajații…' : 'Alege un angajat'}

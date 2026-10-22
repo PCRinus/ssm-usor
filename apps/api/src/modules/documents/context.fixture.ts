@@ -49,6 +49,7 @@ export const facts: DocumentFacts = {
     legalName: ' S.C. PIPETECH S.R.L. ',
     representativeName: 'Florin Cristian TALOȘ',
     representativeRole: 'Administrator',
+    representativeEmployeeId: null,
     periodicTrainingMinutes: 120,
     administrativeTrainingIntervalMonths: 6,
     administrativeTrainingNotApplicable: false,
@@ -106,6 +107,7 @@ export const facts: DocumentFacts = {
   ],
   responsiblePersons: [
     {
+      employeeId: null,
       fullName: 'Florin Cristian TALOȘ',
       jobTitle: 'Administrator',
       roles: [
@@ -119,6 +121,7 @@ export const facts: DocumentFacts = {
       workplaceId: null,
     },
     {
+      employeeId: 'e1e1e1e1-0000-4000-8000-000000000002',
       fullName: 'Ioana PETRE',
       jobTitle: 'Șef de echipă',
       roles: ['workplace_manager', 'first_aid', 'imminent_danger', 'fire_intervention_leader'],
@@ -134,6 +137,9 @@ export const facts: DocumentFacts = {
       workZone: 'Birou',
       activities: null,
       currentEmployeeCount: 1,
+      currentEmployees: [
+        { employeeId: 'e1e1e1e1-0000-4000-8000-000000000001', fullName: 'Ana CONTABIL' },
+      ],
       trainingIntervalMonths: null,
       needsProtectiveEquipment: false,
       needsInstructions: true,
@@ -160,6 +166,13 @@ export const facts: DocumentFacts = {
       workZone: null,
       activities: 'Sudură electrică și autogenă.',
       currentEmployeeCount: 5,
+      currentEmployees: [
+        { employeeId: 'e1e1e1e1-0000-4000-8000-000000000002', fullName: 'Ioana PETRE' },
+        { employeeId: 'e1e1e1e1-0000-4000-8000-000000000003', fullName: 'Mihai DOBRE' },
+        { employeeId: 'e1e1e1e1-0000-4000-8000-000000000004', fullName: 'Radu ENE' },
+        { employeeId: 'e1e1e1e1-0000-4000-8000-000000000005', fullName: 'Vasile LUPU' },
+        { employeeId: 'e1e1e1e1-0000-4000-8000-000000000006', fullName: 'Gheorghe MOLDOVAN' },
+      ],
       trainingIntervalMonths: 2,
       needsProtectiveEquipment: true,
       needsInstructions: true,

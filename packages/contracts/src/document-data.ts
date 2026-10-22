@@ -148,10 +148,23 @@ const trainingScheduleFields = {
   trainingDayTo: z.int().min(1).max(31),
 };
 
+/** The employee the legal representative also is, as the picker shows them. */
+export const legalRepresentativeEmployeeSchema = z.object({
+  id: z.uuid(),
+  lastName: z.string(),
+  firstName: z.string(),
+  jobTitle: z.string(),
+});
+
+export type LegalRepresentativeEmployee = z.infer<typeof legalRepresentativeEmployeeSchema>;
+
 export const clientDocumentDetailsSchema = z.object({
   // Also asked when the client is created; this is where it is corrected or filled in later.
   legalRepresentativeName: z.string().nullable(),
   legalRepresentativeRole: z.string().nullable(),
+  // Null for a representative who is not on the employee list, which most are.
+  legalRepresentativeEmployeeId: z.uuid().nullable(),
+  legalRepresentativeEmployee: legalRepresentativeEmployeeSchema.nullable(),
   periodicTrainingMinutes: trainingScheduleFields.periodicTrainingMinutes.nullable(),
   administrativeTrainingIntervalMonths:
     trainingScheduleFields.administrativeTrainingIntervalMonths.nullable(),
@@ -176,6 +189,7 @@ export const updateClientDocumentDetailsRequestSchema = z
   .object({
     legalRepresentativeName: optionalText(2, 160),
     legalRepresentativeRole: optionalText(2, 80),
+    legalRepresentativeEmployeeId: z.uuid().nullish(),
     periodicTrainingMinutes: trainingScheduleFields.periodicTrainingMinutes.nullish(),
     administrativeTrainingIntervalMonths:
       trainingScheduleFields.administrativeTrainingIntervalMonths.nullish(),
@@ -379,6 +393,25 @@ export function samePersonName(first: string, second: string): boolean {
       .sort()
       .join(' ');
   return words(first) === words(second);
+}
+
+export type PersonRef = { employeeId: string | null; fullName: string };
+
+export type LegalRepresentativeRef = { employeeId: string | null; fullName: string | null };
+
+/**
+ * Whether a person is the client's legal representative. An employee is, exactly when they are
+ * the one linked; someone not on the employee list is told by name, as before the link existed.
+ */
+export function isLegalRepresentative(
+  person: PersonRef,
+  legalRepresentative: LegalRepresentativeRef
+): boolean {
+  if (person.employeeId && legalRepresentative.employeeId) {
+    return person.employeeId === legalRepresentative.employeeId;
+  }
+  const name = legalRepresentative.fullName?.trim();
+  return Boolean(name) && samePersonName(person.fullName, name!);
 }
 
 /** The fewest workers' representatives a client needs for its current employees (ADR 010). */

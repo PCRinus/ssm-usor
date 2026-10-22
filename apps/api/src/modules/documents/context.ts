@@ -8,13 +8,13 @@ import {
   formatTrainingDuration,
   type InstructionDomain,
   type InstructionModuleGroup,
+  isLegalRepresentative,
   type JobPositionDecision,
   jobPositionDecisions,
   type MissingDocumentData,
   requiredWorkersRepresentatives,
   type ResponsiblePersonRole,
   type RiskEvaluationGap,
-  samePersonName,
   type SensitiveGroupsState,
   type StaffCategory,
   trainingMonths,
@@ -30,7 +30,15 @@ import {
   printedTests,
   type TestQuestionFacts,
 } from './knowledge-tests';
-import { asPerson, distinctHolders, distinctRowsByName, type Person, withRole } from './people';
+import {
+  asPerson,
+  distinctHolders,
+  distinctPeople,
+  type Identified,
+  legalRepresentativeOf,
+  type Person,
+  withRole,
+} from './people';
 import {
   incompleteRiskEvaluations,
   riskAssessment,
@@ -42,9 +50,12 @@ import {
 import {
   monthNames,
   type OwnInstructionsRevision,
+  providerTrainer,
   type ThemesContext,
   trainingThemes,
+  workplaceManagersTrainer,
 } from './themes';
+import { resolveTrainer } from './trainer';
 
 // Pure: reading the database and merging happen elsewhere. The result is also what a revision
 // keeps as its data snapshot.
@@ -76,6 +87,8 @@ export type DocumentFacts = {
     legalName: string;
     representativeName: string | null;
     representativeRole: string | null;
+    /** The employee the representative also is, in a firm whose owner works in it; usually null. */
+    representativeEmployeeId: string | null;
     periodicTrainingMinutes: number | null;
     administrativeTrainingIntervalMonths: number | null;
     administrativeTrainingNotApplicable: boolean;
@@ -100,6 +113,8 @@ export type DocumentFacts = {
   workplaces: (WorkplaceFacts & FireWorkplaceFacts)[];
   /** In the order they should be printed. */
   responsiblePersons: {
+    /** Null for someone designated by name, who is not on the employee list. */
+    employeeId: string | null;
     fullName: string;
     jobTitle: string;
     roles: ResponsiblePersonRole[];
@@ -116,6 +131,8 @@ export type DocumentFacts = {
     workZone: string | null;
     activities: string | null;
     currentEmployeeCount: number;
+    /** The same people, for who may train them (nobody trains themself). */
+    currentEmployees: Identified[];
     /** The post's own interval, or null for the client's interval of its category. */
     trainingIntervalMonths: number | null;
     /** Null until decided; false when the post needs none; true while it has entries (ADR 011). */
@@ -517,13 +534,17 @@ const currentWorkersRepresentatives = (facts: Pick<DocumentFacts, 'responsiblePe
 export function workersRepresentativeClash(
   facts: Pick<DocumentFacts, 'client' | 'responsiblePersons'>
 ): { representativeName: string; legalRepresentativeName: string } | null {
-  const legalRepresentativeName = facts.client.representativeName?.trim();
-  if (!legalRepresentativeName) return null;
+  const legalRepresentative = legalRepresentativeOf(facts);
+  const legalRepresentativeName = legalRepresentative.fullName?.trim();
+  if (!legalRepresentativeName && !legalRepresentative.employeeId) return null;
   const representative = currentWorkersRepresentatives(facts).find((person) =>
-    samePersonName(person.fullName, legalRepresentativeName)
+    isLegalRepresentative(person, legalRepresentative)
   );
   return representative
-    ? { representativeName: representative.fullName.trim(), legalRepresentativeName }
+    ? {
+        representativeName: representative.fullName.trim(),
+        legalRepresentativeName: legalRepresentativeName || representative.fullName.trim(),
+      }
     : null;
 }
 
@@ -544,15 +565,18 @@ export const months = (firstMonth: number, intervalMonths: number) => {
   return `${names.length === 1 ? 'luna' : 'lunile'} ${listed(names)}`;
 };
 
-function imminentDangerWordingOf(people: DocumentFacts['responsiblePersons']) {
+function imminentDangerWordingOf(facts: Pick<DocumentFacts, 'client' | 'responsiblePersons'>) {
+  const people = facts.responsiblePersons;
+  const legalRepresentative = legalRepresentativeOf(facts);
   const managerRows = withRole(people, 'workplace_manager');
-  const managers = distinctRowsByName(managerRows);
-  const designatedManagers = distinctHolders(managerRows, 'imminent_danger');
-  const others = distinctRowsByName(
+  const managers = distinctPeople(managerRows, legalRepresentative);
+  const designatedManagers = distinctHolders(managerRows, 'imminent_danger', legalRepresentative);
+  const others = distinctPeople(
     people.filter(
       (person) =>
         person.roles.includes('imminent_danger') && !person.roles.includes('workplace_manager')
-    )
+    ),
+    legalRepresentative
   );
   if (designatedManagers.length === 0) return { wording: 'designate', designatedManagers, others };
   const wording =
@@ -590,15 +614,47 @@ export function romanianDay(timestamp: string) {
 function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
   const { organization, client } = facts;
   const year = Number(facts.issueDate.slice(0, 4));
+  const legalRepresentative = legalRepresentativeOf(facts);
   const holding = (role: ResponsiblePersonRole) =>
-    distinctHolders(facts.responsiblePersons, role).map(asPerson);
+    distinctHolders(facts.responsiblePersons, role, legalRepresentative).map(asPerson);
   const workplaceManagers = holding('workplace_manager');
+  const managerRows = distinctHolders(
+    facts.responsiblePersons,
+    'workplace_manager',
+    legalRepresentative
+  );
+  // A missing representative leaves out only the client part, so the themes still reach this.
+  const representative = client.representativeName?.trim();
+  const trainerOf = (position: DocumentFacts['jobPositions'][number]) => {
+    const provider = providerTrainer(organization.legalName!, facts.specialist!.fullName!);
+    if (position.staffCategory !== 'execution') return provider;
+    const resolved = resolveTrainer(
+      position.currentEmployees,
+      {
+        managers: managerRows,
+        legalRepresentative: representative
+          ? { employeeId: legalRepresentative.employeeId, fullName: representative }
+          : null,
+        specialist: { employeeId: null, fullName: facts.specialist!.fullName! },
+      },
+      legalRepresentative
+    );
+    switch (resolved?.kind) {
+      case 'managers':
+        return workplaceManagersTrainer(resolved.managers.map((person) => person.fullName.trim()));
+      case 'legal_representative':
+        return `${representative} – ${client.representativeRole?.trim() || 'administrator'}`;
+      default:
+        return provider;
+    }
+  };
   const firstAiders = holding('first_aid');
   const imminentDanger = holding('imminent_danger');
-  const imminentDangerWording = imminentDangerWordingOf(facts.responsiblePersons);
-  const workersRepresentatives = distinctRowsByName(currentWorkersRepresentatives(facts)).map(
-    asPerson
-  );
+  const imminentDangerWording = imminentDangerWordingOf(facts);
+  const workersRepresentatives = distinctPeople(
+    currentWorkersRepresentatives(facts),
+    legalRepresentative
+  ).map(asPerson);
   const intervalOf = (position: DocumentFacts['jobPositions'][number]) =>
     position.trainingIntervalMonths ??
     (position.staffCategory === 'execution'
@@ -752,14 +808,10 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
               moduleIds: position.instructions
                 .filter((module) => module.domain === 'ssm')
                 .map((module) => module.moduleId),
+              trainer: trainerOf(position),
             })),
             firstMonth: client.trainingFirstMonth!,
             periodicTrainingMinutes: client.periodicTrainingMinutes!,
-            names: {
-              workplaceManagers: workplaceManagers.map((person) => person.name),
-              provider: organization.legalName!.trim(),
-              specialist: facts.specialist!.fullName!.trim(),
-            },
           })
         : undefined,
     knowledgeTests: () => printedTests(facts.testQuestions, ['test_hiring']),

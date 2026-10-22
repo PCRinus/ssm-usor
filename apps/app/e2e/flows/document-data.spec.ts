@@ -106,17 +106,27 @@ test("a specialist sets a client's representative role and training schedule", a
   const owner = await createAccount('schedule-owner', 'Sorin Program');
   const organizationId = await createOrganization('Program instruire E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'CLIENT PROGRAM E2E SRL');
+  await createEmployee(organizationId, clientId, {
+    firstName: 'Maria',
+    lastName: 'Popescu',
+    jobTitle: 'Tâmplar',
+  });
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
 
   await page.goto(`/clients/${clientId}`);
   await expect(page.getByTestId('legal-representative-name')).toHaveText('Maria Popescu');
   await page.getByTestId('legal-representative-edit').click();
+  await page.getByTestId('details-representative-is-employee').click();
+  await expect(page.getByTestId('details-representative-employee')).toContainText('Popescu Maria');
   await page.getByTestId('details-representative-name').fill('Maria-Ioana Popescu');
   await page.getByTestId('details-representative-role').fill('Administrator');
   await page.getByTestId('legal-representative-save').click();
   await expect(page.getByText('Reprezentantul legal a fost salvat.')).toBeVisible();
   await expect(page.getByTestId('legal-representative-role')).toHaveText('Administrator');
+  await expect(page.getByTestId('legal-representative-employee')).toHaveText(
+    'Popescu Maria, Tâmplar'
+  );
 
   await page.getByRole('link', { name: 'Instruire și responsabili' }).click();
   await page.getByTestId('details-day-from').fill('12');
@@ -152,6 +162,9 @@ test("a specialist sets a client's representative role and training schedule", a
   await page.getByRole('link', { name: 'Detalii' }).click();
   await expect(page.getByTestId('legal-representative-name')).toHaveText('Maria-Ioana Popescu');
   await expect(page.getByTestId('legal-representative-role')).toHaveText('Administrator');
+  await expect(page.getByTestId('legal-representative-employee')).toHaveText(
+    'Popescu Maria, Tâmplar'
+  );
 });
 
 test('a client gets a registered office and a point of work, one of which is then archived', async ({

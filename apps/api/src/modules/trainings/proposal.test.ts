@@ -182,6 +182,43 @@ describe('trainingProposal', () => {
     ).toMatchObject({ trainer: representative, admittedBy: representative });
   });
 
+  it('never has the trainee train themself: the representative steps in, then the specialist or the technician', () => {
+    const head = { ...manager, employeeId: 'e-head' };
+    const trainees = [{ employeeId: 'e-head', fullName: 'Ion POP' }];
+    const selfTaught = { ...base, people: { ...base.people, workplaceManager: head }, trainees };
+    expect(trainingProposal(selfTaught)).toMatchObject({
+      trainer: representative,
+      verifier: specialist,
+    });
+    expect(
+      trainingProposal({
+        ...selfTaught,
+        people: {
+          ...selfTaught.people,
+          legalRepresentative: { ...representative, employeeId: 'e-head' },
+        },
+      })
+    ).toMatchObject({ trainer: specialist, verifier: specialist });
+    expect(
+      trainingProposal({
+        ...selfTaught,
+        domain: 'psi',
+        themes: fireThemes,
+        people: {
+          ...selfTaught.people,
+          legalRepresentative: { ...representative, employeeId: 'e-head' },
+        },
+      })
+    ).toMatchObject({ trainer: technician, verifier: null });
+    expect(
+      trainingProposal({
+        ...selfTaught,
+        phase: 'workplace',
+        trainees: [...trainees, { employeeId: 'e-other', fullName: 'Dan RUS' }],
+      })
+    ).toMatchObject({ trainer: manager, admittedBy: manager });
+  });
+
   it('proposes an hour and no material for a supplementary training', () => {
     expect(trainingProposal({ ...base, phase: 'supplementary' })).toEqual({
       durationMinutes: 60,

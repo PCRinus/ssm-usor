@@ -735,6 +735,7 @@ export type Database = {
           declared_employee_count: number | null;
           id: string;
           legal_name: string;
+          legal_representative_employee_id: string | null;
           legal_representative_name: string | null;
           legal_representative_role: string | null;
           locality: string | null;
@@ -770,6 +771,7 @@ export type Database = {
           declared_employee_count?: number | null;
           id?: string;
           legal_name: string;
+          legal_representative_employee_id?: string | null;
           legal_representative_name?: string | null;
           legal_representative_role?: string | null;
           locality?: string | null;
@@ -804,6 +806,7 @@ export type Database = {
           declared_employee_count?: number | null;
           id?: string;
           legal_name?: string;
+          legal_representative_employee_id?: string | null;
           legal_representative_name?: string | null;
           legal_representative_role?: string | null;
           locality?: string | null;
@@ -823,6 +826,27 @@ export type Database = {
           worker_training_not_applicable?: boolean;
         };
         Relationships: [
+          {
+            foreignKeyName: 'clients_legal_representative_employee_of_client';
+            columns: ['legal_representative_employee_id', 'id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'clients_legal_representative_employee_of_client';
+            columns: ['legal_representative_employee_id', 'id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'clients_legal_representative_employee_of_client';
+            columns: ['legal_representative_employee_id', 'id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
+          },
           {
             foreignKeyName: 'clients_organization_id_fkey';
             columns: ['organization_id'];

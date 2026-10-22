@@ -149,10 +149,14 @@ function ResponsiblePersonForm({
       ? {
           fullName: legalRepresentativeName,
           jobTitle: savedDetails.legalRepresentativeRole?.trim() || 'Administrator',
+          employeeId: savedDetails.legalRepresentativeEmployeeId ?? null,
         }
       : null;
   const administratorChosen =
-    administrator != null && !employeeId && samePersonName(typedName, administrator.fullName);
+    administrator != null &&
+    (administrator.employeeId
+      ? employeeId === administrator.employeeId
+      : !employeeId && samePersonName(typedName, administrator.fullName));
   const employeeCount = client.data?.client.currentEmployeeCount;
   // Below 10 employees the role does not exist (H.G. 1425/2006 art. 53), unless the person
   // already holds it, to be unticked, or a decision 1.5 generated earlier asks for it through a
@@ -267,7 +271,11 @@ function ResponsiblePersonForm({
                   id="responsible-employee"
                   clientId={clientId}
                   userId={userId}
-                  value={administratorChosen ? administratorValue : field.value}
+                  value={
+                    administratorChosen && !administrator.employeeId
+                      ? administratorValue
+                      : field.value
+                  }
                   administrator={administrator}
                   disabled={busy}
                   invalid={Boolean(errors.employeeId)}
@@ -276,7 +284,7 @@ function ResponsiblePersonForm({
                   }
                   onSelectAdministrator={() => {
                     if (!administrator) return;
-                    field.onChange('');
+                    field.onChange(administrator.employeeId ?? '');
                     form.clearErrors('employeeId');
                     const fill = { shouldDirty: true, shouldValidate: true };
                     form.setValue('fullName', administrator.fullName, fill);

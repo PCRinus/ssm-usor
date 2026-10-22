@@ -1,5 +1,5 @@
 begin;
-select plan(24);
+select plan(28);
 
 -- Fixtures: organization A with an owner and a specialist, organization B with an owner;
 -- one active client each, plus an archived client in A.
@@ -106,6 +106,37 @@ select lives_ok(
      set roles = '{workplace_manager,first_aid,risk_evaluation_team,imminent_danger,workers_representative}'
      where employee_id = 'e1e1e1e1-0000-4000-8000-000000000001' $$,
   'an employee can hold all five roles'
+);
+
+insert into public.employees (id, organization_id, client_id, last_name, first_name, job_title, hired_at) values
+  ('e1e1e1e1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Popescu', 'Maria', 'Tâmplar', '2022-01-10');
+
+select lives_ok(
+  $$ update public.clients set legal_representative_employee_id = 'e1e1e1e1-0000-4000-8000-000000000003'
+     where id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  'the legal representative can be linked to one of the client''s employees'
+);
+
+select throws_ok(
+  $$ update public.clients set legal_representative_employee_id = 'e2e2e2e2-0000-4000-8000-000000000001'
+     where id = 'c1c1c1c1-0000-4000-8000-000000000001' $$,
+  '23503',
+  null,
+  'the legal representative cannot be linked to an employee of another client'
+);
+
+delete from public.employees where id = 'e1e1e1e1-0000-4000-8000-000000000003';
+
+select is(
+  (select legal_representative_employee_id from public.clients where id = 'c1c1c1c1-0000-4000-8000-000000000001'),
+  null,
+  'deleting the linked employee clears the link and keeps the client'
+);
+
+select is(
+  (select count(*)::int from public.clients where id = 'c1c1c1c1-0000-4000-8000-000000000001'),
+  1,
+  'the client outlives its linked employee'
 );
 
 select throws_ok(

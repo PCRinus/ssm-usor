@@ -52,6 +52,8 @@ export const documentDetailsFormSchema = z
         (value) => value.length === 0 || value.length >= 2,
         'Funcția are cel puțin 2 caractere.'
       ),
+    legalRepresentativeIsEmployee: z.boolean(),
+    legalRepresentativeEmployeeId: z.string(),
     periodicTrainingMinutes: z
       .string()
       .refine((value) => value === '' || durations.includes(value), 'Alege o durată din listă.'),
@@ -67,6 +69,13 @@ export const documentDetailsFormSchema = z
       values.trainingDayTo === '' ||
       Number(values.trainingDayFrom) <= Number(values.trainingDayTo),
     { path: ['trainingDayTo'], message: 'Ultima zi nu poate fi înaintea primei zile.' }
+  )
+  .refine(
+    (values) => !values.legalRepresentativeIsEmployee || values.legalRepresentativeEmployeeId,
+    {
+      path: ['legalRepresentativeEmployeeId'],
+      message: 'Alege angajatul din listă sau debifează căsuța.',
+    }
   );
 
 export type DocumentDetailsFormValues = z.infer<typeof documentDetailsFormSchema>;
@@ -79,6 +88,8 @@ export function toDocumentDetailsForm(details: DocumentDetails): DocumentDetails
   return {
     legalRepresentativeName: text(details.legalRepresentativeName),
     legalRepresentativeRole: text(details.legalRepresentativeRole),
+    legalRepresentativeIsEmployee: Boolean(details.legalRepresentativeEmployeeId),
+    legalRepresentativeEmployeeId: details.legalRepresentativeEmployeeId ?? '',
     periodicTrainingMinutes: text(details.periodicTrainingMinutes),
     administrativeTrainingIntervalMonths: categoryChoice(
       details.administrativeTrainingIntervalMonths,
@@ -105,6 +116,9 @@ export function toDocumentDetailsRequest(
   return {
     legalRepresentativeName: values.legalRepresentativeName || null,
     legalRepresentativeRole: values.legalRepresentativeRole || null,
+    legalRepresentativeEmployeeId: values.legalRepresentativeIsEmployee
+      ? values.legalRepresentativeEmployeeId || null
+      : null,
     periodicTrainingMinutes: numberOrNull(values.periodicTrainingMinutes),
     administrativeTrainingIntervalMonths: categoryIntervalOrNull(
       values.administrativeTrainingIntervalMonths

@@ -40,8 +40,9 @@ import { installationParts, installationText } from './installations';
 import { knowledgeTestData, type PrintedTest, printedTests } from './knowledge-tests';
 import {
   asPerson,
-  distinctByName,
-  distinctPeopleByName,
+  distinctPeople,
+  type Identified,
+  legalRepresentativeOf,
   type Person as BasePerson,
   withRole,
 } from './people';
@@ -54,6 +55,7 @@ import {
   type TrainingSession,
   workplaceManagersTrainer,
 } from './themes';
+import { resolveTrainer } from './trainer';
 
 type FireSafetyMissingData = (typeof fireSafetyMissingDocumentData)[number];
 
@@ -537,7 +539,7 @@ function fireSafetyContextParts(facts: FireSafetySetFacts): ContextParts<FireSaf
     installationRegister: () => inSet('fire_installation_register'),
     annexes: () => annexedModules(facts, 'psi'),
     noAnnexes: () => annexedModules(facts, 'psi').length === 0,
-    fireThemes: () => fireThemes(facts, firePeople(facts)),
+    fireThemes: () => fireThemes(facts),
     knowledgeTests: () =>
       printedTests(facts.testQuestions, ['fire_test_hiring', 'fire_test_annual']),
   };
@@ -565,31 +567,33 @@ export type FireNamedPeople = {
 };
 
 // The themes are built without `fire`, whose gaps may leave no coordinator or leader to name.
-function firePeople({
-  responsiblePersons,
-  workplaces,
-}: Pick<FireSafetySetFacts, 'responsiblePersons' | 'workplaces'>) {
-  const firstHolding = (role: ResponsiblePersonRole) => {
-    const person = withRole(responsiblePersons, role)[0];
-    return person && asRunOnPerson(person);
-  };
-  const coordinator = firstHolding('fire_safety_coordinator');
-  const interventionLeader = firstHolding('fire_intervention_leader');
-  const workplaceManagers = withRole(responsiblePersons, 'workplace_manager').map((person) => ({
+function firePeople(
+  facts: Pick<FireSafetySetFacts, 'client' | 'responsiblePersons' | 'workplaces'>
+) {
+  const { responsiblePersons, workplaces } = facts;
+  const legalRepresentative = legalRepresentativeOf(facts);
+  const firstHolding = (role: ResponsiblePersonRole) => withRole(responsiblePersons, role)[0];
+  const coordinatorRow = firstHolding('fire_safety_coordinator');
+  const interventionLeaderRow = firstHolding('fire_intervention_leader');
+  const managerRows = withRole(responsiblePersons, 'workplace_manager');
+  const workplaceManagers = managerRows.map((person) => ({
     ...asRunOnPerson(person),
     workplaceName:
       workplaces.find((workplace) => workplace.id === person.workplaceId)?.name.trim() ?? null,
   }));
   return {
-    coordinator,
-    interventionLeader,
+    coordinator: coordinatorRow && asRunOnPerson(coordinatorRow),
+    interventionLeader: interventionLeaderRow && asRunOnPerson(interventionLeaderRow),
     workplaceManagers,
-    managerNames: distinctByName(workplaceManagers.map((person) => person.name)),
-    designated: distinctPeopleByName(
-      [coordinator, interventionLeader, ...workplaceManagers].filter(
+    managerNames: distinctPeople(managerRows, legalRepresentative).map((person) =>
+      person.fullName.trim()
+    ),
+    designated: distinctPeople(
+      [coordinatorRow, interventionLeaderRow, ...managerRows].filter(
         (person) => person !== undefined
-      )
-    ).map(({ name, jobTitle }) => ({ name, jobTitle })),
+      ),
+      legalRepresentative
+    ).map(asPerson),
   };
 }
 
@@ -1015,18 +1019,46 @@ const fireModuleCitation = ({ title, articleCount }: { title: string; articleCou
  * category do not; a module the revision does not annex waits for the IPSU to be generated again
  * (ADR 014, ADR 012 amendment of 2026-10-11).
  */
-function fireThemes(
-  facts: FireSafetySetFacts,
-  people: Pick<FirePeople, 'managerNames'>
-): FireThemesContext | undefined {
+function fireThemes(facts: FireSafetySetFacts): FireThemesContext | undefined {
   const ipsu = facts.fireOwnInstructions;
   if (!ipsu) return undefined;
   const card = facts.fireSafety.card!;
   const firstMonth = card.trainingFirstMonth!;
   const periodicMinutes = card.periodicTrainingHours! * 60;
   const instructionsDecision = fireDecisionNumbers(facts.firstDecisionNumber).instructions;
-  // The line runs on after the title ("… sau, după caz, …"), where glued words only break it early.
-  const managers = workplaceManagersTrainer(people.managerNames, ' ');
+  const legalRepresentative = legalRepresentativeOf(facts);
+  const managerRows = distinctPeople(
+    withRole(facts.responsiblePersons, 'workplace_manager'),
+    legalRepresentative
+  );
+  const representative = facts.client.representativeName?.trim();
+  const technician = facts.organization.fireSafetyTechnicianName?.trim();
+  // The heads of the workplaces, or whoever trains the execution posts in their stead: the line
+  // runs on after the title ("… sau, după caz, …"), where glued words only break it early.
+  const executionTrainers = (trainees: readonly Identified[]) => {
+    const resolved = resolveTrainer(
+      trainees,
+      {
+        managers: managerRows,
+        legalRepresentative: representative
+          ? { employeeId: legalRepresentative.employeeId, fullName: representative }
+          : null,
+        specialist: technician ? { employeeId: null, fullName: technician } : null,
+      },
+      legalRepresentative
+    );
+    switch (resolved?.kind) {
+      case 'managers':
+        return workplaceManagersTrainer(
+          resolved.managers.map((person) => person.fullName.trim()),
+          ' '
+        );
+      case 'legal_representative':
+        return `${representative} – ${facts.client.representativeRole?.trim() ?? 'administrator'}`;
+      default:
+        return null;
+    }
+  };
   return {
     ownInstructionsRevision: {
       id: ipsu.revisionId,
@@ -1056,6 +1088,9 @@ function fireThemes(
           ];
         });
         const execution = category === 'execution';
+        const managers = execution
+          ? executionTrainers(positions.flatMap((position) => position.currentEmployees))
+          : null;
         const sessionMonths = trainingMonths(firstMonth, intervalMonths);
         const ranges = dealChapters(fireOwnInstructionsChapters, sessionMonths.length);
         return {
@@ -1063,13 +1098,10 @@ function fireThemes(
           label,
           posts,
           postsText: posts.join(', '),
-          workplaceTrainers: {
-            workplaceManagers: execution ? managers : null,
-            technician: !execution,
-          },
+          workplaceTrainers: { workplaceManagers: managers, technician: managers === null },
           // Decision 2 has the heads of the workplaces give the periodic training "și, după caz",
           // the technician, who alone trains the heads themselves.
-          periodicTrainers: { workplaceManagers: execution ? managers : null, technician: true },
+          periodicTrainers: { workplaceManagers: managers, technician: true },
           intervalLabel: themeIntervalLabel(intervalMonths),
           sessions: sessionMonths.map((month, index) => {
             const range = ranges[index]!;

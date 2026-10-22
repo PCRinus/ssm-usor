@@ -1,4 +1,4 @@
-import { type StaffCategory, trainingMonths } from '@ssm-usor/contracts';
+import { trainingMonths } from '@ssm-usor/contracts';
 
 import { listed } from '../../lib/romanian';
 
@@ -120,18 +120,9 @@ export function trainingSessions({
   });
 }
 
-export type TrainerNames = {
-  /** At least one. */
-  workplaceManagers: readonly string[];
-  provider: string;
-  specialist: string;
-};
-
-// A workplace manager cannot train themself, so the specialist trains the other posts.
-export function trainerOf(staffCategory: StaffCategory, names: TrainerNames) {
-  if (staffCategory !== 'execution') return `${names.provider} – ${names.specialist}`;
-  return workplaceManagersTrainer(names.workplaceManagers);
-}
+/** "S.C. SSM S.R.L. – Dan MARIN": the provider through its specialist. */
+export const providerTrainer = (provider: string, specialist: string) =>
+  `${provider.trim()} – ${specialist.trim()}`;
 
 /**
  * At least one name. `space` joins the words of "loc de muncă": a no-break one by default, for
@@ -174,19 +165,18 @@ export function trainingThemes({
   positions,
   firstMonth,
   periodicTrainingMinutes,
-  names,
 }: {
   ownInstructions: OwnInstructionsRevision;
   positions: readonly {
     name: string;
-    staffCategory: StaffCategory;
     /** Null for a category the client does not train. */
     intervalMonths: number | null;
     moduleIds: readonly string[];
+    /** As the block prints it, "CINE EFECTUEAZĂ INSTRUIREA". */
+    trainer: string;
   }[];
   firstMonth: number;
   periodicTrainingMinutes: number;
-  names: TrainerNames;
 }): ThemesContext {
   const annexes = ownInstructions.annexes.map((annex) => ({
     ...annex,
@@ -205,7 +195,7 @@ export function trainingThemes({
       const modules = annexes.filter((annex) => position.moduleIds.includes(annex.moduleId));
       return {
         name: position.name.trim().toLocaleUpperCase('ro'),
-        trainer: trainerOf(position.staffCategory, names),
+        trainer: position.trainer,
         modules: modules.map((module) => ({ citation: citation(module) })),
         intervalLabel: themeIntervalLabel(position.intervalMonths),
         sessions:

@@ -65,7 +65,7 @@ export async function loadDocumentFacts(
     db
       .from('clients')
       .select(
-        'legal_name, legal_representative_name, legal_representative_role, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, caen_code, cui, trade_register_number, county_code, locality, address_line, contact_name, contact_phone, contact_email, archived_at, sensitive_groups_state'
+        'legal_name, legal_representative_name, legal_representative_role, legal_representative_employee_id, periodic_training_minutes, administrative_training_interval_months, administrative_training_not_applicable, worker_training_interval_months, worker_training_not_applicable, training_first_month, training_day_from, training_day_to, caen_code, cui, trade_register_number, county_code, locality, address_line, contact_name, contact_phone, contact_email, archived_at, sensitive_groups_state'
       )
       .eq('id', clientId)
       .maybeSingle(),
@@ -89,7 +89,9 @@ export async function loadDocumentFacts(
       .maybeSingle(),
     db
       .from('client_responsible_persons')
-      .select('full_name, job_title, roles, workplace_id, employees(status, archived_at)')
+      .select(
+        'employee_id, full_name, job_title, roles, workplace_id, employees(status, archived_at)'
+      )
       .eq('client_id', clientId)
       .is('archived_at', null)
       // The order people were designated in is the order the decisions list them in.
@@ -114,7 +116,7 @@ export async function loadDocumentFacts(
     db
       .from('job_positions')
       .select(
-        'id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, needs_fire_instructions, employees(id), job_position_equipment(risk, item, quantity, duration_months, allocation, created_at, id), job_position_instructions(module_id, domain, instruction_modules(title, module_group, instruction_module_versions(id, number, created_at)))'
+        'id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, needs_fire_instructions, employees(id, last_name, first_name), job_position_equipment(risk, item, quantity, duration_months, allocation, created_at, id), job_position_instructions(module_id, domain, instruction_modules(title, module_group, instruction_module_versions(id, number, created_at)))'
       )
       .eq('client_id', clientId)
       .is('archived_at', null)
@@ -271,6 +273,7 @@ export async function loadDocumentFacts(
       legalName: client.data.legal_name,
       representativeName: client.data.legal_representative_name,
       representativeRole: client.data.legal_representative_role,
+      representativeEmployeeId: client.data.legal_representative_employee_id,
       periodicTrainingMinutes: client.data.periodic_training_minutes,
       administrativeTrainingIntervalMonths: client.data.administrative_training_interval_months,
       administrativeTrainingNotApplicable: client.data.administrative_training_not_applicable,
@@ -403,6 +406,7 @@ export async function loadDocumentFacts(
     },
     testQuestions,
     responsiblePersons: persons.data.map((person) => ({
+      employeeId: person.employee_id,
       fullName: person.full_name,
       jobTitle: person.job_title,
       roles: person.roles as ResponsiblePersonRole[],
@@ -417,6 +421,10 @@ export async function loadDocumentFacts(
       workZone: position.work_zone,
       activities: position.activities,
       currentEmployeeCount: position.employees.length,
+      currentEmployees: position.employees.map((employee) => ({
+        employeeId: employee.id,
+        fullName: `${employee.first_name} ${employee.last_name}`,
+      })),
       trainingIntervalMonths: position.training_interval_months,
       needsProtectiveEquipment: position.needs_protective_equipment,
       needsInstructions: position.needs_instructions,

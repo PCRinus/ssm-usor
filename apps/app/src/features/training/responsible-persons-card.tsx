@@ -1,4 +1,4 @@
-import { type ResponsiblePersonRole, samePersonName } from '@ssm-usor/contracts';
+import { isLegalRepresentative, type ResponsiblePersonRole } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -111,12 +111,18 @@ export function ResponsiblePersonsCard({
   // Opening the representative who clashes lets the role be taken off them; adding someone
   // else would leave the clash in place.
   function clashingPerson() {
-    const legalRepresentative = details.data?.documentDetails.legalRepresentativeName;
-    if (focus !== 'workers-representative-clash' || !legalRepresentative) return undefined;
+    const saved = details.data?.documentDetails;
+    if (focus !== 'workers-representative-clash' || !saved?.legalRepresentativeName) {
+      return undefined;
+    }
+    const legalRepresentative = {
+      employeeId: saved.legalRepresentativeEmployeeId ?? null,
+      fullName: saved.legalRepresentativeName,
+    };
     return persons.data?.items.find(
       (person) =>
         person.roles.includes('workers_representative') &&
-        samePersonName(person.fullName, legalRepresentative)
+        isLegalRepresentative(person, legalRepresentative)
     );
   }
 

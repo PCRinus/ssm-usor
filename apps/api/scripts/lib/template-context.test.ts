@@ -125,6 +125,7 @@ describe('the built-in templates', () => {
     responsiblePersons: [
       ...facts.responsiblePersons,
       {
+        employeeId: null,
         fullName: 'Mihai POPESCU',
         jobTitle: 'Sudor',
         roles: ['workers_representative', 'imminent_danger'],
@@ -225,6 +226,7 @@ describe('a document generated again while the set lacks data', () => {
         responsiblePersons: [
           ...facts.responsiblePersons,
           {
+            employeeId: null,
             fullName: 'Florin Cristian TALOȘ',
             jobTitle: 'Administrator',
             roles: ['workers_representative'],
@@ -460,7 +462,7 @@ describe('decision 1.4', () => {
     fullName: string,
     jobTitle: string,
     roles: (typeof facts)['responsiblePersons'][number]['roles']
-  ) => ({ fullName, jobTitle, roles, currentEmployee: true, workplaceId: null });
+  ) => ({ employeeId: null, fullName, jobTitle, roles, currentEmployee: true, workplaceId: null });
   const roza = 'Roza URSU, având funcția de Director general';
   const ion = 'Ion MARIN, având funcția de Șef atelier';
   const article2 = (...responsiblePersons: (typeof facts)['responsiblePersons']) =>
@@ -824,6 +826,7 @@ describe('the risk assessment', () => {
       responsiblePersons: [
         ...facts.responsiblePersons,
         {
+          employeeId: null,
           fullName: 'Mihai POPESCU',
           jobTitle: 'Sudor',
           roles: ['workers_representative'],

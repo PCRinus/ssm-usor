@@ -4737,11 +4737,25 @@ export interface UpdateOrganizationAuthorizationsRequest {
   riskEvaluatorCertificate?: string | null;
 }
 
+/**
+ * @nullable
+ */
+export type ClientDocumentDetailsResponseDocumentDetailsLegalRepresentativeEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
+  jobTitle: string;
+} | null;
+
 export type ClientDocumentDetailsResponseDocumentDetails = {
   /** @nullable */
   legalRepresentativeName: string | null;
   /** @nullable */
   legalRepresentativeRole: string | null;
+  /** @nullable */
+  legalRepresentativeEmployeeId: string | null;
+  /** @nullable */
+  legalRepresentativeEmployee: ClientDocumentDetailsResponseDocumentDetailsLegalRepresentativeEmployee;
   /** @nullable */
   periodicTrainingMinutes: number | null;
   /**
@@ -4795,6 +4809,8 @@ export interface UpdateClientDocumentDetailsRequest {
    * @nullable
    */
   legalRepresentativeRole?: string | null;
+  /** @nullable */
+  legalRepresentativeEmployeeId?: string | null;
   /** @nullable */
   periodicTrainingMinutes?: number | null;
   /**
@@ -9140,6 +9156,10 @@ export type GetTrainingProposalParams = {
   phase: GetTrainingProposalPhase;
   heldOn: string;
   jobPositionId?: string;
+  /**
+   * @pattern ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})*$
+   */
+  employeeIds?: string;
 };
 
 export type GetTrainingProposalDomain =

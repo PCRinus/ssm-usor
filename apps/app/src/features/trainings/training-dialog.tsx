@@ -277,15 +277,16 @@ function TrainingForm({
     setTyped((current) => (current.has(field) ? current : new Set([...current, field])));
   const typing = (field: ProposedField) => ({ onChange: () => markTyped(field) });
 
-  const [domain, phase, heldOn, jobPositionId, source] = useWatch({
+  const [domain, phase, heldOn, jobPositionId, source, employeeIds] = useWatch({
     control: form.control,
-    name: ['domain', 'phase', 'heldOn', 'jobPositionId', 'source'],
+    name: ['domain', 'phase', 'heldOn', 'jobPositionId', 'source', 'employeeIds'],
   });
   const proposalParams = {
     domain,
     phase,
     heldOn,
     ...(jobPositionId ? { jobPositionId } : {}),
+    ...(employeeIds.length > 0 ? { employeeIds: employeeIds.join(',') } : {}),
   };
   const proposing =
     typed.size < proposedFields.length &&

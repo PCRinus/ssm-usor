@@ -304,13 +304,24 @@ export type EmployeeTrainingRecordListResponse = z.infer<
   typeof employeeTrainingRecordListResponseSchema
 >;
 
+const uuidPattern = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
+
 export const trainingProposalQuerySchema = z.object({
   domain: trainingDomainSchema,
   phase: trainingPhaseSchema,
   heldOn: z.iso.date(),
   // The position whose session, modules and trainer are proposed; the attendees may hold others.
   jobPositionId: z.uuid().optional(),
+  // The attendees so far, comma-separated: nobody is proposed as their own trainer. One string,
+  // because a repeated query key reaches the validator as a string when it is sent once.
+  employeeIds: z
+    .string()
+    .regex(new RegExp(`^${uuidPattern}(,${uuidPattern})*$`))
+    .optional(),
 });
+
+export const proposalEmployeeIds = (employeeIds: string | undefined) =>
+  employeeIds ? employeeIds.split(',') : [];
 
 export type TrainingProposalQuery = z.infer<typeof trainingProposalQuerySchema>;
 
