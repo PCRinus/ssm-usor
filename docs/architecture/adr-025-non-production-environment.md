@@ -42,11 +42,15 @@ Each `wrangler.jsonc` keeps production at its top level and gains `env["non-prod
 
 `apps/api/src/lib/env.ts` stops falling back to the production origins: an origin missing in non-production must fail loudly, not point at production. The marketing site's login link and API URL become build variables, as `PUBLIC_API_URL` already is. Links to the legal pages on `ssmusor.ro` stay as they are in both environments; there is one set of legal texts. The marketing Worker sends `noindex` in non-production for good, whatever production does later.
 
-### A new Supabase project for production, the current one becomes non-production
+### The current Supabase project stays production and is wiped, a new one is non-production
 
-Production starts in a **new Supabase project**, in the same organization and region. The current project, `xvhiwymggufbvjdfywjg`, is reset and becomes non-production. A reset of the current project in place for production was the first idea; it was rejected because a reset clears the schema but not, by itself, the auth users, the Storage files or the project's backups and logs of the test era, and each would have to be cleared by hand and checked. A new project holds nothing of that period by construction, and the plan and compute size can be chosen for production. Supabase branching was rejected: a persistent branch ties non-production to the Supabase GitHub integration, which applies migrations itself, while two projects keep one pipeline for both environments.
+The current project, `xvhiwymggufbvjdfywjg`, stays production and is **wiped completely** before the waitlist arrives. Non-production is a **new Supabase project** in the same organization and region. Nothing on the current project is kept: it holds Mircea's accounts, his test users and one tester's two clients, and that tester agreed to their removal.
 
-`supabase/config.toml` gains `[remotes.non-production]` with the current project's id, the non-production `site_url` and hook URIs, and the SMS confirmation workaround; `[remotes.production]` takes the new project's id. The CLI picks the block by the linked project id, so the deploy job links and pushes as today.
+A database reset alone is not a wipe: `supabase db reset --linked` rebuilds the schema from the migrations, but the auth users and the Storage files live outside what it drops. The wipe is therefore, in order: every Storage bucket emptied through the Storage API (deleting rows of `storage.objects` would leave the files behind), every auth user deleted through the admin API, the database reset from the migrations, then a check that no user, object or row of the application's tables is left before the administrator is seeded again. The project's backups age out on their own schedule.
+
+Moving production to a new project and turning the current one into non-production was considered, so that nothing of the test period would remain by construction. It was rejected as more work for the same result: production's variables, secrets and auth configuration would all change, while the wipe above, with its check, leaves nothing behind either. Supabase branching was rejected: a persistent branch ties non-production to the Supabase GitHub integration, which applies migrations itself, while two projects keep one pipeline for both environments.
+
+`supabase/config.toml` gains `[remotes.non-production]` with the new project's id, the non-production `site_url` and hook URIs, and the SMS confirmation workaround; `[remotes.production]` is unchanged. The CLI picks the block by the linked project id, so the deploy job links and pushes as today.
 
 What production needs to work comes through the pipeline in both environments: the schema and the built-in test questions are migrations, the document templates are registered by CI, the legislation table is filled by the cron. `seed.yml` takes the environment as an input. In production it creates the administrator's account and organization and nothing else; fake clients are allowed only in non-production, so `SEED_ALLOW_FAKE` moves from production to non-production.
 
@@ -68,7 +72,7 @@ When step 8 of [ADR 017](adr-017-legislation-monitoring.md) lets the legislation
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GitHub            | The `non-production` environment gets the same variable and secret names as `production`. `production` gets a deployment policy that admits `main` and the release tags only, so a workflow run from any other branch cannot read its secrets. |
 | Cloudflare        | Same account. One API token is used by both environments.                                                                                                                                                                                      |
-| Supabase          | The current project, reset; its own keys, database password and hook secrets.                                                                                                                                                                  |
+| Supabase          | A new project; its own keys, database password and hook secrets.                                                                                                                                                                               |
 | Resend            | Same account, a second domain `mail.non-prod.ssmusor.ro` and its own API key, so test mail never weighs on the production domain's reputation.                                                                                                 |
 | Twilio            | A subaccount with its own credentials, or none: without them the SMS Worker logs messages instead of sending.                                                                                                                                  |
 | PostHog           | A second project in the same organization. The managed proxy `e.ssmusor.ro` serves both, since it routes by project token.                                                                                                                     |
@@ -79,7 +83,7 @@ When step 8 of [ADR 017](adr-017-legislation-monitoring.md) lets the legislation
 
 ### Production is emptied before the waitlist arrives
 
-The order is: non-production stands up on the current project and the testers move to it; production is created empty; then the waitlist is invited. Nothing of the hosted data is migrated, by decision: it is test data only.
+The order is: non-production stands up on its new project and is seeded with fake data; the current project is wiped and the administrator seeded again; then the waitlist is invited. The tester who had clients on it chooses where to start over. Nothing of the hosted data is migrated, by decision: it is test data only.
 
 ## Consequences
 
@@ -94,8 +98,8 @@ The order is: non-production stands up on the current project and the testers mo
 1. This ADR.
 2. Configuration per environment: `env["non-production"]` in every `wrangler.jsonc`, `[remotes.non-production]` in `supabase/config.toml`, the origin fallbacks out of `env.ts`, the marketing site's URLs as build variables. Deploys nothing new by itself.
 3. The reusable deployment workflow and `release.yml`: deployment per environment, the per-environment baseline, the release check against non-production, `seed.yml`'s environment input. On step 2.
-4. Accounts and secrets, by hand, from the table above, with the `non-production` GitHub environment filled; the first non-production deployment by hand and the testers moved.
-5. The production project: created, linked as `[remotes.production]`, its secrets set, the first release; the administrator seeded; the old production values removed.
+4. Accounts and secrets, by hand, from the table above, with the `non-production` GitHub environment filled; the new Supabase project created; the first non-production deployment by hand, and its seed.
+5. The production wipe as above, with its check; the administrator seeded; the first release.
 6. The documents of the consequences above.
 
 ## Before the waitlist, outside this ADR
@@ -104,5 +108,5 @@ Real client data in production makes some items due that were not: the Twilio ac
 
 ## Open
 
-- The Supabase plan and compute size of the production project, and whether the organization's plan covers a second project.
+- The Supabase plan of the production project, and whether the organization's plan covers a second project.
 - Whether Resend's plan allows a second domain, or the plan changes.
