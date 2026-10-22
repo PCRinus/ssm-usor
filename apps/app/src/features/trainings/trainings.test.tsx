@@ -250,6 +250,15 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
         if (/^GET \/clients\/[^/]+\/training-records\/[^/]+\/signatures$/.test(key)) {
           return Response.json({ recordId: url.pathname.split('/')[4], slots: [] });
         }
+        if (
+          /^GET \/clients\/[^/]+\/employees\/[^/]+\/tests\/results\/[^/]+\/sheet\/link$/.test(key)
+        ) {
+          return Response.json({
+            url: 'http://127.0.0.1:54321/storage/v1/object/sign/documents/test-sheet',
+            fileName: 'Fisa-de-test-TAPSI-Popescu-Ion-2026-10-21.pdf',
+            expiresInSeconds: 600,
+          });
+        }
         throw new Error(`Unexpected request: ${key}${url.search}`);
     }
   });
@@ -1243,31 +1252,23 @@ describe("a portal pass's test sheet", () => {
     expect(screen.queryByTestId('tests-sheet')).toBeNull();
   });
 
-  it('opens the sheet in a new tab', async () => {
-    mockApi({
-      [`GET ${testsPath}`]: withResult(signedBy('pending', 'unassigned')),
-      [`GET ${resultPath}/sheet`]: () =>
-        new Response(new Uint8Array([37, 80, 68, 70]), {
-          headers: { 'Content-Type': 'application/pdf' },
-        }),
-    });
-    const tab = {
-      document: { write: vi.fn(), close: vi.fn(), title: '' },
-      location: { replace: vi.fn() },
-      close: vi.fn(),
-    };
-    const open = vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
-    vi.stubGlobal(
-      'URL',
-      Object.assign(URL, { createObjectURL: () => 'blob:test-sheet', revokeObjectURL: () => {} })
-    );
+  it('opens a stored sheet from a real link, shown inline in a tab', async () => {
+    mockApi({ [`GET ${testsPath}`]: withResult(signedBy('pending', 'unassigned')) });
     mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
-    const user = userEvent.setup();
-    await user.click(await screen.findByTestId('tests-sheet-preview'));
-    expect(open).toHaveBeenCalledWith('', '_blank');
-    await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith('blob:test-sheet'));
-    expect(tab.document.title).toBe('Fișa de test');
-    open.mockRestore();
+    await waitFor(() =>
+      expect(screen.getByTestId('tests-sheet-preview').getAttribute('href')).toContain(
+        '/files/download?'
+      )
+    );
+    const preview = screen.getByTestId('tests-sheet-preview');
+    const address = new URL(preview.getAttribute('href')!);
+    expect(address.searchParams.get('source')).toBe(
+      'http://127.0.0.1:54321/storage/v1/object/sign/documents/test-sheet'
+    );
+    expect(address.searchParams.get('name')).toBe('Fisa-de-test-TAPSI-Popescu-Ion-2026-10-21.pdf');
+    expect(address.searchParams.get('disposition')).toBe('inline');
+    expect(preview.getAttribute('target')).toBe('_blank');
+    expect(requests('GET', `${resultPath}/sheet`)).toHaveLength(0);
   });
 
   it('offers a sheet the pass could not draw up, and opening it draws it up', async () => {
@@ -1326,6 +1327,11 @@ describe("a portal pass's test sheet", () => {
     await user.click(sheet.getByTestId('tests-sheet-preview'));
     await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith('blob:test-sheet'));
     await waitFor(() => expect(screen.queryByTestId('tests-sheet-pending')).toBeNull());
+    await waitFor(() =>
+      expect(screen.getByTestId('tests-sheet-preview').getAttribute('href')).toContain(
+        '/files/download?'
+      )
+    );
     expect(
       within(screen.getByTestId('tests-sheet'))
         .getAllByTestId('signature-slot-state')

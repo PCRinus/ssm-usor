@@ -14484,6 +14484,156 @@ export function useGetTestSheet<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export const getGetTestSheetLinkUrl = (clientId: string, employeeId: string, resultId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/tests/results/${resultId}/sheet/link`;
+};
+
+/**
+ * For a real link on the page, which the browser opens through `GET /files/download`. Only a stored sheet has one: a sheet the pass could not draw up answers 404 (reason `test_sheet_not_available`) and is drawn up by the PDF route. The link names the sheet's version at the time, with every signature given so far. Valid for ten minutes.
+ * @summary A short-lived link to a result's stored test sheet
+ */
+export const getTestSheetLink = async (
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FileLinkResponse> => {
+  return apiFetch<FileLinkResponse>(getGetTestSheetLinkUrl(clientId, employeeId, resultId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetTestSheetLinkQueryKey = (
+  clientId: string,
+  employeeId: string,
+  resultId: string
+) => {
+  return [
+    `/clients/${clientId}/employees/${employeeId}/tests/results/${resultId}/sheet/link`,
+  ] as const;
+};
+
+export const getGetTestSheetLinkQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTestSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheetLink>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTestSheetLinkQueryKey(clientId, employeeId, resultId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTestSheetLink>>> = ({ signal }) =>
+    getTestSheetLink(clientId, employeeId, resultId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined &&
+      resultId !== null &&
+      resultId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getTestSheetLink>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetTestSheetLinkQueryResult = NonNullable<Awaited<ReturnType<typeof getTestSheetLink>>>;
+export type GetTestSheetLinkQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetTestSheetLink<
+  TData = Awaited<ReturnType<typeof getTestSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheetLink>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTestSheetLink>>,
+          TError,
+          Awaited<ReturnType<typeof getTestSheetLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTestSheetLink<
+  TData = Awaited<ReturnType<typeof getTestSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheetLink>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTestSheetLink>>,
+          TError,
+          Awaited<ReturnType<typeof getTestSheetLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTestSheetLink<
+  TData = Awaited<ReturnType<typeof getTestSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheetLink>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A short-lived link to a result's stored test sheet
+ */
+
+export function useGetTestSheetLink<
+  TData = Awaited<ReturnType<typeof getTestSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheetLink>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetTestSheetLinkQueryOptions(clientId, employeeId, resultId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export const getMarkTestSheetPaperSignatureUrl = (
   clientId: string,
   employeeId: string,

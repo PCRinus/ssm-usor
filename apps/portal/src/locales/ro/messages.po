@@ -341,7 +341,6 @@ msgid "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal 
 msgstr "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal sau descarcă fișa."
 
 #: src/features/signing/agreement-pdf-button.tsx
-#: src/features/tests/study-card.tsx
 #: src/features/tests/test-sheet-line.tsx
 msgid "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal."
 msgstr "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal."
@@ -982,10 +981,6 @@ msgstr "Nu am putut deschide fișa de test. Verifică conexiunea la internet și
 msgid "Nu am putut deschide fișa. Verifică conexiunea la internet și încearcă din nou."
 msgstr "Nu am putut deschide fișa. Verifică conexiunea la internet și încearcă din nou."
 
-#: src/features/tests/study-card.tsx
-msgid "Nu am putut deschide materialul. Verifică conexiunea la internet și încearcă din nou."
-msgstr "Nu am putut deschide materialul. Verifică conexiunea la internet și încearcă din nou."
-
 #: src/app/account-menu.tsx
 msgid "Nu am putut ieși din cont."
 msgstr "Nu am putut ieși din cont."
@@ -1280,10 +1275,6 @@ msgstr "Se pregătește documentul…"
 #: src/features/training/use-sheet-actions.ts
 msgid "Se pregătește fișa…"
 msgstr "Se pregătește fișa…"
-
-#: src/features/tests/study-card.tsx
-msgid "Se pregătește materialul…"
-msgstr "Se pregătește materialul…"
 
 #: src/features/participation/privacy-notice.tsx
 msgid "Se salvează…"

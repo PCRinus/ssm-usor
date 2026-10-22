@@ -1,5 +1,3 @@
-import type { MessageDescriptor } from '@lingui/core';
-import { msg } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
 import {
   testErrorReasons,
@@ -10,14 +8,14 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { FileText, LoaderCircle } from 'lucide-react';
-import { useState } from 'react';
 
-import { getPortalMaterial, type TestStudyCard } from '@/api/generated/api';
+import { getPortalMaterialLink, type TestStudyCard } from '@/api/generated/api';
+import { FileLinkButton } from '@/components/file-link-button';
 import { Notice } from '@/components/notice';
 import { cardClass, SectionLabel } from '@/components/page';
+import { useFileLink } from '@/lib/file-link';
 import { romanianDayOf, useFormatDate } from '@/lib/format';
 import { useApiRequest } from '@/lib/request';
-import { openPreview, PreviewBlockedError } from '@/lib/save-file';
 
 import { reasonOf } from './test-errors';
 
@@ -107,14 +105,18 @@ function MaterialRow({
   domain: TrainingDomain;
   material: TestStudyCard['material'];
 }) {
-  const { t, i18n } = useLingui();
+  const { t } = useLingui();
   const apiRequest = useApiRequest();
   const formatDate = useFormatDate();
-  const [busy, setBusy] = useState(false);
-  const [notIssued, setNotIssued] = useState(false);
-  const [failure, setFailure] = useState<MessageDescriptor | null>(null);
+  const link = useFileLink({
+    queryKey: ['test-material-link', participantId, domain, material?.revisionId],
+    load: (signal) => getPortalMaterialLink(participantId, domain, { ...apiRequest, signal }),
+    enabled: material !== null,
+    apiRequest,
+    disposition: 'inline',
+  });
 
-  if (!material || notIssued) {
+  if (!material || reasonOf(link.error) === testErrorReasons.materialNotIssued) {
     return (
       <p data-testid="test-material-missing" className="text-sm leading-relaxed text-foreground/80">
         {domain === 'ssm'
@@ -122,22 +124,6 @@ function MaterialRow({
           : t`Instrucțiunile proprii PSI nu sunt emise încă; le găsești aici după ce le emite specialistul.`}
       </p>
     );
-  }
-
-  async function open(title: string) {
-    setBusy(true);
-    setFailure(null);
-    try {
-      await openPreview(() => getPortalMaterial(participantId, domain, apiRequest), {
-        title,
-        pending: t`Se pregătește materialul…`,
-      });
-    } catch (cause) {
-      if (reasonOf(cause) === testErrorReasons.materialNotIssued) setNotIssued(true);
-      else setFailure(failureOf(cause));
-    } finally {
-      setBusy(false);
-    }
   }
 
   const issuedOn = formatDate(romanianDayOf(material.issuedAt), 'short');
@@ -158,28 +144,14 @@ function MaterialRow({
           </p>
         </div>
       </div>
-      <Button
+      <FileLinkButton
         variant="outline"
         data-testid="test-material-open"
         className="h-11 w-full sm:w-fit"
-        disabled={busy}
-        onClick={() => void open(material.title)}
+        link={link}
       >
-        {busy && <LoaderCircle aria-hidden="true" className="animate-spin" />}
         <Trans>Deschide PDF</Trans>
-      </Button>
-      {failure && (
-        <Notice variant="destructive" data-testid="test-material-error">
-          {i18n._(failure)}
-        </Notice>
-      )}
+      </FileLinkButton>
     </section>
   );
-}
-
-function failureOf(cause: unknown): MessageDescriptor {
-  if (cause instanceof PreviewBlockedError) {
-    return msg`Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal.`;
-  }
-  return msg`Nu am putut deschide materialul. Verifică conexiunea la internet și încearcă din nou.`;
 }

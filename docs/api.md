@@ -670,11 +670,13 @@ SVG among them, which would run script in the API's origin; responses carry
 `X-Content-Type-Options: nosniff`. An expired link answers `404`. The link routes that feed
 those anchors sign for ten minutes when the page keeps the link ready and renews it (a client
 file's `link`, a stored training sheet's `…/training-sheet/link`, a stored signing
-agreement's `…/signing-agreement/link`, the public contract return's), and for a minute when
+agreement's `…/signing-agreement/link`, a stored test sheet's `…/sheet/link`, the portal's
+issued test material's `…/materials/{domain}/link`, the public contract return's), and for a minute when
 the app signs on opening a menu (a document revision's `…/download`, an instruction module's
 `…/file-link`). Only a file that exists in Storage has a link: a sheet drawn up on the spot, the
-merged reading copy of several sheets, an agreement nobody has signed yet and the pack archive
-are built when asked for, and still come through the page as a blob.
+merged reading copy of several sheets, an agreement nobody has signed yet, a test sheet the pass
+could not draw up and the pack archive are built when asked for, and still come through the
+page as a blob.
 
 Data access goes through `src/lib/db.ts`: a per-request supabase-js client that forwards the
 user's bearer token to PostgREST, so row-level security runs as that user. Database types in
@@ -866,7 +868,9 @@ no route outside the prefix has the tag.
 | `PUT …/{participantId}/test-attempts/{attemptId}/answers/{index}`     | Employee             | `{ attempt }` after `{ chosen }`; `400 option_out_of_range`, `409 attempt_finished`             |
 | `POST …/{participantId}/test-attempts/{attemptId}/finish`             | Employee             | `{ id, score, total, passed, mistakes, … }`                                                     |
 | `GET …/{participantId}/materials/{domain}`                            | Participant          | `200 application/pdf`, the issued material; `404 material_not_issued`                           |
+| `GET …/{participantId}/materials/{domain}/link`                       | Participant          | `{ url, fileName, expiresInSeconds }`, a ten-minute link to the issued material                 |
 | `GET …/{participantId}/tests/results/{resultId}/sheet`                | Participant          | `200 application/pdf` inline, the [test sheet](#the-test-sheet); `404 test_sheet_not_available` |
+| `GET …/{participantId}/tests/results/{resultId}/sheet/link`           | Participant          | `{ url, fileName, expiresInSeconds }`, a ten-minute link to the stored test sheet               |
 
 `…` stands for `/portal/participants`. `requireParticipant` (`src/lib/participant.ts`) runs
 after `requireAuth` on every one of them: as the caller it calls
@@ -953,6 +957,7 @@ print. The portal's own routes are under [Portal](#portal). The modules are `src
 | `POST /clients/{clientId}/employees/{employeeId}/tests/results`             | Verified user with a membership | `201 { result }`, a pass of the printed test; `409 test_not_awaiting`                                                                                 |
 | `PATCH /clients/{clientId}/employees/{employeeId}/tests/results/{resultId}` | Verified user with a membership | `{ result }`; `409 result_from_attempt` for a portal result's day or material, `409 examiner_signed` for the examiner once they signed the test sheet |
 | `GET …/tests/results/{resultId}/sheet`                                      | Verified user with a membership | `200 application/pdf` inline, the stored test sheet; `404 test_sheet_not_available` for a paper result                                                |
+| `GET …/tests/results/{resultId}/sheet/link`                                 | Verified user with a membership | `{ url, fileName, expiresInSeconds }`, a ten-minute link to the stored test sheet; `404 test_sheet_not_available` while none is stored                |
 | `POST …/tests/results/{resultId}/sheet/paper-signatures`                    | Verified user with a membership | `{ resultId, sheet }` after `{ slot: trainee \| examiner }` marked on paper; `400 examiner_required`, `409 slot_signed`                               |
 
 **The bank.** Owners and specialists alike, as the policies have it. The list reads
@@ -1069,7 +1074,10 @@ prints, `semnat electronic` and the day, the reason "Fișa de test: persoana tes
 `Fisa-de-test-{code}-{Name}-{yyyy-mm-dd}.pdf`, after reading the result as the member; the
 portal's `GET …/{participantId}/tests/results/{resultId}/sheet` after reading it as the
 participant, the employee's own or, for a client administrator, any of the client's, the file read
-with the secret key in both. `…/sheet/paper-signatures` calls `mark_test_sheet_paper_signature`,
+with the secret key in both. Their `…/sheet/link` routes read the result the same way and sign
+a ten-minute link to the stored version, for a real anchor; a sheet the pass could not draw up
+has none (`404 test_sheet_not_available`), since drawing it up, which issues its requests, is
+left to the PDF route a click asks for. `…/sheet/paper-signatures` calls `mark_test_sheet_paper_signature`,
 which names the employee or the result's examiner in the evidence, and answers the sheet's
 summary.
 

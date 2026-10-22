@@ -6,8 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   answerPortalTestAttempt,
   finishPortalTestAttempt,
-  getPortalMaterial,
+  getPortalMaterialLink,
   getPortalTestSheet,
+  getPortalTestSheetLink,
   type PortalTestsResponse,
   startPortalTestAttempt,
   type TestAttemptOutcome,
@@ -52,8 +53,9 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   startPortalTestAttempt: vi.fn(),
   answerPortalTestAttempt: vi.fn(),
   finishPortalTestAttempt: vi.fn(),
-  getPortalMaterial: vi.fn(),
+  getPortalMaterialLink: vi.fn(),
   getPortalTestSheet: vi.fn(),
+  getPortalTestSheetLink: vi.fn(),
 }));
 
 const { participantId } = participation();
@@ -133,6 +135,16 @@ beforeEach(() => {
     }
   );
   vi.mocked(finishPortalTestAttempt).mockResolvedValue(outcome());
+  vi.mocked(getPortalTestSheetLink).mockResolvedValue({
+    url: 'https://files.example.test/signed/test-sheet',
+    fileName: 'Fisa-de-test-TASSM-Pop-Ana-2026-10-21.pdf',
+    expiresInSeconds: 600,
+  });
+  vi.mocked(getPortalMaterialLink).mockResolvedValue({
+    url: 'https://files.example.test/signed/material',
+    fileName: 'Material de instruire introductiv-generală.pdf',
+    expiresInSeconds: 600,
+  });
 });
 
 afterEach(() => {
@@ -140,8 +152,9 @@ afterEach(() => {
   vi.mocked(startPortalTestAttempt).mockReset();
   vi.mocked(answerPortalTestAttempt).mockReset();
   vi.mocked(finishPortalTestAttempt).mockReset();
-  vi.mocked(getPortalMaterial).mockReset();
+  vi.mocked(getPortalMaterialLink).mockReset();
   vi.mocked(getPortalTestSheet).mockReset();
+  vi.mocked(getPortalTestSheetLink).mockReset();
 });
 
 async function openSitting(path = '/instruiri/test/ssm/hiring') {
@@ -328,30 +341,27 @@ describe('the test sheet in Instruiri', () => {
     );
   });
 
-  it('opens the test sheet as a PDF in a tab opened before the request', async () => {
+  it('opens a stored test sheet from a real link, shown inline in a tab', async () => {
     vi.mocked(useGetPortalTests).mockReturnValue(passedWith([result()]));
-    const pending = document.createElement('p');
-    const tab = {
-      document: { write: vi.fn(), close: vi.fn(), title: '', querySelector: () => pending },
-      location: { replace: vi.fn() },
-      close: vi.fn(),
-    };
-    const open = vi.spyOn(window, 'open').mockReturnValue(tab as never);
-    URL.createObjectURL = vi.fn(() => 'blob:test-sheet');
-    URL.revokeObjectURL = vi.fn();
-    vi.mocked(getPortalTestSheet).mockResolvedValue(new Blob(['%PDF']));
     mountPortal(signedIn(), '/instruiri');
 
-    await userEvent.click(await screen.findByTestId('training-test-sheet-open'));
-
-    expect(open).toHaveBeenCalledWith('', '_blank');
-    expect(getPortalTestSheet).toHaveBeenCalledWith(
+    await waitFor(() =>
+      expect(screen.getByTestId('training-test-sheet-open').getAttribute('href')).toContain(
+        '/files/download?'
+      )
+    );
+    const open = screen.getByTestId('training-test-sheet-open');
+    const address = new URL(open.getAttribute('href')!);
+    expect(address.searchParams.get('source')).toBe('https://files.example.test/signed/test-sheet');
+    expect(address.searchParams.get('name')).toBe('Fisa-de-test-TASSM-Pop-Ana-2026-10-21.pdf');
+    expect(address.searchParams.get('disposition')).toBe('inline');
+    expect(open.getAttribute('target')).toBe('_blank');
+    expect(getPortalTestSheetLink).toHaveBeenCalledWith(
       participantId,
       '6f0c3e43-0c1b-4f4b-8a1e-0000000e0002',
       expect.objectContaining({ baseUrl: 'http://localhost:8787' })
     );
-    expect(tab.document.title).toBe('Fișa de test la angajare SSM');
-    expect(tab.location.replace).toHaveBeenCalledWith('blob:test-sheet');
+    expect(getPortalTestSheet).not.toHaveBeenCalled();
   });
 
   it('refreshes the slots once opening has drawn up a sheet the pass could not', async () => {
@@ -381,7 +391,13 @@ describe('the test sheet in Instruiri', () => {
   });
 
   it('says when the test sheet is not ready', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(passedWith([result()]));
+    vi.mocked(useGetPortalTests).mockReturnValue(
+      passedWith([
+        result({
+          sheet: { available: false, signed: { trainee: 'unassigned', examiner: 'unassigned' } },
+        }),
+      ])
+    );
     vi.spyOn(window, 'open').mockReturnValue({
       document: { write: vi.fn(), close: vi.fn(), title: '', querySelector: () => null },
       location: { replace: vi.fn() },
@@ -435,30 +451,25 @@ describe('the study card', () => {
     expect(screen.getByTestId('test-start').textContent).toBe('Începe testul');
   });
 
-  it('opens the material as a PDF in a tab opened before the request', async () => {
-    const pending = document.createElement('p');
-    const tab = {
-      document: { write: vi.fn(), close: vi.fn(), title: '', querySelector: () => pending },
-      location: { replace: vi.fn() },
-      close: vi.fn(),
-    };
-    const open = vi.spyOn(window, 'open').mockReturnValue(tab as never);
-    URL.createObjectURL = vi.fn(() => 'blob:material');
-    URL.revokeObjectURL = vi.fn();
-    vi.mocked(getPortalMaterial).mockResolvedValue(new Blob(['%PDF']));
+  it('opens the material from a real link, shown inline in a tab', async () => {
     mountPortal(signedIn(), '/instruiri/test/ssm/hiring');
 
-    await userEvent.click(await screen.findByTestId('test-material-open'));
-
-    expect(open).toHaveBeenCalledWith('', '_blank');
-    expect(getPortalMaterial).toHaveBeenCalledWith(
+    await waitFor(() =>
+      expect(screen.getByTestId('test-material-open').getAttribute('href')).toContain(
+        '/files/download?'
+      )
+    );
+    const open = screen.getByTestId('test-material-open');
+    const address = new URL(open.getAttribute('href')!);
+    expect(address.searchParams.get('source')).toBe('https://files.example.test/signed/material');
+    expect(address.searchParams.get('name')).toBe('Material de instruire introductiv-generală.pdf');
+    expect(address.searchParams.get('disposition')).toBe('inline');
+    expect(open.getAttribute('target')).toBe('_blank');
+    expect(getPortalMaterialLink).toHaveBeenCalledWith(
       participantId,
       'ssm',
       expect.objectContaining({ baseUrl: 'http://localhost:8787' })
     );
-    expect(tab.document.title).toBe('Materialul de instruire introductiv-generală');
-    expect(pending.textContent).toBe('Se pregătește materialul…');
-    expect(tab.location.replace).toHaveBeenCalledWith('blob:material');
   });
 
   it('says the material is not issued yet', async () => {
@@ -472,20 +483,13 @@ describe('the study card', () => {
     expect(screen.queryByTestId('test-material-open')).toBeNull();
   });
 
-  it('says the material is not issued when its PDF answers 404', async () => {
-    const tab = {
-      document: { write: vi.fn(), close: vi.fn(), title: '', querySelector: () => null },
-      location: { replace: vi.fn() },
-      close: vi.fn(),
-    };
-    vi.spyOn(window, 'open').mockReturnValue(tab as never);
-    vi.mocked(getPortalMaterial).mockRejectedValue(
+  it('says the material is not issued when its link answers 404', async () => {
+    vi.mocked(getPortalMaterialLink).mockRejectedValue(
       new ApiHttpError(404, { error: 'not_found', message: 'Nu.', reason: 'material_not_issued' })
     );
     mountPortal(signedIn(), '/instruiri/test/ssm/hiring');
-    await userEvent.click(await screen.findByTestId('test-material-open'));
     expect(await screen.findByTestId('test-material-missing')).toBeTruthy();
-    expect(tab.close).toHaveBeenCalled();
+    expect(screen.queryByTestId('test-material-open')).toBeNull();
   });
 
   it('resumes a test in progress at its first unanswered question', async () => {

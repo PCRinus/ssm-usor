@@ -1109,13 +1109,15 @@ their tab bars read.
   `PATCH …/tests/results/{resultId}` with the examiner only; it is offered no more once the
   examiner has signed the test sheet, and a `409 examiner_signed` shows in the dialog. Both
   refresh the card, the employee and both lists. Every portal pass has a "Fișa de test" line: the
-  "Instruit" and "Examinator" slots with the records' slot-state badges, "Previzualizează", which
-  opens `GET …/tests/results/{resultId}/sheet` in a new tab as the training sheet's preview does,
+  "Instruit" and "Examinator" slots with the records' slot-state badges, "Previzualizează", a real
+  anchor to the stored sheet (`GET …/tests/results/{resultId}/sheet/link`, shown inline in a tab,
+  fetched anew when a slot changes) as the training sheet's preview is,
   and for a slot `unassigned` or `pending` "Marchează semnat pe
   hârtie", which after a confirmation posts `{ slot }` to `…/sheet/paper-signatures` (an
   `examiner_required` refusal asks to name the examiner first) and refreshes the card and the
   request lists. While `sheet.available` is false (the pass could not draw the sheet up) the line
-  says so: opening it draws it up and requests its signatures, then refreshes the card and the
+  says so and "Previzualizează" opens `GET …/tests/results/{resultId}/sheet` in a tab opened
+  before the request instead: opening it draws it up and requests its signatures, then refreshes the card and the
   request lists, and a `test_sheet_not_available` or `503 pdf_unavailable` asks to try again in
   a few minutes. A test sheet's signature requests show in "Semnături", on the client's pending
   signatures and in the signing dialog beside the trainings, named by the request's `label` and
