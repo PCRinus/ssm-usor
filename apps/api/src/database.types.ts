@@ -830,6 +830,13 @@ export type Database = {
             foreignKeyName: 'clients_legal_representative_employee_of_client';
             columns: ['legal_representative_employee_id', 'id'];
             isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'clients_legal_representative_employee_of_client';
+            columns: ['legal_representative_employee_id', 'id'];
+            isOneToOne: false;
             referencedRelation: 'employee_training_status';
             referencedColumns: ['employee_id', 'client_id'];
           },
