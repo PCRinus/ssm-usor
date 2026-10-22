@@ -5,9 +5,9 @@
 ([ADR 025](architecture/adr-025-non-production-environment.md)): change selection, validation,
 the build and every deployment job, with the GitHub environment, the wrangler environment and
 the concurrency groups taken from its `environment` input. Two workflows call it.
-`.github/workflows/deploy.yml` deploys non-prod on every push to `main` and when started by
-hand. `.github/workflows/release.yml` deploys production when a GitHub release is published,
-and when started by hand with a tag (see [Releases](#releases)). The checks the pull request
+`.github/workflows/deploy-non-prod.yml` (**Deploy non-prod**) deploys non-prod on every push to
+`main` and when started by hand. `.github/workflows/deploy-production.yml` (**Deploy
+production**) deploys production when started by hand from `main` (see [Releases](#releases)). The checks the pull request
 and the deployment both run live once, in the composite action `.github/actions/validate`, so
 they cannot drift apart.
 
@@ -16,7 +16,7 @@ monthly allowance, so a six-second job costs a minute and five one-minute builds
 ten. Hence: few jobs, the slow starts inside a job overlapped instead of queued, nothing run
 that has nothing to do, and no run that a newer run makes pointless. A composite action
 shares steps inside one job. The reusable workflow adds no job of its own: its jobs are the
-calling run's; only a release pays one more, the check before it.
+calling run's; only production pays one more, the job that chooses the release.
 A separate manual **Seed database** workflow seeds an environment's project on demand; see the
 [application deployment guide](app-deployment.md#seed-the-hosted-project).
 The daily legislation check is not a workflow: it is the cron trigger of the
@@ -29,9 +29,9 @@ and skips runs where Cloudflare's fires on time.
 `dorny/paths-filter` reads `.github/filters.yml`. For PRs it uses GitHub's changed-file list.
 A deployment compares its commit with the last commit deployed to the same environment, so
 everything since the last complete deployment there is in the comparison: non-prod with the
-commit of the last run of `deploy.yml` on `main` that succeeded (or, without one, the push
-before), production with the commit of the last release run of `release.yml` that succeeded
-(or, without one, everything). A run started by hand skips the comparison and selects
+commit of the last run of `deploy-non-prod.yml` on `main` that succeeded (or, without one, the
+push before), production with the release the last successful run of `deploy-production.yml`
+deployed (or, without one, everything). A run started by hand skips the comparison and selects
 everything (see below). The workflow itself is not path-filtered, so **Validate repository** remains
 available as a required PR check, including on documentation-only changes.
 
@@ -166,23 +166,45 @@ API like the SPA and never for the SPA. There is no check of the old live releas
 
 ## Releases
 
-Publishing a GitHub release deploys the commit of its tag to production. Tags are dates,
-`2026.10.23`, and `2026.10.23.2` for a second release that day; the release check refuses
-anything else. Before anything deploys, the job **Check the release** resolves the tag to its
-commit and refuses the release unless that commit is on `main` and a run of `deploy.yml` for
-exactly that commit succeeded: production only receives what non-prod has run. Because each
-non-prod run deploys whatever the runs before it left undeployed, that run's success means
-non-prod held everything up to the commit.
+Actions → **Deploy production** → "Run workflow" on `main`, with the tag left empty, is a
+release. The job **Choose the release** takes the newest commit on `main` that a run of
+`deploy-non-prod.yml` succeeded for: production only receives what non-prod has run, and
+because each non-prod run deploys whatever the runs before it left undeployed, that run's
+success means non-prod held everything up to the commit. Commits merged after it are left for
+the next release; the run's summary names the commit, its message, and how many newer commits
+on `main` non-prod has not deployed yet. It tags the commit with the date in Bucharest,
+`2026.10.23`, or `2026.10.23.2` for a second release that day, and publishes the GitHub release
+with notes generated from the pull requests merged since the previous one. A commit that
+already carries a release tag is refused: there is nothing new to release, and deploying that
+release again is a run with its tag. The release is created with the run's own token, so it
+starts no other workflow. Then production is deployed with what changed since the release it
+runs.
 
-Production's change selection compares with the commit of the last release run of
-`release.yml` that succeeded. Release runs are found by their event, not their branch, since
-their branch is the tag. Runs started by hand are left out of that lookup: their head is the
-branch they were started from, not the tag they deployed, and comparing with an earlier
-release only selects more. The first release, with no earlier one, deploys everything.
+A run started from any other branch or tag is refused before anything happens: a run uses the
+workflow files of the ref it was started on, and production only runs `main`'s.
 
-The `release` event runs `release.yml` as it is at the tag's commit, so a tag on a commit from
-before this workflow existed starts nothing. A run by hand takes the workflow files from the
-branch it is started on, and the commit to deploy from the tag.
+**Rolling back.** Run **Deploy production** with an earlier release's tag in `tag`. It creates
+nothing: it checks that the tag's commit is on `main` and that a run of `deploy-non-prod.yml`
+succeeded for exactly that commit, then deploys everything of it to production. A release that
+failed halfway already has its tag, so a run without one refuses it; rerun its failed jobs, or
+run with its tag. Migrations do not roll back: the database keeps the newer schema, so the
+older code has to be compatible with it.
+
+**A fix that cannot wait** is a merge to `main` and, once **Deploy non-prod** has run it, a
+release. That release ships everything merged so far. If something merged and unreleased must
+not reach production, revert it on `main` first.
+
+Production's change selection compares with the release the last successful run of
+`deploy-production.yml` deployed. A run's head commit cannot say which that was, since it is
+`main` as it stood when the run was started, so the job that deploys carries the tag in its
+name (`Production 2026.10.23 / …`) and the next release reads it from the run's jobs. Without
+such a run, or when its tag is gone, everything is deployed.
+
+The two workflows were renamed from `deploy.yml` and `release.yml` on 2026-10-23, and GitHub
+keeps a workflow's runs under its file name, so neither finds an earlier run of its own. The
+first push to deploy non-prod compares with the push before, the first release deploys
+everything, and the first release needs a successful run of **Deploy non-prod**, which the
+rename's own merge starts.
 
 ## Caching
 
@@ -209,20 +231,20 @@ its own that is never cancelled, so nothing is interrupted halfway, the same thi
 deployed twice at once, and GitHub keeps at most one run waiting per job. Three merges in a
 row cost about one run instead of three. A pull request's newer push cancels its older run.
 
-The last commit deployed to non-prod is taken to be the head of the last run of `deploy.yml`
-on `main` that succeeded, read from the Actions API by the job "Select affected applications";
+The last commit deployed to non-prod is taken to be the head of the last run of
+`deploy-non-prod.yml` on `main` that succeeded, read from the Actions API by the job "Select affected applications";
 when there is none, or its commit is gone, the push before is used instead. Merging several pull requests in a row
 leaves one run alive, and that run now selects what the others would have deployed. A run
 that failed stays the concern of whoever merged: the next push retries what it carried, which
 is safe because every deployment here can be repeated, and may not be what is wanted when
 the failure was the change itself.
 
-**Deploying everything by hand.** Actions → Deploy → "Run workflow" on `main` runs the whole
+**Deploying everything by hand.** Actions → Deploy non-prod → "Run workflow" on `main` runs the whole
 sequence for non-prod with every application, the migrations, the configuration and the
 templates selected, whatever changed. It is for an environment that was wiped, a rotated
 secret, or a deployment that failed halfway and is easier to repeat whole. On any other
-branch it deploys nothing. Actions → Release → "Run workflow" with a tag does the same for
-production, after the same check as a release.
+branch it deploys nothing. Actions → Deploy production → "Run workflow" with a release's tag
+does the same for production, after the same checks as a release.
 
 Otherwise, resolve deployment failures explicitly:
 
