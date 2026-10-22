@@ -613,7 +613,7 @@ describe('authorizations', () => {
     });
   });
 
-  it('saves the risk evaluator, and stops hinting once one is named', async () => {
+  it('saves the risk evaluator with its title and certificate', async () => {
     mockApi();
     mountAuthorizations();
     const user = userEvent.setup();
