@@ -73,7 +73,7 @@ database:
 # workflow compares with the last deployment, so a run that is superseded hands these on.
 templates:
   - '.github/filters.yml'
-  - '.github/workflows/deploy.yml'
+  - '.github/workflows/deploy-environment.yml'
   - 'packages/document-engine/templates/**'
   - 'apps/api/scripts/register-templates.ts'
   - 'apps/api/scripts/lib/register-templates.ts'

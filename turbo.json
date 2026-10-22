@@ -21,6 +21,7 @@
     "deploy:dry-run": {
       "dependsOn": ["build"],
       "cache": false,
+      "passThroughEnv": ["CLOUDFLARE_ENV"],
       "outputs": [".wrangler/deploy/**"]
     }
   }
