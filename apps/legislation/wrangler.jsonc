@@ -22,4 +22,16 @@
   "observability": {
     "enabled": true,
   },
+  "env": {
+    "non-prod": {
+      "routes": [{ "pattern": "legislation.non-prod.ssmusor.ro", "custom_domain": true }],
+      "triggers": {
+        // Half an hour after production's run, so the two never wait on the relay together.
+        "crons": ["47 3 * * *"],
+      },
+      "vars": {
+        "LEGISLATION_RELAY_ORIGIN": "https://legislation-relay.home-server.me",
+      },
+    },
+  },
 }

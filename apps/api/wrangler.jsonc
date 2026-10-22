@@ -46,4 +46,40 @@
   "observability": {
     "enabled": true,
   },
+  // ADR 025. Wrangler inherits none of the vars, services and queues below into an environment,
+  // and an inherited route would move production's custom domain to this Worker.
+  "env": {
+    "non-prod": {
+      "routes": [{ "pattern": "api.non-prod.ssmusor.ro", "custom_domain": true }],
+      "vars": {
+        "CORS_ORIGINS": "https://app.non-prod.ssmusor.ro,https://portal.non-prod.ssmusor.ro",
+        "API_ORIGIN": "https://api.non-prod.ssmusor.ro",
+        "APP_ORIGIN": "https://app.non-prod.ssmusor.ro",
+        "PORTAL_ORIGIN": "https://portal.non-prod.ssmusor.ro",
+        "MARKETING_ORIGIN": "https://non-prod.ssmusor.ro",
+      },
+      "services": [
+        { "binding": "MAIL", "service": "ssm-usor-mail-non-prod", "entrypoint": "Mail" },
+        { "binding": "SMS", "service": "ssm-usor-sms-non-prod", "entrypoint": "Sms" },
+        { "binding": "PDF", "service": "ssm-usor-pdf-non-prod", "entrypoint": "Pdf" },
+        { "binding": "SIGNER", "service": "ssm-usor-pdf-non-prod", "entrypoint": "Pdf" },
+      ],
+      "queues": {
+        "producers": [
+          { "binding": "REGENERATION_QUEUE", "queue": "ssm-usor-regeneration-non-prod" },
+        ],
+        "consumers": [
+          {
+            "queue": "ssm-usor-regeneration-non-prod",
+            "max_batch_size": 4,
+            "max_batch_timeout": 5,
+            "max_concurrency": 3,
+            // As in production: lastDelivery in regeneration-queue.ts is this plus one.
+            "max_retries": 3,
+            "retry_delay": 30,
+          },
+        ],
+      },
+    },
+  },
 }
