@@ -1,13 +1,14 @@
-name: Deploy
+name: Deploy non-prod
 
 # Every push to main deploys non-prod, and only non-prod: production receives a commit through
-# release.yml once non-prod has run it (ADR 025). Pull requests have their own workflow.
+# deploy-production.yml once non-prod has run it (ADR 025). Pull requests have their own workflow.
 on:
   push:
     branches:
       - main
-  # Actions → Deploy → "Run workflow", on main: deploys everything to non-prod whatever changed.
-  # For an environment that was wiped, a rotated secret, or a deployment that failed halfway.
+  # Actions → Deploy non-prod → "Run workflow", on main: deploys everything to non-prod whatever
+  # changed. For an environment that was wiped, a rotated secret, or a deployment that failed
+  # halfway.
   workflow_dispatch:
 
 permissions:
@@ -25,8 +26,8 @@ jobs:
       environment: non-prod
       sha: ${{ github.sha }}
       everything: ${{ github.event_name == 'workflow_dispatch' }}
-      # release.yml reads these runs too: a release is refused unless one of them succeeded for
-      # its commit.
-      baseline-workflow: deploy.yml
+      # deploy-production.yml reads these runs too: it releases only a commit one of them
+      # succeeded for.
+      baseline-workflow: deploy-non-prod.yml
       baseline-filter: branch=main
     secrets: inherit

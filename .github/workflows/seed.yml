@@ -52,6 +52,17 @@ jobs:
       SEED_ADMIN_NAME_INPUT: ${{ vars.SEED_ADMIN_NAME }}
       SEED_ALLOW_FAKE: ${{ vars.SEED_ALLOW_FAKE }}
     steps:
+      # The seed script and the packages it builds are those of the ref the run starts on, and
+      # production runs main's code only (ADR 025).
+      - name: Check the branch
+        if: inputs.environment == 'production'
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "::error::Seed production from main only, not from $GITHUB_REF."
+            exit 1
+          fi
+
       # Without the secret the seed script falls back to the local stack's password, which this
       # public repository prints, and would give it to a newly created admin account.
       - name: Check seed configuration

@@ -1,8 +1,9 @@
 # Deploy the application and API
 
-The **Deploy** workflow (`.github/workflows/deploy.yml`) deploys the affected applications to
-non-prod after validation succeeds on a push to `main`; the **Release** workflow
-(`.github/workflows/release.yml`) deploys them to production when a GitHub release is published
+The **Deploy non-prod** workflow (`.github/workflows/deploy-non-prod.yml`) deploys the affected
+applications to non-prod after validation succeeds on a push to `main`; the **Deploy
+production** workflow (`.github/workflows/deploy-production.yml`), run by hand from `main`,
+releases what non-prod has run and deploys it to production
 ([ADR 025](architecture/adr-025-non-production-environment.md), [CI/CD](ci-cd.md#releases)).
 Both run `.github/workflows/deploy-environment.yml`. Each application has its own deployment
 job and can be released independently. Production's Workers and domains:
@@ -152,7 +153,7 @@ Wrangler deployments; this workflow explicitly updates them on every release. Pr
 
 ## Release
 
-1. Merge or push the changes to `main`; follow the **Deploy** run in GitHub Actions, which
+1. Merge or push the changes to `main`; follow the **Deploy non-prod** run in GitHub Actions, which
    takes them to non-prod. Steps 2 to 7 then run there.
 2. CI validates generated code, lint, types, and tests once for the revision.
 3. Only affected applications are built and checked with Wrangler's dry run. The SPA build
@@ -168,10 +169,12 @@ Wrangler deployments; this workflow explicitly updates them on every release. Pr
 7. After an SPA deployment, Chromium checks login rendering, form validation, the signed-out
    redirect, and the authenticated identity/session/sign-out flow against the deployed services.
    API-only releases run the API checks; they do not redeploy or run browser checks for the SPA.
-8. Once non-prod has run the commit, publish a GitHub release whose tag is the date
-   (`2026.10.23`, `2026.10.23.2` for a second one that day) on that commit. The **Release** run
-   refuses a commit that is not on `main` or that no successful **Deploy** run has deployed,
-   then runs steps 2 to 7 against production, selecting what changed since the last release.
+8. Once non-prod has run the commit, run **Deploy production** from `main` with the tag left
+   empty. It takes the newest commit a **Deploy non-prod** run succeeded for, tags it with the
+   date (`2026.10.23`, `2026.10.23.2` for a second one that day), publishes the GitHub release,
+   then runs steps 2 to 7 against production, selecting what changed since the release
+   production runs. To roll back, run it with an earlier release's tag: that release is
+   deployed again, everything of it ([CI/CD](ci-cd.md#releases)).
 
 Browser verification is currently **non-blocking**: readiness, UI, or login failures leave a
 warning and job summary while allowing a successful deployment result. Browser report uploads

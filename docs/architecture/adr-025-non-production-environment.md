@@ -64,6 +64,8 @@ The applications are built per environment, because the SPA, the portal and the 
 
 Releases are tagged by date, `2026.10.23`, and `2026.10.23.2` for a second release that day. A fix that cannot wait is a merge and a release, and carries whatever else `main` holds unreleased; with one branch that is accepted, and it is a reason to release often.
 
+(Amended 2026-10-23. Publishing a release through GitHub's release form was clumsy, and a one-click workflow replaced it: `deploy.yml` became `deploy-non-prod.yml` (**Deploy non-prod**) and `release.yml` became `deploy-production.yml` (**Deploy production**), which is started by hand and nothing else, the `release` event no longer deploys. Run with no input, it takes the newest commit a non-prod run succeeded for, tags it with the date in Bucharest, publishes the release with notes generated from the merged pull requests, and deploys it; a commit already released is refused. Run with a release's tag, it deploys that release again, everything of it, which is how production rolls back. Production deploys only from `main`: both that workflow and a seed of production refuse a run started from any other ref, so the `production` environment's deployment policy no longer needs to admit the release tags. Production's change selection compares with the release the last successful run deployed, read from the name of the job that deployed it, because a run started by hand has `main`'s head as its commit rather than the commit it deployed.)
+
 When step 8 of [ADR 017](adr-017-legislation-monitoring.md) lets the legislation Worker open pull requests, only production's does; non-production's would open the same ones a second time.
 
 ### Accounts and credentials per environment

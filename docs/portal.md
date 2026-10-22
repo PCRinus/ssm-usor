@@ -256,10 +256,11 @@ and `noticeVersion` on the participation says whether it was.
 
 `apps/portal/wrangler.jsonc` defines the `ssm-usor-portal` Worker, serves `dist` with SPA
 fallback, and declares `portal.ssmusor.ro` as a custom domain, which Cloudflare provisions on
-the first deployment as it does `app.ssmusor.ro`. The **Deploy** workflow builds the portal
-with the same public `VITE_*` values as the app, deploys it in **Deploy portal** after the API
-when the API is selected too, and never waits for the app. **Verify deployed portal** then
-runs the Playwright smoke checks in `apps/portal/e2e` against production, advisory like the
+the first deployment as it does `app.ssmusor.ro`. The **Deploy non-prod** and **Deploy
+production** workflows build the portal with the same public `VITE_*` values as the app, deploy
+it in **Deploy portal** after the API when the API is selected too, and never wait for the app.
+**Verify deployed portal** then runs the Playwright smoke checks in `apps/portal/e2e` against
+the environment just deployed, advisory like the
 app's:
 
 ```bash

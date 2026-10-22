@@ -1,0 +1,184 @@
+name: Deploy production
+run-name: ${{ inputs.tag && format('Deploy production {0}', inputs.tag) || 'Deploy production' }}
+
+# Actions → Deploy production → "Run workflow", on main: releases the newest commit non-prod has
+# deployed, tagged with the date (2026.10.23, then 2026.10.23.2), and deploys to production what
+# changed since the release production runs (ADR 025). With a tag it deploys that release again,
+# everything of it: a rollback, or a release that failed halfway.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Leave empty to release. To deploy an earlier release again, its tag, such as 2026.10.23
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Choose the release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Two runs at once would choose the same commit and tag; the second waits, then finds the
+    # commit released and stops.
+    concurrency:
+      group: deploy-production-release
+      cancel-in-progress: false
+    permissions:
+      # To create the tag and the release.
+      contents: write
+      # To find the non-prod deployment of the commit and the last production deployment.
+      actions: read
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+      tag: ${{ steps.commit.outputs.tag }}
+      baseline: ${{ steps.baseline.outputs.sha }}
+    steps:
+      # Production only receives what non-prod has run. A successful run of deploy-non-prod.yml
+      # for the commit means non-prod has everything up to it, since each run deploys what the
+      # runs before it left undeployed. The workflow files a run uses are those of the ref it
+      # was started on, so only main's may deploy production.
+      - name: Choose the commit
+        id: commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "::error::Deploy production runs from main only, not from $GITHUB_REF."
+            exit 1
+          fi
+          release_tag='^[0-9]{4}\.[0-9]{2}\.[0-9]{2}(\.[0-9]+)?$'
+          if [[ -n "$TAG" ]]; then
+            if [[ ! "$TAG" =~ $release_tag ]]; then
+              echo "::error::$TAG is not a release tag such as 2026.10.23 or 2026.10.23.2."
+              exit 1
+            fi
+            if ! sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/refs/tags/$TAG" --jq .sha); then
+              echo "::error::There is no tag $TAG."
+              exit 1
+            fi
+          else
+            sha=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy-non-prod.yml/runs?branch=main&status=success&per_page=1" \
+              --jq '.workflow_runs[0].head_sha // empty')
+            if [[ -z "$sha" ]]; then
+              echo "::error::No run of Deploy non-prod has succeeded on main, so non-prod has run nothing to release."
+              exit 1
+            fi
+          fi
+          compare=$(gh api "repos/$GITHUB_REPOSITORY/compare/$sha...main" \
+            --jq '{status, ahead_by, message: (.base_commit.commit.message | split("\n")[0])}')
+          status=$(jq -r .status <<< "$compare")
+          ahead=$(jq -r .ahead_by <<< "$compare")
+          message=$(jq -r .message <<< "$compare")
+          if [[ "$status" != ahead && "$status" != identical ]]; then
+            echo "::error::$sha is not on main."
+            exit 1
+          fi
+          link="[\`${sha:0:7}\`]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$sha)"
+
+          if [[ -n "$TAG" ]]; then
+            deployed=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy-non-prod.yml/runs?head_sha=$sha&branch=main&status=success&per_page=1" \
+              --jq '.total_count')
+            if [[ "$deployed" == 0 ]]; then
+              echo "::error::No run of Deploy non-prod succeeded for $TAG, $sha, so non-prod has not run it."
+              exit 1
+            fi
+            echo "Deploying $TAG again, $sha: $message"
+            echo "Deploying **$TAG** again, everything of it: $link $message" >> "$GITHUB_STEP_SUMMARY"
+            echo "sha=$sha" >> "$GITHUB_OUTPUT"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          tags=$(gh api "repos/$GITHUB_REPOSITORY/tags" --paginate --jq '.[] | "\(.commit.sha) \(.name)"')
+          day=$(TZ=Europe/Bucharest date +%Y.%m.%d)
+          released=""
+          taken=0
+          while read -r tag_sha name; do
+            if [[ ! "$name" =~ $release_tag ]]; then
+              continue
+            fi
+            if [[ "$tag_sha" == "$sha" ]]; then
+              released=$name
+            fi
+            if [[ "$name" == "$day" ]] && (( taken < 1 )); then
+              taken=1
+            elif [[ "$name" == "$day".* ]] && (( 10#${name#"$day".} > taken )); then
+              taken=$(( 10#${name#"$day".} ))
+            fi
+          done <<< "$tags"
+          if [[ -n "$released" ]]; then
+            echo "::error::$sha is already released as $released. To deploy it again, run with the tag $released."
+            exit 1
+          fi
+          tag=$day
+          if (( taken > 0 )); then
+            tag=$day.$(( taken + 1 ))
+          fi
+
+          echo "Releasing $sha as $tag: $message"
+          {
+            echo "Releasing $link as **$tag**: $message"
+            if (( ahead == 1 )); then
+              echo
+              echo "One newer commit on main has not been deployed to non-prod yet and is left out."
+            elif (( ahead > 1 )); then
+              echo
+              echo "$ahead newer commits on main have not been deployed to non-prod yet and are left out."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      # The production job's name carries the tag it deploys (below), which is how this reads
+      # what the last successful run deployed: a run's head is main as it was when it started.
+      - name: Find the release production runs
+        id: baseline
+        if: inputs.tag == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy-production.yml/runs?branch=main&status=success&per_page=1" \
+            --jq '.workflow_runs[0].id // empty')
+          if [[ -z "$run" ]]; then
+            echo "No run of Deploy production has succeeded yet, so everything is selected."
+            exit 0
+          fi
+          tag=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/jobs?per_page=100" \
+            --jq 'first(.jobs[].name | capture("^Production (?<tag>[0-9.]+) /").tag) // empty')
+          if [[ -z "$tag" ]] || ! sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/refs/tags/$tag" --jq .sha); then
+            echo "Run $run names no release that still exists, so everything is selected."
+            exit 0
+          fi
+          echo "Production runs $tag, $sha, deployed by run $run."
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      # GITHUB_TOKEN rather than a personal token: a release it creates starts no other workflow.
+      - name: Publish the release
+        if: inputs.tag == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.commit.outputs.tag }}
+          SHA: ${{ steps.commit.outputs.sha }}
+        shell: bash
+        run: |
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$SHA" --title "$TAG" --generate-notes
+
+  production:
+    name: Production ${{ needs.check.outputs.tag }}
+    needs: check
+    uses: ./.github/workflows/deploy-environment.yml
+    permissions:
+      contents: read
+      actions: read
+    with:
+      environment: production
+      sha: ${{ needs.check.outputs.sha }}
+      everything: ${{ inputs.tag != '' }}
+      baseline: ${{ needs.check.outputs.baseline }}
+    secrets: inherit

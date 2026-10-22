@@ -1,9 +1,10 @@
 name: Deploy an environment
 
-# Everything that deploys one environment (ADR 025): deploy.yml calls it for non-prod on every
-# push to main, release.yml for production when a release is published. One workflow for both,
-# so what non-prod tries is what production runs. GitHub bills every job rounded up to a whole
-# minute, which is why the builds share one job and why nothing runs that has nothing to do.
+# Everything that deploys one environment (ADR 025): deploy-non-prod.yml calls it for non-prod on
+# every push to main, deploy-production.yml for production when it is run by hand. One workflow
+# for both, so what non-prod tries is what production runs. GitHub bills every job rounded up to
+# a whole minute, which is why the builds share one job and why nothing runs that has nothing to
+# do.
 on:
   workflow_call:
     inputs:
@@ -19,14 +20,18 @@ on:
         description: Deploy everything, whatever changed.
         type: boolean
         default: false
-      baseline-workflow:
-        description: The workflow whose last successful run's commit is compared with.
+      baseline:
+        description: The commit last deployed, when the caller knows it better than a run's head.
         type: string
-        required: true
+        default: ''
+      baseline-workflow:
+        description: Without `baseline`, the workflow whose last successful run's commit is compared with.
+        type: string
+        default: ''
       baseline-filter:
         description: Query parameters that narrow those runs, such as `branch=main`.
         type: string
-        required: true
+        default: ''
 
 permissions:
   contents: read
@@ -77,21 +82,28 @@ jobs:
       # the push or release before it: a run that was cancelled, superseded or failed deployed
       # nothing as far as this is concerned, so what it carried is selected again by the next
       # one. Without such a run (or when its commit is gone) a push falls back to the push
-      # before, and anything else deploys everything.
+      # before, and anything else deploys everything. Production's caller passes the commit it
+      # found itself, because a run started by hand has main's head, not what it deployed.
       - name: Find the last commit that was deployed
         id: baseline
         if: ${{ !inputs.everything }}
         env:
           GH_TOKEN: ${{ github.token }}
+          BASELINE: ${{ inputs.baseline }}
           RUNS: ${{ inputs.baseline-workflow }}
           FILTER: ${{ inputs.baseline-filter }}
           BEFORE: ${{ github.event.before }}
         shell: bash
         run: |
-          sha=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$RUNS/runs?$FILTER&status=success&per_page=1" \
-            --jq '.workflow_runs[0].head_sha // empty' || true)
+          sha=$BASELINE
+          source="the commit the caller found last deployed"
+          if [[ -z "$sha" && -n "$RUNS" ]]; then
+            sha=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$RUNS/runs?$FILTER&status=success&per_page=1" \
+              --jq '.workflow_runs[0].head_sha // empty' || true)
+            source="the last commit a run of $RUNS ($FILTER) succeeded for"
+          fi
           if [[ -n "$sha" ]] && git fetch --no-tags --depth=1 origin "$sha" 2>/dev/null; then
-            echo "Comparing with $sha, the last commit a run of $RUNS ($FILTER) succeeded for."
+            echo "Comparing with $sha, $source."
             echo "base=$sha" >> "$GITHUB_OUTPUT"
           elif [[ -n "$BEFORE" ]] && git fetch --no-tags --depth=1 origin "$BEFORE" 2>/dev/null; then
             echo "No usable successful run; comparing with the push before this one."
