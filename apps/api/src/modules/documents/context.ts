@@ -596,6 +596,8 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
     'workplace_manager',
     legalRepresentative
   );
+  // A missing representative leaves out only the client part, so the themes still reach this.
+  const representative = client.representativeName?.trim();
   const trainerOf = (position: DocumentFacts['jobPositions'][number]) => {
     const provider = providerTrainer(organization.legalName!, facts.specialist!.fullName!);
     if (position.staffCategory !== 'execution') return provider;
@@ -603,10 +605,9 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
       position.currentEmployees,
       {
         managers: managerRows,
-        legalRepresentative: {
-          employeeId: legalRepresentative.employeeId,
-          fullName: client.representativeName!,
-        },
+        legalRepresentative: representative
+          ? { employeeId: legalRepresentative.employeeId, fullName: representative }
+          : null,
         specialist: { employeeId: null, fullName: facts.specialist!.fullName! },
       },
       legalRepresentative
@@ -615,7 +616,7 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
       case 'managers':
         return workplaceManagersTrainer(resolved.managers.map((person) => person.fullName.trim()));
       case 'legal_representative':
-        return `${client.representativeName!.trim()} – ${client.representativeRole!.trim()}`;
+        return `${representative} – ${client.representativeRole?.trim() || 'administrator'}`;
       default:
         return provider;
     }

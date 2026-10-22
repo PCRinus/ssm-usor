@@ -745,6 +745,21 @@ describe('the merge context', () => {
         })
       )
     ).toBe('S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN');
+    const unrepresented = buildPartialDocumentContext(
+      {
+        ...headAlone,
+        client: { ...facts.client, representativeName: null, representativeRole: null },
+        responsiblePersons: headAlone.responsiblePersons.map((person) =>
+          person.fullName === 'Florin Cristian TALOȘ'
+            ? { ...person, roles: person.roles.filter((role) => role !== 'workplace_manager') }
+            : person
+        ),
+      },
+      'training_themes'
+    );
+    expect(
+      unrepresented.themes?.positions.find((position) => position.name === 'SUDOR')?.trainer
+    ).toBe('S.C. SERVICIU EXTERN DEMO S.R.L. – Dan MARIN');
   });
 
   it('dates a module version by the Romanian calendar day, past midnight there while it is still the day before in UTC', () => {
