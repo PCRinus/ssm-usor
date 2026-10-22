@@ -1029,7 +1029,10 @@ The API builds the data once per generation and merges every template with it
   modules it annexes at the versions it annexed them. It is absent while there is no such
   revision (none, or an uploaded file), and `documentData(context, 'training_themes')` then
   throws; every other document merges as before. The template reads it by dotted paths, so the
-  snapshot records the whole object and any change in it marks the themes "Date modificate":
+  snapshot records the whole object and any change in it marks a draft "Date modificate"; the
+  `versionIds` also put an issued revision **behind** once the library replaces one of them or
+  the positions' modules change (`documents_behind`, [API](api.md), ADR 014 amendment of
+  2026-10-22):
 
   | Name                             | Example                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
   | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1111,7 +1114,8 @@ The API builds the data once per generation and merges every template with it
   first, and generating 3.1 again without one is refused with `documents.fire_own_instructions`
   (`missingFireSafetyData(facts, 'fire_training_themes')`). The snapshot records the whole
   object, so a regenerated IPSU, a new module version or a change of a category's posts or
-  schedule marks the themes "Date modificate":
+  schedule marks a draft "Date modificate", and the `versionIds` put an issued revision behind
+  as 4.2's do:
 
   | Name                                      | Example                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
   | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -477,9 +477,10 @@ export const listDocumentsBehindRoute = createRoute({
   method: 'get',
   path: '/documents/behind',
   operationId: 'listDocumentsBehind',
-  summary: "List the organization's documents behind their template, by document type",
+  summary:
+    "List the organization's documents behind their template or their instructions, by document type",
   description:
-    "A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: the template's newest version, the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from and whether it is a draft edited by hand. Types with nobody behind are left out.",
+    "A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. The own instructions and the training themes of either set are also behind when the library holds a newer version of an instruction module they were built from, or when the client's current positions apply another set of modules than they cite (ADR 012, ADR 014): an issued revision is frozen, so only regenerating brings the change in. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: the template's newest version, the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from, whether it is a draft edited by hand, `behindTemplate`, and the `instructionChanges` per module (`module_version` with the date of the library's newest version, `module_added`, `module_removed`). Types with nobody behind are left out.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   responses: {
@@ -505,7 +506,7 @@ export const startDocumentRegenerationRoute = createRoute({
   method: 'post',
   path: '/documents/behind/regenerate',
   operationId: 'startDocumentRegeneration',
-  summary: 'Regenerate one document type for every client behind its template',
+  summary: 'Regenerate one document type for every client behind it',
   description:
     'Starts a regeneration job with one queued item per client behind, each regenerated in the background as `POST /documents/{documentId}/regenerate` would, with the caller as the specialist. A draft edited by hand is skipped, since regenerating would discard the edits; an issued document gets a new draft, and issuing stays per client. Follow the progress with `GET /documents/regeneration-jobs/{jobId}`. `409` with the reason `nothing_behind` when no client is behind, and `regeneration_running` while a job of the same type is under way.',
   security: bearerSecurity,

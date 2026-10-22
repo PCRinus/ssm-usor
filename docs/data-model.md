@@ -987,14 +987,22 @@ rows but not the files (issue #77).
 `documents_behind` is a view, security invoker, so every table in it answers to the caller's
 policies: one row per document of an active client (not archived, stage `client`) whose newest
 revision, by number, was generated from a template version older than a `legal` or
-`correction` version of the same template ([ADR 017](architecture/adr-017-legislation-monitoring.md)).
-It carries the document, the client's name, the version the revision came from
-(`revision_version`), the template's newest version with its kind and note, and
-`edited_draft`, set when that revision is a draft saved by hand since it was generated. An
-uploaded revision has no template version and is never in it; neither is the service
-contract (group `other`), which is regenerated from its own page, nor a dated document of an
-earlier period than the client's newest of that type (ADR 020): an earlier year's report is
-what was written for that year.
+`correction` version of the same template ([ADR 017](architecture/adr-017-legislation-monitoring.md)),
+or, for `own_instructions`, `training_themes`, `fire_own_instructions` and
+`fire_training_themes`, built from instruction module versions the library has since replaced
+or citing another set of modules than the client's current positions apply in the document's
+domain ([ADR 014](architecture/adr-014-training-themes.md), amendment of 2026-10-22). The
+cited versions are read from the revision's `data_snapshot`: `annexes[].versionId` for the own
+instructions, `themes.ownInstructionsRevision.versionIds` and
+`fireThemes.ownInstructionsRevision.versionIds` for the themes. It carries the document, the
+client's name, the version the revision came from (`revision_version`), the template's newest
+version with its kind and note, `edited_draft`, set when that revision is a draft saved by
+hand since it was generated, `behind_template`, and `instruction_changes`, a JSON array of
+`{code, title, newestVersionAt}` with `module_version`, `module_added` or `module_removed`
+per module, empty for a document behind its template alone. An uploaded revision has no
+template version and is never in it; neither is the service contract (group `other`), which is
+regenerated from its own page, nor a dated document of an earlier period than the client's
+newest of that type (ADR 020): an earlier year's report is what was written for that year.
 
 `regeneration_jobs` holds one document type regenerated for every client behind it: the
 organization, `type_key`, `requested_by` (the member the documents name as their specialist),

@@ -51,6 +51,8 @@ const behindRow = (overrides: Record<string, unknown>) => ({
   client_name: 'Zebra S.R.L.',
   revision_version: 1,
   edited_draft: false,
+  behind_template: true,
+  instruction_changes: [],
   ...overrides,
 });
 const behindRows = [
@@ -188,6 +190,8 @@ describe('GET /documents/behind', () => {
             clientName: 'Zebra S.R.L.',
             version: 1,
             editedDraft: false,
+            behindTemplate: true,
+            instructionChanges: [],
           },
         ],
       },
@@ -207,6 +211,8 @@ describe('GET /documents/behind', () => {
             clientName: 'Alba S.R.L.',
             version: 2,
             editedDraft: true,
+            behindTemplate: true,
+            instructionChanges: [],
           },
           {
             documentId: 'd0000000-0000-4000-8000-000000000001',
@@ -214,6 +220,8 @@ describe('GET /documents/behind', () => {
             clientName: 'Zebra S.R.L.',
             version: 1,
             editedDraft: false,
+            behindTemplate: true,
+            instructionChanges: [],
           },
         ],
       },
@@ -223,6 +231,61 @@ describe('GET /documents/behind', () => {
       `eq.${organizationId}`
     );
     expect(authorization(read!)).toBe('Bearer test-access-token');
+  });
+
+  it('names what moved in the instructions of a client behind on them, leaving out a change it does not know', async () => {
+    mockUpstream({
+      behind: () =>
+        Response.json([
+          behindRow({
+            type_key: 'training_themes',
+            template_title: 'Tematica și programul de instruire',
+            newest_version: 2,
+            newest_kind: 'layout',
+            newest_note: null,
+            revision_version: 2,
+            behind_template: false,
+            instruction_changes: [
+              {
+                code: 'module_version',
+                title: 'Lucrul la înălțime',
+                newestVersionAt: '2026-10-12T09:30:00+00:00',
+              },
+              { code: 'module_removed', title: 'Scări metalice', newestVersionAt: null },
+              { code: 'module_moved', title: 'Sudură', newestVersionAt: null },
+            ],
+          }),
+        ]),
+      jobs: () => Response.json([]),
+    });
+    const response = await request('/documents/behind');
+    expect(response.status).toBe(200);
+    expect(documentsBehindResponseSchema.parse(await response.json()).items).toEqual([
+      {
+        typeKey: 'training_themes',
+        title: 'Tematica și programul de instruire',
+        newestVersion: { version: 2, kind: 'layout', note: null },
+        runningJobId: null,
+        clients: [
+          {
+            documentId: 'd0000000-0000-4000-8000-000000000001',
+            clientId: zebraId,
+            clientName: 'Zebra S.R.L.',
+            version: 2,
+            editedDraft: false,
+            behindTemplate: false,
+            instructionChanges: [
+              {
+                code: 'module_version',
+                title: 'Lucrul la înălțime',
+                newestVersionAt: '2026-10-12T09:30:00+00:00',
+              },
+              { code: 'module_removed', title: 'Scări metalice', newestVersionAt: null },
+            ],
+          },
+        ],
+      },
+    ]);
   });
 
   it('is empty when nothing is behind', async () => {

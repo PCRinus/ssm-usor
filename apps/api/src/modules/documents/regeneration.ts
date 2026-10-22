@@ -2,12 +2,14 @@ import {
   type BuiltInDocumentTypeKey,
   builtInDocumentTypeKeySchema,
   type DocumentsBehindType,
+  instructionChangeSchema,
   type MissingDocumentData,
   missingDocumentDataSchema,
   type RegenerationItemStatus,
   type RegenerationJob,
   type TemplateVersionKind,
 } from '@ssm-usor/contracts';
+import { z } from 'zod';
 
 import type { AdminClient } from '../../lib/admin-db';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
@@ -25,6 +27,22 @@ const byName = (a: { clientName: string }, b: { clientName: string }) =>
 // A Queues limit: at most a hundred messages in one send.
 const sendBatchSize = 100;
 
+// A code the view learns before the API does would otherwise fail the whole list.
+const instructionChangesSchema = z.array(
+  z
+    .object({ code: z.string() })
+    .loose()
+    .transform((entry) => {
+      const known = instructionChangeSchema.safeParse(entry);
+      return known.success ? known.data : null;
+    })
+);
+
+const instructionChangesOf = (value: unknown) => {
+  const parsed = instructionChangesSchema.safeParse(value);
+  return parsed.success ? parsed.data.filter((change) => change !== null) : [];
+};
+
 export async function listDocumentsBehind(
   db: DataClient,
   organizationId: string
@@ -33,7 +51,7 @@ export async function listDocumentsBehind(
     db
       .from('documents_behind')
       .select(
-        'type_key, template_title, newest_version, newest_kind, newest_note, document_id, client_id, client_name, revision_version, edited_draft'
+        'type_key, template_title, newest_version, newest_kind, newest_note, document_id, client_id, client_name, revision_version, edited_draft, behind_template, instruction_changes'
       )
       .eq('organization_id', organizationId),
     db
@@ -69,6 +87,8 @@ export async function listDocumentsBehind(
       clientName: row.client_name!,
       version: row.revision_version!,
       editedDraft: row.edited_draft!,
+      behindTemplate: row.behind_template!,
+      instructionChanges: instructionChangesOf(row.instruction_changes),
     });
   }
   return [...types.values()]
