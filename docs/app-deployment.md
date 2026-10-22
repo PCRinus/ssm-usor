@@ -78,8 +78,9 @@ in the `production` GitHub environment before deploying. The build uploads hidde
 maps only when the personal API key and project ID are set; the plugin removes them from the release
 after upload. For local development use a separate EU project and leave the token unset by default.
 
-The workflow builds `API_URL` into the SPA and the portal as `VITE_API_URL`, and the four
-addresses into the marketing site as `PUBLIC_API_URL`, `PUBLIC_APP_URL` and `PUBLIC_SITE_URL`.
+The workflow builds `API_URL` into the SPA and the portal as `VITE_API_URL`, and
+`API_URL`, `APP_URL` and `MARKETING_URL` into the marketing site as `PUBLIC_API_URL`,
+`PUBLIC_APP_URL` and `PUBLIC_SITE_URL`.
 It builds the public Supabase settings into the SPA and passes the same settings to
 the API as `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. These are public configuration,
 not administrator credentials. The access token and database password are used only by the
