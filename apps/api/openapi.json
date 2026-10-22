@@ -17476,7 +17476,7 @@
             }
           },
           "503": {
-            "description": "A dependency is temporarily unavailable",
+            "description": "Storage is unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -33586,7 +33586,7 @@
             }
           },
           "503": {
-            "description": "A dependency is temporarily unavailable",
+            "description": "Storage is unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -34157,7 +34157,7 @@
             }
           },
           "503": {
-            "description": "A dependency is temporarily unavailable",
+            "description": "Storage is unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -36103,7 +36103,7 @@
             }
           },
           "503": {
-            "description": "A dependency is temporarily unavailable",
+            "description": "Storage is unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -37067,7 +37067,7 @@
             }
           },
           "503": {
-            "description": "A dependency is temporarily unavailable",
+            "description": "Storage is unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -37270,7 +37270,7 @@
             }
           },
           "503": {
-            "description": "A dependency is temporarily unavailable",
+            "description": "Storage is unavailable",
             "content": {
               "application/json": {
                 "schema": {

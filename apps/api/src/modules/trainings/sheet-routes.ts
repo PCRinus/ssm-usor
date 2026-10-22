@@ -113,5 +113,6 @@ export const getTrainingSheetLinkRoute = createRoute({
       content: errorContent,
     },
     ...membershipErrors,
+    503: { description: 'Storage is unavailable', content: errorContent },
   },
 });

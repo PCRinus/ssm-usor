@@ -250,6 +250,7 @@ export const getSigningAgreementLinkRoute = createRoute({
       content: errorContent,
     },
     ...membershipErrors,
+    503: { description: 'Storage is unavailable', content: errorContent },
   },
 });
 
@@ -386,6 +387,7 @@ export const getPortalSigningAgreementLinkRoute = createRoute({
       description: `${ownAgreementErrors[404].description}, or nobody has signed the agreement electronically yet (reason \`agreement_not_stored\`)`,
       content: errorContent,
     },
+    503: { description: 'Storage is unavailable', content: errorContent },
   },
 });
 
@@ -625,5 +627,6 @@ export const getPortalEmployeeSigningAgreementLinkRoute = createRoute({
         "The participation is not the account's, the employee is not of the client, or nobody has signed the agreement electronically yet (reason `agreement_not_stored`)",
       content: errorContent,
     },
+    503: { description: 'Storage is unavailable', content: errorContent },
   },
 });
