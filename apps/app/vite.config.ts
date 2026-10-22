@@ -18,7 +18,7 @@ function commitSha() {
   }
 }
 
-const posthogApiKey = process.env.POSTHOG_PERSONAL_API_KEY;
+const posthogApiKey = process.env.POSTHOG_SOURCEMAPS_UPLOAD_KEY;
 const posthogProjectId = process.env.POSTHOG_PROJECT_ID;
 
 export default defineConfig({
