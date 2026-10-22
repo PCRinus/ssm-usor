@@ -7992,6 +7992,18 @@ export const EmployeeParticipantStateParticipantChannel = {
 /**
  * @nullable
  */
+export type EmployeeParticipantStateParticipantLanguage =
+  | (typeof EmployeeParticipantStateParticipantLanguage)[keyof typeof EmployeeParticipantStateParticipantLanguage]
+  | null;
+
+export const EmployeeParticipantStateParticipantLanguage = {
+  ro: 'ro',
+  en: 'en',
+} as const;
+
+/**
+ * @nullable
+ */
 export type EmployeeParticipantStateParticipant = {
   id: string;
   clientId: string;
@@ -8008,6 +8020,8 @@ export type EmployeeParticipantStateParticipant = {
   revokedAt: string | null;
   /** @nullable */
   noticeVersion: string | null;
+  /** @nullable */
+  language: EmployeeParticipantStateParticipantLanguage;
 } | null;
 
 export type EmployeeParticipantStateInvitationKind =
@@ -8166,6 +8180,18 @@ export const ClientParticipantsResponseParticipantsItemChannel = {
   sms: 'sms',
 } as const;
 
+/**
+ * @nullable
+ */
+export type ClientParticipantsResponseParticipantsItemLanguage =
+  | (typeof ClientParticipantsResponseParticipantsItemLanguage)[keyof typeof ClientParticipantsResponseParticipantsItemLanguage]
+  | null;
+
+export const ClientParticipantsResponseParticipantsItemLanguage = {
+  ro: 'ro',
+  en: 'en',
+} as const;
+
 export type ClientParticipantsResponseParticipantsItem = {
   id: string;
   clientId: string;
@@ -8182,6 +8208,8 @@ export type ClientParticipantsResponseParticipantsItem = {
   revokedAt: string | null;
   /** @nullable */
   noticeVersion: string | null;
+  /** @nullable */
+  language: ClientParticipantsResponseParticipantsItemLanguage;
 };
 
 export type ClientParticipantsResponseInvitationsItemKind =

@@ -89,7 +89,7 @@ test('a specialist records a training with signers, marks a slot on paper and vo
   await expect(group.getByTestId('signature-request')).toHaveCount(2);
   await expect(page.getByTestId('signature-requests-sign')).toBeDisabled();
 
-  await page.goto(`/clients/${clientId}/trainings`);
+  await page.goto(`/clients/${clientId}/portal`);
   await expect(page.getByTestId('client-signature-requests')).toContainText(
     '2 semnături în așteptare'
   );

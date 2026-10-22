@@ -21,7 +21,7 @@ import {
 } from '@/api/generated/api';
 
 import { participantFailure } from './participant-errors';
-import { channelLabels, formatDay, formatTime } from './participant-format';
+import { channelLabels, formatDay, formatTime, languageLabels } from './participant-format';
 import { useRefreshParticipants } from './use-refresh-participants';
 import { useTimeReached } from './use-time-reached';
 
@@ -197,6 +197,12 @@ export function ParticipantStatus({
             </>
           )}{' '}
           din {formatDay(participant.createdAt)}.
+          {participant.language && (
+            <span data-testid="participant-language">
+              {' '}
+              Folosește portalul în {languageLabels[participant.language]}.
+            </span>
+          )}
         </>
       }
       actions={

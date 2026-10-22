@@ -285,6 +285,7 @@ describe('client fire-safety documents', () => {
         'Documente PSI',
         'Contract',
         'Alte documente',
+        'Portal',
       ])
     );
     const tabs = screen.getAllByTestId('client-section');

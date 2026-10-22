@@ -717,6 +717,7 @@ describe('client details', () => {
       'Documente PSI',
       'Contract',
       'Alte documente',
+      'Portal',
     ]);
     const cards = Array.from(page.querySelectorAll(':scope > [data-testid]')).map((card) =>
       card.getAttribute('data-testid')

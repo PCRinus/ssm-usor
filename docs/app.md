@@ -202,6 +202,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clients/$clientId/contract/edit.tsx`                                | `/clients/:id/contract/edit`                                | The client's contract in the editor; a full page.                                                                                                                                                           |
 | `routes/_authenticated/clients/$clientId/other-documents.tsx`                              | `/clients/:id/other-documents`                              | Layout of "Alte documente" carrying the breadcrumb title.                                                                                                                                                   |
 | `routes/_authenticated/clients/$clientId/other-documents/index.tsx`                        | `/clients/:id/other-documents`                              | "Alte documente", the client's files (ADR 013): uploading, opening, downloading, renaming, deleting.                                                                                                        |
+| `routes/_authenticated/clients/$clientId/portal.tsx`                                       | `/clients/:id/portal`                                       | "Portal", the last tab (ADR 022, ADR 023): who of the client signs in to the portal, the administrator and the employees, and the signatures the portal is waiting for.                                     |
 | `routes/_authenticated/leads/$leadId/contract.tsx`                                         | `/leads/:id/contract`                                       | A lead's contract in the editor.                                                                                                                                                                            |
 | `routes/_authenticated/leads.tsx`                                                          | pathless                                                    | Leads section layout carrying the breadcrumb title.                                                                                                                                                         |
 | `routes/_authenticated/leads/index.tsx`                                                    | `/leads`                                                    | Owners' list of the organization's leads (ADR 007), active or archived.                                                                                                                                     |
@@ -877,7 +878,7 @@ their tab bars read.
   the way back); `DocumentEditorPage` builds one from the client's list of documents, and
   `ServiceContractEditor` from `GET …/service-contract`, because that list is the
   documentation set only. "Modifică" on an issued contract works as for any document.
-- `/clients/:clientId/other-documents`: "Alte documente", the last tab of a client, for owners
+- `/clients/:clientId/other-documents`: "Alte documente", the tab before "Portal", for owners
   and specialists alike, in `src/features/client-files/` ([ADR 013](architecture/adr-013-client-files.md)).
   `ClientFilesCard` lists `GET /clients/{clientId}/files`: the kind as an icon and a word (PDF,
   Imagine, Word, Excel), the name with the note under it, the size, the day of the upload and
@@ -895,6 +896,23 @@ their tab bars read.
   the list and the downloads only: no dialog, no drop. The same card is on a lead's page,
   where it says that the files stay the owners' until promotion and has no switch. The card
   lists the client's own files only: an employee's files stay on the employee page.
+- `/clients/:clientId/portal`: "Portal", the last tab of a client, in
+  `src/features/participants/` ([ADR 022](architecture/adr-022-participants-and-the-portal.md),
+  [ADR 023](architecture/adr-023-advanced-electronic-signature.md)). `ClientPortalPage` reads
+  `GET /clients/{clientId}/participants` once and, while the client has no administrator in
+  the portal or no employee with access, opens with the notice "Fără acces încă" naming what
+  is missing. Then three cards: "Administratorul clientului" (`ClientAdministratorCard`) with
+  "Invită administratorul", whose dialog proposes the legal representative's name and the
+  contact's address; "Angajații în portal" (`PortalEmployeesCard`), the employees with access
+  and the invited ones, each named with a link to their page, their standing (`ParticipantStatus`
+  or `InvitationStatus`: the address they sign in with, since when or until when, the language
+  they chose in the portal, and resend or revoke), and "Invită un angajat", which picks one of
+  the client's employees (`InviteEmployeePicker`) and then opens the same dialog as the
+  employee page's "Acces la portal" card; and "Semnături în așteptare"
+  (`ClientSignatureRequests`), the client's pending signature requests by employee, each
+  linking the record's training tab, or "Nicio semnătură în așteptare.". An archived client
+  gets no invite or resend. The employee page keeps its own "Acces la portal" card for that
+  one employee; nothing else of the client's page names the portal.
 - The employee page ends with "Fișiere", the same card for that employee's files
   (`EmployeeFilesCard` in `src/features/client-files/`, [ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)):
   it lists `GET /clients/{clientId}/files?employeeId=`, and its upload dialog names the

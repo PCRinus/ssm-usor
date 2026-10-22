@@ -753,7 +753,7 @@ describe('the contract of a client', () => {
     await screen.findByTestId('contract-page');
     await waitFor(() => expect(document.title).toBe('Contract — VELOCITA URBANA SRL — SSM Ușor'));
     const sections = screen.getAllByTestId('client-section').map((link) => link.textContent);
-    expect(sections.slice(-2)).toEqual(['Contract', 'Alte documente']);
+    expect(sections.slice(-3)).toEqual(['Contract', 'Alte documente', 'Portal']);
     const open = await screen.findByTestId('contract-open');
     expect(open.getAttribute('href')).toBe(`/clients/${leadId}/contract/edit`);
 
