@@ -653,7 +653,7 @@ describe('GET /clients/{clientId}/trainings/proposal', () => {
     expect(trainingProposalSchema.parse(await response.json())).toEqual({
       durationMinutes: 120,
       material:
-        'I.P.S.S.M. Art. 45 – 56; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31',
+        'I.P.S.S.M. Art. 45 – 95; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31',
       trainer: { name: 'Ion POP', jobTitle: 'Șef atelier' },
       verifier: { name: 'Dan MARIN', jobTitle: 'Inspector SSM' },
       admittedBy: null,

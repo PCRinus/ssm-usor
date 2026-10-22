@@ -1903,19 +1903,19 @@ describe('the training themes', () => {
           sessions: [
             [
               'FEBRUARIE',
-              'I.P.S.S.M. Art.\u00a01\u00a0–\u00a046; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
+              'I.P.S.S.M. Art.\u00a01\u00a0–\u00a095; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
             ],
             [
               'MAI',
-              'I.P.S.S.M. Art.\u00a047\u00a0–\u00a095; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
+              'I.P.S.S.M. Art.\u00a096\u00a0–\u00a0159; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
             ],
             [
               'AUGUST',
-              'I.P.S.S.M. Art.\u00a096\u00a0–\u00a0194; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
+              'I.P.S.S.M. Art.\u00a0160\u00a0–\u00a0235; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
             ],
             [
               'NOIEMBRIE',
-              'I.P.S.S.M. Art.\u00a0195\u00a0–\u00a0290; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
+              'I.P.S.S.M. Art.\u00a0236\u00a0–\u00a0290; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a014',
             ],
           ].map(([month, content]) => ({ month, content, duration: '120 min' })),
         },
@@ -3774,7 +3774,7 @@ describe('the fire-safety set', () => {
         versionIds: [hotWorkVersion.id],
       });
       expect(fireThemes.categories[0]!.sessions[0]!.content).toBe(
-        'IPSU art.\u00a01–76; I.P.S.U. Lucrul cu foc deschis, art.\u00a01–7; instrucțiunile afișate la locul de muncă (Decizia nr.\u00a09 PSI); organizarea apărării împotriva incendiilor la locul de muncă'
+        'IPSU art.\u00a01–73; I.P.S.U. Lucrul cu foc deschis, art.\u00a01–7; instrucțiunile afișate la locul de muncă (Decizia nr.\u00a09 PSI); organizarea apărării împotriva incendiilor la locul de muncă'
       );
     });
 

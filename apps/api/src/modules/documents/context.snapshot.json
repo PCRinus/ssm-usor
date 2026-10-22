@@ -1556,12 +1556,12 @@
         "name": "CONTABIL",
         "sessions": [
           {
-            "content": "I.P.S.S.M. Art. 1 – 95; I.P.S.S.M. Activități de birou, Art. 1 – 12",
+            "content": "I.P.S.S.M. Art. 1 – 159; I.P.S.S.M. Activități de birou, Art. 1 – 12",
             "duration": "120 min",
             "month": "FEBRUARIE"
           },
           {
-            "content": "I.P.S.S.M. Art. 96 – 290; I.P.S.S.M. Activități de birou, Art. 1 – 12",
+            "content": "I.P.S.S.M. Art. 160 – 290; I.P.S.S.M. Activități de birou, Art. 1 – 12",
             "duration": "120 min",
             "month": "AUGUST"
           }
@@ -1586,22 +1586,22 @@
             "month": "FEBRUARIE"
           },
           {
-            "content": "I.P.S.S.M. Art. 45 – 56; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",
+            "content": "I.P.S.S.M. Art. 45 – 95; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",
             "duration": "120 min",
             "month": "APRILIE"
           },
           {
-            "content": "I.P.S.S.M. Art. 57 – 95; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",
+            "content": "I.P.S.S.M. Art. 96 – 159; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",
             "duration": "120 min",
             "month": "IUNIE"
           },
           {
-            "content": "I.P.S.S.M. Art. 96 – 179; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",
+            "content": "I.P.S.S.M. Art. 160 – 194; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",
             "duration": "120 min",
             "month": "AUGUST"
           },
           {
-            "content": "I.P.S.S.M. Art. 180 – 235; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",
+            "content": "I.P.S.S.M. Art. 195 – 235; I.P.S.S.M. Activități de birou, Art. 1 – 12; I.P.S.S.M. Sudură oxiacetilenică, Art. 1 – 31",
             "duration": "120 min",
             "month": "OCTOMBRIE"
           },
