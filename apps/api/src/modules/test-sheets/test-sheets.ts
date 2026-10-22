@@ -1,4 +1,5 @@
 import {
+  type FileLinkResponse,
   knowledgeTestCodeOf,
   knowledgeTestTitleOf,
   samePerson,
@@ -16,6 +17,7 @@ import { type AdminClient, adminClient } from '../../lib/admin-db';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { createAdminFileStore } from '../../lib/files';
 import { builtInTemplates, merge } from '../documents/documents';
 import { signedOn } from '../signed-sheets/form';
 import { type SignedSheetContext, signedSheetContext } from '../signed-sheets/signed-sheets';
@@ -646,3 +648,21 @@ export async function readTestSheet(deps: TestSheetDeps, resultId: string) {
 
 export const testSheetPdf = (c: Context<ApiEnv>, resultId: string) =>
   readTestSheet(testSheetDeps(c), resultId);
+
+// Only a stored sheet: drawing one up stays with the PDF route, which a click asks for, never a
+// link the page prepares as it renders. Every version is a file of its own, so a link names the
+// version that was current when it was signed.
+export async function storedTestSheetLink(
+  c: Context<ApiEnv>,
+  resultId: string,
+  fileName: string
+): Promise<FileLinkResponse> {
+  const sheet = await storedTestSheet(adminClient(c.env), resultId);
+  if (!sheet) throw testSheetNotAvailable();
+  const expiresInSeconds = 600;
+  return {
+    url: await createAdminFileStore(c).documentLink(sheet.storage_path, expiresInSeconds),
+    fileName,
+    expiresInSeconds,
+  };
+}

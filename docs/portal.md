@@ -75,8 +75,15 @@ privacy policy and the commit version. The public pages, sign-in, `/alege`, the 
 privacy notice, no access and not found, render inside the `PublicFrame` of `@ssm-usor/ui`
 that the app's login pages use too, with the portal's own version line as its footer.
 
-A sheet opens as a PDF in a tab opened before the request, as the app's preview does, or is
-downloaded; a sheet that is not ready names what the specialist still has to fill.
+A stored sheet, its originals, a signed agreement, a stored test sheet and the issued test
+material are real anchors to `GET /files/download`
+(`useFileLink` in `src/lib/file-link.ts`, the link signed through the portal's `…/link` routes
+and renewed before it expires): the PDF is shown `inline`, in a tab of its own, which the in-app
+browser of a mail client can open where it cannot download, and _Descarcă_ is an attachment. A
+sheet drawn up on the spot, the merged reading copy, an agreement nobody has signed yet and a
+test sheet the pass could not draw up have no stored file, so they still open as a PDF in a tab opened before the request, as the app's
+preview does, or are downloaded; a sheet that is not ready names what the specialist still has
+to fill.
 
 ## Knowledge tests
 
@@ -90,8 +97,10 @@ checkbox since several may be correct, `Continuă` saving the answer before it m
 result, from which a failed attempt is retaken at once.
 
 **The test sheet.** Under each portal result _Instruiri_ shows "Fișa de test" with the state of
-its two slots, the trainee's and the examiner's, and opens its PDF (`GET …/tests/results/{id}/sheet`)
-in a tab opened before the request, as the training sheets do; while the trainee's slot is
+its two slots, the trainee's and the examiner's, and links its stored PDF
+(`GET …/tests/results/{id}/sheet/link`, fetched anew when a slot changes, since a signature
+stores a new version); a sheet the pass could not draw up opens from `GET …/tests/results/{id}/sheet`
+in a tab opened before the request, which draws it up; while the trainee's slot is
 `pending` it points to Semnături, and so does the result screen of a pass. A paper result has no
 sheet. Its request is listed and signed with the records' (`SigningItemText`, the signing screen,
 the client administrator's pending list), named through Lingui from `testSheet` rather than the
@@ -103,10 +112,10 @@ What the pages call, all in the portal's generated client ([API, Portal](api.md#
   hiring test while `pending`, the annual one once `annual_due`. A test is never sent; nothing
   else says it awaits.
 - The test page opens with `GET …/tests/{domain}/{test}/study-card`, the explanations of the
-  test's questions and, when the client has one issued, the material it closes, whose PDF
-  `GET …/materials/{domain}` serves inline: the general training material for `ssm`, the IPSU
+  test's questions and, when the client has one issued, the material it closes, linked from
+  `GET …/materials/{domain}/link` and shown inline: the general training material for `ssm`, the IPSU
   with its annexes for `psi`. A missing material answers `404 material_not_issued`, and the card
-  then shows the explanations alone.
+  then shows the explanations alone. `GET …/materials/{domain}` serves the same PDF.
 - `POST …/tests/{domain}/{test}/attempts` starts the sitting, or answers the one in progress,
   which `GET …/tests` also returns as `inProgress`: ten questions, one a screen, with
   `chosen` as answered so far. Each answer is saved as it is given with

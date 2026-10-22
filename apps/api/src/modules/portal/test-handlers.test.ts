@@ -541,6 +541,63 @@ describe('GET /portal/participants/{participantId}/tests/results/{resultId}/shee
   });
 });
 
+describe('GET /portal/participants/{participantId}/tests/results/{resultId}/sheet/link', () => {
+  const resultId = '7e7e7e7e-0000-4000-8000-000000000001';
+  const storagePath = `test-sheets/${clientId}/${employeeId}/${resultId}/v2-1a2b3c4d.pdf`;
+
+  function withPortalResult(testSheets: Handler) {
+    mockUpstream({ testSheets });
+    const upstream = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : String(input));
+      if (url.pathname === '/rest/v1/test_results') {
+        return Response.json({
+          id: resultId,
+          domain: 'ssm',
+          test: 'hiring',
+          taken_on: '2026-10-20',
+          source: 'portal',
+          employee_id: employeeId,
+          employees: { last_name: 'Popescu', first_name: 'Ion' },
+        });
+      }
+      return upstream(input, init);
+    });
+  }
+
+  it('signs a ten-minute link to the stored sheet with the secret key', async () => {
+    withPortalResult(() => Response.json({ id: 'f0f0f0f0', storage_path: storagePath }));
+
+    const response = await request(own(`/tests/results/${resultId}/sheet/link`));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      url: expect.stringContaining(`/storage/v1/object/sign/documents/${storagePath}`),
+      fileName: 'Fisa-de-test-TASSM-Popescu-Ion-2026-10-20.pdf',
+      expiresInSeconds: 600,
+    });
+    const [signing] = calls(`/storage/v1/object/sign/documents/${storagePath}`);
+    expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(
+      'Bearer sb_secret_test_key_value'
+    );
+    expect(JSON.parse(String(signing![1]?.body))).toEqual({ expiresIn: 600 });
+    const query = new URL(String(calls('/rest/v1/test_results')[0]![0])).searchParams;
+    expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
+  });
+
+  it('draws up no sheet the pass could not, leaving that to the PDF route', async () => {
+    withPortalResult(() => Response.json(null));
+
+    const response = await request(own(`/tests/results/${resultId}/sheet/link`));
+
+    expect(response.status).toBe(404);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'test_sheet_not_available'
+    );
+    expect(calls('/rest/v1/test_sheets').filter(([, init]) => init?.method === 'POST')).toEqual([]);
+  });
+});
+
 describe('GET /portal/participants/{participantId}/materials/{domain}', () => {
   it('streams the issued PDF of the material, read with the secret key', async () => {
     mockUpstream();
@@ -567,5 +624,29 @@ describe('GET /portal/participants/{participantId}/materials/{domain}', () => {
       p_participant_id: participantId,
       p_domain: 'psi',
     });
+  });
+});
+
+describe('GET /portal/participants/{participantId}/materials/{domain}/link', () => {
+  it('signs a ten-minute link to the issued PDF with the secret key', async () => {
+    mockUpstream();
+    const response = await request(own('/materials/ssm/link'));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      url: expect.stringContaining(`/storage/v1/object/sign/documents/${material.pdf_path}`),
+      fileName: 'Material de instruire introductiv-generală.pdf',
+      expiresInSeconds: 600,
+    });
+    const [signing] = calls(`/storage/v1/object/sign/documents/${material.pdf_path}`);
+    expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(
+      'Bearer sb_secret_test_key_value'
+    );
+  });
+
+  it('answers 404 with a reason while none is issued', async () => {
+    mockUpstream({ material: () => Response.json([]) });
+    const response = await request(own('/materials/psi/link'));
+    expect(response.status).toBe(404);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('material_not_issued');
   });
 });

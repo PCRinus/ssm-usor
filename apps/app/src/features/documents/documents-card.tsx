@@ -1,6 +1,5 @@
 import {
   type BuiltInDocumentTypeKey,
-  type DocumentAnnex,
   type DocumentSet,
   documentSetTypeKeys,
   isDatedDocumentType,
@@ -56,7 +55,6 @@ import {
   type ApiErrorResponse,
   getDocumentArchive,
   getDocumentDownload,
-  getInstructionModuleFileLink,
   getListClientDocumentsQueryKey,
   getListDocumentsBehindQueryKey,
   useDeleteDocumentDraft,
@@ -69,11 +67,12 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { rowClickProps } from '@/components/data-table/row-click';
+import { FileMenuItem } from '@/components/file-menu-item';
 import { Notice } from '@/components/notice';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { endWayBack } from '@/features/missing-data/way-back';
 import { formatRoDate } from '@/lib/dates';
-import { openDownload, saveFile } from '@/lib/save-file';
+import { saveFile } from '@/lib/save-file';
 
 import { AnnexRow } from './annex-row';
 import {
@@ -336,22 +335,6 @@ export function DocumentsCard<Set extends DocumentSet>({
     await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
   }
 
-  async function download(
-    document: ClientDocument,
-    revision: Revision,
-    format: 'docx' | 'pdf' = 'docx'
-  ) {
-    setError(null);
-    try {
-      const link = await getDocumentDownload(document.id, revision.id, { format }, apiRequest);
-      openDownload(apiRequest.baseUrl, link);
-    } catch {
-      setError(
-        `Nu am putut descărca „${document.title}”. Verifică conexiunea și încearcă din nou.`
-      );
-    }
-  }
-
   async function downloadArchive(format: 'docx' | 'pdf') {
     setError(null);
     setArchiving(true);
@@ -371,22 +354,6 @@ export function DocumentsCard<Set extends DocumentSet>({
     } finally {
       toast.dismiss(pending);
       setArchiving(false);
-    }
-  }
-
-  async function downloadAnnex(annex: DocumentAnnex) {
-    setError(null);
-    try {
-      const link = await getInstructionModuleFileLink(
-        annex.moduleId,
-        { versionId: annex.version.id },
-        apiRequest
-      );
-      openDownload(apiRequest.baseUrl, link);
-    } catch {
-      setError(
-        `Nu am putut descărca anexa „${annex.title}”. Verifică conexiunea și încearcă din nou.`
-      );
     }
   }
 
@@ -464,6 +431,12 @@ export function DocumentsCard<Set extends DocumentSet>({
 
   function documentRow(document: ClientDocument, title: string, rowId?: string) {
     const current = document.draft ?? document.issued;
+    const { draft, issued } = document;
+    const fileOf = (revision: Revision, format: 'docx' | 'pdf') => ({
+      queryKey: ['document-file', document.id, revision.id, format],
+      load: (signal: AbortSignal) =>
+        getDocumentDownload(document.id, revision.id, { format }, { ...apiRequest, signal }),
+    });
     return (
       <Fragment key={document.id}>
         <TableRow
@@ -552,29 +525,35 @@ export function DocumentsCard<Set extends DocumentSet>({
                     {document.draft && !readOnly ? 'Deschide și modifică' : 'Deschide'}
                   </Link>
                 </DropdownMenuItem>
-                {document.draft && (
-                  <DropdownMenuItem
-                    data-testid="document-download-draft"
-                    onSelect={() => void download(document, document.draft!)}
+                {draft && (
+                  <FileMenuItem
+                    testId="document-download-draft"
+                    apiRequest={apiRequest}
+                    disposition="attachment"
+                    {...fileOf(draft, 'docx')}
                   >
                     Descarcă ciorna
-                  </DropdownMenuItem>
+                  </FileMenuItem>
                 )}
-                {document.issued && (
-                  <DropdownMenuItem
-                    data-testid="document-download-issued"
-                    onSelect={() => void download(document, document.issued!)}
+                {issued && (
+                  <FileMenuItem
+                    testId="document-download-issued"
+                    apiRequest={apiRequest}
+                    disposition="attachment"
+                    {...fileOf(issued, 'docx')}
                   >
                     Descarcă documentul emis
-                  </DropdownMenuItem>
+                  </FileMenuItem>
                 )}
-                {document.issued?.hasPdf && (
-                  <DropdownMenuItem
-                    data-testid="document-download-pdf"
-                    onSelect={() => void download(document, document.issued!, 'pdf')}
+                {issued?.hasPdf && (
+                  <FileMenuItem
+                    testId="document-open-pdf"
+                    apiRequest={apiRequest}
+                    disposition="inline"
+                    {...fileOf(issued, 'pdf')}
                   >
-                    Descarcă PDF-ul documentului emis
-                  </DropdownMenuItem>
+                    Deschide PDF-ul documentului emis
+                  </FileMenuItem>
                 )}
                 {document.draft && (
                   <DropdownMenuItem
@@ -647,12 +626,7 @@ export function DocumentsCard<Set extends DocumentSet>({
           </TableCell>
         </TableRow>
         {current?.annexes.map((annex) => (
-          <AnnexRow
-            key={annex.version.id}
-            annex={annex}
-            typeKey={document.typeKey}
-            onDownload={() => void downloadAnnex(annex)}
-          />
+          <AnnexRow key={annex.version.id} annex={annex} typeKey={document.typeKey} />
         ))}
       </Fragment>
     );

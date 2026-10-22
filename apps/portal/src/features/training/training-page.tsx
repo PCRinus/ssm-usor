@@ -5,6 +5,7 @@ import { Navigate } from '@tanstack/react-router';
 import {
   getGetPortalTrainingSheetsQueryKey,
   getPortalTrainingSheet,
+  getPortalTrainingSheetLink,
   useGetPortalTrainingSheets,
   useListPortalSignatureRequests,
   useListPortalTrainingRecords,
@@ -57,6 +58,16 @@ function OwnTraining({ participantId }: { participantId: string }) {
               apiRequest
             )
           }
+          links={{
+            loadLink: (domain, sequence, signal) =>
+              getPortalTrainingSheetLink(
+                participantId,
+                domain,
+                { sequence },
+                { ...apiRequest, signal }
+              ),
+            linkScope: [participantId],
+          }}
           onStale={() =>
             void queryClient.invalidateQueries({
               queryKey: getGetPortalTrainingSheetsQueryKey(participantId),

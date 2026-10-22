@@ -132,12 +132,20 @@ function fileStore(
       if (error) throw fileError('remove client file', error);
     },
 
-    async clientFileLink(path: string, expiresInSeconds = 60) {
+    async clientFileLinks(paths: string[], expiresInSeconds: number) {
+      if (paths.length === 0) return new Map<string, string>();
       const { data, error } = await storage
         .from(clientFilesBucket)
-        .createSignedUrl(path, expiresInSeconds);
-      if (error || !data) throw fileError('sign client file link', error);
-      return data.signedUrl;
+        .createSignedUrls(paths, expiresInSeconds);
+      if (error || !data) throw fileError('sign client file links', error);
+      const links = new Map<string, string>();
+      for (const [index, link] of data.entries()) {
+        if (link.error || !link.signedUrl) {
+          throw fileError('sign client file links', { message: link.error ?? 'no link' });
+        }
+        links.set(paths[index]!, link.signedUrl);
+      }
+      return links;
     },
   };
 }

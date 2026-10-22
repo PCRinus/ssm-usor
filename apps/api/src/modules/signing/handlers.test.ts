@@ -963,6 +963,58 @@ describe('the signing agreement', () => {
     expect(read!.secret).toBe(true);
   });
 
+  it('signs a ten-minute link to the stored file with the secret key, for a real anchor', async () => {
+    mockUpstream(stored);
+
+    const response = await request(`${agreementPath}/link`);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      url: expect.stringContaining(`/storage/v1/object/sign/documents/${storedPath}`),
+      fileName: 'Act-aditional-semnare-electronica-Popescu-Ion.pdf',
+      expiresInSeconds: 600,
+    });
+    const [row] = callsTo('/rest/v1/employee_signing_agreements');
+    expect(row!.secret).toBe(false);
+    const [signed] = callsTo(`/storage/v1/object/sign/documents/${storedPath}`, 'POST');
+    expect(signed!.secret).toBe(true);
+    expect(signed!.body).toEqual({ expiresIn: 600 });
+    expect(convertDocx).not.toHaveBeenCalled();
+  });
+
+  it('has no link before anyone has signed the agreement', async () => {
+    mockUpstream(agreementUpstream());
+
+    const response = await request(`${agreementPath}/link`);
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ reason: 'agreement_not_stored' });
+    expect(callsTo(`/storage/v1/object/sign/documents/${storedPath}`, 'POST')).toEqual([]);
+  });
+
+  it("signs the link to the participant's own stored agreement, and to an employee's for the administrator", async () => {
+    portalUpstream('employee', stored);
+    const own = await request(`/portal/participants/${participantId}/signing-agreement/link`);
+    expect(own.status).toBe(200);
+    expect(await own.json()).toMatchObject({
+      fileName: 'Act-aditional-semnare-electronica-Popescu-Ion.pdf',
+      expiresInSeconds: 600,
+    });
+
+    portalUpstream('client_administrator', stored);
+    const administered = await request(
+      `/portal/participants/${participantId}/employees/${employeeId}/signing-agreement/link`
+    );
+    expect(administered.status).toBe(200);
+    expect(await administered.json()).toMatchObject({ expiresInSeconds: 600 });
+
+    portalUpstream('employee', stored);
+    const refused = await request(
+      `/portal/participants/${participantId}/employees/${employeeId}/signing-agreement/link`
+    );
+    expect(refused.status).toBe(403);
+  });
+
   it("answers the client administrator an employee's stored agreement", async () => {
     portalUpstream('client_administrator', stored);
 

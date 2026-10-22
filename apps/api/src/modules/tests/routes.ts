@@ -2,6 +2,7 @@ import { createRoute, z } from '@hono/zod-openapi';
 import {
   createTestQuestionRequestSchema,
   employeeTestsResponseSchema,
+  fileLinkResponseSchema,
   paperTestResultRequestSchema,
   testBankQuerySchema,
   testBankResponseSchema,
@@ -306,6 +307,34 @@ export const getTestSheetRoute = createRoute({
     404: noTestSheet,
     ...membershipErrors,
     503: sheetUnavailable,
+  },
+});
+
+export const getTestSheetLinkRoute = createRoute({
+  method: 'get',
+  path: '/clients/{clientId}/employees/{employeeId}/tests/results/{resultId}/sheet/link',
+  operationId: 'getTestSheetLink',
+  summary: "A short-lived link to a result's stored test sheet",
+  description:
+    "For a real link on the page, which the browser opens through `GET /files/download`. Only a stored sheet has one: a sheet the pass could not draw up answers 404 (reason `test_sheet_not_available`) and is drawn up by the PDF route. The link names the sheet's version at the time, with every signature given so far. Valid for ten minutes.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: resultParams },
+  responses: {
+    200: {
+      description: 'The link',
+      content: {
+        'application/json': { schema: fileLinkResponseSchema.meta({ id: 'FileLinkResponse' }) },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    404: {
+      description:
+        'The result does not exist for this employee, or it has no stored test sheet (reason `test_sheet_not_available`)',
+      content: errorContent,
+    },
+    ...membershipErrors,
+    503: { description: 'Storage is unavailable', content: errorContent },
   },
 });
 

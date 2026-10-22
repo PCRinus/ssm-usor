@@ -14,6 +14,7 @@ export * from './document-data';
 export * from './documents';
 export * from './employees';
 export * from './evaluation-profiles';
+export * from './files';
 export * from './fire-safety';
 export * from './iban';
 export * from './instruction-modules';

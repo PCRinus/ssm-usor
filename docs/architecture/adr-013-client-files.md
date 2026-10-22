@@ -60,6 +60,8 @@ The documents bucket was not reused: its policies are written around revisions a
 
 PDFs and images open in a browser tab from a signed link; the other types download. There is no preview inside the app.
 
+(Amended 2026-10-22, Mircea's decision on the tester feedback round three. The list carries each file's signed link, valid for ten minutes and signed for the whole list in one Storage request, and the app puts every file on a real anchor to `GET /files/download`; the separate download-link route is gone. A button that fetched the link on the click, and opened a tab in the same gesture, was what the in-app browser of a mail client on Android could not follow.)
+
 ### What is not decided here
 
 No limit on the number of files or on the space a client or an organization uses. It will be needed with pricing, and the size of every file is recorded from the first one, so the sum exists when the limit does.

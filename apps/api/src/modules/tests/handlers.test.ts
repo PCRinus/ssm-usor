@@ -693,6 +693,50 @@ describe('the test sheet of a result', () => {
     );
   });
 
+  it('signs a ten-minute link to the stored sheet with the secret key', async () => {
+    const storagePath = `test-sheets/${clientId}/${employeeId}/${resultId}/v1-1a2b3c4d.pdf`;
+    mockUpstream({
+      results: () => Response.json(portalResult),
+      testSheets: () => Response.json({ id: sheetId, storage_path: storagePath }),
+    });
+    const upstream = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = new URL(String(input));
+      if (url.pathname.startsWith('/storage/v1/object/sign/documents/')) {
+        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+      }
+      return upstream(input, init);
+    });
+
+    const response = await request(`${path}/sheet/link`, 'GET', undefined, withSecret);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      url: expect.stringContaining(`/storage/v1/object/sign/documents/${storagePath}`),
+      fileName: 'Fisa-de-test-TASSM-Popescu-Ion-2026-01-06.pdf',
+      expiresInSeconds: 600,
+    });
+    const [signing] = calls(`/storage/v1/object/sign/documents/${storagePath}`, 'POST');
+    expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(
+      'Bearer sb_secret_test_key_value'
+    );
+  });
+
+  it('has no link for a sheet the pass could not draw up', async () => {
+    mockUpstream({
+      results: () => Response.json(portalResult),
+      testSheets: () => Response.json(null),
+    });
+
+    const response = await request(`${path}/sheet/link`, 'GET', undefined, withSecret);
+
+    expect(response.status).toBe(404);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'test_sheet_not_available'
+    );
+    expect(calls('/rest/v1/test_sheets', 'POST')).toEqual([]);
+  });
+
   it('marks a slot of the stored sheet as signed on paper', async () => {
     mockUpstream({
       results: () => Response.json(portalResult),

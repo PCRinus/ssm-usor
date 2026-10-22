@@ -43,21 +43,8 @@ export async function openPreview(load: () => Promise<Blob>, title: string) {
 }
 
 // For a file in Storage: the API passes it through under its real name, which Storage's own
-// header loses. A download needs a full browser: the in-app browser Gmail opens on Android (a
-// Firefox custom tab) cannot download at all, so the public contract page shows its PDF
-// `inline` instead.
-export function openDownload(
-  apiBaseUrl: string | undefined,
-  link: { url: string; fileName: string }
-) {
-  const anchor = document.createElement('a');
-  anchor.href = fileAddress(apiBaseUrl, link, 'attachment');
-  anchor.hidden = true;
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-}
-
+// header loses. `inline` shows a PDF or an image in the browser's viewer, which the in-app
+// browser of Gmail on Android (a Firefox custom tab) can do where it cannot download at all.
 export function fileAddress(
   apiBaseUrl: string | undefined,
   link: { url: string; fileName: string },

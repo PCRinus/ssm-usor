@@ -341,7 +341,6 @@ msgid "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal 
 msgstr "The browser blocked the new window. Allow pop-up windows for the portal or download the sheet."
 
 #: src/features/signing/agreement-pdf-button.tsx
-#: src/features/tests/study-card.tsx
 #: src/features/tests/test-sheet-line.tsx
 msgid "Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal."
 msgstr "The browser blocked the new window. Allow new windows for the portal."
@@ -870,6 +869,10 @@ msgstr "Up to date"
 msgid "Limba"
 msgstr "Language"
 
+#: src/components/file-link-button.tsx
+msgid "Linkul nu s-a putut pregăti. Apasă ca să încerci din nou."
+msgstr "The link could not be prepared. Tap to try again."
+
 #: src/app/portal-header.tsx
 msgid "Locurile portalului"
 msgstr "Portal sections"
@@ -977,10 +980,6 @@ msgstr "We could not open the test sheet. Check your internet connection and try
 #: src/features/training/use-sheet-actions.ts
 msgid "Nu am putut deschide fișa. Verifică conexiunea la internet și încearcă din nou."
 msgstr "We could not open the sheet. Check your internet connection and try again."
-
-#: src/features/tests/study-card.tsx
-msgid "Nu am putut deschide materialul. Verifică conexiunea la internet și încearcă din nou."
-msgstr "We could not open the material. Check your internet connection and try again."
 
 #: src/app/account-menu.tsx
 msgid "Nu am putut ieși din cont."
@@ -1276,10 +1275,6 @@ msgstr "Preparing the document…"
 #: src/features/training/use-sheet-actions.ts
 msgid "Se pregătește fișa…"
 msgstr "Preparing the sheet…"
-
-#: src/features/tests/study-card.tsx
-msgid "Se pregătește materialul…"
-msgstr "Preparing the material…"
 
 #: src/features/participation/privacy-notice.tsx
 msgid "Se salvează…"

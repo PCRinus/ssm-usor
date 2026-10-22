@@ -23,6 +23,7 @@ import {
   issueTestSheetRequests,
   refillExaminer,
   storedTestSheet,
+  storedTestSheetLink,
   summaryOf,
   testSheetDeps,
   testSheetFileName,
@@ -36,6 +37,7 @@ import type {
   deleteTestQuestionRoute,
   getEmployeeTestsRoute,
   getTestBankRoute,
+  getTestSheetLinkRoute,
   getTestSheetRoute,
   hideTestQuestionRoute,
   markTestSheetPaperSignatureRoute,
@@ -427,6 +429,15 @@ export const getTestSheet: RouteHandler<typeof getTestSheetRoute, ApiEnv> = asyn
       testSheetFileName(result.employees, result)
     ),
   });
+};
+
+export const getTestSheetLink: RouteHandler<typeof getTestSheetLinkRoute, ApiEnv> = async (c) => {
+  const result = await readResultOfEmployee(createDataClient(c), c.req.valid('param'));
+  if (result.source !== 'portal') throw testSheetNotAvailable();
+  return c.json(
+    await storedTestSheetLink(c, result.id, testSheetFileName(result.employees, result)),
+    200
+  );
 };
 
 export const markTestSheetPaperSignature: RouteHandler<

@@ -10,6 +10,7 @@ import {
   createOrganization,
   nameFireSafetyTechnician,
   openDocumentSection,
+  openedPdf,
   signIn,
 } from './support';
 
@@ -135,11 +136,8 @@ test('the fire-safety set asks for its own data and the first decision number, i
     timeout: 60_000,
   });
   if (process.env.GOTENBERG_URL) {
-    const pdfDownload = page.waitForEvent('download');
-    await act(page, cover, 'document-download-pdf');
-    const pdf = await pdfDownload;
-    const { readFile } = await import('node:fs/promises');
-    expect((await readFile(await pdf.path())).subarray(0, 5).toString()).toBe('%PDF-');
+    const pdf = await openedPdf(page, cover);
+    expect(pdf.body.subarray(0, 5).toString()).toBe('%PDF-');
   }
 
   for (let index = 1; index <= 10; index++) {

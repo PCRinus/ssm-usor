@@ -21,7 +21,12 @@ import { useRouteContext } from '@tanstack/react-router';
 import { Eye, LoaderCircle, PenLine } from 'lucide-react';
 import { useState } from 'react';
 
-import { getTestSheet, useMarkTestSheetPaperSignature } from '@/api/generated/api';
+import {
+  getTestSheet,
+  getTestSheetLink,
+  useMarkTestSheetPaperSignature,
+} from '@/api/generated/api';
+import { FileLinkButton } from '@/components/file-link-button';
 import { Notice } from '@/components/notice';
 import {
   reasonOf,
@@ -30,6 +35,7 @@ import {
   slotStateLabels,
 } from '@/features/signatures/signature-format';
 import { invalidateSignatures } from '@/features/signatures/signature-queries';
+import { useFileLink } from '@/lib/file-link';
 import { openPreview, PreviewBlockedError } from '@/lib/save-file';
 
 import { invalidateEmployeeTests } from './test-format';
@@ -63,6 +69,14 @@ export function TestSheetLine({
   const [previewing, setPreviewing] = useState(false);
   const [marking, setMarking] = useState<TestSheetSignerSlot | null>(null);
   const { signed } = result.sheet;
+  // A signature writes a new version of the sheet: the slots in the key fetch its link anew.
+  const link = useFileLink({
+    queryKey: ['test-sheet-link', clientId, employeeId, result.id, signed.trainee, signed.examiner],
+    load: (signal) => getTestSheetLink(clientId, employeeId, result.id, { ...apiRequest, signal }),
+    enabled: result.sheet.available,
+    apiRequest,
+    disposition: 'inline',
+  });
 
   async function preview() {
     setPreviewing(true);
@@ -71,13 +85,11 @@ export function TestSheetLine({
         () => getTestSheet(clientId, employeeId, result.id, apiRequest),
         'Fișa de test'
       );
-      // Opening draws up a sheet the pass could not, and requests its signatures.
-      if (!result.sheet.available) {
-        await Promise.all([
-          invalidateEmployeeTests(queryClient, clientId, employeeId),
-          invalidateSignatures(queryClient, clientId),
-        ]);
-      }
+      // Opening draws up the sheet the pass could not, and requests its signatures.
+      await Promise.all([
+        invalidateEmployeeTests(queryClient, clientId, employeeId),
+        invalidateSignatures(queryClient, clientId),
+      ]);
     } catch (cause) {
       toast.error(previewFailure(cause));
     } finally {
@@ -89,20 +101,27 @@ export function TestSheetLine({
     <div data-testid="tests-sheet" className="grid gap-2 border-t pt-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium">Fișa de test</p>
-        <Button
-          variant="ghost"
-          size="sm"
-          data-testid="tests-sheet-preview"
-          disabled={previewing}
-          onClick={() => void preview()}
-        >
-          {previewing ? (
-            <LoaderCircle aria-hidden="true" className="animate-spin" />
-          ) : (
+        {result.sheet.available ? (
+          <FileLinkButton variant="ghost" size="sm" data-testid="tests-sheet-preview" link={link}>
             <Eye aria-hidden="true" />
-          )}
-          Previzualizează
-        </Button>
+            Previzualizează
+          </FileLinkButton>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            data-testid="tests-sheet-preview"
+            disabled={previewing}
+            onClick={() => void preview()}
+          >
+            {previewing ? (
+              <LoaderCircle aria-hidden="true" className="animate-spin" />
+            ) : (
+              <Eye aria-hidden="true" />
+            )}
+            Previzualizează
+          </Button>
+        )}
       </div>
       {!result.sheet.available && (
         <p data-testid="tests-sheet-pending" className="text-sm text-muted-foreground">

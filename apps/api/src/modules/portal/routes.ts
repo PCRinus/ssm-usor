@@ -1,5 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
+  fileLinkResponseSchema,
   missingSheetDataResponseSchema,
   portalClientEmployeesResponseSchema,
   portalEmployeeDataSchema,
@@ -65,6 +66,14 @@ const sheetsContent = {
 };
 const pdfContent = {
   'application/pdf': { schema: z.string().openapi({ type: 'string', format: 'binary' }) },
+};
+const linkContent = {
+  'application/json': { schema: fileLinkResponseSchema.meta({ id: 'FileLinkResponse' }) },
+};
+const severalSheets = {
+  description:
+    'Several sheets are stored and `sequence` names none of them (reason `several_sheets`)',
+  content: errorContent,
 };
 const missingSheetData = {
   description:
@@ -235,6 +244,30 @@ export const getPortalTrainingSheetRoute = createRoute({
   },
 });
 
+export const getPortalTrainingSheetLinkRoute = createRoute({
+  method: 'get',
+  path: '/portal/participants/{participantId}/sheets/{domain}/link',
+  operationId: 'getPortalTrainingSheetLink',
+  tags,
+  summary: "A short-lived link to the participant's stored signed sheet",
+  description:
+    "For a real link on the page, which the browser opens through `GET /files/download`: shown `inline`, the PDF opens in the browser's viewer, which the in-app browser of a mail client can do where it cannot download. Only a stored sheet (ADR 023) has a file to link to; a sheet drawn up on the spot and the merged reading copy come from the PDF route. `sequence` names one of several stored sheets and may be left out when there is one. Valid for ten minutes.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireParticipant] as const,
+  request: { params: domainParams, query: trainingSheetSequenceQuerySchema },
+  responses: {
+    200: { description: 'The link', content: linkContent },
+    400: { description: 'Invalid path, domain or sequence', content: errorContent },
+    409: severalSheets,
+    ...ownErrors,
+    404: {
+      description: `${ownErrors[404].description}, or there is no stored sheet of the domain or of that sequence`,
+      content: errorContent,
+    },
+    503: { description: 'Storage is unavailable', content: errorContent },
+  },
+});
+
 export const listPortalClientEmployeesRoute = createRoute({
   method: 'get',
   path: '/portal/participants/{participantId}/employees',
@@ -310,6 +343,29 @@ export const getPortalEmployeeTrainingSheetRoute = createRoute({
     409: missingSheetData,
     ...administratorErrors,
     503: sheetUnavailable,
+  },
+});
+
+export const getPortalEmployeeTrainingSheetLinkRoute = createRoute({
+  method: 'get',
+  path: '/portal/participants/{participantId}/employees/{employeeId}/sheets/{domain}/link',
+  operationId: 'getPortalEmployeeTrainingSheetLink',
+  tags,
+  summary: "A short-lived link to an employee's stored signed sheet, for the client administrator",
+  description: "As the participant's own.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireParticipant] as const,
+  request: { params: employeeDomainParams, query: trainingSheetSequenceQuerySchema },
+  responses: {
+    200: { description: 'The link', content: linkContent },
+    400: { description: 'Invalid path, domain or sequence', content: errorContent },
+    409: severalSheets,
+    ...administratorErrors,
+    404: {
+      description: `${administratorErrors[404].description}, or there is no stored sheet of the domain or of that sequence`,
+      content: errorContent,
+    },
+    503: { description: 'Storage is unavailable', content: errorContent },
   },
 });
 

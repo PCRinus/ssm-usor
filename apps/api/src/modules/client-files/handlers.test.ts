@@ -1,6 +1,5 @@
 import {
   apiErrorResponseSchema,
-  clientFileDownloadResponseSchema,
   clientFileListResponseSchema,
   clientFileResponseSchema,
 } from '@ssm-usor/contracts';
@@ -117,8 +116,15 @@ function mockUpstream(
       if (id === `eq.${colleagueFileId}`) return Response.json([colleagueFile]);
       return Response.json([ownFile, colleagueFile]);
     }
-    if (url.pathname.startsWith('/storage/v1/object/sign/client-files/')) {
-      return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+    if (url.pathname === '/storage/v1/object/sign/client-files') {
+      const { paths } = JSON.parse(String(init?.body)) as { paths: string[] };
+      return Response.json(
+        paths.map((path) => ({
+          error: null,
+          path,
+          signedURL: `/object/sign/client-files/${path}?token=t`,
+        }))
+      );
     }
     if (url.pathname.startsWith('/storage/v1/object/client-files')) {
       const custom = handlers.storage?.(init, url);
@@ -205,6 +211,47 @@ describe('GET /clients/{clientId}/files', () => {
     expect(listed.searchParams.get('order')).toBe('created_at.desc,id.asc');
     expect(listed.searchParams.get('employee_id')).toBe('is.null');
     expect(items.every((item) => item.employee === null)).toBe(true);
+  });
+
+  it('signs a ten-minute link for every file in one request, as the caller, naming how it opens', async () => {
+    mockUpstream();
+    const response = await request(`/clients/${clientId}/files`);
+    const { items } = clientFileListResponseSchema.parse(await response.json());
+    expect(items.map((item) => item.link)).toEqual([
+      {
+        url: expect.stringContaining(`/client-files/${pathOf(ownFileId, 'pdf')}`),
+        fileName: 'Certificat de înregistrare.pdf',
+        disposition: 'inline',
+        expiresInSeconds: 600,
+      },
+      {
+        url: expect.stringContaining(`/client-files/${pathOf(colleagueFileId, 'xlsx')}`),
+        fileName: 'Anexa preturi.xlsx',
+        disposition: 'attachment',
+        expiresInSeconds: 600,
+      },
+    ]);
+    const [signing] = calls('/storage/v1/object/sign/client-files', 'POST');
+    expect(signing).toBeDefined();
+    expect(new Headers(signing![1]?.headers).get('Authorization')).toBe('Bearer test-access-token');
+    expect(JSON.parse(String(signing![1]?.body))).toEqual({
+      expiresIn: 600,
+      paths: [pathOf(ownFileId, 'pdf'), pathOf(colleagueFileId, 'xlsx')],
+    });
+  });
+
+  it('shortens a long name to what the download route takes, keeping the extension', async () => {
+    mockUpstream({
+      files: (init) =>
+        (init?.method ?? 'GET') === 'GET'
+          ? Response.json([{ ...ownFile, original_file_name: `${'a'.repeat(250)}.pdf` }])
+          : undefined,
+    });
+    const { items } = clientFileListResponseSchema.parse(
+      await (await request(`/clients/${clientId}/files`)).json()
+    );
+    expect(items[0]!.link.fileName).toHaveLength(200);
+    expect(items[0]!.link.fileName.endsWith('.pdf')).toBe(true);
   });
 
   it("keeps only an employee's files when asked, and names the employee of each", async () => {
@@ -474,43 +521,6 @@ describe('PUT /clients/{clientId}/files/{fileId}/owners-only', () => {
     const response = await setFlag(false);
     expect(response.status).toBe(409);
     expect(await reasonOf(response)).toBe('client_file_lead_owners_only');
-  });
-});
-
-describe('GET /clients/{clientId}/files/{fileId}/download', () => {
-  it('opens a PDF in a tab, under the name it was uploaded with', async () => {
-    mockUpstream();
-    const response = await request(`/clients/${clientId}/files/${ownFileId}/download`);
-    expect(response.status).toBe(200);
-    const link = clientFileDownloadResponseSchema.parse(await response.json());
-    expect(link).toMatchObject({
-      fileName: 'Certificat de înregistrare.pdf',
-      disposition: 'inline',
-      expiresInSeconds: 60,
-    });
-    expect(link.url).toContain(`/client-files/${pathOf(ownFileId, 'pdf')}`);
-  });
-
-  it('downloads a spreadsheet', async () => {
-    mockUpstream();
-    const link = clientFileDownloadResponseSchema.parse(
-      await (await request(`/clients/${clientId}/files/${colleagueFileId}/download`)).json()
-    );
-    expect(link).toMatchObject({ fileName: 'Anexa preturi.xlsx', disposition: 'attachment' });
-  });
-
-  it('shortens a long name to what the download route takes, keeping the extension', async () => {
-    mockUpstream({
-      files: (init) =>
-        (init?.method ?? 'GET') === 'GET'
-          ? Response.json([{ ...ownFile, original_file_name: `${'a'.repeat(250)}.pdf` }])
-          : undefined,
-    });
-    const link = clientFileDownloadResponseSchema.parse(
-      await (await request(`/clients/${clientId}/files/${ownFileId}/download`)).json()
-    );
-    expect(link.fileName).toHaveLength(200);
-    expect(link.fileName.endsWith('.pdf')).toBe(true);
   });
 });
 

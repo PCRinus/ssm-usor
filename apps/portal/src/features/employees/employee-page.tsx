@@ -6,6 +6,7 @@ import { ChevronLeft } from 'lucide-react';
 import {
   getGetPortalEmployeeTrainingSheetsQueryKey,
   getPortalEmployeeTrainingSheet,
+  getPortalEmployeeTrainingSheetLink,
   useGetPortalEmployeeTrainingSheets,
   useListPortalClientEmployees,
   useListPortalClientSignatureRequests,
@@ -95,6 +96,17 @@ function EmployeeDetail({
               apiRequest
             )
           }
+          links={{
+            loadLink: (domain, sequence, signal) =>
+              getPortalEmployeeTrainingSheetLink(
+                participantId,
+                employeeId,
+                domain,
+                { sequence },
+                { ...apiRequest, signal }
+              ),
+            linkScope: [participantId, employeeId],
+          }}
           onStale={() =>
             void queryClient.invalidateQueries({
               queryKey: getGetPortalEmployeeTrainingSheetsQueryKey(participantId, employeeId),

@@ -19,6 +19,7 @@ import { fileNameOf } from '../documents/documents';
 import { clientIpOf } from '../signing/session-signing';
 import {
   afterTestPass,
+  storedTestSheetLink,
   summaryOf,
   testSheetFileName,
   testSheetNotAvailable,
@@ -39,7 +40,9 @@ import { testStatusColumns, toEmployeeTests } from '../tests/status';
 import type {
   answerPortalTestAttemptRoute,
   finishPortalTestAttemptRoute,
+  getPortalMaterialLinkRoute,
   getPortalMaterialRoute,
+  getPortalTestSheetLinkRoute,
   getPortalTestSheetRoute,
   getPortalTestsRoute,
   getPortalTestStudyCardRoute,
@@ -283,8 +286,7 @@ export const finishPortalTestAttempt: RouteHandler<
   );
 };
 
-export const getPortalMaterial: RouteHandler<typeof getPortalMaterialRoute, ApiEnv> = async (c) => {
-  const { participantId, domain } = c.req.valid('param');
+async function materialOf(c: Context<ApiEnv>, participantId: string, domain: TrainingDomain) {
   participationOf(c, participantId);
   const material = await issuedMaterial(createDataClient(c), participantId, domain);
   if (!material) {
@@ -295,6 +297,12 @@ export const getPortalMaterial: RouteHandler<typeof getPortalMaterialRoute, ApiE
       testErrorReasons.materialNotIssued
     );
   }
+  return material;
+}
+
+export const getPortalMaterial: RouteHandler<typeof getPortalMaterialRoute, ApiEnv> = async (c) => {
+  const { participantId, domain } = c.req.valid('param');
+  const material = await materialOf(c, participantId, domain);
   // A participant reads no document file: the path is the one the function gave for the
   // caller's own participation, read with the secret key.
   const pdf = await createAdminFileStore(c).readDocument(material.pdf_path);
@@ -304,13 +312,27 @@ export const getPortalMaterial: RouteHandler<typeof getPortalMaterialRoute, ApiE
   });
 };
 
+export const getPortalMaterialLink: RouteHandler<
+  typeof getPortalMaterialLinkRoute,
+  ApiEnv
+> = async (c) => {
+  const { participantId, domain } = c.req.valid('param');
+  const material = await materialOf(c, participantId, domain);
+  const expiresInSeconds = 600;
+  return c.json(
+    {
+      url: await createAdminFileStore(c).documentLink(material.pdf_path, expiresInSeconds),
+      fileName: `${fileNameOf(material.title)}.pdf`,
+      expiresInSeconds,
+    },
+    200
+  );
+};
+
 // The employee reads their own results' sheets; the client administrator any employee's of the
 // client, checked here as for the client's requests, since an account that is also a member
 // reads every result of the organization through the members' policies.
-export const getPortalTestSheet: RouteHandler<typeof getPortalTestSheetRoute, ApiEnv> = async (
-  c
-) => {
-  const { participantId, resultId } = c.req.valid('param');
+async function sheetResultOf(c: Context<ApiEnv>, participantId: string, resultId: string) {
   const participation = participationOf(c, participantId);
   let query = createDataClient(c)
     .from('test_results')
@@ -328,9 +350,26 @@ export const getPortalTestSheet: RouteHandler<typeof getPortalTestSheetRoute, Ap
   if (!data) throw new ApiError('not_found', 'This test result is not yours to read.');
   if (data.source !== 'portal') throw testSheetNotAvailable();
   const employee = data.employees as unknown as { last_name: string; first_name: string };
-  const pdf = await testSheetPdf(c, data.id);
+  return { result: data, fileName: testSheetFileName(employee, data) };
+}
+
+export const getPortalTestSheet: RouteHandler<typeof getPortalTestSheetRoute, ApiEnv> = async (
+  c
+) => {
+  const { participantId, resultId } = c.req.valid('param');
+  const { result, fileName } = await sheetResultOf(c, participantId, resultId);
+  const pdf = await testSheetPdf(c, result.id);
   return c.body(new Uint8Array(pdf), 200, {
     'Content-Type': 'application/pdf',
-    'Content-Disposition': contentDisposition('inline', testSheetFileName(employee, data)),
+    'Content-Disposition': contentDisposition('inline', fileName),
   });
+};
+
+export const getPortalTestSheetLink: RouteHandler<
+  typeof getPortalTestSheetLinkRoute,
+  ApiEnv
+> = async (c) => {
+  const { participantId, resultId } = c.req.valid('param');
+  const { result, fileName } = await sheetResultOf(c, participantId, resultId);
+  return c.json(await storedTestSheetLink(c, result.id, fileName), 200);
 };

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
 import {
@@ -652,4 +652,22 @@ export async function signOut(page: Page) {
   await page.getByTestId('account-menu').click();
   await page.getByTestId('account-sign-out').click();
   await expect(page).toHaveURL(/\/login$/);
+}
+
+// A PDF link opens in a tab of its own, so there is no download event to wait for: the test
+// reads what the link serves.
+export async function openedPdf(page: Page, row: Locator) {
+  await expect(page.getByRole('menu')).toHaveCount(0);
+  await row.getByTestId('document-actions').click();
+  const link = page.getByTestId('document-open-pdf');
+  await expect(link).toHaveAttribute('href', /\/files\/download\?/);
+  await expect(link).toHaveAttribute('target', '_blank');
+  const href = (await link.getAttribute('href'))!;
+  expect(new URL(href).searchParams.get('disposition')).toBe('inline');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu')).toHaveCount(0);
+  const response = await page.request.get(href);
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toBe('application/pdf');
+  return { disposition: response.headers()['content-disposition']!, body: await response.body() };
 }

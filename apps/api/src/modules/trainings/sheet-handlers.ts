@@ -1,5 +1,6 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
+  type FileLinkResponse,
   type MissingSheetData,
   type MissingSheetDataResponse,
   type TrainingDomain,
@@ -28,7 +29,11 @@ import {
   type TrainingSheetFacts,
   trainingSheetFileName,
 } from './sheet';
-import type { getTrainingSheetRoute, getTrainingSheetsRoute } from './sheet-routes';
+import type {
+  getTrainingSheetLinkRoute,
+  getTrainingSheetRoute,
+  getTrainingSheetsRoute,
+} from './sheet-routes';
 import { toAdmission, toTraining, trainingColumns } from './training-rows';
 
 const noSuchEmployee = () =>
@@ -232,6 +237,52 @@ export async function drawTrainingSheet(
   };
 }
 
+// Only a stored sheet has a file to link to: a sheet drawn up on the spot and the merged reading
+// copy come from the PDF route.
+export async function storedSheetLink(
+  c: Context<ApiEnv>,
+  db: DataClient,
+  sheet: { clientId: string; employeeId: string; domain: TrainingDomain; sequence?: number }
+): Promise<FileLinkResponse> {
+  const { clientId, employeeId, domain, sequence } = sheet;
+  const [identity, sheets] = await Promise.all([
+    loadSheetFacts(db, clientId, employeeId),
+    supabaseSheetStore(db).sheets(employeeId, domain, clientId),
+  ]);
+  const stored =
+    sequence === undefined
+      ? sheets.length === 1
+        ? sheets[0]
+        : undefined
+      : sheets.find((each) => each.sequence === sequence);
+  if (!stored && (sheets.length === 0 || sequence !== undefined)) {
+    throw new ApiError('not_found', 'The employee has no stored sheet of this number.');
+  }
+  if (!stored) {
+    throw new ApiError(
+      'conflict',
+      'The employee has several stored sheets: name one with `sequence`.',
+      undefined,
+      'several_sheets'
+    );
+  }
+  // Ten minutes: the page keeps the link on a real anchor and renews it before then; a phone may
+  // sleep in between.
+  const expiresInSeconds = 600;
+  return {
+    // The caller's own policies have shown the sheet's row, so its file is one they may read.
+    url: await adminFileStore(c.env, c.req.raw.signal).documentLink(
+      stored.storagePath,
+      expiresInSeconds
+    ),
+    fileName: storedFileName(trainingSheetFileName(domain, identity.employee), {
+      copy: false,
+      sequence: stored.sequence,
+    }),
+    expiresInSeconds,
+  };
+}
+
 export const getTrainingSheets: RouteHandler<typeof getTrainingSheetsRoute, ApiEnv> = async (c) => {
   const { clientId, employeeId } = c.req.valid('param');
   return c.json(await trainingSheetReadiness(createDataClient(c), clientId, employeeId), 200);
@@ -251,4 +302,15 @@ export const getTrainingSheet: RouteHandler<typeof getTrainingSheetRoute, ApiEnv
     'Content-Type': 'application/pdf',
     'Content-Disposition': contentDisposition('attachment', sheet.fileName),
   });
+};
+
+export const getTrainingSheetLink: RouteHandler<typeof getTrainingSheetLinkRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId, employeeId } = c.req.valid('param');
+  const { domain, sequence } = c.req.valid('query');
+  return c.json(
+    await storedSheetLink(c, createDataClient(c), { clientId, employeeId, domain, sequence }),
+    200
+  );
 };

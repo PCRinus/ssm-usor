@@ -587,6 +587,12 @@ export interface MissingSheetDataResponse {
   missing: MissingSheetDataResponseMissingItem[];
 }
 
+export interface FileLinkResponse {
+  url: string;
+  fileName: string;
+  expiresInSeconds: number;
+}
+
 /**
  * @nullable
  */
@@ -1818,7 +1824,21 @@ export type GetPortalTrainingSheetParams = {
   sequence?: number;
 };
 
+export type GetPortalTrainingSheetLinkParams = {
+  /**
+   * @minimum 1
+   */
+  sequence?: number;
+};
+
 export type GetPortalEmployeeTrainingSheetParams = {
+  /**
+   * @minimum 1
+   */
+  sequence?: number;
+};
+
+export type GetPortalEmployeeTrainingSheetLinkParams = {
   /**
    * @minimum 1
    */
@@ -2779,6 +2799,192 @@ export function useGetPortalTrainingSheet<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export const getGetPortalTrainingSheetLinkUrl = (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetLinkParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/portal/participants/${participantId}/sheets/${domain}/link?${stringifiedParams}`
+    : `/portal/participants/${participantId}/sheets/${domain}/link`;
+};
+
+/**
+ * For a real link on the page, which the browser opens through `GET /files/download`: shown `inline`, the PDF opens in the browser's viewer, which the in-app browser of a mail client can do where it cannot download. Only a stored sheet (ADR 023) has a file to link to; a sheet drawn up on the spot and the merged reading copy come from the PDF route. `sequence` names one of several stored sheets and may be left out when there is one. Valid for ten minutes.
+ * @summary A short-lived link to the participant's stored signed sheet
+ */
+export const getPortalTrainingSheetLink = async (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetLinkParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FileLinkResponse> => {
+  return apiFetch<FileLinkResponse>(
+    getGetPortalTrainingSheetLinkUrl(participantId, domain, params),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getGetPortalTrainingSheetLinkQueryKey = (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetLinkParams
+) => {
+  return [
+    `/portal/participants/${participantId}/sheets/${domain}/link`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetPortalTrainingSheetLinkQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPortalTrainingSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetLinkParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheetLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPortalTrainingSheetLinkQueryKey(participantId, domain, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalTrainingSheetLink>>> = ({
+    signal,
+  }) => getPortalTrainingSheetLink(participantId, domain, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      participantId !== null &&
+      participantId !== undefined &&
+      domain !== null &&
+      domain !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheetLink>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetPortalTrainingSheetLinkQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPortalTrainingSheetLink>>
+>;
+export type GetPortalTrainingSheetLinkQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetPortalTrainingSheetLink<
+  TData = Awaited<ReturnType<typeof getPortalTrainingSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  params: undefined | GetPortalTrainingSheetLinkParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheetLink>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalTrainingSheetLink>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalTrainingSheetLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalTrainingSheetLink<
+  TData = Awaited<ReturnType<typeof getPortalTrainingSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetLinkParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheetLink>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalTrainingSheetLink>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalTrainingSheetLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalTrainingSheetLink<
+  TData = Awaited<ReturnType<typeof getPortalTrainingSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetLinkParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheetLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A short-lived link to the participant's stored signed sheet
+ */
+
+export function useGetPortalTrainingSheetLink<
+  TData = Awaited<ReturnType<typeof getPortalTrainingSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalTrainingSheetLinkParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTrainingSheetLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPortalTrainingSheetLinkQueryOptions(
+    participantId,
+    domain,
+    params,
+    options
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export const getListPortalClientEmployeesUrl = (participantId: string) => {
   return `/portal/participants/${participantId}/employees`;
 };
@@ -3438,6 +3644,210 @@ export function useGetPortalEmployeeTrainingSheet<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getGetPortalEmployeeTrainingSheetQueryOptions(
+    participantId,
+    employeeId,
+    domain,
+    params,
+    options
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetPortalEmployeeTrainingSheetLinkUrl = (
+  participantId: string,
+  employeeId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetLinkParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/portal/participants/${participantId}/employees/${employeeId}/sheets/${domain}/link?${stringifiedParams}`
+    : `/portal/participants/${participantId}/employees/${employeeId}/sheets/${domain}/link`;
+};
+
+/**
+ * As the participant's own.
+ * @summary A short-lived link to an employee's stored signed sheet, for the client administrator
+ */
+export const getPortalEmployeeTrainingSheetLink = async (
+  participantId: string,
+  employeeId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetLinkParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FileLinkResponse> => {
+  return apiFetch<FileLinkResponse>(
+    getGetPortalEmployeeTrainingSheetLinkUrl(participantId, employeeId, domain, params),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getGetPortalEmployeeTrainingSheetLinkQueryKey = (
+  participantId: string,
+  employeeId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetLinkParams
+) => {
+  return [
+    `/portal/participants/${participantId}/employees/${employeeId}/sheets/${domain}/link`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetPortalEmployeeTrainingSheetLinkQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetLinkParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetPortalEmployeeTrainingSheetLinkQueryKey(participantId, employeeId, domain, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>> = ({
+    signal,
+  }) =>
+    getPortalEmployeeTrainingSheetLink(participantId, employeeId, domain, params, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      participantId !== null &&
+      participantId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined &&
+      domain !== null &&
+      domain !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetPortalEmployeeTrainingSheetLinkQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>
+>;
+export type GetPortalEmployeeTrainingSheetLinkQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetPortalEmployeeTrainingSheetLink<
+  TData = Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  domain: 'ssm' | 'psi',
+  params: undefined | GetPortalEmployeeTrainingSheetLinkParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalEmployeeTrainingSheetLink<
+  TData = Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetLinkParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalEmployeeTrainingSheetLink<
+  TData = Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetLinkParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A short-lived link to an employee's stored signed sheet, for the client administrator
+ */
+
+export function useGetPortalEmployeeTrainingSheetLink<
+  TData = Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  domain: 'ssm' | 'psi',
+  params?: GetPortalEmployeeTrainingSheetLinkParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalEmployeeTrainingSheetLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPortalEmployeeTrainingSheetLinkQueryOptions(
     participantId,
     employeeId,
     domain,
@@ -4330,6 +4740,154 @@ export function useGetPortalMaterial<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export const getGetPortalMaterialLinkUrl = (participantId: string, domain: 'ssm' | 'psi') => {
+  return `/portal/participants/${participantId}/materials/${domain}/link`;
+};
+
+/**
+ * For a real link on the page, which the browser opens through `GET /files/download`: shown `inline`, the PDF opens in the browser's viewer, which the in-app browser of a mail client can do where it cannot download. The same material as `GET …/materials/{domain}`. Valid for ten minutes.
+ * @summary A short-lived link to the issued PDF of the material a test closes
+ */
+export const getPortalMaterialLink = async (
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FileLinkResponse> => {
+  return apiFetch<FileLinkResponse>(getGetPortalMaterialLinkUrl(participantId, domain), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetPortalMaterialLinkQueryKey = (participantId: string, domain: 'ssm' | 'psi') => {
+  return [`/portal/participants/${participantId}/materials/${domain}/link`] as const;
+};
+
+export const getGetPortalMaterialLinkQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPortalMaterialLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterialLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPortalMaterialLinkQueryKey(participantId, domain);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalMaterialLink>>> = ({ signal }) =>
+    getPortalMaterialLink(participantId, domain, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      participantId !== null &&
+      participantId !== undefined &&
+      domain !== null &&
+      domain !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterialLink>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetPortalMaterialLinkQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPortalMaterialLink>>
+>;
+export type GetPortalMaterialLinkQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetPortalMaterialLink<
+  TData = Awaited<ReturnType<typeof getPortalMaterialLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterialLink>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalMaterialLink>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalMaterialLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalMaterialLink<
+  TData = Awaited<ReturnType<typeof getPortalMaterialLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterialLink>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalMaterialLink>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalMaterialLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalMaterialLink<
+  TData = Awaited<ReturnType<typeof getPortalMaterialLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterialLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A short-lived link to the issued PDF of the material a test closes
+ */
+
+export function useGetPortalMaterialLink<
+  TData = Awaited<ReturnType<typeof getPortalMaterialLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  domain: 'ssm' | 'psi',
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalMaterialLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPortalMaterialLinkQueryOptions(participantId, domain, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export const getGetPortalTestSheetUrl = (participantId: string, resultId: string) => {
   return `/portal/participants/${participantId}/tests/results/${resultId}/sheet`;
 };
@@ -4461,6 +5019,154 @@ export function useGetPortalTestSheet<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getGetPortalTestSheetQueryOptions(participantId, resultId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetPortalTestSheetLinkUrl = (participantId: string, resultId: string) => {
+  return `/portal/participants/${participantId}/tests/results/${resultId}/sheet/link`;
+};
+
+/**
+ * For a real link on the page, which the browser opens through `GET /files/download`, read as `GET …/tests/results/{resultId}/sheet` is. Only a stored sheet has one: a sheet the pass could not draw up answers 404 (reason `test_sheet_not_available`) and is drawn up by the PDF route. The link names the sheet's version at the time, with every signature given so far. Valid for ten minutes.
+ * @summary A short-lived link to a result's stored test sheet
+ */
+export const getPortalTestSheetLink = async (
+  participantId: string,
+  resultId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FileLinkResponse> => {
+  return apiFetch<FileLinkResponse>(getGetPortalTestSheetLinkUrl(participantId, resultId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetPortalTestSheetLinkQueryKey = (participantId: string, resultId: string) => {
+  return [`/portal/participants/${participantId}/tests/results/${resultId}/sheet/link`] as const;
+};
+
+export const getGetPortalTestSheetLinkQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPortalTestSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTestSheetLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPortalTestSheetLinkQueryKey(participantId, resultId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalTestSheetLink>>> = ({ signal }) =>
+    getPortalTestSheetLink(participantId, resultId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      participantId !== null &&
+      participantId !== undefined &&
+      resultId !== null &&
+      resultId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getPortalTestSheetLink>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetPortalTestSheetLinkQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPortalTestSheetLink>>
+>;
+export type GetPortalTestSheetLinkQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetPortalTestSheetLink<
+  TData = Awaited<ReturnType<typeof getPortalTestSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  resultId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTestSheetLink>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalTestSheetLink>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalTestSheetLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalTestSheetLink<
+  TData = Awaited<ReturnType<typeof getPortalTestSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTestSheetLink>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalTestSheetLink>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalTestSheetLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalTestSheetLink<
+  TData = Awaited<ReturnType<typeof getPortalTestSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTestSheetLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A short-lived link to a result's stored test sheet
+ */
+
+export function useGetPortalTestSheetLink<
+  TData = Awaited<ReturnType<typeof getPortalTestSheetLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalTestSheetLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPortalTestSheetLinkQueryOptions(participantId, resultId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -5059,6 +5765,194 @@ export function useGetPortalEmployeeSigningAgreement<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export const getGetPortalEmployeeSigningAgreementLinkUrl = (
+  participantId: string,
+  employeeId: string
+) => {
+  return `/portal/participants/${participantId}/employees/${employeeId}/signing-agreement/link`;
+};
+
+/**
+ * As the participant's own; `404` before anyone has signed it.
+ * @summary A short-lived link to an employee's stored signing agreement, for the client administrator
+ */
+export const getPortalEmployeeSigningAgreementLink = async (
+  participantId: string,
+  employeeId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FileLinkResponse> => {
+  return apiFetch<FileLinkResponse>(
+    getGetPortalEmployeeSigningAgreementLinkUrl(participantId, employeeId),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getGetPortalEmployeeSigningAgreementLinkQueryKey = (
+  participantId: string,
+  employeeId: string
+) => {
+  return [
+    `/portal/participants/${participantId}/employees/${employeeId}/signing-agreement/link`,
+  ] as const;
+};
+
+export const getGetPortalEmployeeSigningAgreementLinkQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetPortalEmployeeSigningAgreementLinkQueryKey(participantId, employeeId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>
+  > = ({ signal }) =>
+    getPortalEmployeeSigningAgreementLink(participantId, employeeId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      participantId !== null &&
+      participantId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetPortalEmployeeSigningAgreementLinkQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>
+>;
+export type GetPortalEmployeeSigningAgreementLinkQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetPortalEmployeeSigningAgreementLink<
+  TData = Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalEmployeeSigningAgreementLink<
+  TData = Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalEmployeeSigningAgreementLink<
+  TData = Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A short-lived link to an employee's stored signing agreement, for the client administrator
+ */
+
+export function useGetPortalEmployeeSigningAgreementLink<
+  TData = Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getPortalEmployeeSigningAgreementLink>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPortalEmployeeSigningAgreementLinkQueryOptions(
+    participantId,
+    employeeId,
+    options
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export const getGetPortalSigningAgreementUrl = (participantId: string) => {
   return `/portal/participants/${participantId}/signing-agreement`;
 };
@@ -5189,6 +6083,145 @@ export function useGetPortalSigningAgreement<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getGetPortalSigningAgreementQueryOptions(participantId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetPortalSigningAgreementLinkUrl = (participantId: string) => {
+  return `/portal/participants/${participantId}/signing-agreement/link`;
+};
+
+/**
+ * As the employee's page in the app has it; `404` before anyone has signed it.
+ * @summary A short-lived link to the participant's own stored signing agreement
+ */
+export const getPortalSigningAgreementLink = async (
+  participantId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<FileLinkResponse> => {
+  return apiFetch<FileLinkResponse>(getGetPortalSigningAgreementLinkUrl(participantId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetPortalSigningAgreementLinkQueryKey = (participantId: string) => {
+  return [`/portal/participants/${participantId}/signing-agreement/link`] as const;
+};
+
+export const getGetPortalSigningAgreementLinkQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreementLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreementLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPortalSigningAgreementLinkQueryKey(participantId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortalSigningAgreementLink>>> = ({
+    signal,
+  }) => getPortalSigningAgreementLink(participantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: participantId !== null && participantId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreementLink>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetPortalSigningAgreementLinkQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPortalSigningAgreementLink>>
+>;
+export type GetPortalSigningAgreementLinkQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetPortalSigningAgreementLink<
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreementLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreementLink>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalSigningAgreementLink>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalSigningAgreementLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalSigningAgreementLink<
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreementLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreementLink>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPortalSigningAgreementLink>>,
+          TError,
+          Awaited<ReturnType<typeof getPortalSigningAgreementLink>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetPortalSigningAgreementLink<
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreementLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreementLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A short-lived link to the participant's own stored signing agreement
+ */
+
+export function useGetPortalSigningAgreementLink<
+  TData = Awaited<ReturnType<typeof getPortalSigningAgreementLink>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  participantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getPortalSigningAgreementLink>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetPortalSigningAgreementLinkQueryOptions(participantId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
