@@ -15,7 +15,7 @@ function commitSha() {
 }
 
 export default defineConfig({
-  site: 'https://ssmusor.ro',
+  site: process.env.PUBLIC_SITE_URL || 'https://ssmusor.ro',
   output: 'static',
   // Pages reached only from an emailed link stay out of the sitemap.
   integrations: [sitemap({ filter: (page) => !page.includes('/abonare/') })],
