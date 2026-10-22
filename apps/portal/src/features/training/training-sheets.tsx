@@ -20,7 +20,7 @@ import { useMissingSheetDataSentence } from './missing-sheet-data';
 import { signedSheet } from './signed-sheet';
 import {
   type LoadSheet,
-  type LoadSheetLink,
+  type SheetLinks,
   storedSequenceOf,
   useSheetActions,
   useStoredSheetLink,
@@ -37,7 +37,7 @@ type TrainingSheetsProps = {
   records: TrainingRecord[] | null | undefined;
   failed: boolean;
   loadSheet: LoadSheet;
-  loadLink: LoadSheetLink;
+  links: SheetLinks;
   onStale: () => void;
   className?: string;
 };
@@ -48,7 +48,7 @@ export function TrainingSheets({
   records,
   failed,
   loadSheet,
-  loadLink,
+  links,
   onStale,
   className,
 }: TrainingSheetsProps) {
@@ -71,7 +71,7 @@ export function TrainingSheets({
             sheet={sheets?.[domain]}
             records={records && records.filter((record) => record.domain === domain)}
             loadSheet={loadSheet}
-            loadLink={loadLink}
+            links={links}
             onStale={onStale}
           />
         ))
@@ -85,14 +85,14 @@ function TrainingSheetCard({
   sheet,
   records,
   loadSheet,
-  loadLink,
+  links,
   onStale,
 }: {
   domain: TrainingDomain;
   sheet: Sheet | undefined;
   records: TrainingRecord[] | null | undefined;
   loadSheet: LoadSheet;
-  loadLink: LoadSheetLink;
+  links: SheetLinks;
   onStale: () => void;
 }) {
   const { t, i18n } = useLingui();
@@ -101,8 +101,8 @@ function TrainingSheetCard({
   const { busy, failure, open, download } = useSheetActions(domain, loadSheet, onStale);
   const originals = sheet && sheet.sequences.length > 1 ? sheet.sequences : [];
   const storedSequence = storedSequenceOf(sheet);
-  const storedOpen = useStoredSheetLink(domain, storedSequence, loadLink, 'inline');
-  const storedDownload = useStoredSheetLink(domain, storedSequence, loadLink, 'attachment');
+  const storedOpen = useStoredSheetLink(domain, storedSequence, links, 'inline');
+  const storedDownload = useStoredSheetLink(domain, storedSequence, links, 'attachment');
   const label = i18n._(trainingDomainMessages[domain]);
   const untrained = records?.length === 0;
   const openable = sheet?.ready === true && records !== undefined && !untrained;
@@ -226,7 +226,7 @@ function TrainingSheetCard({
           <ul className="flex flex-wrap gap-x-4 gap-y-1">
             {originals.map((sequence) => (
               <li key={sequence}>
-                <OriginalLink domain={domain} sequence={sequence} loadLink={loadLink} />
+                <OriginalLink domain={domain} sequence={sequence} links={links} />
               </li>
             ))}
           </ul>
@@ -248,14 +248,14 @@ function TrainingSheetCard({
 function OriginalLink({
   domain,
   sequence,
-  loadLink,
+  links,
 }: {
   domain: TrainingDomain;
   sequence: number;
-  loadLink: LoadSheetLink;
+  links: SheetLinks;
 }) {
   const { t } = useLingui();
-  const link = useStoredSheetLink(domain, sequence, loadLink, 'attachment');
+  const link = useStoredSheetLink(domain, sequence, links, 'attachment');
   const text = sequence === 1 ? t`Fișa 1` : t`Fișa ${sequence} (continuare)`;
   const className =
     'inline-flex min-h-8 items-center gap-1 rounded-sm font-medium underline underline-offset-4 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60';

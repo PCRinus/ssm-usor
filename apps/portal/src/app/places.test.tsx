@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  getPortalEmployeeTrainingSheetLink,
   getPortalTrainingSheet,
   useGetPortalEmployeeData,
   useGetPortalEmployeeTrainingSheets,
@@ -48,6 +49,7 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   useListPortalClientEmployees: vi.fn(),
   useListPortalEmployeeTrainingRecords: vi.fn(),
   useGetPortalEmployeeTrainingSheets: vi.fn(),
+  getPortalEmployeeTrainingSheetLink: vi.fn(),
   useListPortalResponsiblePersons: vi.fn(),
 }));
 
@@ -574,6 +576,40 @@ describe('Angajați', () => {
       participation().participantId,
       '6f0c3e43-0c1b-4f4b-8a1e-0000000000e2',
       expect.anything()
+    );
+  });
+
+  it("gives each employee's stored sheet its own link", async () => {
+    const stored = { ready: true, missing: [], stored: true, sequences: [1] };
+    vi.mocked(useListPortalEmployeeTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
+    vi.mocked(useGetPortalEmployeeTrainingSheets).mockReturnValue(
+      queryResult({ ssm: stored, psi: stored })
+    );
+    vi.mocked(getPortalEmployeeTrainingSheetLink).mockImplementation(
+      async (_participant, employeeId, domain, params) =>
+        Promise.resolve({
+          url: `https://files.example.test/signed/${employeeId}-${domain}-${params?.sequence}`,
+          fileName: `Fisa-${domain.toUpperCase()}.pdf`,
+          expiresInSeconds: 600,
+        })
+    );
+    const first = '6f0c3e43-0c1b-4f4b-8a1e-0000000000e2';
+    const second = '6f0c3e43-0c1b-4f4b-8a1e-0000000000e3';
+    const sourceOf = (link: HTMLElement) =>
+      new URL(link.getAttribute('href')!).searchParams.get('source');
+    const runtime = mountPortal(signedIn(), `/angajati/${first}`);
+
+    await vi.waitFor(() =>
+      expect(sourceOf(screen.getByTestId('training-sheet-ssm-open'))).toBe(
+        `https://files.example.test/signed/${first}-ssm-1`
+      )
+    );
+
+    await runtime.router.navigate({ to: '/angajati/$employeeId', params: { employeeId: second } });
+    await vi.waitFor(() =>
+      expect(sourceOf(screen.getByTestId('training-sheet-ssm-open'))).toBe(
+        `https://files.example.test/signed/${second}-ssm-1`
+      )
     );
   });
 

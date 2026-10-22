@@ -151,6 +151,7 @@ function OwnTraining({ participantId }: { participantId: string }) {
             { sequence },
             { ...apiRequest, signal }
           ),
+        linkScope: [participantId],
         onStale: () =>
           void queryClient.invalidateQueries({
             queryKey: getGetPortalTrainingSheetsQueryKey(participantId),

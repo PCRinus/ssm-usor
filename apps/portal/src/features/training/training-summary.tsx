@@ -130,7 +130,7 @@ function SheetLink({
     sheetAccess.onStale
   );
   const sheet = sheetAccess.sheets?.[domain];
-  const link = useStoredSheetLink(domain, storedSequenceOf(sheet), sheetAccess.loadLink, 'inline');
+  const link = useStoredSheetLink(domain, storedSequenceOf(sheet), sheetAccess, 'inline');
   const text = signedSheet(sheet)
     ? t`Fișa individuală ${label}, semnată electronic, PDF`
     : t`Fișa individuală ${label}, PDF`;
