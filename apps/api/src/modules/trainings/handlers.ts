@@ -124,7 +124,7 @@ async function slotSignersOf(db: DataClient, recordIds: string[]) {
     .order('issued_at');
   if (error) throw fromDatabaseError(error, 'training signers');
   for (const { slot, signer_account_id: accountId } of data) {
-    if (slot !== 'trainee') signers[slot] ??= accountId;
+    if (slot !== 'trainee' && slot !== 'examiner') signers[slot] ??= accountId;
   }
   return signers;
 }

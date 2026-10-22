@@ -106,7 +106,7 @@ test('a client whose decision prints missing data fails the regeneration with ro
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 23 de documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 22 de documente.')).toBeVisible();
 
   await updateClient(clientId, { training_day_to: null });
   await putBehindItsTemplate(clientId, 'decision_training');

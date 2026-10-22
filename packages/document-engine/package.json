@@ -30,7 +30,9 @@
     "build-annex-title": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_annex_title.py",
     "build-signing": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_signing.py",
     "build-modules": "python3 tools/import/build_modules.py",
-    "build-sheets": "python3 tools/import/build_sheets.py"
+    "build-sheets": "python3 tools/import/build_sheets.py",
+    "build-tests": "python3 tools/import/build_tests.py",
+    "build-test-sheet": "python3 tools/import/build_test_sheet.py"
   },
   "dependencies": {
     "docxtemplater": "3.69.3",

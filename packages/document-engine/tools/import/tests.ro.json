@@ -1,0 +1,27 @@
+{
+  "several": "La fiecare întrebare pot fi corecte unul sau mai multe răspunsuri.",
+  "identity": [
+    ["Nume și prenume:", "Data testării:"],
+    ["Semnătura persoanei testate:", "Semnătura examinatorului:"]
+  ],
+  "result": ["Rezultatul testării (minimum 70% răspunsuri corecte):", "Admis / Respins"],
+  "answers": ["Nr. întrebării", "Răspunsul dat"],
+  "key": ["Nr. întrebării", "Răspunsul corect"],
+  "tests": [
+    {
+      "file": "5.1_test_hiring.docx",
+      "title": "TESTARE DE VERIFICARE A CUNOȘTINȚELOR PRIVIND SECURITATEA ȘI SĂNĂTATEA ÎN MUNCĂ (ANGAJARE / REINSTRUIRE)",
+      "keyTitle": "SPECIMEN CU RĂSPUNSURILE CORECTE"
+    },
+    {
+      "file": "fire/4.1_fire_test_hiring.docx",
+      "title": "TEST DE VERIFICARE A CUNOȘTINȚELOR PRIVIND SITUAȚIILE DE URGENȚĂ (ANGAJARE)",
+      "keyTitle": "RĂSPUNSURILE CORECTE"
+    },
+    {
+      "file": "fire/4.2_fire_test_annual.docx",
+      "title": "TEST DE VERIFICARE A CUNOȘTINȚELOR PRIVIND SITUAȚIILE DE URGENȚĂ (PERIODIC)",
+      "keyTitle": "RĂSPUNSURILE CORECTE"
+    }
+  ]
+}

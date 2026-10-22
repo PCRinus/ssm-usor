@@ -4,33 +4,55 @@ import type { TrainingDomain } from './trainings';
 // the document engine writes; the signer names the PDF field after it (ADR 023).
 
 export const sheetSignerSlots = ['trainee', 'trainer', 'verifier', 'admitter'] as const;
+
+/**
+ * The test sheet's fields (ADR 024), titled so in build_test_sheet.py: the two signatures, and
+ * the examiner's name and function, filled after the conversion and again when the result's
+ * examiner changes, until the examiner's signature locks them.
+ */
+export const testSheetFieldNames = {
+  signatures: { trainee: 'test_sig_trainee', examiner: 'test_sig_examiner' },
+  examinerName: 'test_examiner_name',
+  examinerJobTitle: 'test_examiner_job_title',
+} as const;
 export type SheetSignerSlot = (typeof sheetSignerSlots)[number];
 
 /**
  * `h1` the introductory general training, `h2` the workplace training, `adm` its admission
- * block, `p1`… the periodic rows (and on the fire-safety sheet the supplementary ones), `s1`…
- * the occupational safety sheet's supplementary rows.
+ * block, `p1`… the periodic rows (and on the fire-safety sheet the supplementary ones and the
+ * test results), `s1`… the occupational safety sheet's supplementary rows, `t1`… its test
+ * results (ADR 024).
  */
-export type SheetRowKey = 'h1' | 'h2' | 'adm' | `p${number}` | `s${number}`;
+export type SheetRowKey = 'h1' | 'h2' | 'adm' | `p${number}` | `s${number}` | `t${number}`;
 
-export type SheetTable = 'p' | 's';
+export type SheetTable = 'p' | 's' | 't';
 
 const capacity: Record<TrainingDomain, number> = { ssm: 17, psi: 17 };
 
-/** A page of rows, as on paper: a continuation sheet starts when a table's page is full. */
+/** The rows of annex 11's block "Rezultatele testărilor" on one sheet. */
+export const testRowCapacity = 5;
+
+/**
+ * A page of periodic or supplementary rows, as on paper: a continuation sheet starts when a
+ * table's page is full.
+ */
 export function rowCapacity(domain: TrainingDomain) {
   return capacity[domain];
 }
 
+export function tableCapacity(domain: TrainingDomain, table: SheetTable) {
+  return table === 't' ? testRowCapacity : capacity[domain];
+}
+
 export function sheetTables(domain: TrainingDomain): SheetTable[] {
-  return domain === 'ssm' ? ['p', 's'] : ['p'];
+  return domain === 'ssm' ? ['p', 's', 't'] : ['p'];
 }
 
 export function tableRowKey(table: SheetTable, index: number): SheetRowKey {
   return `${table}${index}`;
 }
 
-const rowKeyPattern = /^(h1|h2|adm|[ps][1-9][0-9]*)$/;
+const rowKeyPattern = /^(h1|h2|adm|[pst][1-9][0-9]*)$/;
 
 export function isSheetRowKey(value: string): value is SheetRowKey {
   return rowKeyPattern.test(value);
@@ -38,7 +60,7 @@ export function isSheetRowKey(value: string): value is SheetRowKey {
 
 export function tableRowOf(rowKey: SheetRowKey): { table: SheetTable; index: number } | null {
   const table = rowKey[0];
-  if (table !== 'p' && table !== 's') return null;
+  if (table !== 'p' && table !== 's' && table !== 't') return null;
   return { table, index: Number(rowKey.slice(1)) };
 }
 
@@ -62,6 +84,9 @@ const hiringText: Record<TrainingDomain, Record<'h1' | 'h2', string[]>> = {
 };
 
 const tableText = ['date', 'duration', 'occupation', 'material'];
+
+// Annex 11's four columns; the block has no signature column.
+const testText = ['date', 'material', 'grade', 'examiner'];
 
 // The fire-safety form has one signature beside the trainee's, the trainer's or, as its caption
 // says, the one who verified, whom the record names as its trainer (ADR 021); no verifier's.
@@ -96,10 +121,12 @@ export function sheetFieldNames(domain: TrainingDomain, rowKey: SheetRowKey): Sh
   if (!row || !sheetTables(domain).includes(row.table)) {
     throw new Error(`The ${domain} sheet has no row ${rowKey}.`);
   }
-  if (row.index < 1 || row.index > rowCapacity(domain)) {
-    throw new Error(
-      `The ${domain} sheet holds ${rowCapacity(domain)} rows a table, not ${row.index}.`
-    );
+  const rows = tableCapacity(domain, row.table);
+  if (row.index < 1 || row.index > rows) {
+    throw new Error(`The ${domain} sheet holds ${rows} rows of this table, not ${row.index}.`);
+  }
+  if (row.table === 't') {
+    return { text: named(rowKey, testText), note: `${rowKey}_note`, signatures: {} };
   }
   return {
     text: named(rowKey, tableText),
@@ -137,7 +164,9 @@ export function sheetRowKeys(domain: TrainingDomain): SheetRowKey[] {
     'h2',
     'adm',
     ...sheetTables(domain).flatMap((table) =>
-      Array.from({ length: rowCapacity(domain) }, (_, index) => tableRowKey(table, index + 1))
+      Array.from({ length: tableCapacity(domain, table) }, (_, index) =>
+        tableRowKey(table, index + 1)
+      )
     ),
   ];
 }

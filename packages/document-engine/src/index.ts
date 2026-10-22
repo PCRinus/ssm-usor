@@ -24,4 +24,10 @@ export {
   signingTypeKeys,
 } from './signing';
 export { instructionModuleSkeleton } from './skeleton';
+export {
+  buildTestSheetData,
+  type TestSheetData,
+  type TestSheetFacts,
+  testSheetTypeKey,
+} from './test-sheet';
 export { documentText } from './text';

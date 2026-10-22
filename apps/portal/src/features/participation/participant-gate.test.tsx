@@ -7,6 +7,7 @@ import {
   useGetPortalEmployeeData,
   useGetPortalMe,
   useGetPortalSigningAgreementState,
+  useGetPortalTests,
   useGetPortalTrainingSheets,
   useListPortalClientEmployees,
   useListPortalClientSignatureRequests,
@@ -36,6 +37,7 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   useGetPortalMe: vi.fn(),
   useRecordPortalNotice: vi.fn(),
   useListPortalTrainingRecords: vi.fn(),
+  useGetPortalTests: vi.fn(),
   useGetPortalEmployeeData: vi.fn(),
   useGetPortalTrainingSheets: vi.fn(),
   useListPortalClientEmployees: vi.fn(),
@@ -56,6 +58,7 @@ beforeEach(() => {
     isError: false,
   } as never);
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryPending());
+  vi.mocked(useGetPortalTests).mockReturnValue(queryPending());
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryPending());
   vi.mocked(useGetPortalTrainingSheets).mockReturnValue(queryPending());
   vi.mocked(useListPortalClientEmployees).mockReturnValue(queryPending());

@@ -1,10 +1,16 @@
 import { z } from 'zod';
 
 import { participantChannelSchema } from './participant-channels';
+import { signatureSlotStateSchema } from './signature-slot-states';
+import { type KnowledgeTest, knowledgeTestSchema } from './tests';
 import {
   supplementaryTrainingReasonSchema,
   trainingAdmissionSchema,
+  type TrainingDomain,
+  trainingDomainLabels,
   trainingDomainSchema,
+  type TrainingPhase,
+  trainingPhaseLabels,
   trainingPhaseSchema,
 } from './trainings';
 
@@ -12,25 +18,62 @@ export const signerSlots = ['trainee', 'trainer', 'verifier', 'admitter'] as con
 export const signerSlotSchema = z.enum(signerSlots);
 export type SignerSlot = z.infer<typeof signerSlotSchema>;
 
-export const signerSlotLabels: Record<SignerSlot, string> = {
+/** The slots of a test sheet (ADR 024): the examiner signs nothing else. */
+export const testSheetSignerSlots = ['trainee', 'examiner'] as const;
+export const testSheetSignerSlotSchema = z.enum(testSheetSignerSlots);
+export type TestSheetSignerSlot = z.infer<typeof testSheetSignerSlotSchema>;
+
+export const signatureRequestSlots = [...signerSlots, 'examiner'] as const;
+export const signatureRequestSlotSchema = z.enum(signatureRequestSlots);
+export type SignatureRequestSlot = z.infer<typeof signatureRequestSlotSchema>;
+
+export const signerSlotLabels: Record<SignatureRequestSlot, string> = {
   trainee: 'Instruit',
   trainer: 'Instructor',
   verifier: 'Verificator',
   admitter: 'Admite la lucru',
+  examiner: 'Examinator',
 };
+
+export const signatureRequestKinds = ['training_record', 'test_sheet'] as const;
+export const signatureRequestKindSchema = z.enum(signatureRequestKinds);
+export type SignatureRequestKind = z.infer<typeof signatureRequestKindSchema>;
+
+const printedDay = (isoDate: string) => {
+  const [year, month, day] = isoDate.slice(0, 10).split('-');
+  return `${day}.${month}.${year}`;
+};
+
+const testSheetTestLabels: Record<KnowledgeTest, string> = {
+  hiring: 'Test la angajare',
+  annual: 'Test anual',
+};
+
+/**
+ * One line naming what a request signs, for the lists that show both kinds alike:
+ * "Instruire introductiv-generală SSM · 05.01.2026", "Fișa de test · Test la angajare SSM ·
+ * 21.10.2026".
+ */
+export function signatureRequestLabel(
+  document:
+    | { kind: 'training_record'; domain: TrainingDomain; phase: TrainingPhase; heldOn: string }
+    | { kind: 'test_sheet'; domain: TrainingDomain; test: KnowledgeTest; takenOn: string }
+) {
+  const domain = trainingDomainLabels[document.domain];
+  return document.kind === 'training_record'
+    ? `Instruire ${trainingPhaseLabels[document.phase].toLocaleLowerCase('ro')} ${domain} · ${printedDay(document.heldOn)}`
+    : `Fișa de test · ${testSheetTestLabels[document.test]} ${domain} · ${printedDay(document.takenOn)}`;
+}
 
 export const signatureRequestStates = ['pending', 'signed', 'void'] as const;
 export const signatureRequestStateSchema = z.enum(signatureRequestStates);
 export type SignatureRequestState = z.infer<typeof signatureRequestStateSchema>;
 
-/**
- * A slot of a record as the member sees it: `unassigned` has neither a request nor a signature,
- * `paper` is marked as signed by hand, `void` had a request or a signature that was voided and
- * nothing live since.
- */
-export const signatureSlotStates = ['unassigned', 'pending', 'signed', 'paper', 'void'] as const;
-export const signatureSlotStateSchema = z.enum(signatureSlotStates);
-export type SignatureSlotState = z.infer<typeof signatureSlotStateSchema>;
+export {
+  type SignatureSlotState,
+  signatureSlotStates,
+  signatureSlotStateSchema,
+} from './signature-slot-states';
 
 export const signerKinds = ['member', 'employee', 'client_administrator'] as const;
 export const signerKindSchema = z.enum(signerKinds);
@@ -38,6 +81,8 @@ export type SignerKind = z.infer<typeof signerKindSchema>;
 
 export const signatureErrorReasons = {
   recordSigned: 'record_signed',
+  examinerRequired: 'examiner_required',
+  slotNotOnSheet: 'slot_not_on_sheet',
   recordHasSignatures: 'record_has_signatures',
   slotSigned: 'slot_signed',
   slotNotOnRecord: 'slot_not_on_record',
@@ -243,23 +288,45 @@ export const signingAgreementSummarySchema = z
 
 export type SigningAgreementSummary = z.infer<typeof signingAgreementSummarySchema>;
 
+const requestEmployeeSchema = z.object({
+  id: z.uuid(),
+  lastName: z.string(),
+  firstName: z.string(),
+});
+
 const requestRecordSchema = z.object({
   id: z.uuid(),
   trainingId: z.uuid(),
-  employee: z.object({ id: z.uuid(), lastName: z.string(), firstName: z.string() }),
+  employee: requestEmployeeSchema,
   domain: trainingDomainSchema,
   phase: trainingPhaseSchema,
   heldOn: z.iso.date(),
 });
 
+const requestTestSheetSchema = z.object({
+  id: z.uuid(),
+  resultId: z.uuid(),
+  domain: trainingDomainSchema,
+  test: knowledgeTestSchema,
+  takenOn: z.iso.date(),
+});
+
+/**
+ * `record` for a training record's request and `testSheet` for a test sheet's, the other null;
+ * `employee` and `label` for both, so a list shows either kind alike.
+ */
 export const signatureRequestItemSchema = z.object({
   id: z.uuid(),
-  slot: signerSlotSchema,
+  kind: signatureRequestKindSchema,
+  label: z.string(),
+  slot: signatureRequestSlotSchema,
   state: signatureRequestStateSchema,
   issuedAt: z.iso.datetime({ offset: true }),
   notifiedAt: z.iso.datetime({ offset: true }).nullable(),
   client: z.object({ id: z.uuid(), name: z.string() }),
-  record: requestRecordSchema,
+  employee: requestEmployeeSchema,
+  record: requestRecordSchema.nullable(),
+  testSheet: requestTestSheetSchema.nullable(),
   signer: z.object({ accountId: z.uuid(), name: z.string().nullable() }).nullable(),
   agreement: signingAgreementSummarySchema,
 });
@@ -278,26 +345,47 @@ export const clientSignatureRequestsQuerySchema = z.object({
 
 const portalPersonSchema = z.object({ name: z.string(), jobTitle: z.string() });
 
+/** As `signatureRequestItemSchema`: `record` or `testSheet`, the other null. */
 export const portalSignatureRequestSchema = z.object({
   id: z.uuid(),
-  slot: signerSlotSchema,
+  kind: signatureRequestKindSchema,
+  label: z.string(),
+  slot: signatureRequestSlotSchema,
   issuedAt: z.iso.datetime({ offset: true }),
-  // The person the slot prints: the trainee, the trainer, the verifier or who admits to work.
+  // The person the slot prints: the trainee, the trainer, the verifier, who admits to work, or
+  // the examiner.
   signerName: z.string(),
-  record: z.object({
-    id: z.uuid(),
-    employee: z.object({ id: z.uuid(), lastName: z.string(), firstName: z.string() }),
-    domain: trainingDomainSchema,
-    phase: trainingPhaseSchema,
-    heldOn: z.iso.date(),
-    durationMinutes: z.int(),
-    material: z.string(),
-    trainer: portalPersonSchema,
-    verifier: portalPersonSchema.nullable(),
-    supplementaryReason: supplementaryTrainingReasonSchema.nullable(),
-    occupation: z.string(),
-    admission: trainingAdmissionSchema.nullable(),
-  }),
+  employee: requestEmployeeSchema,
+  record: z
+    .object({
+      id: z.uuid(),
+      employee: z.object({ id: z.uuid(), lastName: z.string(), firstName: z.string() }),
+      domain: trainingDomainSchema,
+      phase: trainingPhaseSchema,
+      heldOn: z.iso.date(),
+      durationMinutes: z.int(),
+      material: z.string(),
+      trainer: portalPersonSchema,
+      verifier: portalPersonSchema.nullable(),
+      supplementaryReason: supplementaryTrainingReasonSchema.nullable(),
+      occupation: z.string(),
+      admission: trainingAdmissionSchema.nullable(),
+    })
+    .nullable(),
+  testSheet: z
+    .object({
+      id: z.uuid(),
+      resultId: z.uuid(),
+      domain: trainingDomainSchema,
+      test: knowledgeTestSchema,
+      code: z.string(),
+      title: z.string(),
+      takenOn: z.iso.date(),
+      score: z.int(),
+      total: z.int(),
+      examiner: portalPersonSchema.nullable(),
+    })
+    .nullable(),
   agreement: signingAgreementSummarySchema,
 });
 

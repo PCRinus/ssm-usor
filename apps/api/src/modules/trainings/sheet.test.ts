@@ -56,6 +56,7 @@ const facts: TrainingSheetFacts = {
     workplace: workshop,
     position: { name: 'Sudor', workZone: 'Atelier' },
   },
+  testResults: [],
   records: [
     record('periodic', '2026-07-02', { durationMinutes: 90 }),
     record('introductory_general', '2026-01-05', {
@@ -239,6 +240,72 @@ describe('buildTrainingSheetData', () => {
     expect(data.blankRows.supplementary).toEqual([]);
     expect(data.blankRows.periodic).toHaveLength(14);
     expect(data.signers.introductory).toEqual({ trainer: 'Dan MARIN', verifier: 'Dan MARIN' });
+  });
+
+  const result = (
+    takenOn: string,
+    overrides: Partial<TrainingSheetFacts['testResults'][number]> = {}
+  ): TrainingSheetFacts['testResults'][number] => ({
+    test: 'hiring',
+    takenOn,
+    material: 'Test de verificare a cunoștințelor la angajare (TASSM)',
+    examiner: { name: 'Dan MARIN', jobTitle: 'Inspector SSM' },
+    createdAt: `${takenOn}T12:00:00+00:00`,
+    ...overrides,
+  });
+
+  it("prints the occupational safety results in annex 11's test block, oldest first, blank rows to five", () => {
+    const data = buildTrainingSheetData({
+      ...facts,
+      testResults: [result('2026-03-01', { examiner: null }), result('2026-01-06')],
+    });
+    expect(data.testResults).toEqual([
+      {
+        date: '06.01.2026',
+        material: 'Test de verificare a cunoștințelor la angajare (TASSM)',
+        grade: 'Admis',
+        examiner: 'Dan MARIN, Inspector SSM',
+      },
+      {
+        date: '01.03.2026',
+        material: 'Test de verificare a cunoștințelor la angajare (TASSM)',
+        grade: 'Admis',
+        examiner: '',
+      },
+    ]);
+    expect(data.blankRows.testResults).toHaveLength(3);
+    expect(data.periodic).toHaveLength(2);
+    expect(buildTrainingSheetData({ ...facts, records: [] }).blankRows.testResults).toHaveLength(5);
+  });
+
+  it('prints a fire-safety pass as a periodic row among the trainings, the examiner as the trainer', () => {
+    const data = buildTrainingSheetData({
+      ...facts,
+      domain: 'psi',
+      testResults: [
+        result('2026-05-01', {
+          test: 'annual',
+          material: 'Verificare anuală pe bază de test (TPSU)',
+          examiner: { name: 'Radu STAN', jobTitle: 'Cadru tehnic PSI' },
+        }),
+      ],
+    });
+    expect(data.testResults).toEqual([]);
+    expect(data.blankRows.testResults).toEqual([]);
+    expect(data.periodic.map((row) => row.heldOn)).toEqual([
+      '03.04.2026',
+      '01.05.2026',
+      '18.05.2026',
+      '02.07.2026',
+    ]);
+    expect(data.periodic[1]).toEqual({
+      heldOn: '01.05.2026',
+      hours: '',
+      occupation: 'Sudor',
+      material: 'Verificare anuală pe bază de test (TPSU): admis',
+      trainer: 'Radu STAN',
+      verifier: '',
+    });
   });
 
   it('refuses facts the readiness turns down', () => {

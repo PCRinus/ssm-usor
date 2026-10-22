@@ -8,6 +8,7 @@ import {
   sheetTables,
   tableRowKey,
   tableRowOf,
+  testGradeLabels,
   type TrainingDomain,
   type TrainingPhase,
   type TrainingSource,
@@ -17,12 +18,15 @@ import { printedDate } from '../documents/context';
 import {
   buildTrainingSheetData,
   chronological,
+  examinerOf,
   hoursOf,
   materialOf,
   paperForm,
+  periodicTestMaterial,
+  type SheetIdentity,
   type SheetRecord,
+  type SheetTestResult,
   type TrainingSheetData,
-  type TrainingSheetFacts,
 } from '../trainings/sheet';
 
 export type SheetTrainingRecord = SheetRecord & {
@@ -99,22 +103,24 @@ export type HiringMaterials = Partial<Record<'h1' | 'h2', string>>;
  * material fields are then drawn as tall as their text.
  */
 export function signedSheetData(
-  facts: Omit<TrainingSheetFacts, 'domain' | 'records'>,
+  facts: SheetIdentity,
   domain: TrainingDomain,
   sequence: number,
   printed: PrintedRow[],
   materials: HiringMaterials = {}
 ): TrainingSheetData {
+  // A result is never printed as text: every one takes a row of fields, as the app records it.
   const data = buildTrainingSheetData({
     ...facts,
     domain,
     records: printed.map((row) => row.record),
+    testResults: [],
   });
   const keys = new Set<string>(printed.map((row) => row.rowKey));
   const form = paperForm(domain);
   return {
     ...data,
-    blankRows: { periodic: [], supplementary: [] },
+    blankRows: { periodic: [], supplementary: [], testResults: [] },
     form: {
       on: true,
       continuation: continuationLine(sequence),
@@ -142,6 +148,10 @@ type Box = { chars: number; lines: number };
 const tableBoxes: Record<TrainingDomain, Record<string, Box>> = {
   ssm: { occupation: { chars: 14, lines: 3 }, material: { chars: 29, lines: 3 } },
   psi: { occupation: { chars: 16, lines: 3 }, material: { chars: 33, lines: 3 } },
+};
+const testBoxes: Record<string, Box> = {
+  material: { chars: 47, lines: 3 },
+  examiner: { chars: 25, lines: 2 },
 };
 const hiringBoxes: Record<string, Box> = { material: { chars: 57, lines: 7 } };
 
@@ -238,6 +248,52 @@ export function rowValues(
     adm_name: admission?.name ?? '',
     adm_job_title: admission?.jobTitle ?? '',
     adm_date: admission ? printedDate(admission.admittedOn) : '',
+  };
+}
+
+/**
+ * A test result's row: on the occupational safety sheet annex 11's four columns of a `t` row; on
+ * the fire-safety sheet a periodic row, with no duration and the examiner after the material,
+ * since the row's one other column is a signature nobody gives (ADR 024). `occupation` is the
+ * employee's position, which the fire-safety row prints.
+ */
+export function resultRowValues(
+  domain: TrainingDomain,
+  rowKey: SheetRowKey,
+  result: SheetTestResult,
+  occupation: string
+): Record<string, string> {
+  const note = { [`${rowKey}_note`]: '' };
+  if (domain === 'ssm') {
+    return {
+      ...boxed(
+        {
+          date: printedDate(result.takenOn),
+          material: result.material.trim(),
+          grade: testGradeLabels.admis,
+          examiner: examinerOf(result),
+        },
+        testBoxes,
+        rowKey
+      ),
+      ...note,
+    };
+  }
+  const examiner = examinerOf(result);
+  return {
+    ...boxed(
+      {
+        date: printedDate(result.takenOn),
+        duration: '',
+        occupation,
+        material: examiner
+          ? `${periodicTestMaterial(result)} (examinator: ${examiner})`
+          : periodicTestMaterial(result),
+      },
+      tableBoxes[domain],
+      rowKey
+    ),
+    ...note,
   };
 }
 
