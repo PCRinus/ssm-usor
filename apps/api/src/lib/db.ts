@@ -105,11 +105,39 @@ const signingErrors: Record<
   SIG10: { code: 'conflict', message: 'The signing agreement does not take this change.' },
 };
 
+// Raised by the knowledge tests' schema (ADR 024); the message is the reason, as in
+// `testErrorReasons` of the contracts.
+const testErrors: Record<string, { code: 'conflict' | 'validation_error'; message: string }> = {
+  TST01: {
+    code: 'conflict',
+    message: 'Un test trebuie să păstreze cel puțin zece întrebări active.',
+  },
+  TST02: {
+    code: 'conflict',
+    message: 'Numai o întrebare predefinită a aceluiași test se ascunde sau se înlocuiește.',
+  },
+  TST03: { code: 'conflict', message: 'Încercarea este încheiată și nu se mai schimbă.' },
+  TST04: {
+    code: 'validation_error',
+    message: 'Răspunsul nu se potrivește cu întrebările testului.',
+  },
+  TST05: { code: 'conflict', message: 'Testul nu așteaptă acum angajatul.' },
+  TST06: {
+    code: 'conflict',
+    message: 'Un rezultat din portal se schimbă numai în examinator și nu se șterge.',
+  },
+  TST07: {
+    code: 'conflict',
+    message: 'Examinatorul a semnat fișa de test, deci nu se mai schimbă.',
+  },
+  TST08: { code: 'conflict', message: 'Fișa de test nu se șterge și nu se întocmește din nou.' },
+};
+
 // Translate PostgREST/Postgres failures into API errors without leaking details.
 export function fromDatabaseError(error: PostgrestError, context: string): ApiError {
-  const signing = error.code ? signingErrors[error.code] : undefined;
-  if (signing) {
-    return new ApiError(signing.code, signing.message, undefined, error.message || undefined);
+  const known = error.code ? (signingErrors[error.code] ?? testErrors[error.code]) : undefined;
+  if (known) {
+    return new ApiError(known.code, known.message, undefined, error.message || undefined);
   }
   switch (error.code) {
     case '23505':

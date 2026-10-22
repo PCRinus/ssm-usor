@@ -14,6 +14,9 @@ export function paperForm(domain: SheetDomain) {
   for (const table of domain === 'ssm' ? ['p', 's'] : ['p']) {
     for (let index = 1; index <= 17; index++) rows[`${table}${index}`] = false;
   }
+  if (domain === 'ssm') {
+    for (let index = 1; index <= 5; index++) rows[`t${index}`] = false;
+  }
   return {
     on: false,
     continuation: '',
@@ -77,6 +80,21 @@ const ssmRecords = {
   },
 };
 
+export const testResult = (date: string, material: string) => ({
+  date,
+  material,
+  grade: 'admis',
+  examiner: 'Dan MARIN',
+});
+
+const testResults = [
+  testResult('05.01.2026', 'Test de verificare a cunoștințelor la angajare (TASSM)'),
+  testResult(
+    '12.01.2026',
+    'Test de verificare a cunoștințelor la angajare (TASSM), susținut din nou după reluarea instruirii introductiv-generale'
+  ),
+];
+
 const periodicRow = (heldOn: string, material: string) => ({
   heldOn,
   hours: '1,5',
@@ -97,7 +115,8 @@ function ssmSample(recorded: boolean) {
       admission: { admittedOn: '', name: '', jobTitle: '' },
       periodic: [],
       supplementary: [],
-      blankRows: { periodic: blank(17), supplementary: blank(17) },
+      testResults: [],
+      blankRows: { periodic: blank(17), supplementary: blank(17), testResults: blank(5) },
       signers: {
         introductory: { trainer: '', verifier: '' },
         workplace: { trainer: '', verifier: '' },
@@ -127,13 +146,16 @@ function ssmSample(recorded: boolean) {
         hours: '1',
       },
     ],
-    blankRows: { periodic: blank(13), supplementary: blank(16) },
+    testResults,
+    blankRows: { periodic: blank(13), supplementary: blank(16), testResults: blank(3) },
   };
 }
 
 function psiSample(recorded: boolean) {
   const base = { ...ssmSample(recorded), form: paperForm('psi') };
-  if (!recorded) return { ...base, blankRows: { periodic: blank(17), supplementary: [] } };
+  if (!recorded) {
+    return { ...base, blankRows: { periodic: blank(17), supplementary: [], testResults: [] } };
+  }
   return {
     ...base,
     hiring: {
@@ -166,7 +188,7 @@ function psiSample(recorded: boolean) {
       { ...base.periodic[1]!, hours: '2', material: 'IPSU art. 41–80', verifier: '' },
     ],
     supplementary: [],
-    blankRows: { periodic: blank(14), supplementary: [] },
+    blankRows: { periodic: blank(14), supplementary: [], testResults: [] },
   };
 }
 
@@ -179,18 +201,19 @@ export function trainingSheetSamples(domain: SheetDomain) {
 }
 
 /**
- * The first page of a signed sheet (ADR 023): the introductory training and the first two
- * periodic rows recorded from a paper sheet, every other row a field.
+ * The first page of a signed sheet (ADR 023): the introductory training, the first two
+ * periodic rows and the first test result recorded from paper, every other row a field.
  */
 export function trainingSheetFormSample(domain: SheetDomain) {
   const { data } = trainingSheetSamples(domain)[0]!;
   const form = paperForm(domain);
-  for (const key of Object.keys(form.rows)) form.rows[key] = !['p1', 'p2'].includes(key);
+  for (const key of Object.keys(form.rows)) form.rows[key] = !['p1', 'p2', 't1'].includes(key);
   return {
     ...data,
     periodic: data.periodic.slice(0, 2),
     supplementary: [],
-    blankRows: { periodic: [], supplementary: [] },
+    testResults: domain === 'ssm' ? testResults.slice(0, 1) : [],
+    blankRows: { periodic: [], supplementary: [], testResults: [] },
     form: {
       ...form,
       on: true,

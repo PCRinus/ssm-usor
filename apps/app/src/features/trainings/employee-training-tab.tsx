@@ -26,6 +26,7 @@ import { formatDate } from '@/features/employees/employee-format';
 import { EmployeePending } from '@/features/employees/employee-pending';
 import { useEmployee } from '@/features/employees/use-employee';
 import { intervalLabel } from '@/features/job-positions/job-position-schema';
+import { EmployeeTestsCard } from '@/features/knowledge-tests/employee-tests-card';
 import { RecordSignatures } from '@/features/signatures/record-signatures';
 import { trainingLocks, useRecordSignatures } from '@/features/signatures/use-record-signatures';
 import { TrainingSheetDownload } from '@/features/training-sheets/training-sheet-download';
@@ -220,6 +221,14 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
           </span>
         </StatusFact>
       </dl>
+
+      <EmployeeTestsCard
+        clientId={clientId}
+        employeeId={employeeId}
+        userId={userId}
+        domain={domain}
+        readOnly={readOnly}
+      />
 
       {records.isError ? (
         <Notice

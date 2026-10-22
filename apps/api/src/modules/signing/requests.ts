@@ -183,7 +183,7 @@ export async function issueSignatureRequests(
   if (issued.error) throw fromDatabaseError(issued.error, 'issue signature requests');
   const rows: IssuedRow[] = issued.data.map((row) => ({
     id: row.id,
-    slot: row.slot,
+    slot: row.slot as SignerSlot,
     signer_account_id: row.signer_account_id,
   }));
 

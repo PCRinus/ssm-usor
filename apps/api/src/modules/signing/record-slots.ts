@@ -1,4 +1,4 @@
-import type { SignatureSlot, SignerSlot } from '@ssm-usor/contracts';
+import type { SignatureRequestSlot, SignatureSlot, SignerSlot } from '@ssm-usor/contracts';
 
 import type { Signer } from './signers';
 
@@ -9,7 +9,7 @@ export const signatureColumns =
 
 export type RequestRow = {
   id: string;
-  slot: SignerSlot;
+  slot: SignatureRequestSlot;
   signer_account_id: string | null;
   state: string;
   issued_at: string;
@@ -20,7 +20,7 @@ export type RequestRow = {
 
 export type SignatureRow = {
   request_id: string;
-  slot: SignerSlot;
+  slot: SignatureRequestSlot;
   method: string;
   signer_account_id: string | null;
   signer_name: string;

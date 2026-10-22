@@ -603,6 +603,9 @@ export async function cleanUp() {
     const filePaths = (files.data ?? []).map((file) => file.storage_path as string);
     if (filePaths.length > 0) await admin.storage.from('client-files').remove(filePaths);
     await admin.from('client_files').delete().eq('organization_id', id);
+    // A participant's attempts restrict their deletion, and a result restricts its attempt's.
+    await admin.from('test_results').delete().eq('organization_id', id);
+    await admin.from('test_attempts').delete().eq('organization_id', id);
     await admin.from('participant_invitations').delete().eq('organization_id', id);
     await admin.from('client_participants').delete().eq('organization_id', id);
     await admin.from('employees').delete().eq('organization_id', id);
@@ -615,6 +618,9 @@ export async function cleanUp() {
     await admin.from('client_owner_notes').delete().eq('organization_id', id);
     await admin.from('service_contracts').delete().eq('organization_id', id);
     await admin.from('clients').delete().eq('organization_id', id);
+    // The hides first: deleting an own question is refused while it would leave fewer than ten.
+    await admin.from('test_question_hides').delete().eq('organization_id', id);
+    await admin.from('test_questions').delete().eq('organization_id', id);
     await admin.from('organizations').delete().eq('id', id);
   }
   for (const version of created.templateVersions) {

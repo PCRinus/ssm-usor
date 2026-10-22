@@ -118,7 +118,7 @@ function EmployeeDetail({
           pending={
             requests.data &&
             pendingByRecord(
-              requests.data.items.filter((request) => request.record.employee.id === employeeId),
+              requests.data.items.filter((request) => request.employee.id === employeeId),
               false
             )
           }

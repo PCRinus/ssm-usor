@@ -40,6 +40,7 @@ export * from './signed-sheet';
 export * from './signer';
 export * from './signer-http';
 export * from './sms';
+export * from './tests';
 export * from './training-sheets';
 export * from './trainings';
 export * from './waitlist';

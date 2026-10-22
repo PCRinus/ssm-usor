@@ -11,6 +11,7 @@ import {
   useGetPortalEmployeeData,
   useGetPortalMe,
   useGetPortalSigningAgreementState,
+  useGetPortalTests,
   useGetPortalTrainingSheets,
   useListPortalClientEmployees,
   useListPortalClientSignatureRequests,
@@ -36,6 +37,7 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/generated/api')>()),
   useGetPortalMe: vi.fn(),
   useListPortalTrainingRecords: vi.fn(),
+  useGetPortalTests: vi.fn(),
   useGetPortalEmployeeData: vi.fn(),
   useGetPortalTrainingSheets: vi.fn(),
   useListPortalClientEmployees: vi.fn(),
@@ -56,14 +58,20 @@ const sessionId = '6f0c3e43-0c1b-4f4b-8a1e-0000000005e1';
 
 type Request = PortalSignatureRequestsResponse['items'][number];
 
+const ownEmployee = { id: employeeId, lastName: 'Pop', firstName: 'Ana' };
+const firstRecord = { ...trainingRecords().items[0]!, employee: ownEmployee };
+
 function request(id: string, overrides: Partial<Request> = {}): Request {
-  const record = trainingRecords().items[0]!;
   return {
     id,
+    kind: 'training_record',
+    label: 'Instruire periodică SSM · 12.09.2026',
     slot: 'trainee',
     issuedAt: '2026-10-17T08:00:00Z',
     signerName: 'Pop Ana',
-    record: { ...record, employee: { id: employeeId, lastName: 'Pop', firstName: 'Ana' } },
+    employee: ownEmployee,
+    record: firstRecord,
+    testSheet: null,
     agreement: { state: 'generated', employeeSignedAt: null, employerSignedAt: null },
     ...overrides,
   };
@@ -71,12 +79,30 @@ function request(id: string, overrides: Partial<Request> = {}): Request {
 
 const requestA = request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r1');
 const requestB = request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r2', {
+  label: 'Instruire introductiv-generală PSI · 03.02.2026',
   record: {
-    ...requestA.record,
+    ...firstRecord,
     id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000a2',
     domain: 'psi',
     phase: 'introductory_general',
     heldOn: '2026-02-03',
+  },
+});
+const testSheetRequest = request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r3', {
+  kind: 'test_sheet',
+  label: 'Fișa de test · Test la angajare SSM · 21.10.2026',
+  record: null,
+  testSheet: {
+    id: '6f0c3e43-0c1b-4f4b-8a1e-0000000005h1',
+    resultId: '6f0c3e43-0c1b-4f4b-8a1e-0000000000e1',
+    domain: 'ssm',
+    test: 'hiring',
+    code: 'TASSM',
+    title: 'Test de verificare a cunoștințelor la angajare (TASSM)',
+    takenOn: '2026-10-21',
+    score: 8,
+    total: 10,
+    examiner: { name: 'Ana Ionescu', jobTitle: 'Inspector SSM' },
   },
 });
 
@@ -122,6 +148,7 @@ const refusal = (reason: string, message = 'Refused.', extra: Record<string, unk
 beforeEach(() => {
   vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [employee] }));
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
+  vi.mocked(useGetPortalTests).mockReturnValue(queryPending());
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
   vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
     queryResult({
@@ -237,6 +264,113 @@ describe('Acasă', () => {
     );
     mountPortal(signedIn());
     expect((await screen.findByTestId('home-todo-more')).textContent).toBe('+3');
+  });
+});
+
+describe('test-sheet requests', () => {
+  it('lists a test sheet beside the records, and signs it in the same session', async () => {
+    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
+      queryResult({ items: [requestA, testSheetRequest] })
+    );
+    mountPortal(signedIn());
+    const items = within(await screen.findByTestId('home-todo')).getAllByTestId('home-todo-item');
+    expect(items).toHaveLength(3);
+    expect(items[2]!.textContent).toContain('Fișa de test la angajare SSM');
+    expect(items[2]!.textContent).toContain('21 oct. 2026');
+    expect(items[2]!.textContent).toContain('semnezi ca instruit');
+  });
+
+  it("dates a request without its document's payload by its day in Romania", async () => {
+    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
+      queryResult({
+        items: [
+          request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r5', {
+            kind: 'test_sheet',
+            label: 'Fișa de test · Test la angajare SSM · 21.10.2026',
+            issuedAt: '2026-10-20T22:30:00Z',
+            record: null,
+            testSheet: null,
+          }),
+        ],
+      })
+    );
+    mountPortal(signedIn());
+    const item = (await screen.findAllByTestId('home-todo-item')).find(
+      (each) => each.dataset.kind === 'request'
+    )!;
+    expect(item.textContent).toContain('Fișa de test · Test la angajare SSM · 21.10.2026');
+    expect(item.textContent).toContain('21 oct. 2026');
+  });
+
+  it('sends the test sheet with a record in one session', async () => {
+    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
+      queryResult({ items: [requestA, testSheetRequest] })
+    );
+    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+      queryResult({ unavailable: null, agreement: agreementAwaitingEmployer })
+    );
+    vi.mocked(signPortalSigningSession).mockResolvedValueOnce({
+      signed: [
+        { requestId: requestA.id, agreementState: 'generated' },
+        { requestId: testSheetRequest.id, agreementState: 'generated' },
+      ],
+      failed: [],
+      agreements: [],
+    });
+    const user = await askForCode();
+    expect(createPortalSigningSession).toHaveBeenCalledWith(
+      employee.participantId,
+      { requestIds: [requestA.id, testSheetRequest.id] },
+      expect.anything()
+    );
+    await user.type(screen.getByTestId('signing-code'), '123456');
+    await user.click(screen.getByTestId('signing-sign'));
+    expect((await screen.findByTestId('signing-result-summary')).dataset.outcome).toBe('signed');
+  });
+
+  it('says a lone test sheet was signed', async () => {
+    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
+      queryResult({ items: [testSheetRequest] })
+    );
+    vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
+      queryResult({ unavailable: null, agreement: agreementAwaitingEmployer })
+    );
+    vi.mocked(signPortalSigningSession).mockResolvedValueOnce({
+      signed: [{ requestId: testSheetRequest.id, agreementState: 'generated' }],
+      failed: [],
+      agreements: [],
+    });
+    const user = await askForCode();
+    await user.type(screen.getByTestId('signing-code'), '123456');
+    await user.click(screen.getByTestId('signing-sign'));
+    expect((await screen.findByTestId('signing-result-summary')).textContent).toBe(
+      'Ai semnat fișa de test.'
+    );
+  });
+
+  it("names the examiner's slot and whose test sheet it is", async () => {
+    vi.mocked(useListPortalSignatureRequests).mockReturnValue(
+      queryResult({
+        items: [
+          request('6f0c3e43-0c1b-4f4b-8a1e-0000000000r4', {
+            ...testSheetRequest,
+            id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000r4',
+            slot: 'examiner',
+            employee: {
+              id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000e9',
+              lastName: 'Ionescu',
+              firstName: 'Dan',
+            },
+          }),
+        ],
+      })
+    );
+    mountPortal(signedIn());
+    const item = (await screen.findAllByTestId('home-todo-item')).find(
+      (each) => each.dataset.kind === 'request'
+    )!;
+    expect(item.textContent).toContain('Ionescu Dan: Fișa de test la angajare SSM');
+    expect(item.textContent).toContain('semnezi ca examinator');
   });
 });
 

@@ -1,4 +1,4 @@
-import { formatEmployeeName, trainingDomainLabels, trainingPhaseLabels } from '@ssm-usor/contracts';
+import { formatEmployeeName, trainingDomainLabels } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
@@ -20,7 +20,7 @@ import { formatDate } from '@/features/employees/employee-format';
 import { formatDay } from '@/features/participants/participant-format';
 
 import { AgreementWarning } from './agreement-warning';
-import { signAsLabel, signingBatchLimit, trainingCount } from './signature-format';
+import { requestDocument, signAsLabel, signingBatchLimit, trainingCount } from './signature-format';
 import { SigningDialog } from './signing-dialog';
 
 type SignatureRequest = SignatureRequestListResponseItemsItem;
@@ -204,16 +204,17 @@ function RequestRow({
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) {
-  const { record } = request;
-  const name = formatEmployeeName(record.employee);
+  const document = requestDocument(request);
+  const name = formatEmployeeName(request.employee);
   return (
     <li
       data-testid="signature-request"
+      data-kind={request.kind}
       className="grid grid-cols-[auto_1fr] items-start gap-x-3 gap-y-1 px-5 py-3 sm:grid-cols-[auto_1fr_auto]"
     >
       <Checkbox
         className="mt-0.5"
-        aria-label={`Alege instruirea lui ${name} din ${formatDate(record.heldOn)}`}
+        aria-label={`Alege ${document.ofEmployee} ${name} din ${formatDate(document.day)}`}
         data-testid="signature-request-select"
         checked={checked}
         onCheckedChange={(next) => onCheckedChange(next === true)}
@@ -222,23 +223,21 @@ function RequestRow({
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <Link
             to={
-              record.domain === 'ssm'
+              document.domain === 'ssm'
                 ? '/clients/$clientId/employees/$employeeId/training/ssm'
                 : '/clients/$clientId/employees/$employeeId/training/psi'
             }
-            params={{ clientId: request.client.id, employeeId: record.employee.id }}
+            params={{ clientId: request.client.id, employeeId: request.employee.id }}
             data-testid="signature-request-employee"
             className="font-medium hover:underline"
           >
             {name}
           </Link>
-          <Badge variant="secondary">{trainingDomainLabels[record.domain]}</Badge>
+          <Badge variant="secondary">{trainingDomainLabels[document.domain]}</Badge>
           <AgreementWarning agreement={request.agreement} />
         </p>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {trainingPhaseLabels[record.phase]} ·{' '}
-          <span className="tabular-nums">{formatDate(record.heldOn)}</span> ·{' '}
-          {signAsLabel(request.slot)}
+          {document.summary} · {signAsLabel(request.slot)}
         </p>
       </div>
       <p className="col-start-2 text-sm text-muted-foreground sm:col-start-auto sm:text-right">

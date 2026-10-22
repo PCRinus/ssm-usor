@@ -158,14 +158,14 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clients/$clientId/index.tsx`                                        | `/clients/:id`                                              | Redirects to the details.                                                                                                                                                                                   |
 | `routes/_authenticated/clients/$clientId/details.tsx`                                      | `/clients/:id/details`                                      | "Detalii": one card per kind of data, each edited in place: the company, the legal representative, the workplaces, the contact, and the owners' notes for an owner.                                         |
 | `routes/_authenticated/clients/$clientId/employees.tsx`                                    | pathless                                                    | Employees section layout carrying the breadcrumb title.                                                                                                                                                     |
-| `routes/_authenticated/clients/$clientId/employees/index.tsx`                              | `/clients/:id/employees`                                    | The client's employees with a status filter, a training-state filter (`trainingState`) and a text search (`q`) in the search params.                                                                        |
+| `routes/_authenticated/clients/$clientId/employees/index.tsx`                              | `/clients/:id/employees`                                    | The client's employees with a status filter, the state filters (`trainingState`, `testState`) and a text search (`q`) in the search params.                                                                 |
 | `routes/_authenticated/clients/$clientId/employees/new.tsx`                                | `/clients/:id/employees/new`                                | Form that adds an employee to the client.                                                                                                                                                                   |
 | `routes/_authenticated/clients/$clientId/job-positions/index.tsx`                          | `/clients/:id/job-positions`                                | The client's job positions (ADR 006): the posts it employs people in, then the risk evaluations that are not of a position (ADR 015).                                                                       |
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId.tsx`                 | `/clients/:id/job-positions/:jobPositionId`                 | Layout of one position: finds it in the client's list of positions and names the breadcrumb.                                                                                                                |
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/index.tsx`           | `/clients/:id/job-positions/:jobPositionId`                 | One position with its protective equipment (ADR 011), the instruction modules it applies (ADR 012) and its risk evaluation (ADR 015).                                                                       |
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/risk-evaluation.tsx` | `/clients/:id/job-positions/:jobPositionId/risk-evaluation` | The position's risk evaluation, read by the position; offers to start one while there is none.                                                                                                              |
 | `routes/_authenticated/clients/$clientId/job-positions/risk-evaluations.$evaluationId.tsx` | `/clients/:id/job-positions/risk-evaluations/:evaluationId` | A risk evaluation that is not of a position: the sensitive groups, or one with a name. A position's evaluation found here redirects to its address under the position.                                      |
-| `routes/_authenticated/employees/index.tsx`                                                | `/employees`                                                | "Angajați" (ADR 021), the sidebar entry after "Clienți": every client's employees in one list, with the status, client and training-state filters, the text search and the sort in the search params.       |
+| `routes/_authenticated/employees/index.tsx`                                                | `/employees`                                                | "Angajați" (ADR 021), the sidebar entry after "Clienți": every client's employees in one list, with the status, client and state filters, the text search and the sort in the search params.                |
 | `routes/_authenticated/instructions.tsx`                                                   | `/instructions`                                             | Layout of the instruction library (ADR 012), the sidebar entry between the clients and the organization.                                                                                                    |
 | `routes/_authenticated/instructions/index.tsx`                                             | `/instructions`                                             | Opens the SSM tab, `/instructions/ssm`.                                                                                                                                                                     |
 | `routes/_authenticated/instructions/_library.tsx`                                          | `/instructions/*`                                           | Pathless layout of the library: the title and the section navigation with one tab per domain.                                                                                                               |
@@ -175,6 +175,11 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/risks.tsx`                                                          | `/risks`                                                    | Layout of the risk library (ADR 015), the sidebar entry "Riscuri" after "Instrucțiuni".                                                                                                                     |
 | `routes/_authenticated/risks/index.tsx`                                                    | `/risks`                                                    | The library: the evaluation profiles by name with their counts and global level; "Profil nou", renaming, deleting.                                                                                          |
 | `routes/_authenticated/risks/$profileId.tsx`                                               | `/risks/:profileId`                                         | One profile: its result and its factors, with the evaluation page's cards. Names the breadcrumb after the profile.                                                                                          |
+| `routes/_authenticated/tests.tsx`                                                          | `/tests`                                                    | Layout of the question bank (ADR 024), the sidebar entry "Teste" after "Riscuri".                                                                                                                           |
+| `routes/_authenticated/tests/index.tsx`                                                    | `/tests`                                                    | Opens the SSM tab, `/tests/ssm`.                                                                                                                                                                            |
+| `routes/_authenticated/tests/_bank.tsx`                                                    | `/tests/*`                                                  | Pathless layout of the bank: the title and one tab per domain.                                                                                                                                              |
+| `routes/_authenticated/tests/_bank/ssm.tsx`                                                | `/tests/ssm`                                                | "Teste SSM": the hiring test (TASSM) and its questions.                                                                                                                                                     |
+| `routes/_authenticated/tests/_bank/psi.tsx`                                                | `/tests/psi`                                                | "Teste PSI": the hiring test (TASU) and the annual test (TPSU).                                                                                                                                             |
 | `routes/_authenticated/legislatie.tsx`                                                     | `/legislatie`                                               | Layout of "Legislație" (ADR 017): the title, the last check and the three tabs.                                                                                                                             |
 | `routes/_authenticated/legislatie/index.tsx`                                               | `/legislatie`                                               | Redirects to "Documente de actualizat".                                                                                                                                                                     |
 | `routes/_authenticated/legislatie/documente.tsx`                                           | `/legislatie/documente`                                     | "Documente de actualizat": the documents behind, under SSM and PSI, with bulk regeneration.                                                                                                                 |
@@ -391,8 +396,9 @@ The sidebar collapses to icons on desktop and uses a Sheet on mobile; selecting 
 mobile navigation link closes the Sheet. An entry of `navigation` may have `children`, its
 page's tabs: while the entry's route is open they show under it as sub-entries, the current one
 highlighted instead of the parent, and otherwise they are hidden. The icon rail hides them and
-keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, from
-`instruction-sections.ts` and `legislation-sections.ts`, the same lists their tab bars read.
+keeps the parent highlighted. "Instrucțiuni", "Teste" and "Legislație" have children, from
+`instruction-sections.ts`, `test-bank-sections.ts` and `legislation-sections.ts`, the same lists
+their tab bars read.
 
 - `/dashboard`: overview and existing account/API status.
 - `/clients`: the organization's active clients from `GET /clients` on the shared data table,
@@ -1070,8 +1076,57 @@ keeps the parent highlighted. "Instrucțiuni" and "Legislație" have children, f
   each evaluation with a link and how many of its factors are in the profile, archived clients
   marked. Renaming or deleting the profile, or deleting one of its factors, refreshes every
   evaluation read, since their links and names change.
+- `/tests`: the question bank ([ADR 024](architecture/adr-024-knowledge-tests.md)), in
+  `src/features/knowledge-tests/`, "Teste" in the sidebar for owners and specialists alike, with
+  "Teste SSM" at `/tests/ssm` and "Teste PSI" at `/tests/psi` in the section navigation;
+  `/tests` opens the SSM tab. A tab reads `GET /organization/tests/questions?domain=` and gives
+  each test a card: its name and code, "12 întrebări active · se extrag 10 · prag 70 %" (the
+  sitting size and the pass mark are shown, never set), and its questions in the printed order,
+  the active ones numbered. A question shows its text, its options with the correct ones marked
+  "corect", the explanation and "Temei: …" when present, and a "Predefinită" or "Proprie" badge;
+  a hidden built-in stays in place, muted, with "Ascunsă". A built-in is hidden and restored
+  without a confirmation; the API's `409 test_below_minimum` shows under the question as "Un test
+  trebuie să păstreze cel puțin zece întrebări active." "Adaugă o întrebare" opens the dialog on
+  the card's test (the fire-safety tab offers both tests): the text, two to four options each with
+  a "corect" box, at least one ticked, an optional explanation and an optional citation. An own
+  question is edited in the same dialog, which sends its `replacesQuestionId` back unchanged
+  since the API clears it when left out, and deleted after a confirmation. "Previzualizează"
+  shows the question as the portal will: "1 din 10", the options as rows that toggle, no answer
+  marked, and under it the explanation as it follows a wrong answer, or that there is none.
+- The employee's "Instruire SSM" and "Instruire PSI" tabs carry a "Testare" card under the
+  training state, from `GET …/employees/{employeeId}/tests`: the domain's test state as a badge
+  ("Fără test", "De susținut", "Promovat", "Anual scadent"; a dash for a leaver), what comes next
+  ("Testul la angajare îl așteaptă în portal", "Testul anual este scadent din …", "Testul anual
+  urmează la …", or after which training the hiring test appears), a warning line while the
+  hiring test is not passed, which blocks nothing, the results newest first (day, grade, source
+  "Din portal" or "De pe hârtie", material, examiner) and the attempts in the portal (day,
+  "7/10", "Promovat" or "Nepromovat", "În curs"). "Înregistrează un rezultat de pe hârtie" shows
+  while the API would take one (the hiring test awaiting, or for fire safety the annual test once
+  a pass exists) and posts `POST …/tests/results` with the day, today by default, and the
+  examiner, proposed from `GET …/trainings/proposal` for the introductory general training: the
+  caller as specialist for SSM, the organization's fire-safety technician for PSI. A result's
+  "Modifică examinatorul" (or "Numește examinatorul" for a portal pass without one) sends
+  `PATCH …/tests/results/{resultId}` with the examiner only; it is offered no more once the
+  examiner has signed the test sheet, and a `409 examiner_signed` shows in the dialog. Both
+  refresh the card, the employee and both lists. Every portal pass has a "Fișa de test" line: the
+  "Instruit" and "Examinator" slots with the records' slot-state badges, "Previzualizează", which
+  opens `GET …/tests/results/{resultId}/sheet` in a new tab as the training sheet's preview does,
+  and for a slot `unassigned` or `pending` "Marchează semnat pe
+  hârtie", which after a confirmation posts `{ slot }` to `…/sheet/paper-signatures` (an
+  `examiner_required` refusal asks to name the examiner first) and refreshes the card and the
+  request lists. While `sheet.available` is false (the pass could not draw the sheet up) the line
+  says so: opening it draws it up and requests its signatures, then refreshes the card and the
+  request lists, and a `test_sheet_not_available` or `503 pdf_unavailable` asks to try again in
+  a few minutes. A test sheet's signature requests show in "Semnături", on the client's pending
+  signatures and in the signing dialog beside the trainings, named by the request's `label` and
+  linking to the employee's tab of its domain; one code signs both kinds.
+- Test state in the lists: after the two training columns, one "Testare" column with the SSM
+  and PSI states as badges, each after its domain's name; chips "Toate / La zi / De susținut /
+  Anual scadent / Fără test" beside the training chips set `?testState=` the same way ("La zi"
+  is passed in both domains, any other chip that state in either), and are hidden on the former
+  employees.
 - `/legislatie`: the "Legislație" page ([ADR 017](architecture/adr-017-legislation-monitoring.md)),
-  in `src/features/legislation/`, the sidebar entry after "Riscuri" for owners and specialists
+  in `src/features/legislation/`, the sidebar entry after "Teste" for owners and specialists
   alike, which opens to its three tabs while the page is open. `legislation-layout.tsx` keeps the title, its one-line description and the last check
   above three tabs, child routes in the clients page's way (`SectionNav`):
   `/legislatie/documente` ("Documente de actualizat", where `/legislatie` leads),

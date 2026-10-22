@@ -8,6 +8,7 @@ import {
   sheetRowKeys,
   signatureFieldOf,
   tableRowOf,
+  testRowCapacity,
 } from './signed-sheet';
 
 describe('sheetFieldNames', () => {
@@ -34,6 +35,16 @@ describe('sheetFieldNames', () => {
 
   it('refuses a row past the page', () => {
     expect(() => sheetFieldNames('ssm', `p${rowCapacity('ssm') + 1}`)).toThrow();
+    expect(() => sheetFieldNames('ssm', `t${testRowCapacity + 1}`)).toThrow();
+  });
+
+  it("names a test result's row after annex 11's four columns, with no signature", () => {
+    expect(sheetFieldNames('ssm', 't2')).toEqual({
+      text: ['t2_date', 't2_material', 't2_grade', 't2_examiner'],
+      note: 't2_note',
+      signatures: {},
+    });
+    expect(() => sheetFieldNames('psi', 't1')).toThrow();
   });
 
   it('names the hiring rows after their form, the workplace one with its place', () => {
@@ -99,14 +110,15 @@ describe('lockFieldsOf', () => {
 });
 
 describe('row keys', () => {
-  it('lists the rows of a sheet, the occupational safety one with both tables', () => {
-    expect(sheetRowKeys('ssm')).toHaveLength(3 + 2 * rowCapacity('ssm'));
+  it('lists the rows of a sheet, the occupational safety one with both tables and the test block', () => {
+    expect(sheetRowKeys('ssm')).toHaveLength(3 + 2 * rowCapacity('ssm') + testRowCapacity);
     expect(sheetRowKeys('psi')).toHaveLength(3 + rowCapacity('psi'));
     expect(sheetRowKeys('ssm').every(isSheetRowKey)).toBe(true);
   });
 
   it('reads the table and index of a periodic row', () => {
     expect(tableRowOf('s12')).toEqual({ table: 's', index: 12 });
+    expect(tableRowOf('t3')).toEqual({ table: 't', index: 3 });
     expect(tableRowOf('adm')).toBeNull();
     expect(isSheetRowKey('p0')).toBe(false);
     expect(isSheetRowKey('x1')).toBe(false);

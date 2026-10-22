@@ -1,12 +1,16 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type FileLinkResponse,
+  type KnowledgeTest,
+  knowledgeTestCodeOf,
+  knowledgeTestTitleOf,
   type PortalSignatureRequest,
   type RecordSignaturesResponse,
   signatureErrorReasons,
   type SignatureRequestItem,
+  signatureRequestLabel,
+  type SignatureRequestSlot,
   type SignatureRequestState,
-  type SignerSlot,
   type SigningAgreementResponse,
   type SigningAgreementState,
   type SigningAgreementSummary,
@@ -237,13 +241,22 @@ export const voidRecordSignatures: RouteHandler<typeof voidRecordSignaturesRoute
   return c.json(await recordSignatures(db, clientId, recordId), 200);
 };
 
-const listColumns =
-  'id, slot, state, signer_account_id, issued_at, notified_at, clients!signature_requests_client_id_fkey(id, legal_name), training_records!signature_requests_record_of_client(id, training_id, employees(id, last_name, first_name, employee_signing_agreements(state, employee_signed_at, employer_signed_at)), trainings(domain, phase, held_on))';
+const agreementColumnsOfEmployee =
+  'employee_signing_agreements(state, employee_signed_at, employer_signed_at)';
+
+const listColumns = `id, slot, state, signer_account_id, issued_at, notified_at, clients!signature_requests_client_id_fkey(id, legal_name), training_records!signature_requests_record_of_client(id, training_id, employees(id, last_name, first_name, ${agreementColumnsOfEmployee}), trainings(domain, phase, held_on)), test_sheets!signature_requests_sheet_of_client(id, test_result_id, employees!test_sheets_employee_of_client(id, last_name, first_name, ${agreementColumnsOfEmployee}), test_results!test_sheets_result_of_client(domain, test, taken_on))`;
+
+type ListEmployee = {
+  id: string;
+  last_name: string;
+  first_name: string;
+  employee_signing_agreements: AgreementSummaryRow[] | null;
+};
 
 // Any embed may come back null when a policy hides its row; such a request is left out.
 type ListRow = {
   id: string;
-  slot: SignerSlot;
+  slot: SignatureRequestSlot;
   state: SignatureRequestState;
   signer_account_id: string | null;
   issued_at: string;
@@ -252,31 +265,80 @@ type ListRow = {
   training_records: {
     id: string;
     training_id: string;
-    employees: {
-      id: string;
-      last_name: string;
-      first_name: string;
-      employee_signing_agreements: AgreementSummaryRow[] | null;
-    } | null;
+    employees: ListEmployee | null;
     trainings: { domain: TrainingDomain; phase: TrainingPhase; held_on: string } | null;
+  } | null;
+  test_sheets: {
+    id: string;
+    test_result_id: string;
+    employees: ListEmployee | null;
+    test_results: { domain: TrainingDomain; test: KnowledgeTest; taken_on: string } | null;
   } | null;
 };
 
-type VisibleListRow = ListRow & {
-  clients: NonNullable<ListRow['clients']>;
-  training_records: NonNullable<ListRow['training_records']> & {
-    employees: NonNullable<NonNullable<ListRow['training_records']>['employees']>;
-    trainings: NonNullable<NonNullable<ListRow['training_records']>['trainings']>;
-  };
-};
+type VisibleListRow = ListRow & { clients: NonNullable<ListRow['clients']> };
 
 const visible = (row: ListRow): row is VisibleListRow =>
-  !!row.clients && !!row.training_records?.employees && !!row.training_records.trainings;
+  !!row.clients &&
+  ((!!row.training_records?.employees && !!row.training_records.trainings) ||
+    (!!row.test_sheets?.employees && !!row.test_sheets.test_results));
 
 type AgreementSummaryRow = {
   state: string;
   employee_signed_at: string | null;
   employer_signed_at: string | null;
+};
+
+const toRequestEmployee = (employee: ListEmployee) => ({
+  id: employee.id,
+  lastName: employee.last_name,
+  firstName: employee.first_name,
+});
+
+const toListItem = (
+  row: VisibleListRow,
+  signer: SignatureRequestItem['signer']
+): SignatureRequestItem => {
+  const common = {
+    id: row.id,
+    slot: row.slot,
+    state: row.state,
+    issuedAt: toIso(row.issued_at),
+    notifiedAt: toIsoOrNull(row.notified_at),
+    client: { id: row.clients.id, name: row.clients.legal_name },
+    signer,
+  };
+  const record = row.training_records;
+  if (record?.employees && record.trainings) {
+    const { domain, phase, held_on: heldOn } = record.trainings;
+    return {
+      ...common,
+      kind: 'training_record',
+      label: signatureRequestLabel({ kind: 'training_record', domain, phase, heldOn }),
+      employee: toRequestEmployee(record.employees),
+      record: {
+        id: record.id,
+        trainingId: record.training_id,
+        employee: toRequestEmployee(record.employees),
+        domain,
+        phase,
+        heldOn,
+      },
+      testSheet: null,
+      agreement: agreementSummaryOf(record.employees.employee_signing_agreements),
+    };
+  }
+  const sheet = row.test_sheets!;
+  const { domain, test, taken_on: takenOn } = sheet.test_results!;
+  return {
+    ...common,
+    kind: 'test_sheet',
+    label: signatureRequestLabel({ kind: 'test_sheet', domain, test, takenOn }),
+    employee: toRequestEmployee(sheet.employees!),
+    record: null,
+    testSheet: { id: sheet.id, resultId: sheet.test_result_id, domain, test, takenOn },
+    agreement: agreementSummaryOf(sheet.employees!.employee_signing_agreements),
+  };
 };
 
 const agreementSummaryOf = (
@@ -291,32 +353,6 @@ const agreementSummaryOf = (
       }
     : null;
 };
-
-const toListItem = (
-  row: VisibleListRow,
-  signer: SignatureRequestItem['signer']
-): SignatureRequestItem => ({
-  id: row.id,
-  slot: row.slot,
-  state: row.state,
-  issuedAt: toIso(row.issued_at),
-  notifiedAt: toIsoOrNull(row.notified_at),
-  client: { id: row.clients.id, name: row.clients.legal_name },
-  record: {
-    id: row.training_records.id,
-    trainingId: row.training_records.training_id,
-    employee: {
-      id: row.training_records.employees.id,
-      lastName: row.training_records.employees.last_name,
-      firstName: row.training_records.employees.first_name,
-    },
-    domain: row.training_records.trainings.domain,
-    phase: row.training_records.trainings.phase,
-    heldOn: row.training_records.trainings.held_on,
-  },
-  signer,
-  agreement: agreementSummaryOf(row.training_records.employees.employee_signing_agreements),
-});
 
 export const listMySignatureRequests: RouteHandler<
   typeof listMySignatureRequestsRoute,
@@ -403,7 +439,7 @@ type PortalRecordRow = {
   };
 };
 
-function printedSigner(slot: SignerSlot, record: PortalRecordRow) {
+function printedSigner(slot: SignatureRequestSlot, record: PortalRecordRow) {
   switch (slot) {
     case 'trainee':
       return `${record.employees.last_name} ${record.employees.first_name}`;
@@ -413,26 +449,45 @@ function printedSigner(slot: SignerSlot, record: PortalRecordRow) {
       return record.trainings.verifier_name ?? '';
     case 'admitter':
       return record.admitted_by_name ?? '';
+    case 'examiner':
+      return '';
   }
 }
 
+type PortalRequestRow = {
+  id: string;
+  slot: SignatureRequestSlot;
+  issued_at: string;
+  training_record_id: string | null;
+  test_sheet_id: string | null;
+};
+
 function toPortalRequest(
-  request: { id: string; slot: SignerSlot; issued_at: string },
+  request: PortalRequestRow,
   record: PortalRecordRow
 ): PortalSignatureRequest {
   const training = record.trainings;
+  const employee = {
+    id: record.employees.id,
+    lastName: record.employees.last_name,
+    firstName: record.employees.first_name,
+  };
   return {
     id: request.id,
+    kind: 'training_record',
+    label: signatureRequestLabel({
+      kind: 'training_record',
+      domain: training.domain,
+      phase: training.phase,
+      heldOn: training.held_on,
+    }),
     slot: request.slot,
     issuedAt: toIso(request.issued_at),
     signerName: printedSigner(request.slot, record),
+    employee,
     record: {
       id: record.id,
-      employee: {
-        id: record.employees.id,
-        lastName: record.employees.last_name,
-        firstName: record.employees.first_name,
-      },
+      employee,
       domain: training.domain,
       phase: training.phase,
       heldOn: training.held_on,
@@ -454,9 +509,114 @@ function toPortalRequest(
             }
           : null,
     },
+    testSheet: null,
     agreement: agreementSummaryOf(record.employees.employee_signing_agreements),
   };
 }
+
+const portalSheetColumns = `id, test_result_id, employees!test_sheets_employee_of_client(id, last_name, first_name, ${agreementColumnsOfEmployee}), test_results!test_sheets_result_of_client(domain, test, taken_on, examiner_name, examiner_job_title, test_attempts!test_results_attempt_of_employee(score, total))`;
+
+type PortalSheetRow = {
+  id: string;
+  test_result_id: string;
+  employees: ListEmployee;
+  test_results: {
+    domain: TrainingDomain;
+    test: KnowledgeTest;
+    taken_on: string;
+    examiner_name: string | null;
+    examiner_job_title: string | null;
+    test_attempts: { score: number | null; total: number } | null;
+  };
+};
+
+function toPortalSheetRequest(
+  request: PortalRequestRow,
+  sheet: PortalSheetRow
+): PortalSignatureRequest {
+  const result = sheet.test_results;
+  const employee = toRequestEmployee(sheet.employees);
+  const examiner =
+    result.examiner_name !== null && result.examiner_job_title !== null
+      ? { name: result.examiner_name, jobTitle: result.examiner_job_title }
+      : null;
+  return {
+    id: request.id,
+    kind: 'test_sheet',
+    label: signatureRequestLabel({
+      kind: 'test_sheet',
+      domain: result.domain,
+      test: result.test,
+      takenOn: result.taken_on,
+    }),
+    slot: request.slot,
+    issuedAt: toIso(request.issued_at),
+    signerName:
+      request.slot === 'trainee'
+        ? `${sheet.employees.last_name} ${sheet.employees.first_name}`
+        : (examiner?.name ?? ''),
+    employee,
+    record: null,
+    testSheet: {
+      id: sheet.id,
+      resultId: sheet.test_result_id,
+      domain: result.domain,
+      test: result.test,
+      code: knowledgeTestCodeOf(result.domain, result.test),
+      title: knowledgeTestTitleOf(result.domain, result.test),
+      takenOn: result.taken_on,
+      score: result.test_attempts?.score ?? 0,
+      total: result.test_attempts?.total ?? 0,
+      examiner,
+    },
+    agreement: agreementSummaryOf(sheet.employees.employee_signing_agreements),
+  };
+}
+
+// A workplace manager signs other employees' admissions, and an examiner who is a participant
+// other employees' test sheets, which the participant policies do not show. The request rows
+// the participant read as themselves are the authorization for reading these, by id and client,
+// with the secret key.
+async function portalItems(
+  c: Context<ApiEnv>,
+  clientId: string,
+  requests: PortalRequestRow[]
+): Promise<PortalSignatureRequest[]> {
+  if (requests.length === 0) return [];
+  const admin = createAdminClient(c);
+  const recordIds = [...new Set(requests.flatMap((request) => request.training_record_id ?? []))];
+  const sheetIds = [...new Set(requests.flatMap((request) => request.test_sheet_id ?? []))];
+  const [records, sheets] = await Promise.all([
+    recordIds.length === 0
+      ? { data: [], error: null }
+      : admin
+          .from('training_records')
+          .select(portalRecordColumns)
+          .eq('client_id', clientId)
+          .in('id', recordIds),
+    sheetIds.length === 0
+      ? { data: [], error: null }
+      : admin
+          .from('test_sheets')
+          .select(portalSheetColumns)
+          .eq('client_id', clientId)
+          .in('id', sheetIds),
+  ]);
+  if (records.error) throw fromDatabaseError(records.error, 'portal signature records');
+  if (sheets.error) throw fromDatabaseError(sheets.error, 'portal signature test sheets');
+  const recordOf = new Map(
+    (records.data as unknown as PortalRecordRow[]).map((row) => [row.id, row])
+  );
+  const sheetOf = new Map((sheets.data as unknown as PortalSheetRow[]).map((row) => [row.id, row]));
+  return requests.flatMap((request) => {
+    const record = request.training_record_id ? recordOf.get(request.training_record_id) : null;
+    if (record) return [toPortalRequest(request, record)];
+    const sheet = request.test_sheet_id ? sheetOf.get(request.test_sheet_id) : null;
+    return sheet ? [toPortalSheetRequest(request, sheet)] : [];
+  });
+}
+
+const portalRequestColumns = 'id, slot, issued_at, training_record_id, test_sheet_id';
 
 export const listPortalSignatureRequests: RouteHandler<
   typeof listPortalSignatureRequestsRoute,
@@ -466,7 +626,7 @@ export const listPortalSignatureRequests: RouteHandler<
   const { clientId } = participationOf(c, participantId);
   const { data: requests, error } = await createDataClient(c)
     .from('signature_requests')
-    .select('id, slot, issued_at, training_record_id')
+    .select(portalRequestColumns)
     .eq('signer_account_id', c.get('user').id)
     .eq('client_id', clientId)
     .eq('state', 'pending')
@@ -474,26 +634,7 @@ export const listPortalSignatureRequests: RouteHandler<
     .order('id')
     .limit(1000);
   if (error) throw fromDatabaseError(error, 'portal signature requests');
-  if (requests.length === 0) return c.json({ items: [] }, 200);
-  // A workplace manager signs other employees' admissions, whose records the participant
-  // policies do not show. The request rows the signer read as themselves are the authorization
-  // for reading these records, by id and client, with the secret key.
-  const records = await createAdminClient(c)
-    .from('training_records')
-    .select(portalRecordColumns)
-    .eq('client_id', clientId)
-    .in('id', [...new Set(requests.map((request) => request.training_record_id))]);
-  if (records.error) throw fromDatabaseError(records.error, 'portal signature records');
-  const byId = new Map((records.data as unknown as PortalRecordRow[]).map((row) => [row.id, row]));
-  return c.json(
-    {
-      items: requests.flatMap((request) => {
-        const record = byId.get(request.training_record_id);
-        return record ? [toPortalRequest(request, record)] : [];
-      }),
-    },
-    200
-  );
+  return c.json({ items: await portalItems(c, clientId, requests) }, 200);
 };
 
 export const listPortalClientSignatureRequests: RouteHandler<
@@ -512,22 +653,14 @@ export const listPortalClientSignatureRequests: RouteHandler<
   }
   const { data, error } = await createDataClient(c)
     .from('signature_requests')
-    .select(
-      `id, slot, issued_at, training_records!signature_requests_record_of_client(${portalRecordColumns})`
-    )
+    .select(portalRequestColumns)
     .eq('client_id', participation.clientId)
     .eq('state', 'pending')
     .order('issued_at')
     .order('id')
     .limit(2000);
   if (error) throw fromDatabaseError(error, 'portal client signature requests');
-  const rows = data as unknown as {
-    id: string;
-    slot: SignerSlot;
-    issued_at: string;
-    training_records: PortalRecordRow;
-  }[];
-  return c.json({ items: rows.map((row) => toPortalRequest(row, row.training_records)) }, 200);
+  return c.json({ items: await portalItems(c, participation.clientId, data) }, 200);
 };
 
 export const agreementColumns =

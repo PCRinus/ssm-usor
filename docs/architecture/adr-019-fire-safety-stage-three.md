@@ -119,6 +119,8 @@ ADR 014's session arithmetic is reused: `dealChapters` takes the chapter starts 
 
 ### The tests drop the questions they get wrong
 
+(Note of 2026-10-20: the two tests are generated from the question bank of [ADR 024](adr-024-knowledge-tests.md), their questions seeded as built-in questions, and taken in the portal with the pass recorded per employee. The sample's dropped questions stay dropped.)
+
 The two tests are the sample's questions with three left out at hiring (6, 8, 12) and four yearly (4, 5, 6, 14), for the reasons in the Context: a key that is wrong or a question no act in force answers. Question 14 asks what chemical or mechanical foam puts out; the review pass left it out (#391), as OMAI 135/2023 art. 20 bans chemical-foam extinguishers and the IPSU no longer teaches them. No question is rewritten and none is added; the test at hiring keeps twelve questions and the annual test ten, decision 2's minimum. The answer sheets have one row per question, which corrects the annual sheet's fifteen rows for fourteen questions, and the key is a table of its own, not a grid of letters. Provisional on question 11, issue #386.
 
 There is no workplace test. OMAI 712/2005 asks a test after the introductory general training (art. 14) and before admitting someone to work after the workplace training (art. 20); the test at hiring is given at the end of both, and the IPSU and the themes say so. That is a reading of the two articles the provider has not confirmed (#386).

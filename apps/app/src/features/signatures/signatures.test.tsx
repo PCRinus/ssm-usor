@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
-import { untrained } from '@/test/training-fixture';
+import { employeeTests, noTests, untrained } from '@/test/training-fixture';
 
 import { matchSigner } from './signer-match';
 
@@ -70,6 +70,7 @@ const employee = {
   commuteRoute: null,
   commuteMinutes: null,
   training: untrained,
+  tests: noTests,
   createdAt: '2026-09-17T10:00:00+00:00',
   updatedAt: '2026-09-17T10:00:00+00:00',
   archivedAt: null,
@@ -172,11 +173,14 @@ const pendingTrainee = slot('trainee', 'pending', {
 
 const request = (overrides: Record<string, unknown> = {}) => ({
   id: '22222222-3333-4444-8555-666666666666',
+  kind: 'training_record',
+  label: 'Instruire periodică SSM · 14.10.2026',
   slot: 'trainer',
   state: 'pending',
   issuedAt: '2026-10-15T09:00:00.000Z',
   notifiedAt: '2026-10-15T09:00:05.000Z',
   client: { id: clientId, name: 'VELOCE CAFE SRL' },
+  employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
   record: {
     id: recordId,
     trainingId,
@@ -185,10 +189,28 @@ const request = (overrides: Record<string, unknown> = {}) => ({
     phase: 'periodic',
     heldOn: '2026-10-14',
   },
+  testSheet: null,
   signer: { accountId: memberId, name: 'Dan MARIN' },
   agreement: null,
   ...overrides,
 });
+
+const testSheetRequest = (overrides: Record<string, unknown> = {}) =>
+  request({
+    id: '66666666-7777-4888-8999-aaaaaaaaaaaa',
+    kind: 'test_sheet',
+    label: 'Fișa de test · Test anual PSI · 15.10.2026',
+    slot: 'examiner',
+    record: null,
+    testSheet: {
+      id: '77777777-8888-4999-8aaa-bbbbbbbbbbbb',
+      resultId: '88888888-9999-4aaa-8bbb-cccccccccccc',
+      domain: 'psi',
+      test: 'annual',
+      takenOn: '2026-10-15',
+    },
+    ...overrides,
+  });
 
 type Handler = (url: URL, init: RequestInit | undefined) => Response | Promise<Response>;
 
@@ -212,6 +234,8 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
         return Response.json({ employee });
       case `GET ${employeePath}/training-records`:
         return Response.json({ items: [] });
+      case `GET ${employeePath}/tests`:
+        return Response.json(employeeTests());
       case `GET ${employeePath}/training-sheets`:
         return Response.json({
           ssm: { ready: true, missing: [], stored: false, sequences: [] },
@@ -777,6 +801,27 @@ describe('the Semnături place', () => {
     ).toBe('indeterminate');
   });
 
+  it('lists a test sheet beside the trainings, by its label and the employee', async () => {
+    mockApi({
+      'GET /me/signature-requests': () => Response.json({ items: [request(), testSheetRequest()] }),
+    });
+    mount('/signatures');
+    const rows = await screen.findAllByTestId('signature-request');
+    expect(rows.map((row) => row.dataset.kind)).toEqual(['training_record', 'test_sheet']);
+    const sheet = within(rows[1]!);
+    expect(rows[1]!.textContent).toContain(
+      'Fișa de test · Test anual PSI · 15.10.2026 · semnezi ca examinator'
+    );
+    expect(sheet.getByTestId('signature-request-employee').textContent).toBe('Popescu Ion');
+    expect(sheet.getByTestId('signature-request-employee').getAttribute('href')).toBe(
+      `/clients/${clientId}/employees/${employeeId}/training/psi`
+    );
+    expect(sheet.getByText('PSI')).toBeTruthy();
+    expect(sheet.getByTestId('signature-request-select').getAttribute('aria-label')).toBe(
+      'Alege fișa de test a lui Popescu Ion din 15 oct. 2026'
+    );
+  });
+
   it('says when there is nothing to sign', async () => {
     mockApi();
     mount('/signatures');
@@ -807,6 +852,7 @@ describe("the client's pending signatures", () => {
             request({
               id: '44444444-5555-4666-8777-888888888888',
               slot: 'trainee',
+              employee: ana,
               record: { ...request().record, employee: ana },
               signer: { accountId: managerAccountId, name: 'Ionescu Ana' },
               agreement: {
@@ -836,6 +882,23 @@ describe("the client's pending signatures", () => {
         .getAllByTestId('client-signature-request-signer')
         .map((signer) => signer.textContent)
     ).toEqual(['Popescu Ion', 'Dan MARIN']);
+  });
+
+  it("names a test sheet's request by its label, linking to the employee's tab of its domain", async () => {
+    mockApi({
+      [`GET /clients/${clientId}/signature-requests`]: () =>
+        Response.json({ items: [testSheetRequest({ slot: 'trainee' })] }),
+    });
+    mount(`/clients/${clientId}/trainings`);
+    const card = await screen.findByTestId('client-signature-requests');
+    const [item] = within(card).getAllByTestId('client-signature-request');
+    expect(item!.dataset.kind).toBe('test_sheet');
+    const link = within(item!).getByRole('link');
+    expect(link.textContent).toBe('Fișa de test · Test anual PSI · 15.10.2026');
+    expect(link.getAttribute('href')).toBe(
+      `/clients/${clientId}/employees/${employeeId}/training/psi`
+    );
+    expect(item!.textContent).toContain('Instruit');
   });
 
   it('shows nothing while every request is signed', async () => {
@@ -1319,6 +1382,23 @@ describe('signing from the Semnături place', () => {
     await user.click(within(dialog).getByTestId('signing-close'));
     await waitFor(() => expect(screen.queryByTestId('signing-dialog')).toBeNull());
     await waitFor(() => expect(screen.getAllByTestId('signature-request')).toHaveLength(1));
+  });
+
+  it('signs a test sheet in the same session as a training', async () => {
+    const mixed = [request(), testSheetRequest()];
+    const { user, dialog } = await openSigning({
+      'GET /me/signature-requests': () => Response.json({ items: mixed }),
+      [`POST ${sessionPath}`]: session,
+    });
+    const items = within(dialog).getAllByTestId('signing-item');
+    expect(items.map((item) => item.dataset.kind)).toEqual(['training_record', 'test_sheet']);
+    expect(items[1]!.textContent).toBe(
+      'Popescu IonPSIAct adițional nesemnatFișa de test · Test anual PSI · 15.10.2026 · semnezi ca examinatorVELOCE CAFE SRL'
+    );
+    await askForCode(user, dialog);
+    expect(requests('POST', sessionPath).map((call) => call.body)).toEqual([
+      { requestIds: mixed.map((item) => item.id) },
+    ]);
   });
 
   it('counts the attempts left on a wrong code, then asks for a new code and starts over', async () => {

@@ -611,6 +611,139 @@ filter when the list is filtered by a training state. A row costs a few index re
 `training_records (employee_id)` and the primary keys; `trainings (client_id, domain, phase,
 held_on)` serves a client's list of trainings.
 
+## Knowledge tests
+
+The **knowledge tests** of [ADR 024](architecture/adr-024-knowledge-tests.md) are three: the
+hiring test of each domain and the fire-safety annual test (`knowledge_test`: `hiring` or
+`annual`; `annual` goes with `psi` only, a check on every table below). Their questions live in
+a **question bank**, a sitting of ten of them is a **test attempt** a participant takes in the
+portal, and a pass is a **test result**, from an attempt or from the printed test.
+
+### The question bank
+
+`test_questions` holds the bank of every organization at once. A **built-in question** has no
+`organization_id`: the app's, seeded by migration with fixed ids, read by every member and
+written by none, so that a later migration corrects one in place. An **own question** belongs
+to its organization, written, edited and deleted by any member.
+
+| Column                 | Notes                                                                                                                                                    |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain`, `test`       | `training_domain` and `knowledge_test`; never updated, so a question never moves to another test.                                                        |
+| `position`             | The order the printed test lists the questions in, from 1; an own question with a built-in's position comes after it. Built-ins are unique per position. |
+| `text`                 | Trimmed, 5 to 1000 characters.                                                                                                                           |
+| `options`              | Two to four `{ "text", "correct" }`, the text trimmed, 1 to 500 characters, at least one correct (`test_options_are_valid`, a check).                    |
+| `explanation`          | Optional, up to 1000 characters: what the study card shows, and a failed attempt after a wrong answer.                                                   |
+| `citation`             | Optional, up to 300 characters: the act and article the question rests on.                                                                               |
+| `replaces_question_id` | On an own question only: the built-in of the same test it departs from, provenance only (`TST02` otherwise); set null if that built-in goes.             |
+
+`test_question_hides` holds `(organization_id, question_id)` for each built-in an organization
+hides; deleting the row restores it. Members read, insert and delete their organization's; an
+own question is not hidden (`TST02`) but deleted.
+
+A question is **active** for an organization when it is a built-in the organization has not
+hidden, or one of its own; `active_test_questions(organization, domain, test)` lists them in the
+printed order, as the caller, so a participant gets nothing. A test keeps at least ten: hiding a
+built-in or deleting an own question that would leave fewer raises `TST01`
+(`test_below_minimum`), under an advisory lock per organization and test so that two at once
+cannot both pass. The seeded sets hold ten, twelve and ten, so the occupational safety hiring
+test needs an own question before anything is hidden.
+
+The options carry the key, so `test_questions` is the members' alone: both select policies ask
+for a membership. The seeded content is reviewed in [test-questions-seed.md](test-questions-seed.md).
+
+### Test attempts
+
+A **test attempt** (`test_attempts`) is one sitting by a participant: `client_id` with the
+denormalized `organization_id`, `employee_id` and `participant_id` by composite keys to the
+client, the domain and test, `started_at` and `finished_at`, `language` (`ro` only), `total`,
+`score` and `passed` (the last two set at the finish, with `finished_at`),
+`material_revision_id` (the issued revision of the material the portal showed, if any),
+`client_address` and `user_agent`. One attempt is in progress per participant and test.
+
+`questions` is the sitting as shown, in the shown order:
+`[{ "question_id", "text", "options": [{ "text" }], "chosen": [i, ...] }]`, `chosen` holding
+indices into the shown options, empty while unanswered. The row never carries the key: the
+correct options in the shown order and the explanations are in `test_attempt_keys`, which has
+no policy and no grant, and the finish adds to each question only `correct` and `explanation`.
+The key stays after the finish, since a bank of ten shows the same questions at every retake. A
+finished attempt and its key are frozen: an update or a delete raises `TST03`
+(`attempt_finished`), whoever makes it, and neither table is truncated.
+Archived clients and leads take no attempt.
+
+Nobody writes the table directly. The portal's routes run as the participant and call these
+functions, security definer, which act only for the caller's own active participation as an
+employee (`P0002`, `participant_not_found` or `attempt_not_found`, otherwise):
+
+| Function                                                                           | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `start_test_attempt(participant, domain, test, material_revision, address, agent)` | Refuses a test that does not await the employee (`TST05`, `test_not_awaiting`): the hiring test awaits while the state is `pending`, the annual test while it is `annual_due`. Returns the attempt in progress if there is one; otherwise draws ten active questions of the client's organization at random, shuffles each one's options and inserts the attempt. A material revision must be an issued one of the client's (`P0002`, `material_not_found`). |
+| `answer_test_attempt(attempt, question_index, chosen)`                             | Stores the options chosen for one question, sorted and distinct; `TST04` for a question or an option out of range (`question_out_of_range`, `option_out_of_range`), `TST03` once finished.                                                                                                                                                                                                                                                                   |
+| `finish_test_attempt(attempt, address, agent)`                                     | Scores and finishes: a question counts only when the options chosen are exactly the correct ones, and `passed` is a score of at least 70% of `total`, seven of ten. A pass inserts the test result while the test still awaits the employee, so an attempt left open across a paper pass gives no second one.                                                                                                                                                |
+| `test_study_card(participant, domain, test)`                                       | The explanations of the test's active questions, for the study card.                                                                                                                                                                                                                                                                                                                                                                                         |
+
+Members read their organization's attempts and participants their own employee's, each finished
+question marked right or wrong but never which option is correct. The client administrator
+reads none.
+
+### Test results
+
+A **test result** (`test_results`) is a pass, under a client as the training records are, with
+`employee_id` in any status.
+
+| Column                                | Notes                                                                                                                             |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `domain`, `test`, `taken_on`          | The test and the Romanian day it was passed.                                                                                      |
+| `material`                            | What the sheet prints as the material examined, as "Test de verificare a cunoștințelor la angajare (TASSM)"; 1 to 300 characters. |
+| `grade`                               | `admis` only: a failed test is not recorded.                                                                                      |
+| `examiner_name`, `examiner_job_title` | Both or neither; required on paper. Null on a portal pass the organization had nobody to propose for, until a member names them.  |
+| `source`                              | `test_result_source`: `portal`, exactly when `attempt_id` is set, or `paper`.                                                     |
+| `attempt_id`                          | The passing attempt, unique, by a composite key to the attempt's employee, domain and test.                                       |
+
+`finish_test_attempt` inserts the portal result, the day being the finish's, with the examiner
+proposed: for fire safety the organization's `fire_safety_technician_name` as "Cadru tehnic
+PSI", else the trainer and job title of the employee's latest introductory general training in
+the domain, which for occupational safety is the specialist. A member records a paper result
+(only `source = 'paper'`, for an active client) and updates `taken_on`, `material` and the
+examiner; a portal result changes only in its examiner and is not deleted (`TST06`,
+`result_from_attempt`). Members read their organization's results, participants their own, the
+client administrator the client's. Once the examiner has signed the result's test sheet,
+electronically or on paper, its examiner no longer changes (`TST07`, `examiner_signed`); before
+that, a change of examiner voids the pending examiner request with `signer_changed`
+([test sheets](#test-sheets)).
+
+### Test state
+
+`employee_test_status` is a view, security invoker, beside `employee_training_status`: one row
+per employee with, for each domain, `<domain>_hiring_trained_on`, `<domain>_last_passed_on`,
+`<domain>_state` and `<domain>_awaiting_test`, and `psi_due_on`. Nothing of it is stored.
+
+- The hiring training the test closes is the latest `introductory_general` record for `ssm` and
+  the latest `workplace` record for `psi`, whose one test closes both hiring trainings.
+- Any result in the domain is a pass, an annual one included; `psi_due_on` is twelve months
+  after the last.
+- The state (`test_state`) is `none` with neither a pass nor a hiring record, `pending` with the
+  record and no pass, `annual_due` for `psi` once `psi_due_on` is today or past, else `passed`. A
+  terminated employee has a null state. `<domain>_awaiting_test` is `hiring` while `pending` and
+  `annual` while `annual_due`.
+
+`employee_test_due(...)` computes one domain for one employee and is inlined, as
+`employee_training_due` is; the employee lists embed the view through `test_status(employees)`,
+a PostgREST computed relationship (to-one), as they embed `training_status`.
+
+Errors, raised with these SQLSTATEs:
+
+- `TST01` the test would keep fewer than ten active questions
+- `TST02` only a built-in of the same test is hidden or replaced
+- `TST03` a finished attempt is frozen
+- `TST04` the answer does not fit the attempt
+- `TST05` the test does not await the employee
+- `TST06` a portal result changes only in its examiner and is not deleted
+
+`portal_material(participant, domain)`, security definer, answers the caller's own client's
+newest issued revision, with its PDF path, of the general training material (`ssm`) or the
+fire-safety own instructions (`psi`): what the portal shows with a test, read by the API with the
+secret key, since a participant reads no document row.
+
 ## Protective equipment
 
 `job_position_equipment` holds what the holders of a job position receive against the risks
@@ -1037,7 +1170,8 @@ A **participant** is a person of a client who signs in to the portal
 ([ADR 022](architecture/adr-022-participants-and-the-portal.md)): an `employee` or the
 `client_administrator` (`participant_kind`). A participant is not a member: the account has no
 row in `organization_members`, so `current_organization_id()` is null and every members' policy
-yields nothing. They read through policies of their own and write nothing. One account may hold
+yields nothing. They read through policies of their own and write only their test attempts, through the
+functions of [Knowledge tests](#knowledge-tests). One account may hold
 a membership and participations at once; the app's routes act on the membership, the portal's
 on the participations.
 
@@ -1127,9 +1261,12 @@ the rest to null. `clients.contact_phone` and `organizations.phone` stay free te
 ## Signatures
 
 The app makes an **advanced electronic signature** on training records
-([ADR 023](architecture/adr-023-advanced-electronic-signature.md)). A record has four
+([ADR 023](architecture/adr-023-advanced-electronic-signature.md)) and on test sheets
+([ADR 024](architecture/adr-024-knowledge-tests.md), [below](#test-sheets)). A record has four
 `signer_slot`s: `trainee`, `trainer`, `verifier` (only when the training has a verifier) and
-`admitter` (only when the record has an admission). Each slot is signed once live, electronically
+`admitter` (only when the record has an admission); a test sheet two, `trainee` and `examiner`,
+the value the enum gained for it (`20261021100000_examiner_slot.sql`, apart since a new enum
+value cannot be used in the transaction that adds it). Each slot is signed once live, electronically
 by a member or a participant, or marked as signed on paper by a member: one live signature per
 slot, by a partial unique index, and one request that is not void per slot.
 
@@ -1150,11 +1287,12 @@ to the client, as other tables under a client do. A request, a signature and a s
 their record through `(training_record_id, client_id)`, and a sheet row its sheet through
 `(signed_sheet_id, client_id)`, so none crosses clients.
 
-`signature_requests` is one slot of one record addressed to one signer.
+`signature_requests` is one slot of one record, or of one test sheet, addressed to one signer.
 
 | Column                       | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `training_record_id`, `slot` | The record, deleted with it, and the slot. One request per slot that is not `void`, by a partial unique index.                                                                                                                                                                                                                                                                                                                                                      |
+| `test_sheet_id`              | Or the test sheet, by `(test_sheet_id, client_id)`, restricting its deletion: exactly one of the two is set (`signature_requests_one_document`), a sheet's slot is `trainee` or `examiner` and a record's never `examiner` (`signature_requests_slot_of_document`), one request per sheet and slot that is not `void`. The trigger below checks a sheet's slot (`SIG03`, `slot_not_on_sheet`) and its signer as for a record.                                       |
 | `signer_account_id`          | The account addressed; null for a paper slot. The trainee must be the employee's own active participant; any other slot a member of the organization or an active participant of the client (`SIG05`, `signer_not_of_client`), checked on insert and on any update of the signer, slot, record or client. No pending trainee request goes to an employee whose agreement is `withdrawn` (`SIG05`, `agreement_withdrawn`). The slot must be on the record (`SIG03`). |
 | `issued_by`, `issued_at`     | Who issued it, the real user during an impersonation.                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `notified_at`                | When the signer was told.                                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -1263,8 +1401,59 @@ employee and domain (`23514`, `row_not_of_sheet`). `printed_as_text` marks a rec
 sheet printed as text when it was drawn up, which has no fields to fill; `filled_digest` is the
 SHA-256 of the values last filled into the other rows' fields. The workplace training's record
 takes `h2` and fills the admission block with it, so the API never writes `adm`. Only the secret key
-writes either. What the rows' fields are, and how the API fills them, is in
+writes either.
+
+A row holds a training record or a **test result** (ADR 024), exactly one of `training_record_id`
+and `test_result_id` (`signed_sheet_rows_record_or_result`), the result by a composite key with
+the row's `client_id`, one live row per result. A result of the occupational safety sheet takes
+a `t` row, `t1` to `t5`, annex 11's block "Rezultatele testărilor", which only results take; a
+result of the fire-safety sheet, whose form has no such block, takes the next `p` row of the
+periodic table and so counts in `rows_used`. The trigger requires a result to be of the sheet's
+employee and domain and in the table of its domain (`23514`, `row_not_of_sheet`). A result's row
+is never printed as text and no slot signs it, so it is filled again whenever the result changes;
+the freeze below concerns records only. A result with a row is not deleted (`23503`). What the rows' fields are, and how the API fills them, is in
 [the document engine's Sheets section](document-engine.md#the-signed-sheet).
+
+### Test sheets
+
+`test_sheets` is the **test sheet** of one passing attempt (ADR 024), stored as a PDF form for the
+trainee's and the examiner's signatures: `test_result_id` (unique, by `(test_result_id,
+client_id)`), the `employee_id` of the result by `(employee_id, client_id)`, the `storage_path`,
+`digest` (SHA-256, hex) and `version` of the current file, `generated_at`, and `certified_at` from
+its first signature. A trigger requires the result to be a portal one of the same employee
+(`23514`, `test_sheet_not_of_attempt`): a paper result has no test sheet, its test being signed on
+the printed test. A table of its own rather than columns on `test_results`: the sheet is a file
+every signature moves to a new version, written by the secret key only while members update a
+result's examiner, and most results have none. It keeps no state either: its two slots' states
+come from the requests and the evidence. The attempt behind it is frozen, so the sheet is never
+drawn up again or deleted: a trigger allows an update only to the next `version`, keeping the
+result, the employee, the client, `generated_at` and a set `certified_at`, and refuses any delete
+or truncate (`TST08`, `test_sheet_kept`). The examiner's name and function are fields of the PDF
+that the API fills again after a change of examiner, until the examiner's signature locks them.
+
+`test_sheet_signatures` is a test sheet's evidence, one row per slot signed, as
+`training_signatures` without a void: `test_sheet_id`, `slot` (`trainee` or `examiner`, one row
+each by a unique key), `request_id` (unique, by `(request_id, test_sheet_id, slot)` to its
+request), `method` (`electronic` or `paper`), the signer's account and printed name and function,
+the code's channel, address and moments, `signed_at`, both digests, the certificate serial, the
+client's address and agent, the session and `marked_by`, with the same evidence-of-method check. A
+trigger before the insert checks the request and the session as for a training signature
+(`SIG05`, `SIG08`, `SIG09`) and the signer's standing on the sheet; one after it sets the request
+`signed` with the session. Any update, delete or truncate raises `SIG06`. A sheet's signatures are
+never voided: the trainee signed what they sat, and the examiner's signature fixes the result's
+examiner.
+
+| Function                                       | Caller | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mark_test_sheet_paper_signature(sheet, slot)` | member | Voids a pending request of the slot with `signed_on_paper`, inserts a request without a signer and the paper evidence, which signs it, naming whom the sheet prints in the slot: the employee as the trainee, the result's examiner as the examiner (`SIG04`, `examiner_required`, when the result names none). Refuses a signed slot (`SIG02`), a slot the sheet lacks (`SIG03`), an archived client (`CLA01`) and a sheet of another organization (`P0002`, `test_sheet_not_found`). |
+
+The trainee of a sheet is the employee's own active participant; the examiner a member of the
+organization or an active participant of the client (`test_sheet_signer_has_standing`), checked
+on a request's insert and on its evidence, and lost as a record's is (`signer_left`). A withdrawn
+agreement voids the employee's pending trainee requests on their sheets too and refuses new ones
+(`agreement_withdrawn`). A change of a result's `examiner_name` or `examiner_job_title` voids the
+pending examiner request of its sheet with `signer_changed`; once the examiner has signed, on paper
+or electronically, the change is refused (`TST07`, `examiner_signed`).
 
 ### The freeze and the void
 
@@ -1299,19 +1488,23 @@ client (`CLA01`) and a blank reason or name (`SIG04`, `reason_required` or
 
 ### Who reads what
 
-Members read the requests, signatures, agreements, sheets and sheet rows of their organization.
+Members read the requests, signatures, agreements, sheets, sheet rows, test sheets and test sheet
+signatures of their organization; a test sheet's requests are the API's to issue, with the secret
+key, since the member's column grant does not include `test_sheet_id`.
 They insert requests naming only `organization_id`, `client_id`, `training_record_id`, `slot` and
 `signer_account_id` (the column grant), `pending` and issued by themselves, for an active client,
 write the agreements, and change the rest only through the functions above.
 
-| Table                         | Anyone reads                   | An employee participant reads | An administrator also reads |
-| ----------------------------- | ------------------------------ | ----------------------------- | --------------------------- |
-| `signature_requests`          | the requests addressed to them | those on their own records    | the client's                |
-| `training_signatures`         | their own signatures           | those on their own records    | the client's                |
-| `employee_signing_agreements` |                                | their own                     | the client's                |
-| `agreement_signatures`        | their own signatures           | those on their own agreement  | the client's                |
-| `signed_sheets`               |                                | their own                     | the client's                |
-| `signed_sheet_rows`           |                                | the rows of their own sheets  | the client's                |
+| Table                         | Anyone reads                   | An employee participant reads              | An administrator also reads |
+| ----------------------------- | ------------------------------ | ------------------------------------------ | --------------------------- |
+| `signature_requests`          | the requests addressed to them | those on their own records and test sheets | the client's                |
+| `training_signatures`         | their own signatures           | those on their own records                 | the client's                |
+| `test_sheets`                 |                                | their own                                  | the client's                |
+| `test_sheet_signatures`       | their own signatures           | those on their own test sheets             | the client's                |
+| `employee_signing_agreements` |                                | their own                                  | the client's                |
+| `agreement_signatures`        | their own signatures           | those on their own agreement               | the client's                |
+| `signed_sheets`               |                                | their own                                  | the client's                |
+| `signed_sheet_rows`           |                                | the rows of their own sheets               | the client's                |
 
 "Them" is the real signed-in user, as in the other participant policies; the two evidence tables
 only in the columns above. Errors, raised with these SQLSTATEs:
@@ -1319,8 +1512,10 @@ only in the columns above. Errors, raised with these SQLSTATEs:
 - `SIG01` the record is signed: `record_signed` for a change to what it prints,
   `record_has_signatures` for a delete
 - `SIG02` the slot already has a live signature
-- `SIG03` the slot is not on the record
-- `SIG04` the request does not hold together: `reason_required`, `signer_name_required`
+- `SIG03` the slot is not on the record or the test sheet: `slot_not_on_record`,
+  `slot_not_on_sheet`
+- `SIG04` the request does not hold together: `reason_required`, `signer_name_required`,
+  `examiner_required`
 - `SIG05` the signer cannot sign this slot: `signer_not_of_client`, `signer_not_addressed`,
   `agreement_withdrawn`
 - `SIG06` a signature or an identity is written once: `signature_written_once`, `identity_kept`
@@ -1330,6 +1525,8 @@ only in the columns above. Errors, raised with these SQLSTATEs:
   `session_used`
 - `SIG10` the agreement does not take it: `agreement_not_awaiting`,
   `agreement_signer_not_party`, `agreement_recorded`
+- `TST07` the examiner has signed the test sheet: `examiner_signed`
+- `TST08` a test sheet is not deleted and moves only to its next version: `test_sheet_kept`
 
 ## Waitlist subscribers
 

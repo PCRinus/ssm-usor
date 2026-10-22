@@ -5,6 +5,7 @@ import { bloodGroupSchema, rhFactorSchema } from './employees';
 import { type ParticipantChannel, participantChannelSchema } from './participant-channels';
 import { normalizePhone } from './phone';
 import { portalSignatureSlotSchema } from './signatures';
+import { employeeTestsSchema } from './tests';
 import { trainingSheetReadinessSchema } from './training-sheets';
 import {
   employeeTrainingSchema,
@@ -277,6 +278,7 @@ export const portalClientEmployeeSchema = z.object({
   position: z.string(),
   workplace: z.string().nullable(),
   training: employeeTrainingSchema,
+  tests: employeeTestsSchema,
 });
 
 export type PortalClientEmployee = z.infer<typeof portalClientEmployeeSchema>;

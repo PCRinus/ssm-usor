@@ -17,11 +17,12 @@ import { formatDate, roCount } from '@/features/employees/employee-format';
 import { formatDay } from '@/features/participants/participant-format';
 
 import { AgreementWarning } from './agreement-warning';
+import { requestDocument } from './signature-format';
 
 type SignatureRequest = SignatureRequestListResponseItemsItem;
 
 interface EmployeeGroup {
-  employee: SignatureRequest['record']['employee'];
+  employee: SignatureRequest['employee'];
   agreement: SignatureRequest['agreement'];
   requests: SignatureRequest[];
 }
@@ -29,7 +30,7 @@ interface EmployeeGroup {
 function byEmployee(items: readonly SignatureRequest[]): EmployeeGroup[] {
   const groups = new Map<string, EmployeeGroup>();
   for (const item of items) {
-    const { employee } = item.record;
+    const { employee } = item;
     const group = groups.get(employee.id) ?? {
       employee,
       agreement: item.agreement,
@@ -94,21 +95,14 @@ export function ClientSignatureRequests({
                 <li
                   key={request.id}
                   data-testid="client-signature-request"
+                  data-kind={request.kind}
                   className="flex flex-wrap items-center gap-x-2 gap-y-1"
                 >
-                  <Link
-                    to={
-                      request.record.domain === 'ssm'
-                        ? '/clients/$clientId/employees/$employeeId/training/ssm'
-                        : '/clients/$clientId/employees/$employeeId/training/psi'
-                    }
-                    params={{ clientId, employeeId: group.employee.id }}
-                    className="hover:underline"
-                  >
-                    {trainingPhaseLabels[request.record.phase]}{' '}
-                    {trainingDomainLabels[request.record.domain]} din{' '}
-                    <span className="tabular-nums">{formatDate(request.record.heldOn)}</span>
-                  </Link>
+                  <RequestLink
+                    clientId={clientId}
+                    employeeId={group.employee.id}
+                    request={request}
+                  />
                   <span className="text-muted-foreground">·</span>
                   <Badge variant="outline">{signerSlotLabels[request.slot]}</Badge>
                   <span data-testid="client-signature-request-signer">
@@ -124,5 +118,37 @@ export function ClientSignatureRequests({
         ))}
       </ul>
     </SectionCard>
+  );
+}
+
+function RequestLink({
+  clientId,
+  employeeId,
+  request,
+}: {
+  clientId: string;
+  employeeId: string;
+  request: SignatureRequest;
+}) {
+  const { domain } = requestDocument(request);
+  return (
+    <Link
+      to={
+        domain === 'ssm'
+          ? '/clients/$clientId/employees/$employeeId/training/ssm'
+          : '/clients/$clientId/employees/$employeeId/training/psi'
+      }
+      params={{ clientId, employeeId }}
+      className="hover:underline"
+    >
+      {request.record ? (
+        <>
+          {trainingPhaseLabels[request.record.phase]} {trainingDomainLabels[request.record.domain]}{' '}
+          din <span className="tabular-nums">{formatDate(request.record.heldOn)}</span>
+        </>
+      ) : (
+        request.label
+      )}
+    </Link>
   );
 }

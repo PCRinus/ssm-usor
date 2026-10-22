@@ -8,17 +8,18 @@ the portal has no password.
 
 ## Pages
 
-| Route                   | What                                                                          |
-| ----------------------- | ----------------------------------------------------------------------------- |
-| `/sign-in`              | One field, email or phone, then the six-digit code                            |
-| `/alege`                | Which client to open, for an account with several participations              |
-| `/`                     | _Acasă_; for a client administrator also the client's responsible persons     |
-| `/instruiri`            | _Instruiri_: the participant's records and the two individual training sheets |
-| `/datele-mele`          | _Datele mele_: the identification data the sheets print                       |
-| `/contul-meu`           | _Contul meu_: the sign-in address, the client, the provider, sign out         |
-| `/informare`            | The privacy notice, read-only                                                 |
-| `/angajati`             | The client's employees with a filter by name, for a client administrator      |
-| `/angajati/$employeeId` | One employee's records and sheets, for a client administrator                 |
+| Route                           | What                                                                          |
+| ------------------------------- | ----------------------------------------------------------------------------- |
+| `/sign-in`                      | One field, email or phone, then the six-digit code                            |
+| `/alege`                        | Which client to open, for an account with several participations              |
+| `/`                             | _Acasă_; for a client administrator also the client's responsible persons     |
+| `/instruiri`                    | _Instruiri_: the participant's records and the two individual training sheets |
+| `/instruiri/test/$domain/$test` | A knowledge test: the study card, the sitting and the result                  |
+| `/datele-mele`                  | _Datele mele_: the identification data the sheets print                       |
+| `/contul-meu`                   | _Contul meu_: the sign-in address, the client, the provider, sign out         |
+| `/informare`                    | The privacy notice, read-only                                                 |
+| `/angajati`                     | The client's employees with a filter by name, for a client administrator      |
+| `/angajati/$employeeId`         | One employee's records and sheets, for a client administrator                 |
 
 Everything but `/sign-in` sits under `_participant` (a session, then `useGetPortalMe`; a `403`
 says the account has no access and offers to sign out) and, but `/alege`, under `_portal`
@@ -82,6 +83,44 @@ sheet drawn up on the spot, the merged reading copy and an agreement nobody has 
 no stored file, so they still open as a PDF in a tab opened before the request, as the app's
 preview does, or are downloaded; a sheet that is not ready names what the specialist still has
 to fill.
+
+## Knowledge tests
+
+The tests of [ADR 024](architecture/adr-024-knowledge-tests.md) live in `src/features/tests/`.
+_Acasă_ lists an awaiting test above the signatures (`AwaitingTestsPanel`), _Instruiri_ shows per
+domain the test state, the results with their day and grade, and a link while a test awaits
+(`TestsSection`), and the client administrator's _Angajați_ shows the two test states beside the
+training states. The test page sits under _Instruiri_, with no place of its own, and keeps its
+three screens in local state: the study card, the sitting (one question a screen, every option a
+checkbox since several may be correct, `Continuă` saving the answer before it moves on) and the
+result, from which a failed attempt is retaken at once.
+
+**The test sheet.** Under each portal result _Instruiri_ shows "Fișa de test" with the state of
+its two slots, the trainee's and the examiner's, and opens its PDF (`GET …/tests/results/{id}/sheet`)
+in a tab opened before the request, as the training sheets do; while the trainee's slot is
+`pending` it points to Semnături, and so does the result screen of a pass. A paper result has no
+sheet. Its request is listed and signed with the records' (`SigningItemText`, the signing screen,
+the client administrator's pending list), named through Lingui from `testSheet` rather than the
+API's Romanian `label`, with the examiner as a slot of its own.
+
+What the pages call, all in the portal's generated client ([API, Portal](api.md#portal)):
+
+- _Acasă_ lists a test that awaits from `GET …/tests`: per domain `status.awaitingTest`, the
+  hiring test while `pending`, the annual one once `annual_due`. A test is never sent; nothing
+  else says it awaits.
+- The test page opens with `GET …/tests/{domain}/{test}/study-card`, the explanations of the
+  test's questions and, when the client has one issued, the material it closes, whose PDF
+  `GET …/materials/{domain}` serves inline: the general training material for `ssm`, the IPSU
+  with its annexes for `psi`. A missing material answers `404 material_not_issued`, and the card
+  then shows the explanations alone.
+- `POST …/tests/{domain}/{test}/attempts` starts the sitting, or answers the one in progress,
+  which `GET …/tests` also returns as `inProgress`: ten questions, one a screen, with
+  `chosen` as answered so far. Each answer is saved as it is given with
+  `PUT …/test-attempts/{attemptId}/answers/{index}`, so a dropped connection resumes.
+- `POST …/test-attempts/{attemptId}/finish` answers the score and `passed`, and for a failed
+  attempt the questions answered wrong with their explanations, never the correct option; the
+  retake is the same start route again, drawn and shuffled anew. A pass is recorded as the
+  employee's test result, which `GET …/tests` lists.
 
 ## Languages
 

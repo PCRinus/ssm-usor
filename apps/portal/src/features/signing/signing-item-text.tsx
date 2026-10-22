@@ -1,8 +1,8 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 
 import { useFormatDate } from '@/lib/format';
-import { trainingDomainMessages, trainingPhaseMessages } from '@/lib/labels';
 
+import { useRequestDocument } from './request-document';
 import { employeeNameOf, type SigningItem, unsettledAgreement } from './signing-items';
 import { signAsMessages } from './signing-messages';
 
@@ -23,6 +23,7 @@ export function SigningItemText({
 }) {
   const { t, i18n } = useLingui();
   const formatDate = useFormatDate();
+  const documentOf = useRequestDocument();
 
   if (item.kind === 'agreement') {
     return (
@@ -41,21 +42,18 @@ export function SigningItemText({
     );
   }
 
-  const { record, slot } = item.request;
-  const phase = i18n._(trainingPhaseMessages[record.phase]);
-  const domain = i18n._(trainingDomainMessages[record.domain]);
-  const day = formatDate(record.heldOn, 'short');
+  const { employee, slot } = item.request;
+  const document = documentOf(item.request);
+  const title = document.title;
+  const day = formatDate(document.day, 'short');
   const signAs = i18n._(signAsMessages[slot]);
-  const other = record.employee.id !== ownEmployeeId ? employeeNameOf(record.employee) : null;
-  const warn =
-    warnings && unsettledAgreement(item.request) && !agreementsSigned.has(record.employee.id);
+  const other = employee.id !== ownEmployeeId ? employeeNameOf(employee) : null;
+  const warn = warnings && unsettledAgreement(item.request) && !agreementsSigned.has(employee.id);
   return (
     <span className="grid min-w-0 gap-0.5">
-      <span className="font-semibold">
-        {other ? t`${other}: ${phase} ${domain}` : t`${phase} ${domain}`}
-      </span>
+      <span className="font-semibold">{other ? t`${other}: ${title}` : title}</span>
       <span className="text-sm leading-snug text-muted-foreground">
-        <time dateTime={record.heldOn} className="tabular-nums">
+        <time dateTime={document.day} className="tabular-nums">
           {day}
         </time>
         {' · '}

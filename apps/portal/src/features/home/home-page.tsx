@@ -25,6 +25,7 @@ import {
 } from '@/features/participation/participation-context';
 import { ResponsiblePersonsSection } from '@/features/responsible-persons/responsible-persons-section';
 import { SignaturesPanel } from '@/features/signing/signatures-panel';
+import { AwaitingTestsPanel } from '@/features/tests/awaiting-tests-panel';
 import { TrainingSummary } from '@/features/training/training-summary';
 import { useFormatDate } from '@/lib/format';
 import { participationKindMessages } from '@/lib/labels';
@@ -55,6 +56,7 @@ function EmployeeHome({ participation }: { participation: Participation }) {
       </PageHeader>
       <PageGrid>
         <div className="grid gap-6 sm:gap-7 lg:col-span-7">
+          <AwaitingTestsPanel participantId={participation.participantId} />
           <SignaturesPanel participation={participation} />
           <OwnTraining participantId={participation.participantId} />
         </div>
@@ -97,6 +99,7 @@ function AdministratorHome({ participation }: { participation: Participation }) 
       />
       <PageGrid>
         <div className="grid gap-6 sm:gap-7 lg:col-span-7">
+          {employee && <AwaitingTestsPanel participantId={participation.participantId} />}
           <SignaturesPanel participation={participation} />
           <EmployeesCard participantId={participation.participantId} />
           {employee && <OwnTraining participantId={participation.participantId} />}

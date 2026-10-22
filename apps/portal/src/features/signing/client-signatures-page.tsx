@@ -25,10 +25,10 @@ import {
   useParticipation,
 } from '@/features/participation/participation-context';
 import { useFormatDate, useFormatList } from '@/lib/format';
-import { trainingDomainMessages, trainingPhaseMessages } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
 
 import { AgreementPdfButton } from './agreement-pdf-button';
+import { documentKeyOf, useRequestDocument } from './request-document';
 import { employeeNameOf, type PortalSignatureRequest } from './signing-items';
 import { slotRoleMessages } from './signing-messages';
 
@@ -180,7 +180,7 @@ function PendingRequests({ participantId }: { participantId: string }) {
   const requests = useListPortalClientSignatureRequests(participantId, { request: apiRequest });
   const byEmployee = new Map<string, PortalSignatureRequest[]>();
   for (const request of requests.data?.items ?? []) {
-    const id = request.record.employee.id;
+    const id = request.employee.id;
     byEmployee.set(id, [...(byEmployee.get(id) ?? []), request]);
   }
 
@@ -203,12 +203,12 @@ function PendingRequests({ participantId }: { participantId: string }) {
           className="flex items-center gap-2 rounded-xl border border-dashed px-4 py-4 text-sm text-foreground/80 sm:px-5"
         >
           <CircleCheck aria-hidden="true" className="size-4 text-success-foreground" />
-          <Trans>Toate instruirile trimise spre semnare sunt semnate.</Trans>
+          <Trans>Tot ce a fost trimis spre semnare este semnat.</Trans>
         </p>
       ) : (
         <ul className={cn(cardClass, 'divide-y overflow-hidden')}>
           {[...byEmployee.values()].map((items) => (
-            <EmployeeRequests key={items[0]!.record.employee.id} items={items} />
+            <EmployeeRequests key={items[0]!.employee.id} items={items} />
           ))}
         </ul>
       )}
@@ -216,19 +216,21 @@ function PendingRequests({ participantId }: { participantId: string }) {
   );
 }
 
-function byRecord(requests: PortalSignatureRequest[]) {
-  const records = new Map<string, PortalSignatureRequest[]>();
+function byDocument(requests: PortalSignatureRequest[]) {
+  const documents = new Map<string, PortalSignatureRequest[]>();
   for (const request of requests) {
-    records.set(request.record.id, [...(records.get(request.record.id) ?? []), request]);
+    const key = documentKeyOf(request);
+    documents.set(key, [...(documents.get(key) ?? []), request]);
   }
-  return records;
+  return documents;
 }
 
 function EmployeeRequests({ items }: { items: PortalSignatureRequest[] }) {
   const { t, i18n } = useLingui();
   const formatDate = useFormatDate();
   const formatList = useFormatList();
-  const employee = items[0]!.record.employee;
+  const documentOf = useRequestDocument();
+  const employee = items[0]!.employee;
   return (
     <li data-testid="client-pending-employee" className="grid gap-2 px-4 py-3.5 sm:px-5">
       <Link
@@ -239,24 +241,27 @@ function EmployeeRequests({ items }: { items: PortalSignatureRequest[] }) {
         {employeeNameOf(employee)}
       </Link>
       <ul className="grid gap-2.5">
-        {[...byRecord(items).values()].map((requests) => {
-          const { record } = requests[0]!;
-          const phase = i18n._(trainingPhaseMessages[record.phase]);
-          const domain = i18n._(trainingDomainMessages[record.domain]);
-          const day = formatDate(record.heldOn, 'short');
+        {[...byDocument(items).entries()].map(([key, requests]) => {
+          const document = documentOf(requests[0]!);
+          const day = formatDate(document.day, 'short');
           const people = formatList(
             requests.map(
               (request) => `${request.signerName} (${i18n._(slotRoleMessages[request.slot])})`
             )
           );
           return (
-            <li key={record.id} data-testid="client-pending-request" className="grid text-sm">
+            <li
+              key={key}
+              data-testid="client-pending-request"
+              data-kind={requests[0]!.kind}
+              className="grid text-sm"
+            >
               <span className="font-medium">
-                <time dateTime={record.heldOn} className="tabular-nums">
+                <time dateTime={document.day} className="tabular-nums">
                   {day}
                 </time>
                 {' · '}
-                {t`${phase} ${domain}`}
+                {document.title}
               </span>
               <span className="text-foreground/80">{t`Așteaptă semnătura: ${people}.`}</span>
             </li>

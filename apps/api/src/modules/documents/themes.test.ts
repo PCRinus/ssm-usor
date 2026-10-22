@@ -109,7 +109,7 @@ describe('the periodic sessions of a post', () => {
       {
         month: 'NOIEMBRIE',
         content:
-          'I.P.S.S.M. Art.\u00a0195\u00a0–\u00a0290; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07; Testare.',
+          'I.P.S.S.M. Art.\u00a0195\u00a0–\u00a0290; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
         duration: '120 min',
       },
     ]);
@@ -125,13 +125,13 @@ describe('the periodic sessions of a post', () => {
     expect(sessions).toEqual([
       {
         month: 'IULIE',
-        content: 'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0290; Testare.',
+        content: 'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0290',
         duration: '60 min',
       },
     ]);
   });
 
-  it('run in calendar order when the schedule wraps the year, and test in the last of them', () => {
+  it('run in calendar order when the schedule wraps the year', () => {
     const sessions = trainingSessions({
       firstMonth: 11,
       intervalMonths: 6,
@@ -146,7 +146,7 @@ describe('the periodic sessions of a post', () => {
       },
       {
         month: 'NOIEMBRIE',
-        content: 'I.P.S.S.M. Art.\u00a096\u00a0–\u00a0290; Testare.',
+        content: 'I.P.S.S.M. Art.\u00a096\u00a0–\u00a0290',
         duration: '60 min',
       },
     ]);
@@ -160,11 +160,11 @@ describe('the periodic sessions of a post', () => {
       modules: [{ title: 'Fără articole', articleCount: 0 }],
     });
     expect(session!.content).toBe(
-      'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0290; I.P.S.S.M. Fără articole; Testare.'
+      'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0290; I.P.S.S.M. Fără articole'
     );
   });
 
-  it('end in the test only once, in the last month', () => {
+  it('end in no test, since the periodic training is verified without one', () => {
     const sessions = trainingSessions({
       firstMonth: 1,
       intervalMonths: 1,
@@ -172,10 +172,7 @@ describe('the periodic sessions of a post', () => {
       modules,
     });
     expect(sessions).toHaveLength(12);
-    expect(sessions.filter((session) => session.content.includes('Testare'))).toEqual([
-      sessions[11],
-    ]);
-    expect(sessions[11]!.month).toBe('DECEMBRIE');
+    expect(sessions.filter((session) => session.content.includes('Testare'))).toEqual([]);
   });
 });
 

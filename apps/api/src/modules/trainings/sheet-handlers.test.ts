@@ -106,7 +106,29 @@ const templateFiles: Record<string, string> = {
 };
 
 type Handler = (url: URL) => Response | Promise<Response>;
-type Upstream = 'employees' | 'clients' | 'workplaces' | 'records' | 'templates' | 'sheets';
+type Upstream =
+  'employees' | 'clients' | 'workplaces' | 'records' | 'results' | 'templates' | 'sheets';
+
+const resultRows = [
+  {
+    test: 'hiring',
+    domain: 'ssm',
+    taken_on: '2026-01-05',
+    material: 'Test de verificare a cunoștințelor la angajare (TASSM)',
+    examiner_name: 'Dan MARIN',
+    examiner_job_title: 'Inspector SSM',
+    created_at: '2026-01-05T12:00:00+00:00',
+  },
+  {
+    test: 'hiring',
+    domain: 'psi',
+    taken_on: '2026-01-07',
+    material: 'Test de verificare a cunoștințelor la angajare (TASU)',
+    examiner_name: 'Radu STAN',
+    examiner_job_title: 'Cadru tehnic PSI',
+    created_at: '2026-01-07T12:00:00+00:00',
+  },
+];
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -116,6 +138,10 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     clients: () => Response.json([{ legal_name: 'S.C. CLIENT DEMO S.R.L.' }]),
     workplaces: () => Response.json([workshop, office]),
     records: () => Response.json(recordRows),
+    results: (url) =>
+      Response.json(
+        resultRows.filter((row) => `eq.${row.domain}` === url.searchParams.get('domain'))
+      ),
     sheets: () => Response.json([]),
     templates: (url) => {
       const typeKey = url.searchParams.get('type_key')!.replace(/^in\.\((.*)\)$/, '$1');
@@ -136,6 +162,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     '/rest/v1/clients': 'clients',
     '/rest/v1/client_workplaces': 'workplaces',
     '/rest/v1/training_records': 'records',
+    '/rest/v1/test_results': 'results',
     '/rest/v1/document_templates': 'templates',
     '/rest/v1/signed_sheets': 'sheets',
   };
@@ -300,6 +327,11 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
     expect(text).toContain('Punct de lucru Str. Fabricii 3 – Atelier');
     expect(text).toContain('I.P.S.S.M. Art. 1 – 60 (periodic)');
     expect(text).toContain('Str. Lungă – Str. Fabricii, cu autobuzul 33 (25 de minute)');
+    expect(text).toContain('Test de verificare a cunoștințelor la angajare (TASSM)');
+    expect(text).toContain('Dan MARIN, Inspector SSM');
+    const results = new URL(String(calls('/rest/v1/test_results')[0]![0])).searchParams;
+    expect(results.get('employee_id')).toBe(`eq.${employeeId}`);
+    expect(results.get('domain')).toBe('eq.ssm');
   });
 
   const storedSheet = (sequence: number) => ({
@@ -373,6 +405,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-sheet', () => 
     );
     const text = documentText(new Uint8Array(convertDocx.mock.calls[0]![0]));
     expect(text).toContain('de instructaj în domeniul situațiilor de urgență');
+    expect(text).toContain('Test de verificare a cunoștințelor la angajare (TASU): admis');
   });
 
   it('refuses with the missing codes, before converting anything', async () => {
