@@ -6,7 +6,7 @@
 import { cta, links, waitlist } from './copy';
 
 const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
-const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'https://api.ssmusor.ro';
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.ssmusor.ro';
 ---
 
 {siteKey ? (
