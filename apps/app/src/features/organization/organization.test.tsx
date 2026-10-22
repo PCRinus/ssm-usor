@@ -63,6 +63,9 @@ const authorizations: OrganizationAuthorizationsResponse['authorizations'] = {
   fireSafetyTechnicianName: null,
   fireSafetyTechnicianCertificate: null,
   fireSafetyAuthorization: null,
+  riskEvaluatorName: null,
+  riskEvaluatorTitle: null,
+  riskEvaluatorCertificate: null,
 };
 
 const anafCompany = {
@@ -608,6 +611,73 @@ describe('authorizations', () => {
       fireSafetyTechnicianName: 'Radu Stan',
       fireSafetyAuthorization: 'nr. 12 din 15.09.2026, ISU Cluj',
     });
+  });
+
+  it('saves the risk evaluator with its title and certificate', async () => {
+    mockApi();
+    mountAuthorizations();
+    const user = userEvent.setup();
+
+    const form = await screen.findByTestId('authorizations-form');
+    expect(within(form).getByTestId('authorizations-risk-evaluator-hint').textContent).toContain(
+      'îl numesc coordonator pe cel care le generează'
+    );
+    await user.type(
+      within(form).getByTestId('authorizations-riskEvaluatorName'),
+      ' Ing. Maria IONESCU '
+    );
+    await user.type(
+      within(form).getByTestId('authorizations-riskEvaluatorTitle'),
+      'evaluator de riscuri atestat'
+    );
+    await user.type(
+      within(form).getByTestId('authorizations-riskEvaluatorCertificate'),
+      'seria A nr. 1842/2024'
+    );
+    await user.click(within(form).getByTestId('authorizations-save'));
+
+    expect(await screen.findByText('Abilitările au fost salvate.')).toBeTruthy();
+    expect(
+      JSON.parse(String(requests('/organization/authorizations', 'PUT')[0]![1]?.body))
+    ).toEqual({
+      ...authorizations,
+      riskEvaluatorName: 'Ing. Maria IONESCU',
+      riskEvaluatorTitle: 'evaluator de riscuri atestat',
+      riskEvaluatorCertificate: 'seria A nr. 1842/2024',
+    });
+  });
+
+  it('stops hinting at the fallback once an evaluator is named', async () => {
+    mockApi({
+      savedAuthorizations: {
+        ...authorizations,
+        riskEvaluatorName: 'Ing. Maria IONESCU',
+        riskEvaluatorTitle: 'evaluator de riscuri atestat',
+      },
+    });
+    mountAuthorizations();
+
+    const form = await screen.findByTestId('authorizations-form');
+    expect(within(form).getByTestId('authorizations-riskEvaluatorName')).toHaveProperty(
+      'value',
+      'Ing. Maria IONESCU'
+    );
+    expect(within(form).queryByTestId('authorizations-risk-evaluator-hint')).toBeNull();
+  });
+
+  it("asks for the evaluator's title beside the name", async () => {
+    mockApi();
+    mountAuthorizations();
+    const user = userEvent.setup();
+
+    const form = await screen.findByTestId('authorizations-form');
+    await user.type(within(form).getByTestId('authorizations-riskEvaluatorName'), 'Maria IONESCU');
+    await user.click(within(form).getByTestId('authorizations-save'));
+
+    expect((await screen.findByTestId('authorizations-riskEvaluatorTitle-error')).textContent).toBe(
+      'Completează și calitatea evaluatorului.'
+    );
+    expect(requests('/organization/authorizations', 'PUT')).toHaveLength(0);
   });
 
   it('refuses an authorization of one character', async () => {

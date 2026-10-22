@@ -326,11 +326,26 @@ export const riskEvaluationGapSchema = z.enum(riskEvaluationGaps);
 
 export type RiskEvaluationGap = z.infer<typeof riskEvaluationGapSchema>;
 
+/**
+ * What generating would do better with but does not wait for: the documents fall back on
+ * something else when it is missing.
+ */
+export const documentDataHints = [
+  // Without the organization's risk evaluator, decision 1.2 and the risk assessment name the
+  // member who generates as the coordinator of the evaluation (ADR 015, amendment of 2026-10-22).
+  'provider.riskEvaluator',
+] as const;
+
+export const documentDataHintSchema = z.enum(documentDataHints);
+
+export type DocumentDataHint = z.infer<typeof documentDataHintSchema>;
+
 // For the fire-safety set, the lists about evaluations and the workers' representative are empty,
 // and the positions are those undecided about the fire-safety modules.
 export const documentReadinessResponseSchema = z.object({
   ready: z.boolean(),
   missing: z.array(missingDocumentDataSchema),
+  hints: z.array(documentDataHintSchema),
   // What decides whether decision 1.5 (ADR 010) and the fire-safety documents required from ten
   // employees (ADR 020) are part of their sets.
   currentEmployeeCount: z.int().min(0),

@@ -70,8 +70,9 @@ export type UpdateOrganizationCompanyDetailsRequest = z.infer<
 >;
 
 /**
- * The certificate of authorization, the fire-safety technician and the fire-safety authorization
- * (Legea 307/2006 art. 12^2). Owners write them.
+ * The certificate of authorization, the fire-safety technician, the fire-safety authorization
+ * (Legea 307/2006 art. 12^2) and the risk evaluator (ADR 015, amendment of 2026-10-22). Owners
+ * write them.
  */
 export const organizationAuthorizationsSchema = z.object({
   authorizationCertificateNumber: z.string().nullable(),
@@ -80,6 +81,9 @@ export const organizationAuthorizationsSchema = z.object({
   fireSafetyTechnicianName: z.string().nullable(),
   fireSafetyTechnicianCertificate: z.string().nullable(),
   fireSafetyAuthorization: z.string().nullable(),
+  riskEvaluatorName: z.string().nullable(),
+  riskEvaluatorTitle: z.string().nullable(),
+  riskEvaluatorCertificate: z.string().nullable(),
 });
 
 export type OrganizationAuthorizations = z.infer<typeof organizationAuthorizationsSchema>;
@@ -93,14 +97,27 @@ export type OrganizationAuthorizationsResponse = z.infer<
 >;
 
 // Replaces all of them: a field left out or null is cleared.
-export const updateOrganizationAuthorizationsRequestSchema = z.object({
-  authorizationCertificateNumber: optionalText(1, 40),
-  authorizationCertificateDate: z.iso.date().nullish(),
-  authorizationCertificateIssuer: optionalText(2, 200),
-  fireSafetyTechnicianName: optionalText(2, 160),
-  fireSafetyTechnicianCertificate: optionalText(1, 80),
-  fireSafetyAuthorization: optionalText(2, 200),
-});
+export const updateOrganizationAuthorizationsRequestSchema = z
+  .object({
+    authorizationCertificateNumber: optionalText(1, 40),
+    authorizationCertificateDate: z.iso.date().nullish(),
+    authorizationCertificateIssuer: optionalText(2, 200),
+    fireSafetyTechnicianName: optionalText(2, 160),
+    fireSafetyTechnicianCertificate: optionalText(1, 80),
+    fireSafetyAuthorization: optionalText(2, 200),
+    riskEvaluatorName: optionalText(2, 160),
+    riskEvaluatorTitle: optionalText(2, 160),
+    riskEvaluatorCertificate: optionalText(1, 80),
+  })
+  .superRefine(({ riskEvaluatorName, riskEvaluatorTitle }, context) => {
+    // The documents print the two together, so one without the other would fall back silently.
+    if (Boolean(riskEvaluatorName) === Boolean(riskEvaluatorTitle)) return;
+    context.addIssue({
+      code: 'custom',
+      path: [riskEvaluatorName ? 'riskEvaluatorTitle' : 'riskEvaluatorName'],
+      message: 'The risk evaluator needs both a name and a title.',
+    });
+  });
 
 export type UpdateOrganizationAuthorizationsRequest = z.infer<
   typeof updateOrganizationAuthorizationsRequestSchema

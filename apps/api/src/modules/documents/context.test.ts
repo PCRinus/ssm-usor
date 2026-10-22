@@ -9,6 +9,7 @@ import {
   documentData,
   type DocumentFacts,
   documentGapConcerns,
+  hasRiskEvaluator,
   missingDocumentData,
   quantityLabel,
   romanianDay,
@@ -273,6 +274,49 @@ describe('the merge context', () => {
       name: 'Dan MARIN',
       professionalTitle: 'Evaluator de risc SSM',
     });
+  });
+
+  it('names the specialist as the risk evaluator while the organization has none', () => {
+    expect(hasRiskEvaluator(facts)).toBe(false);
+    expect(context.riskEvaluator).toEqual({
+      name: 'Dan MARIN',
+      professionalTitle: 'Evaluator de risc SSM',
+      certificate: null,
+    });
+  });
+
+  it("names the organization's risk evaluator, with the certificate only where there is one", () => {
+    const named: DocumentFacts = {
+      ...facts,
+      organization: {
+        ...facts.organization,
+        riskEvaluatorName: ' Ing. Maria IONESCU ',
+        riskEvaluatorTitle: 'evaluator de riscuri atestat',
+        riskEvaluatorCertificate: '  ',
+      },
+    };
+    expect(hasRiskEvaluator(named)).toBe(true);
+    expect(missingDocumentData(named)).toEqual([]);
+    expect(buildDocumentContext(named).riskEvaluator).toEqual({
+      name: 'Ing. Maria IONESCU',
+      professionalTitle: 'evaluator de riscuri atestat',
+      certificate: null,
+    });
+    const certified = {
+      ...named,
+      organization: { ...named.organization, riskEvaluatorCertificate: 'seria A nr. 1842/2024' },
+    };
+    expect(buildDocumentContext(certified).riskEvaluator.certificate).toBe('seria A nr. 1842/2024');
+    expect(buildDocumentContext(certified).specialist).toEqual(context.specialist);
+  });
+
+  it('does not count a risk evaluator named without a title', () => {
+    const halfNamed: DocumentFacts = {
+      ...facts,
+      organization: { ...facts.organization, riskEvaluatorName: 'Ing. Maria IONESCU' },
+    };
+    expect(hasRiskEvaluator(halfNamed)).toBe(false);
+    expect(buildDocumentContext(halfNamed).riskEvaluator.name).toBe('Dan MARIN');
   });
 
   it('puts people under the roles they hold', () => {
@@ -919,6 +963,7 @@ describe('a document generated again', () => {
       'issueYear',
       'knowledgeTests',
       'provider',
+      'riskEvaluator',
       'specialist',
       'workersRepresentativeDecision',
       'workersRepresentatives',

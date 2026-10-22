@@ -371,8 +371,9 @@ Chapters I and II, the annexes and the bibliography are the provider's. Chapter 
 the client, its representative, the workplace manager, the CAEN class, the employee count,
 the workplaces, and the positions table; the questionnaire about the premises, the accident
 counts and the inventory tables are gone. Chapter IV names the evaluation team from
-`evaluationTeam` and the specialist, without the decision's number, which a document other
-than a decision does not get. Chapter V repeats a subchapter per evaluation: the work system
+`evaluationTeam` and the risk evaluator (`riskEvaluator`: the organization's evaluator with the
+certificate where there is one, else the specialist; ADR 015, amendment of 2026-10-22), without
+the decision's number, which a document other than a decision does not get. Chapter V repeats a subchapter per evaluation: the work system
 table, the factors by component and group, an identity table and the evaluation sheet (two
 tables, so that the sheet's column heads repeat on every page), the measures sheet or the
 sentence that there is nothing unacceptable, and the interpretation as a ranking table,
@@ -1237,5 +1238,9 @@ They run from the first training month around the year, in calendar order: Novem
 six months is "lunile mai și noiembrie".
 
 `client` is `legalName`, `representativeName`, `representativeRole`; `provider` is `legalName`
-and `representativeName`. A person in a list is `name` and `jobTitle`. Every decision ends with
+and `representativeName`; `specialist` is the generating member's `name` and
+`professionalTitle`, printed by the training themes and the signing annex; `riskEvaluator` is
+`name`, `professionalTitle` and `certificate` (null when not set), the organization's risk
+evaluator or else the specialist, printed by decision 1.2 and the risk assessment (ADR 015,
+amendment of 2026-10-22). A person in a list is `name` and `jobTitle`. Every decision ends with
 an acknowledgement table that repeats a row per designated person.

@@ -106,6 +106,9 @@ const organizationRow = {
   fire_safety_technician_name: 'Radu STAN',
   fire_safety_technician_certificate: 'CT 1234/2024',
   fire_safety_authorization: null,
+  risk_evaluator_name: null,
+  risk_evaluator_title: null,
+  risk_evaluator_certificate: null,
   phone: null,
 };
 const clientRow = {
@@ -583,6 +586,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       ready: true,
       missing: [],
       currentEmployeeCount: 1,
+      hints: ['provider.riskEvaluator'],
       workersRepresentativeClash: null,
       undecidedJobPositions: [],
       incompleteRiskEvaluations: [],
@@ -613,6 +617,22 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     expect(specialist.get('user_id')).toBe(`eq.${user.id}`);
   });
 
+  it('drops the hint about the risk evaluator once the organization names one', async () => {
+    mockUpstream({
+      organizations: () =>
+        Response.json({
+          ...organizationRow,
+          risk_evaluator_name: 'Ing. Maria IONESCU',
+          risk_evaluator_title: 'evaluator de riscuri atestat',
+        }),
+    });
+    const response = await request(`/clients/${clientId}/documents/readiness`);
+    expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
+      ready: true,
+      hints: [],
+    });
+  });
+
   it('has no specialist when the preparer is not a member of the organization', async () => {
     mockUpstream({ membership: () => Response.json([]) });
     const response = await request(`/clients/${clientId}/documents/readiness`);
@@ -641,6 +661,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
         'responsible.imminent_danger',
       ],
       currentEmployeeCount: 1,
+      hints: ['provider.riskEvaluator'],
       workersRepresentativeClash: null,
       undecidedJobPositions: [],
       incompleteRiskEvaluations: [],
@@ -763,6 +784,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
     const response = await request(`/clients/${clientId}/documents/readiness`);
     expect(documentReadinessResponseSchema.parse(await response.json())).toMatchObject({
       missing: ['responsible.workers_representative_is_legal_representative'],
+      hints: ['provider.riskEvaluator'],
       workersRepresentativeClash: {
         representativeName: 'Talos Florin',
         legalRepresentativeName: 'Florin TALOȘ',
@@ -793,6 +815,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
       ready: true,
       missing: [],
       currentEmployeeCount: 1,
+      hints: ['provider.riskEvaluator'],
       workersRepresentativeClash: null,
       undecidedJobPositions: [],
       incompleteRiskEvaluations: [],
@@ -2950,6 +2973,7 @@ describe('the fire-safety set', () => {
       ready: true,
       missing: [],
       currentEmployeeCount: 1,
+      hints: [],
       workersRepresentativeClash: null,
       undecidedJobPositions: [],
       incompleteRiskEvaluations: [],

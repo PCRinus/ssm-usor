@@ -64,6 +64,10 @@ export type DocumentFacts = {
     fireSafetyTechnicianName: string | null;
     fireSafetyTechnicianCertificate: string | null;
     fireSafetyAuthorization: string | null;
+    /** The coordinator of the risk evaluation; the specialist stands in when the name is null. */
+    riskEvaluatorName: string | null;
+    riskEvaluatorTitle: string | null;
+    riskEvaluatorCertificate: string | null;
     phone: string | null;
   };
   /** The member who prepares the documents, or null when there is none to name. */
@@ -190,6 +194,8 @@ export type DocumentContext = {
   client: { legalName: string; representativeName: string; representativeRole: string };
   provider: { legalName: string; representativeName: string; representativeRole: string };
   specialist: { name: string; professionalTitle: string };
+  /** Who coordinates the risk evaluation in 1.2 and 9: the organization's evaluator, else the specialist. */
+  riskEvaluator: { name: string; professionalTitle: string; certificate: string | null };
   workplaceManagers: Person[];
   /** "Ion POP, având funcția de Șef atelier, și Ana RUS, având funcția de Șef sală". */
   workplaceManagersText: string;
@@ -430,8 +436,8 @@ const printedAs = {
   'provider.representativeRole': ['provider'],
   'provider.fireSafetyTechnician': [],
   'provider.fireSafetyTechnicianCertificate': [],
-  'specialist.name': ['specialist', 'themes'],
-  'specialist.professionalTitle': ['specialist'],
+  'specialist.name': ['specialist', 'themes', 'riskEvaluator'],
+  'specialist.professionalTitle': ['specialist', 'riskEvaluator'],
   'client.representativeName': ['client'],
   'client.representativeRole': ['client'],
   'client.trainingSchedule': ['training', 'positions', 'equippedPositions', 'themes'],
@@ -480,6 +486,27 @@ const printedAs = {
   'fire.instructions': [],
   'documents.fire_own_instructions': [],
 } satisfies Record<MissingDocumentData, readonly (keyof DocumentContext)[]>;
+
+/** Whether the organization has named its risk evaluator; otherwise the specialist is printed. */
+export const hasRiskEvaluator = (facts: Pick<DocumentFacts, 'organization'>) =>
+  filled(facts.organization.riskEvaluatorName) && filled(facts.organization.riskEvaluatorTitle);
+
+// Only a name with a title stands in; a name alone would print beside the specialist's title.
+function riskEvaluatorOf(facts: DocumentFacts): DocumentContext['riskEvaluator'] {
+  const { organization, specialist } = facts;
+  if (!hasRiskEvaluator(facts)) {
+    return {
+      name: specialist!.fullName!.trim(),
+      professionalTitle: specialist!.professionalTitle!.trim(),
+      certificate: null,
+    };
+  }
+  return {
+    name: organization.riskEvaluatorName!.trim(),
+    professionalTitle: organization.riskEvaluatorTitle!.trim(),
+    certificate: organization.riskEvaluatorCertificate?.trim() || null,
+  };
+}
 
 // A representative whose employee has left no longer speaks for the workers.
 const currentWorkersRepresentatives = (facts: Pick<DocumentFacts, 'responsiblePersons'>) =>
@@ -615,6 +642,7 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
       name: facts.specialist!.fullName!.trim(),
       professionalTitle: facts.specialist!.professionalTitle!.trim(),
     }),
+    riskEvaluator: () => riskEvaluatorOf(facts),
     workplaceManagers: () => workplaceManagers,
     workplaceManagersText: () => described(workplaceManagers),
     workplaceManagersList: () =>

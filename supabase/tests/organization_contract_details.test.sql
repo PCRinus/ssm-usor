@@ -1,5 +1,5 @@
 begin;
-select plan(8);
+select plan(10);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -26,7 +26,9 @@ select lives_ok(
      set phone = '0722 776 011', iban = 'RO49AAAA1B31007593840000', bank_name = 'Banca Transilvania',
          authorization_certificate_number = '17664', authorization_certificate_date = '2022-09-30',
          authorization_certificate_issuer = 'DMPS Timiș', vat_payer = true,
-         fire_safety_technician_name = 'Ana Pop', fire_safety_technician_certificate = 'CT 123'
+         fire_safety_technician_name = 'Ana Pop', fire_safety_technician_certificate = 'CT 123',
+         risk_evaluator_name = 'Ing. Maria IONESCU', risk_evaluator_title = 'evaluator de riscuri atestat',
+         risk_evaluator_certificate = 'seria A nr. 1842/2024'
      where id = '11111111-0000-4000-8000-000000000001' $$,
   'an owner fills in what contracts print'
 );
@@ -60,6 +62,14 @@ select throws_ok(
   'the fire-safety authorization fits in 200 characters'
 );
 
+select throws_ok(
+  $$ update public.organizations set risk_evaluator_title = 'x'
+     where id = '11111111-0000-4000-8000-000000000001' $$,
+  '23514',
+  null,
+  'the risk evaluator''s title has at least 2 characters'
+);
+
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002');
 
 select is_empty(
@@ -72,6 +82,12 @@ select is_empty(
   $$ update public.organizations set fire_safety_authorization = null
      where id = '11111111-0000-4000-8000-000000000001' returning id $$,
   'the fire-safety authorization included'
+);
+
+select is_empty(
+  $$ update public.organizations set risk_evaluator_name = null
+     where id = '11111111-0000-4000-8000-000000000001' returning id $$,
+  'the risk evaluator included'
 );
 
 select results_eq(

@@ -217,6 +217,7 @@ const alfaReadiness = {
   ready: false,
   missing: ['client.trainingSchedule', 'responsible.first_aid', 'positions.equipment'],
   currentEmployeeCount: 4,
+  hints: [],
   workersRepresentativeClash: null,
   undecidedJobPositions: [
     { id: '6c7d8e9f-0a1b-4c2d-8e3f-4a5b6c7d8e9f', name: 'Sudor', undecided: ['equipment'] },

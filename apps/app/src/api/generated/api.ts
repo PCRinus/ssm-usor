@@ -4672,6 +4672,12 @@ export type OrganizationAuthorizationsResponseAuthorizations = {
   fireSafetyTechnicianCertificate: string | null;
   /** @nullable */
   fireSafetyAuthorization: string | null;
+  /** @nullable */
+  riskEvaluatorName: string | null;
+  /** @nullable */
+  riskEvaluatorTitle: string | null;
+  /** @nullable */
+  riskEvaluatorCertificate: string | null;
 };
 
 export interface OrganizationAuthorizationsResponse {
@@ -4711,6 +4717,24 @@ export interface UpdateOrganizationAuthorizationsRequest {
    * @nullable
    */
   fireSafetyAuthorization?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  riskEvaluatorName?: string | null;
+  /**
+   * @minLength 2
+   * @maxLength 160
+   * @nullable
+   */
+  riskEvaluatorTitle?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 80
+   * @nullable
+   */
+  riskEvaluatorCertificate?: string | null;
 }
 
 export type ClientDocumentDetailsResponseDocumentDetails = {
@@ -6325,6 +6349,13 @@ export const DocumentReadinessResponseMissingItem = {
   documentsfire_own_instructions: 'documents.fire_own_instructions',
 } as const;
 
+export type DocumentReadinessResponseHintsItem =
+  (typeof DocumentReadinessResponseHintsItem)[keyof typeof DocumentReadinessResponseHintsItem];
+
+export const DocumentReadinessResponseHintsItem = {
+  providerriskEvaluator: 'provider.riskEvaluator',
+} as const;
+
 /**
  * @nullable
  */
@@ -6381,6 +6412,7 @@ export type DocumentReadinessResponseIncompleteRiskEvaluationsItem = {
 export interface DocumentReadinessResponse {
   ready: boolean;
   missing: DocumentReadinessResponseMissingItem[];
+  hints: DocumentReadinessResponseHintsItem[];
   /** @minimum 0 */
   currentEmployeeCount: number;
   /** @nullable */

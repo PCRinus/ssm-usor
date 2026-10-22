@@ -2015,15 +2015,22 @@ describe('decision_training', () => {
 });
 
 describe('decision_risk_evaluation_team', () => {
-  it("names the team and the provider's specialist with their title", () => {
-    const text = documentText(
+  const render = (certificate: string | null) =>
+    documentText(
       renderDocument(read('1.2_decision_risk_evaluation_team.docx'), {
         ...shared,
         decisionNumber: 2,
         evaluationTeam: people,
-        specialist: { name: 'Ana IONESCU', professionalTitle: 'Evaluator de risc SSM' },
+        riskEvaluator: {
+          name: 'Ana IONESCU',
+          professionalTitle: 'Evaluator de risc SSM',
+          certificate,
+        },
       })
     );
+
+  it('names the team and the risk evaluator with their title as the coordinator', () => {
+    const text = render(null);
 
     expect(text).not.toContain('{{');
     expect(text).toContain('Nr. 2 SSM din 19.01.2026');
@@ -2032,6 +2039,12 @@ describe('decision_risk_evaluation_team', () => {
       'Ana IONESCU, în calitate de Evaluator de risc SSM din cadrul S.C. SERVICIU EXTERN S.R.L., va coordona'
     );
     acknowledged(text);
+  });
+
+  it("adds the evaluator's certificate only where there is one", () => {
+    expect(render('seria A nr. 1842/2024')).toContain(
+      'Ana IONESCU, în calitate de Evaluator de risc SSM, titular al certificatului seria A nr. 1842/2024, din cadrul S.C. SERVICIU EXTERN S.R.L., va coordona'
+    );
   });
 });
 
@@ -2429,7 +2442,11 @@ describe('branding', () => {
     ...shared,
     decisionNumber: 2,
     evaluationTeam: people,
-    specialist: { name: 'Ana IONESCU', professionalTitle: 'Evaluator de risc SSM' },
+    riskEvaluator: {
+      name: 'Ana IONESCU',
+      professionalTitle: 'Evaluator de risc SSM',
+      certificate: null,
+    },
   };
   const footerText = (file: Uint8Array) => {
     const zip = new PizZip(file);

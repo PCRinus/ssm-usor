@@ -116,7 +116,7 @@ export const updateOrganizationCompanyDetails: RouteHandler<
 };
 
 const authorizationsColumns =
-  'authorization_certificate_number, authorization_certificate_date, authorization_certificate_issuer, fire_safety_technician_name, fire_safety_technician_certificate, fire_safety_authorization';
+  'authorization_certificate_number, authorization_certificate_date, authorization_certificate_issuer, fire_safety_technician_name, fire_safety_technician_certificate, fire_safety_authorization, risk_evaluator_name, risk_evaluator_title, risk_evaluator_certificate';
 
 type AuthorizationsRow = Pick<
   Tables['organizations']['Row'],
@@ -126,6 +126,9 @@ type AuthorizationsRow = Pick<
   | 'fire_safety_technician_name'
   | 'fire_safety_technician_certificate'
   | 'fire_safety_authorization'
+  | 'risk_evaluator_name'
+  | 'risk_evaluator_title'
+  | 'risk_evaluator_certificate'
 >;
 
 function toAuthorizations(row: AuthorizationsRow): OrganizationAuthorizations {
@@ -136,6 +139,9 @@ function toAuthorizations(row: AuthorizationsRow): OrganizationAuthorizations {
     fireSafetyTechnicianName: row.fire_safety_technician_name,
     fireSafetyTechnicianCertificate: row.fire_safety_technician_certificate,
     fireSafetyAuthorization: row.fire_safety_authorization,
+    riskEvaluatorName: row.risk_evaluator_name,
+    riskEvaluatorTitle: row.risk_evaluator_title,
+    riskEvaluatorCertificate: row.risk_evaluator_certificate,
   };
 }
 
@@ -165,6 +171,9 @@ export const updateOrganizationAuthorizations: RouteHandler<
       fire_safety_technician_name: body.fireSafetyTechnicianName ?? null,
       fire_safety_technician_certificate: body.fireSafetyTechnicianCertificate ?? null,
       fire_safety_authorization: body.fireSafetyAuthorization ?? null,
+      risk_evaluator_name: body.riskEvaluatorName ?? null,
+      risk_evaluator_title: body.riskEvaluatorTitle ?? null,
+      risk_evaluator_certificate: body.riskEvaluatorCertificate ?? null,
     })
     .eq('id', c.get('membership').organizationId)
     .select(authorizationsColumns)

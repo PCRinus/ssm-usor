@@ -1531,6 +1531,11 @@
       ]
     }
   },
+  "riskEvaluator": {
+    "certificate": null,
+    "name": "Dan MARIN",
+    "professionalTitle": "Evaluator de risc SSM"
+  },
   "specialist": {
     "name": "Dan MARIN",
     "professionalTitle": "Evaluator de risc SSM"

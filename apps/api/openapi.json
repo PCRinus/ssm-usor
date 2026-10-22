@@ -6211,6 +6211,18 @@
               "fireSafetyAuthorization": {
                 "type": "string",
                 "nullable": true
+              },
+              "riskEvaluatorName": {
+                "type": "string",
+                "nullable": true
+              },
+              "riskEvaluatorTitle": {
+                "type": "string",
+                "nullable": true
+              },
+              "riskEvaluatorCertificate": {
+                "type": "string",
+                "nullable": true
               }
             },
             "required": [
@@ -6219,7 +6231,10 @@
               "authorizationCertificateIssuer",
               "fireSafetyTechnicianName",
               "fireSafetyTechnicianCertificate",
-              "fireSafetyAuthorization"
+              "fireSafetyAuthorization",
+              "riskEvaluatorName",
+              "riskEvaluatorTitle",
+              "riskEvaluatorCertificate"
             ]
           }
         },
@@ -6262,6 +6277,24 @@
             "nullable": true,
             "minLength": 2,
             "maxLength": 200
+          },
+          "riskEvaluatorName": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "riskEvaluatorTitle": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "riskEvaluatorCertificate": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 80
           }
         }
       },
@@ -8609,6 +8642,13 @@
               ]
             }
           },
+          "hints": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["provider.riskEvaluator"]
+            }
+          },
           "currentEmployeeCount": {
             "type": "integer",
             "minimum": 0
@@ -8688,6 +8728,7 @@
         "required": [
           "ready",
           "missing",
+          "hints",
           "currentEmployeeCount",
           "workersRepresentativeClash",
           "undecidedJobPositions",

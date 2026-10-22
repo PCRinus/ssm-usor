@@ -1392,6 +1392,11 @@ function sample(
         representativeRole: 'Administrator',
       },
       specialist: { name: 'Ana IONESCU', professionalTitle: 'Evaluator de risc SSM' },
+      riskEvaluator: {
+        name: 'Ing. Maria IONESCU',
+        professionalTitle: 'evaluator de riscuri atestat',
+        certificate: people.length > 1 ? 'seria A nr. 1842/2024' : null,
+      },
       fireSafetyTechnician: {
         name: fireSafetyTechnician,
         certificate: 'seria A nr. 1234/2024',

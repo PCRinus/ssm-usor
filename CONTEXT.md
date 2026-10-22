@@ -26,6 +26,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Fire-safety authorization** (_autorizația de cadru tehnic_): the inspectorate's authorization of a provider to act as fire-safety technician under contract, required by Legea 307/2006 art. 12^2 since OUG 17/2026. Optional text on the organization, as the provider writes it; decision 5 prints it when set and never asks for it. ADR 019. Avoid: certificate, which is the technician's own qualification, and _atestat_, which the norms use for firms that service equipment.
 
+**Risk evaluator** (_evaluator de riscuri_): the person the organization names as coordinator of the risk evaluation in decision 1.2 and on the risk assessment: a name, a qualification printed after it and, optionally, a certificate, kept on the organization's Abilitări tab like the fire-safety technician; not a member role. Without one the documents name the member who generates, with the professional title from their profile, and the generation form says so without blocking. ADR 015, amendment of 2026-10-22. Avoid: specialist, which is the member who generates and still trains and signs.
+
 **Employee** (_angajat_): a person employed by a client, assigned to a job position and to the workplace they work at. Avoid: worker, staff, user.
 
 **Responsible person** (_persoană responsabilă_): someone who holds a role in a client's safety organization: workplace manager, first-aider, member of the risk evaluation team. One person can hold several roles. May or may not be an employee. A role is not a job position.

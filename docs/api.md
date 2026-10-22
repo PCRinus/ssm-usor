@@ -228,8 +228,12 @@ the ANAF lookup fills and which decides the sentence about VAT beside the prices
 contract, the registered office, `phone`, the legal representative, and `iban` with
 `bankName`. `/organization/authorizations` is the certificate of authorization
 (`authorizationCertificateNumber`, `…Date`, `…Issuer`), the fire-safety technician with
-their certificate, as text (issue #170), and `fireSafetyAuthorization`, the inspectorate's
-authorization under Legea 307/2006 art. 12^2, one text of up to 200 characters (ADR 019). Every member reads both and an owner writes them:
+their certificate, as text (issue #170), `fireSafetyAuthorization`, the inspectorate's
+authorization under Legea 307/2006 art. 12^2, one text of up to 200 characters (ADR 019), and
+the risk evaluator (`riskEvaluatorName`, `riskEvaluatorTitle`, `riskEvaluatorCertificate`; ADR
+015, amendment of 2026-10-22), whom decision 1.2 and the risk assessment name as the coordinator
+of the evaluation: the name and the title go together, and a `PUT` with one but not the other is
+`400`. Every member reads both and an owner writes them:
 none of it is secret, and what is owners-only about a contract is the contract. Everything is
 optional and `PUT` replaces all of a resource; generating a document or a contract is what
 asks for them. The
@@ -1429,7 +1433,11 @@ instructions revision to cite, `documents.own_instructions`
 the set makes the own instructions first. `POST …/documents/generate` takes `issueDate` and `firstDecisionNumber`
 (1 when left out) and is `409` with the reason `missing_document_data` until that list is empty,
 `409` for an archived client, and `503` while no template of the set is registered
-(`pnpm templates:register`).
+(`pnpm templates:register`). Readiness also returns `hints`, what generating would do better
+with but does not wait for: `provider.riskEvaluator` while the organization has named no risk
+evaluator, in which case decision 1.2 and the risk assessment name the caller as the
+coordinator of the evaluation (ADR 015, amendment of 2026-10-22); the fire-safety set's hints
+are empty.
 
 The fire-safety set asks only what its documents print: `provider.legalName`,
 `provider.fireSafetyTechnician` (the organization's fire-safety technician, by name, the same
