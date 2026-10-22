@@ -102,6 +102,7 @@ const participant = (overrides: Record<string, unknown> = {}) => ({
   createdAt: '2026-10-10T09:00:00.000Z',
   revokedAt: null,
   noticeVersion: null,
+  language: null,
   ...overrides,
 });
 
@@ -157,6 +158,12 @@ function mockApi(
     }
     if (pathname === `/client-participants/${participantId}/revoke`) {
       return routes.revokeAccess?.(init) ?? new Response(null, { status: 204 });
+    }
+    if (pathname === `/clients/${clientId}/employees`) {
+      return Response.json({ items: [sampleEmployee], page: 1, pageSize: 100, total: 1 });
+    }
+    if (pathname === `/clients/${clientId}/signature-requests`) {
+      return Response.json({ items: [] });
     }
     return Response.json({ error: 'not_found', message: 'Not mocked.' }, { status: 404 });
   });
@@ -388,55 +395,91 @@ describe("the employee's portal access", () => {
   });
 });
 
-describe("the client's administrator in the portal", () => {
-  const mountTraining = () =>
-    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training`);
-
-  it('lists the administrators, leaves the employees out, and counts them', async () => {
-    mockApi({
-      list: () =>
-        Response.json({
-          participants: [
-            participant({
-              id: '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e',
-              kind: 'client_administrator',
-              employeeId: null,
-              fullName: 'Maria Popescu',
-              channel: 'email',
-              address: 'maria@veloce.ro',
-            }),
-            participant(),
-            participant({ id: '2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f', fullName: 'Dinu Ana' }),
-          ],
-          invitations: [
-            invitation({
-              kind: 'client_administrator',
-              employeeId: null,
-              fullName: 'Ioana Dinu',
-              address: 'ioana@veloce.ro',
-            }),
-            invitation({ id: '4a5b6c7d-8e9f-4a0b-9c1d-2e3f4a5b6c7d', fullName: 'Vasile Ion' }),
-          ],
+describe("the client's Portal tab", () => {
+  const mountPortal = () =>
+    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/portal`);
+  const everyone = () =>
+    Response.json({
+      participants: [
+        participant({
+          id: '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e',
+          kind: 'client_administrator',
+          employeeId: null,
+          fullName: 'Maria Popescu',
+          channel: 'email',
+          address: 'maria@veloce.ro',
+          language: 'ro',
         }),
+        participant(),
+        participant({
+          id: '2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f',
+          employeeId: '9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b',
+          fullName: 'Dinu Ana',
+          language: 'en',
+        }),
+      ],
+      invitations: [
+        invitation({
+          kind: 'client_administrator',
+          employeeId: null,
+          fullName: 'Ioana Dinu',
+          address: 'ioana@veloce.ro',
+        }),
+        invitation({ id: '4a5b6c7d-8e9f-4a0b-9c1d-2e3f4a5b6c7d', fullName: 'Vasile Ion' }),
+      ],
     });
-    mountTraining();
-    const card = await screen.findByTestId('client-administrator-card');
-    const rows = await within(card).findAllByTestId('client-administrator-row');
+
+  it('is the last section of the client, with the administrators apart from the employees', async () => {
+    mockApi({ list: everyone });
+    const runtime = mountPortal();
+    const page = await screen.findByTestId('client-portal-page');
+    await waitFor(() => expect(document.title).toBe('Portal — VELOCE CAFE SRL — SSM Ușor'));
+    const tabs = screen.getAllByTestId('client-section').map((tab) => tab.textContent);
+    expect(tabs.at(-1)).toBe('Portal');
+    expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/portal`);
+
+    const administrators = await within(page).findByTestId('client-administrator-card');
+    const rows = within(administrators).getAllByTestId('client-administrator-row');
     expect(rows.map((row) => row.querySelector('h3')?.textContent)).toEqual([
       'Maria Popescu',
       'Ioana Dinu',
     ]);
-    expect(within(card).getByTestId('client-employees-with-access').textContent).toBe(
-      '2 angajați au acces la portal.'
+    expect(within(rows[0]!).getByTestId('participant-language').textContent).toBe(
+      ' Folosește portalul în română.'
     );
-    expect(within(card).queryByTestId('client-portal-missing')).toBeNull();
+
+    const employees = within(page).getByTestId('portal-employees-card');
+    const people = within(employees).getAllByTestId('portal-employee-row');
+    expect(people.map((row) => row.querySelector('h3')?.textContent)).toEqual([
+      'Popescu Ion',
+      'Dinu Ana',
+      'Vasile Ion',
+    ]);
+    expect(people[0]!.querySelector('a')!.getAttribute('href')).toBe(employeePath);
+    expect(within(people[0]!).queryByTestId('participant-language')).toBeNull();
+    expect(within(people[1]!).getByTestId('participant-language').textContent).toBe(
+      ' Folosește portalul în engleză.'
+    );
+    expect(within(people[2]!).getByTestId('participant-invitation-text').textContent).toContain(
+      'Invitat pe ion.popescu@example.com prin email'
+    );
+    expect(within(page).queryByTestId('client-portal-missing')).toBeNull();
+    expect(within(page).getByTestId('client-signature-requests')).toBeTruthy();
+    const cards = Array.from(page.querySelectorAll(':scope > [data-testid]')).map((card) =>
+      card.getAttribute('data-testid')
+    );
+    expect(cards).toEqual([
+      'client-administrator-card',
+      'portal-employees-card',
+      'client-signature-requests',
+    ]);
   });
 
-  it('gathers who has no portal access yet in one notice', async () => {
+  it('gathers who has no portal access yet in one notice above the cards', async () => {
     mockApi();
-    mountTraining();
-    const card = await screen.findByTestId('client-administrator-card');
-    const notice = await within(card).findByTestId('client-portal-missing');
+    mountPortal();
+    const page = await screen.findByTestId('client-portal-page');
+    const notice = await within(page).findByTestId('client-portal-missing');
     expect(within(notice).getByText('Fără acces încă')).toBeTruthy();
     expect(
       within(notice)
@@ -444,15 +487,73 @@ describe("the client's administrator in the portal", () => {
         .map((item) => item.textContent)
     ).toEqual([
       'Administratorul clientului nu a fost invitat în portal.',
-      'Niciun angajat nu are încă acces la portal. Îi inviți din pagina fiecărui angajat.',
+      'Niciun angajat nu are încă acces la portal. Îi inviți de aici sau din pagina fiecărui angajat.',
     ]);
-    expect(within(card).getByTestId('administrator-invite')).toBeTruthy();
+    expect(within(page).getByTestId('client-administrator-empty')).toBeTruthy();
+    expect(within(page).getByTestId('administrator-invite')).toBeTruthy();
+    expect(within(page).getByTestId('portal-employees-empty')).toBeTruthy();
+    expect(within(page).getByTestId('portal-employee-invite')).toBeTruthy();
+  });
+
+  it('says the invited employees have not come in yet', async () => {
+    mockApi({
+      list: () => Response.json({ participants: [], invitations: [invitation()] }),
+    });
+    mountPortal();
+    const notice = await screen.findByTestId('client-portal-missing');
+    expect(within(notice).getByTestId('client-employees-with-access').textContent).toBe(
+      'Niciun angajat nu a intrat încă în portal; invitațiile trimise așteaptă primul cod.'
+    );
+    expect(screen.getAllByTestId('portal-employee-row')).toHaveLength(1);
+  });
+
+  it('invites an employee picked from the list, at the address their row holds', async () => {
+    mockApi();
+    const user = userEvent.setup();
+    mountPortal();
+    const card = await screen.findByTestId('portal-employees-card');
+    await user.click(within(card).getByTestId('portal-employee-invite'));
+    const picker = await screen.findByTestId('participant-pick-dialog');
+    await user.click(within(picker).getByTestId('participant-pick-submit'));
+    expect(within(picker).getByTestId('participant-pick-employee-error').textContent).toBe(
+      'Alege un angajat.'
+    );
+    await user.click(within(picker).getByTestId('participant-pick-employee'));
+    await user.click(
+      await within(await screen.findByRole('listbox')).findByRole('option', { name: /Popescu/ })
+    );
+    await user.click(within(picker).getByTestId('participant-pick-submit'));
+    const dialog = await screen.findByTestId('participant-invite-dialog');
+    expect(screen.queryByTestId('participant-pick-dialog')).toBeNull();
+    const options = within(dialog).getAllByTestId('participant-invite-option');
+    expect(options.map((option) => option.textContent)).toEqual([
+      'ion.popescu@example.comEmail',
+      '+40721000000SMS',
+    ]);
+    await user.click(within(dialog).getByTestId('participant-invite-submit'));
+    await waitFor(() =>
+      expect(requests(invitePath, 'POST')).toEqual([
+        { channel: 'email', address: 'ion.popescu@example.com' },
+      ])
+    );
+    expect(
+      await screen.findByText('Invitația a fost trimisă pe ion.popescu@example.com.')
+    ).toBeTruthy();
+  });
+
+  it('left the training tab, which no longer shows the administrator', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, `/clients/${clientId}/training`);
+    await screen.findByTestId('training-page');
+    await screen.findByTestId('responsible-persons-card');
+    expect(screen.queryByTestId('client-administrator-card')).toBeNull();
+    expect(requests(listPath)).toHaveLength(0);
   });
 
   it("proposes the representative's name and the contact's address, and invites", async () => {
     mockApi();
     const user = userEvent.setup();
-    mountTraining();
+    mountPortal();
     const card = await screen.findByTestId('client-administrator-card');
     await within(card).findByTestId('client-administrator-empty');
     await user.click(within(card).getByTestId('administrator-invite'));
@@ -479,7 +580,7 @@ describe("the client's administrator in the portal", () => {
   it('puts an address the API refuses under the address', async () => {
     mockApi({ administrator: () => conflict('address_invited_for_another_person') });
     const user = userEvent.setup();
-    mountTraining();
+    mountPortal();
     const card = await screen.findByTestId('client-administrator-card');
     await user.click(await within(card).findByTestId('administrator-invite'));
     const dialog = await screen.findByTestId('administrator-invite-dialog');
@@ -493,7 +594,7 @@ describe("the client's administrator in the portal", () => {
   it("invites by SMS at a number in its own country's format, refusing one that does not fit", async () => {
     mockApi();
     const user = userEvent.setup();
-    mountTraining();
+    mountPortal();
     const card = await screen.findByTestId('client-administrator-card');
     await user.click(await within(card).findByTestId('administrator-invite'));
     const dialog = await screen.findByTestId('administrator-invite-dialog');

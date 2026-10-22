@@ -151,6 +151,7 @@ describe('client document data', () => {
       'Documente SSM',
       'Documente PSI',
       'Alte documente',
+      'Portal',
     ]);
     expect(await screen.findByTestId('training-program-form')).toBeTruthy();
     expect(screen.queryByTestId('legal-representative-card')).toBeNull();

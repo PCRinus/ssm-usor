@@ -63,6 +63,7 @@ import { Route as AuthenticatedClientsClientIdFireSafetyDocumentsRouteImport } f
 import { Route as AuthenticatedClientsClientIdFireSafetyMeansRouteImport } from './routes/_authenticated/clients/$clientId/fire-safety-means';
 import { Route as AuthenticatedClientsClientIdJobPositionsRouteImport } from './routes/_authenticated/clients/$clientId/job-positions';
 import { Route as AuthenticatedClientsClientIdOtherDocumentsRouteImport } from './routes/_authenticated/clients/$clientId/other-documents';
+import { Route as AuthenticatedClientsClientIdPortalRouteImport } from './routes/_authenticated/clients/$clientId/portal';
 import { Route as AuthenticatedClientsClientIdTrainingRouteImport } from './routes/_authenticated/clients/$clientId/training';
 import { Route as AuthenticatedClientsClientIdTrainingsRouteImport } from './routes/_authenticated/clients/$clientId/trainings';
 import { Route as AuthenticatedInstructionsLibraryPsiRouteImport } from './routes/_authenticated/instructions/_library/psi';
@@ -391,6 +392,12 @@ const AuthenticatedClientsClientIdOtherDocumentsRoute =
     path: '/other-documents',
     getParentRoute: () => AuthenticatedClientsClientIdRoute,
   } as any);
+const AuthenticatedClientsClientIdPortalRoute =
+  AuthenticatedClientsClientIdPortalRouteImport.update({
+    id: '/portal',
+    path: '/portal',
+    getParentRoute: () => AuthenticatedClientsClientIdRoute,
+  } as any);
 const AuthenticatedClientsClientIdTrainingRoute =
   AuthenticatedClientsClientIdTrainingRouteImport.update({
     id: '/training',
@@ -632,6 +639,7 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/fire-safety-means': typeof AuthenticatedClientsClientIdFireSafetyMeansRoute;
   '/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRouteWithChildren;
   '/clients/$clientId/other-documents': typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
+  '/clients/$clientId/portal': typeof AuthenticatedClientsClientIdPortalRoute;
   '/clients/$clientId/training': typeof AuthenticatedClientsClientIdTrainingRoute;
   '/clients/$clientId/trainings': typeof AuthenticatedClientsClientIdTrainingsRoute;
   '/instructions/psi': typeof AuthenticatedInstructionsLibraryPsiRoute;
@@ -700,6 +708,7 @@ export interface FileRoutesByTo {
   '/clients/$clientId/document-data': typeof AuthenticatedClientsClientIdDocumentDataRoute;
   '/clients/$clientId/edit': typeof AuthenticatedClientsClientIdEditRoute;
   '/clients/$clientId/fire-safety-means': typeof AuthenticatedClientsClientIdFireSafetyMeansRoute;
+  '/clients/$clientId/portal': typeof AuthenticatedClientsClientIdPortalRoute;
   '/clients/$clientId/training': typeof AuthenticatedClientsClientIdTrainingRoute;
   '/clients/$clientId/trainings': typeof AuthenticatedClientsClientIdTrainingsRoute;
   '/instructions/psi': typeof AuthenticatedInstructionsLibraryPsiRoute;
@@ -785,6 +794,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/$clientId/fire-safety-means': typeof AuthenticatedClientsClientIdFireSafetyMeansRoute;
   '/_authenticated/clients/$clientId/job-positions': typeof AuthenticatedClientsClientIdJobPositionsRouteWithChildren;
   '/_authenticated/clients/$clientId/other-documents': typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
+  '/_authenticated/clients/$clientId/portal': typeof AuthenticatedClientsClientIdPortalRoute;
   '/_authenticated/clients/$clientId/training': typeof AuthenticatedClientsClientIdTrainingRoute;
   '/_authenticated/clients/$clientId/trainings': typeof AuthenticatedClientsClientIdTrainingsRoute;
   '/_authenticated/instructions/_library/psi': typeof AuthenticatedInstructionsLibraryPsiRoute;
@@ -870,6 +880,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/fire-safety-means'
     | '/clients/$clientId/job-positions'
     | '/clients/$clientId/other-documents'
+    | '/clients/$clientId/portal'
     | '/clients/$clientId/training'
     | '/clients/$clientId/trainings'
     | '/instructions/psi'
@@ -938,6 +949,7 @@ export interface FileRouteTypes {
     | '/clients/$clientId/document-data'
     | '/clients/$clientId/edit'
     | '/clients/$clientId/fire-safety-means'
+    | '/clients/$clientId/portal'
     | '/clients/$clientId/training'
     | '/clients/$clientId/trainings'
     | '/instructions/psi'
@@ -1022,6 +1034,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$clientId/fire-safety-means'
     | '/_authenticated/clients/$clientId/job-positions'
     | '/_authenticated/clients/$clientId/other-documents'
+    | '/_authenticated/clients/$clientId/portal'
     | '/_authenticated/clients/$clientId/training'
     | '/_authenticated/clients/$clientId/trainings'
     | '/_authenticated/instructions/_library/psi'
@@ -1448,6 +1461,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdOtherDocumentsRouteImport;
       parentRoute: typeof AuthenticatedClientsClientIdRoute;
     };
+    '/_authenticated/clients/$clientId/portal': {
+      id: '/_authenticated/clients/$clientId/portal';
+      path: '/portal';
+      fullPath: '/clients/$clientId/portal';
+      preLoaderRoute: typeof AuthenticatedClientsClientIdPortalRouteImport;
+      parentRoute: typeof AuthenticatedClientsClientIdRoute;
+    };
     '/_authenticated/clients/$clientId/training': {
       id: '/_authenticated/clients/$clientId/training';
       path: '/training';
@@ -1832,6 +1852,7 @@ interface AuthenticatedClientsClientIdRouteChildren {
   AuthenticatedClientsClientIdFireSafetyMeansRoute: typeof AuthenticatedClientsClientIdFireSafetyMeansRoute;
   AuthenticatedClientsClientIdJobPositionsRoute: typeof AuthenticatedClientsClientIdJobPositionsRouteWithChildren;
   AuthenticatedClientsClientIdOtherDocumentsRoute: typeof AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren;
+  AuthenticatedClientsClientIdPortalRoute: typeof AuthenticatedClientsClientIdPortalRoute;
   AuthenticatedClientsClientIdTrainingRoute: typeof AuthenticatedClientsClientIdTrainingRoute;
   AuthenticatedClientsClientIdTrainingsRoute: typeof AuthenticatedClientsClientIdTrainingsRoute;
   AuthenticatedClientsClientIdIndexRoute: typeof AuthenticatedClientsClientIdIndexRoute;
@@ -1861,6 +1882,8 @@ const AuthenticatedClientsClientIdRouteChildren: AuthenticatedClientsClientIdRou
       AuthenticatedClientsClientIdJobPositionsRouteWithChildren,
     AuthenticatedClientsClientIdOtherDocumentsRoute:
       AuthenticatedClientsClientIdOtherDocumentsRouteWithChildren,
+    AuthenticatedClientsClientIdPortalRoute:
+      AuthenticatedClientsClientIdPortalRoute,
     AuthenticatedClientsClientIdTrainingRoute:
       AuthenticatedClientsClientIdTrainingRoute,
     AuthenticatedClientsClientIdTrainingsRoute:

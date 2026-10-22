@@ -18,20 +18,25 @@ describe('dealing the chapters of the common part', () => {
     expect(ranges(1)).toEqual(['Art. 1 – 290']);
   });
 
-  it('halves them for two sessions', () => {
-    expect(ranges(2)).toEqual(['Art. 1 – 95', 'Art. 96 – 290']);
+  it('cuts two sessions where whole chapters come closest to even', () => {
+    expect(ranges(2)).toEqual(['Art. 1 – 159', 'Art. 160 – 290']);
   });
 
-  it('gives four sessions three chapters each', () => {
-    expect(ranges(4)).toEqual(['Art. 1 – 46', 'Art. 47 – 95', 'Art. 96 – 194', 'Art. 195 – 290']);
+  it('keeps the largest of three sessions as small as whole chapters allow', () => {
+    expect(ranges(3)).toEqual(['Art. 1 – 95', 'Art. 96 – 194', 'Art. 195 – 290']);
   });
 
-  it('puts the larger groups first', () => {
-    expect(ranges(5)).toEqual([
-      'Art. 1 – 46',
-      'Art. 47 – 95',
-      'Art. 96 – 179',
-      'Art. 180 – 235',
+  it('gives four sessions groups of unequal chapter counts when that evens the articles', () => {
+    expect(ranges(4)).toEqual(['Art. 1 – 95', 'Art. 96 – 159', 'Art. 160 – 235', 'Art. 236 – 290']);
+  });
+
+  it('leaves the longest chapter alone once there are enough sessions', () => {
+    expect(ranges(6)).toEqual([
+      'Art. 1 – 44',
+      'Art. 45 – 95',
+      'Art. 96 – 159',
+      'Art. 160 – 194',
+      'Art. 195 – 235',
       'Art. 236 – 290',
     ]);
   });
@@ -65,12 +70,27 @@ describe('dealing the chapters of another document', () => {
   it('ends the last range at its own article count', () => {
     expect(ranges(1, document)).toEqual(['Art. 1 – 30']);
     expect(ranges(2, document)).toEqual(['Art. 1 – 19', 'Art. 20 – 30']);
+    expect(ranges(3, document)).toEqual(['Art. 1 – 8', 'Art. 9 – 19', 'Art. 20 – 30']);
     expect(ranges(5, document)).toEqual([
       'Art. 1 – 3',
       'Art. 4 – 8',
       'Art. 9 – 19',
       'Art. 20 – 20',
       'Art. 21 – 30',
+    ]);
+  });
+
+  it('never splits a chapter, however long', () => {
+    expect(ranges(2, { chapterStarts: [1, 2, 102], articleCount: 103 })).toEqual([
+      'Art. 1 – 101',
+      'Art. 102 – 103',
+    ]);
+  });
+
+  it('cuts at the earlier boundary when two cuts are equally even', () => {
+    expect(ranges(2, { chapterStarts: [1, 11, 31], articleCount: 40 })).toEqual([
+      'Art. 1 – 10',
+      'Art. 11 – 40',
     ]);
   });
 
@@ -92,25 +112,25 @@ describe('the periodic sessions of a post', () => {
       {
         month: 'FEBRUARIE',
         content:
-          'I.P.S.S.M. Art.\u00a01\u00a0–\u00a046; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
+          'I.P.S.S.M. Art.\u00a01\u00a0–\u00a095; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
         duration: '120 min',
       },
       {
         month: 'MAI',
         content:
-          'I.P.S.S.M. Art.\u00a047\u00a0–\u00a095; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
+          'I.P.S.S.M. Art.\u00a096\u00a0–\u00a0159; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
         duration: '120 min',
       },
       {
         month: 'AUGUST',
         content:
-          'I.P.S.S.M. Art.\u00a096\u00a0–\u00a0194; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
+          'I.P.S.S.M. Art.\u00a0160\u00a0–\u00a0235; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
         duration: '120 min',
       },
       {
         month: 'NOIEMBRIE',
         content:
-          'I.P.S.S.M. Art.\u00a0195\u00a0–\u00a0290; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
+          'I.P.S.S.M. Art.\u00a0236\u00a0–\u00a0290; I.P.S.S.M. Title one, Art.\u00a01\u00a0–\u00a018; I.P.S.S.M. Title two, Art.\u00a01\u00a0–\u00a07',
         duration: '120 min',
       },
     ]);
@@ -142,12 +162,12 @@ describe('the periodic sessions of a post', () => {
     expect(sessions).toEqual([
       {
         month: 'MAI',
-        content: 'I.P.S.S.M. Art.\u00a01\u00a0–\u00a095',
+        content: 'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0159',
         duration: '60 min',
       },
       {
         month: 'NOIEMBRIE',
-        content: 'I.P.S.S.M. Art.\u00a096\u00a0–\u00a0290',
+        content: 'I.P.S.S.M. Art.\u00a0160\u00a0–\u00a0290',
         duration: '60 min',
       },
     ]);

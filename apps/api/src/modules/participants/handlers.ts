@@ -6,6 +6,7 @@ import {
   type ParticipantInvitation,
   type ParticipantInvitationStatus,
   type ParticipantKind,
+  type PortalLanguage,
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
@@ -32,7 +33,7 @@ const invitationColumns =
   'id, organization_id, client_id, kind, employee_id, full_name, channel, address, last_sent_at, expires_at, accepted_at, revoked_at, created_at, employees!participant_invitations_employee_of_client(last_name, first_name)';
 
 const participantColumns =
-  'id, client_id, kind, employee_id, full_name, created_at, revoked_at, notice_version, employees!client_participants_employee_of_client(last_name, first_name), participant_invitations(channel, address, accepted_at)';
+  'id, client_id, kind, employee_id, full_name, created_at, revoked_at, notice_version, language, employees!client_participants_employee_of_client(last_name, first_name), participant_invitations(channel, address, accepted_at)';
 
 type EmployeeName = { last_name: string; first_name: string } | null;
 
@@ -62,6 +63,7 @@ interface ParticipantRow {
   created_at: string;
   revoked_at: string | null;
   notice_version: string | null;
+  language: string | null;
   employees: EmployeeName;
   participant_invitations: { channel: string; address: string; accepted_at: string | null }[];
 }
@@ -107,6 +109,7 @@ function toParticipant(row: ParticipantRow): ClientParticipant {
     createdAt: toIso(row.created_at),
     revokedAt: row.revoked_at ? toIso(row.revoked_at) : null,
     noticeVersion: row.notice_version,
+    language: row.language as PortalLanguage | null,
   };
 }
 

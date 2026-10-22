@@ -70,6 +70,7 @@ const participantRow = {
   created_at: '2099-01-02T10:00:00+00:00',
   revoked_at: null,
   notice_version: '2026-10-17',
+  language: 'en',
   employees: { last_name: 'Popescu', first_name: 'Ion' },
   participant_invitations: [
     { channel: 'email', address: 'ion@example.ro', accepted_at: '2099-01-02T10:00:00+00:00' },
@@ -588,6 +589,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/participant', () => {
         createdAt: '2099-01-02T10:00:00.000Z',
         revokedAt: null,
         noticeVersion: '2026-10-17',
+        language: 'en',
       },
       invitation: null,
     });
