@@ -44,7 +44,7 @@ Each `wrangler.jsonc` keeps production at its top level and gains `env["non-prod
 
 ### The current Supabase project stays production and is wiped, a new one is non-production
 
-The current project, `xvhiwymggufbvjdfywjg`, stays production and is **wiped completely** before the waitlist arrives. Non-production is a **new Supabase project**, `tjtpgawwtccviouwfafp`. Nothing on the current project is kept: it holds Mircea's accounts, his test users and one tester's two clients, and that tester agreed to their removal.
+The current project, `xvhiwymggufbvjdfywjg`, stays production and is **wiped completely** before the waitlist arrives. Non-production is a **new Supabase project**, `vzgwbdxmimbcqftltmmo`, in eu-central-1 like production. Nothing on the current project is kept: it holds Mircea's accounts, his test users and one tester's two clients, and that tester agreed to their removal.
 
 A database reset alone is not a wipe: `supabase db reset --linked` rebuilds the schema from the migrations, but the auth users and the Storage files live outside what it drops. The wipe is therefore, in order: every Storage bucket emptied through the Storage API (deleting rows of `storage.objects` would leave the files behind), every auth user deleted through the admin API, the database reset from the migrations, then a check that no user, object or row of the application's tables is left before the administrator is seeded again. The project's backups age out on their own schedule.
 
