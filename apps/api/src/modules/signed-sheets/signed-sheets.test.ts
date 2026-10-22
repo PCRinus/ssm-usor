@@ -5,7 +5,7 @@ import { ApiError } from '../../lib/errors';
 import type { PdfConverter } from '../../lib/pdf';
 import type { TrainingSheetData } from '../trainings/sheet';
 import type { SheetTrainingRecord } from './form';
-import { sheetFacts, sheetRecord } from './form.fixture';
+import { sheetFacts, sheetRecord, sheetResult } from './form.fixture';
 import {
   applySignature,
   currentSheetPdf,
@@ -13,10 +13,12 @@ import {
   placeRecord,
   type SignedSheetContext,
   syncRecordRow,
+  syncResultRow,
+  syncResultRows,
   syncTrainingRows,
   voidRow,
 } from './signed-sheets';
-import type { RecordOwner, SignedSheetStore, StoredRow, StoredSheet } from './store';
+import type { RecordOwner, SheetResult, SignedSheetStore, StoredRow, StoredSheet } from './store';
 
 const owner: RecordOwner = {
   clientId: 'c1c1c1c1-0000-4000-8000-000000000001',
@@ -30,6 +32,7 @@ const buffer = (text: string) => encode(text).buffer as ArrayBuffer;
 
 class MemoryStore implements SignedSheetStore {
   recordList: (SheetTrainingRecord & RecordOwner)[] = [];
+  resultList: (SheetResult & RecordOwner)[] = [];
   sheetRows: StoredSheet[] = [];
   rows: StoredRow[] = [];
   /** Electronic signatures, `createdAt` on the same clock as a row's `filledAt`. */
@@ -63,6 +66,15 @@ class MemoryStore implements SignedSheetStore {
   }
   async records(employee: string, domain: TrainingDomain) {
     return this.recordList.filter((r) => r.employeeId === employee && r.domain === domain);
+  }
+  async result(id: string) {
+    return this.resultList.find((result) => result.id === id) ?? null;
+  }
+  async results(employee: string, domain: TrainingDomain) {
+    return this.resultList.filter((r) => r.employeeId === employee && r.domain === domain);
+  }
+  async liveRowOfResult(resultId: string) {
+    return this.rows.find((row) => row.testResultId === resultId && !row.voidedAt) ?? null;
   }
   async sheets(employee: string, domain: TrainingDomain, clientId?: string) {
     return this.sheetRows
@@ -112,14 +124,20 @@ class MemoryStore implements SignedSheetStore {
       const taken = this.rows.some(
         (each) =>
           (each.signedSheetId === row.signedSheetId && each.rowKey === row.rowKey) ||
-          (each.trainingRecordId === row.trainingRecordId && !each.voidedAt)
+          (row.trainingRecordId !== undefined &&
+            each.trainingRecordId === row.trainingRecordId &&
+            !each.voidedAt) ||
+          (row.testResultId !== undefined &&
+            each.testResultId === row.testResultId &&
+            !each.voidedAt)
       );
       if (taken) return null;
     }
     const added: StoredRow[] = rows.map((row) => ({
       signedSheetId: row.signedSheetId,
       rowKey: row.rowKey,
-      trainingRecordId: row.trainingRecordId,
+      trainingRecordId: row.trainingRecordId ?? null,
+      testResultId: row.testResultId ?? null,
       id: this.id(),
       filledAt: this.tick(),
       voidedAt: null,
@@ -666,5 +684,129 @@ describe('currentSheetPdf', () => {
       code: 'not_found',
     });
     expect(await currentSheetPdf(ctx, employeeId, 'ssm', { clientId: 'another' })).toBeNull();
+  });
+});
+
+// The signer does not wrap, so the fields come broken into lines at the box width.
+const unwrapped = (values: Record<string, string>) =>
+  Object.fromEntries(
+    Object.entries(values).map(([name, value]) => [name, value.replace(/\n/g, ' ')])
+  );
+
+describe('the rows of test results', () => {
+  let results = 0;
+  const addResult = (
+    domain: TrainingDomain,
+    takenOn: string,
+    overrides: Parameters<typeof sheetResult>[2] = {}
+  ) => {
+    results += 1;
+    const result = {
+      ...sheetResult(domain === 'psi' ? 'annual' : 'hiring', takenOn, overrides),
+      id: `7e7e7e7e-0000-4000-8000-${String(results).padStart(12, '0')}`,
+      employeeId,
+      domain,
+      ...owner,
+    };
+    memory.resultList.push(result);
+    return result;
+  };
+
+  it('leaves an employee without a stored sheet alone', async () => {
+    const result = addResult('ssm', '2026-01-06');
+    expect(await syncResultRow(ctx, result.id)).toBeNull();
+    expect(memory.sheetRows).toEqual([]);
+  });
+
+  it("fills the next row of the occupational safety sheet's test block, with no signature field", async () => {
+    await ensureSignedSheet(ctx, employeeId, 'ssm');
+    const first = addResult('ssm', '2026-01-06');
+    const second = addResult('ssm', '2026-03-02', { examiner: null });
+
+    await syncResultRows(ctx, [first.id, second.id]);
+
+    expect(memory.rows.map((row) => [row.rowKey, row.testResultId])).toEqual([
+      ['t1', first.id],
+      ['t2', second.id],
+    ]);
+    expect(unwrapped(signer.fillFields.mock.calls.at(-2)![1])).toEqual({
+      t1_date: '06.01.2026',
+      t1_material: 'Test de verificare a cunoștințelor la angajare (TASSM)',
+      t1_grade: 'Admis',
+      t1_examiner: 'Dan MARIN, Inspector SSM',
+      t1_note: '',
+    });
+    expect(signer.fillFields.mock.calls.at(-1)![1]).toMatchObject({ t2_examiner: '' });
+    expect(memory.sheetRows[0]!.rowsUsed).toBe(0);
+  });
+
+  it('fills the next periodic row of the fire-safety sheet, after the trainings before it', async () => {
+    add(sheetRecord('periodic', '2026-02-01', { domain: 'psi' }));
+    await ensureSignedSheet(ctx, employeeId, 'psi');
+    const result = addResult('psi', '2026-05-04', {
+      examiner: { name: 'Radu STAN', jobTitle: 'Cadru tehnic PSI' },
+    });
+
+    const placed = await syncResultRow(ctx, result.id);
+
+    expect(placed).toMatchObject({ rowKey: 'p2', testResultId: result.id });
+    expect(placed!.sheet.rowsUsed).toBe(2);
+    const values = signer.fillFields.mock.calls.at(-1)![1];
+    expect(values).toMatchObject({ p2_date: '04.05.2026', p2_duration: '', p2_note: '' });
+    expect(values.p2_material!.replace(/\n/g, ' ')).toBe(
+      'Verificare anuală pe bază de test (TPSU): admis (examinator: Radu STAN, Cadru tehnic PSI)'
+    );
+    expect(values).not.toHaveProperty('p2_sig_trainee');
+  });
+
+  it('places the results an employee has when their first sheet is drawn up, among the trainings by date', async () => {
+    const later = add(sheetRecord('periodic', '2026-06-01', { domain: 'psi' }));
+    const result = addResult('psi', '2026-03-01');
+    const earlier = add(sheetRecord('periodic', '2026-02-01', { domain: 'psi' }));
+
+    await ensureSignedSheet(ctx, employeeId, 'psi');
+
+    expect(
+      memory.rows.map((row) => [row.rowKey, row.trainingRecordId ?? row.testResultId])
+    ).toEqual([
+      ['p1', earlier.id],
+      ['p2', result.id],
+      ['p3', later.id],
+    ]);
+  });
+
+  it('fills the row again when the result changes, and leaves it while it is the same', async () => {
+    await ensureSignedSheet(ctx, employeeId, 'ssm');
+    const result = addResult('ssm', '2026-01-06');
+    await syncResultRow(ctx, result.id);
+    const fills = signer.fillFields.mock.calls.length;
+
+    await syncResultRow(ctx, result.id);
+    expect(signer.fillFields.mock.calls).toHaveLength(fills);
+
+    result.examiner = { name: 'Elena VOICU', jobTitle: 'Inspector SSM' };
+    const placed = await syncResultRow(ctx, result.id);
+    expect(placed!.rowKey).toBe('t1');
+    expect(unwrapped(signer.fillFields.mock.calls.at(-1)![1])).toMatchObject({
+      t1_examiner: 'Elena VOICU, Inspector SSM',
+    });
+    expect(memory.rows).toHaveLength(1);
+  });
+
+  it('runs on to a continuation sheet once the five rows of the test block are taken', async () => {
+    await ensureSignedSheet(ctx, employeeId, 'ssm');
+    const all = Array.from({ length: 6 }, (_, index) => addResult('ssm', `2026-0${index + 1}-10`));
+
+    await syncResultRows(
+      ctx,
+      all.map((result) => result.id)
+    );
+
+    expect(memory.sheetRows.map((sheet) => sheet.sequence)).toEqual([1, 2]);
+    expect(memory.rows.at(-1)).toMatchObject({
+      rowKey: 't1',
+      signedSheetId: memory.sheetRows[1]!.id,
+      testResultId: all[5]!.id,
+    });
   });
 });

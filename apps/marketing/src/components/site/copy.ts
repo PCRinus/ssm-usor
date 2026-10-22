@@ -156,7 +156,7 @@ export const packs = {
       'Materialul de instruire introductiv-generală',
       'Instrucțiunile proprii, asamblate din modulele tale',
       'Tematica și programul de instruire',
-      'Testele la angajare și periodice',
+      'Testul la angajare',
       'Lista internă de dotare cu echipament individual de protecție',
       'Registrele de evidență a evenimentelor',
       'Referatul de control',

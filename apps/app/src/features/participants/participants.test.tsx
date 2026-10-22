@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiHttpError } from '@/api/http';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
-import { untrained } from '@/test/training-fixture';
+import { noTests, untrained } from '@/test/training-fixture';
 
 import { participantFailure } from './participant-errors';
 import { formatTime } from './participant-format';
@@ -67,6 +67,7 @@ const sampleEmployee = {
   commuteRoute: null,
   commuteMinutes: null,
   training: untrained,
+  tests: noTests,
   createdAt: '2026-09-17T10:00:00+00:00',
   updatedAt: '2026-09-17T10:00:00+00:00',
   archivedAt: null,

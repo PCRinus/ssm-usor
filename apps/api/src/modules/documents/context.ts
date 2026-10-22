@@ -24,6 +24,12 @@ import { collator, countOf, listed } from '../../lib/romanian';
 import { filled } from '../../lib/text';
 import type { FireSafetyClientFacts, FireWorkplaceFacts } from './fire-safety';
 import { type ContextParts, gapRules } from './gaps';
+import {
+  knowledgeTestData,
+  type PrintedTest,
+  printedTests,
+  type TestQuestionFacts,
+} from './knowledge-tests';
 import { asPerson, distinctHolders, distinctRowsByName, type Person, withRole } from './people';
 import {
   incompleteRiskEvaluations,
@@ -144,6 +150,8 @@ export type DocumentFacts = {
   /** Every evaluation of the client, archived positions' included (ADR 015). */
   riskEvaluations: RiskEvaluationFacts[];
   fireSafety: FireSafetyClientFacts;
+  /** The organization's question bank, what the three tests print (ADR 024). */
+  testQuestions: TestQuestionFacts;
 };
 
 type PositionContext = {
@@ -254,6 +262,8 @@ export type DocumentContext = {
   noAnnexes: boolean;
   /** Absent without an own instructions revision, which only the training themes need. */
   themes?: ThemesContext;
+  /** Never merged as a name of its own: `documentData` gives the test its `test` and `questions`. */
+  knowledgeTests: Record<'test_hiring', PrintedTest>;
 };
 
 /** A context some gaps left names out of; the decisions' numbers are never among them. */
@@ -724,6 +734,7 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
             },
           })
         : undefined,
+    knowledgeTests: () => printedTests(facts.testQuestions, ['test_hiring']),
   };
 }
 
@@ -850,15 +861,20 @@ export function documentationProgress(
 
 /**
  * What one template is merged with: a decision also gets its number, the one the document
- * already has when it is generated again.
+ * already has when it is generated again, and a test its own questions, since the set's other
+ * documents must not hold them in their snapshots.
  */
 export function documentData(
   context: PartialDocumentContext,
   typeKey: string,
   decisionNumber: number | null = decisionNumberOf(context, typeKey)
 ) {
-  const shared: Record<string, unknown> = { ...context };
+  const shared: Record<string, unknown> = {
+    ...context,
+    ...knowledgeTestData(context.knowledgeTests, typeKey),
+  };
   delete shared.decisionNumbers;
+  delete shared.knowledgeTests;
   return decisionNumber === null ? shared : { ...shared, decisionNumber };
 }
 

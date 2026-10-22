@@ -1,6 +1,7 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
   signatureErrorReasons,
+  type SignatureRequestSlot,
   type SignerSlot,
   type SigningAgreementParty,
   type SigningAgreementState,
@@ -8,6 +9,7 @@ import {
   signingItemFailureReasons,
   type SigningSessionItem,
   type SignSessionResponse,
+  type TestSheetSignerSlot,
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
@@ -20,6 +22,7 @@ import { createPdfConverter } from '../../lib/pdf';
 import { checkToSign } from '../../lib/signed-attributes';
 import { createSigner } from '../../lib/signer';
 import { applySignature, placeRecord, signedSheetContext } from '../signed-sheets/signed-sheets';
+import { applyTestSheetSignature, testSheetDeps } from '../test-sheets/test-sheets';
 import { agreementDigest, signAgreement } from './agreement-signing';
 import { awaits } from './agreement-state';
 import { createSigningIdentities } from './identities';
@@ -340,6 +343,17 @@ const signedWith =
     return signing.identities.signWithIdentity(identity, toSign);
   };
 
+type RequestForSigning = {
+  id: string;
+  organization_id: string;
+  client_id: string;
+  training_record_id: string | null;
+  test_sheet_id: string | null;
+  slot: SignatureRequestSlot;
+  state: string;
+  signer_account_id: string | null;
+};
+
 // The request was checked as the signer's when the code was asked for; from here everything is
 // the secret key's, as no policy lets a signer write a signature, and the database's checks on
 // the evidence decide whether it stands.
@@ -348,14 +362,25 @@ async function signRequest(c: Context<ApiEnv>, requestId: string, signing: Signi
   const { session } = signing;
   const request = await admin
     .from('signature_requests')
-    .select('id, organization_id, client_id, training_record_id, slot, state, signer_account_id')
+    .select(
+      'id, organization_id, client_id, training_record_id, test_sheet_id, slot, state, signer_account_id'
+    )
     .eq('id', requestId)
     .maybeSingle();
   if (request.error) throw new ApiError('service_unavailable');
   if (request.data?.state !== 'pending' || request.data.signer_account_id !== session.accountId) {
     throw requestNotPending();
   }
-  const { training_record_id: recordId, slot } = request.data;
+  if (request.data.test_sheet_id) return signTestSheetRequest(c, request.data, signing);
+  return signRecordRequest(c, request.data, signing);
+}
+
+async function signRecordRequest(c: Context<ApiEnv>, request: RequestForSigning, signing: Signing) {
+  const admin = adminClient(c.env);
+  const { session } = signing;
+  const requestId = request.id;
+  const recordId = request.training_record_id!;
+  const slot = request.slot as SignerSlot;
   const record = await admin
     .from('training_records')
     .select(
@@ -380,8 +405,8 @@ async function signRequest(c: Context<ApiEnv>, requestId: string, signing: Signi
   );
 
   const evidence = await admin.from('training_signatures').insert({
-    organization_id: request.data.organization_id,
-    client_id: request.data.client_id,
+    organization_id: request.organization_id,
+    client_id: request.client_id,
     training_record_id: recordId,
     slot,
     request_id: requestId,
@@ -410,6 +435,93 @@ async function signRequest(c: Context<ApiEnv>, requestId: string, signing: Signi
     throw fromDatabaseError(evidence.error, 'training signature evidence');
   }
   return { employeeId: row.employee_id };
+}
+
+type SheetForSigning = {
+  employee_id: string;
+  employees: {
+    last_name: string;
+    first_name: string;
+    job_title: string;
+    job_positions: { name: string } | null;
+  };
+  test_results: { examiner_name: string | null; examiner_job_title: string | null };
+  clients: { archived_at: string | null };
+};
+
+async function signTestSheetRequest(
+  c: Context<ApiEnv>,
+  request: RequestForSigning,
+  signing: Signing
+) {
+  const admin = adminClient(c.env);
+  const { session } = signing;
+  const slot = request.slot as TestSheetSignerSlot;
+  const read = await admin
+    .from('test_sheets')
+    .select(
+      'employee_id, employees!test_sheets_employee_of_client(last_name, first_name, job_title, job_positions(name)), test_results!test_sheets_result_of_client(examiner_name, examiner_job_title), clients!test_sheets_client_id_fkey(archived_at)'
+    )
+    .eq('id', request.test_sheet_id!)
+    .maybeSingle();
+  if (read.error || !read.data) throw new ApiError('service_unavailable');
+  const sheet = read.data as unknown as SheetForSigning;
+  if (sheet.clients.archived_at) throw clientArchived();
+  const printed =
+    slot === 'trainee'
+      ? {
+          name: `${sheet.employees.last_name} ${sheet.employees.first_name}`,
+          jobTitle: sheet.employees.job_positions?.name?.trim() || sheet.employees.job_title,
+        }
+      : {
+          name: sheet.test_results.examiner_name ?? '',
+          jobTitle: sheet.test_results.examiner_job_title ?? '',
+        };
+  if (!printed.name) throw requestNotPending();
+
+  const identity = await signing.identities.identityFor(session.accountId, signing.accountName);
+  const result = await applyTestSheetSignature(
+    testSheetDeps(c),
+    request.test_sheet_id!,
+    slot,
+    {
+      certificatePem: identity.certificatePem,
+      chainPem: signing.identities.chainPem,
+      name: printed.name,
+    },
+    signedWith(signing, identity)
+  );
+
+  const evidence = await admin.from('test_sheet_signatures').insert({
+    organization_id: request.organization_id,
+    client_id: request.client_id,
+    test_sheet_id: request.test_sheet_id!,
+    slot,
+    request_id: request.id,
+    method: 'electronic',
+    signer_account_id: session.accountId,
+    signer_name: printed.name,
+    signer_job_title: printed.jobTitle || null,
+    channel: session.channel,
+    address: session.address,
+    code_sent_at: session.codeSentAt.toISOString(),
+    code_verified_at: (session.verifiedAt ?? result.signedAt).toISOString(),
+    signed_at: result.signedAt.toISOString(),
+    digest_before: result.digestBefore,
+    digest_after: result.digestAfter,
+    certificate_serial: identity.certificateSerial,
+    client_ip: signing.clientIp,
+    user_agent: signing.userAgent?.slice(0, 500) ?? null,
+    signing_session_id: session.id,
+  });
+  if (evidence.error) {
+    // As on a sheet row: the field is spent, and the request stays as the database left it.
+    console.error(
+      `Test sheet signature evidence failed for ${request.test_sheet_id} v${result.version}: ${evidence.error.code ?? 'no code'} ${evidence.error.message ?? ''}`
+    );
+    throw fromDatabaseError(evidence.error, 'test sheet signature evidence');
+  }
+  return { employeeId: sheet.employee_id };
 }
 
 async function agreementStates(c: Context<ApiEnv>, employeeIds: string[]) {

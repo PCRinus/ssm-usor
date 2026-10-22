@@ -22,7 +22,9 @@ import { currentSheetPdf } from '../signed-sheets/stored';
 import {
   buildTrainingSheetData,
   missingSheetDataOf,
+  type SheetIdentity,
   type SheetRecord,
+  toSheetTestResult,
   type TrainingSheetFacts,
   trainingSheetFileName,
 } from './sheet';
@@ -48,13 +50,23 @@ export async function loadRecords(db: DataClient, employeeId: string, domain: Tr
   }));
 }
 
+export async function loadTestResults(db: DataClient, employeeId: string, domain: TrainingDomain) {
+  const { data, error } = await db
+    .from('test_results')
+    .select('test, taken_on, material, examiner_name, examiner_job_title, created_at')
+    .eq('employee_id', employeeId)
+    .eq('domain', domain);
+  if (error) throw fromDatabaseError(error, 'list sheet test results');
+  return data.map(toSheetTestResult);
+}
+
 // Row-level security hides other organizations' clients and their employees, so a missing row
 // is a 404 whoever the client belongs to.
 export async function loadSheetFacts(
   db: DataClient,
   clientId: string,
   employeeId: string
-): Promise<Omit<TrainingSheetFacts, 'domain' | 'records'>> {
+): Promise<SheetIdentity> {
   const [employee, client, workplaces] = await Promise.all([
     db
       .from('employees')
@@ -131,7 +143,7 @@ export async function trainingSheetReadiness(
   const readiness = (domain: TrainingDomain) => {
     const sequences = stored.get(domain) ?? [];
     if (sequences.length > 0) return { ready: true, missing: [], stored: true, sequences };
-    const missing = missingSheetDataOf({ ...facts, domain, records: [] });
+    const missing = missingSheetDataOf({ ...facts, domain });
     return { ready: missing.length === 0, missing, stored: false, sequences };
   };
   return Object.fromEntries(
@@ -190,11 +202,11 @@ export async function drawTrainingSheet(
   if (sequence !== undefined) {
     throw new ApiError('not_found', 'The employee has no signed sheet of this number.');
   }
-  const facts: TrainingSheetFacts = {
-    ...identity,
-    domain,
-    records: await loadRecords(db, employeeId, domain),
-  };
+  const [records, testResults] = await Promise.all([
+    loadRecords(db, employeeId, domain),
+    loadTestResults(db, employeeId, domain),
+  ]);
+  const facts: TrainingSheetFacts = { ...identity, domain, records, testResults };
   const missing = missingSheetDataOf(facts);
   if (missing.length > 0) return { missing };
   const pdf = requirePdfConverter(c);

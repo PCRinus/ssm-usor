@@ -7,6 +7,7 @@ import { vi } from 'vitest';
 import type {
   PortalEmployeeDataResponse,
   PortalMeResponseParticipationsItem,
+  PortalTestsResponse,
   PortalTrainingRecordsResponse,
   PortalTrainingRecordsResponseItemsItemSlotsItem,
 } from '@/api/generated/api';
@@ -201,5 +202,33 @@ export function employeeData(): PortalEmployeeDataResponse {
     training: trainingRecords().training,
     client: { name: 'Mobilă Bună S.A.' },
     provider: { name: 'Prevenție Vest S.R.L.', phone: '0722 000 111' },
+  };
+}
+
+type PortalDomainTests = PortalTestsResponse['ssm'];
+
+export const testStatus = (
+  overrides: Partial<PortalDomainTests['status']> = {}
+): PortalDomainTests['status'] => ({
+  state: 'none',
+  awaitingTest: null,
+  lastPassedOn: null,
+  dueOn: null,
+  ...overrides,
+});
+
+export function portalTests(
+  overrides: { ssm?: Partial<PortalDomainTests>; psi?: Partial<PortalDomainTests> } = {}
+): PortalTestsResponse {
+  const domain = (domainOverrides: Partial<PortalDomainTests> = {}) => ({
+    status: testStatus(),
+    results: [],
+    attempts: [],
+    inProgress: null,
+    ...domainOverrides,
+  });
+  return {
+    ssm: domain(overrides.ssm) as PortalTestsResponse['ssm'],
+    psi: domain(overrides.psi) as PortalTestsResponse['psi'],
   };
 }

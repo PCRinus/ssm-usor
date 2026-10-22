@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
-import { untrained } from '@/test/training-fixture';
+import { noTests, untrained } from '@/test/training-fixture';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const employeesPath = `/clients/${clientId}/employees`;
@@ -40,6 +40,7 @@ const employee = (id: string, lastName: string, firstName: string) => ({
   status: 'active',
   terminatedAt: null,
   training: untrained,
+  tests: noTests,
   createdAt: '2026-09-17T10:00:00+00:00',
   updatedAt: '2026-09-17T10:00:00+00:00',
 });

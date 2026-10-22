@@ -12,6 +12,7 @@ import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
+import { TestStateFilter } from '@/features/knowledge-tests/test-state-filter';
 import { TrainingStateFilter } from '@/features/trainings/training-state-filter';
 
 import { employeeColumns, type EmployeeRow } from './employee-columns';
@@ -41,6 +42,7 @@ export function EmployeesPage() {
   const {
     status,
     trainingState,
+    testState,
     page = 1,
     sort = defaultSort.sort,
     order = defaultSort.order,
@@ -52,6 +54,7 @@ export function EmployeesPage() {
   const params = {
     ...(status ? { status } : {}),
     ...(trainingState ? { trainingState } : {}),
+    ...(testState ? { testState } : {}),
     ...(q ? { q } : {}),
     page,
     pageSize: defaultPageSize,
@@ -129,16 +132,28 @@ export function EmployeesPage() {
             testId="employees-search"
           />
           {status !== 'terminated' && (
-            <TrainingStateFilter
-              value={trainingState}
-              testId="employees-training-filter"
-              onChange={(next) =>
-                void navigate({
-                  replace: true,
-                  search: (prev) => ({ ...prev, trainingState: next, page: undefined }),
-                })
-              }
-            />
+            <>
+              <TrainingStateFilter
+                value={trainingState}
+                testId="employees-training-filter"
+                onChange={(next) =>
+                  void navigate({
+                    replace: true,
+                    search: (prev) => ({ ...prev, trainingState: next, page: undefined }),
+                  })
+                }
+              />
+              <TestStateFilter
+                value={testState}
+                testId="employees-test-filter"
+                onChange={(next) =>
+                  void navigate({
+                    replace: true,
+                    search: (prev) => ({ ...prev, testState: next, page: undefined }),
+                  })
+                }
+              />
+            </>
           )}
           {employees.isSuccess && (
             <span className="ml-auto text-sm text-muted-foreground" data-testid="employees-count">
@@ -227,6 +242,20 @@ export function EmployeesPage() {
                   void navigate({
                     replace: true,
                     search: (prev) => ({ ...prev, trainingState: undefined, page: undefined }),
+                  })
+                }
+              />
+            ) : testState ? (
+              <EmployeesNoMatch
+                title="Niciun angajat în această stare a testării"
+                hint="Ceilalți angajați sunt în altă stare. Arată-i pe toți pentru a-i vedea."
+                testId="employees-empty"
+                clearLabel="Arată toți angajații"
+                clearTestId="employees-empty-clear-test-state"
+                onClear={() =>
+                  void navigate({
+                    replace: true,
+                    search: (prev) => ({ ...prev, testState: undefined, page: undefined }),
                   })
                 }
               />

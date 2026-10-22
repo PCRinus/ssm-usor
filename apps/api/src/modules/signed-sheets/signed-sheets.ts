@@ -7,6 +7,7 @@ import {
   type SheetSignerSlot,
   signatureFieldOf,
   type SignerService,
+  tableCapacity,
   tableRowKey,
   tableRowOf,
   type TrainingDomain,
@@ -23,17 +24,19 @@ import { createSigner } from '../../lib/signer';
 import { builtInTemplates, merge } from '../documents/documents';
 import {
   chronological,
+  chronologicalResults,
   materialOf,
   missingSheetDataOf,
   placeOfWork,
+  type SheetIdentity,
   type TrainingSheetData,
-  type TrainingSheetFacts,
 } from '../trainings/sheet';
 import { loadSheetFacts } from '../trainings/sheet-handlers';
 import {
   type HiringMaterials,
   type PrintedRow,
   printedSheets,
+  resultRowValues,
   rowKindOf,
   rowValues,
   type SheetTrainingRecord,
@@ -44,8 +47,10 @@ import {
   voidedNote,
 } from './form';
 import {
+  type NewRow,
   type RecordOwner,
   type SheetChanges,
+  type SheetResult,
   type SignedSheetStore,
   type StoredRow,
   type StoredSheet,
@@ -71,10 +76,7 @@ export type SignedSheetContext = {
   files: SignedSheetFiles;
   pdf: PdfConverter | null;
   signer: SignerService | null;
-  sheetFacts(
-    clientId: string,
-    employeeId: string
-  ): Promise<Omit<TrainingSheetFacts, 'domain' | 'records'>>;
+  sheetFacts(clientId: string, employeeId: string): Promise<SheetIdentity>;
   drawForm(domain: TrainingDomain, data: TrainingSheetData): Promise<Uint8Array>;
   now(): Date;
 };
@@ -255,7 +257,7 @@ async function createSheet(
   materials: HiringMaterials = {}
 ): Promise<StoredSheet> {
   const facts = await ctx.sheetFacts(owner.clientId, employeeId);
-  const missing = missingSheetDataOf({ ...facts, domain, records: [] });
+  const missing = missingSheetDataOf({ ...facts, domain });
   if (missing.length > 0) {
     throw new ApiError(
       'conflict',
@@ -373,12 +375,43 @@ export async function ensureSignedSheet(
   for (const [index, printed] of plan.entries()) {
     await createSheet(ctx, owner, employeeId, domain, index + 1, printed, materials);
   }
+  const results = (await ctx.store.results(employeeId, domain)).sort(chronologicalResults);
   await placeNewRows(
     ctx,
-    rest.map((record) => ({ ...record, ...owner }))
+    inSheetOrder([
+      ...rest.map((record): Placeable => ({ kind: 'record', item: { ...record, ...owner } })),
+      ...results.map((result): Placeable => ({ kind: 'result', item: { ...result, ...owner } })),
+    ])
   );
   return (await ctx.store.sheets(employeeId, domain)).at(-1)!;
 }
+
+type StoreResult = SheetResult & RecordOwner;
+
+type Placeable = { kind: 'record'; item: StoreRecord } | { kind: 'result'; item: StoreResult };
+
+const dayOf = (placeable: Placeable) =>
+  placeable.kind === 'record' ? placeable.item.training.heldOn : placeable.item.takenOn;
+const createdOf = (placeable: Placeable) =>
+  placeable.kind === 'record' ? placeable.item.training.createdAt : placeable.item.createdAt;
+
+// The fire-safety sheet prints a pass among the periodic trainings, in the order they happened.
+const inSheetOrder = (placeables: Placeable[]) =>
+  [...placeables].sort(
+    (a, b) => dayOf(a).localeCompare(dayOf(b)) || createdOf(a).localeCompare(createdOf(b))
+  );
+
+const kindOf = (placeable: Placeable) =>
+  placeable.kind === 'record'
+    ? rowKindOf(placeable.item.domain, placeable.item.training.phase)
+    : resultTable(placeable.item.domain);
+
+const resultTable = (domain: TrainingDomain) => (domain === 'ssm' ? 't' : 'p');
+
+const sourceOf = (placeable: Placeable): Pick<NewRow, 'trainingRecordId' | 'testResultId'> =>
+  placeable.kind === 'record'
+    ? { trainingRecordId: placeable.item.id }
+    : { testResultId: placeable.item.id };
 
 export type PlacedRow = StoredRow & { sheet: StoredSheet };
 
@@ -398,15 +431,26 @@ async function freeKey(
     return table?.table === kind ? [table.index] : [];
   });
   const index = Math.max(kind === 'p' ? sheet.rowsUsed : 0, 0, ...taken) + 1;
-  return index > sheet.rowCapacity ? null : tableRowKey(kind, index);
+  const capacity = kind === 't' ? tableCapacity(sheet.domain, 't') : sheet.rowCapacity;
+  return index > capacity ? null : tableRowKey(kind, index);
 }
 
 async function valuesOf(ctx: SignedSheetContext, record: StoreRecord, rowKey: SheetRowKey) {
   const facts = await ctx.sheetFacts(record.clientId, record.employeeId);
-  const place = placeOfWork({ ...facts, domain: record.domain, records: [] });
+  const place = placeOfWork(facts);
   const byHand = !(await ctx.store.electronicRequested(record.id));
   return rowValues(record.domain, rowKey, record, place, byHand);
 }
+
+async function resultValuesOf(ctx: SignedSheetContext, result: StoreResult, rowKey: SheetRowKey) {
+  const facts = await ctx.sheetFacts(result.clientId, result.employeeId);
+  return resultRowValues(result.domain, rowKey, result, facts.employee.position.name.trim());
+}
+
+const placeableValues = (ctx: SignedSheetContext, placeable: Placeable, rowKey: SheetRowKey) =>
+  placeable.kind === 'record'
+    ? valuesOf(ctx, placeable.item, rowKey)
+    : resultValuesOf(ctx, placeable.item, rowKey);
 
 /** One version for any number of rows of one sheet; each row's digest once the version stands. */
 async function fillRows(
@@ -432,21 +476,22 @@ async function fillRows(
 
 /**
  * Gives each record the next free row of its kind, `h1` and `h2` for the hiring trainings, the
- * workplace one filling the admission block too, the next `p` or `s` row for the others, on a
- * continuation sheet when the current one is full, and fills the rows of each sheet in one
- * version. A row that could not be filled is taken back.
+ * workplace one filling the admission block too, the next `p` or `s` row for the others, and each
+ * test result the next `t` row, or `p` on the fire-safety sheet; on a continuation sheet when the
+ * current one is full. The rows of each sheet are filled in one version. A row that could not be
+ * filled is taken back.
  */
-async function placeNewRows(ctx: SignedSheetContext, records: StoreRecord[]) {
-  const placed: { row: StoredRow; record: StoreRecord }[] = [];
-  for (const record of records) {
-    const { employeeId, domain } = record;
-    const kind = rowKindOf(domain, record.training.phase);
+async function placeNewRows(ctx: SignedSheetContext, placeables: Placeable[]) {
+  const placed: { row: StoredRow; placeable: Placeable }[] = [];
+  for (const placeable of placeables) {
+    const { employeeId, domain } = placeable.item;
+    const kind = kindOf(placeable);
     let row: StoredRow | undefined;
     for (let attempt = 0; attempt < 3 && !row; attempt++) {
       let sheet = (await ctx.store.sheets(employeeId, domain)).at(-1)!;
       let rowKey = await freeKey(ctx, sheet, kind);
       if (!rowKey) {
-        sheet = await createSheet(ctx, record, employeeId, domain, sheet.sequence + 1, []);
+        sheet = await createSheet(ctx, placeable.item, employeeId, domain, sheet.sequence + 1, []);
         rowKey = await freeKey(ctx, sheet, kind);
       }
       if (!rowKey) continue;
@@ -456,12 +501,12 @@ async function placeNewRows(ctx: SignedSheetContext, records: StoreRecord[]) {
             signedSheetId: sheet.id,
             clientId: sheet.clientId,
             rowKey,
-            trainingRecordId: record.id,
-          },
+            ...sourceOf(placeable),
+          } as NewRow,
         ])) ?? [];
     }
     if (!row) throw sheetBusy();
-    placed.push({ row, record });
+    placed.push({ row, placeable });
   }
   const bySheet = new Map<string, typeof placed>();
   for (const each of placed) {
@@ -471,9 +516,9 @@ async function placeNewRows(ctx: SignedSheetContext, records: StoreRecord[]) {
   try {
     for (const [sheetId, rows] of bySheet) {
       const filled = await Promise.all(
-        rows.map(async ({ row, record }) => ({
+        rows.map(async ({ row, placeable }) => ({
           row,
-          values: await valuesOf(ctx, record, row.rowKey),
+          values: await placeableValues(ctx, placeable, row.rowKey),
         }))
       );
       sheets.set(sheetId, await fillRows(ctx, sheetId, filled));
@@ -547,7 +592,7 @@ export async function syncRecordRow(
     }
   }
   if (!live) {
-    const [placed] = await placeNewRows(ctx, [record]);
+    const [placed] = await placeNewRows(ctx, [{ kind: 'record', item: record }]);
     return placed!;
   }
   await refreshRow(ctx, live, record);
@@ -574,6 +619,45 @@ export async function syncTrainingRows(ctx: SignedSheetContext, recordIds: strin
     } catch (error) {
       console.error(
         `Signed sheet row of ${recordId} not brought up to date: ${error instanceof ApiError ? (error.reason ?? error.code) : error instanceof Error ? error.name : 'unknown'}`
+      );
+    }
+  }
+}
+
+/**
+ * The result's row on the employee's stored sheet of its domain, filled from the result as it is
+ * now: the next `t` row of the occupational safety sheet, or the next periodic row of the
+ * fire-safety one, as a training record takes its row when it is saved. Nobody signs the row, so
+ * it is filled again whenever the result changes. An employee with no stored sheet is left alone:
+ * drawing up their first sheet places every result they have.
+ */
+export async function syncResultRow(
+  ctx: SignedSheetContext,
+  resultId: string
+): Promise<PlacedRow | null> {
+  const result = await ctx.store.result(resultId);
+  if (!result) throw new ApiError('not_found', 'This test result does not exist.');
+  if ((await ctx.store.sheets(result.employeeId, result.domain)).length === 0) return null;
+  const live = await ctx.store.liveRowOfResult(resultId);
+  if (!live) {
+    const [placed] = await placeNewRows(ctx, [{ kind: 'result', item: result }]);
+    return placed!;
+  }
+  const values = await resultValuesOf(ctx, result, live.rowKey);
+  if (live.filledDigest !== (await rowDigest(values))) {
+    await fillRows(ctx, live.signedSheetId, [{ row: live, values }]);
+  }
+  return { ...live, sheet: (await ctx.store.sheet(live.signedSheetId))! };
+}
+
+/** Best effort, as `syncTrainingRows`: a row a failed write left behind is filled at the next change. */
+export async function syncResultRows(ctx: SignedSheetContext, resultIds: string[]) {
+  for (const resultId of resultIds) {
+    try {
+      await syncResultRow(ctx, resultId);
+    } catch (error) {
+      console.error(
+        `Signed sheet row of test result ${resultId} not brought up to date: ${error instanceof ApiError ? (error.reason ?? error.code) : error instanceof Error ? error.name : 'unknown'}`
       );
     }
   }

@@ -182,6 +182,10 @@ describe('GET /employees', () => {
               intervalSource: null,
             },
           },
+          tests: {
+            ssm: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
+            psi: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
+          },
           createdAt: employeeListRow.created_at,
           updatedAt: employeeListRow.updated_at,
           client: { id: clientId, name: 'Șantierul Naval SA' },
@@ -223,6 +227,16 @@ describe('GET /employees', () => {
     expect(query.get('select')).toContain('training_status!inner(');
     expect(query.get('select')).toContain('client:clients!employees_client_id_fkey!inner(');
     expect(query.get('training_status.or')).toBe('(ssm_state.eq.due,psi_state.eq.due)');
+    expect(query.get('client.archived_at')).toBe('is.null');
+  });
+
+  it('filters by a test state in either domain', async () => {
+    mockUpstream();
+    const response = await request('/employees?testState=pending');
+    expect(response.status).toBe(200);
+    const query = employeesQuery();
+    expect(query.get('select')).toContain('test_status!inner(');
+    expect(query.get('test_status.or')).toBe('(ssm_state.eq.pending,psi_state.eq.pending)');
     expect(query.get('client.archived_at')).toBe('is.null');
   });
 
@@ -270,17 +284,20 @@ describe('GET /employees', () => {
     expect(query.get('offset')).toBe('25');
   });
 
-  it.each(['sort=cnp', 'clientId=not-a-uuid', 'status=suspended', 'trainingState=expired'])(
-    'rejects %s',
-    async (search) => {
-      mockUpstream();
-      const response = await request(`/employees?${search}`);
-      expect(response.status).toBe(400);
-      expect(
-        fetchMock.mock.calls.some(([input]) => String(input).includes('/rest/v1/employees'))
-      ).toBe(false);
-    }
-  );
+  it.each([
+    'sort=cnp',
+    'clientId=not-a-uuid',
+    'status=suspended',
+    'trainingState=expired',
+    'testState=failed',
+  ])('rejects %s', async (search) => {
+    mockUpstream();
+    const response = await request(`/employees?${search}`);
+    expect(response.status).toBe(400);
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).includes('/rest/v1/employees'))
+    ).toBe(false);
+  });
 
   it('answers a page past the end with an empty page and the real total', async () => {
     let call = 0;

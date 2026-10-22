@@ -2,7 +2,6 @@ import {
   formatEmployeeName,
   signatureErrorReasons,
   trainingDomainLabels,
-  trainingPhaseLabels,
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
@@ -29,7 +28,6 @@ import {
 } from '@/api/generated/api';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
-import { formatDate } from '@/features/employees/employee-format';
 
 import { AgreementWarning } from './agreement-warning';
 import {
@@ -37,6 +35,7 @@ import {
   codeNeedsRenewal,
   reasonOf,
   renewalMessages,
+  requestDocument,
   signAsLabel,
   signingFailure,
   signingItemFailures,
@@ -432,20 +431,18 @@ function RequestItem({
   icon?: ReactNode;
   children?: ReactNode;
 }) {
-  const { record } = request;
+  const document = requestDocument(request);
   return (
-    <li data-testid={testId} className="flex gap-3 px-4 py-3">
+    <li data-testid={testId} data-kind={request.kind} className="flex gap-3 px-4 py-3">
       {icon && <span className="mt-1 shrink-0">{icon}</span>}
       <div className="min-w-0">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="font-medium">{formatEmployeeName(record.employee)}</span>
-          <Badge variant="secondary">{trainingDomainLabels[record.domain]}</Badge>
+          <span className="font-medium">{formatEmployeeName(request.employee)}</span>
+          <Badge variant="secondary">{trainingDomainLabels[document.domain]}</Badge>
           <AgreementWarning agreement={request.agreement} />
         </p>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {trainingPhaseLabels[record.phase]} ·{' '}
-          <span className="tabular-nums">{formatDate(record.heldOn)}</span> ·{' '}
-          {signAsLabel(request.slot)}
+          {document.summary} · {signAsLabel(request.slot)}
         </p>
         <p className="text-xs text-muted-foreground">{request.client.name}</p>
         {children}

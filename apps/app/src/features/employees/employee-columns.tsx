@@ -15,6 +15,7 @@ import { createDataTableColumns } from '@/components/data-table/columns';
 
 import { formatDate } from './employee-format';
 import type { EmployeeStatusChange } from './employee-status-dialog';
+import { testStateColumn } from './test-state-column';
 import { trainingStateColumns } from './training-state-columns';
 
 export type EmployeeRow = EmployeeListResponse['items'][number];
@@ -60,6 +61,7 @@ export function employeeColumns(onStatusChange?: (change: EmployeeStatusChange) 
       meta: { skeletonClassName: 'w-28' },
     }),
     ...trainingStateColumns<EmployeeRow>(),
+    testStateColumn<EmployeeRow>(),
     helper.display({
       id: 'contact',
       header: 'Contact',

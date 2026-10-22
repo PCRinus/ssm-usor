@@ -22,7 +22,6 @@ export const documentTypeKeys = [
   'training_themes',
   'cover_tests',
   'test_hiring',
-  'test_periodic',
   'protective_equipment_list',
   'cover_event_registers',
   'event_registers',
