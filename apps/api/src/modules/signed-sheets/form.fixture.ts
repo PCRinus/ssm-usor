@@ -1,9 +1,9 @@
-import type { SheetRecord, TrainingSheetFacts } from '../trainings/sheet';
+import type { SheetIdentity, SheetRecord, SheetTestResult } from '../trainings/sheet';
 import type { SheetTrainingRecord } from './form';
 
 const workshop = { id: 'w1', name: 'Punct de lucru Str. Fabricii 3' };
 
-export const sheetFacts: Omit<TrainingSheetFacts, 'domain' | 'records'> = {
+export const sheetFacts: SheetIdentity = {
   branding: true,
   client: { legalName: 'S.C. CLIENT DEMO S.R.L.', activeWorkplaces: [workshop] },
   employee: {
@@ -56,5 +56,23 @@ export function sheetRecord(
       createdAt: `${heldOn}T10:00:00+00:00`,
       ...training,
     },
+  };
+}
+
+export function sheetResult(
+  test: SheetTestResult['test'],
+  takenOn: string,
+  overrides: Partial<SheetTestResult> = {}
+): SheetTestResult {
+  return {
+    test,
+    takenOn,
+    material:
+      test === 'annual'
+        ? 'Verificare anuală pe bază de test (TPSU)'
+        : 'Test de verificare a cunoștințelor la angajare (TASSM)',
+    examiner: { name: 'Dan MARIN', jobTitle: 'Inspector SSM' },
+    createdAt: `${takenOn}T12:00:00+00:00`,
+    ...overrides,
   };
 }

@@ -14,6 +14,7 @@ import {
   continuationLine,
   materialPlaceholder,
   printedSheets,
+  resultRowValues,
   rowKindOf,
   rowValues,
   signatureFieldsOf,
@@ -21,7 +22,7 @@ import {
   signedSheetData,
   wrapToBox,
 } from './form';
-import { sheetFacts, sheetRecord } from './form.fixture';
+import { sheetFacts, sheetRecord, sheetResult } from './form.fixture';
 
 describe('rowKindOf', () => {
   it('puts a supplementary training in its own table on the occupational safety sheet only', () => {
@@ -93,7 +94,9 @@ describe('signedSheetData', () => {
     expect(data.form.continuation).toBe('');
     expect(data.periodic.map((row) => row.heldOn)).toEqual(['10.01.2025']);
     expect(data.hiring.introductory.heldOn).toBe('01.12.2024');
-    expect(data.blankRows).toEqual({ periodic: [], supplementary: [] });
+    expect(data.blankRows).toEqual({ periodic: [], supplementary: [], testResults: [] });
+    expect(data.testResults).toEqual([]);
+    expect(data.form.rows.t1).toBe(true);
   });
 
   it('draws the material field of a hiring training it is drawn up with as tall as its text', () => {
@@ -184,6 +187,28 @@ describe('rowValues', () => {
     const record = sheetRecord('periodic', '2026-04-03');
     expect(rowValues('ssm', 'p1', record, '', true).p1_note).toBe('semnat pe hârtie');
     expect(rowValues('ssm', 'p1', record, '', false).p1_note).toBe('');
+  });
+});
+
+describe('resultRowValues', () => {
+  it("fills a row of the occupational safety sheet's test block with annex 11's four columns", () => {
+    const values = resultRowValues('ssm', 't2', sheetResult('hiring', '2026-01-06'), 'Sudor');
+    expect(Object.keys(values).sort()).toEqual(
+      [...sheetFieldNames('ssm', 't2').text, 't2_note'].sort()
+    );
+    expect(values).toMatchObject({ t2_date: '06.01.2026', t2_grade: 'Admis', t2_note: '' });
+    expect(values.t2_examiner!.replace(/\n/g, ' ')).toBe('Dan MARIN, Inspector SSM');
+  });
+
+  it('fills a periodic row of the fire-safety sheet with the occupation and no duration', () => {
+    const values = resultRowValues('psi', 'p4', sheetResult('annual', '2026-05-04'), 'Sudor');
+    expect(Object.keys(values).sort()).toEqual(
+      [...sheetFieldNames('psi', 'p4').text, 'p4_note'].sort()
+    );
+    expect(values).toMatchObject({ p4_duration: '', p4_occupation: 'Sudor' });
+    expect(values.p4_material!.replace(/\n/g, ' ')).toBe(
+      'Verificare anuală pe bază de test (TPSU): admis (examinator: Dan MARIN, Inspector SSM)'
+    );
   });
 });
 

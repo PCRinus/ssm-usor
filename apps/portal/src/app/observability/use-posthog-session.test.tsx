@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   useGetPortalMe,
   useGetPortalSigningAgreementState,
+  useGetPortalTests,
   useListPortalResponsiblePersons,
   useListPortalSignatureRequests,
   useListPortalSigningAgreements,
@@ -46,6 +47,7 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   useListPortalSignatureRequests: vi.fn(),
   useListPortalSigningAgreements: vi.fn(),
   useListPortalTrainingRecords: vi.fn(),
+  useGetPortalTests: vi.fn(),
   useListPortalResponsiblePersons: vi.fn(),
 }));
 
@@ -56,6 +58,7 @@ beforeEach(() => {
   vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
   vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryPending());
+  vi.mocked(useGetPortalTests).mockReturnValue(queryPending());
   vi.mocked(useListPortalResponsiblePersons).mockReturnValue(queryPending());
 });
 

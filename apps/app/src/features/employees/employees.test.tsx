@@ -6,7 +6,7 @@ import { startWayBack } from '@/features/missing-data/way-back';
 import { formatRoDate } from '@/lib/dates';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
-import { untrained } from '@/test/training-fixture';
+import { employeeTests, noTests, untrained } from '@/test/training-fixture';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 
@@ -41,6 +41,7 @@ const sampleEmployee = {
   status: 'active',
   terminatedAt: null,
   training: untrained,
+  tests: noTests,
   workplace: null,
   createdAt: '2026-09-17T10:00:00+00:00',
   updatedAt: '2026-09-17T10:00:00+00:00',
@@ -199,6 +200,9 @@ function mockApi(
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/training-records`) {
       return Response.json({ items: [] });
+    }
+    if (url.pathname === `${employeesPath}/${sampleEmployee.id}/tests`) {
+      return Response.json(employeeTests());
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/training-sheets`) {
       return Response.json({

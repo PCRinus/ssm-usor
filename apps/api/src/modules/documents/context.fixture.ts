@@ -1,4 +1,5 @@
 import type { DocumentFacts } from './context';
+import type { BankQuestion } from './knowledge-tests';
 
 export const workshopId = 'f1f1f1f1-0000-4000-8000-000000000001';
 export const officeId = 'f1f1f1f1-0000-4000-8000-000000000002';
@@ -7,6 +8,24 @@ import {
   sensitiveGroupsEvaluation,
   workshopEvaluation,
 } from './risk-evaluations.fixture';
+
+/** A bank of `count` questions, the third with two correct options and untrimmed text. */
+export function bankQuestions(subject: string, count: number): BankQuestion[] {
+  return Array.from({ length: count }, (_, index) => ({
+    text:
+      index === 2
+        ? `  Care dintre următoarele obligații privind ${subject} vă revin?  `
+        : `Întrebarea ${index + 1} despre ${subject}: ce prevede legea?`,
+    options: [
+      { text: 'răspunsul corect, conform legii;', correct: true },
+      {
+        text: index === 2 ? ' tot un răspuns corect; ' : 'un răspuns greșit;',
+        correct: index === 2,
+      },
+      { text: 'alt răspuns greșit.', correct: false },
+    ],
+  }));
+}
 
 export const facts: DocumentFacts = {
   issueDate: '2026-01-19',
@@ -472,5 +491,10 @@ export const facts: DocumentFacts = {
         },
       ],
     },
+  },
+  testQuestions: {
+    test_hiring: bankQuestions('securitatea și sănătatea în muncă', 10),
+    fire_test_hiring: bankQuestions('apărarea împotriva incendiilor la angajare', 12),
+    fire_test_annual: bankQuestions('apărarea împotriva incendiilor', 10),
   },
 };

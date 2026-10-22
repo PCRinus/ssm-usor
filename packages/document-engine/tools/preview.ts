@@ -4,7 +4,14 @@ import { fileURLToPath } from 'node:url';
 
 import { renderDocument, TemplateError } from '../src/render';
 import { signingTypeKeys } from '../src/signing';
+import { testSheetTypeKey } from '../src/test-sheet';
+import {
+  type KnowledgeTestCode,
+  knowledgeTestData,
+  knowledgeTestTemplates,
+} from './knowledge-test-samples';
 import { signingAgreementSamples } from './signing-samples';
+import { testSheetSamples } from './test-sheet-samples';
 import { trainingSheetSamples } from './training-sheet-samples';
 
 // The PDFs land in `originals/preview/`, which git ignores. Two sample clients: one person in
@@ -1330,13 +1337,13 @@ function sample(
               {
                 month: 'FEBRUARIE',
                 content:
-                  'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0165; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a015;',
+                  'I.P.S.S.M. Art.\u00a01\u00a0–\u00a0165; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a015',
                 duration: '120 min',
               },
               {
                 month: 'AUGUST',
                 content:
-                  'I.P.S.S.M. Art.\u00a0166\u00a0–\u00a0287; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a015; Testare.',
+                  'I.P.S.S.M. Art.\u00a0166\u00a0–\u00a0287; I.P.S.S.M. Activități de birou, Art.\u00a01\u00a0–\u00a015',
                 duration: '120 min',
               },
             ],
@@ -1370,9 +1377,9 @@ function sample(
               'OCTOMBRIE',
               'NOIEMBRIE',
               'DECEMBRIE',
-            ].map((month, index, months) => ({
+            ].map((month, index) => ({
               month,
-              content: `I.P.S.S.M. Art.\u00a0${index * 24 + 1}\u00a0–\u00a0${index * 24 + 24}; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a012; I.P.S.S.M. Aparat de sudură oxiacetilenică;${index === months.length - 1 ? ' Testare.' : ''}`,
+              content: `I.P.S.S.M. Art.\u00a0${index * 24 + 1}\u00a0–\u00a0${index * 24 + 24}; I.P.S.S.M. Scări metalice, Art.\u00a01\u00a0–\u00a012; I.P.S.S.M. Aparat de sudură oxiacetilenică`,
               duration: '120 min',
             })),
           })),
@@ -1485,17 +1492,29 @@ const employeeSamples = new Map<string, { label: string; data: Record<string, un
           `${folder}${entry.file}`,
           entry.typeKey === signingTypeKeys.agreement
             ? signingAgreementSamples()
-            : trainingSheetSamples(entry.typeKey.endsWith('_psi') ? 'psi' : 'ssm'),
+            : entry.typeKey === testSheetTypeKey
+              ? testSheetSamples()
+              : trainingSheetSamples(entry.typeKey.endsWith('_psi') ? 'psi' : 'ssm'),
         ])
     )
 );
+const knowledgeTestCodes = new Map(
+  (Object.entries(knowledgeTestTemplates) as [KnowledgeTestCode, string][]).map(([code, file]) => [
+    `${templates}${file}`,
+    code,
+  ])
+);
 for (const { folder, name } of files) {
   const template = new Uint8Array(readFileSync(`${folder}${name}`));
+  const testCode = knowledgeTestCodes.get(`${folder}${name}`);
   for (const { label, data } of employeeSamples.get(`${folder}${name}`) ?? samples) {
+    const merged = testCode
+      ? { ...data, ...knowledgeTestData(testCode, label === 'long' ? 12 : 10) }
+      : data;
     try {
       writeFileSync(
         `${output}${name.replace(/\.docx$/, '')}.${label}.docx`,
-        renderDocument(template, data)
+        renderDocument(template, merged)
       );
     } catch (error) {
       if (!(error instanceof TemplateError)) throw error;

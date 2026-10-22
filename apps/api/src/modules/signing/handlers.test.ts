@@ -391,11 +391,14 @@ describe('the members’ request lists', () => {
     expect(items).toEqual([
       {
         id: 'f0000000-0000-4000-8000-000000000001',
+        kind: 'training_record',
+        label: 'Instruire periodică SSM · 01.10.2026',
         slot: 'trainer',
         state: 'pending',
         issuedAt: '2026-10-02T08:00:00.000Z',
         notifiedAt: null,
         client: { id: clientId, name: 'Fabrica Sigma SRL' },
+        employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
         record: {
           id: recordId,
           trainingId,
@@ -404,6 +407,7 @@ describe('the members’ request lists', () => {
           phase: 'periodic',
           heldOn: '2026-10-01',
         },
+        testSheet: null,
         signer: { accountId: user.id, name: null },
         agreement: null,
       },
@@ -429,6 +433,49 @@ describe('the members’ request lists', () => {
     expect(response.status).toBe(200);
     const { items } = signatureRequestListResponseSchema.parse(await response.json());
     expect(items.map((item) => item.id)).toEqual(['f0000000-0000-4000-8000-000000000001']);
+  });
+
+  it('GET /me/signature-requests lists an examiner request of a test sheet in the same shape', async () => {
+    mockUpstream({
+      '/rest/v1/signature_requests': () => [
+        {
+          ...listRow({ id: 'f0000000-0000-4000-8000-000000000004', slot: 'examiner' }),
+          training_records: null,
+          test_sheets: {
+            id: '75757575-0000-4000-8000-000000000001',
+            test_result_id: '7e7e7e7e-0000-4000-8000-000000000001',
+            employees: {
+              id: employeeId,
+              last_name: 'Popescu',
+              first_name: 'Ion',
+              employee_signing_agreements: [],
+            },
+            test_results: { domain: 'psi', test: 'annual', taken_on: '2026-10-21' },
+          },
+        },
+      ],
+    });
+
+    const response = await request('/me/signature-requests');
+
+    const { items } = signatureRequestListResponseSchema.parse(await response.json());
+    expect(items).toEqual([
+      expect.objectContaining({
+        kind: 'test_sheet',
+        label: 'Fișa de test · Test anual PSI · 21.10.2026',
+        slot: 'examiner',
+        employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
+        record: null,
+        testSheet: {
+          id: '75757575-0000-4000-8000-000000000001',
+          resultId: '7e7e7e7e-0000-4000-8000-000000000001',
+          domain: 'psi',
+          test: 'annual',
+          takenOn: '2026-10-21',
+        },
+        agreement: null,
+      }),
+    ]);
   });
 
   it("GET /clients/{clientId}/signature-requests lists the client's requests in a state, with the signers' names", async () => {
@@ -505,6 +552,23 @@ const portalRecord = {
   },
 };
 
+const testSheetId = '75757575-0000-4000-8000-000000000001';
+const testResultId = '7e7e7e7e-0000-4000-8000-000000000001';
+
+const portalTestSheet = {
+  id: testSheetId,
+  test_result_id: testResultId,
+  employees: portalRecord.employees,
+  test_results: {
+    domain: 'ssm',
+    test: 'hiring',
+    taken_on: '2026-10-21',
+    examiner_name: 'Ana IONESCU',
+    examiner_job_title: 'Inspector SSM',
+    test_attempts: { score: 8, total: 10 },
+  },
+};
+
 function portalUpstream(kind: string, overrides: Record<string, UpstreamRoute> = {}) {
   mockUpstream({
     '/rest/v1/rpc/accept_participant_invitations': () => 0,
@@ -569,9 +633,19 @@ describe('the portal’s request lists', () => {
           id: 'f0000000-0000-4000-8000-000000000001',
           slot: 'trainee',
           issued_at: '2026-10-02T08:00:00+00:00',
-          training_records: portalRecord,
+          training_record_id: recordId,
+          test_sheet_id: null,
+        },
+        {
+          id: 'f0000000-0000-4000-8000-000000000002',
+          slot: 'examiner',
+          issued_at: '2026-10-21T08:00:00+00:00',
+          training_record_id: null,
+          test_sheet_id: testSheetId,
         },
       ],
+      '/rest/v1/training_records': () => [portalRecord],
+      '/rest/v1/test_sheets': () => [portalTestSheet],
     });
 
     const response = await request(
@@ -580,10 +654,64 @@ describe('the portal’s request lists', () => {
 
     expect(response.status).toBe(200);
     const { items } = portalSignatureRequestsResponseSchema.parse(await response.json());
-    expect(items[0]).toMatchObject({ slot: 'trainee', signerName: 'Popescu Ion' });
+    expect(items[0]).toMatchObject({
+      kind: 'training_record',
+      slot: 'trainee',
+      signerName: 'Popescu Ion',
+      testSheet: null,
+    });
+    expect(items[1]).toMatchObject({
+      kind: 'test_sheet',
+      label: 'Fișa de test · Test la angajare SSM · 21.10.2026',
+      slot: 'examiner',
+      signerName: 'Ana IONESCU',
+      employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
+      record: null,
+      testSheet: {
+        id: testSheetId,
+        resultId: testResultId,
+        code: 'TASSM',
+        title: 'Test de verificare a cunoștințelor la angajare (TASSM)',
+        takenOn: '2026-10-21',
+        score: 8,
+        total: 10,
+        examiner: { name: 'Ana IONESCU', jobTitle: 'Inspector SSM' },
+      },
+    });
     const [call] = callsTo('/rest/v1/signature_requests');
     expect(call!.secret).toBe(false);
     expect(call!.url.searchParams.get('select')).not.toMatch(/cnp|notes/);
+    const [sheets] = callsTo('/rest/v1/test_sheets');
+    expect(sheets!.secret).toBe(true);
+    expect(sheets!.url.searchParams.get('id')).toBe(`in.(${testSheetId})`);
+    expect(sheets!.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+  });
+
+  it("lists the trainee's request on their own test sheet beside the records'", async () => {
+    portalUpstream('employee', {
+      '/rest/v1/signature_requests': () => [
+        {
+          id: 'f0000000-0000-4000-8000-000000000003',
+          slot: 'trainee',
+          issued_at: '2026-10-21T08:00:00+00:00',
+          training_record_id: null,
+          test_sheet_id: testSheetId,
+        },
+      ],
+      '/rest/v1/test_sheets': () => [portalTestSheet],
+    });
+
+    const response = await request(`/portal/participants/${participantId}/signature-requests`);
+
+    const { items } = portalSignatureRequestsResponseSchema.parse(await response.json());
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      kind: 'test_sheet',
+      slot: 'trainee',
+      signerName: 'Popescu Ion',
+      agreement: { state: 'generated' },
+    });
+    expect(callsTo('/rest/v1/training_records')).toHaveLength(0);
   });
 
   it("refuses the client's list to an employee", async () => {

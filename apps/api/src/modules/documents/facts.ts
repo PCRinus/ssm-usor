@@ -9,6 +9,7 @@ import {
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import type { DocumentFacts } from './context';
+import { loadTestQuestions } from './knowledge-tests';
 import type { RiskEvaluationFacts } from './risk-assessment';
 import { snapshotAnnexes } from './snapshot';
 
@@ -58,6 +59,7 @@ export async function loadDocumentFacts(
     fireBuildings,
     participants,
     openInvitations,
+    testQuestions,
     ...employeeCounts
   ] = await Promise.all([
     db
@@ -193,6 +195,7 @@ export async function loadDocumentFacts(
       .is('accepted_at', null)
       .is('revoked_at', null)
       .gt('expires_at', new Date().toISOString()),
+    loadTestQuestions(db, preparer.organizationId),
     ...categories.map((category) =>
       db
         .from('employees')
@@ -398,6 +401,7 @@ export async function loadDocumentFacts(
         })),
       },
     },
+    testQuestions,
     responsiblePersons: persons.data.map((person) => ({
       employeeId: person.employee_id,
       fullName: person.full_name,

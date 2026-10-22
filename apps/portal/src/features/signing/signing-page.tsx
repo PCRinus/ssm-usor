@@ -289,7 +289,9 @@ function ChooseStep({
     !chosen.has(ownAgreementItem.key) &&
     selected.some(
       (item) =>
-        item.kind === 'request' && item.request.record.employee.id === participation.employeeId
+        item.kind === 'request' &&
+        item.request.record !== null &&
+        item.request.employee.id === participation.employeeId
     );
 
   async function send(event: FormEvent<HTMLFormElement>) {
@@ -716,7 +718,11 @@ function oneSignedMessage(item: SigningItem, ownEmployeeId: string | null): Mess
       ? msg`Ai semnat actul adițional. Specialistul îl vede semnat de tine.`
       : msg`Ai semnat actul adițional ca angajator.`;
   }
-  return item.request.record.employee.id === ownEmployeeId
+  const own = item.request.employee.id === ownEmployeeId;
+  if (item.request.kind === 'test_sheet') {
+    return own ? msg`Ai semnat fișa de test.` : msg`Ai semnat fișa de test a angajatului.`;
+  }
+  return own
     ? msg`Ai semnat instruirea. Semnătura e pe fișa ta.`
     : msg`Ai semnat instruirea. Semnătura e pe fișa angajatului.`;
 }

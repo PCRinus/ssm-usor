@@ -6,6 +6,7 @@ import {
   useGetPortalEmployeeData,
   useGetPortalMe,
   useGetPortalSigningAgreementState,
+  useGetPortalTests,
   useGetPortalTrainingSheets,
   useListPortalClientSignatureRequests,
   useListPortalSignatureRequests,
@@ -20,6 +21,7 @@ import {
   fakeSession,
   mountPortal,
   participation,
+  portalTests,
   queryResult,
   trainingRecords,
 } from '@/test/portal';
@@ -34,6 +36,7 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   useListPortalSigningAgreements: vi.fn(),
   useGetPortalMe: vi.fn(),
   useListPortalTrainingRecords: vi.fn(),
+  useGetPortalTests: vi.fn(),
   useGetPortalEmployeeData: vi.fn(),
   useGetPortalTrainingSheets: vi.fn(),
   useSetPortalLanguage: vi.fn(),
@@ -48,6 +51,7 @@ beforeEach(() => {
   vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(queryResult({ agreement: null }));
   vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
+  vi.mocked(useGetPortalTests).mockReturnValue(queryResult(portalTests()));
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
   vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
     queryResult({

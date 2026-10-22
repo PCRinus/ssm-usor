@@ -1,9 +1,12 @@
 import {
   type EmployeeTrainingRecord,
+  type KnowledgeTest,
   type MissingSheetData,
   sheetRowKeys,
   supplementaryTrainingReasonLabels,
   tableRowOf,
+  testGradeLabels,
+  testRowCapacity,
   type TrainingDomain,
   type TrainingPhase,
 } from '@ssm-usor/contracts';
@@ -32,6 +35,34 @@ export type SheetRecord = Pick<EmployeeTrainingRecord, 'occupation' | 'admission
     | 'createdAt'
   >;
 };
+
+export type SheetTestResult = {
+  test: KnowledgeTest;
+  takenOn: string;
+  material: string;
+  examiner: { name: string; jobTitle: string } | null;
+  createdAt: string;
+};
+
+export function toSheetTestResult(row: {
+  test: SheetTestResult['test'];
+  taken_on: string;
+  material: string;
+  examiner_name: string | null;
+  examiner_job_title: string | null;
+  created_at: string;
+}): SheetTestResult {
+  return {
+    test: row.test,
+    takenOn: row.taken_on,
+    material: row.material,
+    examiner:
+      row.examiner_name !== null && row.examiner_job_title !== null
+        ? { name: row.examiner_name, jobTitle: row.examiner_job_title }
+        : null,
+    createdAt: row.created_at,
+  };
+}
 
 type Workplace = { id: string; name: string };
 
@@ -63,7 +94,10 @@ export type TrainingSheetFacts = {
   };
   /** The employee's training records of `domain`. */
   records: SheetRecord[];
+  testResults: SheetTestResult[];
 };
+
+export type SheetIdentity = Omit<TrainingSheetFacts, 'domain' | 'records' | 'testResults'>;
 
 /** Every value is text, empty where the form leaves its line blank. */
 export type HiringLine = {
@@ -85,6 +119,8 @@ export type SheetRow = {
   verifier: string;
 };
 
+export type TestResultRow = { date: string; material: string; grade: string; examiner: string };
+
 export type TrainingSheetData = {
   branding: boolean;
   client: { legalName: string };
@@ -105,7 +141,13 @@ export type TrainingSheetData = {
   admission: { admittedOn: string; name: string; jobTitle: string };
   periodic: SheetRow[];
   supplementary: SheetRow[];
-  blankRows: { periodic: Record<string, never>[]; supplementary: Record<string, never>[] };
+  /** Occupational safety only: the fire-safety sheet prints a pass as a periodic row. */
+  testResults: TestResultRow[];
+  blankRows: {
+    periodic: Record<string, never>[];
+    supplementary: Record<string, never>[];
+    testResults: Record<string, never>[];
+  };
   /** The names printed small under the hiring trainings' signature lines, per slot. */
   signers: {
     introductory: { trainer: string; verifier: string };
@@ -147,7 +189,9 @@ export function paperForm(domain: TrainingDomain): SheetForm {
   };
 }
 
-export function missingSheetDataOf(facts: TrainingSheetFacts): MissingSheetData[] {
+export function missingSheetDataOf(
+  facts: Pick<TrainingSheetFacts, 'domain' | 'employee' | 'client'>
+): MissingSheetData[] {
   const missing: MissingSheetData[] = [];
   if (facts.domain === 'ssm' && !facts.employee.commuteRoute?.trim()) {
     missing.push('employee.commute_route');
@@ -179,7 +223,7 @@ const latest = (records: SheetRecord[], phase: TrainingPhase) =>
     .sort(chronological)
     .at(-1) ?? null;
 
-export function placeOfWork(facts: TrainingSheetFacts) {
+export function placeOfWork(facts: Pick<TrainingSheetFacts, 'employee' | 'client'>) {
   const { employee, client } = facts;
   const workplace =
     employee.workplace ??
@@ -228,6 +272,36 @@ function signersOf(domain: TrainingDomain, record: SheetRecord | null) {
     verifier: verifier?.name ?? (domain === 'psi' ? trainer.name : ''),
   };
 }
+
+export const examinerOf = (result: Pick<SheetTestResult, 'examiner'>) =>
+  result.examiner ? joined(', ', result.examiner.name, result.examiner.jobTitle) : '';
+
+export const testResultRow = (result: SheetTestResult): TestResultRow => ({
+  date: printedDate(result.takenOn),
+  material: text(result.material),
+  grade: testGradeLabels.admis,
+  examiner: examinerOf(result),
+});
+
+/**
+ * The fire-safety form has no test block, so a pass prints as a row of its periodic table, as
+ * OMAI 712/2005 art. 30 has the annual one recorded there (ADR 024): the material says the test
+ * and its grade, the examiner signs where the trainer does, and no duration is printed.
+ */
+export const periodicTestMaterial = (result: Pick<SheetTestResult, 'material'>) =>
+  `${withoutFinalStop(text(result.material))}: ${testGradeLabels.admis.toLocaleLowerCase('ro')}`;
+
+const testSheetRow = (result: SheetTestResult, occupation: string): SheetRow => ({
+  heldOn: printedDate(result.takenOn),
+  hours: '',
+  occupation,
+  material: periodicTestMaterial(result),
+  trainer: result.examiner?.name ?? '',
+  verifier: '',
+});
+
+export const chronologicalResults = (a: SheetTestResult, b: SheetTestResult) =>
+  a.takenOn.localeCompare(b.takenOn) || a.createdAt.localeCompare(b.createdAt);
 
 const sheetRow = (record: SheetRecord): SheetRow => ({
   heldOn: printedDate(record.training.heldOn),
@@ -286,14 +360,30 @@ function sheetParts(facts: TrainingSheetFacts) {
   const place = placeOfWork(facts);
   const introductory = latest(records, 'introductory_general');
   const workplace = latest(records, 'workplace');
-  const periodic = records
-    .filter(
-      (record) =>
-        record.training.phase === 'periodic' ||
-        (domain === 'psi' && record.training.phase === 'supplementary')
-    )
-    .sort(chronological)
-    .map(sheetRow);
+  const periodic = [
+    ...records
+      .filter(
+        (record) =>
+          record.training.phase === 'periodic' ||
+          (domain === 'psi' && record.training.phase === 'supplementary')
+      )
+      .map((record) => ({
+        day: record.training.heldOn,
+        createdAt: record.training.createdAt,
+        row: sheetRow(record),
+      })),
+    ...(domain === 'psi'
+      ? facts.testResults.map((result) => ({
+          day: result.takenOn,
+          createdAt: result.createdAt,
+          row: testSheetRow(result, employee.position.name.trim()),
+        }))
+      : []),
+  ]
+    .sort((a, b) => a.day.localeCompare(b.day) || a.createdAt.localeCompare(b.createdAt))
+    .map(({ row }) => row);
+  const testResults =
+    domain === 'ssm' ? [...facts.testResults].sort(chronologicalResults).map(testResultRow) : [];
   const supplementary =
     domain === 'ssm'
       ? records
@@ -337,9 +427,15 @@ function sheetParts(facts: TrainingSheetFacts) {
     }),
     periodic: () => periodic,
     supplementary: () => supplementary,
+    testResults: () => testResults,
     blankRows: () => ({
       periodic: blankRowsAfter(periodic, domain),
       supplementary: domain === 'ssm' ? blankRowsAfter(supplementary, domain) : [],
+      // Annex 11 prints five rows whatever the signatures are collected on.
+      testResults:
+        domain === 'ssm'
+          ? Array.from({ length: Math.max(0, testRowCapacity - testResults.length) }, () => ({}))
+          : [],
     }),
     signers: () => ({
       introductory: signersOf(domain, introductory),

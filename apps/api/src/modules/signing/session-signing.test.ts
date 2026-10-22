@@ -13,6 +13,7 @@ import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { applySignature, placeRecord } from '../signed-sheets/signed-sheets';
+import { applyTestSheetSignature } from '../test-sheets/test-sheets';
 import { agreementDigest } from './agreement-signing';
 import { addressHint, clientIpOf } from './session-signing';
 import {
@@ -55,6 +56,11 @@ vi.mock('../signed-sheets/signed-sheets', () => ({
   applySignature: vi.fn(),
 }));
 
+vi.mock('../test-sheets/test-sheets', () => ({
+  testSheetDeps: () => ({ deps: 'test sheets' }),
+  applyTestSheetSignature: vi.fn(),
+}));
+
 vi.mock('../../lib/signed-attributes', () => ({ checkToSign: vi.fn(async () => undefined) }));
 
 const identityFor = vi.fn(async (_accountId: string, name: string) => ({
@@ -74,6 +80,8 @@ const recordA = 'e0000000-0000-4000-8000-000000000001';
 const recordB = 'e0000000-0000-4000-8000-000000000002';
 const requestA = 'f0000000-0000-4000-8000-000000000001';
 const requestB = 'f0000000-0000-4000-8000-000000000002';
+const requestC = 'f0000000-0000-4000-8000-000000000003';
+const testSheetId = '75757575-0000-4000-8000-000000000001';
 
 const sendSigningCodeEmail = vi.fn<MailService['sendSigningCode']>();
 const sendSigningCodeSms = vi.fn<SmsService['sendSigningCode']>();
@@ -186,6 +194,14 @@ beforeEach(() => {
   vi.mocked(placeRecord)
     .mockReset()
     .mockResolvedValue({} as never);
+  vi.mocked(applyTestSheetSignature)
+    .mockReset()
+    .mockResolvedValue({
+      digestBefore: 'cc',
+      digestAfter: 'dd',
+      version: 2,
+      signedAt: new Date('2026-10-21T09:30:00Z'),
+    });
   vi.mocked(applySignature)
     .mockReset()
     .mockResolvedValue({
@@ -748,6 +764,113 @@ describe('POST /me/signing-sessions/{sessionId}/sign', () => {
       signing_session_id: sessionId,
     });
     expect(callsTo('/rest/v1/signature_requests', 'PATCH')).toHaveLength(0);
+  });
+
+  it("signs a record's slot and a test sheet's examiner in one session, each with its own evidence", async () => {
+    await signUpstream({
+      '/rest/v1/signing_session_items': () => [
+        { request_id: requestA, agreement_employee_id: null, agreement_party: null },
+        { request_id: requestC, agreement_employee_id: null, agreement_party: null },
+      ],
+      'GET /rest/v1/signature_requests': ({ url }) =>
+        url.searchParams.get('id') === `eq.${requestA}`
+          ? [requestRow(requestA, recordA)]
+          : [
+              requestRow(requestC, null as unknown as string, {
+                test_sheet_id: testSheetId,
+                slot: 'examiner',
+              }),
+            ],
+      '/rest/v1/test_sheets': () => [
+        {
+          employee_id: employeeId,
+          employees: {
+            last_name: 'Popescu',
+            first_name: 'Ion',
+            job_title: 'Sudor',
+            job_positions: { name: 'Sudor' },
+          },
+          test_results: { examiner_name: 'Ana SPECIALIST', examiner_job_title: 'Inspector SSM' },
+          clients: { archived_at: null },
+        },
+      ],
+      '/rest/v1/test_sheet_signatures': () => [],
+    });
+
+    const response = await send(path, { code: '123456' });
+
+    expect(signSessionResponseSchema.parse(await response.json())).toEqual({
+      signed: [
+        { requestId: requestA, agreementState: 'generated' },
+        { requestId: requestC, agreementState: 'generated' },
+      ],
+      failed: [],
+      agreements: [],
+    });
+    expect(vi.mocked(placeRecord).mock.calls.map(([, id]) => id)).toEqual([recordA]);
+    expect(vi.mocked(applyTestSheetSignature).mock.calls[0]!.slice(0, 4)).toEqual([
+      { deps: 'test sheets' },
+      testSheetId,
+      'examiner',
+      { certificatePem: 'CERT Ana Specialist', chainPem: ['CA'], name: 'Ana SPECIALIST' },
+    ]);
+    const [record] = callsTo('/rest/v1/training_signatures', 'POST');
+    expect(record!.body).toMatchObject({ request_id: requestA, slot: 'trainer' });
+    const [sheet] = callsTo('/rest/v1/test_sheet_signatures', 'POST');
+    expect(sheet!.secret).toBe(true);
+    expect(sheet!.body).toMatchObject({
+      organization_id: organizationId,
+      client_id: clientId,
+      test_sheet_id: testSheetId,
+      slot: 'examiner',
+      request_id: requestC,
+      method: 'electronic',
+      signer_account_id: user.id,
+      signer_name: 'Ana SPECIALIST',
+      signer_job_title: 'Inspector SSM',
+      channel: 'email',
+      address: 'ana@example.ro',
+      signed_at: '2026-10-21T09:30:00.000Z',
+      digest_before: 'cc',
+      digest_after: 'dd',
+      certificate_serial: '0a1b',
+      signing_session_id: sessionId,
+    });
+    expect(callsTo('/rest/v1/training_signatures', 'POST')).toHaveLength(1);
+  });
+
+  it('refuses a test sheet of an archived client before touching it', async () => {
+    await signUpstream({
+      '/rest/v1/signing_session_items': () => [
+        { request_id: requestC, agreement_employee_id: null, agreement_party: null },
+      ],
+      'GET /rest/v1/signature_requests': () => [
+        requestRow(requestC, null as unknown as string, {
+          test_sheet_id: testSheetId,
+          slot: 'trainee',
+        }),
+      ],
+      '/rest/v1/test_sheets': () => [
+        {
+          employee_id: employeeId,
+          employees: {
+            last_name: 'Popescu',
+            first_name: 'Ion',
+            job_title: 'Sudor',
+            job_positions: null,
+          },
+          test_results: { examiner_name: null, examiner_job_title: null },
+          clients: { archived_at: '2026-10-20T00:00:00Z' },
+        },
+      ],
+    });
+
+    const body = signSessionResponseSchema.parse(
+      await (await send(path, { code: '123456' })).json()
+    );
+
+    expect(body.failed).toEqual([{ requestId: requestC, reason: 'client_archived' }]);
+    expect(applyTestSheetSignature).not.toHaveBeenCalled();
   });
 
   it('reports a request the database finds no longer pending when its evidence goes in', async () => {

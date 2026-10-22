@@ -1,0 +1,31 @@
+{
+  "file": "fisa_test.docx",
+  "unit": "Întreprinderea/unitatea: {{client.legalName}}",
+  "title": "FIȘA DE TEST",
+  "subtitle": "{{test.title}}",
+  "identity": [
+    ["Numele și prenumele", "{{employee.name}}", "Data testării", "{{takenOn}}"],
+    ["Postul", "{{employee.position}}", "Codul testului", "{{test.code}}"]
+  ],
+  "legend": "Răspunsurile alese de persoana testată sunt marcate cu ☒, celelalte cu ☐.",
+  "chosen": "☒",
+  "unchosen": "☐",
+  "result": [
+    ["Punctaj", "{{score}} din {{total}} răspunsuri corecte (minimum 70%)"],
+    ["Rezultatul testării", "{{grade}}"]
+  ],
+  "signatures": {
+    "trainee": {
+      "caption": "Instruit",
+      "field": "test_sig_trainee",
+      "name": "{{employee.name}}",
+      "role": "{{employee.position}}"
+    },
+    "examiner": {
+      "caption": "Examinator",
+      "field": "test_sig_examiner",
+      "nameField": "test_examiner_name",
+      "roleField": "test_examiner_job_title"
+    }
+  }
+}

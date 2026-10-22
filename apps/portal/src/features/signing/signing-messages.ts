@@ -2,22 +2,24 @@ import type { MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 import type {
   SignatureErrorReason,
-  SignerSlot,
+  SignatureRequestSlot,
   SigningItemFailureReason,
 } from '@ssm-usor/contracts';
 
-export const signAsMessages: Record<SignerSlot, MessageDescriptor> = {
+export const signAsMessages: Record<SignatureRequestSlot, MessageDescriptor> = {
   trainee: msg`semnezi ca instruit`,
   trainer: msg`semnezi ca instructor`,
   verifier: msg`semnezi ca verificator`,
   admitter: msg`semnezi la „Admite la lucru”`,
+  examiner: msg`semnezi ca examinator`,
 };
 
-export const slotRoleMessages: Record<SignerSlot, MessageDescriptor> = {
+export const slotRoleMessages: Record<SignatureRequestSlot, MessageDescriptor> = {
   trainee: msg`instruit`,
   trainer: msg`instructor`,
   verifier: msg`verificator`,
   admitter: msg`admite la lucru`,
+  examiner: msg`examinator`,
 };
 
 export const itemFailureMessages: Record<SigningItemFailureReason, MessageDescriptor> = {

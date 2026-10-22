@@ -17,11 +17,12 @@ import { Route as ParticipantPortalIndexRouteImport } from './routes/_participan
 import { Route as ParticipantPortalContulMeuRouteImport } from './routes/_participant/_portal/contul-meu';
 import { Route as ParticipantPortalDateleMeleRouteImport } from './routes/_participant/_portal/datele-mele';
 import { Route as ParticipantPortalInformareRouteImport } from './routes/_participant/_portal/informare';
-import { Route as ParticipantPortalInstruiriRouteImport } from './routes/_participant/_portal/instruiri';
 import { Route as ParticipantPortalSemneazaRouteImport } from './routes/_participant/_portal/semneaza';
 import { Route as ParticipantPortalAngajatiIndexRouteImport } from './routes/_participant/_portal/angajati/index';
 import { Route as ParticipantPortalAngajatiEmployeeIdRouteImport } from './routes/_participant/_portal/angajati/$employeeId';
 import { Route as ParticipantPortalAngajatiSemnaturiRouteImport } from './routes/_participant/_portal/angajati/semnaturi';
+import { Route as ParticipantPortalInstruiriIndexRouteImport } from './routes/_participant/_portal/instruiri/index';
+import { Route as ParticipantPortalInstruiriTestDomainTestRouteImport } from './routes/_participant/_portal/instruiri/test.$domain.$test';
 
 const ParticipantRoute = ParticipantRouteImport.update({
   id: '/_participant',
@@ -64,12 +65,6 @@ const ParticipantPortalInformareRoute =
     path: '/informare',
     getParentRoute: () => ParticipantPortalRoute,
   } as any);
-const ParticipantPortalInstruiriRoute =
-  ParticipantPortalInstruiriRouteImport.update({
-    id: '/instruiri',
-    path: '/instruiri',
-    getParentRoute: () => ParticipantPortalRoute,
-  } as any);
 const ParticipantPortalSemneazaRoute =
   ParticipantPortalSemneazaRouteImport.update({
     id: '/semneaza',
@@ -94,6 +89,18 @@ const ParticipantPortalAngajatiSemnaturiRoute =
     path: '/angajati/semnaturi',
     getParentRoute: () => ParticipantPortalRoute,
   } as any);
+const ParticipantPortalInstruiriIndexRoute =
+  ParticipantPortalInstruiriIndexRouteImport.update({
+    id: '/instruiri/',
+    path: '/instruiri/',
+    getParentRoute: () => ParticipantPortalRoute,
+  } as any);
+const ParticipantPortalInstruiriTestDomainTestRoute =
+  ParticipantPortalInstruiriTestDomainTestRouteImport.update({
+    id: '/instruiri/test/$domain/$test',
+    path: '/instruiri/test/$domain/$test',
+    getParentRoute: () => ParticipantPortalRoute,
+  } as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof ParticipantPortalIndexRoute;
@@ -102,11 +109,12 @@ export interface FileRoutesByFullPath {
   '/contul-meu': typeof ParticipantPortalContulMeuRoute;
   '/datele-mele': typeof ParticipantPortalDateleMeleRoute;
   '/informare': typeof ParticipantPortalInformareRoute;
-  '/instruiri': typeof ParticipantPortalInstruiriRoute;
   '/semneaza': typeof ParticipantPortalSemneazaRoute;
   '/angajati/$employeeId': typeof ParticipantPortalAngajatiEmployeeIdRoute;
   '/angajati/semnaturi': typeof ParticipantPortalAngajatiSemnaturiRoute;
   '/angajati/': typeof ParticipantPortalAngajatiIndexRoute;
+  '/instruiri/': typeof ParticipantPortalInstruiriIndexRoute;
+  '/instruiri/test/$domain/$test': typeof ParticipantPortalInstruiriTestDomainTestRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof ParticipantPortalIndexRoute;
@@ -115,11 +123,12 @@ export interface FileRoutesByTo {
   '/contul-meu': typeof ParticipantPortalContulMeuRoute;
   '/datele-mele': typeof ParticipantPortalDateleMeleRoute;
   '/informare': typeof ParticipantPortalInformareRoute;
-  '/instruiri': typeof ParticipantPortalInstruiriRoute;
   '/semneaza': typeof ParticipantPortalSemneazaRoute;
   '/angajati/$employeeId': typeof ParticipantPortalAngajatiEmployeeIdRoute;
   '/angajati/semnaturi': typeof ParticipantPortalAngajatiSemnaturiRoute;
   '/angajati': typeof ParticipantPortalAngajatiIndexRoute;
+  '/instruiri': typeof ParticipantPortalInstruiriIndexRoute;
+  '/instruiri/test/$domain/$test': typeof ParticipantPortalInstruiriTestDomainTestRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -130,12 +139,13 @@ export interface FileRoutesById {
   '/_participant/_portal/contul-meu': typeof ParticipantPortalContulMeuRoute;
   '/_participant/_portal/datele-mele': typeof ParticipantPortalDateleMeleRoute;
   '/_participant/_portal/informare': typeof ParticipantPortalInformareRoute;
-  '/_participant/_portal/instruiri': typeof ParticipantPortalInstruiriRoute;
   '/_participant/_portal/semneaza': typeof ParticipantPortalSemneazaRoute;
   '/_participant/_portal/': typeof ParticipantPortalIndexRoute;
   '/_participant/_portal/angajati/$employeeId': typeof ParticipantPortalAngajatiEmployeeIdRoute;
   '/_participant/_portal/angajati/semnaturi': typeof ParticipantPortalAngajatiSemnaturiRoute;
   '/_participant/_portal/angajati/': typeof ParticipantPortalAngajatiIndexRoute;
+  '/_participant/_portal/instruiri/': typeof ParticipantPortalInstruiriIndexRoute;
+  '/_participant/_portal/instruiri/test/$domain/$test': typeof ParticipantPortalInstruiriTestDomainTestRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
@@ -146,11 +156,12 @@ export interface FileRouteTypes {
     | '/contul-meu'
     | '/datele-mele'
     | '/informare'
-    | '/instruiri'
     | '/semneaza'
     | '/angajati/$employeeId'
     | '/angajati/semnaturi'
-    | '/angajati/';
+    | '/angajati/'
+    | '/instruiri/'
+    | '/instruiri/test/$domain/$test';
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
@@ -159,11 +170,12 @@ export interface FileRouteTypes {
     | '/contul-meu'
     | '/datele-mele'
     | '/informare'
-    | '/instruiri'
     | '/semneaza'
     | '/angajati/$employeeId'
     | '/angajati/semnaturi'
-    | '/angajati';
+    | '/angajati'
+    | '/instruiri'
+    | '/instruiri/test/$domain/$test';
   id:
     | '__root__'
     | '/_participant'
@@ -173,12 +185,13 @@ export interface FileRouteTypes {
     | '/_participant/_portal/contul-meu'
     | '/_participant/_portal/datele-mele'
     | '/_participant/_portal/informare'
-    | '/_participant/_portal/instruiri'
     | '/_participant/_portal/semneaza'
     | '/_participant/_portal/'
     | '/_participant/_portal/angajati/$employeeId'
     | '/_participant/_portal/angajati/semnaturi'
-    | '/_participant/_portal/angajati/';
+    | '/_participant/_portal/angajati/'
+    | '/_participant/_portal/instruiri/'
+    | '/_participant/_portal/instruiri/test/$domain/$test';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -244,13 +257,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParticipantPortalInformareRouteImport;
       parentRoute: typeof ParticipantPortalRoute;
     };
-    '/_participant/_portal/instruiri': {
-      id: '/_participant/_portal/instruiri';
-      path: '/instruiri';
-      fullPath: '/instruiri';
-      preLoaderRoute: typeof ParticipantPortalInstruiriRouteImport;
-      parentRoute: typeof ParticipantPortalRoute;
-    };
     '/_participant/_portal/semneaza': {
       id: '/_participant/_portal/semneaza';
       path: '/semneaza';
@@ -279,6 +285,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParticipantPortalAngajatiSemnaturiRouteImport;
       parentRoute: typeof ParticipantPortalRoute;
     };
+    '/_participant/_portal/instruiri/': {
+      id: '/_participant/_portal/instruiri/';
+      path: '/instruiri';
+      fullPath: '/instruiri/';
+      preLoaderRoute: typeof ParticipantPortalInstruiriIndexRouteImport;
+      parentRoute: typeof ParticipantPortalRoute;
+    };
+    '/_participant/_portal/instruiri/test/$domain/$test': {
+      id: '/_participant/_portal/instruiri/test/$domain/$test';
+      path: '/instruiri/test/$domain/$test';
+      fullPath: '/instruiri/test/$domain/$test';
+      preLoaderRoute: typeof ParticipantPortalInstruiriTestDomainTestRouteImport;
+      parentRoute: typeof ParticipantPortalRoute;
+    };
   }
 }
 
@@ -286,19 +306,19 @@ interface ParticipantPortalRouteChildren {
   ParticipantPortalContulMeuRoute: typeof ParticipantPortalContulMeuRoute;
   ParticipantPortalDateleMeleRoute: typeof ParticipantPortalDateleMeleRoute;
   ParticipantPortalInformareRoute: typeof ParticipantPortalInformareRoute;
-  ParticipantPortalInstruiriRoute: typeof ParticipantPortalInstruiriRoute;
   ParticipantPortalSemneazaRoute: typeof ParticipantPortalSemneazaRoute;
   ParticipantPortalIndexRoute: typeof ParticipantPortalIndexRoute;
   ParticipantPortalAngajatiEmployeeIdRoute: typeof ParticipantPortalAngajatiEmployeeIdRoute;
   ParticipantPortalAngajatiSemnaturiRoute: typeof ParticipantPortalAngajatiSemnaturiRoute;
   ParticipantPortalAngajatiIndexRoute: typeof ParticipantPortalAngajatiIndexRoute;
+  ParticipantPortalInstruiriIndexRoute: typeof ParticipantPortalInstruiriIndexRoute;
+  ParticipantPortalInstruiriTestDomainTestRoute: typeof ParticipantPortalInstruiriTestDomainTestRoute;
 }
 
 const ParticipantPortalRouteChildren: ParticipantPortalRouteChildren = {
   ParticipantPortalContulMeuRoute: ParticipantPortalContulMeuRoute,
   ParticipantPortalDateleMeleRoute: ParticipantPortalDateleMeleRoute,
   ParticipantPortalInformareRoute: ParticipantPortalInformareRoute,
-  ParticipantPortalInstruiriRoute: ParticipantPortalInstruiriRoute,
   ParticipantPortalSemneazaRoute: ParticipantPortalSemneazaRoute,
   ParticipantPortalIndexRoute: ParticipantPortalIndexRoute,
   ParticipantPortalAngajatiEmployeeIdRoute:
@@ -306,6 +326,9 @@ const ParticipantPortalRouteChildren: ParticipantPortalRouteChildren = {
   ParticipantPortalAngajatiSemnaturiRoute:
     ParticipantPortalAngajatiSemnaturiRoute,
   ParticipantPortalAngajatiIndexRoute: ParticipantPortalAngajatiIndexRoute,
+  ParticipantPortalInstruiriIndexRoute: ParticipantPortalInstruiriIndexRoute,
+  ParticipantPortalInstruiriTestDomainTestRoute:
+    ParticipantPortalInstruiriTestDomainTestRoute,
 };
 
 const ParticipantPortalRouteWithChildren =
