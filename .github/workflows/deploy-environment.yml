@@ -24,6 +24,10 @@ on:
         description: The commit last deployed, when the caller knows it better than a run's head.
         type: string
         default: ''
+      release:
+        description: The release tag the SPA and the portal show as their version, instead of the commit.
+        type: string
+        default: ''
       baseline-workflow:
         description: Without `baseline`, the workflow whose last successful run's commit is compared with.
         type: string
@@ -184,6 +188,7 @@ jobs:
     env:
       PROJECTS: ${{ needs.changes.outputs.projects }}
       GIT_COMMIT_SHA: ${{ inputs.sha }}
+      RELEASE_TAG: ${{ inputs.release }}
       VITE_API_URL: ${{ vars.API_URL }}
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
