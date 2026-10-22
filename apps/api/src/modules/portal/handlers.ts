@@ -17,6 +17,7 @@ import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
 import { type Participation, participationOf } from '../../lib/participant';
 import { recordSlots, requestColumns, signatureColumns } from '../signing/record-slots';
+import { testStatusColumns, toEmployeeTests } from '../tests/status';
 import {
   drawTrainingSheet,
   missingSheetDataResponse,
@@ -48,7 +49,8 @@ const recordColumns = `id, occupation, admitted_on, admitted_by_name, admitted_b
 
 const dataColumns = `last_name, first_name, employee_number, job_title, hired_at, home_address, birth_date, birth_place, blood_group, rh_factor, qualification, education, authorizations, commute_route, commute_minutes, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}`;
 
-const employeeListColumns = `id, last_name, first_name, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}`;
+const employeeListColumns =
+  `id, last_name, first_name, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}, ${testStatusColumns}` as const;
 
 const responsiblePersonColumns =
   'id, full_name, job_title, roles, employee_id, client_workplaces!client_responsible_persons_workplace_of_client(name)';
@@ -317,6 +319,7 @@ export const listPortalClientEmployees: RouteHandler<
         position: row.job_positions.name,
         workplace: row.client_workplaces?.name ?? null,
         training: toEmployeeTraining(row.training_status),
+        tests: toEmployeeTests(row.test_status),
       })),
     },
     200

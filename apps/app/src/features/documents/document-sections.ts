@@ -39,8 +39,8 @@ export const documentSections = [
   {
     id: 'tests',
     number: '5',
-    title: 'Teste de verificare a cunoștințelor',
-    typeKeys: ['cover_tests', 'test_hiring', 'test_periodic'],
+    title: 'Test de verificare a cunoștințelor',
+    typeKeys: ['cover_tests', 'test_hiring'],
   },
   {
     id: 'protective-equipment',

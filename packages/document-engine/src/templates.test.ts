@@ -4,7 +4,16 @@ import { fileURLToPath } from 'node:url';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
-import { trainingSheetFormSample, trainingSheetSamples } from '../tools/training-sheet-samples';
+import {
+  type KnowledgeTestCode,
+  knowledgeTestData,
+  knowledgeTestTemplates,
+} from '../tools/knowledge-test-samples';
+import {
+  testResult,
+  trainingSheetFormSample,
+  trainingSheetSamples,
+} from '../tools/training-sheet-samples';
 import { annexTitlePage } from './annex-title';
 import { renderDocument, templatePlaceholders } from './render';
 import { documentText } from './text';
@@ -40,8 +49,8 @@ const manifestOf = (folder: string) =>
   JSON.parse(readFileSync(new URL(`${folder}manifest.json`, templatesUrl), 'utf8')) as {
     templates: ManifestEntry[];
   };
-// The individual training sheets (ADR 021) and the signing agreement (ADR 023) sit beside a
-// set's templates and belong to no set.
+// The individual training sheets (ADR 021), the signing agreement (ADR 023) and the test sheet
+// (ADR 024) sit beside a set's templates and belong to no set.
 const setManifest = <Entry>(folder: string) => ({
   templates: manifestOf(folder).templates.filter((entry) => !entry.perEmployee) as Entry[],
 });
@@ -56,6 +65,12 @@ const sheetEntries = perEmployeeEntries.filter((entry) =>
 );
 
 const decisionFiles = allTemplateFiles.filter((name) => name.includes('_decision_'));
+// The API merges a test's own questions into the context of its set, as a decision gets its number.
+const knowledgeTests = Object.entries(knowledgeTestTemplates) as [KnowledgeTestCode, string][];
+const questionsOf = (name: string) => {
+  const test = knowledgeTests.find(([, file]) => file === name);
+  return test ? knowledgeTestData(test[0], 10) : {};
+};
 const templateFiles = allTemplateFiles;
 const typesetFiles = [...templateFiles, ...fireFiles, annexTitle, fireAnnexTitle];
 
@@ -647,6 +662,7 @@ describe('fire-safety set', () => {
     const text = documentText(
       renderDocument(read(name), {
         ...stageTwoData,
+        ...questionsOf(name),
         fireSafetyTechnician:
           variant === sparse ? { ...technician, authorization: null } : technician,
         fire: variant,
@@ -1383,41 +1399,6 @@ describe('fire-safety set', () => {
     expect(text).toMatch(/^TIMP TOTAL DE INSTRUIRE\n480 min$/m);
   });
 
-  it.each([
-    ['fire/4.1_fire_test_hiring.docx', 12, 'a'],
-    ['fire/4.2_fire_test_annual.docx', 10, 'a'],
-  ])(
-    '%s asks %i questions, one row per question on the sheet and in the key',
-    (name, count, last) => {
-      const text = documentText(renderDocument(read(name), stageTwoData));
-      expect(text.match(/^\d+\. /gm)).toHaveLength(count * 2);
-      expect(text).toMatch(new RegExp(`^${count}\\. `, 'm'));
-      expect(text).not.toMatch(new RegExp(`^${count + 1}\\. `, 'm'));
-      const sheet = text.slice(
-        text.indexOf('Răspunsul dat'),
-        text.lastIndexOf('TEST DE VERIFICARE')
-      );
-      expect(sheet.match(/^\d+$/gm)).toHaveLength(count);
-      const key = text.slice(text.indexOf('Răspunsul corect'));
-      expect(key.match(/^\d+\n[a-d](?:, [a-d])*$/gm)).toHaveLength(count);
-      expect(key).toMatch(new RegExp(`^${count}\\n${last}$`, 'm'));
-      expect(
-        text.match(
-          /^TEST DE VERIFICARE .*\nLa fiecare întrebare pot fi corecte unul sau mai multe răspunsuri\.$/gm
-        )
-      ).toHaveLength(2);
-      for (const gone of [
-        'funcții de execuție sau operative',
-        'termenul de valabilitate',
-        'culorii',
-        'bătăile inimii',
-        'Spuma chimică',
-      ]) {
-        expect(text).not.toContain(gone);
-      }
-    }
-  );
-
   it('lists the two tests on their cover', () => {
     const text = documentText(read('fire/4.0_fire_cover_tests.docx'));
     expect(text).toMatch(/^1\. Test de verificare a cunoștințelor la angajare/m);
@@ -1459,12 +1440,12 @@ describe('manifest', () => {
   }>('');
   const ported = manifest.templates.filter((entry) => entry.file);
 
-  it('lists all 24 originals once, and the documents written without one', () => {
-    expect(manifest.templates.filter((entry) => entry.original)).toHaveLength(24);
+  it('lists all 23 originals once, and the documents written without one', () => {
+    expect(manifest.templates.filter((entry) => entry.original)).toHaveLength(23);
     expect(
       manifest.templates.filter((entry) => !entry.original).map((entry) => entry.typeKey)
     ).toEqual(['signing_regulation_annex']);
-    expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(25);
+    expect(new Set(manifest.templates.map((entry) => entry.number)).size).toBe(24);
   });
 
   it('names each ported template after its original number and its type', () => {
@@ -2214,14 +2195,90 @@ describe('employer_briefing', () => {
   });
 });
 
-describe('test_periodic', () => {
-  it('says under the title of the test and of the specimen that several answers may be right', () => {
-    const text = documentText(read('5.2_test_periodic.docx'));
+// ADR 024: the questions come from the organization's question bank, printed on the test and
+// again on the specimen, a row each on the answer sheet and in the key.
+describe('knowledge tests', () => {
+  const header = {
+    branding: true,
+    issueDate: '19.01.2026',
+    provider: {
+      legalName: 'S.C. SERVICIU EXTERN S.R.L.',
+      representativeName: 'Dan MARIN',
+      representativeRole: 'Administrator',
+    },
+    client: {
+      legalName: 'S.C. CLIENT DEMO S.R.L.',
+      representativeName: 'Maria POPESCU',
+      representativeRole: 'Administrator',
+    },
+    fireSafetyTechnician: { name: 'Radu STAN' },
+  };
+
+  it.each(knowledgeTests)('%s asks for the questions besides its header', (_code, name) => {
     expect(
-      text.match(
-        /^TESTARE DE VERIFICARE .*\(PERIODIC\)\nLa fiecare întrebare pot fi corecte unul sau mai multe răspunsuri\.$/gm
+      templatePlaceholders(read(name)).filter(
+        (each) => !each.includes('.') && !['branding', 'issueDate'].includes(each)
       )
-    ).toHaveLength(2);
+    ).toEqual(['$last', 'key', 'letter', 'number', 'options', 'questions', 'text']);
+  });
+
+  it.each(
+    knowledgeTests.flatMap(([code, name]) => [10, 12].map((count) => [code, name, count] as const))
+  )(
+    '%s (%s) prints %i questions twice, a row each on the answer sheet and in the key',
+    (code, name, count) => {
+      const data = knowledgeTestData(code, count);
+      const text = documentText(renderDocument(read(name), { ...header, ...data }));
+      expect(text).not.toContain('{{');
+      expect(text.match(/^\d+\. /gm)).toHaveLength(count * 2);
+      expect(
+        text.match(
+          /^TEST(ARE)? DE VERIFICARE .*\nLa fiecare întrebare pot fi corecte unul sau mai multe răspunsuri\.$/gm
+        )
+      ).toHaveLength(2);
+      expect(text).toContain(
+        'Rezultatul testării (minimum 70% răspunsuri corecte):\nAdmis / Respins'
+      );
+      for (const question of data.questions) {
+        expect(text.split(`\n${question.number}. ${question.text}\n`)).toHaveLength(3);
+        for (const option of question.options) {
+          expect(text.split(`\n${option.letter}) ${option.text}\n`).length).toBeGreaterThanOrEqual(
+            3
+          );
+        }
+      }
+      const sheetStart = text.indexOf('Răspunsul dat');
+      const sheet = text.slice(sheetStart, text.indexOf('\n1. ', sheetStart));
+      expect(sheet.match(/^\d+$/gm)).toHaveLength(count);
+      const keyTitle =
+        code === 'TASSM' ? 'SPECIMEN CU RĂSPUNSURILE CORECTE' : 'RĂSPUNSURILE CORECTE';
+      const keyStart = text.indexOf(`\n${keyTitle}\nNr. întrebării\nRăspunsul corect\n`);
+      expect(keyStart).toBeGreaterThan(sheetStart);
+      const key = text.slice(keyStart);
+      expect(key.match(/^\d+\n[A-D](?:, [A-D])*$/gm)).toHaveLength(count);
+      for (const question of data.questions) {
+        expect(key).toMatch(new RegExp(`^${question.number}\\n${question.key}$`, 'm'));
+      }
+    }
+  );
+
+  it.each(knowledgeTests)('%s opens the specimen on a page of its own', (_code, name) => {
+    const titles = (bodyOf(name).match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []).filter((paragraph) =>
+      /^TEST(ARE)? DE VERIFICARE /.test(documentTextOf(paragraph))
+    );
+    expect(titles).toHaveLength(2);
+    expect(titles[0]).toContain('<w:pageBreakBefore w:val="false"/>');
+    expect(titles[1]).toContain('<w:pageBreakBefore w:val="true"/>');
+  });
+
+  it.each(knowledgeTests)('%s holds no picture', (_code, name) => {
+    const zip = new PizZip(read(name));
+    expect(Object.keys(zip.files).filter((part) => part.startsWith('word/media/'))).toEqual([]);
+    expect(zip.file('word/_rels/document.xml.rels')!.asText()).not.toContain('relationships/image');
+  });
+
+  it.each(knowledgeTests)('%s refuses to render without the questions', (_code, name) => {
+    expect(() => renderDocument(read(name), header)).toThrow(/questions/);
   });
 });
 
@@ -2594,10 +2651,11 @@ describe('prevention_plan', () => {
 });
 
 describe('the individual training sheets', () => {
-  it('are, with the signing agreement, the per-employee entries of their manifests, with no number', () => {
+  it('are, with the signing agreement and the test sheet, the per-employee entries of their manifests, with no number', () => {
     expect(perEmployeeEntries.map(({ typeKey, path }) => [typeKey, path])).toEqual([
       ['training_sheet_ssm', 'fisa_instruire_ssm.docx'],
       ['signing_agreement', 'act_aditional_semnare_electronica.docx'],
+      ['test_sheet', 'fisa_test.docx'],
       ['training_sheet_psi', 'fire/fisa_instructaj_psi.docx'],
     ]);
     for (const entry of perEmployeeEntries) expect(entry).not.toHaveProperty('number');
@@ -2612,7 +2670,10 @@ describe('the individual training sheets', () => {
         ? dotted(value as object, `${prefix}${key}.`)
         : [`${prefix}${key}`]
     );
-  const rowNames = ['heldOn', 'hours', 'occupation', 'material', 'trainer', 'verifier', '$index'];
+  const rowNames = [
+    ...['heldOn', 'hours', 'occupation', 'material', 'trainer', 'verifier', '$index'],
+    ...['date', 'grade', 'examiner'],
+  ];
 
   describe.each([
     ['ssm', 'fisa_instruire_ssm.docx'],
@@ -2672,9 +2733,12 @@ describe('the individual training sheets', () => {
       expect(printed.some((title) => /^(h1|p1|p2)_/.test(title))).toBe(false);
       expect(printed.includes('adm_sig')).toBe(domain === 'ssm');
       expect(printed.includes('s17_sig_verifier')).toBe(domain === 'ssm');
+      expect(printed.includes('t2_date') && printed.includes('t5_examiner')).toBe(domain === 'ssm');
+      expect(printed.some((title) => title.startsWith('t1_'))).toBe(false);
       const text = documentText(docx);
       expect(text).toContain('semnat pe hârtie');
       expect(text).toContain(data.periodic[1]!.material);
+      for (const result of data.testResults) expect(text).toContain(result.material);
       expect(text).not.toContain('{{');
     });
 
@@ -2687,10 +2751,35 @@ describe('the individual training sheets', () => {
             .match(/<w:tr>/g) ?? []
         ).length;
       const { data } = empty;
-      expect(rows(data) - rows({ ...data, blankRows: { periodic: [], supplementary: [] } })).toBe(
-        data.blankRows.periodic.length + data.blankRows.supplementary.length
+      expect(
+        rows(data) -
+          rows({ ...data, blankRows: { periodic: [], supplementary: [], testResults: [] } })
+      ).toBe(
+        data.blankRows.periodic.length +
+          data.blankRows.supplementary.length +
+          data.blankRows.testResults.length
       );
     });
+  });
+
+  it.each([0, 2, 5])('prints %i test results on the SSM sheet, blank rows up to five', (count) => {
+    const { data } = trainingSheetSamples('ssm')[0]!;
+    const results = Array.from({ length: count }, (_, index) =>
+      testResult(`0${index + 1}.02.2026`, `Test de verificare a cunoștințelor nr. ${index + 1}`)
+    );
+    const docx = renderDocument(read('fisa_instruire_ssm.docx'), {
+      ...data,
+      testResults: results,
+      blankRows: { ...data.blankRows, testResults: Array.from({ length: 5 - count }, () => ({})) },
+    });
+    const xml = new PizZip(docx).file('word/document.xml')!.asText();
+    const block = xml.slice(xml.indexOf('Rezultatele testărilor'));
+    const table = block.slice(block.indexOf('<w:tbl>'), block.indexOf('</w:tbl>'));
+    expect(table.match(/<w:tr>/g)).toHaveLength(1 + 5);
+    const text = documentText(docx);
+    for (const result of results) {
+      expect(text).toContain(`${result.date}\n${result.material}\nadmis\n${result.examiner}`);
+    }
   });
 
   it('follows the rubrics of annex 11 to the norms of H.G. 1425/2006', () => {

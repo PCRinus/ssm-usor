@@ -30,6 +30,24 @@ describe('fromDatabaseError', () => {
   });
 });
 
+describe('the knowledge tests errors', () => {
+  it('words a test kept below ten questions as a conflict, the raised text its reason', () => {
+    expect(
+      fromDatabaseError({ code: 'TST01', message: 'test_below_minimum' }, 'hide')
+    ).toMatchObject({
+      code: 'conflict',
+      reason: 'test_below_minimum',
+      message: 'Un test trebuie să păstreze cel puțin zece întrebări active.',
+    });
+  });
+
+  it('answers an answer that does not fit the attempt as invalid', () => {
+    expect(
+      fromDatabaseError({ code: 'TST04', message: 'option_out_of_range' }, 'answer')
+    ).toMatchObject({ code: 'validation_error', reason: 'option_out_of_range' });
+  });
+});
+
 describe('requestFetch', () => {
   const context = { req: { raw: new Request('https://api.test/') } } as unknown as Context<ApiEnv>;
 

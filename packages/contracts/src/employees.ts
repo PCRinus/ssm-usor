@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { decodeCnp, isValidCnpInput, normalizeCnp } from './cnp';
 import { listQuerySchema, listSearchSchema, pageSchema } from './list';
 import { phoneSchema } from './phone';
+import { employeeTestsSchema, testStateFilterSchema } from './tests';
 import { employeeTrainingSchema, trainingStateFilterSchema } from './trainings';
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
@@ -107,6 +108,8 @@ export const listEmployeesQuerySchema = listQuerySchema(employeeSortKeys, 'name'
   status: employeeStatusSchema.optional(),
   // Matched in either domain.
   trainingState: trainingStateFilterSchema.optional(),
+  // As the training state: passed means passed in both domains.
+  testState: testStateFilterSchema.optional(),
   q: listSearchSchema.optional(),
 });
 
@@ -146,6 +149,7 @@ export const employeeSchema = z.object({
   updatedAt: z.iso.datetime({ offset: true }),
   archivedAt: z.iso.datetime({ offset: true }).nullable(),
   training: employeeTrainingSchema,
+  tests: employeeTestsSchema,
 });
 
 export type Employee = z.infer<typeof employeeSchema>;
@@ -167,6 +171,7 @@ export const employeeListItemSchema = employeeSchema.pick({
   createdAt: true,
   updatedAt: true,
   training: true,
+  tests: true,
 });
 
 export type EmployeeListItem = z.infer<typeof employeeListItemSchema>;

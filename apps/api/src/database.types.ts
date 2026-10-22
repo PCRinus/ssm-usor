@@ -103,6 +103,13 @@ export type Database = {
             foreignKeyName: 'agreement_signatures_employee_of_client';
             columns: ['employee_id', 'client_id'];
             isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'agreement_signatures_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
             referencedRelation: 'employee_training_status';
             referencedColumns: ['employee_id', 'client_id'];
           },
@@ -259,6 +266,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_files_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
           },
           {
             foreignKeyName: 'client_files_employee_of_client';
@@ -475,6 +489,13 @@ export type Database = {
             foreignKeyName: 'client_participants_employee_of_client';
             columns: ['employee_id', 'client_id'];
             isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'client_participants_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
             referencedRelation: 'employee_training_status';
             referencedColumns: ['employee_id', 'client_id'];
           },
@@ -558,6 +579,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_responsible_persons_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
           },
           {
             foreignKeyName: 'client_responsible_persons_employee_of_client';
@@ -1197,6 +1225,13 @@ export type Database = {
             foreignKeyName: 'employee_signing_agreements_employee_of_client';
             columns: ['employee_id', 'client_id'];
             isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'employee_signing_agreements_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
             referencedRelation: 'employee_training_status';
             referencedColumns: ['employee_id', 'client_id'];
           },
@@ -1258,6 +1293,20 @@ export type Database = {
           workplace_id: string | null;
           employee_client_search_name: string | null;
           employee_search_name: string | null;
+          test_status: {
+            client_id: string | null;
+            employee_id: string | null;
+            organization_id: string | null;
+            psi_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
+            psi_due_on: string | null;
+            psi_hiring_trained_on: string | null;
+            psi_last_passed_on: string | null;
+            psi_state: Database['public']['Enums']['test_state'] | null;
+            ssm_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
+            ssm_hiring_trained_on: string | null;
+            ssm_last_passed_on: string | null;
+            ssm_state: Database['public']['Enums']['test_state'] | null;
+          } | null;
           training_status: {
             client_id: string | null;
             employee_id: string | null;
@@ -2727,6 +2776,13 @@ export type Database = {
             foreignKeyName: 'participant_invitations_employee_of_client';
             columns: ['employee_id', 'client_id'];
             isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'participant_invitations_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
             referencedRelation: 'employee_training_status';
             referencedColumns: ['employee_id', 'client_id'];
           },
@@ -3297,7 +3353,8 @@ export type Database = {
           signing_session_id: string | null;
           slot: Database['public']['Enums']['signer_slot'];
           state: string;
-          training_record_id: string;
+          test_sheet_id: string | null;
+          training_record_id: string | null;
           updated_at: string;
           void_reason: string | null;
           voided_at: string | null;
@@ -3315,7 +3372,8 @@ export type Database = {
           signing_session_id?: string | null;
           slot: Database['public']['Enums']['signer_slot'];
           state?: string;
-          training_record_id: string;
+          test_sheet_id?: string | null;
+          training_record_id?: string | null;
           updated_at?: string;
           void_reason?: string | null;
           voided_at?: string | null;
@@ -3333,7 +3391,8 @@ export type Database = {
           signing_session_id?: string | null;
           slot?: Database['public']['Enums']['signer_slot'];
           state?: string;
-          training_record_id?: string;
+          test_sheet_id?: string | null;
+          training_record_id?: string | null;
           updated_at?: string;
           void_reason?: string | null;
           voided_at?: string | null;
@@ -3376,6 +3435,13 @@ export type Database = {
             referencedColumns: ['id', 'client_id'];
           },
           {
+            foreignKeyName: 'signature_requests_sheet_of_client';
+            columns: ['test_sheet_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'test_sheets';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
             foreignKeyName: 'signature_requests_signing_session_id_fkey';
             columns: ['signing_session_id'];
             isOneToOne: false;
@@ -3394,7 +3460,8 @@ export type Database = {
           printed_as_text: boolean;
           row_key: string;
           signed_sheet_id: string;
-          training_record_id: string;
+          test_result_id: string | null;
+          training_record_id: string | null;
           void_noted_at: string | null;
           voided_at: string | null;
         };
@@ -3407,7 +3474,8 @@ export type Database = {
           printed_as_text?: boolean;
           row_key: string;
           signed_sheet_id: string;
-          training_record_id: string;
+          test_result_id?: string | null;
+          training_record_id?: string | null;
           void_noted_at?: string | null;
           voided_at?: string | null;
         };
@@ -3420,7 +3488,8 @@ export type Database = {
           printed_as_text?: boolean;
           row_key?: string;
           signed_sheet_id?: string;
-          training_record_id?: string;
+          test_result_id?: string | null;
+          training_record_id?: string | null;
           void_noted_at?: string | null;
           voided_at?: string | null;
         };
@@ -3430,6 +3499,13 @@ export type Database = {
             columns: ['training_record_id', 'client_id'];
             isOneToOne: false;
             referencedRelation: 'training_records';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'signed_sheet_rows_result_of_client';
+            columns: ['test_result_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'test_results';
             referencedColumns: ['id', 'client_id'];
           },
           {
@@ -3511,6 +3587,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'signed_sheets_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
           },
           {
             foreignKeyName: 'signed_sheets_employee_of_client';
@@ -3613,6 +3696,13 @@ export type Database = {
             foreignKeyName: 'signing_session_items_agreement_employee_id_fkey';
             columns: ['agreement_employee_id'];
             isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id'];
+          },
+          {
+            foreignKeyName: 'signing_session_items_agreement_employee_id_fkey';
+            columns: ['agreement_employee_id'];
+            isOneToOne: false;
             referencedRelation: 'employee_training_status';
             referencedColumns: ['employee_id'];
           },
@@ -3698,6 +3788,602 @@ export type Database = {
           },
         ];
       };
+      test_attempt_keys: {
+        Row: {
+          attempt_id: string;
+          created_at: string;
+          key: Json;
+        };
+        Insert: {
+          attempt_id: string;
+          created_at?: string;
+          key: Json;
+        };
+        Update: {
+          attempt_id?: string;
+          created_at?: string;
+          key?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'test_attempt_keys_attempt_id_fkey';
+            columns: ['attempt_id'];
+            isOneToOne: true;
+            referencedRelation: 'test_attempts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      test_attempts: {
+        Row: {
+          client_address: unknown;
+          client_id: string;
+          created_at: string;
+          domain: Database['public']['Enums']['training_domain'];
+          employee_id: string;
+          finished_at: string | null;
+          id: string;
+          language: string;
+          material_revision_id: string | null;
+          organization_id: string;
+          participant_id: string;
+          passed: boolean | null;
+          questions: Json;
+          score: number | null;
+          started_at: string;
+          test: Database['public']['Enums']['knowledge_test'];
+          total: number;
+          user_agent: string | null;
+        };
+        Insert: {
+          client_address?: unknown;
+          client_id: string;
+          created_at?: string;
+          domain: Database['public']['Enums']['training_domain'];
+          employee_id: string;
+          finished_at?: string | null;
+          id?: string;
+          language?: string;
+          material_revision_id?: string | null;
+          organization_id: string;
+          participant_id: string;
+          passed?: boolean | null;
+          questions: Json;
+          score?: number | null;
+          started_at?: string;
+          test: Database['public']['Enums']['knowledge_test'];
+          total: number;
+          user_agent?: string | null;
+        };
+        Update: {
+          client_address?: unknown;
+          client_id?: string;
+          created_at?: string;
+          domain?: Database['public']['Enums']['training_domain'];
+          employee_id?: string;
+          finished_at?: string | null;
+          id?: string;
+          language?: string;
+          material_revision_id?: string | null;
+          organization_id?: string;
+          participant_id?: string;
+          passed?: boolean | null;
+          questions?: Json;
+          score?: number | null;
+          started_at?: string;
+          test?: Database['public']['Enums']['knowledge_test'];
+          total?: number;
+          user_agent?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'test_attempts_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_attempts_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_attempts_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'test_attempts_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_attempts_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_attempts_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_attempts_material_revision_id_fkey';
+            columns: ['material_revision_id'];
+            isOneToOne: false;
+            referencedRelation: 'document_revisions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_attempts_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_attempts_participant_of_client';
+            columns: ['participant_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_participants';
+            referencedColumns: ['id', 'client_id'];
+          },
+        ];
+      };
+      test_question_hides: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          organization_id: string;
+          question_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          organization_id: string;
+          question_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          organization_id?: string;
+          question_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'test_question_hides_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_question_hides_question_id_fkey';
+            columns: ['question_id'];
+            isOneToOne: false;
+            referencedRelation: 'test_questions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      test_questions: {
+        Row: {
+          citation: string | null;
+          created_at: string;
+          created_by: string | null;
+          domain: Database['public']['Enums']['training_domain'];
+          explanation: string | null;
+          id: string;
+          options: Json;
+          organization_id: string | null;
+          position: number;
+          replaces_question_id: string | null;
+          test: Database['public']['Enums']['knowledge_test'];
+          text: string;
+          updated_at: string;
+        };
+        Insert: {
+          citation?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          domain: Database['public']['Enums']['training_domain'];
+          explanation?: string | null;
+          id?: string;
+          options: Json;
+          organization_id?: string | null;
+          position: number;
+          replaces_question_id?: string | null;
+          test: Database['public']['Enums']['knowledge_test'];
+          text: string;
+          updated_at?: string;
+        };
+        Update: {
+          citation?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          domain?: Database['public']['Enums']['training_domain'];
+          explanation?: string | null;
+          id?: string;
+          options?: Json;
+          organization_id?: string | null;
+          position?: number;
+          replaces_question_id?: string | null;
+          test?: Database['public']['Enums']['knowledge_test'];
+          text?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'test_questions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_questions_replaces_question_id_fkey';
+            columns: ['replaces_question_id'];
+            isOneToOne: false;
+            referencedRelation: 'test_questions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      test_results: {
+        Row: {
+          attempt_id: string | null;
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          domain: Database['public']['Enums']['training_domain'];
+          employee_id: string;
+          examiner_job_title: string | null;
+          examiner_name: string | null;
+          grade: string;
+          id: string;
+          material: string;
+          organization_id: string;
+          source: Database['public']['Enums']['test_result_source'];
+          taken_on: string;
+          test: Database['public']['Enums']['knowledge_test'];
+          updated_at: string;
+        };
+        Insert: {
+          attempt_id?: string | null;
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          domain: Database['public']['Enums']['training_domain'];
+          employee_id: string;
+          examiner_job_title?: string | null;
+          examiner_name?: string | null;
+          grade?: string;
+          id?: string;
+          material: string;
+          organization_id: string;
+          source: Database['public']['Enums']['test_result_source'];
+          taken_on: string;
+          test: Database['public']['Enums']['knowledge_test'];
+          updated_at?: string;
+        };
+        Update: {
+          attempt_id?: string | null;
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          domain?: Database['public']['Enums']['training_domain'];
+          employee_id?: string;
+          examiner_job_title?: string | null;
+          examiner_name?: string | null;
+          grade?: string;
+          id?: string;
+          material?: string;
+          organization_id?: string;
+          source?: Database['public']['Enums']['test_result_source'];
+          taken_on?: string;
+          test?: Database['public']['Enums']['knowledge_test'];
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'test_results_attempt_of_employee';
+            columns: ['attempt_id', 'employee_id', 'domain', 'test'];
+            isOneToOne: false;
+            referencedRelation: 'test_attempts';
+            referencedColumns: ['id', 'employee_id', 'domain', 'test'];
+          },
+          {
+            foreignKeyName: 'test_results_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_results_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_results_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'test_results_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_results_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_results_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_results_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      test_sheet_signatures: {
+        Row: {
+          address: string | null;
+          certificate_serial: string | null;
+          channel: string | null;
+          client_id: string;
+          client_ip: unknown;
+          code_sent_at: string | null;
+          code_verified_at: string | null;
+          created_at: string;
+          digest_after: string | null;
+          digest_before: string | null;
+          id: string;
+          marked_by: string | null;
+          method: string;
+          organization_id: string;
+          request_id: string;
+          signed_at: string;
+          signer_account_id: string | null;
+          signer_job_title: string | null;
+          signer_name: string;
+          signing_session_id: string | null;
+          slot: Database['public']['Enums']['signer_slot'];
+          test_sheet_id: string;
+          user_agent: string | null;
+        };
+        Insert: {
+          address?: string | null;
+          certificate_serial?: string | null;
+          channel?: string | null;
+          client_id: string;
+          client_ip?: unknown;
+          code_sent_at?: string | null;
+          code_verified_at?: string | null;
+          created_at?: string;
+          digest_after?: string | null;
+          digest_before?: string | null;
+          id?: string;
+          marked_by?: string | null;
+          method: string;
+          organization_id: string;
+          request_id: string;
+          signed_at?: string;
+          signer_account_id?: string | null;
+          signer_job_title?: string | null;
+          signer_name: string;
+          signing_session_id?: string | null;
+          slot: Database['public']['Enums']['signer_slot'];
+          test_sheet_id: string;
+          user_agent?: string | null;
+        };
+        Update: {
+          address?: string | null;
+          certificate_serial?: string | null;
+          channel?: string | null;
+          client_id?: string;
+          client_ip?: unknown;
+          code_sent_at?: string | null;
+          code_verified_at?: string | null;
+          created_at?: string;
+          digest_after?: string | null;
+          digest_before?: string | null;
+          id?: string;
+          marked_by?: string | null;
+          method?: string;
+          organization_id?: string;
+          request_id?: string;
+          signed_at?: string;
+          signer_account_id?: string | null;
+          signer_job_title?: string | null;
+          signer_name?: string;
+          signing_session_id?: string | null;
+          slot?: Database['public']['Enums']['signer_slot'];
+          test_sheet_id?: string;
+          user_agent?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'test_sheet_signatures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_request_of_slot';
+            columns: ['request_id', 'test_sheet_id', 'slot'];
+            isOneToOne: false;
+            referencedRelation: 'signature_requests';
+            referencedColumns: ['id', 'test_sheet_id', 'slot'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_sheet_of_client';
+            columns: ['test_sheet_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'test_sheets';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_signing_session_id_fkey';
+            columns: ['signing_session_id'];
+            isOneToOne: false;
+            referencedRelation: 'signing_sessions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      test_sheets: {
+        Row: {
+          certified_at: string | null;
+          client_id: string;
+          created_at: string;
+          digest: string;
+          employee_id: string;
+          generated_at: string;
+          id: string;
+          organization_id: string;
+          storage_path: string;
+          test_result_id: string;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          certified_at?: string | null;
+          client_id: string;
+          created_at?: string;
+          digest: string;
+          employee_id: string;
+          generated_at?: string;
+          id?: string;
+          organization_id: string;
+          storage_path: string;
+          test_result_id: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          certified_at?: string | null;
+          client_id?: string;
+          created_at?: string;
+          digest?: string;
+          employee_id?: string;
+          generated_at?: string;
+          id?: string;
+          organization_id?: string;
+          storage_path?: string;
+          test_result_id?: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'test_sheets_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_training_status';
+            referencedColumns: ['employee_id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_result_of_client';
+            columns: ['test_result_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'test_results';
+            referencedColumns: ['id', 'client_id'];
+          },
+        ];
+      };
       training_records: {
         Row: {
           admitted_by_job_title: string | null;
@@ -3765,6 +4451,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'training_records_employee_of_client';
+            columns: ['employee_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'employee_test_status';
+            referencedColumns: ['employee_id', 'client_id'];
           },
           {
             foreignKeyName: 'training_records_employee_of_client';
@@ -4149,6 +4842,52 @@ export type Database = {
           },
         ];
       };
+      employee_test_status: {
+        Row: {
+          client_id: string | null;
+          employee_id: string | null;
+          organization_id: string | null;
+          psi_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
+          psi_due_on: string | null;
+          psi_hiring_trained_on: string | null;
+          psi_last_passed_on: string | null;
+          psi_state: Database['public']['Enums']['test_state'] | null;
+          ssm_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
+          ssm_hiring_trained_on: string | null;
+          ssm_last_passed_on: string | null;
+          ssm_state: Database['public']['Enums']['test_state'] | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'employees_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employees_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employees_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'employees_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       employee_training_status: {
         Row: {
           client_id: string | null;
@@ -4220,7 +4959,68 @@ export type Database = {
         Returns: string;
       };
       accept_participant_invitations: { Args: never; Returns: number };
+      active_test_questions: {
+        Args: {
+          p_domain: Database['public']['Enums']['training_domain'];
+          p_organization_id: string;
+          p_test: Database['public']['Enums']['knowledge_test'];
+        };
+        Returns: {
+          citation: string | null;
+          created_at: string;
+          created_by: string | null;
+          domain: Database['public']['Enums']['training_domain'];
+          explanation: string | null;
+          id: string;
+          options: Json;
+          organization_id: string | null;
+          position: number;
+          replaces_question_id: string | null;
+          test: Database['public']['Enums']['knowledge_test'];
+          text: string;
+          updated_at: string;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'test_questions';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       administered_client_ids: { Args: never; Returns: string[] };
+      answer_test_attempt: {
+        Args: {
+          p_attempt_id: string;
+          p_chosen: number[];
+          p_question_index: number;
+        };
+        Returns: {
+          client_address: unknown;
+          client_id: string;
+          created_at: string;
+          domain: Database['public']['Enums']['training_domain'];
+          employee_id: string;
+          finished_at: string | null;
+          id: string;
+          language: string;
+          material_revision_id: string | null;
+          organization_id: string;
+          participant_id: string;
+          passed: boolean | null;
+          questions: Json;
+          score: number | null;
+          started_at: string;
+          test: Database['public']['Enums']['knowledge_test'];
+          total: number;
+          user_agent: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'test_attempts';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       apply_evaluation_profile: {
         Args: { p_evaluation_id: string; p_profile_id: string };
         Returns: number;
@@ -4369,6 +5169,20 @@ export type Database = {
           error: true;
         } & 'the function public.employee_search_name with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
+      employee_test_due: {
+        Args: {
+          p_domain: Database['public']['Enums']['training_domain'];
+          p_employee_id: string;
+          p_status: Database['public']['Enums']['employee_status'];
+        };
+        Returns: {
+          awaiting_test: Database['public']['Enums']['knowledge_test'];
+          due_on: string;
+          hiring_trained_on: string;
+          last_passed_on: string;
+          state: Database['public']['Enums']['test_state'];
+        }[];
+      };
       employee_training_due: {
         Args: {
           p_domain: Database['public']['Enums']['training_domain'];
@@ -4384,6 +5198,39 @@ export type Database = {
           state: Database['public']['Enums']['training_state'];
           workplace_trained_on: string;
         }[];
+      };
+      finish_test_attempt: {
+        Args: {
+          p_attempt_id: string;
+          p_client_address?: unknown;
+          p_user_agent?: string;
+        };
+        Returns: {
+          client_address: unknown;
+          client_id: string;
+          created_at: string;
+          domain: Database['public']['Enums']['training_domain'];
+          employee_id: string;
+          finished_at: string | null;
+          id: string;
+          language: string;
+          material_revision_id: string | null;
+          organization_id: string;
+          participant_id: string;
+          passed: boolean | null;
+          questions: Json;
+          score: number | null;
+          started_at: string;
+          test: Database['public']['Enums']['knowledge_test'];
+          total: number;
+          user_agent: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'test_attempts';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       is_client_administrator: {
         Args: { p_client_id: string };
@@ -4464,6 +5311,43 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      mark_test_sheet_paper_signature: {
+        Args: {
+          p_slot: Database['public']['Enums']['signer_slot'];
+          p_test_sheet_id: string;
+        };
+        Returns: {
+          address: string | null;
+          certificate_serial: string | null;
+          channel: string | null;
+          client_id: string;
+          client_ip: unknown;
+          code_sent_at: string | null;
+          code_verified_at: string | null;
+          created_at: string;
+          digest_after: string | null;
+          digest_before: string | null;
+          id: string;
+          marked_by: string | null;
+          method: string;
+          organization_id: string;
+          request_id: string;
+          signed_at: string;
+          signer_account_id: string | null;
+          signer_job_title: string | null;
+          signer_name: string;
+          signing_session_id: string | null;
+          slot: Database['public']['Enums']['signer_slot'];
+          test_sheet_id: string;
+          user_agent: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'test_sheet_signatures';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       my_open_invitations: {
         Args: never;
         Returns: {
@@ -4496,8 +5380,49 @@ export type Database = {
           user_id: string;
         }[];
       };
+      own_test_attempt_for_update: {
+        Args: { p_attempt_id: string };
+        Returns: {
+          client_address: unknown;
+          client_id: string;
+          created_at: string;
+          domain: Database['public']['Enums']['training_domain'];
+          employee_id: string;
+          finished_at: string | null;
+          id: string;
+          language: string;
+          material_revision_id: string | null;
+          organization_id: string;
+          participant_id: string;
+          passed: boolean | null;
+          questions: Json;
+          score: number | null;
+          started_at: string;
+          test: Database['public']['Enums']['knowledge_test'];
+          total: number;
+          user_agent: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'test_attempts';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       participant_client_ids: { Args: never; Returns: string[] };
       participant_employee_ids: { Args: never; Returns: string[] };
+      portal_material: {
+        Args: {
+          p_domain: Database['public']['Enums']['training_domain'];
+          p_participant_id: string;
+        };
+        Returns: {
+          issued_at: string;
+          pdf_path: string;
+          revision_id: string;
+          title: string;
+        }[];
+      };
       record_participant_notice: {
         Args: { p_participant_id: string; p_version: string };
         Returns: boolean;
@@ -4680,6 +5605,110 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      start_test_attempt: {
+        Args: {
+          p_client_address?: unknown;
+          p_domain: Database['public']['Enums']['training_domain'];
+          p_material_revision_id?: string;
+          p_participant_id: string;
+          p_test: Database['public']['Enums']['knowledge_test'];
+          p_user_agent?: string;
+        };
+        Returns: {
+          client_address: unknown;
+          client_id: string;
+          created_at: string;
+          domain: Database['public']['Enums']['training_domain'];
+          employee_id: string;
+          finished_at: string | null;
+          id: string;
+          language: string;
+          material_revision_id: string | null;
+          organization_id: string;
+          participant_id: string;
+          passed: boolean | null;
+          questions: Json;
+          score: number | null;
+          started_at: string;
+          test: Database['public']['Enums']['knowledge_test'];
+          total: number;
+          user_agent: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'test_attempts';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      test_options_are_valid: { Args: { p_options: Json }; Returns: boolean };
+      test_participant: {
+        Args: { p_participant_id: string };
+        Returns: {
+          client_id: string;
+          created_at: string;
+          employee_id: string | null;
+          full_name: string | null;
+          id: string;
+          kind: Database['public']['Enums']['participant_kind'];
+          language: string | null;
+          notice_shown_at: string | null;
+          notice_version: string | null;
+          organization_id: string;
+          revoked_at: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'client_participants';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      test_sheet_signer_has_standing: {
+        Args: {
+          p_account_id: string;
+          p_client_id: string;
+          p_organization_id: string;
+          p_slot: Database['public']['Enums']['signer_slot'];
+          p_test_sheet_id: string;
+        };
+        Returns: boolean;
+      };
+      test_status: {
+        Args: { '': Database['public']['Tables']['employees']['Row'] };
+        Returns: {
+          client_id: string | null;
+          employee_id: string | null;
+          organization_id: string | null;
+          psi_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
+          psi_due_on: string | null;
+          psi_hiring_trained_on: string | null;
+          psi_last_passed_on: string | null;
+          psi_state: Database['public']['Enums']['test_state'] | null;
+          ssm_awaiting_test: Database['public']['Enums']['knowledge_test'] | null;
+          ssm_hiring_trained_on: string | null;
+          ssm_last_passed_on: string | null;
+          ssm_state: Database['public']['Enums']['test_state'] | null;
+        };
+        SetofOptions: {
+          from: 'employees';
+          to: 'employee_test_status';
+          isOneToOne: true;
+          isSetofReturn: true;
+        };
+      };
+      test_study_card: {
+        Args: {
+          p_domain: Database['public']['Enums']['training_domain'];
+          p_participant_id: string;
+          p_test: Database['public']['Enums']['knowledge_test'];
+        };
+        Returns: {
+          explanation: string;
+        }[];
+      };
       text_items_length_between: {
         Args: { p_items: string[]; p_max: number; p_min: number };
         Returns: boolean;
@@ -4771,6 +5800,7 @@ export type Database = {
       fire_substances_state: 'undecided' | 'none' | 'listed';
       instruction_domain: 'ssm' | 'psi';
       instruction_module_group: 'work_activity' | 'work_equipment' | 'protective_equipment';
+      knowledge_test: 'hiring' | 'annual';
       organization_role: 'owner' | 'specialist';
       participant_kind: 'employee' | 'client_administrator';
       prevention_measure_kind: 'technical' | 'organizational' | 'hygienic_sanitary' | 'other';
@@ -4784,7 +5814,7 @@ export type Database = {
         | 'fire_intervention_leader';
       risk_evaluation_kind: 'job_position' | 'sensitive_groups' | 'other';
       sensitive_groups_state: 'undecided' | 'none' | 'evaluated';
-      signer_slot: 'trainee' | 'trainer' | 'verifier' | 'admitter';
+      signer_slot: 'trainee' | 'trainer' | 'verifier' | 'admitter' | 'examiner';
       staff_category: 'technical_administrative' | 'execution';
       supplementary_training_reason:
         | 'absence_over_thirty_days'
@@ -4794,6 +5824,8 @@ export type Database = {
         | 'new_equipment'
         | 'changed_procedure'
         | 'new_technology';
+      test_result_source: 'portal' | 'paper';
+      test_state: 'none' | 'pending' | 'passed' | 'annual_due';
       training_domain: 'ssm' | 'psi';
       training_phase: 'introductory_general' | 'workplace' | 'periodic' | 'supplementary';
       training_source: 'app' | 'paper';
@@ -4952,6 +5984,7 @@ export const Constants = {
       fire_substances_state: ['undecided', 'none', 'listed'],
       instruction_domain: ['ssm', 'psi'],
       instruction_module_group: ['work_activity', 'work_equipment', 'protective_equipment'],
+      knowledge_test: ['hiring', 'annual'],
       organization_role: ['owner', 'specialist'],
       participant_kind: ['employee', 'client_administrator'],
       prevention_measure_kind: ['technical', 'organizational', 'hygienic_sanitary', 'other'],
@@ -4966,7 +5999,7 @@ export const Constants = {
       ],
       risk_evaluation_kind: ['job_position', 'sensitive_groups', 'other'],
       sensitive_groups_state: ['undecided', 'none', 'evaluated'],
-      signer_slot: ['trainee', 'trainer', 'verifier', 'admitter'],
+      signer_slot: ['trainee', 'trainer', 'verifier', 'admitter', 'examiner'],
       staff_category: ['technical_administrative', 'execution'],
       supplementary_training_reason: [
         'absence_over_thirty_days',
@@ -4977,6 +6010,8 @@ export const Constants = {
         'changed_procedure',
         'new_technology',
       ],
+      test_result_source: ['portal', 'paper'],
+      test_state: ['none', 'pending', 'passed', 'annual_due'],
       training_domain: ['ssm', 'psi'],
       training_phase: ['introductory_general', 'workplace', 'periodic', 'supplementary'],
       training_source: ['app', 'paper'],

@@ -110,13 +110,8 @@ export function trainingSessions({
   const months = trainingMonths(firstMonth, intervalMonths);
   const ranges = dealChapters(ownInstructionsChapters, months.length);
   return months.map((month, index) => {
-    const last = index === months.length - 1;
     const range = ranges[index]!;
-    const parts = [
-      `I.P.S.S.M. ${articles(range.from, range.to)}`,
-      ...modules.map(citation),
-      ...(last ? ['Testare.'] : []),
-    ];
+    const parts = [`I.P.S.S.M. ${articles(range.from, range.to)}`, ...modules.map(citation)];
     return {
       month: monthNames[month - 1]!.toLocaleUpperCase('ro'),
       content: parts.join('; '),

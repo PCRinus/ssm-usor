@@ -1182,6 +1182,442 @@
   },
   "installationRegister": false,
   "issueDate": "19.01.2026",
+  "knowledgeTests": {
+    "fire_test_annual": {
+      "questions": [
+        {
+          "key": "A",
+          "number": 1,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 1 despre apărarea împotriva incendiilor: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 2,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 2 despre apărarea împotriva incendiilor: ce prevede legea?"
+        },
+        {
+          "key": "A, B",
+          "number": 3,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "tot un răspuns corect;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Care dintre următoarele obligații privind apărarea împotriva incendiilor vă revin?"
+        },
+        {
+          "key": "A",
+          "number": 4,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 4 despre apărarea împotriva incendiilor: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 5,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 5 despre apărarea împotriva incendiilor: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 6,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 6 despre apărarea împotriva incendiilor: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 7,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 7 despre apărarea împotriva incendiilor: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 8,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 8 despre apărarea împotriva incendiilor: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 9,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 9 despre apărarea împotriva incendiilor: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 10,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 10 despre apărarea împotriva incendiilor: ce prevede legea?"
+        }
+      ],
+      "test": {
+        "code": "TPSU",
+        "title": "Test de verificare a cunoștințelor anual (TPSU)"
+      }
+    },
+    "fire_test_hiring": {
+      "questions": [
+        {
+          "key": "A",
+          "number": 1,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 1 despre apărarea împotriva incendiilor la angajare: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 2,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 2 despre apărarea împotriva incendiilor la angajare: ce prevede legea?"
+        },
+        {
+          "key": "A, B",
+          "number": 3,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "tot un răspuns corect;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Care dintre următoarele obligații privind apărarea împotriva incendiilor la angajare vă revin?"
+        },
+        {
+          "key": "A",
+          "number": 4,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 4 despre apărarea împotriva incendiilor la angajare: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 5,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 5 despre apărarea împotriva incendiilor la angajare: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 6,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 6 despre apărarea împotriva incendiilor la angajare: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 7,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 7 despre apărarea împotriva incendiilor la angajare: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 8,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 8 despre apărarea împotriva incendiilor la angajare: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 9,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 9 despre apărarea împotriva incendiilor la angajare: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 10,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 10 despre apărarea împotriva incendiilor la angajare: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 11,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 11 despre apărarea împotriva incendiilor la angajare: ce prevede legea?"
+        },
+        {
+          "key": "A",
+          "number": 12,
+          "options": [
+            {
+              "letter": "a",
+              "text": "răspunsul corect, conform legii;"
+            },
+            {
+              "letter": "b",
+              "text": "un răspuns greșit;"
+            },
+            {
+              "letter": "c",
+              "text": "alt răspuns greșit."
+            }
+          ],
+          "text": "Întrebarea 12 despre apărarea împotriva incendiilor la angajare: ce prevede legea?"
+        }
+      ],
+      "test": {
+        "code": "TASU",
+        "title": "Test de verificare a cunoștințelor la angajare (TASU)"
+      }
+    }
+  },
   "noAnnexes": false,
   "provider": {
     "legalName": "S.C. SERVICIU EXTERN DEMO S.R.L.",

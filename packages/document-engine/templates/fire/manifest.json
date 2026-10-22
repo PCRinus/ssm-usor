@@ -190,8 +190,8 @@
       "title": "Test la angajare",
       "file": "4.1_fire_test_hiring.docx",
       "change": {
-        "kind": "correction",
-        "note": "Legile sunt citate „privind apărarea împotriva incendiilor” și „privind protecția civilă”, întrebarea 5 cere durata minimă a fiecărui instructaj, iar rezultatul arată pragul de 70% de răspunsuri corecte."
+        "kind": "layout",
+        "note": "Întrebările vin din banca de întrebări a organizației: testul le tipărește pe toate cele active, foaia de răspunsuri are un rând pentru fiecare, iar răspunsurile corecte se tipăresc din aceleași date."
       }
     },
     {
@@ -202,8 +202,8 @@
       "title": "Test anual",
       "file": "4.2_fire_test_annual.docx",
       "change": {
-        "kind": "correction",
-        "note": "Întrebarea 6 folosește denumirile instructajelor din OMAI 712/2005, iar varianta b) a întrebării 9 este clar greșită."
+        "kind": "layout",
+        "note": "Întrebările vin din banca de întrebări a organizației: testul le tipărește pe toate cele active, foaia de răspunsuri are un rând pentru fiecare, iar răspunsurile corecte se tipăresc din aceleași date. Rezultatul arată pragul de 70% de răspunsuri corecte."
       }
     },
     {

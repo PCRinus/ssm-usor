@@ -176,7 +176,7 @@ describe('GET /clients', () => {
           documentation: {
             state: 'in_progress',
             issuedCount: 18,
-            totalCount: 23,
+            totalCount: 22,
             lastGeneratedAt: '2026-09-20T10:00:00+00:00',
           },
           fireSafetyDocumentation: {
@@ -252,7 +252,7 @@ describe('GET /clients', () => {
         documentation_issued_count: 0,
         documentation_last_generated_at: null,
       })
-    ).toEqual({ state: 'none', issuedCount: 0, totalCount: 23, lastGeneratedAt: null });
+    ).toEqual({ state: 'none', issuedCount: 0, totalCount: 22, lastGeneratedAt: null });
   });
 
   it('counts the workers representative decision from 10 current employees', async () => {
@@ -263,14 +263,14 @@ describe('GET /clients', () => {
         documentation_generated_type_keys: issuedSet,
         documentation_issued_count: issuedSet.length,
       })
-    ).toMatchObject({ state: 'issued', issuedCount: 23, totalCount: 23 });
+    ).toMatchObject({ state: 'issued', issuedCount: 22, totalCount: 22 });
     expect(
       await documentationOf({
         current_employee_count: 10,
         documentation_generated_type_keys: issuedSet,
         documentation_issued_count: issuedSet.length,
       })
-    ).toMatchObject({ state: 'in_progress', issuedCount: 23, totalCount: 24 });
+    ).toMatchObject({ state: 'in_progress', issuedCount: 22, totalCount: 23 });
   });
 
   it('keeps a workers representative decision that exists below 10 employees', async () => {
@@ -280,7 +280,7 @@ describe('GET /clients', () => {
         documentation_generated_type_keys: [...providerPack],
         documentation_issued_count: providerPack.length,
       })
-    ).toMatchObject({ state: 'issued', issuedCount: 24, totalCount: 24 });
+    ).toMatchObject({ state: 'issued', issuedCount: 23, totalCount: 23 });
   });
 
   it('counts the annex on the electronic signature for a client with a participant or an open invitation', async () => {
@@ -323,7 +323,7 @@ describe('GET /clients', () => {
         documentation_generated_type_keys: generated,
         documentation_issued_count: generated.length,
       })
-    ).toMatchObject({ state: 'in_progress', issuedCount: 22, totalCount: 23 });
+    ).toMatchObject({ state: 'in_progress', issuedCount: 21, totalCount: 22 });
   });
 
   it('counts the fire-safety documents required from ten employees from ten, or once they exist', async () => {
@@ -365,7 +365,7 @@ describe('GET /clients', () => {
       fire_safety_generated_type_keys: [...fireSafetyDocumentTypeKeys],
       fire_safety_issued_count: fireSafetyDocumentTypeKeys.length,
     });
-    expect(item.documentation).toMatchObject({ state: 'none', totalCount: 23 });
+    expect(item.documentation).toMatchObject({ state: 'none', totalCount: 22 });
     expect(item.fireSafetyDocumentation).toMatchObject({ state: 'issued', totalCount: 28 });
   });
 

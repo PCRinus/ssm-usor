@@ -955,6 +955,85 @@ export type EmployeeListResponseItemsItemTraining = {
   psi: EmployeeListResponseItemsItemTrainingPsi;
 };
 
+/**
+ * @nullable
+ */
+export type EmployeeListResponseItemsItemTestsSsmState =
+  | (typeof EmployeeListResponseItemsItemTestsSsmState)[keyof typeof EmployeeListResponseItemsItemTestsSsmState]
+  | null;
+
+export const EmployeeListResponseItemsItemTestsSsmState = {
+  none: 'none',
+  pending: 'pending',
+  passed: 'passed',
+  annual_due: 'annual_due',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeListResponseItemsItemTestsSsmAwaitingTest =
+  | (typeof EmployeeListResponseItemsItemTestsSsmAwaitingTest)[keyof typeof EmployeeListResponseItemsItemTestsSsmAwaitingTest]
+  | null;
+
+export const EmployeeListResponseItemsItemTestsSsmAwaitingTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type EmployeeListResponseItemsItemTestsSsm = {
+  /** @nullable */
+  state: EmployeeListResponseItemsItemTestsSsmState;
+  /** @nullable */
+  awaitingTest: EmployeeListResponseItemsItemTestsSsmAwaitingTest;
+  /** @nullable */
+  lastPassedOn: string | null;
+  /** @nullable */
+  dueOn: string | null;
+};
+
+/**
+ * @nullable
+ */
+export type EmployeeListResponseItemsItemTestsPsiState =
+  | (typeof EmployeeListResponseItemsItemTestsPsiState)[keyof typeof EmployeeListResponseItemsItemTestsPsiState]
+  | null;
+
+export const EmployeeListResponseItemsItemTestsPsiState = {
+  none: 'none',
+  pending: 'pending',
+  passed: 'passed',
+  annual_due: 'annual_due',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeListResponseItemsItemTestsPsiAwaitingTest =
+  | (typeof EmployeeListResponseItemsItemTestsPsiAwaitingTest)[keyof typeof EmployeeListResponseItemsItemTestsPsiAwaitingTest]
+  | null;
+
+export const EmployeeListResponseItemsItemTestsPsiAwaitingTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type EmployeeListResponseItemsItemTestsPsi = {
+  /** @nullable */
+  state: EmployeeListResponseItemsItemTestsPsiState;
+  /** @nullable */
+  awaitingTest: EmployeeListResponseItemsItemTestsPsiAwaitingTest;
+  /** @nullable */
+  lastPassedOn: string | null;
+  /** @nullable */
+  dueOn: string | null;
+};
+
+export type EmployeeListResponseItemsItemTests = {
+  ssm: EmployeeListResponseItemsItemTestsSsm;
+  psi: EmployeeListResponseItemsItemTestsPsi;
+};
+
 export type EmployeeListResponseItemsItem = {
   id: string;
   clientId: string;
@@ -977,6 +1056,7 @@ export type EmployeeListResponseItemsItem = {
   createdAt: string;
   updatedAt: string;
   training: EmployeeListResponseItemsItemTraining;
+  tests: EmployeeListResponseItemsItemTests;
 };
 
 export interface EmployeeListResponse {
@@ -1127,6 +1207,85 @@ export type EmployeeResponseEmployeeTraining = {
   psi: EmployeeResponseEmployeeTrainingPsi;
 };
 
+/**
+ * @nullable
+ */
+export type EmployeeResponseEmployeeTestsSsmState =
+  | (typeof EmployeeResponseEmployeeTestsSsmState)[keyof typeof EmployeeResponseEmployeeTestsSsmState]
+  | null;
+
+export const EmployeeResponseEmployeeTestsSsmState = {
+  none: 'none',
+  pending: 'pending',
+  passed: 'passed',
+  annual_due: 'annual_due',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeResponseEmployeeTestsSsmAwaitingTest =
+  | (typeof EmployeeResponseEmployeeTestsSsmAwaitingTest)[keyof typeof EmployeeResponseEmployeeTestsSsmAwaitingTest]
+  | null;
+
+export const EmployeeResponseEmployeeTestsSsmAwaitingTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type EmployeeResponseEmployeeTestsSsm = {
+  /** @nullable */
+  state: EmployeeResponseEmployeeTestsSsmState;
+  /** @nullable */
+  awaitingTest: EmployeeResponseEmployeeTestsSsmAwaitingTest;
+  /** @nullable */
+  lastPassedOn: string | null;
+  /** @nullable */
+  dueOn: string | null;
+};
+
+/**
+ * @nullable
+ */
+export type EmployeeResponseEmployeeTestsPsiState =
+  | (typeof EmployeeResponseEmployeeTestsPsiState)[keyof typeof EmployeeResponseEmployeeTestsPsiState]
+  | null;
+
+export const EmployeeResponseEmployeeTestsPsiState = {
+  none: 'none',
+  pending: 'pending',
+  passed: 'passed',
+  annual_due: 'annual_due',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeResponseEmployeeTestsPsiAwaitingTest =
+  | (typeof EmployeeResponseEmployeeTestsPsiAwaitingTest)[keyof typeof EmployeeResponseEmployeeTestsPsiAwaitingTest]
+  | null;
+
+export const EmployeeResponseEmployeeTestsPsiAwaitingTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type EmployeeResponseEmployeeTestsPsi = {
+  /** @nullable */
+  state: EmployeeResponseEmployeeTestsPsiState;
+  /** @nullable */
+  awaitingTest: EmployeeResponseEmployeeTestsPsiAwaitingTest;
+  /** @nullable */
+  lastPassedOn: string | null;
+  /** @nullable */
+  dueOn: string | null;
+};
+
+export type EmployeeResponseEmployeeTests = {
+  ssm: EmployeeResponseEmployeeTestsSsm;
+  psi: EmployeeResponseEmployeeTestsPsi;
+};
+
 export type EmployeeResponseEmployee = {
   id: string;
   clientId: string;
@@ -1177,6 +1336,7 @@ export type EmployeeResponseEmployee = {
   /** @nullable */
   archivedAt: string | null;
   training: EmployeeResponseEmployeeTraining;
+  tests: EmployeeResponseEmployeeTests;
 };
 
 export interface EmployeeResponse {
@@ -1563,6 +1723,85 @@ export type OrganizationEmployeeListResponseItemsItemTraining = {
   psi: OrganizationEmployeeListResponseItemsItemTrainingPsi;
 };
 
+/**
+ * @nullable
+ */
+export type OrganizationEmployeeListResponseItemsItemTestsSsmState =
+  | (typeof OrganizationEmployeeListResponseItemsItemTestsSsmState)[keyof typeof OrganizationEmployeeListResponseItemsItemTestsSsmState]
+  | null;
+
+export const OrganizationEmployeeListResponseItemsItemTestsSsmState = {
+  none: 'none',
+  pending: 'pending',
+  passed: 'passed',
+  annual_due: 'annual_due',
+} as const;
+
+/**
+ * @nullable
+ */
+export type OrganizationEmployeeListResponseItemsItemTestsSsmAwaitingTest =
+  | (typeof OrganizationEmployeeListResponseItemsItemTestsSsmAwaitingTest)[keyof typeof OrganizationEmployeeListResponseItemsItemTestsSsmAwaitingTest]
+  | null;
+
+export const OrganizationEmployeeListResponseItemsItemTestsSsmAwaitingTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type OrganizationEmployeeListResponseItemsItemTestsSsm = {
+  /** @nullable */
+  state: OrganizationEmployeeListResponseItemsItemTestsSsmState;
+  /** @nullable */
+  awaitingTest: OrganizationEmployeeListResponseItemsItemTestsSsmAwaitingTest;
+  /** @nullable */
+  lastPassedOn: string | null;
+  /** @nullable */
+  dueOn: string | null;
+};
+
+/**
+ * @nullable
+ */
+export type OrganizationEmployeeListResponseItemsItemTestsPsiState =
+  | (typeof OrganizationEmployeeListResponseItemsItemTestsPsiState)[keyof typeof OrganizationEmployeeListResponseItemsItemTestsPsiState]
+  | null;
+
+export const OrganizationEmployeeListResponseItemsItemTestsPsiState = {
+  none: 'none',
+  pending: 'pending',
+  passed: 'passed',
+  annual_due: 'annual_due',
+} as const;
+
+/**
+ * @nullable
+ */
+export type OrganizationEmployeeListResponseItemsItemTestsPsiAwaitingTest =
+  | (typeof OrganizationEmployeeListResponseItemsItemTestsPsiAwaitingTest)[keyof typeof OrganizationEmployeeListResponseItemsItemTestsPsiAwaitingTest]
+  | null;
+
+export const OrganizationEmployeeListResponseItemsItemTestsPsiAwaitingTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type OrganizationEmployeeListResponseItemsItemTestsPsi = {
+  /** @nullable */
+  state: OrganizationEmployeeListResponseItemsItemTestsPsiState;
+  /** @nullable */
+  awaitingTest: OrganizationEmployeeListResponseItemsItemTestsPsiAwaitingTest;
+  /** @nullable */
+  lastPassedOn: string | null;
+  /** @nullable */
+  dueOn: string | null;
+};
+
+export type OrganizationEmployeeListResponseItemsItemTests = {
+  ssm: OrganizationEmployeeListResponseItemsItemTestsSsm;
+  psi: OrganizationEmployeeListResponseItemsItemTestsPsi;
+};
+
 export type OrganizationEmployeeListResponseItemsItemClient = {
   id: string;
   name: string;
@@ -1590,6 +1829,7 @@ export type OrganizationEmployeeListResponseItemsItem = {
   createdAt: string;
   updatedAt: string;
   training: OrganizationEmployeeListResponseItemsItemTraining;
+  tests: OrganizationEmployeeListResponseItemsItemTests;
   client: OrganizationEmployeeListResponseItemsItemClient;
 };
 
@@ -2164,6 +2404,745 @@ export interface MissingSheetDataResponse {
   reason: MissingSheetDataResponseReason;
   /** @minItems 1 */
   missing: MissingSheetDataResponseMissingItem[];
+}
+
+export type TestBankResponseTestsItemDomain =
+  (typeof TestBankResponseTestsItemDomain)[keyof typeof TestBankResponseTestsItemDomain];
+
+export const TestBankResponseTestsItemDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type TestBankResponseTestsItemTest =
+  (typeof TestBankResponseTestsItemTest)[keyof typeof TestBankResponseTestsItemTest];
+
+export const TestBankResponseTestsItemTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type TestBankResponseTestsItemQuestionsItemDomain =
+  (typeof TestBankResponseTestsItemQuestionsItemDomain)[keyof typeof TestBankResponseTestsItemQuestionsItemDomain];
+
+export const TestBankResponseTestsItemQuestionsItemDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type TestBankResponseTestsItemQuestionsItemTest =
+  (typeof TestBankResponseTestsItemQuestionsItemTest)[keyof typeof TestBankResponseTestsItemQuestionsItemTest];
+
+export const TestBankResponseTestsItemQuestionsItemTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type TestBankResponseTestsItemQuestionsItemOptionsItem = {
+  /**
+   * @minLength 1
+   * @maxLength 500
+   */
+  text: string;
+  correct: boolean;
+};
+
+export type TestBankResponseTestsItemQuestionsItem = {
+  id: string;
+  domain: TestBankResponseTestsItemQuestionsItemDomain;
+  test: TestBankResponseTestsItemQuestionsItemTest;
+  /** @minimum 1 */
+  position: number;
+  text: string;
+  options: TestBankResponseTestsItemQuestionsItemOptionsItem[];
+  /** @nullable */
+  explanation: string | null;
+  /** @nullable */
+  citation: string | null;
+  builtIn: boolean;
+  hidden: boolean;
+  /** @nullable */
+  replacesQuestionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TestBankResponseTestsItem = {
+  domain: TestBankResponseTestsItemDomain;
+  test: TestBankResponseTestsItemTest;
+  code: string;
+  title: string;
+  /** @minimum 0 */
+  activeCount: number;
+  questions: TestBankResponseTestsItemQuestionsItem[];
+};
+
+export interface TestBankResponse {
+  sittingSize: number;
+  minimumActiveQuestions: number;
+  passMarkPercent: number;
+  tests: TestBankResponseTestsItem[];
+}
+
+export type TestQuestionResponseQuestionDomain =
+  (typeof TestQuestionResponseQuestionDomain)[keyof typeof TestQuestionResponseQuestionDomain];
+
+export const TestQuestionResponseQuestionDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type TestQuestionResponseQuestionTest =
+  (typeof TestQuestionResponseQuestionTest)[keyof typeof TestQuestionResponseQuestionTest];
+
+export const TestQuestionResponseQuestionTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type TestQuestionResponseQuestionOptionsItem = {
+  /**
+   * @minLength 1
+   * @maxLength 500
+   */
+  text: string;
+  correct: boolean;
+};
+
+export type TestQuestionResponseQuestion = {
+  id: string;
+  domain: TestQuestionResponseQuestionDomain;
+  test: TestQuestionResponseQuestionTest;
+  /** @minimum 1 */
+  position: number;
+  text: string;
+  options: TestQuestionResponseQuestionOptionsItem[];
+  /** @nullable */
+  explanation: string | null;
+  /** @nullable */
+  citation: string | null;
+  builtIn: boolean;
+  hidden: boolean;
+  /** @nullable */
+  replacesQuestionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface TestQuestionResponse {
+  question: TestQuestionResponseQuestion;
+}
+
+export type CreateTestQuestionRequestDomain =
+  (typeof CreateTestQuestionRequestDomain)[keyof typeof CreateTestQuestionRequestDomain];
+
+export const CreateTestQuestionRequestDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type CreateTestQuestionRequestTest =
+  (typeof CreateTestQuestionRequestTest)[keyof typeof CreateTestQuestionRequestTest];
+
+export const CreateTestQuestionRequestTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type CreateTestQuestionRequestOptionsItem = {
+  /**
+   * @minLength 1
+   * @maxLength 500
+   */
+  text: string;
+  correct: boolean;
+};
+
+export interface CreateTestQuestionRequest {
+  domain: CreateTestQuestionRequestDomain;
+  test: CreateTestQuestionRequestTest;
+  /** @minimum 1 */
+  position?: number;
+  /**
+   * @minLength 5
+   * @maxLength 1000
+   */
+  text: string;
+  /**
+   * @minItems 2
+   * @maxItems 4
+   */
+  options: CreateTestQuestionRequestOptionsItem[];
+  /**
+   * @minLength 1
+   * @maxLength 1000
+   * @nullable
+   */
+  explanation?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 300
+   * @nullable
+   */
+  citation?: string | null;
+  /** @nullable */
+  replacesQuestionId?: string | null;
+}
+
+export type UpdateTestQuestionRequestOptionsItem = {
+  /**
+   * @minLength 1
+   * @maxLength 500
+   */
+  text: string;
+  correct: boolean;
+};
+
+export interface UpdateTestQuestionRequest {
+  /** @minimum 1 */
+  position?: number;
+  /**
+   * @minLength 5
+   * @maxLength 1000
+   */
+  text: string;
+  /**
+   * @minItems 2
+   * @maxItems 4
+   */
+  options: UpdateTestQuestionRequestOptionsItem[];
+  /**
+   * @minLength 1
+   * @maxLength 1000
+   * @nullable
+   */
+  explanation?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 300
+   * @nullable
+   */
+  citation?: string | null;
+  /** @nullable */
+  replacesQuestionId?: string | null;
+}
+
+/**
+ * @nullable
+ */
+export type EmployeeTestsResponseSsmStatusState =
+  | (typeof EmployeeTestsResponseSsmStatusState)[keyof typeof EmployeeTestsResponseSsmStatusState]
+  | null;
+
+export const EmployeeTestsResponseSsmStatusState = {
+  none: 'none',
+  pending: 'pending',
+  passed: 'passed',
+  annual_due: 'annual_due',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeTestsResponseSsmStatusAwaitingTest =
+  | (typeof EmployeeTestsResponseSsmStatusAwaitingTest)[keyof typeof EmployeeTestsResponseSsmStatusAwaitingTest]
+  | null;
+
+export const EmployeeTestsResponseSsmStatusAwaitingTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type EmployeeTestsResponseSsmStatus = {
+  /** @nullable */
+  state: EmployeeTestsResponseSsmStatusState;
+  /** @nullable */
+  awaitingTest: EmployeeTestsResponseSsmStatusAwaitingTest;
+  /** @nullable */
+  lastPassedOn: string | null;
+  /** @nullable */
+  dueOn: string | null;
+};
+
+export type EmployeeTestsResponseSsmResultsItemDomain =
+  (typeof EmployeeTestsResponseSsmResultsItemDomain)[keyof typeof EmployeeTestsResponseSsmResultsItemDomain];
+
+export const EmployeeTestsResponseSsmResultsItemDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type EmployeeTestsResponseSsmResultsItemTest =
+  (typeof EmployeeTestsResponseSsmResultsItemTest)[keyof typeof EmployeeTestsResponseSsmResultsItemTest];
+
+export const EmployeeTestsResponseSsmResultsItemTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type EmployeeTestsResponseSsmResultsItemGrade =
+  (typeof EmployeeTestsResponseSsmResultsItemGrade)[keyof typeof EmployeeTestsResponseSsmResultsItemGrade];
+
+export const EmployeeTestsResponseSsmResultsItemGrade = {
+  admis: 'admis',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeTestsResponseSsmResultsItemExaminer = {
+  name: string;
+  jobTitle: string;
+} | null;
+
+export type EmployeeTestsResponseSsmResultsItemSource =
+  (typeof EmployeeTestsResponseSsmResultsItemSource)[keyof typeof EmployeeTestsResponseSsmResultsItemSource];
+
+export const EmployeeTestsResponseSsmResultsItemSource = {
+  portal: 'portal',
+  paper: 'paper',
+} as const;
+
+export type EmployeeTestsResponseSsmResultsItemSheetSignedTrainee =
+  (typeof EmployeeTestsResponseSsmResultsItemSheetSignedTrainee)[keyof typeof EmployeeTestsResponseSsmResultsItemSheetSignedTrainee];
+
+export const EmployeeTestsResponseSsmResultsItemSheetSignedTrainee = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type EmployeeTestsResponseSsmResultsItemSheetSignedExaminer =
+  (typeof EmployeeTestsResponseSsmResultsItemSheetSignedExaminer)[keyof typeof EmployeeTestsResponseSsmResultsItemSheetSignedExaminer];
+
+export const EmployeeTestsResponseSsmResultsItemSheetSignedExaminer = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type EmployeeTestsResponseSsmResultsItemSheetSigned = {
+  trainee: EmployeeTestsResponseSsmResultsItemSheetSignedTrainee;
+  examiner: EmployeeTestsResponseSsmResultsItemSheetSignedExaminer;
+};
+
+export type EmployeeTestsResponseSsmResultsItemSheet = {
+  available: boolean;
+  signed: EmployeeTestsResponseSsmResultsItemSheetSigned;
+};
+
+export type EmployeeTestsResponseSsmResultsItem = {
+  id: string;
+  employeeId: string;
+  domain: EmployeeTestsResponseSsmResultsItemDomain;
+  test: EmployeeTestsResponseSsmResultsItemTest;
+  takenOn: string;
+  material: string;
+  grade: EmployeeTestsResponseSsmResultsItemGrade;
+  /** @nullable */
+  examiner: EmployeeTestsResponseSsmResultsItemExaminer;
+  source: EmployeeTestsResponseSsmResultsItemSource;
+  /** @nullable */
+  attemptId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  sheet: EmployeeTestsResponseSsmResultsItemSheet;
+};
+
+export type EmployeeTestsResponseSsmAttemptsItemDomain =
+  (typeof EmployeeTestsResponseSsmAttemptsItemDomain)[keyof typeof EmployeeTestsResponseSsmAttemptsItemDomain];
+
+export const EmployeeTestsResponseSsmAttemptsItemDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type EmployeeTestsResponseSsmAttemptsItemTest =
+  (typeof EmployeeTestsResponseSsmAttemptsItemTest)[keyof typeof EmployeeTestsResponseSsmAttemptsItemTest];
+
+export const EmployeeTestsResponseSsmAttemptsItemTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type EmployeeTestsResponseSsmAttemptsItem = {
+  id: string;
+  domain: EmployeeTestsResponseSsmAttemptsItemDomain;
+  test: EmployeeTestsResponseSsmAttemptsItemTest;
+  startedAt: string;
+  /** @nullable */
+  finishedAt: string | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  score: number | null;
+  /** @minimum 1 */
+  total: number;
+  /** @nullable */
+  passed: boolean | null;
+};
+
+export type EmployeeTestsResponseSsm = {
+  status: EmployeeTestsResponseSsmStatus;
+  results: EmployeeTestsResponseSsmResultsItem[];
+  attempts: EmployeeTestsResponseSsmAttemptsItem[];
+};
+
+/**
+ * @nullable
+ */
+export type EmployeeTestsResponsePsiStatusState =
+  | (typeof EmployeeTestsResponsePsiStatusState)[keyof typeof EmployeeTestsResponsePsiStatusState]
+  | null;
+
+export const EmployeeTestsResponsePsiStatusState = {
+  none: 'none',
+  pending: 'pending',
+  passed: 'passed',
+  annual_due: 'annual_due',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeTestsResponsePsiStatusAwaitingTest =
+  | (typeof EmployeeTestsResponsePsiStatusAwaitingTest)[keyof typeof EmployeeTestsResponsePsiStatusAwaitingTest]
+  | null;
+
+export const EmployeeTestsResponsePsiStatusAwaitingTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type EmployeeTestsResponsePsiStatus = {
+  /** @nullable */
+  state: EmployeeTestsResponsePsiStatusState;
+  /** @nullable */
+  awaitingTest: EmployeeTestsResponsePsiStatusAwaitingTest;
+  /** @nullable */
+  lastPassedOn: string | null;
+  /** @nullable */
+  dueOn: string | null;
+};
+
+export type EmployeeTestsResponsePsiResultsItemDomain =
+  (typeof EmployeeTestsResponsePsiResultsItemDomain)[keyof typeof EmployeeTestsResponsePsiResultsItemDomain];
+
+export const EmployeeTestsResponsePsiResultsItemDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type EmployeeTestsResponsePsiResultsItemTest =
+  (typeof EmployeeTestsResponsePsiResultsItemTest)[keyof typeof EmployeeTestsResponsePsiResultsItemTest];
+
+export const EmployeeTestsResponsePsiResultsItemTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type EmployeeTestsResponsePsiResultsItemGrade =
+  (typeof EmployeeTestsResponsePsiResultsItemGrade)[keyof typeof EmployeeTestsResponsePsiResultsItemGrade];
+
+export const EmployeeTestsResponsePsiResultsItemGrade = {
+  admis: 'admis',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeTestsResponsePsiResultsItemExaminer = {
+  name: string;
+  jobTitle: string;
+} | null;
+
+export type EmployeeTestsResponsePsiResultsItemSource =
+  (typeof EmployeeTestsResponsePsiResultsItemSource)[keyof typeof EmployeeTestsResponsePsiResultsItemSource];
+
+export const EmployeeTestsResponsePsiResultsItemSource = {
+  portal: 'portal',
+  paper: 'paper',
+} as const;
+
+export type EmployeeTestsResponsePsiResultsItemSheetSignedTrainee =
+  (typeof EmployeeTestsResponsePsiResultsItemSheetSignedTrainee)[keyof typeof EmployeeTestsResponsePsiResultsItemSheetSignedTrainee];
+
+export const EmployeeTestsResponsePsiResultsItemSheetSignedTrainee = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type EmployeeTestsResponsePsiResultsItemSheetSignedExaminer =
+  (typeof EmployeeTestsResponsePsiResultsItemSheetSignedExaminer)[keyof typeof EmployeeTestsResponsePsiResultsItemSheetSignedExaminer];
+
+export const EmployeeTestsResponsePsiResultsItemSheetSignedExaminer = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type EmployeeTestsResponsePsiResultsItemSheetSigned = {
+  trainee: EmployeeTestsResponsePsiResultsItemSheetSignedTrainee;
+  examiner: EmployeeTestsResponsePsiResultsItemSheetSignedExaminer;
+};
+
+export type EmployeeTestsResponsePsiResultsItemSheet = {
+  available: boolean;
+  signed: EmployeeTestsResponsePsiResultsItemSheetSigned;
+};
+
+export type EmployeeTestsResponsePsiResultsItem = {
+  id: string;
+  employeeId: string;
+  domain: EmployeeTestsResponsePsiResultsItemDomain;
+  test: EmployeeTestsResponsePsiResultsItemTest;
+  takenOn: string;
+  material: string;
+  grade: EmployeeTestsResponsePsiResultsItemGrade;
+  /** @nullable */
+  examiner: EmployeeTestsResponsePsiResultsItemExaminer;
+  source: EmployeeTestsResponsePsiResultsItemSource;
+  /** @nullable */
+  attemptId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  sheet: EmployeeTestsResponsePsiResultsItemSheet;
+};
+
+export type EmployeeTestsResponsePsiAttemptsItemDomain =
+  (typeof EmployeeTestsResponsePsiAttemptsItemDomain)[keyof typeof EmployeeTestsResponsePsiAttemptsItemDomain];
+
+export const EmployeeTestsResponsePsiAttemptsItemDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type EmployeeTestsResponsePsiAttemptsItemTest =
+  (typeof EmployeeTestsResponsePsiAttemptsItemTest)[keyof typeof EmployeeTestsResponsePsiAttemptsItemTest];
+
+export const EmployeeTestsResponsePsiAttemptsItemTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type EmployeeTestsResponsePsiAttemptsItem = {
+  id: string;
+  domain: EmployeeTestsResponsePsiAttemptsItemDomain;
+  test: EmployeeTestsResponsePsiAttemptsItemTest;
+  startedAt: string;
+  /** @nullable */
+  finishedAt: string | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  score: number | null;
+  /** @minimum 1 */
+  total: number;
+  /** @nullable */
+  passed: boolean | null;
+};
+
+export type EmployeeTestsResponsePsi = {
+  status: EmployeeTestsResponsePsiStatus;
+  results: EmployeeTestsResponsePsiResultsItem[];
+  attempts: EmployeeTestsResponsePsiAttemptsItem[];
+};
+
+export interface EmployeeTestsResponse {
+  ssm: EmployeeTestsResponseSsm;
+  psi: EmployeeTestsResponsePsi;
+}
+
+export type TestResultResponseResultDomain =
+  (typeof TestResultResponseResultDomain)[keyof typeof TestResultResponseResultDomain];
+
+export const TestResultResponseResultDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type TestResultResponseResultTest =
+  (typeof TestResultResponseResultTest)[keyof typeof TestResultResponseResultTest];
+
+export const TestResultResponseResultTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type TestResultResponseResultGrade =
+  (typeof TestResultResponseResultGrade)[keyof typeof TestResultResponseResultGrade];
+
+export const TestResultResponseResultGrade = {
+  admis: 'admis',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TestResultResponseResultExaminer = {
+  name: string;
+  jobTitle: string;
+} | null;
+
+export type TestResultResponseResultSource =
+  (typeof TestResultResponseResultSource)[keyof typeof TestResultResponseResultSource];
+
+export const TestResultResponseResultSource = {
+  portal: 'portal',
+  paper: 'paper',
+} as const;
+
+export type TestResultResponseResult = {
+  id: string;
+  employeeId: string;
+  domain: TestResultResponseResultDomain;
+  test: TestResultResponseResultTest;
+  takenOn: string;
+  material: string;
+  grade: TestResultResponseResultGrade;
+  /** @nullable */
+  examiner: TestResultResponseResultExaminer;
+  source: TestResultResponseResultSource;
+  /** @nullable */
+  attemptId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface TestResultResponse {
+  result: TestResultResponseResult;
+}
+
+export type PaperTestResultRequestDomain =
+  (typeof PaperTestResultRequestDomain)[keyof typeof PaperTestResultRequestDomain];
+
+export const PaperTestResultRequestDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type PaperTestResultRequestTest =
+  (typeof PaperTestResultRequestTest)[keyof typeof PaperTestResultRequestTest];
+
+export const PaperTestResultRequestTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type PaperTestResultRequestGrade =
+  (typeof PaperTestResultRequestGrade)[keyof typeof PaperTestResultRequestGrade];
+
+export const PaperTestResultRequestGrade = {
+  admis: 'admis',
+} as const;
+
+export type PaperTestResultRequestExaminer = {
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  name: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  jobTitle: string;
+};
+
+export interface PaperTestResultRequest {
+  domain: PaperTestResultRequestDomain;
+  test: PaperTestResultRequestTest;
+  takenOn: string;
+  /**
+   * @minLength 1
+   * @maxLength 300
+   */
+  material?: string;
+  grade?: PaperTestResultRequestGrade;
+  examiner: PaperTestResultRequestExaminer;
+}
+
+export type UpdateTestResultRequestExaminer = {
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  name: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  jobTitle: string;
+};
+
+export interface UpdateTestResultRequest {
+  takenOn?: string;
+  /**
+   * @minLength 1
+   * @maxLength 300
+   */
+  material?: string;
+  examiner: UpdateTestResultRequestExaminer;
+}
+
+export type TestSheetResponseSheetSignedTrainee =
+  (typeof TestSheetResponseSheetSignedTrainee)[keyof typeof TestSheetResponseSheetSignedTrainee];
+
+export const TestSheetResponseSheetSignedTrainee = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type TestSheetResponseSheetSignedExaminer =
+  (typeof TestSheetResponseSheetSignedExaminer)[keyof typeof TestSheetResponseSheetSignedExaminer];
+
+export const TestSheetResponseSheetSignedExaminer = {
+  unassigned: 'unassigned',
+  pending: 'pending',
+  signed: 'signed',
+  paper: 'paper',
+  void: 'void',
+} as const;
+
+export type TestSheetResponseSheetSigned = {
+  trainee: TestSheetResponseSheetSignedTrainee;
+  examiner: TestSheetResponseSheetSignedExaminer;
+};
+
+export type TestSheetResponseSheet = {
+  available: boolean;
+  signed: TestSheetResponseSheetSigned;
+};
+
+export interface TestSheetResponse {
+  resultId: string;
+  sheet: TestSheetResponseSheet;
+}
+
+export type TestSheetPaperSignatureRequestSlot =
+  (typeof TestSheetPaperSignatureRequestSlot)[keyof typeof TestSheetPaperSignatureRequestSlot];
+
+export const TestSheetPaperSignatureRequestSlot = {
+  trainee: 'trainee',
+  examiner: 'examiner',
+} as const;
+
+export interface TestSheetPaperSignatureRequest {
+  slot: TestSheetPaperSignatureRequestSlot;
 }
 
 export type JobPositionListResponseItemsItemStaffCategory =
@@ -5260,7 +6239,6 @@ export const StartRegenerationRequestTypeKey = {
   training_themes: 'training_themes',
   cover_tests: 'cover_tests',
   test_hiring: 'test_hiring',
-  test_periodic: 'test_periodic',
   protective_equipment_list: 'protective_equipment_list',
   cover_event_registers: 'cover_event_registers',
   event_registers: 'event_registers',
@@ -5635,7 +6613,6 @@ export const ClientDocumentListResponseNotApplicableItem = {
   training_themes: 'training_themes',
   cover_tests: 'cover_tests',
   test_hiring: 'test_hiring',
-  test_periodic: 'test_periodic',
   protective_equipment_list: 'protective_equipment_list',
   cover_event_registers: 'cover_event_registers',
   event_registers: 'event_registers',
@@ -7238,6 +8215,113 @@ export interface ClientParticipantsResponse {
   invitations: ClientParticipantsResponseInvitationsItem[];
 }
 
+/**
+ * @nullable
+ */
+export type TestStudyCardMaterial = {
+  revisionId: string;
+  title: string;
+  issuedAt: string;
+} | null;
+
+export interface TestStudyCard {
+  explanations: string[];
+  /** @nullable */
+  material: TestStudyCardMaterial;
+}
+
+export type TestAttemptResponseAttemptDomain =
+  (typeof TestAttemptResponseAttemptDomain)[keyof typeof TestAttemptResponseAttemptDomain];
+
+export const TestAttemptResponseAttemptDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type TestAttemptResponseAttemptTest =
+  (typeof TestAttemptResponseAttemptTest)[keyof typeof TestAttemptResponseAttemptTest];
+
+export const TestAttemptResponseAttemptTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type TestAttemptResponseAttemptQuestionsItemOptionsItem = {
+  text: string;
+};
+
+export type TestAttemptResponseAttemptQuestionsItem = {
+  questionId: string;
+  text: string;
+  options: TestAttemptResponseAttemptQuestionsItemOptionsItem[];
+  /**
+   * @maxItems 4
+   * @items.minimum 0
+   * @items.maximum 3
+   */
+  chosen: number[];
+};
+
+export type TestAttemptResponseAttempt = {
+  id: string;
+  domain: TestAttemptResponseAttemptDomain;
+  test: TestAttemptResponseAttemptTest;
+  startedAt: string;
+  /** @minimum 1 */
+  total: number;
+  questions: TestAttemptResponseAttemptQuestionsItem[];
+};
+
+export interface TestAttemptResponse {
+  attempt: TestAttemptResponseAttempt;
+}
+
+export interface TestAttemptAnswerRequest {
+  /**
+   * @maxItems 4
+   * @items.minimum 0
+   * @items.maximum 3
+   */
+  chosen: number[];
+}
+
+export type TestAttemptOutcomeDomain =
+  (typeof TestAttemptOutcomeDomain)[keyof typeof TestAttemptOutcomeDomain];
+
+export const TestAttemptOutcomeDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type TestAttemptOutcomeTest =
+  (typeof TestAttemptOutcomeTest)[keyof typeof TestAttemptOutcomeTest];
+
+export const TestAttemptOutcomeTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type TestAttemptOutcomeMistakesItem = {
+  /** @minimum 0 */
+  index: number;
+  text: string;
+  /** @nullable */
+  explanation: string | null;
+};
+
+export interface TestAttemptOutcome {
+  id: string;
+  domain: TestAttemptOutcomeDomain;
+  test: TestAttemptOutcomeTest;
+  finishedAt: string;
+  /** @minimum 0 */
+  score: number;
+  /** @minimum 1 */
+  total: number;
+  passed: boolean;
+  mistakes: TestAttemptOutcomeMistakesItem[];
+}
+
 export type SignerCandidatesResponseItemsItemKind =
   (typeof SignerCandidatesResponseItemsItemKind)[keyof typeof SignerCandidatesResponseItemsItemKind];
 
@@ -7353,6 +8437,14 @@ export interface VoidSignaturesRequest {
   reason: string;
 }
 
+export type SignatureRequestListResponseItemsItemKind =
+  (typeof SignatureRequestListResponseItemsItemKind)[keyof typeof SignatureRequestListResponseItemsItemKind];
+
+export const SignatureRequestListResponseItemsItemKind = {
+  training_record: 'training_record',
+  test_sheet: 'test_sheet',
+} as const;
+
 export type SignatureRequestListResponseItemsItemSlot =
   (typeof SignatureRequestListResponseItemsItemSlot)[keyof typeof SignatureRequestListResponseItemsItemSlot];
 
@@ -7361,6 +8453,7 @@ export const SignatureRequestListResponseItemsItemSlot = {
   trainer: 'trainer',
   verifier: 'verifier',
   admitter: 'admitter',
+  examiner: 'examiner',
 } as const;
 
 export type SignatureRequestListResponseItemsItemState =
@@ -7375,6 +8468,12 @@ export const SignatureRequestListResponseItemsItemState = {
 export type SignatureRequestListResponseItemsItemClient = {
   id: string;
   name: string;
+};
+
+export type SignatureRequestListResponseItemsItemEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
 };
 
 export type SignatureRequestListResponseItemsItemRecordEmployee = {
@@ -7401,6 +8500,9 @@ export const SignatureRequestListResponseItemsItemRecordPhase = {
   supplementary: 'supplementary',
 } as const;
 
+/**
+ * @nullable
+ */
 export type SignatureRequestListResponseItemsItemRecord = {
   id: string;
   trainingId: string;
@@ -7408,7 +8510,34 @@ export type SignatureRequestListResponseItemsItemRecord = {
   domain: SignatureRequestListResponseItemsItemRecordDomain;
   phase: SignatureRequestListResponseItemsItemRecordPhase;
   heldOn: string;
-};
+} | null;
+
+export type SignatureRequestListResponseItemsItemTestSheetDomain =
+  (typeof SignatureRequestListResponseItemsItemTestSheetDomain)[keyof typeof SignatureRequestListResponseItemsItemTestSheetDomain];
+
+export const SignatureRequestListResponseItemsItemTestSheetDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type SignatureRequestListResponseItemsItemTestSheetTest =
+  (typeof SignatureRequestListResponseItemsItemTestSheetTest)[keyof typeof SignatureRequestListResponseItemsItemTestSheetTest];
+
+export const SignatureRequestListResponseItemsItemTestSheetTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SignatureRequestListResponseItemsItemTestSheet = {
+  id: string;
+  resultId: string;
+  domain: SignatureRequestListResponseItemsItemTestSheetDomain;
+  test: SignatureRequestListResponseItemsItemTestSheetTest;
+  takenOn: string;
+} | null;
 
 /**
  * @nullable
@@ -7443,13 +8572,19 @@ export type SignatureRequestListResponseItemsItemAgreement = {
 
 export type SignatureRequestListResponseItemsItem = {
   id: string;
+  kind: SignatureRequestListResponseItemsItemKind;
+  label: string;
   slot: SignatureRequestListResponseItemsItemSlot;
   state: SignatureRequestListResponseItemsItemState;
   issuedAt: string;
   /** @nullable */
   notifiedAt: string | null;
   client: SignatureRequestListResponseItemsItemClient;
+  employee: SignatureRequestListResponseItemsItemEmployee;
+  /** @nullable */
   record: SignatureRequestListResponseItemsItemRecord;
+  /** @nullable */
+  testSheet: SignatureRequestListResponseItemsItemTestSheet;
   /** @nullable */
   signer: SignatureRequestListResponseItemsItemSigner;
   /** @nullable */
@@ -7801,6 +8936,7 @@ export type ListEmployeesParams = {
   order?: ListEmployeesOrder;
   status?: ListEmployeesStatus;
   trainingState?: ListEmployeesTrainingState;
+  testState?: ListEmployeesTestState;
   /**
    * @maxLength 100
    */
@@ -7840,6 +8976,16 @@ export const ListEmployeesTrainingState = {
   untrained: 'untrained',
 } as const;
 
+export type ListEmployeesTestState =
+  (typeof ListEmployeesTestState)[keyof typeof ListEmployeesTestState];
+
+export const ListEmployeesTestState = {
+  passed: 'passed',
+  pending: 'pending',
+  annual_due: 'annual_due',
+  none: 'none',
+} as const;
+
 export type ListOrganizationEmployeesParams = {
   /**
    * @minimum 1
@@ -7855,6 +9001,7 @@ export type ListOrganizationEmployeesParams = {
   status?: ListOrganizationEmployeesStatus;
   clientId?: string;
   trainingState?: ListOrganizationEmployeesTrainingState;
+  testState?: ListOrganizationEmployeesTestState;
   /**
    * @maxLength 100
    */
@@ -7895,6 +9042,16 @@ export const ListOrganizationEmployeesTrainingState = {
   due: 'due',
   overdue: 'overdue',
   untrained: 'untrained',
+} as const;
+
+export type ListOrganizationEmployeesTestState =
+  (typeof ListOrganizationEmployeesTestState)[keyof typeof ListOrganizationEmployeesTestState];
+
+export const ListOrganizationEmployeesTestState = {
+  passed: 'passed',
+  pending: 'pending',
+  annual_due: 'annual_due',
+  none: 'none',
 } as const;
 
 export type ListTrainingsParams = {
@@ -7969,6 +9126,25 @@ export type GetTrainingSheetDomain =
 export const GetTrainingSheetDomain = {
   ssm: 'ssm',
   psi: 'psi',
+} as const;
+
+export type GetTestBankParams = {
+  domain?: GetTestBankDomain;
+  test?: GetTestBankTest;
+};
+
+export type GetTestBankDomain = (typeof GetTestBankDomain)[keyof typeof GetTestBankDomain];
+
+export const GetTestBankDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
+} as const;
+
+export type GetTestBankTest = (typeof GetTestBankTest)[keyof typeof GetTestBankTest];
+
+export const GetTestBankTest = {
+  hiring: 'hiring',
+  annual: 'annual',
 } as const;
 
 export type ListEquipmentSuggestionsParams = {
@@ -11990,6 +13166,1249 @@ export function useGetTrainingSheet<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getGetTestBankUrl = (params?: GetTestBankParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/organization/tests/questions?${stringifiedParams}`
+    : `/organization/tests/questions`;
+};
+
+/**
+ * Each knowledge test (ADR 024) with its code, its title, every question in the printed order, built-in and own, each flagged `builtIn` and `hidden`, and how many are active. The sitting size, the minimum of active questions and the pass mark are fixed for every organization and answered beside them. `domain` and `test` narrow the list.
+ * @summary The organization's question bank, by test
+ */
+export const getTestBank = async (
+  params?: GetTestBankParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TestBankResponse> => {
+  return apiFetch<TestBankResponse>(getGetTestBankUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetTestBankQueryKey = (params?: GetTestBankParams) => {
+  return [`/organization/tests/questions`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetTestBankQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTestBank>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: GetTestBankParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestBank>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTestBankQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTestBank>>> = ({ signal }) =>
+    getTestBank(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTestBank>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetTestBankQueryResult = NonNullable<Awaited<ReturnType<typeof getTestBank>>>;
+export type GetTestBankQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetTestBank<
+  TData = Awaited<ReturnType<typeof getTestBank>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: undefined | GetTestBankParams,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestBank>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTestBank>>,
+          TError,
+          Awaited<ReturnType<typeof getTestBank>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTestBank<
+  TData = Awaited<ReturnType<typeof getTestBank>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: GetTestBankParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestBank>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTestBank>>,
+          TError,
+          Awaited<ReturnType<typeof getTestBank>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTestBank<
+  TData = Awaited<ReturnType<typeof getTestBank>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: GetTestBankParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestBank>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The organization's question bank, by test
+ */
+
+export function useGetTestBank<
+  TData = Awaited<ReturnType<typeof getTestBank>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: GetTestBankParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestBank>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetTestBankQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCreateTestQuestionUrl = () => {
+  return `/organization/tests/questions`;
+};
+
+/**
+ * Two to four options, at least one correct, an optional explanation and citation. Without a `position` the question goes after the test's others. `replacesQuestionId` names the built-in of the same test it departs from, as provenance only (reason `question_not_built_in` otherwise).
+ * @summary Write an own question
+ */
+export const createTestQuestion = async (
+  createTestQuestionRequest: CreateTestQuestionRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TestQuestionResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<TestQuestionResponse>(getCreateTestQuestionUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createTestQuestionRequest),
+  });
+};
+
+export const getCreateTestQuestionMutationKey = () => ['createTestQuestion'] as const;
+
+export const getCreateTestQuestionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTestQuestion>>,
+    TError,
+    CreateTestQuestionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createTestQuestion>>,
+  TError,
+  CreateTestQuestionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateTestQuestionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createTestQuestion>>,
+    CreateTestQuestionMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createTestQuestion(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateTestQuestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createTestQuestion>>
+>;
+export type CreateTestQuestionMutationBody = CreateTestQuestionRequest;
+export type CreateTestQuestionMutationError = ErrorType<ApiErrorResponse>;
+export type CreateTestQuestionMutationVariables = { data: CreateTestQuestionRequest };
+
+/**
+ * @summary Write an own question
+ */
+export const useCreateTestQuestion = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createTestQuestion>>,
+      TError,
+      CreateTestQuestionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createTestQuestion>>,
+  TError,
+  CreateTestQuestionMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateTestQuestionMutationOptions(options), queryClient);
+};
+
+export const getUpdateTestQuestionUrl = (questionId: string) => {
+  return `/organization/tests/questions/${questionId}`;
+};
+
+/**
+ * A built-in question is edited by none (reason `question_built_in`): it is hidden and replaced by an own one. A question never moves to another test.
+ * @summary Edit an own question
+ */
+export const updateTestQuestion = async (
+  questionId: string,
+  updateTestQuestionRequest: UpdateTestQuestionRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TestQuestionResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<TestQuestionResponse>(getUpdateTestQuestionUrl(questionId), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateTestQuestionRequest),
+  });
+};
+
+export const getUpdateTestQuestionMutationKey = () => ['updateTestQuestion'] as const;
+
+export const getUpdateTestQuestionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTestQuestion>>,
+    TError,
+    UpdateTestQuestionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateTestQuestion>>,
+  TError,
+  UpdateTestQuestionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateTestQuestionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateTestQuestion>>,
+    UpdateTestQuestionMutationVariables
+  > = (props) => {
+    const { questionId, data } = props ?? {};
+
+    return updateTestQuestion(questionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateTestQuestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateTestQuestion>>
+>;
+export type UpdateTestQuestionMutationBody = UpdateTestQuestionRequest;
+export type UpdateTestQuestionMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateTestQuestionMutationVariables = {
+  questionId: string;
+  data: UpdateTestQuestionRequest;
+};
+
+/**
+ * @summary Edit an own question
+ */
+export const useUpdateTestQuestion = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateTestQuestion>>,
+      TError,
+      UpdateTestQuestionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateTestQuestion>>,
+  TError,
+  UpdateTestQuestionMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateTestQuestionMutationOptions(options), queryClient);
+};
+
+export const getDeleteTestQuestionUrl = (questionId: string) => {
+  return `/organization/tests/questions/${questionId}`;
+};
+
+/**
+ * Refused for a built-in (reason `question_built_in`), which is hidden instead, and when the test would keep fewer than ten active questions (reason `test_below_minimum`). The attempts that drew it keep their copy.
+ * @summary Delete an own question
+ */
+export const deleteTestQuestion = async (
+  questionId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getDeleteTestQuestionUrl(questionId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getDeleteTestQuestionMutationKey = () => ['deleteTestQuestion'] as const;
+
+export const getDeleteTestQuestionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTestQuestion>>,
+    TError,
+    DeleteTestQuestionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteTestQuestion>>,
+  TError,
+  DeleteTestQuestionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteTestQuestionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteTestQuestion>>,
+    DeleteTestQuestionMutationVariables
+  > = (props) => {
+    const { questionId } = props ?? {};
+
+    return deleteTestQuestion(questionId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteTestQuestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteTestQuestion>>
+>;
+
+export type DeleteTestQuestionMutationError = ErrorType<ApiErrorResponse>;
+export type DeleteTestQuestionMutationVariables = { questionId: string };
+
+/**
+ * @summary Delete an own question
+ */
+export const useDeleteTestQuestion = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteTestQuestion>>,
+      TError,
+      DeleteTestQuestionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteTestQuestion>>,
+  TError,
+  DeleteTestQuestionMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteTestQuestionMutationOptions(options), queryClient);
+};
+
+export const getHideTestQuestionUrl = (questionId: string) => {
+  return `/organization/tests/questions/${questionId}/hidden`;
+};
+
+/**
+ * Idempotent. Only a built-in is hidden (reason `question_not_built_in`); an own question is deleted. Refused when the test would keep fewer than ten active questions (reason `test_below_minimum`).
+ * @summary Hide a built-in question from the tests
+ */
+export const hideTestQuestion = async (
+  questionId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TestQuestionResponse> => {
+  return apiFetch<TestQuestionResponse>(getHideTestQuestionUrl(questionId), {
+    ...options,
+    method: 'PUT',
+  });
+};
+
+export const getHideTestQuestionMutationKey = () => ['hideTestQuestion'] as const;
+
+export const getHideTestQuestionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof hideTestQuestion>>,
+    TError,
+    HideTestQuestionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof hideTestQuestion>>,
+  TError,
+  HideTestQuestionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getHideTestQuestionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof hideTestQuestion>>,
+    HideTestQuestionMutationVariables
+  > = (props) => {
+    const { questionId } = props ?? {};
+
+    return hideTestQuestion(questionId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type HideTestQuestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof hideTestQuestion>>
+>;
+
+export type HideTestQuestionMutationError = ErrorType<ApiErrorResponse>;
+export type HideTestQuestionMutationVariables = { questionId: string };
+
+/**
+ * @summary Hide a built-in question from the tests
+ */
+export const useHideTestQuestion = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof hideTestQuestion>>,
+      TError,
+      HideTestQuestionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof hideTestQuestion>>,
+  TError,
+  HideTestQuestionMutationVariables,
+  TContext
+> => {
+  return useMutation(getHideTestQuestionMutationOptions(options), queryClient);
+};
+
+export const getRestoreTestQuestionUrl = (questionId: string) => {
+  return `/organization/tests/questions/${questionId}/hidden`;
+};
+
+/**
+ * Idempotent.
+ * @summary Restore a hidden built-in question
+ */
+export const restoreTestQuestion = async (
+  questionId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TestQuestionResponse> => {
+  return apiFetch<TestQuestionResponse>(getRestoreTestQuestionUrl(questionId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getRestoreTestQuestionMutationKey = () => ['restoreTestQuestion'] as const;
+
+export const getRestoreTestQuestionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof restoreTestQuestion>>,
+    TError,
+    RestoreTestQuestionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof restoreTestQuestion>>,
+  TError,
+  RestoreTestQuestionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRestoreTestQuestionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof restoreTestQuestion>>,
+    RestoreTestQuestionMutationVariables
+  > = (props) => {
+    const { questionId } = props ?? {};
+
+    return restoreTestQuestion(questionId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RestoreTestQuestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof restoreTestQuestion>>
+>;
+
+export type RestoreTestQuestionMutationError = ErrorType<ApiErrorResponse>;
+export type RestoreTestQuestionMutationVariables = { questionId: string };
+
+/**
+ * @summary Restore a hidden built-in question
+ */
+export const useRestoreTestQuestion = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof restoreTestQuestion>>,
+      TError,
+      RestoreTestQuestionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof restoreTestQuestion>>,
+  TError,
+  RestoreTestQuestionMutationVariables,
+  TContext
+> => {
+  return useMutation(getRestoreTestQuestionMutationOptions(options), queryClient);
+};
+
+export const getGetEmployeeTestsUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/tests`;
+};
+
+/**
+ * Per domain: the test state and the test that awaits, the results newest first with their day, material, grade, examiner, source and attempt, and the attempts in the portal newest first with their score.
+ * @summary An employee's knowledge tests
+ */
+export const getEmployeeTests = async (
+  clientId: string,
+  employeeId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EmployeeTestsResponse> => {
+  return apiFetch<EmployeeTestsResponse>(getGetEmployeeTestsUrl(clientId, employeeId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetEmployeeTestsQueryKey = (clientId: string, employeeId: string) => {
+  return [`/clients/${clientId}/employees/${employeeId}/tests`] as const;
+};
+
+export const getGetEmployeeTestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getEmployeeTests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getEmployeeTests>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetEmployeeTestsQueryKey(clientId, employeeId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmployeeTests>>> = ({ signal }) =>
+    getEmployeeTests(clientId, employeeId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getEmployeeTests>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetEmployeeTestsQueryResult = NonNullable<Awaited<ReturnType<typeof getEmployeeTests>>>;
+export type GetEmployeeTestsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetEmployeeTests<
+  TData = Awaited<ReturnType<typeof getEmployeeTests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getEmployeeTests>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getEmployeeTests>>,
+          TError,
+          Awaited<ReturnType<typeof getEmployeeTests>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetEmployeeTests<
+  TData = Awaited<ReturnType<typeof getEmployeeTests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getEmployeeTests>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getEmployeeTests>>,
+          TError,
+          Awaited<ReturnType<typeof getEmployeeTests>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetEmployeeTests<
+  TData = Awaited<ReturnType<typeof getEmployeeTests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getEmployeeTests>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary An employee's knowledge tests
+ */
+
+export function useGetEmployeeTests<
+  TData = Awaited<ReturnType<typeof getEmployeeTests>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getEmployeeTests>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetEmployeeTestsQueryOptions(clientId, employeeId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getRecordPaperTestResultUrl = (clientId: string, employeeId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/tests/results`;
+};
+
+/**
+ * A test filled in on paper and passed: the day, the examiner and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken while the hiring test awaits the employee (a hiring training recorded, no pass yet); an annual one once the employee has a fire-safety pass. Otherwise reason `test_not_awaiting`. The day is not in the future. The result fills its row of the employee's stored signed sheet.
+ * @summary Record a pass of the printed test
+ */
+export const recordPaperTestResult = async (
+  clientId: string,
+  employeeId: string,
+  paperTestResultRequest: PaperTestResultRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TestResultResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<TestResultResponse>(getRecordPaperTestResultUrl(clientId, employeeId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(paperTestResultRequest),
+  });
+};
+
+export const getRecordPaperTestResultMutationKey = () => ['recordPaperTestResult'] as const;
+
+export const getRecordPaperTestResultMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordPaperTestResult>>,
+    TError,
+    RecordPaperTestResultMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordPaperTestResult>>,
+  TError,
+  RecordPaperTestResultMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRecordPaperTestResultMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordPaperTestResult>>,
+    RecordPaperTestResultMutationVariables
+  > = (props) => {
+    const { clientId, employeeId, data } = props ?? {};
+
+    return recordPaperTestResult(clientId, employeeId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordPaperTestResultMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordPaperTestResult>>
+>;
+export type RecordPaperTestResultMutationBody = PaperTestResultRequest;
+export type RecordPaperTestResultMutationError = ErrorType<ApiErrorResponse>;
+export type RecordPaperTestResultMutationVariables = {
+  clientId: string;
+  employeeId: string;
+  data: PaperTestResultRequest;
+};
+
+/**
+ * @summary Record a pass of the printed test
+ */
+export const useRecordPaperTestResult = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof recordPaperTestResult>>,
+      TError,
+      RecordPaperTestResultMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof recordPaperTestResult>>,
+  TError,
+  RecordPaperTestResultMutationVariables,
+  TContext
+> => {
+  return useMutation(getRecordPaperTestResultMutationOptions(options), queryClient);
+};
+
+export const getUpdateTestResultUrl = (clientId: string, employeeId: string, resultId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/tests/results/${resultId}`;
+};
+
+/**
+ * A result from the portal changes only in its examiner (reason `result_from_attempt`). Its row on the stored signed sheet is filled again.
+ * @summary Correct the examiner of a result, or the day and material of a paper one
+ */
+export const updateTestResult = async (
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  updateTestResultRequest: UpdateTestResultRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TestResultResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<TestResultResponse>(getUpdateTestResultUrl(clientId, employeeId, resultId), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateTestResultRequest),
+  });
+};
+
+export const getUpdateTestResultMutationKey = () => ['updateTestResult'] as const;
+
+export const getUpdateTestResultMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTestResult>>,
+    TError,
+    UpdateTestResultMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateTestResult>>,
+  TError,
+  UpdateTestResultMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateTestResultMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateTestResult>>,
+    UpdateTestResultMutationVariables
+  > = (props) => {
+    const { clientId, employeeId, resultId, data } = props ?? {};
+
+    return updateTestResult(clientId, employeeId, resultId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateTestResultMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateTestResult>>
+>;
+export type UpdateTestResultMutationBody = UpdateTestResultRequest;
+export type UpdateTestResultMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateTestResultMutationVariables = {
+  clientId: string;
+  employeeId: string;
+  resultId: string;
+  data: UpdateTestResultRequest;
+};
+
+/**
+ * @summary Correct the examiner of a result, or the day and material of a paper one
+ */
+export const useUpdateTestResult = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateTestResult>>,
+      TError,
+      UpdateTestResultMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateTestResult>>,
+  TError,
+  UpdateTestResultMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateTestResultMutationOptions(options), queryClient);
+};
+
+export const getGetTestSheetUrl = (clientId: string, employeeId: string, resultId: string) => {
+  return `/clients/${clientId}/employees/${employeeId}/tests/results/${resultId}/sheet`;
+};
+
+/**
+ * The test sheet of a pass in the portal (ADR 024): the questions as the sitting showed them, the answers chosen, the score, the grade and the two signature fields, with every signature given so far. Drawn up and stored at the pass; drawn up here, with its requests, when that failed. Shown inline. A paper result has none.
+ * @summary A result's test sheet as its stored PDF
+ */
+export const getTestSheet = async (
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Blob> => {
+  return apiFetch<Blob>(getGetTestSheetUrl(clientId, employeeId, resultId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetTestSheetQueryKey = (clientId: string, employeeId: string, resultId: string) => {
+  return [`/clients/${clientId}/employees/${employeeId}/tests/results/${resultId}/sheet`] as const;
+};
+
+export const getGetTestSheetQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheet>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTestSheetQueryKey(clientId, employeeId, resultId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTestSheet>>> = ({ signal }) =>
+    getTestSheet(clientId, employeeId, resultId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null &&
+      clientId !== undefined &&
+      employeeId !== null &&
+      employeeId !== undefined &&
+      resultId !== null &&
+      resultId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getTestSheet>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetTestSheetQueryResult = NonNullable<Awaited<ReturnType<typeof getTestSheet>>>;
+export type GetTestSheetQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetTestSheet<
+  TData = Awaited<ReturnType<typeof getTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheet>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTestSheet>>,
+          TError,
+          Awaited<ReturnType<typeof getTestSheet>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTestSheet<
+  TData = Awaited<ReturnType<typeof getTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheet>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTestSheet>>,
+          TError,
+          Awaited<ReturnType<typeof getTestSheet>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTestSheet<
+  TData = Awaited<ReturnType<typeof getTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheet>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A result's test sheet as its stored PDF
+ */
+
+export function useGetTestSheet<
+  TData = Awaited<ReturnType<typeof getTestSheet>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestSheet>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetTestSheetQueryOptions(clientId, employeeId, resultId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getMarkTestSheetPaperSignatureUrl = (
+  clientId: string,
+  employeeId: string,
+  resultId: string
+) => {
+  return `/clients/${clientId}/employees/${employeeId}/tests/results/${resultId}/sheet/paper-signatures`;
+};
+
+/**
+ * For a slot whose person has no account, or who signed the printed sheet: the trainee, whom the evidence names as the employee, or the examiner, named as the result's. A pending request of the slot is voided (`signed_on_paper`). A paper examiner fixes the result's examiner, as an electronic one does.
+ * @summary Mark a slot of a test sheet as signed on paper
+ */
+export const markTestSheetPaperSignature = async (
+  clientId: string,
+  employeeId: string,
+  resultId: string,
+  testSheetPaperSignatureRequest: TestSheetPaperSignatureRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<TestSheetResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<TestSheetResponse>(
+    getMarkTestSheetPaperSignatureUrl(clientId, employeeId, resultId),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+      body: JSON.stringify(testSheetPaperSignatureRequest),
+    }
+  );
+};
+
+export const getMarkTestSheetPaperSignatureMutationKey = () =>
+  ['markTestSheetPaperSignature'] as const;
+
+export const getMarkTestSheetPaperSignatureMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markTestSheetPaperSignature>>,
+    TError,
+    MarkTestSheetPaperSignatureMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markTestSheetPaperSignature>>,
+  TError,
+  MarkTestSheetPaperSignatureMutationVariables,
+  TContext
+> => {
+  const mutationKey = getMarkTestSheetPaperSignatureMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markTestSheetPaperSignature>>,
+    MarkTestSheetPaperSignatureMutationVariables
+  > = (props) => {
+    const { clientId, employeeId, resultId, data } = props ?? {};
+
+    return markTestSheetPaperSignature(clientId, employeeId, resultId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkTestSheetPaperSignatureMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markTestSheetPaperSignature>>
+>;
+export type MarkTestSheetPaperSignatureMutationBody = TestSheetPaperSignatureRequest;
+export type MarkTestSheetPaperSignatureMutationError = ErrorType<ApiErrorResponse>;
+export type MarkTestSheetPaperSignatureMutationVariables = {
+  clientId: string;
+  employeeId: string;
+  resultId: string;
+  data: TestSheetPaperSignatureRequest;
+};
+
+/**
+ * @summary Mark a slot of a test sheet as signed on paper
+ */
+export const useMarkTestSheetPaperSignature = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof markTestSheetPaperSignature>>,
+      TError,
+      MarkTestSheetPaperSignatureMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof markTestSheetPaperSignature>>,
+  TError,
+  MarkTestSheetPaperSignatureMutationVariables,
+  TContext
+> => {
+  return useMutation(getMarkTestSheetPaperSignatureMutationOptions(options), queryClient);
+};
 
 export const getListJobPositionsUrl = (clientId: string) => {
   return `/clients/${clientId}/job-positions`;
@@ -23713,7 +26132,6 @@ export const getUploadClientDocumentUrl = (
     | 'training_themes'
     | 'cover_tests'
     | 'test_hiring'
-    | 'test_periodic'
     | 'protective_equipment_list'
     | 'cover_event_registers'
     | 'event_registers'
@@ -23790,7 +26208,6 @@ export const uploadClientDocument = async (
     | 'training_themes'
     | 'cover_tests'
     | 'test_hiring'
-    | 'test_periodic'
     | 'protective_equipment_list'
     | 'cover_event_registers'
     | 'event_registers'
@@ -23923,7 +26340,6 @@ export type UploadClientDocumentMutationVariables = {
     | 'training_themes'
     | 'cover_tests'
     | 'test_hiring'
-    | 'test_periodic'
     | 'protective_equipment_list'
     | 'cover_event_registers'
     | 'event_registers'

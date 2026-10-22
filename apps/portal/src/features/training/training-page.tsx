@@ -11,6 +11,7 @@ import {
 } from '@/api/generated/api';
 import { Page, PageGrid, PageHeader } from '@/components/page';
 import { useParticipation } from '@/features/participation/participation-context';
+import { TestsSection } from '@/features/tests/tests-section';
 import { useApiRequest } from '@/lib/request';
 
 import { pendingByRecord } from './pending-signatures';
@@ -42,26 +43,28 @@ function OwnTraining({ participantId }: { participantId: string }) {
 
   return (
     <PageGrid>
-      <TrainingSheets
-        title={t`Fișele tale`}
-        className="lg:sticky lg:top-22 lg:col-span-4 lg:col-start-9 lg:row-start-1"
-        sheets={sheets.data}
-        records={records.isError ? null : records.data?.items}
-        failed={sheets.isError}
-        loadSheet={(domain, sequence) =>
-          getPortalTrainingSheet(
-            participantId,
-            domain,
-            sequence ? { sequence } : undefined,
-            apiRequest
-          )
-        }
-        onStale={() =>
-          void queryClient.invalidateQueries({
-            queryKey: getGetPortalTrainingSheetsQueryKey(participantId),
-          })
-        }
-      />
+      <div className="grid gap-6 lg:sticky lg:top-22 lg:col-span-4 lg:col-start-9 lg:row-start-1">
+        <TrainingSheets
+          title={t`Fișele tale`}
+          sheets={sheets.data}
+          records={records.isError ? null : records.data?.items}
+          failed={sheets.isError}
+          loadSheet={(domain, sequence) =>
+            getPortalTrainingSheet(
+              participantId,
+              domain,
+              sequence ? { sequence } : undefined,
+              apiRequest
+            )
+          }
+          onStale={() =>
+            void queryClient.invalidateQueries({
+              queryKey: getGetPortalTrainingSheetsQueryKey(participantId),
+            })
+          }
+        />
+        <TestsSection participantId={participantId} />
+      </div>
       <TrainingRecordsSection
         className="lg:col-span-8 lg:row-start-1"
         title={t`Instruirile tale`}

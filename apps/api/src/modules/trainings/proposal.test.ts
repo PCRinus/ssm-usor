@@ -66,7 +66,9 @@ describe('trainingProposal', () => {
     expect(trainingProposal({ ...base, heldOn: '2026-05-30' }).material).toMatch(
       /^I\.P\.S\.S\.M\. Art\. 45 – 95;/
     );
-    expect(trainingProposal({ ...base, heldOn: '2026-01-05' }).material).toMatch(/Testare\.$/);
+    expect(trainingProposal({ ...base, heldOn: '2026-01-05' }).material).toMatch(
+      /^I\.P\.S\.S\.M\. Art\. 236 – 290;/
+    );
   });
 
   it('has the specialist train the technical-administrative staff', () => {

@@ -117,7 +117,7 @@
       "file": "3.2_own_instructions.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: „procesul-verbal de predare-primire” a echipamentului individual de protecție, cu cratimă, nu cu linie de pauză."
+        "note": "Capitolul III: în locul testării anuale (TPSSM), verificarea instruirii periodice de către șeful ierarhic și, prin sondaj, de către angajator/ lucrătorul desemnat/ serviciul extern de prevenire și protecție, conform H.G. 1425/2006 – Art. 96."
       }
     },
     {
@@ -149,11 +149,11 @@
       "original": "5.0._Coperta_Testari",
       "stage": 1,
       "typeKey": "cover_tests",
-      "title": "Copertă – Teste de verificare a cunoștințelor",
+      "title": "Copertă – Test de verificare a cunoștințelor",
       "file": "5.0_cover_tests.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință”, „predare-primire”."
+        "note": "Coperta numește un singur test, cel la angajare (TASSM): testul de verificare periodică a fost scos din set, nicio prevedere legală nu îl cere."
       }
     },
     {
@@ -165,19 +165,7 @@
       "file": "5.1_test_hiring.docx",
       "change": {
         "kind": "layout",
-        "note": "Etichetele listelor (literele răspunsurilor) au mărimea textului, nu mai mici."
-      }
-    },
-    {
-      "number": "5.2",
-      "original": "5.2._Test_anual_S.S.M",
-      "stage": 1,
-      "typeKey": "test_periodic",
-      "title": "Test de verificare periodică",
-      "file": "5.2_test_periodic.docx",
-      "change": {
-        "kind": "correction",
-        "note": "Sub titlul testului și al specimenului, rândul „La fiecare întrebare pot fi corecte unul sau mai multe răspunsuri.”; întrebările și răspunsurile corecte rămân aceleași."
+        "note": "Întrebările vin din banca de întrebări a organizației: testul le tipărește pe toate cele active, foaia de răspunsuri are un rând pentru fiecare, iar răspunsurile corecte se tipăresc din aceleași date. Sub titlu, rândul „La fiecare întrebare pot fi corecte unul sau mai multe răspunsuri.”, iar rezultatul arată pragul de 70% de răspunsuri corecte. Întrebarea cu pictograme nu mai există."
       }
     },
     {
@@ -273,7 +261,7 @@
       "file": "11_employer_briefing.docx",
       "change": {
         "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință” în blocul de predare-primire."
+        "note": "Lista documentelor predate nu mai cuprinde testul de verificare periodică (TPSSM), scos din set."
       }
     },
     {
@@ -306,7 +294,7 @@
       "file": "fisa_instruire_ssm.docx",
       "change": {
         "kind": "layout",
-        "note": "Semnăturile de la instruirile la angajare au casete mai înalte, fiecare cu linia ei, iar semnătura electronică se tipărește mai mare, pe trei rânduri."
+        "note": "Rezultatele testărilor tipăresc testele promovate, câte un rând fiecare, urmate de rânduri goale până la cinci; pe fișa semnată electronic, fiecare rând se completează ca un câmp."
       }
     },
     {
@@ -317,6 +305,16 @@
       "change": {
         "kind": "layout",
         "note": "Numele părților apar îngroșat, numărul contractului se completează când este cunoscut, blocurile de semnătură sunt aliniate, cu numele reprezentantului și câmpuri de dată completate la semnarea electronică."
+      }
+    },
+    {
+      "perEmployee": true,
+      "typeKey": "test_sheet",
+      "title": "Fișa de test",
+      "file": "fisa_test.docx",
+      "change": {
+        "kind": "correction",
+        "note": "Versiunea inițială: întrebările testului susținut în portal, cu răspunsurile alese, punctajul, rezultatul și semnăturile persoanei testate și ale examinatorului."
       }
     }
   ]

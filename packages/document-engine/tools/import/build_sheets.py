@@ -32,6 +32,8 @@ SIGNATURE_GUTTER = 240
 LINE = '<w:{side} w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
 # The rows of a periodic table the signed sheet holds, those of a page (rowCapacity in contracts).
 ROW_CAPACITY = 17
+# The signed sheet's rows of test results: the five the paper sheet prints at the least.
+TEST_ROW_CAPACITY = 5
 FIELD_SIZE = 8
 PAPER_SIGNED = 'semnat pe hârtie'
 CONTROL_IDS = itertools.count(1)
@@ -390,12 +392,12 @@ def signed_on_paper(slots):
     return signature_table(widths, room, signature_captions(widths, slots))
 
 
-def form_rows(prefix, columns):
-    """The field rows `{prefix}1` to `{prefix}{ROW_CAPACITY}` of a periodic table, each printed
-    where `form.rows.{key}` holds. `columns` are `(width, cell)`, `cell(key, width)` giving the
-    inline content of the cell's paragraphs."""
+def form_rows(prefix, columns, capacity=ROW_CAPACITY):
+    """The field rows `{prefix}1` to `{prefix}{capacity}` of a table, each printed where
+    `form.rows.{key}` holds. `columns` are `(width, cell)`, `cell(key, width)` giving the inline
+    content of the cell's paragraphs."""
     rows = []
-    for index in range(1, ROW_CAPACITY + 1):
+    for index in range(1, capacity + 1):
         key = f'{prefix}{index}'
         cells = []
         for position, (width, content) in enumerate(columns):
@@ -505,6 +507,32 @@ def ssm_hiring(number, title, line, signer, workplace=False):
     )
 
 
+SSM_TEST_COLUMNS = [
+    (1500, 'Data', '{{date}}'),
+    (3955, 'Materialul examinat', '{{material}}'),
+    (1700, 'Calificativ', '{{grade}}'),
+    (2200, 'Examinator', '{{examiner}}'),
+]
+
+
+def ssm_test_results():
+    """Annex 11's block of test results (ADR 024), a row per pass and blank rows after them; on the
+    signed sheet the passes known when it is made as text, then a row of fields per `t` key."""
+    values = [value for _, _, value in SSM_TEST_COLUMNS]
+    widths = [width for width, _, _ in SSM_TEST_COLUMNS]
+    fields = form_rows('t', list(zip(widths, [
+        dated_cell,
+        field_cell('material', 3),
+        field_cell('grade'),
+        field_cell('examiner', 2),
+    ])), capacity=TEST_ROW_CAPACITY)
+    return (
+        paper(grid_table(SSM_TEST_COLUMNS, [('testResults', values),
+                                            ('blankRows.testResults', [''] * len(values))], row_height=480))
+        + form(grid_table(SSM_TEST_COLUMNS, [('testResults', values)], row_height=480, extra_rows=fields))
+    )
+
+
 def empty_table(columns, rows=5, height=480):
     return grid_table([(width, title, '') for width, title in columns], [], blank_rows=rows, row_height=height)
 
@@ -561,7 +589,7 @@ def ssm_body():
         ssm_periodic('Instruirea periodică', 'Data instruirii', 'periodic', 'p'),
         ssm_periodic('Instruirea periodică suplimentară', 'Data efectuării', 'supplementary', 's'),
         heading('Rezultatele testărilor', page=True, before=0),
-        empty_table([(1500, 'Data'), (3955, 'Materialul examinat'), (1700, 'Calificativ'), (2200, 'Examinator')]),
+        ssm_test_results(),
         heading('Accidente de muncă sau îmbolnăviri profesionale suferite'),
         empty_table([
             (2000, 'Data producerii evenimentului'),
