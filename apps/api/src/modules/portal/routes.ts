@@ -265,6 +265,7 @@ export const getPortalTrainingSheetLinkRoute = createRoute({
       description: `${ownErrors[404].description}, or there is no stored sheet of the domain or of that sequence`,
       content: errorContent,
     },
+    503: { description: 'Storage is unavailable', content: errorContent },
   },
 });
 
@@ -365,6 +366,7 @@ export const getPortalEmployeeTrainingSheetLinkRoute = createRoute({
       description: `${administratorErrors[404].description}, or there is no stored sheet of the domain or of that sequence`,
       content: errorContent,
     },
+    503: { description: 'Storage is unavailable', content: errorContent },
   },
 });
 
