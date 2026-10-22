@@ -68,8 +68,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
 
-      - name: Build shared contracts
-        run: pnpm --filter @ssm-usor/contracts build
+      # The seed imports these packages from their built output, not their sources.
+      - name: Build the API's workspace packages
+        run: pnpm --filter "@ssm-usor/api^..." build
 
       # Optional variables are exported only when set, so the script's defaults apply otherwise.
       - name: Run the seed
