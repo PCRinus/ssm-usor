@@ -7,6 +7,7 @@ import type {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
+import { ApiError } from './errors';
 import type { Membership } from './membership';
 import type { Participation } from './participant';
 
@@ -79,25 +80,36 @@ export const supabaseConfigSchema = z.object({
   SUPABASE_PUBLISHABLE_KEY: z.string().startsWith('sb_publishable_').min(16),
 });
 
+type OriginName =
+  'CORS_ORIGINS' | 'MARKETING_ORIGIN' | 'APP_ORIGIN' | 'PORTAL_ORIGIN' | 'API_ORIGIN';
+
+// No default: a production address would send a non-production user to production (ADR 025).
+function requiredOrigin(env: ApiEnv['Bindings'], name: OriginName) {
+  const value = env[name]?.trim();
+  if (value) return value;
+  console.error(`${name} is not set.`);
+  throw new ApiError('service_unavailable');
+}
+
 export function allowedOrigins(env: ApiEnv['Bindings']) {
-  return (env.CORS_ORIGINS ?? 'https://app.ssmusor.ro,https://portal.ssmusor.ro')
+  return requiredOrigin(env, 'CORS_ORIGINS')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
 }
 
 export function marketingOrigin(env: ApiEnv['Bindings']) {
-  return env.MARKETING_ORIGIN ?? 'https://ssmusor.ro';
+  return requiredOrigin(env, 'MARKETING_ORIGIN');
 }
 
 export function appOrigin(env: ApiEnv['Bindings']) {
-  return env.APP_ORIGIN ?? 'https://app.ssmusor.ro';
+  return requiredOrigin(env, 'APP_ORIGIN');
 }
 
 export function portalOrigin(env: ApiEnv['Bindings']) {
-  return env.PORTAL_ORIGIN ?? 'https://portal.ssmusor.ro';
+  return requiredOrigin(env, 'PORTAL_ORIGIN');
 }
 
 export function apiOrigin(env: ApiEnv['Bindings']) {
-  return env.API_ORIGIN ?? 'https://api.ssmusor.ro';
+  return requiredOrigin(env, 'API_ORIGIN');
 }

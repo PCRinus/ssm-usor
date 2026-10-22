@@ -78,6 +78,9 @@ export default defineConfig({
         HOST: process.env.CI ? '0.0.0.0' : '127.0.0.1',
         CORS_ORIGINS: appUrl,
         APP_ORIGIN: appUrl,
+        // Where the portal flows serve it; these flows only read the links they send.
+        PORTAL_ORIGIN: 'http://localhost:4178',
+        API_ORIGIN: apiUrl,
         // A Gotenberg to make PDFs with, when one runs (docs/pdf.md). Without it documents
         // are issued without a PDF and the flows skip that part.
         GOTENBERG_URL: process.env.GOTENBERG_URL ?? '',

@@ -84,6 +84,7 @@ export default defineConfig({
         CORS_ORIGINS: portalUrl,
         APP_ORIGIN: 'http://localhost:4175',
         PORTAL_ORIGIN: portalUrl,
+        API_ORIGIN: apiUrl,
       },
     },
     {

@@ -24,6 +24,7 @@ const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: 'https://example.supabase.co',
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
   CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
+  APP_ORIGIN: 'https://app.ssmusor.ro',
 };
 
 const user = {

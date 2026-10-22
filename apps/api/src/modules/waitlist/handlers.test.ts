@@ -13,6 +13,8 @@ const env: ApiEnv['Bindings'] = {
   SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
   TURNSTILE_SECRET_KEY: 'turnstile-secret',
   CORS_ORIGINS: 'https://app.ssmusor.ro',
+  API_ORIGIN: 'https://api.ssmusor.ro',
+  MARKETING_ORIGIN: 'https://ssmusor.ro',
   MAIL: {
     sendWaitlistConfirmation,
     sendOrganizationInvitation: vi.fn(),
@@ -212,5 +214,20 @@ describe('GET /waitlist/confirm', () => {
       expect(response.status).toBe(303);
       expect(response.headers.get('Location')).toBe('https://ssmusor.ro/abonare/link-invalid/');
     }
+  });
+
+  it('fails instead of redirecting to a default site when MARKETING_ORIGIN is not set', async () => {
+    mockUpstream({ row: { id: 'row-1', confirmed_at: null } });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const response = await createApp().request(
+      '/waitlist/confirm?token=some-token',
+      {},
+      { ...env, MARKETING_ORIGIN: undefined }
+    );
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get('Location')).toBeNull();
+    expect(console.error).toHaveBeenCalledWith('MARKETING_ORIGIN is not set.');
   });
 });
