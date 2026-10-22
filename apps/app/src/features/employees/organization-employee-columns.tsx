@@ -5,6 +5,7 @@ import type { OrganizationEmployeeListResponse } from '@/api/generated/api';
 import { createDataTableColumns } from '@/components/data-table/columns';
 
 import { formatDate } from './employee-format';
+import { testStateColumn } from './test-state-column';
 import { trainingStateColumns } from './training-state-columns';
 
 export type OrganizationEmployeeRow = OrganizationEmployeeListResponse['items'][number];
@@ -62,6 +63,7 @@ export const organizationEmployeeColumns = helper.columns([
     meta: { skeletonClassName: 'w-28' },
   }),
   ...trainingStateColumns<OrganizationEmployeeRow>(),
+  testStateColumn<OrganizationEmployeeRow>(),
   helper.accessor('hiredAt', {
     id: 'hiredAt',
     header: 'Angajat din',

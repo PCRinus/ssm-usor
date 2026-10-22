@@ -173,10 +173,35 @@ export async function lastSignInCode(to: string) {
   return code;
 }
 
+export async function answerKey(organizationId: string, domain: 'ssm' | 'psi', test: string) {
+  const questions = await admin
+    .from('test_questions')
+    .select('text, options')
+    .or(`organization_id.is.null,organization_id.eq.${organizationId}`)
+    .eq('domain', domain)
+    .eq('test', test);
+  if (questions.error) throw questions.error;
+  return new Map(
+    questions.data.map((question) => [
+      question.text as string,
+      (question.options as { text: string; correct: boolean }[])
+        .filter((option) => option.correct)
+        .map((option) => option.text),
+    ])
+  );
+}
+
 export async function cleanUp() {
   const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
   const mine = data.users.filter((user) => user.email?.endsWith(`-${run}@e2e.test`));
   for (const id of created.organizations) {
+    // A finished test attempt is frozen even for the secret key and restricts its employee,
+    // client and organization (ADR 024), so such an organization stays in the local stack.
+    const attempts = await admin
+      .from('test_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', id);
+    if ((attempts.count ?? 0) > 0) continue;
     // Participants and invitations restrict the deletion of their employees and client.
     await admin.from('participant_invitations').delete().eq('organization_id', id);
     await admin.from('client_participants').delete().eq('organization_id', id);

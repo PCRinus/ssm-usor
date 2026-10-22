@@ -139,8 +139,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                                                                                                |
 | `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                                                                                  |
 | `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                                                                                                 |
-| `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=&trainingState=&q=`                                                                 |
-| `GET /employees`                                                       | Verified user with a membership       | The organization's employees across its active clients, each with `client`; `?clientId=&status=&trainingState=&q=`                                                           |
+| `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=&trainingState=&testState=&q=`                                                      |
+| `GET /employees`                                                       | Verified user with a membership       | The organization's employees across its active clients, each with `client`; `?clientId=&status=&trainingState=&testState=&q=`                                                |
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                                                                                                  |
 | `GET /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                                                                                                  |
 | `PUT /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }` after replacing what was entered about them                                                                                                          |
@@ -815,28 +815,35 @@ The routes under `/portal` are the portal's and nothing else's. Each carries the
 `portal`, which is what puts it in the portal's generated client ([API client](api-client.md));
 no route outside the prefix has the tag.
 
-| Route                                                            | Who                  | Response                                                                            |
-| ---------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------- |
-| `GET /portal/me`                                                 | Participant          | `{ participations: [ … ] }`, never empty                                            |
-| `POST /portal/participants/{participantId}/notice`               | Participant          | `204` after recording `{ version }` of the privacy notice                           |
-| `PUT /portal/participants/{participantId}/language`              | Participant          | `204` after saving `{ language }`, `ro` or `en`                                     |
-| `GET …/{participantId}/training-records`                         | Employee             | `{ items, training }`: own records newest first with their `slots`, the states      |
-| `GET …/{participantId}/data`                                     | Employee             | _Datele mele_: what the sheets print, and the provider                              |
-| `GET …/{participantId}/sheets`                                   | Employee             | `{ ssm, psi }`, each `{ ready, missing, stored, sequences }`                        |
-| `GET …/{participantId}/sheets/{domain}`                          | Employee             | `200 application/pdf`, as stored once signing has started; `409 missing_sheet_data` |
-| `GET …/{participantId}/employees`                                | Client administrator | `{ items }`: current employees with their training states                           |
-| `GET …/{participantId}/employees/{employeeId}/training-records`  | Client administrator | As the employee's own                                                               |
-| `GET …/{participantId}/employees/{employeeId}/sheets`            | Client administrator | As the employee's own                                                               |
-| `GET …/{participantId}/employees/{employeeId}/sheets/{domain}`   | Client administrator | As the employee's own                                                               |
-| `GET …/{participantId}/responsible-persons`                      | Client administrator | `{ items }`: the client's active responsible persons                                |
-| `GET …/{participantId}/signature-requests`                       | Participant          | `{ items }`: the pending requests addressed to them                                 |
-| `GET …/{participantId}/employees/signature-requests`             | Client administrator | `{ items }`: the client's pending requests                                          |
-| `GET …/{participantId}/signing-agreement`                        | Employee             | `200 application/pdf`, their own signing agreement                                  |
-| `GET …/{participantId}/signing-agreement/state`                  | Employee             | `{ agreement, unavailable }`: null until they sign it or the specialist records one |
-| `GET …/{participantId}/employees/signing-agreements`             | Client administrator | `{ items }`: agreements awaiting the employer, then those signed electronically     |
-| `GET …/{participantId}/employees/{employeeId}/signing-agreement` | Client administrator | `200 application/pdf`, as the employee's own                                        |
-| `POST …/{participantId}/signing-sessions`                        | Participant          | `201 { sessionId, channel, addressHint, expiresAt, items }`; the code is sent       |
-| `POST …/{participantId}/signing-sessions/{sessionId}/sign`       | Participant          | `{ signed, failed, agreements }` after `{ code }`                                   |
+| Route                                                             | Who                  | Response                                                                                        |
+| ----------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------- |
+| `GET /portal/me`                                                  | Participant          | `{ participations: [ … ] }`, never empty                                                        |
+| `POST /portal/participants/{participantId}/notice`                | Participant          | `204` after recording `{ version }` of the privacy notice                                       |
+| `PUT /portal/participants/{participantId}/language`               | Participant          | `204` after saving `{ language }`, `ro` or `en`                                                 |
+| `GET …/{participantId}/training-records`                          | Employee             | `{ items, training }`: own records newest first with their `slots`, the states                  |
+| `GET …/{participantId}/data`                                      | Employee             | _Datele mele_: what the sheets print, and the provider                                          |
+| `GET …/{participantId}/sheets`                                    | Employee             | `{ ssm, psi }`, each `{ ready, missing, stored, sequences }`                                    |
+| `GET …/{participantId}/sheets/{domain}`                           | Employee             | `200 application/pdf`, as stored once signing has started; `409 missing_sheet_data`             |
+| `GET …/{participantId}/employees`                                 | Client administrator | `{ items }`: current employees with their training states                                       |
+| `GET …/{participantId}/employees/{employeeId}/training-records`   | Client administrator | As the employee's own                                                                           |
+| `GET …/{participantId}/employees/{employeeId}/sheets`             | Client administrator | As the employee's own                                                                           |
+| `GET …/{participantId}/employees/{employeeId}/sheets/{domain}`    | Client administrator | As the employee's own                                                                           |
+| `GET …/{participantId}/responsible-persons`                       | Client administrator | `{ items }`: the client's active responsible persons                                            |
+| `GET …/{participantId}/signature-requests`                        | Participant          | `{ items }`: the pending requests addressed to them                                             |
+| `GET …/{participantId}/employees/signature-requests`              | Client administrator | `{ items }`: the client's pending requests                                                      |
+| `GET …/{participantId}/signing-agreement`                         | Employee             | `200 application/pdf`, their own signing agreement                                              |
+| `GET …/{participantId}/signing-agreement/state`                   | Employee             | `{ agreement, unavailable }`: null until they sign it or the specialist records one             |
+| `GET …/{participantId}/employees/signing-agreements`              | Client administrator | `{ items }`: agreements awaiting the employer, then those signed electronically                 |
+| `GET …/{participantId}/employees/{employeeId}/signing-agreement`  | Client administrator | `200 application/pdf`, as the employee's own                                                    |
+| `POST …/{participantId}/signing-sessions`                         | Participant          | `201 { sessionId, channel, addressHint, expiresAt, items }`; the code is sent                   |
+| `POST …/{participantId}/signing-sessions/{sessionId}/sign`        | Participant          | `{ signed, failed, agreements }` after `{ code }`                                               |
+| `GET …/{participantId}/tests`                                     | Employee             | `{ ssm, psi }`, each `{ status, results, attempts, inProgress }`                                |
+| `GET …/{participantId}/tests/{domain}/{test}/study-card`          | Employee             | `{ explanations, material }`; `material` null while none is issued                              |
+| `POST …/{participantId}/tests/{domain}/{test}/attempts`           | Employee             | `{ attempt }`, started or resumed; `409 test_not_awaiting`                                      |
+| `PUT …/{participantId}/test-attempts/{attemptId}/answers/{index}` | Employee             | `{ attempt }` after `{ chosen }`; `400 option_out_of_range`, `409 attempt_finished`             |
+| `POST …/{participantId}/test-attempts/{attemptId}/finish`         | Employee             | `{ id, score, total, passed, mistakes, … }`                                                     |
+| `GET …/{participantId}/materials/{domain}`                        | Participant          | `200 application/pdf`, the issued material; `404 material_not_issued`                           |
+| `GET …/{participantId}/tests/results/{resultId}/sheet`            | Participant          | `200 application/pdf` inline, the [test sheet](#the-test-sheet); `404 test_sheet_not_available` |
 
 `…` stands for `/portal/participants`. `requireParticipant` (`src/lib/participant.ts`) runs
 after `requireAuth` on every one of them: as the caller it calls
@@ -871,12 +878,177 @@ columns and every response is built field by field into a schema of its own in
 notes, or the organization's bank, contract and terms details. Nothing of the app's responses
 is reused as-is. A new portal route does the same.
 
+**The tests.** A participant never reads `test_questions`, whose options carry the key: the
+draw, the answers and the finish are the definer functions `start_test_attempt`,
+`answer_test_attempt` and `finish_test_attempt`, the study card `test_study_card`, called as the
+participant ([data model](data-model.md#knowledge-tests)). `GET …/tests` reads the employee's
+`test_status`, their results and their finished attempts as summaries without the questions,
+and the participation's attempt in progress of the test that awaits, which carries no key until
+the finish, as
+`{ questionId, text, options: [{ text }], chosen }`. Starting passes the newest issued material
+revision as the attempt's `material_revision_id`, and `CF-Connecting-IP` and the user agent as
+the signing evidence does; finishing passes them again. The answer's question is the path's
+index from 0, a string of digits in the OpenAPI document. The outcome of a finish is the score,
+the total and `passed`, and for a failed attempt `mistakes`, each question answered wrong with
+its `index`, `text` and `explanation`: never the options and never which one was correct, since
+a retake is drawn and shuffled again. A pass then puts its result on the stored signed sheet
+(above, [Knowledge tests](#knowledge-tests)). The client administrator's `GET …/employees`
+answers `tests` beside `training`.
+
+**The material** (`GET …/materials/{domain}`) is the newest issued revision of the client's
+general training material (`ssm`) or fire-safety own instructions (`psi`), the two type keys of
+the contracts' `portalMaterialTypeKeys`, served inline. A participant reads no document row, so
+`portal_material(participant, domain)`, security definer, answers the revision for the caller's
+own participation, and the API reads its PDF with the secret key. No Storage policy and no
+manifest flag were added: the function is the one place that says which documents the portal
+shows.
+
 The secret key reads files for the sheets and the signing agreement: a template from Storage
 with `createAdminFileStore`, because Storage's template policy admits members only, and a stored
 signed sheet's or agreement's file the same way. The participant reads the template's registry
 row, the signed sheet's row and the agreement's row through their own policies, so the paths the
 secret key reads are ones they are allowed. Signing, below, is the other exception. Everything
 else runs as the participant.
+
+## Knowledge tests
+
+The knowledge tests of [ADR 024](architecture/adr-024-knowledge-tests.md): the question bank for
+members, an employee's tests in the app, the paper result, and what the documents and the sheets
+print. The portal's own routes are under [Portal](#portal). The modules are `src/modules/tests/`
+(the bank, the employee's tests, the rows shared with the portal) and
+`src/modules/portal/test-routes.ts`; the shapes are in `packages/contracts/src/tests.ts`.
+
+| Route                                                                       | Access                          | Response                                                                                                                                              |
+| --------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /organization/tests/questions`                                         | Verified user with a membership | `{ sittingSize, minimumActiveQuestions, passMarkPercent, tests: [{ domain, test, code, title, activeCount, questions }] }`; `?domain=&test=`          |
+| `POST /organization/tests/questions`                                        | Verified user with a membership | `201 { question }`, an own question                                                                                                                   |
+| `PATCH /organization/tests/questions/{questionId}`                          | Verified user with a membership | `{ question }`; `409 question_built_in` for a built-in                                                                                                |
+| `DELETE /organization/tests/questions/{questionId}`                         | Verified user with a membership | `204`; `409 question_built_in`, `409 test_below_minimum`                                                                                              |
+| `PUT /organization/tests/questions/{questionId}/hidden`                     | Verified user with a membership | `{ question }`, hidden; `409 question_not_built_in`, `409 test_below_minimum`                                                                         |
+| `DELETE /organization/tests/questions/{questionId}/hidden`                  | Verified user with a membership | `{ question }`, restored                                                                                                                              |
+| `GET /clients/{clientId}/employees/{employeeId}/tests`                      | Verified user with a membership | `{ ssm, psi }`, each `{ status, results, attempts }`                                                                                                  |
+| `POST /clients/{clientId}/employees/{employeeId}/tests/results`             | Verified user with a membership | `201 { result }`, a pass of the printed test; `409 test_not_awaiting`                                                                                 |
+| `PATCH /clients/{clientId}/employees/{employeeId}/tests/results/{resultId}` | Verified user with a membership | `{ result }`; `409 result_from_attempt` for a portal result's day or material, `409 examiner_signed` for the examiner once they signed the test sheet |
+| `GET …/tests/results/{resultId}/sheet`                                      | Verified user with a membership | `200 application/pdf` inline, the stored test sheet; `404 test_sheet_not_available` for a paper result                                                |
+| `POST …/tests/results/{resultId}/sheet/paper-signatures`                    | Verified user with a membership | `{ resultId, sheet }` after `{ slot: trainee \| examiner }` marked on paper; `400 examiner_required`, `409 slot_signed`                               |
+
+**The bank.** Owners and specialists alike, as the policies have it. The list reads
+`test_questions`, which the members' policies narrow to the built-ins and the organization's
+own, in the order `active_test_questions` prints them (position, the built-in first, then the
+oldest), and the organization's `test_question_hides`; each question carries `builtIn` (no
+organization) and `hidden` (a hide row), and each test its `activeCount`. The sitting size, the
+minimum of active questions and the pass mark are the contracts' constants (ten, ten, 70%),
+answered so the app shows them and never sets them. An own question without a `position` takes
+the one after the test's highest. Only an own question is edited or deleted
+(`question_built_in`, checked before the write); only a built-in is hidden (`TST02`,
+`question_not_built_in`), and hiding one already hidden writes nothing. The database refuses to
+leave a test with fewer than ten active questions (`TST01`), which the API answers as `409` with
+reason `test_below_minimum` and the message "Un test trebuie să păstreze cel puțin zece
+întrebări active." There is no preview route: the app draws the question as the employee will
+see it from the bank's own row.
+
+**Errors.** `fromDatabaseError` (`src/lib/db.ts`) translates the schema's codes, the raised text
+being the `reason` (the contracts' `testErrorReasons`) and the message Romanian: `TST01`, `TST02`,
+`TST03` (`attempt_finished`), `TST05` (`test_not_awaiting`) and `TST06` (`result_from_attempt`)
+as `409`, `TST04` (`question_out_of_range`, `option_out_of_range`) as `400`. The portal's
+handlers answer the definer functions' `P0002` (`participant_not_found`, `attempt_not_found`) as
+`404`.
+
+**An employee's tests.** `GET …/tests` answers per domain the `status` from `test_status`
+(`state`, `awaitingTest`, `lastPassedOn`, and `dueOn` for fire safety), the `results` newest
+first (`takenOn`, `material`, `grade` `admis`, `examiner` `{ name, jobTitle }` or null, `source`
+`portal` or `paper`, `attemptId`), and the `attempts` newest first as summaries: `startedAt`,
+`finishedAt`, `score`, `total`, `passed`, never the questions. Each result carries `sheet: { available, signed: { trainee, examiner } }`, its
+[test sheet](#the-test-sheet): `available` once the stored PDF exists, never for a paper result,
+and each slot's state as a record's slots have them (`unassigned`, `pending`, `signed`, `paper`,
+`void`), from `test_sheets`, its requests and `test_sheet_signatures` as the caller reads them.
+The portal's `GET …/tests` carries the same `sheet` on each result. The client's employee lists and the organization's _Angajați_ answer
+`tests: { ssm, psi }` beside `training`, from the computed relationship `test_status`, and
+`?testState=passed|pending|annual_due|none` filters as `?trainingState=` does: `passed` keeps
+those passed in both domains, any other state those in it in either, through an inner embed.
+
+**A paper result** is a test filled in on the printed copy and passed: the day (not in the
+future), the examiner, the grade `admis` and the material, by default the test's name and code
+(`testResultMaterial`). It is taken while the test can be owed, read from the hiring training
+and the last pass rather than from the state, which a leaver has none of: a hiring result once
+the domain's hiring training is recorded (the introductory general one for occupational safety,
+the workplace one for fire safety) and before any pass, an annual one once the employee has a
+fire-safety pass. Otherwise `409 test_not_awaiting`. A failed paper test is not recorded.
+`PATCH` replaces the examiner, and of a paper result the day and the material; a portal result's
+day and material are the attempt's (`TST06`).
+
+**On the sheets.** The individual training sheets read the employee's `test_results` of the
+domain beside the records. The occupational safety sheet prints them in annex 11's block,
+oldest first, as `testResults: [{ date, material, grade: "Admis", examiner: "Name, job title" }]`
+with `blankRows.testResults` to five rows. The fire-safety sheet, whose form has no such block,
+prints a pass as a row of its periodic table, sorted with the training rows by day: the
+material followed by ": admis" ("Verificare anuală pe bază de test (TPSU): admis"), no duration,
+the employee's position as the occupation and the examiner where the trainer is named. On a
+stored signed sheet a result fills its row as a training record does (below, and
+[data model](data-model.md#signatures)): when a result is recorded on paper, when the finish of
+a passing attempt records it, and when it changes, `syncResultRows` fills the next free `t` row
+of the occupational safety sheet (`tN_date`, `tN_material`, `tN_grade`, `tN_examiner`,
+`tN_note`), or the next periodic row of the fire-safety one (`pN_date`, `pN_duration` empty,
+`pN_occupation`, `pN_material` with "(examinator: …)" after it, since the row's other column is
+a signature nobody gives), on a continuation sheet once the block's five rows or the page are
+taken. No slot signs the row: the [test sheet](#the-test-sheet) is what the trainee and the
+examiner sign. An employee without a stored sheet is left alone; their first sheet places every result they have,
+among the records by day. Best effort: the result stands if the row could not be filled.
+
+**On the documents.** The three tests, `test_hiring`, `fire_test_hiring` and
+`fire_test_annual`, print every active question of the organization's bank
+([document engine](document-engine.md#knowledge-tests)). The document facts read
+`active_test_questions` of the preparer's organization for each test
+(`src/modules/documents/knowledge-tests.ts`), numbered from 1, the options lettered `a` to `d`
+and the key the correct letters in upper case, as `knowledgeTests` of each set's context, which
+no template prints as a name: `documentData` and `fireSafetyDocumentData` give a test its own
+`test` (code and title) and `questions` by type key, as a decision gets its number, so no other
+document of the set holds the bank in its snapshot. The revision's snapshot keeps `questions` as
+printed, and "Date modificate" compares it with the bank as it is: an edited, hidden or new
+question marks the draft, and generating it again prints the bank as it stands.
+
+### The test sheet
+
+A pass in the portal renders a **test sheet** (_fișa de test_), signed as ADR 023 signs a record
+(`src/modules/test-sheets/test-sheets.ts`; [data model](data-model.md#test-sheets), [document
+engine](document-engine.md#the-test-sheet)). After the finish records a pass, `afterPass` in
+`src/modules/portal/test-handlers.ts` fills the result's sheet row and calls `afterTestPass`,
+best effort and with the secret key: `ensureTestSheet` merges the `test_sheet` template with
+`buildTestSheetData` from the attempt as it was sat (its questions and options in the shown order,
+the options chosen, the score and total), the employee's name and position, the client, the test's
+code and title and the day, converts it with `convertForm`, makes `test_sig_trainee` and
+`test_sig_examiner` signature fields with `prepareSheet`, fills `test_examiner_name` and
+`test_examiner_job_title` from the result, and stores it at
+`test-sheets/{clientId}/{employeeId}/{resultId}/v1-{nonce}.pdf` in the documents bucket with its
+`test_sheets` row; two calls racing keep one sheet. Then `issueTestSheetRequests` asks the
+trainee, the employee's own active participant (none while their agreement is `withdrawn`), and
+the examiner: the member whose profile name is the result's examiner by `samePerson`, as a slot's
+signer is matched, else an active participant of the client of that name, else nobody, the slot
+left for a member to mark on paper. A slot with a live request or a signature is left alone. No
+message goes out: the request lists show them. A pass whose sheet could not be drawn up has it
+drawn up, with its requests, the first time the sheet is read.
+
+The sheet is never drawn up again: the attempt is frozen. A `PATCH` of the result's examiner,
+which the database voids the pending examiner request for (`signer_changed`), fills the examiner's
+fields again as the sheet's next version and requests the slot from the new examiner, issued by
+the member, best effort; once the examiner has signed, electronically or on paper, the database
+refuses the change, `409 examiner_signed`. Each write makes the next version from the current
+bytes, checked against the digest, as a file of its own (`…/v{version}-{nonce}.pdf`), and moves
+the row on only where `version` is still the one read; the loser removes its file and tries once
+more, then answers `409 sheet_busy`. A signature (below, the signing session) is
+`applyTestSheetSignature`: the first certifies the file with filling and signing as the only
+permitted changes; the examiner's fills the examiner's fields from the result first, in the same
+version, and locks them; the trainee's locks nothing. The appearance prints the name the slot
+prints, `semnat electronic` and the day, the reason "Fișa de test: persoana testată" or
+"…: examinator".
+
+`GET …/tests/results/{resultId}/sheet` answers the stored PDF inline, named
+`Fisa-de-test-{code}-{Name}-{yyyy-mm-dd}.pdf`, after reading the result as the member; the
+portal's `GET …/{participantId}/tests/results/{resultId}/sheet` after reading it as the
+participant, the employee's own or, for a client administrator, any of the client's, the file read
+with the secret key in both. `…/sheet/paper-signatures` calls `mark_test_sheet_paper_signature`,
+which names the employee or the result's examiner in the evidence, and answers the sheet's
+summary.
 
 ## Signatures
 
@@ -954,25 +1126,34 @@ being the `reason`: `SIG01` (`record_signed`, `record_has_signatures`), `SIG02`
 (`slot_signed`), `SIG06`, `SIG07` (`agreement_signed_electronically`), `SIG08`
 (`request_not_pending`), `SIG09` (`session_mismatch`, `session_used`) and `SIG10`
 (`agreement_not_awaiting`, `agreement_signer_not_party`, `agreement_recorded`) are `409`; `SIG03`
-and `SIG05` are `422`; `SIG04` (`reason_required`, `signer_name_required`) is `400`; any other
+and `SIG05` are `422`; `SIG04` (`reason_required`, `signer_name_required`, `examiner_required`) is `400`; any other
 foreign-key refusal (`23503`) is a plain `409`. The signing code's own refusals are `409` too, from
 the API: `code_rate_limited` (a second code within 60 seconds, with `retryAfterSeconds`),
 `code_attempts_exceeded`, `code_expired`, `code_already_used` and `code_invalid` (with
 `attemptsLeft`).
 
-**Lists.** An item carries the request, the client, the record (its training, employee, day,
-domain and phase) and `agreement`, the employee's signing agreement with its state and the two
+**Lists.** A request names a training record's slot or a test sheet's, and the four lists answer
+both alike: every item has `kind` (`training_record` or `test_sheet`), `label`, one line naming
+what it signs from `signatureRequestLabel` of the contracts ("Instruire introductiv-generală SSM ·
+05.01.2026", "Fișa de test · Test la angajare SSM · 21.10.2026"), and `employee` `{ id, lastName,
+firstName }`; `record` is set for a record's request and `testSheet` for a sheet's, the other null.
+The members' `testSheet` is `{ id, resultId, domain, test, takenOn }`; the portal's adds `code`,
+`title`, `score`, `total` and `examiner` (`{ name, jobTitle }` or null), and its `signerName` is the
+employee for the trainee and the result's examiner for the examiner. A sheet's `slot` is `trainee`
+or `examiner`, the value lists alone carry (`signatureRequestSlotSchema`). An item carries the
+request, the client, the record (its training, employee, day, domain and phase) or the test sheet,
+and `agreement`, the employee's signing agreement with its state and the two
 signing moments, null when none is recorded, which the app and the portal show as "act adițional
 nesemnat" unless it is `signed_electronically`, `signed_on_paper` or `in_contract`, and as
 "așteaptă angajatorul" once the employee has signed. `GET /me/signature-requests` is the
 member's own pending requests in the membership's organization, never a trainee's, which an
 account that is also an employee signs in the portal. A request whose client, record, employee or
 training a policy hides is left out of a list rather than failing it. The portal's items carry
-the record as its row of the sheet prints it and `signerName`, the person the slot prints. The
-participant's own list reads the requests addressed to them as themselves, then those records, by
-id and client, with the secret key: a workplace manager signs other employees' admissions, whose
-records the participant policies do not show. The administrator's list is read as the
-administrator and refused to an employee with `403`.
+the record as its row of the sheet prints it and `signerName`, the person the slot prints. Both
+portal lists read the request rows as the participant, then those records and test sheets, by id
+and client, with the secret key: a workplace manager signs other employees' admissions, and an
+examiner who is a participant other employees' test sheets, which the participant policies do not
+show. The administrator's list is refused to an employee with `403`.
 
 **The signing agreement** is drawn up like an individual training sheet: merged from the
 `signing_agreement` template with `buildSigningAgreementData` (the employee, the client's legal
@@ -1074,7 +1255,12 @@ goes in right after, with the session's channel and address, the moment, both di
 certificate's serial, the request's client address (`CF-Connecting-IP`, dropped when it is not an
 IP address) and user agent, and the database's checks on it make the request `signed` in the same
 write or refuse it (`request_not_pending`, `signer_not_of_client` when the signer has lost their
-standing). The answer is `{ signed: [{ requestId, agreementState }], failed: [{ requestId, reason
+standing). A test sheet's request goes the same way, in the same session as the records'
+(`signTestSheetRequest`): the sheet is read with its employee, its result's examiner and its
+client (`client_archived` before it is touched), `applyTestSheetSignature` signs the slot's field
+under the name the sheet prints (the employee's `last first`, or the result's examiner), and the
+`test_sheet_signatures` row goes in with the same evidence, which the database checks as a
+record's. The answer is `{ signed: [{ requestId, agreementState }], failed: [{ requestId, reason
 }], agreements: [{ employeeId, party, signed, reason, agreementState }] }`. `agreementState` is
 the trainee's agreement after the session: a record is signed whatever it is (ADR 023), and the
 screen keeps warning. The failure reasons are `request_not_pending`, `agreement_not_awaiting`,

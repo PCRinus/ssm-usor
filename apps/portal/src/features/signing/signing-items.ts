@@ -133,7 +133,7 @@ export function defaultChoice(items: SigningItem[], keys?: ReadonlySet<string>) 
 }
 
 const signingQuery =
-  /\/portal\/participants\/[^/]+\/(?:.*\/)?(?:signature-requests|signing-agreements?|training-records|sheets)(?:\/|$)/;
+  /\/portal\/participants\/[^/]+\/(?:.*\/)?(?:signature-requests|signing-agreements?|training-records|sheets|tests)(?:\/|$)/;
 
 export function invalidateSigningQueries(queryClient: QueryClient) {
   return queryClient.invalidateQueries({

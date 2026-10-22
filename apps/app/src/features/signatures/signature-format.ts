@@ -2,17 +2,20 @@ import {
   type ApiErrorResponse,
   clientConflictReasons,
   signatureErrorReasons,
+  type SignatureRequestSlot,
   type SignatureSlotState,
   type SignatureVoidReason,
   type SignerKind,
-  type SignerSlot,
   signerSlotLabels,
   type SigningAgreementState,
+  type TrainingDomain,
+  type TrainingPhase,
+  trainingPhaseLabels,
 } from '@ssm-usor/contracts';
 
 import type { SignSessionResponseFailedItemReason } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { roCount } from '@/features/employees/employee-format';
+import { formatDate, roCount } from '@/features/employees/employee-format';
 
 export const slotStateLabels: Record<SignatureSlotState, string> = {
   pending: 'De semnat',
@@ -30,10 +33,31 @@ export const slotStateBadgeClasses: Record<SignatureSlotState, string> = {
   unassigned: 'border-dashed border-border text-muted-foreground',
 };
 
-export const signAsLabel = (slot: SignerSlot) =>
+export const signAsLabel = (slot: SignatureRequestSlot) =>
   slot === 'admitter'
     ? `semnezi la „${signerSlotLabels.admitter}”`
     : `semnezi ca ${signerSlotLabels[slot].toLowerCase()}`;
+
+interface RequestDocument {
+  label: string;
+  record: { domain: TrainingDomain; phase: TrainingPhase; heldOn: string } | null;
+  testSheet: { domain: TrainingDomain; takenOn: string } | null;
+}
+
+// A request signs either a training record or a test sheet: exactly one of the two is set.
+export function requestDocument(request: RequestDocument) {
+  if (request.record) {
+    const { domain, phase, heldOn } = request.record;
+    return {
+      domain,
+      day: heldOn,
+      ofEmployee: 'instruirea lui',
+      summary: `${trainingPhaseLabels[phase]} · ${formatDate(heldOn)}`,
+    };
+  }
+  const { domain, takenOn } = request.testSheet!;
+  return { domain, day: takenOn, ofEmployee: 'fișa de test a lui', summary: request.label };
+}
 
 const voidReasonLabels: Record<SignatureVoidReason, string> = {
   record_changed: 'instruirea a fost modificată',

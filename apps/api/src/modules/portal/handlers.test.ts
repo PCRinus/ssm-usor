@@ -101,6 +101,15 @@ const employeeRow = {
   job_positions: { name: 'Sudor', work_zone: 'Atelier' },
   client_workplaces: { id: 'b1b1b1b1-0000-4000-8000-000000000001', name: 'Atelier' },
   training_status: trainingStatus,
+  test_status: {
+    ssm_state: 'pending',
+    ssm_awaiting_test: 'hiring',
+    ssm_last_passed_on: null,
+    psi_state: 'none',
+    psi_awaiting_test: null,
+    psi_last_passed_on: null,
+    psi_due_on: null,
+  },
 };
 
 const recordRow = {
@@ -218,6 +227,10 @@ const upstreamDefaults = {
   language: () => Response.json(true),
   employees: () => Response.json([employeeRow]),
   records: () => Response.json([recordRow]),
+  testResults: (url: URL): Response => {
+    void url;
+    return Response.json([]);
+  },
   responsiblePersons: () => Response.json([responsiblePersonRow]),
   signedSheets: (url: URL): Response => {
     void url;
@@ -288,6 +301,8 @@ function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
         return upstream.employees();
       case '/rest/v1/training_records':
         return upstream.records();
+      case '/rest/v1/test_results':
+        return upstream.testResults(url);
       case '/rest/v1/client_responsible_persons':
         return upstream.responsiblePersons();
       case '/rest/v1/signed_sheets':
@@ -716,9 +731,16 @@ describe("the client administrator's places", () => {
           training: expect.objectContaining({
             psi: expect.objectContaining({ state: 'untrained' }),
           }),
+          tests: {
+            ssm: { state: 'pending', awaitingTest: 'hiring', lastPassedOn: null, dueOn: null },
+            psi: { state: 'none', awaitingTest: null, lastPassedOn: null, dueOn: null },
+          },
         },
       ],
     });
+    expect(calls('/rest/v1/employees')[0]!.url.searchParams.get('select')).toContain(
+      'test_status('
+    );
     const query = calls('/rest/v1/employees')[0]!.url.searchParams;
     expect(query.get('client_id')).toBe(`eq.${otherClientId}`);
     expect(query.get('status')).toBe('neq.terminated');

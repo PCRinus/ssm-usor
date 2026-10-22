@@ -42,7 +42,7 @@ import {
   stableJson,
 } from './context';
 import { loadDocumentFacts, loadOwnInstructions, type StoredDocumentFacts } from './facts';
-import { buildFireSafetyContext } from './fire-safety';
+import { buildFireSafetyContext, fireSafetyDocumentData } from './fire-safety';
 import { setOfGroup, setRules } from './sets';
 import { annexDomainOf, annexedVersionIds, annexTitlePagesData, snapshotAnnexes } from './snapshot';
 
@@ -535,18 +535,19 @@ export async function generateClientDocuments(
   const createdIds: string[] = [];
   let current = facts;
   if (fire) {
-    const fireMerged = (data: Record<string, unknown>) => (template: Template) =>
-      create(template, {
-        data,
-        decisionNumber: fireDecisionNumber(template.typeKey, asked.firstDecisionNumber),
-      });
+    const fireMerged =
+      (context: ReturnType<typeof buildFireSafetyContext>) => (template: Template) =>
+        create(template, {
+          data: fireSafetyDocumentData(context, template.typeKey),
+          decisionNumber: fireDecisionNumber(template.typeKey, asked.firstDecisionNumber),
+        });
     const dated = wanted.filter((template) => isDatedDocumentType(template.typeKey));
     // The themes cite the IPSU revision this same run makes, so they come after it.
     const themes = wanted.find((template) => template.typeKey === 'fire_training_themes');
     createdIds.push(
       ...(await inBatches(
         wanted.filter((template) => !dated.includes(template) && template !== themes),
-        fireMerged({ ...buildFireSafetyContext(input) })
+        fireMerged(buildFireSafetyContext(input))
       ))
     );
     if (themes) {
@@ -557,9 +558,7 @@ export async function generateClientDocuments(
       // Nothing to cite only when the IPSU is an uploaded file: the themes wait for it.
       if (current.fireOwnInstructions) {
         createdIds.push(
-          await fireMerged({ ...buildFireSafetyContext({ ...current, ...asked, period: null }) })(
-            themes
-          )
+          await fireMerged(buildFireSafetyContext({ ...current, ...asked, period: null }))(themes)
         );
       }
     }
@@ -569,7 +568,7 @@ export async function generateClientDocuments(
       createdIds.push(
         ...(await inBatches(
           dated,
-          fireMerged({ ...buildFireSafetyContext({ ...current, ...asked, period }) })
+          fireMerged(buildFireSafetyContext({ ...current, ...asked, period }))
         ))
       );
     }

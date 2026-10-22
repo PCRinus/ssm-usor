@@ -8,6 +8,7 @@ import {
   useGetPortalEmployeeTrainingSheets,
   useGetPortalMe,
   useGetPortalSigningAgreementState,
+  useGetPortalTests,
   useGetPortalTrainingSheets,
   useListPortalClientEmployees,
   useListPortalClientSignatureRequests,
@@ -27,6 +28,7 @@ import {
   queryPending,
   queryResult,
   recordSlot,
+  testStatus,
   trainingRecords,
   trainingStatus,
 } from '@/test/portal';
@@ -39,6 +41,7 @@ vi.mock('@/api/generated/api', async (importOriginal) => ({
   useListPortalSigningAgreements: vi.fn(),
   useGetPortalMe: vi.fn(),
   useListPortalTrainingRecords: vi.fn(),
+  useGetPortalTests: vi.fn(),
   useGetPortalEmployeeData: vi.fn(),
   useGetPortalTrainingSheets: vi.fn(),
   getPortalTrainingSheet: vi.fn(),
@@ -72,6 +75,7 @@ beforeEach(() => {
   );
   vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
   vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
+  vi.mocked(useGetPortalTests).mockReturnValue(queryPending());
   vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
   vi.mocked(useGetPortalTrainingSheets).mockReturnValue(queryResult(sheetsReady));
   vi.mocked(useListPortalClientEmployees).mockReturnValue(queryPending());
@@ -256,6 +260,7 @@ describe('Instruiri', () => {
     expect(records).toHaveLength(3);
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
       'Fișele tale',
+      'Testele tale',
       '2026',
       '2025',
     ]);
@@ -505,13 +510,17 @@ describe('Angajați', () => {
               ssm: trainingStatus({ state: 'due', dueOn: '2026-11-01' }),
               psi: trainingStatus({ state: 'untrained', dueOn: null }),
             },
+            tests: {
+              ssm: testStatus({ state: 'pending', awaitingTest: 'hiring' }),
+              psi: testStatus(),
+            },
           },
         ],
       })
     );
   });
 
-  it('lists the client employees with their two training states', async () => {
+  it('lists the client employees with their two training states and their two test states', async () => {
     mountPortal(signedIn(), '/angajati');
 
     const row = await screen.findByTestId('employee-row');
@@ -520,6 +529,8 @@ describe('Angajați', () => {
     expect(within(row).getByTestId('employee-state-ssm').textContent).toBe('Scadentă');
     expect(row.textContent).toContain('până la 1 noiembrie 2026');
     expect(within(row).getByTestId('employee-state-psi').textContent).toBe('Neinstruit');
+    expect(within(row).getByTestId('employee-test-state-ssm').textContent).toBe('De susținut');
+    expect(within(row).getByTestId('employee-test-state-psi').textContent).toBe('Fără test');
     expect(row.getAttribute('href')).toBe('/angajati/6f0c3e43-0c1b-4f4b-8a1e-0000000000e2');
   });
 
@@ -533,6 +544,7 @@ describe('Angajați', () => {
           position: 'Șofer',
           workplace: null,
           training: { ssm: trainingStatus(), psi: trainingStatus() },
+          tests: { ssm: testStatus(), psi: testStatus() },
         })),
       })
     );

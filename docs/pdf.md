@@ -139,6 +139,28 @@ and `SIGNER_URL` set, runs all of it on the local stack with a throwaway certifi
 it records trainings for a seeded employee, places, signs, voids and continues, validates every
 signature, writes the PDFs to the folder and removes what it made. CI does not run it.
 
+## The test sheet
+
+The test sheet of a pass in the portal ([ADR 024](architecture/adr-024-knowledge-tests.md)) is
+the second document signed on the same pipeline, made and signed by
+`apps/api/src/modules/test-sheets` ([API](api.md#the-test-sheet)): the template merged
+([document engine](document-engine.md#the-test-sheet)), `convertForm`, `prepareSheet` with
+`test_sig_trainee` and `test_sig_examiner`, `fillFields` with the examiner's name and function,
+and stored at `test-sheets/{clientId}/{employeeId}/{resultId}/v1-{nonce}.pdf` in the documents
+bucket, beside the signed sheets and the signing agreements. Every later write is the next
+version, a file of its own, `v{version}-{nonce}.pdf`, made from the current bytes after checking
+them against the row's digest and moved on by compare-and-set on `version`, as a signed sheet's
+writes are: a refill of the examiner's fields, and each of the two signatures, the first
+certifying the file (DocMDP `/P 2`), the examiner's locking the examiner's fields. The sheet is
+never PDF/A, for the signed sheet's reason, and never drawn up again.
+
+`pnpm --filter @ssm-usor/api test-sheet:check:local -- --out <folder>`, with `GOTENBERG_URL` and
+`SIGNER_URL` set, runs it all on the local stack with a throwaway certificate authority: a seeded
+employee is trained and passes the hiring test in the portal, the trainee signs the sheet and the
+training record in one session, the member changes the examiner, back again, and signs the sheet
+and the record in one session, a further change is refused, and both signatures are validated. It
+writes the signed sheet to the folder and removes what it made. CI does not run it.
+
 ## The container
 
 | Setting         | Value                        | Why                                                                                    |

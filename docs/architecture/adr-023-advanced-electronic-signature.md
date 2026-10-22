@@ -82,7 +82,7 @@ An employee whose agreement is not signed can still be asked to sign a record: t
 
 ## What is left out
 
-- Signing the document packs and the tests, and the client administrator signing the packs from the portal: the pipeline is built for them, the documents and their slots come after the records.
+- Signing the document packs and the tests, and the client administrator signing the packs from the portal: the pipeline is built for them, the documents and their slots come after the records. ([ADR 024](adr-024-knowledge-tests.md), 2026-10-20: the test sheet of a passing attempt is the second document kind signed on the pipeline, by the trainee and the examiner.)
 - A qualified signature, through a trust service provider's API, for the few documents a client may want one on.
 - Reminders for unsigned requests, and a bulk "trimite din nou".
 - The workplace manager's own views of the trainings they gave and the people they admitted: they get their requests and nothing else yet.
