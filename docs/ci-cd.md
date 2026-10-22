@@ -1,28 +1,38 @@
 # CI and selective deployment
 
-Two workflows. `.github/workflows/pull-request.yml` is what a pull request has to pass, and
-deploys nothing. `.github/workflows/deploy.yml` is everything that reaches production: it
-runs on pushes to `main` and when started by hand. The checks both run live once, in the
-composite action `.github/actions/validate`, so they cannot drift apart.
+`.github/workflows/pull-request.yml` is what a pull request has to pass, and deploys nothing.
+`.github/workflows/deploy-environment.yml` deploys one environment, `non-prod` or `production`
+([ADR 025](architecture/adr-025-non-production-environment.md)): change selection, validation,
+the build and every deployment job, with the GitHub environment, the wrangler environment and
+the concurrency groups taken from its `environment` input. Two workflows call it.
+`.github/workflows/deploy.yml` deploys non-prod on every push to `main` and when started by
+hand. `.github/workflows/release.yml` deploys production when a GitHub release is published,
+and when started by hand with a tag (see [Releases](#releases)). The checks the pull request
+and the deployment both run live once, in the composite action `.github/actions/validate`, so
+they cannot drift apart.
 
 **Minutes decide the shape.** GitHub bills every job rounded up to a whole minute, against a
 monthly allowance, so a six-second job costs a minute and five one-minute builds cost up to
 ten. Hence: few jobs, the slow starts inside a job overlapped instead of queued, nothing run
 that has nothing to do, and no run that a newer run makes pointless. A composite action
-shares steps inside one job; a reusable workflow would have added jobs.
-A separate manual **Seed database** workflow seeds the hosted project on demand; see the
+shares steps inside one job. The reusable workflow adds no job of its own: its jobs are the
+calling run's; only a release pays one more, the check before it.
+A separate manual **Seed database** workflow seeds an environment's project on demand; see the
 [application deployment guide](app-deployment.md#seed-the-hosted-project).
 The daily legislation check is not a workflow: it is the cron trigger of the
-`ssm-usor-legislation` Worker (`apps/legislation`), which this workflow deploys like the mail
-Worker. A scheduled Action ran it at first and was dropped, because GitHub's scheduler delays
+`ssm-usor-legislation` Worker (`apps/legislation`), deployed like the mail Worker; non-prod's
+copy runs half an hour after production's. A scheduled Action ran it at first and was dropped, because GitHub's scheduler delays
 and skips runs where Cloudflare's fires on time.
 
 ## Change selection
 
-`dorny/paths-filter` reads `.github/filters.yml`. For PRs it uses GitHub's changed-file list;
-for pushes to `main` it compares the pushed revision with the commit of the last run on `main`
-that succeeded, so everything since the last complete deployment is in the comparison. A run
-started by hand skips the comparison and selects everything (see below). The workflow itself is not path-filtered, so **Validate repository** remains
+`dorny/paths-filter` reads `.github/filters.yml`. For PRs it uses GitHub's changed-file list.
+A deployment compares its commit with the last commit deployed to the same environment, so
+everything since the last complete deployment there is in the comparison: non-prod with the
+commit of the last run of `deploy.yml` on `main` that succeeded (or, without one, the push
+before), production with the commit of the last release run of `release.yml` that succeeded
+(or, without one, everything). A run started by hand skips the comparison and selects
+everything (see below). The workflow itself is not path-filtered, so **Validate repository** remains
 available as a required PR check, including on documentation-only changes.
 
 | Changed files                                                                                                                             | Build/deployment targets                             |
@@ -58,41 +68,53 @@ Supabase database in Docker, applies every migration from scratch, runs the pgTA
 and fails if `apps/api/src/database.types.ts` no longer matches the schema. The stack starts
 in the background at the top of the job and is collected before the database tests, so its
 minute and a half of pulling and booting overlaps with the other checks. On PRs, selected
-applications are also built and packaged with Wrangler's dry run, without production
-environment access or publishing.
+applications are also built and packaged with Wrangler's dry run, without access to any
+environment or publishing, once for each environment in `wrangler.jsonc` (production at the
+top level, then `non-prod`), so a mistake in either fails before the merge.
 
 A pull request that touches no code (the `code` filter: applications, packages, Supabase,
 root configuration, workflow files) only has its formatting and lint checked. In practice
-that is documentation. On `main`, validation runs only when something is selected to deploy.
+that is documentation. In a deployment, validation runs only when something is selected to deploy.
 
-On `main`, one production build job runs alongside validation and builds every selected
+In a deployment, one build job runs alongside validation and builds every selected
 application with a single Turbo invocation, which keeps the builds off the critical path. Every deployment job needs both,
 so nothing built is deployed unless validation also succeeds; a build for a commit that
-fails validation is wasted work, not a risk. It uses the existing `production` environment's public configuration. The SPA's
-three `VITE_*` variables and the commit SHA embedded in both frontend footers are part of their
-Turbo build hashes. Turbo builds workspace dependencies before the selected application; the
+fails validation is wasted work, not a risk. It builds with the environment's public
+configuration, because the SPA, the portal and the marketing site carry it in their bundles: a
+release builds again and never reuses non-prod's artifacts. The addresses come from the
+environment's `API_URL`, `APP_URL`, `PORTAL_URL` and `MARKETING_URL` variables, and the build
+fails when one is not an `https://` address, since the marketing site would otherwise fall back
+to production's. The `VITE_*` and `PUBLIC_*` values and the commit SHA embedded in the frontend
+footers are part of their Turbo build hashes, so one environment's cached build never serves
+the other. Turbo builds workspace dependencies before the selected application; the
 dry-run task depends on that build.
 
-Each production build uploads a `release-<application>-<commit>` artifact, retained for seven
+Each build uploads a `release-<application>-<environment>-<commit>` artifact, retained for seven
 days. The artifact includes the Wrangler bundle and, for the frontends, the static `dist`
 assets. Deployment jobs download their matching artifact. API, mail, PDF, legislation, and marketing upload the
 already-bundled Worker with `--no-bundle`; SPA uploads the built static assets. No deployment
 job runs lint, tests, application builds, or code generation again before publishing.
 
-Database migrations deploy first when selected, from the `production` environment's Supabase
-credentials. Mail, SMS and marketing deploy independently; the API waits for the mail and SMS
+Every job that runs Wrangler gets `CLOUDFLARE_ENV` for the whole workflow: `non-prod`, or empty
+for production, which is the top level of each `wrangler.jsonc`. It reaches every Wrangler
+call, the `wrangler secret bulk` that `wrangler-action` runs before deploying included; a
+`--env` flag in the action's `command` would not, and non-prod's secrets would land on
+production's Worker. Deployed with `non-prod`, each Worker is named with a `-non-prod` suffix.
+
+Database migrations deploy first when selected, from the environment's Supabase credentials. Mail, SMS and marketing deploy independently; the API waits for the mail and SMS
 Workers when they are selected, because its service bindings need those Workers to exist. The mail deployment uploads
-`RESEND_API_KEY` when the `production` environment has it and warns when it does not; the SMS
+`RESEND_API_KEY` when the environment has it and warns when it does not; the SMS
 deployment uploads the `TWILIO_ACCOUNT_SID` and `SMS_FROM` variables and the `TWILIO_AUTH_TOKEN` secret when all three are
 there and warns when they are not. SPA-only changes skip API deployment. If API and
 SPA both change, API deployment and its HTTP smoke tests must succeed before SPA deployment.
-Before uploading, the API job looks up the `ssm-usor-regeneration` queue the Worker sends to
+Before uploading, the API job looks up the `ssm-usor-regeneration` queue (`ssm-usor-regeneration-non-prod`
+in non-prod) the Worker sends to
 and consumes, and creates it when it is missing, because `wrangler deploy` refuses a binding to
 a queue that does not exist; the deployment token needs **Queues → Edit** for that
 ([deployment guide](deployment.md#create-the-cloudflare-api-token)). The step can be repeated:
 an existing queue is left as it is.
 The legislation Worker deploys after the migrations, since its cron writes to a table they
-create, with the production `VITE_SUPABASE_URL` as its `SUPABASE_URL` and `SUPABASE_SECRET_KEY`
+create, with the environment's `VITE_SUPABASE_URL` as its `SUPABASE_URL` and `SUPABASE_SECRET_KEY`
 as a secret, beside `LEGISLATION_RELAY_CLIENT_ID` and `LEGISLATION_RELAY_CLIENT_SECRET`, the Access
 service token of the relay it reads the portal through
 ([deployment guide](deployment.md#legislation-worker)). Unlike the API, it fails when any of
@@ -101,12 +123,15 @@ without the token the relay turns away every act. `LEGISLATION_RUN_SECRET`, the 
 [run by hand](deployment.md#running-the-check-by-hand), is uploaded when the environment has it;
 without it the job only leaves a notice, and `POST /run` answers `404`.
 
-When `supabase/config.toml` or a migration changes, a last job applies the file to the hosted
-project with `supabase config push`, after the API, because the Send Email hook it declares
+When `supabase/config.toml` or a migration changes, a last job applies the file to the
+environment's project with `supabase config push`, after the API, because the Send Email hook it declares
 must not point at an endpoint that is not deployed yet. Only properties the file declares are
-written; `[remotes.production]` holds the values that differ from the local stack. The push
-does not ask for confirmation in CI, so the job prints `supabase config diff` first and
-refuses to run when the file has no `[remotes]` block for the project. It needs
+written; `[remotes.production]` and `[remotes.non-prod]` hold the values that differ from the
+local stack, and the CLI picks the block whose `project_id` is the project's. The push does not
+ask for confirmation in CI, so the job prints `supabase config diff` first. It and the
+migrations job refuse to run unless `SUPABASE_PROJECT_ID` is the `project_id` of the
+`[remotes.<environment>]` block, so a project id set in the wrong GitHub environment cannot
+reach the other environment's database. It needs
 `SUPABASE_AUTH_HOOK_SECRET` and `SUPABASE_AUTH_SMS_HOOK_SECRET`, which the API deployment uploads
 too, and so does the migrations job, whose `supabase link` reads the file. After the push it
 sets through the Management API the three sign-in settings the file cannot hold: the texted
@@ -114,9 +139,8 @@ code's expiry, phone confirmation, which the CLI pushes inverted
 ([supabase/cli#6997](https://github.com/supabase/cli/issues/6997)), and the cap of 60 auth
 emails an hour, which `config push` leaves unmanaged.
 
-Selection compares a push with the last run on `main` that succeeded, so what a failed,
-cancelled or superseded run carried is selected again by the next push, whatever that push
-touches. The database and configuration
+Selection compares with the last run that succeeded, so what a failed, cancelled or
+superseded run carried is selected again by the next one, whatever that one touches. The database and configuration
 deployments do nothing when there is nothing to apply, which is why workflow files select
 them: the commit that fixes a broken workflow retries them. A job that waits for the API
 treats a skipped API deployment as fine only when the API was not selected; selected and
@@ -132,19 +156,40 @@ with an in-memory mailer and SMS sender, and a preview build of the SPA or the p
 can create users and "send" email and codes without touching production. No deployment waits for them.
 
 Browser tests run in their own job, **Verify deployed SPA**, after the SPA deployment has
-finished and been reported, and remain advisory. They run against production with a real
-account, so they stay small; flows that create users or send email are tested against a
+finished and been reported, and remain advisory. They run against the environment just
+deployed with a real account of its own (`E2E_EMAIL`, `E2E_PASSWORD`), so they stay small; flows that create users or send email are tested against a
 local stack on pull requests instead. The job caches the Chromium download by Playwright
 version and installs only its system packages on a cache hit. API smoke-test failures block
 an accompanying SPA release. The portal has the same pair of jobs, **Deploy portal** and
 **Verify deployed portal**, with only signed-out smoke checks and no secrets; it waits for the
 API like the SPA and never for the SPA. There is no check of the old live release before deployment.
 
+## Releases
+
+Publishing a GitHub release deploys the commit of its tag to production. Tags are dates,
+`2026.10.23`, and `2026.10.23.2` for a second release that day; the release check refuses
+anything else. Before anything deploys, the job **Check the release** resolves the tag to its
+commit and refuses the release unless that commit is on `main` and a run of `deploy.yml` for
+exactly that commit succeeded: production only receives what non-prod has run. Because each
+non-prod run deploys whatever the runs before it left undeployed, that run's success means
+non-prod held everything up to the commit.
+
+Production's change selection compares with the commit of the last release run of
+`release.yml` that succeeded. Release runs are found by their event, not their branch, since
+their branch is the tag. Runs started by hand are left out of that lookup: their head is the
+branch they were started from, not the tag they deployed, and comparing with an earlier
+release only selects more. The first release, with no earlier one, deploys everything.
+
+The `release` event runs `release.yml` as it is at the tag's commit, so a tag on a commit from
+before this workflow existed starts nothing. A run by hand takes the workflow files from the
+branch it is started on, and the commit to deploy from the tag.
+
 ## Caching
 
 `.github/actions/setup/action.yml` centralizes pnpm/Node setup and frozen-lockfile installation.
 The existing pnpm dependency cache is retained. Validation and build jobs also use
-`actions/cache` for `.turbo`; deployment jobs need only the dependency cache and artifacts.
+`actions/cache` for `.turbo`, with a build scope per environment; deployment jobs need only the
+dependency cache and artifacts.
 
 Cache keys separate operating system, Node major, lockfile, job scope, run, and retry attempt.
 Restore prefixes permit reuse from earlier runs and other build jobs with the same lockfile.
@@ -155,26 +200,29 @@ with arbitrary cached files.
 
 ## Concurrency and recovery
 
-Runs of the deployment workflow do not queue behind one another any more. Validation and the
+Runs of a deployment do not queue behind one another any more. Every concurrency group
+carries the environment's name, so non-prod and production never wait for or cancel each
+other. Validation and the
 build each have a concurrency group that a newer run cancels: a run still validating has
 deployed nothing, and the newer run carries its changes. Every deployment job has a group of
 its own that is never cancelled, so nothing is interrupted halfway, the same thing is never
 deployed twice at once, and GitHub keeps at most one run waiting per job. Three merges in a
 row cost about one run instead of three. A pull request's newer push cancels its older run.
 
-The last deployed commit is taken to be the head of the last run on `main` that succeeded,
-read from the Actions API by the job "Select affected applications"; when there is none, or
-its commit is gone, the push before is used instead. Merging several pull requests in a row
+The last commit deployed to non-prod is taken to be the head of the last run of `deploy.yml`
+on `main` that succeeded, read from the Actions API by the job "Select affected applications";
+when there is none, or its commit is gone, the push before is used instead. Merging several pull requests in a row
 leaves one run alive, and that run now selects what the others would have deployed. A run
 that failed stays the concern of whoever merged: the next push retries what it carried, which
 is safe because every deployment here can be repeated, and may not be what is wanted when
 the failure was the change itself.
 
 **Deploying everything by hand.** Actions → Deploy → "Run workflow" on `main` runs the whole
-sequence with every application, the migrations, the configuration and the templates
-selected, whatever changed. It is for an environment that was wiped, a rotated secret, or a
-deployment that failed halfway and is easier to repeat whole. On any other branch it
-validates and deploys nothing.
+sequence for non-prod with every application, the migrations, the configuration and the
+templates selected, whatever changed. It is for an environment that was wiped, a rotated
+secret, or a deployment that failed halfway and is easier to repeat whole. On any other
+branch it deploys nothing. Actions → Release → "Run workflow" with a tag does the same for
+production, after the same check as a release.
 
 Otherwise, resolve deployment failures explicitly:
 
