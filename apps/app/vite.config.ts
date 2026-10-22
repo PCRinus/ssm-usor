@@ -27,6 +27,7 @@ export default defineConfig({
   },
   define: {
     'import.meta.env.VITE_COMMIT_SHA': JSON.stringify(commitSha()),
+    'import.meta.env.VITE_RELEASE_TAG': JSON.stringify(process.env.RELEASE_TAG?.trim() ?? ''),
   },
   plugins: [
     // The router plugin must run before React so file routes are generated first.

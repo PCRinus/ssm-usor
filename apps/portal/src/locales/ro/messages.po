@@ -1581,12 +1581,12 @@ msgid "verificator"
 msgstr "verificator"
 
 #: src/app/commit-version.tsx
-msgid "Versiune <0>{shortCommitSha}</0>"
-msgstr "Versiune <0>{shortCommitSha}</0>"
+msgid "Versiune <0>{version}</0>"
+msgstr "Versiune <0>{version}</0>"
 
 #: src/app/commit-version.tsx
-msgid "Versiunea portalului: commit {commitSha}"
-msgstr "Versiunea portalului: commit {commitSha}"
+msgid "Versiunea portalului: {version}, commit {commitSha}"
+msgstr "Versiunea portalului: {version}, commit {commitSha}"
 
 #: src/features/signing/signing-page.tsx
 #: src/features/training/training-summary.tsx

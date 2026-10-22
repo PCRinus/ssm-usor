@@ -181,4 +181,5 @@ jobs:
       sha: ${{ needs.check.outputs.sha }}
       everything: ${{ inputs.tag != '' }}
       baseline: ${{ needs.check.outputs.baseline }}
+      release: ${{ needs.check.outputs.tag }}
     secrets: inherit
