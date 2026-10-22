@@ -226,6 +226,7 @@ describe('client documents', () => {
       'Documente SSM',
       'Documente PSI',
       'Alte documente',
+      'Portal',
     ]);
     expect(await screen.findByTestId('documents-empty')).toBeTruthy();
     expect(screen.getByTestId('documents-generate').textContent).toContain(

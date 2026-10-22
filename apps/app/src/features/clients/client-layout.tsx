@@ -21,6 +21,7 @@ import {
   Flame,
   FolderOpen,
   IdCard,
+  Smartphone,
   UsersRound,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -84,6 +85,7 @@ const sections = [
     icon: FolderOpen,
     ownerOnly: false,
   },
+  { to: '/clients/$clientId/portal', label: 'Portal', icon: Smartphone, ownerOnly: false },
 ] as const;
 
 export function ClientLayout() {

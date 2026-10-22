@@ -251,6 +251,8 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
         return Response.json({ items: candidates });
       case `GET /clients/${clientId}/signature-requests`:
         return Response.json({ items: [] });
+      case `GET /clients/${clientId}/participants`:
+        return Response.json({ participants: [], invitations: [] });
       case `GET /clients/${clientId}/files`:
         return Response.json({ items: [] });
       case `GET ${trainingsPath}`:
@@ -865,10 +867,10 @@ describe("the client's pending signatures", () => {
         });
       },
     });
-    mount(`/clients/${clientId}/trainings`);
+    mount(`/clients/${clientId}/portal`);
     const card = await screen.findByTestId('client-signature-requests');
+    const people = await within(card).findAllByTestId('client-signature-requests-employee');
     expect(within(card).getByRole('heading').textContent).toBe('3 semnături în așteptare');
-    const people = within(card).getAllByTestId('client-signature-requests-employee');
     expect(people.map((person) => person.querySelector('a')!.textContent)).toEqual([
       'Ionescu Ana',
       'Popescu Ion',
@@ -889,9 +891,9 @@ describe("the client's pending signatures", () => {
       [`GET /clients/${clientId}/signature-requests`]: () =>
         Response.json({ items: [testSheetRequest({ slot: 'trainee' })] }),
     });
-    mount(`/clients/${clientId}/trainings`);
+    mount(`/clients/${clientId}/portal`);
     const card = await screen.findByTestId('client-signature-requests');
-    const [item] = within(card).getAllByTestId('client-signature-request');
+    const [item] = await within(card).findAllByTestId('client-signature-request');
     expect(item!.dataset.kind).toBe('test_sheet');
     const link = within(item!).getByRole('link');
     expect(link.textContent).toBe('Fișa de test · Test anual PSI · 15.10.2026');
@@ -901,11 +903,22 @@ describe("the client's pending signatures", () => {
     expect(item!.textContent).toContain('Instruit');
   });
 
-  it('shows nothing while every request is signed', async () => {
+  it('says so while every request is signed', async () => {
+    mockApi();
+    mount(`/clients/${clientId}/portal`);
+    const card = await screen.findByTestId('client-signature-requests');
+    expect((await within(card).findByTestId('client-signature-requests-empty')).textContent).toBe(
+      'Nicio semnătură în așteptare.'
+    );
+    expect(within(card).getByRole('heading').textContent).toBe('Semnături în așteptare');
+  });
+
+  it('is no longer on the trainings tab', async () => {
     mockApi();
     mount(`/clients/${clientId}/trainings`);
     await screen.findByTestId('trainings-empty');
     expect(screen.queryByTestId('client-signature-requests')).toBeNull();
+    expect(requests('GET', `/clients/${clientId}/signature-requests`)).toHaveLength(0);
   });
 });
 
