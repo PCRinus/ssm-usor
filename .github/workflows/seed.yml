@@ -1,12 +1,18 @@
 name: Seed database
 
 # Operator action, run by hand: ensures the admin user, its organization, and optionally
-# fake clients with employees on the hosted Supabase project. Never part of a release.
-# An existing admin account keeps its password; the default applies only when the account
-# is first created.
+# fake clients with employees on one environment's Supabase project. Never part of a release.
+# An existing admin account keeps its password unless reset-password is set.
 on:
   workflow_dispatch:
     inputs:
+      environment:
+        description: The environment whose project to seed
+        type: choice
+        options:
+          - non-prod
+          - production
+        default: non-prod
       fake:
         description: Also upsert fake clients and their employees (only where SEED_ALLOW_FAKE is set)
         type: boolean
@@ -20,7 +26,7 @@ on:
         type: number
         default: 20260917
       reset-password:
-        description: Set SEED_ADMIN_PASSWORD on the existing admin account (requires the secret)
+        description: Set SEED_ADMIN_PASSWORD on the existing admin account
         type: boolean
         default: false
 
@@ -28,7 +34,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: seed-database
+  group: seed-database-${{ inputs.environment }}
   cancel-in-progress: false
 
 jobs:
@@ -36,7 +42,7 @@ jobs:
     name: Seed hosted project
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: production
+    environment: ${{ inputs.environment }}
     env:
       SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
@@ -46,15 +52,14 @@ jobs:
       SEED_ADMIN_NAME_INPUT: ${{ vars.SEED_ADMIN_NAME }}
       SEED_ALLOW_FAKE: ${{ vars.SEED_ALLOW_FAKE }}
     steps:
+      # Without the secret the seed script falls back to the local stack's password, which this
+      # public repository prints, and would give it to a newly created admin account.
       - name: Check seed configuration
         shell: bash
         run: |
           : "${SUPABASE_URL:?Set VITE_SUPABASE_URL in GitHub variables}"
           : "${SUPABASE_SECRET_KEY:?Set SUPABASE_SECRET_KEY in GitHub secrets}"
-          if [[ "${{ inputs.reset-password }}" == "true" && -z "$SEED_ADMIN_PASSWORD" ]]; then
-            echo "Set SEED_ADMIN_PASSWORD in GitHub secrets to reset the admin password."
-            exit 1
-          fi
+          : "${SEED_ADMIN_PASSWORD:?Set SEED_ADMIN_PASSWORD in GitHub secrets for this environment}"
           if [[ "${{ inputs.fake }}" == "true" && "$SEED_ALLOW_FAKE" != "true" ]]; then
             echo "Fake data is not allowed in this environment. Set SEED_ALLOW_FAKE=true to permit it."
             exit 1
