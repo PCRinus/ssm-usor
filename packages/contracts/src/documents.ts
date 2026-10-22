@@ -327,8 +327,6 @@ export const riskEvaluationGapSchema = z.enum(riskEvaluationGaps);
 
 export type RiskEvaluationGap = z.infer<typeof riskEvaluationGapSchema>;
 
-// For the fire-safety set, the lists about evaluations and the workers' representative are empty,
-// and the positions are those undecided about the fire-safety modules.
 /**
  * What generating would do better with but does not wait for: the documents fall back on
  * something else when it is missing.
@@ -343,6 +341,8 @@ export const documentDataHintSchema = z.enum(documentDataHints);
 
 export type DocumentDataHint = z.infer<typeof documentDataHintSchema>;
 
+// For the fire-safety set, the lists about evaluations and the workers' representative are empty,
+// and the positions are those undecided about the fire-safety modules.
 export const documentReadinessResponseSchema = z.object({
   ready: z.boolean(),
   missing: z.array(missingDocumentDataSchema),
