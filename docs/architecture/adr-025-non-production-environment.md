@@ -44,7 +44,7 @@ Each `wrangler.jsonc` keeps production at its top level and gains `env["non-prod
 
 ### The current Supabase project stays production and is wiped, a new one is non-production
 
-The current project, `xvhiwymggufbvjdfywjg`, stays production and is **wiped completely** before the waitlist arrives. Non-production is a **new Supabase project** in the same organization and region. Nothing on the current project is kept: it holds Mircea's accounts, his test users and one tester's two clients, and that tester agreed to their removal.
+The current project, `xvhiwymggufbvjdfywjg`, stays production and is **wiped completely** before the waitlist arrives. Non-production is a **new Supabase project**, `tjtpgawwtccviouwfafp`. Nothing on the current project is kept: it holds Mircea's accounts, his test users and one tester's two clients, and that tester agreed to their removal.
 
 A database reset alone is not a wipe: `supabase db reset --linked` rebuilds the schema from the migrations, but the auth users and the Storage files live outside what it drops. The wipe is therefore, in order: every Storage bucket emptied through the Storage API (deleting rows of `storage.objects` would leave the files behind), every auth user deleted through the admin API, the database reset from the migrations, then a check that no user, object or row of the application's tables is left before the administrator is seeded again. The project's backups age out on their own schedule.
 
@@ -106,7 +106,7 @@ The order is: non-production stands up on its new project and is seeded with fak
 
 Both projects start on Supabase's Free plan; production moves to Pro later, when its use calls for it. Mircea expects non-production to carry more traffic than production at first, and Free's limits (two active projects per account, 500 MB of database, 1 GB of Storage) fit both. What Free costs production is not capacity: it has **no automatic backups**, so until Pro a deletion or a bad migration on production cannot be undone, and it **pauses a project after a week without activity**, which takes the environment down until someone restores it from the dashboard. The legislation cron reaches the database every day and is expected to count as activity; that is to be confirmed on the first quiet week.
 
-The non-production project is created in a Supabase organization of its own, also on Free. A plan belongs to an organization, and a Pro organization pays compute for each of its projects beyond the one its credit covers; with non-production apart, upgrading production's organization later bills production alone.
+The non-production project was created in production's organization. A plan belongs to an organization, and a Pro organization pays compute for each of its projects beyond the one its credit covers, so before production's organization moves to Pro, non-production is transferred to an organization of its own on Free (Supabase moves a project between organizations without changing its id); upgrading then bills production alone.
 
 Resend's Free plan allows the second sending domain. Its quota (100 emails a day, 3,000 a month) belongs to the account, so both environments draw on it: a burst of test mail in non-production can exhaust the day's sending for production, its sign-up and password emails included. Moving Resend to a paid plan, or giving non-production an account of its own, is the remedy when that first happens.
 
