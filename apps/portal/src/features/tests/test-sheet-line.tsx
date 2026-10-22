@@ -8,9 +8,15 @@ import { Link } from '@tanstack/react-router';
 import { LoaderCircle, PenLine } from 'lucide-react';
 import { useState } from 'react';
 
-import { getPortalTestSheet, type PortalTestsResponse } from '@/api/generated/api';
+import {
+  getPortalTestSheet,
+  getPortalTestSheetLink,
+  type PortalTestsResponse,
+} from '@/api/generated/api';
+import { FileLinkButton } from '@/components/file-link-button';
 import { Notice } from '@/components/notice';
 import { invalidateSigningQueries } from '@/features/signing/signing-items';
+import { useFileLink } from '@/lib/file-link';
 import { testSheetTitleMessage } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
 import { openPreview, PreviewBlockedError } from '@/lib/save-file';
@@ -51,6 +57,20 @@ export function TestSheetLine({
   const [failure, setFailure] = useState<MessageDescriptor | null>(null);
   const trainee = i18n._(slotStateMessages[result.sheet.signed.trainee]);
   const examiner = i18n._(slotStateMessages[result.sheet.signed.examiner]);
+  // A signature writes a new version of the sheet: the slots in the key fetch its link anew.
+  const link = useFileLink({
+    queryKey: [
+      'test-sheet-link',
+      participantId,
+      result.id,
+      result.sheet.signed.trainee,
+      result.sheet.signed.examiner,
+    ],
+    load: (signal) => getPortalTestSheetLink(participantId, result.id, { ...apiRequest, signal }),
+    enabled: result.sheet.available,
+    apiRequest,
+    disposition: 'inline',
+  });
 
   async function open() {
     setBusy(true);
@@ -60,8 +80,8 @@ export function TestSheetLine({
         title: i18n._(testSheetTitleMessage(result.domain, result.test)),
         pending: t`Se pregătește fișa…`,
       });
-      // Opening draws up a sheet the pass could not and requests its signatures.
-      if (!result.sheet.available) void invalidateSigningQueries(queryClient);
+      // Opening draws up the sheet the pass could not and requests its signatures.
+      void invalidateSigningQueries(queryClient);
     } catch (cause) {
       setFailure(failureOf(cause));
     } finally {
@@ -85,16 +105,27 @@ export function TestSheetLine({
             {t`Semnătura ta: ${trainee}. Examinatorul: ${examiner}.`}
           </span>
         </p>
-        <Button
-          variant="outline"
-          data-testid="training-test-sheet-open"
-          className="h-10 shrink-0 px-3.5"
-          disabled={busy}
-          onClick={() => void open()}
-        >
-          {busy && <LoaderCircle aria-hidden="true" className="animate-spin" />}
-          <Trans>Deschide PDF</Trans>
-        </Button>
+        {result.sheet.available ? (
+          <FileLinkButton
+            variant="outline"
+            data-testid="training-test-sheet-open"
+            className="h-10 shrink-0 px-3.5"
+            link={link}
+          >
+            <Trans>Deschide PDF</Trans>
+          </FileLinkButton>
+        ) : (
+          <Button
+            variant="outline"
+            data-testid="training-test-sheet-open"
+            className="h-10 shrink-0 px-3.5"
+            disabled={busy}
+            onClick={() => void open()}
+          >
+            {busy && <LoaderCircle aria-hidden="true" className="animate-spin" />}
+            <Trans>Deschide PDF</Trans>
+          </Button>
+        )}
       </div>
       {result.sheet.signed.trainee === 'pending' && (
         <p

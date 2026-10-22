@@ -35,15 +35,19 @@ import {
   answerPortalTestAttempt,
   finishPortalTestAttempt,
   getPortalMaterial,
+  getPortalMaterialLink,
   getPortalTests,
   getPortalTestSheet,
+  getPortalTestSheetLink,
   getPortalTestStudyCard,
   startPortalTestAttempt,
 } from './test-handlers';
 import {
   answerPortalTestAttemptRoute,
   finishPortalTestAttemptRoute,
+  getPortalMaterialLinkRoute,
   getPortalMaterialRoute,
+  getPortalTestSheetLinkRoute,
   getPortalTestSheetRoute,
   getPortalTestsRoute,
   getPortalTestStudyCardRoute,
@@ -71,4 +75,6 @@ export const portalRouter = createRouter()
   .openapi(answerPortalTestAttemptRoute, answerPortalTestAttempt)
   .openapi(finishPortalTestAttemptRoute, finishPortalTestAttempt)
   .openapi(getPortalMaterialRoute, getPortalMaterial)
-  .openapi(getPortalTestSheetRoute, getPortalTestSheet);
+  .openapi(getPortalMaterialLinkRoute, getPortalMaterialLink)
+  .openapi(getPortalTestSheetRoute, getPortalTestSheet)
+  .openapi(getPortalTestSheetLinkRoute, getPortalTestSheetLink);
