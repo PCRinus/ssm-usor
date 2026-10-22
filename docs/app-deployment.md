@@ -1,8 +1,11 @@
 # Deploy the application and API
 
-The **Deploy** workflow (`.github/workflows/deploy.yml`) automatically deploys the affected API
-and SPA applications after validation succeeds on a push to `main`. Each application
-has its own deployment job and can be released independently:
+The **Deploy** workflow (`.github/workflows/deploy.yml`) deploys the affected applications to
+non-prod after validation succeeds on a push to `main`; the **Release** workflow
+(`.github/workflows/release.yml`) deploys them to production when a GitHub release is published
+([ADR 025](architecture/adr-025-non-production-environment.md), [CI/CD](ci-cd.md#releases)).
+Both run `.github/workflows/deploy-environment.yml`. Each application has its own deployment
+job and can be released independently. Production's Workers and domains:
 
 | Worker         | Custom domain    | Purpose                                         |
 | -------------- | ---------------- | ----------------------------------------------- |
@@ -10,7 +13,9 @@ has its own deployment job and can be released independently:
 | `ssm-usor-app` | `app.ssmusor.ro` | React SPA and static assets                     |
 
 The portal's Worker, `ssm-usor-portal` at `portal.ssmusor.ro`, deploys the same way from the
-same values; see the [portal guide](portal.md).
+same values; see the [portal guide](portal.md). Non-prod runs the same Workers with a
+`-non-prod` suffix on hostnames under `non-prod.ssmusor.ro` (`api.non-prod.ssmusor.ro` and so on),
+from the `non-prod` block of each `wrangler.jsonc`.
 
 All of them disable `workers.dev` routes. Cloudflare creates the custom-domain DNS records and
 certificates on deployment in the account hosting the active `ssmusor.ro` zone. Resolve any
@@ -19,45 +24,46 @@ independently; see the [marketing deployment guide](deployment.md).
 
 ## One-time GitHub configuration
 
-In **Settings → Environments**, use the shared `production` environment. Production build
-and deployment jobs use its variables, secrets, and protection rules. Add these values for the API and SPA:
+In **Settings → Environments**, the `non-prod` and `production` environments hold the same names
+with each environment's own values; every build and deployment job uses the variables, secrets
+and protection rules of the environment it deploys. Add these values to both:
 
-| Name                                                            | Kind     | Value                                                                                                                                                                                                                                                       |
-| --------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_ACCOUNT_ID`                                         | Variable | Account hosting the `ssmusor.ro` zone; same account as marketing.                                                                                                                                                                                           |
-| `CLOUDFLARE_API_TOKEN`                                          | Secret   | Deployment token authorized to edit Workers, their custom-domain routes and Queues in this account/zone.                                                                                                                                                    |
-| `VITE_SUPABASE_URL`                                             | Variable | `https://xvhiwymggufbvjdfywjg.supabase.co` for the current project.                                                                                                                                                                                         |
-| `VITE_SUPABASE_PUBLISHABLE_KEY`                                 | Variable | The project's `sb_publishable_…` key from Supabase **Settings → API Keys**.                                                                                                                                                                                 |
-| `VITE_POSTHOG_PROJECT_TOKEN`                                    | Variable | Public project token for the production EU PostHog project. Without it, PostHog and Support are disabled in the SPA, and the marketing site sends no analytics (it reads the same variable as `PUBLIC_POSTHOG_PROJECT_TOKEN`).                              |
-| `POSTHOG_PROJECT_ID`                                            | Variable | Numeric project ID in the same EU PostHog project, used for source-map upload.                                                                                                                                                                              |
-| `POSTHOG_PERSONAL_API_KEY`                                      | Secret   | PostHog personal API key with access to upload source maps. It is used during the build and never exposed as a `VITE_` value.                                                                                                                               |
-| `POSTHOG_SUPPORT_SECRET_KEY`                                    | Secret   | Secret key for signed Support widget identity, from the same PostHog project. Passed only to the API Worker.                                                                                                                                                |
-| `E2E_EMAIL`                                                     | Secret   | Email of a test user on the hosted Supabase project. The local seed account does not exist there.                                                                                                                                                           |
-| `E2E_PASSWORD`                                                  | Secret   | Password for that test user.                                                                                                                                                                                                                                |
-| `SUPABASE_PROJECT_ID`                                           | Variable | The project reference (`xvhiwymggufbvjdfywjg` for the current project).                                                                                                                                                                                     |
-| `SUPABASE_ACCESS_TOKEN`                                         | Secret   | A Supabase personal access token, used by the CLI to link the project for migrations.                                                                                                                                                                       |
-| `SUPABASE_DB_PASSWORD`                                          | Secret   | The project's database password from Supabase **Settings → Database**, used by `db push`.                                                                                                                                                                   |
-| `SUPABASE_SECRET_KEY`                                           | Secret   | The project's `sb_secret_…` key from **Settings → API Keys**, used by the seed workflow, the API's waitlist and the legislation Worker.                                                                                                                     |
-| `SUPABASE_AUTH_HOOK_SECRET`                                     | Secret   | Signs Supabase Auth's Send Email hook. We choose it: `v1,whsec_` followed by 32 random bytes in base64. CI gives the same value to Supabase and to the API.                                                                                                 |
-| `TURNSTILE_SITE_KEY`                                            | Variable | Site key of the same Turnstile widget, built into the marketing site; without it the form is a mailto link.                                                                                                                                                 |
-| `TURNSTILE_SECRET_KEY`                                          | Secret   | Secret key of the Turnstile widget protecting the marketing site's waitlist form.                                                                                                                                                                           |
-| `RESEND_API_KEY`                                                | Secret   | Sending-only Resend key for the mail Worker; see the [mail Worker guide](mail.md).                                                                                                                                                                          |
-| `SUPABASE_AUTH_SMS_HOOK_SECRET`                                 | Secret   | Signs Supabase Auth's Send SMS hook, chosen like `SUPABASE_AUTH_HOOK_SECRET` but a different value. CI gives the same value to Supabase and to the API.                                                                                                     |
-| `SIGNING_CA_KEY`                                                | Secret   | The app's signing authority's P-256 private key, PKCS#8 PEM (ADR 023). `pnpm --filter @ssm-usor/api signing:ca` makes it with the next two; passed only to the API Worker. Losing it leaves earlier certificates unverifiable against new ones, so keep it. |
-| `SIGNING_CA_CERT`                                               | Secret   | That authority's self-signed certificate, PEM, ten years.                                                                                                                                                                                                   |
-| `SIGNING_KEY_ENCRYPTION_KEY`                                    | Secret   | 32 random bytes, base64: the AES-256-GCM key under which signers' private keys are stored. A new value makes every signer's identity reissue at their next signature.                                                                                       |
-| `TWILIO_ACCOUNT_SID`                                            | Variable | The Twilio account the SMS Worker sends through; see the [SMS Worker guide](sms.md).                                                                                                                                                                        |
-| `TWILIO_AUTH_TOKEN`                                             | Secret   | The auth token of that Twilio account, the one value of the three that is a secret.                                                                                                                                                                         |
-| `SMS_FROM`                                                      | Variable | The SMS sender: `SSMUsor`, a Twilio number, or a Messaging Service SID. Without all three Twilio values the SMS Worker only logs.                                                                                                                           |
-| `SEED_ALLOW_FAKE`                                               | Variable | `true` to let the seed workflow add fake clients and employees; leave unset on a real production project.                                                                                                                                                   |
-| `SEED_ADMIN_PASSWORD`                                           | Secret   | Only for the workflow's `reset-password` input or a first creation; otherwise not needed.                                                                                                                                                                   |
-| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`, `SEED_ORGANIZATION_NAME` | Variable | Optional overrides for the seeded account, its profile name, and the organization name.                                                                                                                                                                     |
+| Name                                                            | Kind     | Value                                                                                                                                                                                                                                                                                                                                         |
+| --------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `API_URL`, `APP_URL`, `PORTAL_URL`, `MARKETING_URL`             | Variable | The environment's addresses without a trailing slash, `https://api.ssmusor.ro`, `https://app.ssmusor.ro`, `https://portal.ssmusor.ro`, `https://ssmusor.ro` in production and the `non-prod.ssmusor.ro` ones in non-prod. Built into the SPA, the portal and the marketing site, used by the deployment checks; the build fails without them. |
+| `CLOUDFLARE_ACCOUNT_ID`                                         | Variable | Account hosting the `ssmusor.ro` zone; same account as marketing.                                                                                                                                                                                                                                                                             |
+| `CLOUDFLARE_API_TOKEN`                                          | Secret   | Deployment token authorized to edit Workers, their custom-domain routes and Queues in this account/zone.                                                                                                                                                                                                                                      |
+| `VITE_SUPABASE_URL`                                             | Variable | `https://xvhiwymggufbvjdfywjg.supabase.co` for the current project.                                                                                                                                                                                                                                                                           |
+| `VITE_SUPABASE_PUBLISHABLE_KEY`                                 | Variable | The project's `sb_publishable_…` key from Supabase **Settings → API Keys**.                                                                                                                                                                                                                                                                   |
+| `VITE_POSTHOG_PROJECT_TOKEN`                                    | Variable | Public project token for the production EU PostHog project. Without it, PostHog and Support are disabled in the SPA, and the marketing site sends no analytics (it reads the same variable as `PUBLIC_POSTHOG_PROJECT_TOKEN`).                                                                                                                |
+| `POSTHOG_PROJECT_ID`                                            | Variable | Numeric project ID in the same EU PostHog project, used for source-map upload.                                                                                                                                                                                                                                                                |
+| `POSTHOG_SOURCEMAPS_UPLOAD_KEY`                                 | Secret   | A PostHog personal API key, scoped to the organization with Error tracking: Write and Organization: Read, that uploads the SPA's and the portal's source maps during the build. One key serves both environments: it can only write source maps and error tracking. Never exposed as a `VITE_` value.                                         |
+| `POSTHOG_SUPPORT_SECRET_KEY`                                    | Secret   | Secret key for signed Support widget identity, from the same PostHog project. Passed only to the API Worker.                                                                                                                                                                                                                                  |
+| `E2E_EMAIL`                                                     | Secret   | Email of a test user on the hosted Supabase project. The local seed account does not exist there.                                                                                                                                                                                                                                             |
+| `E2E_PASSWORD`                                                  | Secret   | Password for that test user.                                                                                                                                                                                                                                                                                                                  |
+| `SUPABASE_PROJECT_ID`                                           | Variable | The project reference (`xvhiwymggufbvjdfywjg` for the current project).                                                                                                                                                                                                                                                                       |
+| `SUPABASE_ACCESS_TOKEN`                                         | Secret   | A Supabase personal access token, used by the CLI to link the project for migrations.                                                                                                                                                                                                                                                         |
+| `SUPABASE_DB_PASSWORD`                                          | Secret   | The project's database password from Supabase **Settings → Database**, used by `db push`.                                                                                                                                                                                                                                                     |
+| `SUPABASE_SECRET_KEY`                                           | Secret   | The project's `sb_secret_…` key from **Settings → API Keys**, used by the seed workflow, the API's waitlist and the legislation Worker.                                                                                                                                                                                                       |
+| `SUPABASE_AUTH_HOOK_SECRET`                                     | Secret   | Signs Supabase Auth's Send Email hook. We choose it: `v1,whsec_` followed by 32 random bytes in base64. CI gives the same value to Supabase and to the API.                                                                                                                                                                                   |
+| `TURNSTILE_SITE_KEY`                                            | Variable | Site key of the same Turnstile widget, built into the marketing site; without it the form is a mailto link.                                                                                                                                                                                                                                   |
+| `TURNSTILE_SECRET_KEY`                                          | Secret   | Secret key of the Turnstile widget protecting the marketing site's waitlist form.                                                                                                                                                                                                                                                             |
+| `RESEND_API_KEY`                                                | Secret   | Sending-only Resend key for the mail Worker; see the [mail Worker guide](mail.md).                                                                                                                                                                                                                                                            |
+| `SUPABASE_AUTH_SMS_HOOK_SECRET`                                 | Secret   | Signs Supabase Auth's Send SMS hook, chosen like `SUPABASE_AUTH_HOOK_SECRET` but a different value. CI gives the same value to Supabase and to the API.                                                                                                                                                                                       |
+| `SIGNING_CA_KEY`                                                | Secret   | The app's signing authority's P-256 private key, PKCS#8 PEM (ADR 023). `pnpm --filter @ssm-usor/api signing:ca` makes it with the next two; passed only to the API Worker. Losing it leaves earlier certificates unverifiable against new ones, so keep it.                                                                                   |
+| `SIGNING_CA_CERT`                                               | Secret   | That authority's self-signed certificate, PEM, ten years.                                                                                                                                                                                                                                                                                     |
+| `SIGNING_KEY_ENCRYPTION_KEY`                                    | Secret   | 32 random bytes, base64: the AES-256-GCM key under which signers' private keys are stored. A new value makes every signer's identity reissue at their next signature.                                                                                                                                                                         |
+| `TWILIO_ACCOUNT_SID`                                            | Variable | The Twilio account the SMS Worker sends through; see the [SMS Worker guide](sms.md).                                                                                                                                                                                                                                                          |
+| `TWILIO_AUTH_TOKEN`                                             | Secret   | The auth token of that Twilio account, the one value of the three that is a secret.                                                                                                                                                                                                                                                           |
+| `SMS_FROM`                                                      | Variable | The SMS sender: `SSMUsor`, a Twilio number, or a Messaging Service SID. Without all three Twilio values the SMS Worker only logs.                                                                                                                                                                                                             |
+| `SEED_ALLOW_FAKE`                                               | Variable | `true` to let the seed workflow add fake clients and employees: in `non-prod` only, never in `production`.                                                                                                                                                                                                                                    |
+| `SEED_ADMIN_PASSWORD`                                           | Secret   | The administrator's password. The seed workflow refuses to run without it, because the seed script's default is printed in this repository.                                                                                                                                                                                                   |
+| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`, `SEED_ORGANIZATION_NAME` | Variable | Optional overrides for the seeded account, its profile name, and the organization name.                                                                                                                                                                                                                                                       |
 
 The Cloudflare account ID and deployment token are shared with marketing.
-All three applications deploy automatically and selectively after successful validation on
-`main`. Marketing has an independent deployment job. Main workflow runs are queued without
-automatically canceling active or pending releases. See [CI/CD](ci-cd.md) for change selection,
-artifact reuse, caching, and recovery.
+All applications deploy selectively after successful validation, to non-prod on `main` and to
+production on a release. Marketing has an independent deployment job. See [CI/CD](ci-cd.md)
+for change selection, artifacts, caching, and recovery.
 
 Repository-level variables and secrets also work, but values scoped to other environments
 are unavailable here. The Cloudflare **Edit Cloudflare Workers** token template is a starting
@@ -72,8 +78,10 @@ in the `production` GitHub environment before deploying. The build uploads hidde
 maps only when the personal API key and project ID are set; the plugin removes them from the release
 after upload. For local development use a separate EU project and leave the token unset by default.
 
-The workflow fixes `VITE_API_URL` to `https://api.ssmusor.ro`; no GitHub variable is needed
-for it. It builds the public Supabase settings into the SPA and passes the same settings to
+The workflow builds `API_URL` into the SPA and the portal as `VITE_API_URL`, and
+`API_URL`, `APP_URL` and `MARKETING_URL` into the marketing site as `PUBLIC_API_URL`,
+`PUBLIC_APP_URL` and `PUBLIC_SITE_URL`.
+It builds the public Supabase settings into the SPA and passes the same settings to
 the API as `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. These are public configuration,
 not administrator credentials. The access token and database password are used only by the
 **Deploy database migrations** job to push checked-in migrations and never reach the Workers.
@@ -126,8 +134,9 @@ the local stack's identities.
 ## Seed the hosted project
 
 The **Seed database** workflow (`.github/workflows/seed.yml`) is run by hand from the Actions
-tab. It ensures the admin user, the organization, and the owner membership, and can add
-deterministic fake clients and employees when the `fake` input is set and the environment allows it. The
+tab, for the environment chosen in its `environment` input (`non-prod` by default). It ensures the admin user, the organization, and the owner membership, and can add
+deterministic fake clients and employees when the `fake` input is set and the environment allows it
+(`SEED_ALLOW_FAKE`, set in non-prod only). It refuses to run without `SEED_ADMIN_PASSWORD`. The
 seed is idempotent: rerunning it updates the same rows. Run it after a new project is created
 or when fresh fake data is wanted; it is not part of any release. The same script runs locally
 as `pnpm seed`, see the [development admin guide](development-admin.md).
@@ -143,7 +152,8 @@ Wrangler deployments; this workflow explicitly updates them on every release. Pr
 
 ## Release
 
-1. Merge or push the changes to `main`; follow the **CI** run in GitHub Actions.
+1. Merge or push the changes to `main`; follow the **Deploy** run in GitHub Actions, which
+   takes them to non-prod. Steps 2 to 7 then run there.
 2. CI validates generated code, lint, types, and tests once for the revision.
 3. Only affected applications are built and checked with Wrangler's dry run. The SPA build
    receives production public settings. Validated Worker bundles and static assets are uploaded
@@ -158,6 +168,10 @@ Wrangler deployments; this workflow explicitly updates them on every release. Pr
 7. After an SPA deployment, Chromium checks login rendering, form validation, the signed-out
    redirect, and the authenticated identity/session/sign-out flow against the deployed services.
    API-only releases run the API checks; they do not redeploy or run browser checks for the SPA.
+8. Once non-prod has run the commit, publish a GitHub release whose tag is the date
+   (`2026.10.23`, `2026.10.23.2` for a second one that day) on that commit. The **Release** run
+   refuses a commit that is not on `main` or that no successful **Deploy** run has deployed,
+   then runs steps 2 to 7 against production, selecting what changed since the last release.
 
 Browser verification is currently **non-blocking**: readiness, UI, or login failures leave a
 warning and job summary while allowing a successful deployment result. Browser report uploads

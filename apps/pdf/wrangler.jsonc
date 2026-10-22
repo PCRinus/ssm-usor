@@ -39,4 +39,30 @@
   "observability": {
     "enabled": true,
   },
+  // Wrangler inherits the migrations into an environment, but not the containers or the Durable
+  // Object bindings.
+  "env": {
+    "non-prod": {
+      "containers": [
+        {
+          "class_name": "Gotenberg",
+          "image": "./Dockerfile",
+          "instance_type": "standard-1",
+          "max_instances": 1,
+        },
+        {
+          "class_name": "Signer",
+          "image": "./signer/Dockerfile",
+          "instance_type": "basic",
+          "max_instances": 1,
+        },
+      ],
+      "durable_objects": {
+        "bindings": [
+          { "name": "GOTENBERG", "class_name": "Gotenberg" },
+          { "name": "SIGNER", "class_name": "Signer" },
+        ],
+      },
+    },
+  },
 }

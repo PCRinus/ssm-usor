@@ -78,8 +78,11 @@ runs:
           exit 1
         fi
 
-    # Packaging without production environment access. The deployment workflow builds once,
-    # in its own job, with the real public settings.
+    # Packaging without access to any environment. The deployment workflow builds once per
+    # environment, in its own job, with the real public settings. Each wrangler.jsonc is
+    # packaged as both environments, production at its top level and non-prod, so a mistake
+    # in the non-prod block fails here and not after the merge. The second pass costs seconds:
+    # Turbo replays the builds.
     - name: Build and validate affected applications
       if: inputs.mode == 'full' && inputs.projects != '' && inputs.projects != '[]'
       env:
@@ -91,4 +94,6 @@ runs:
         for project in "${projects[@]}"; do
           filters+=("--filter=@ssm-usor/$project")
         done
-        pnpm exec turbo run deploy:dry-run "${filters[@]}"
+        for environment in '' non-prod; do
+          CLOUDFLARE_ENV="$environment" pnpm exec turbo run deploy:dry-run "${filters[@]}"
+        done

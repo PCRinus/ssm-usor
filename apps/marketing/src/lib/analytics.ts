@@ -3,7 +3,7 @@ import type { PostHog } from 'posthog-js';
 type Properties = Record<string, string | number | boolean>;
 
 const token = import.meta.env.PUBLIC_POSTHOG_PROJECT_TOKEN?.trim();
-const productionHost = 'ssmusor.ro';
+const siteHost = new URL(import.meta.env.SITE).hostname;
 const preferenceKey = 'ssmusor-analytics';
 
 let client: PostHog | undefined;
@@ -34,7 +34,7 @@ function enabled(): boolean {
   if (!token) return false;
   const choice = preference();
   if (choice) return choice === 'on';
-  return location.hostname === productionHost;
+  return location.hostname === siteHost;
 }
 
 async function load() {

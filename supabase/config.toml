@@ -1,5 +1,5 @@
-# The local stack, and through [remotes.production] at the end, the hosted project's settings.
-# CI applies the declared properties to the hosted project with `supabase config push`;
+# The local stack, and through the [remotes.*] blocks at the end, each hosted project's settings.
+# CI applies the declared properties to a hosted project with `supabase config push`;
 # properties this file does not declare are left as they are there.
 # https://supabase.com/docs/guides/local-development/cli/config
 project_id = "ssm-usor-local"
@@ -49,7 +49,7 @@ password_requirements = "lower_upper_letters_digits"
 
 [auth.email]
 enable_signup = true
-# An address is confirmed before its account can be used, here as on the hosted project.
+# An address is confirmed before its account can be used, here as on the hosted projects.
 enable_confirmations = true
 # How long a recovery link and the portal's emailed sign-in code work. OTP_EXPIRY_MINUTES in
 # apps/api's auth-hooks module says the same to the person reading the email.
@@ -73,7 +73,7 @@ enabled = true
 # The value below is not a secret: it decodes to "not-a-secret-local-stack-only-32" and only
 # signs calls from the local stack to the local API (apps/api/.dev.vars.example has the same).
 # It is a literal because the CLI rejects an unset env() here and would fail every local
-# command. The hosted project gets its own from [remotes.production] below, never this one.
+# command. Each hosted project gets its own from its [remotes.*] block below, never this one.
 [auth.hook.send_email]
 enabled = true
 uri = "http://host.docker.internal:8797/hooks/supabase/send-email"
@@ -85,7 +85,7 @@ secrets = "v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXN0YWNrLW9ubHktMzI="
 # invitation (apps/api's auth-hooks module), so a stranger's number gets no SMS.
 #
 # The code's expiry (`sms_otp_exp`) is not a property of this file: the local stack fixes it at
-# 100 minutes, and the deployment workflow sets 10 on the hosted project.
+# 100 minutes, and the deployment workflow sets 10 on the hosted projects.
 [auth.sms]
 enable_signup = true
 # The first code confirms the number, as the first emailed code confirms an address.
@@ -97,7 +97,7 @@ max_frequency = "60s"
 # Supabase Auth hands every code it would text to the API, which forwards it to the SMS Worker.
 # Locally it points at the flow tests' API (port 8797), which keeps messages in memory, like
 # the email hook above. The value below decodes to "not-a-secret-local-sms-hook-only"; the
-# hosted project gets its own from [remotes.production] below.
+# hosted projects get their own from their [remotes.*] blocks below.
 [auth.hook.send_sms]
 enabled = true
 uri = "http://host.docker.internal:8797/hooks/supabase/send-sms"
@@ -128,7 +128,8 @@ enabled = false
 [analytics]
 enabled = false
 
-# Only what must differ from the local values above is listed.
+# Per hosted project, the CLI picks the block whose project_id is the linked project's. Only what
+# must differ from the local values above is listed.
 [remotes.production]
 project_id = "xvhiwymggufbvjdfywjg"
 
@@ -146,8 +147,29 @@ enabled = true
 uri = "https://api.ssmusor.ro/hooks/supabase/send-sms"
 secrets = "env(SUPABASE_AUTH_SMS_HOOK_SECRET)"
 
-# The same meaning as `enable_confirmations = true` above: the CLI pushes this key to the
+# The same meaning as `enable_confirmations = true` above: the CLI pushes this key to a
 # hosted project un-negated, so there it means the opposite of what it means locally
 # (supabase/cli#6997). The deployment workflow sets the hosted value again after the push.
 [remotes.production.auth.sms]
+enable_confirmations = false
+
+[remotes.non-prod]
+project_id = "vzgwbdxmimbcqftltmmo"
+
+[remotes.non-prod.auth]
+site_url = "https://app.non-prod.ssmusor.ro"
+additional_redirect_urls = []
+
+[remotes.non-prod.auth.hook.send_email]
+enabled = true
+uri = "https://api.non-prod.ssmusor.ro/hooks/supabase/send-email"
+secrets = "env(SUPABASE_AUTH_HOOK_SECRET)"
+
+[remotes.non-prod.auth.hook.send_sms]
+enabled = true
+uri = "https://api.non-prod.ssmusor.ro/hooks/supabase/send-sms"
+secrets = "env(SUPABASE_AUTH_SMS_HOOK_SECRET)"
+
+# Inverted as in production above (supabase/cli#6997).
+[remotes.non-prod.auth.sms]
 enable_confirmations = false

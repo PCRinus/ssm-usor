@@ -6,8 +6,10 @@
  * Romanian, sentence case, with diacritics; one short line per item outside the hero.
  */
 
+const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.ssmusor.ro';
+
 export const links = {
-  login: 'https://app.ssmusor.ro/login',
+  login: `${appUrl}/login`,
   email: 'contact@ssmusor.ro',
   notifyHref:
     'mailto:contact@ssmusor.ro?subject=Anun%C8%9B%C4%83-m%C4%83%20c%C3%A2nd%20se%20deschid%20conturile&body=Bun%C4%83%2C%0A%0AVreau%20s%C4%83%20fiu%20anun%C8%9Bat%20c%C3%A2nd%20pot%20crea%20un%20cont%20SSM%20U%C8%99or.%0A%0AFirma%3A%20%0ANum%C4%83r%20de%20clien%C8%9Bi%3A%20',

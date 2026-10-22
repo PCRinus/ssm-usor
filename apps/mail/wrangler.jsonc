@@ -15,4 +15,14 @@
   "observability": {
     "enabled": true,
   },
+  "env": {
+    "non-prod": {
+      // Its own sending domain, so test mail never weighs on production's reputation (ADR 025).
+      "vars": {
+        "MAIL_FROM": "SSM Ușor <noreply@mail.non-prod.ssmusor.ro>",
+        "MAIL_FROM_CONTRACTS": "SSM Ușor <contracte@mail.non-prod.ssmusor.ro>",
+        "MAIL_REPLY_TO": "contact@ssmusor.ro",
+      },
+    },
+  },
 }
