@@ -36,10 +36,13 @@ export type LoadSheetLink = (
   signal: AbortSignal
 ) => Promise<FileLink>;
 
-export type SheetAccess = {
+// The query cache outlives a page: an administrator sees several employees' sheets, and without
+// whose sheet it is in the key, one employee's link would stand in for another's.
+export type SheetLinks = { loadLink: LoadSheetLink; linkScope: readonly string[] };
+
+export type SheetAccess = SheetLinks & {
   sheets: PortalTrainingSheetsResponse | undefined;
   loadSheet: LoadSheet;
-  loadLink: LoadSheetLink;
   onStale: () => void;
 };
 
@@ -50,12 +53,12 @@ export const storedSequenceOf = (
 export function useStoredSheetLink(
   domain: TrainingDomain,
   sequence: number | null,
-  loadLink: LoadSheetLink,
+  { loadLink, linkScope }: SheetLinks,
   disposition: Disposition
 ) {
   const apiRequest = useApiRequest();
   return useFileLink({
-    queryKey: ['training-sheet-link', domain, sequence],
+    queryKey: ['training-sheet-link', ...linkScope, domain, sequence],
     load: (signal) => loadLink(domain, sequence ?? 0, signal),
     enabled: sequence !== null,
     apiRequest,

@@ -96,15 +96,17 @@ function EmployeeDetail({
               apiRequest
             )
           }
-          loadLink={(domain, sequence, signal) =>
-            getPortalEmployeeTrainingSheetLink(
-              participantId,
-              employeeId,
-              domain,
-              { sequence },
-              { ...apiRequest, signal }
-            )
-          }
+          links={{
+            loadLink: (domain, sequence, signal) =>
+              getPortalEmployeeTrainingSheetLink(
+                participantId,
+                employeeId,
+                domain,
+                { sequence },
+                { ...apiRequest, signal }
+              ),
+            linkScope: [participantId, employeeId],
+          }}
           onStale={() =>
             void queryClient.invalidateQueries({
               queryKey: getGetPortalEmployeeTrainingSheetsQueryKey(participantId, employeeId),
