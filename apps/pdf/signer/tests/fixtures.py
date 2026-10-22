@@ -10,6 +10,11 @@ from cryptography.x509.oid import NameOID
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
+# The tests sign at a fixed moment (18.10.2026) and the chain is checked at the stated signing
+# time, so a certificate that began "yesterday" is not yet valid once that day has passed.
+VALID_FROM = datetime(2026, 1, 1, tzinfo=UTC)
+
+
 ROWS = 2
 COLUMNS = ('date', 'theme', 'trainee', 'trainer')
 SIGNATURE_COLUMNS = ('trainee', 'trainer')
@@ -87,7 +92,6 @@ def _pem(certificate: x509.Certificate) -> str:
 class CertificateAuthority:
     def __init__(self, organization: str = 'SSM Ușor test'):
         self.key = ec.generate_private_key(ec.SECP256R1())
-        now = datetime.now(UTC)
         name = _name('SSM Ușor test CA', organization)
         self.certificate = (
             x509.CertificateBuilder()
@@ -95,8 +99,8 @@ class CertificateAuthority:
             .issuer_name(name)
             .public_key(self.key.public_key())
             .serial_number(x509.random_serial_number())
-            .not_valid_before(now - timedelta(days=1))
-            .not_valid_after(now + timedelta(days=3650))
+            .not_valid_before(VALID_FROM)
+            .not_valid_after(VALID_FROM + timedelta(days=3650))
             .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
             .add_extension(
                 x509.KeyUsage(
@@ -126,15 +130,14 @@ class CertificateAuthority:
         digital_signature: bool = True,
     ) -> Identity:
         key = ec.generate_private_key(ec.SECP256R1())
-        now = datetime.now(UTC)
         certificate = (
             x509.CertificateBuilder()
             .subject_name(_name(common_name, serial_number=account_id))
             .issuer_name(self.certificate.subject)
             .public_key(key.public_key())
             .serial_number(x509.random_serial_number())
-            .not_valid_before(now - timedelta(days=1))
-            .not_valid_after(now + timedelta(days=730))
+            .not_valid_before(VALID_FROM)
+            .not_valid_after(VALID_FROM + timedelta(days=3650))
             .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
             .add_extension(
                 x509.KeyUsage(
