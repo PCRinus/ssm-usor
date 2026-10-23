@@ -2919,6 +2919,7 @@ export type Database = {
           created_at: string;
           full_name: string;
           professional_title: string | null;
+          releases_acknowledged_through: string | null;
           terms_accepted_at: string | null;
           terms_version: string | null;
           updated_at: string;
@@ -2928,6 +2929,7 @@ export type Database = {
           created_at?: string;
           full_name: string;
           professional_title?: string | null;
+          releases_acknowledged_through?: string | null;
           terms_accepted_at?: string | null;
           terms_version?: string | null;
           updated_at?: string;
@@ -2937,12 +2939,28 @@ export type Database = {
           created_at?: string;
           full_name?: string;
           professional_title?: string | null;
+          releases_acknowledged_through?: string | null;
           terms_accepted_at?: string | null;
           terms_version?: string | null;
           updated_at?: string;
           user_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'profiles_releases_acknowledged_through_fkey';
+            columns: ['releases_acknowledged_through'];
+            isOneToOne: false;
+            referencedRelation: 'release_list';
+            referencedColumns: ['tag'];
+          },
+          {
+            foreignKeyName: 'profiles_releases_acknowledged_through_fkey';
+            columns: ['releases_acknowledged_through'];
+            isOneToOne: false;
+            referencedRelation: 'releases';
+            referencedColumns: ['tag'];
+          },
+        ];
       };
       regeneration_job_items: {
         Row: {
@@ -3039,6 +3057,45 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      releases: {
+        Row: {
+          body: string;
+          created_at: string;
+          features: Json;
+          fixes: string[];
+          headline: string;
+          improvements: string[];
+          lead: string | null;
+          published_at: string;
+          tag: string;
+          updated_at: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          features?: Json;
+          fixes?: string[];
+          headline: string;
+          improvements?: string[];
+          lead?: string | null;
+          published_at: string;
+          tag: string;
+          updated_at?: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          features?: Json;
+          fixes?: string[];
+          headline?: string;
+          improvements?: string[];
+          lead?: string | null;
+          published_at?: string;
+          tag?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       risk_evaluations: {
         Row: {
@@ -4974,6 +5031,19 @@ export type Database = {
           },
         ];
       };
+      release_list: {
+        Row: {
+          features: Json | null;
+          fixes: string[] | null;
+          headline: string | null;
+          improvements: string[] | null;
+          lead: string | null;
+          published_at: string | null;
+          tag: string | null;
+          unread: boolean | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       accept_invitation_as: {
@@ -4994,6 +5064,7 @@ export type Database = {
         Returns: string;
       };
       accept_participant_invitations: { Args: never; Returns: number };
+      acknowledge_releases: { Args: { through: string }; Returns: string };
       active_test_questions: {
         Args: {
           p_domain: Database['public']['Enums']['training_domain'];
