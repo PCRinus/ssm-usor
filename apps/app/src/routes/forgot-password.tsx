@@ -1,11 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
-import { createFileRoute, Link, redirect } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { PublicFrame } from '@/app/public-frame';
+import { PublicFrame, PublicFrameAction, PublicFrameLink } from '@/app/public-frame';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -59,9 +58,7 @@ function ForgotPasswordPage() {
         <p className="text-sm leading-relaxed text-muted-foreground">
           Nu a ajuns? Verifică folderul Spam sau încearcă din nou peste un minut.
         </p>
-        <Button asChild variant="outline">
-          <Link to="/login">Înapoi la autentificare</Link>
-        </Button>
+        <PublicFrameLink to="/login">Înapoi la autentificare</PublicFrameLink>
       </PublicFrame>
     );
   }
@@ -99,20 +96,10 @@ function ForgotPasswordPage() {
             {errors.root.auth.message}
           </Notice>
         )}
-        <Button
-          data-testid="forgot-submit"
-          className="h-11 w-full"
-          type="submit"
-          disabled={isSubmitting}
-        >
+        <PublicFrameAction data-testid="forgot-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Se trimite…' : 'Trimite linkul de resetare'}
-        </Button>
-        <Link
-          to="/login"
-          className="text-center text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
-        >
-          Înapoi la autentificare
-        </Link>
+        </PublicFrameAction>
+        <PublicFrameLink to="/login">Înapoi la autentificare</PublicFrameLink>
       </form>
     </PublicFrame>
   );

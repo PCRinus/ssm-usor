@@ -1,11 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
-import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
-import { PublicFrame } from '@/app/public-frame';
+import { PublicFrame, PublicFrameAction, PublicFrameLink } from '@/app/public-frame';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { PasswordInput } from '@/components/password-input';
@@ -72,9 +71,7 @@ function RegisterPage() {
           Nu a ajuns? Verifică folderul Spam. Dacă ai deja un cont cu această adresă, nu primești un
           email nou: autentifică-te sau resetează parola.
         </p>
-        <Button asChild variant="outline">
-          <Link to="/login">Mergi la autentificare</Link>
-        </Button>
+        <PublicFrameLink to="/login">Mergi la autentificare</PublicFrameLink>
       </PublicFrame>
     );
   }
@@ -128,14 +125,9 @@ function RegisterPage() {
             {errors.root.auth.message}
           </Notice>
         )}
-        <Button
-          data-testid="register-submit"
-          className="h-11 w-full"
-          type="submit"
-          disabled={isSubmitting}
-        >
+        <PublicFrameAction data-testid="register-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Se creează contul…' : 'Creează cont'}
-        </Button>
+        </PublicFrameAction>
         <p className="text-xs leading-relaxed text-muted-foreground">
           Datele contului sunt prelucrate conform{' '}
           <a
@@ -148,12 +140,7 @@ function RegisterPage() {
           </a>
           . Termenii îi accepți la pasul următor, când creezi organizația.
         </p>
-        <Link
-          to="/login"
-          className="text-center text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
-        >
-          Ai deja cont? Autentifică-te
-        </Link>
+        <PublicFrameLink to="/login">Ai deja cont? Autentifică-te</PublicFrameLink>
       </form>
     </PublicFrame>
   );

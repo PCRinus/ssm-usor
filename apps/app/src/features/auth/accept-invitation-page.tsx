@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { currentTermsVersion } from '@ssm-usor/contracts';
-import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { useQuery } from '@tanstack/react-query';
 import { getRouteApi, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
@@ -16,7 +15,7 @@ import {
   useJoinWithInvitation,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { PublicFrame } from '@/app/public-frame';
+import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { PasswordInput } from '@/components/password-input';
@@ -133,13 +132,9 @@ export function AcceptInvitationPage() {
         title="Nu am putut încărca invitația"
         description="Verifică conexiunea și încearcă din nou."
       >
-        <Button
-          variant="outline"
-          disabled={lookup.isFetching}
-          onClick={() => void lookup.refetch()}
-        >
+        <PublicFrameAction disabled={lookup.isFetching} onClick={() => void lookup.refetch()}>
           Încearcă din nou
-        </Button>
+        </PublicFrameAction>
       </Frame>
     );
   }
@@ -159,11 +154,11 @@ export function AcceptInvitationPage() {
     return (
       <Frame title={closed.title} description={closed.text}>
         {invitation.status === 'accepted' && (
-          <Button asChild data-testid="accept-go-login">
+          <PublicFrameAction asChild data-testid="accept-go-login">
             <Link to={session ? '/dashboard' : '/login'}>
               {session ? 'Deschide aplicația' : 'Autentifică-te'}
             </Link>
-          </Button>
+          </PublicFrameAction>
         )}
       </Frame>
     );
@@ -182,7 +177,7 @@ export function AcceptInvitationPage() {
           </>
         }
       >
-        <Button
+        <PublicFrameAction
           data-testid="accept-sign-out"
           disabled={signingOut}
           onClick={() => {
@@ -191,7 +186,7 @@ export function AcceptInvitationPage() {
           }}
         >
           {signingOut ? 'Se deconectează…' : 'Deconectează-te'}
-        </Button>
+        </PublicFrameAction>
       </Frame>
     );
   }
@@ -214,11 +209,11 @@ export function AcceptInvitationPage() {
           Ai deja un cont SSM Ușor cu adresa <strong>{invitation.email}</strong>. Autentifică-te și
           te aducem înapoi aici ca să accepți invitația.
         </p>
-        <Button asChild data-testid="accept-login">
+        <PublicFrameAction asChild data-testid="accept-login">
           <Link to="/login" search={{ invitation: token }}>
             Autentifică-te ca să accepți
           </Link>
-        </Button>
+        </PublicFrameAction>
       </Frame>
     );
   }
@@ -323,14 +318,9 @@ function CreateAccountForm({ token, invitation, description }: AcceptFormProps) 
           />
         </Field>
         <FormError message={errors.root?.server?.message} />
-        <Button
-          data-testid="accept-submit"
-          className="h-11 w-full"
-          type="submit"
-          disabled={isSubmitting}
-        >
+        <PublicFrameAction data-testid="accept-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Se creează contul…' : 'Creează contul și acceptă'}
-        </Button>
+        </PublicFrameAction>
         <TermsNotice action="crearea contului" />
       </form>
     </Frame>
@@ -393,14 +383,13 @@ function JoinForm({ token, invitation, description }: AcceptFormProps) {
           </Field>
         )}
         <FormError message={errors.root?.server?.message} />
-        <Button
+        <PublicFrameAction
           data-testid="accept-join"
-          className="h-11 w-full"
           type="submit"
           disabled={isSubmitting || me.isPending}
         >
           {isSubmitting ? 'Se acceptă…' : 'Acceptă invitația'}
-        </Button>
+        </PublicFrameAction>
         <TermsNotice action="acceptarea invitației" />
       </form>
     </Frame>
