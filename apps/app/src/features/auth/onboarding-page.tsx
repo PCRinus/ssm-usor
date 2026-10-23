@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { currentTermsVersion } from '@ssm-usor/contracts';
-import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Navigate, useNavigate, useRouteContext } from '@tanstack/react-router';
@@ -15,7 +14,7 @@ import {
   useListMyInvitations,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { PublicFrame } from '@/app/public-frame';
+import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
 import { Field, FieldMessage } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -44,9 +43,9 @@ export function OnboardingPage() {
         title="Nu am putut încărca contul"
         description="Verifică conexiunea și încearcă din nou."
       >
-        <Button variant="outline" disabled={me.isFetching} onClick={() => void me.refetch()}>
+        <PublicFrameAction disabled={me.isFetching} onClick={() => void me.refetch()}>
           Încearcă din nou
-        </Button>
+        </PublicFrameAction>
       </PublicFrame>
     );
   }
@@ -231,14 +230,9 @@ function OnboardingForm({ me }: { me: MeResponse }) {
             {errors.root.server.message}
           </p>
         )}
-        <Button
-          data-testid="onboarding-submit"
-          className="h-11 w-full"
-          type="submit"
-          disabled={isSubmitting}
-        >
+        <PublicFrameAction data-testid="onboarding-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Se creează organizația…' : 'Creează organizația'}
-        </Button>
+        </PublicFrameAction>
       </form>
       <p className="text-center text-sm text-muted-foreground">
         Autentificat ca {me.user.email}.{' '}

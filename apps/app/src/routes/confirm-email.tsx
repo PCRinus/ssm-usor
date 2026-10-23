@@ -1,9 +1,8 @@
-import { Button } from '@ssm-usor/ui/components/button';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { z } from 'zod';
 
-import { PublicFrame } from '@/app/public-frame';
+import { PublicFrame, PublicFrameAction, PublicFrameLink } from '@/app/public-frame';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { isSpentRecoveryLink } from '@/features/auth/auth-errors';
@@ -39,12 +38,10 @@ function ConfirmEmailPage() {
         title="Linkul nu mai este valabil"
         description="Linkul de confirmare a expirat sau a fost deja folosit. Dacă ți-ai confirmat deja adresa, autentifică-te. Altfel, creează contul din nou ca să primești un link nou."
       >
-        <Button asChild data-testid="confirm-go-login">
+        <PublicFrameAction asChild data-testid="confirm-go-login">
           <Link to="/login">Autentifică-te</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link to="/register">Creează cont</Link>
-        </Button>
+        </PublicFrameAction>
+        <PublicFrameLink to="/register">Creează cont</PublicFrameLink>
       </PublicFrame>
     );
   }
@@ -60,14 +57,13 @@ function ConfirmEmailPage() {
           Nu am putut confirma adresa. Verifică conexiunea și încearcă din nou.
         </Notice>
       )}
-      <Button
+      <PublicFrameAction
         data-testid="confirm-submit"
-        className="h-11 w-full"
         disabled={state === 'confirming'}
         onClick={() => void confirm()}
       >
         {state === 'confirming' ? 'Se confirmă…' : 'Confirmă adresa'}
-      </Button>
+      </PublicFrameAction>
     </PublicFrame>
   );
 }

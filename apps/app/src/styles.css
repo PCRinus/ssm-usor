@@ -63,3 +63,64 @@ tr[data-pointed] {
     outline-offset: -2px;
   }
 }
+
+.auth-backdrop {
+  background: color-mix(in srgb, var(--brand-forest) 4%, var(--muted));
+}
+
+.auth-backdrop-lattice {
+  mask-image: linear-gradient(#000, transparent 20%, transparent 82%, #000);
+}
+
+@media (width >= 40rem) {
+  .auth-backdrop-lattice {
+    mask-image: radial-gradient(ellipse 60% 70% at 50% 50%, transparent 32%, #000 82%);
+  }
+}
+
+/* pathLength is 100, so a dash of 2.5 units and a gap longer than the line leave one short glint. */
+.auth-backdrop-glint {
+  fill: none;
+  stroke: var(--brand-lime);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 2.5 200;
+  stroke-dashoffset: 2.5;
+  animation: glint-forward 32s linear infinite backwards;
+}
+
+.auth-backdrop-glint[data-reverse] {
+  stroke-dashoffset: -100;
+  animation-name: glint-back;
+}
+
+@keyframes glint-forward {
+  0% {
+    stroke-dashoffset: 2.5;
+  }
+  22%,
+  100% {
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes glint-back {
+  0% {
+    stroke-dashoffset: -100;
+  }
+  22%,
+  100% {
+    stroke-dashoffset: 2.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-backdrop-glint {
+    display: none;
+  }
+}
+
+/* --muted-foreground on the backdrop is 3.6:1; small text needs 4.5:1. */
+[data-public-footer] {
+  --muted-foreground: color-mix(in srgb, var(--brand-forest) 40%, #65736d);
+}

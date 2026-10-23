@@ -315,7 +315,13 @@ on the field.
 The rules live in `src/features/auth/password-schema.ts` and mirror `newPasswordSchema` in the
 contracts and the policy in `supabase/config.toml`. The accept-invitation page uses the same
 ones. `AuthClient` in `src/features/auth/auth-store.ts` lists the Supabase calls the app makes;
-`PublicFrame` and `PasswordInput` are shared by the pages outside the shell.
+`PublicFrame` and `PasswordInput` are shared by the pages outside the shell, login included.
+In `src/app/public-frame.tsx`, `PublicFrameAction` is the one full-width primary button of
+those pages and `PublicFrameLink` the muted text link for every secondary way out, such as
+back to login. Their backdrop, `src/app/auth-backdrop.tsx`, is an isometric lattice at the
+logo's angle with slabs in the corners; a short glint runs along a lattice line every eight
+seconds, hidden for reduced motion. The portal passes no backdrop and keeps the flat
+tint.
 
 ## Verification
 

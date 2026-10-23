@@ -6,20 +6,23 @@ export function PublicFrame({
   title,
   description,
   footer,
+  backdrop,
   children,
 }: {
   testId: string;
   title: ReactNode;
   description?: ReactNode;
   footer?: ReactNode;
+  backdrop?: ReactNode;
   children?: ReactNode;
 }) {
   return (
     <main
       data-testid={testId}
-      className="flex min-h-svh items-center justify-center bg-[color-mix(in_srgb,var(--brand-forest)_10%,var(--muted))] px-5 py-10 sm:px-8"
+      className="relative isolate flex min-h-svh items-center justify-center overflow-hidden bg-[color-mix(in_srgb,var(--brand-forest)_10%,var(--muted))] px-5 py-10 sm:px-8"
     >
-      <div className="flex w-full max-w-md flex-col items-center gap-7">
+      {backdrop}
+      <div className="relative flex w-full max-w-md flex-col items-center gap-7">
         <img
           src="/brand/logo.png"
           alt="SSM Ușor"

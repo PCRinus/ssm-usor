@@ -1,12 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { PublicFrame } from '@/app/public-frame';
+import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { PasswordInput } from '@/components/password-input';
@@ -34,9 +33,9 @@ function SpentLink() {
       title="Linkul nu mai este valabil"
       description="Linkul de resetare a expirat, a fost deja folosit sau a fost înlocuit de unul mai nou. Cere un link nou și folosește-l în cel mult o oră."
     >
-      <Button asChild data-testid="reset-request-new">
+      <PublicFrameAction asChild data-testid="reset-request-new">
         <Link to="/forgot-password">Cere un link nou</Link>
-      </Button>
+      </PublicFrameAction>
     </PublicFrame>
   );
 }
@@ -112,14 +111,9 @@ function ResetPasswordPage() {
             {errors.root.auth.message}
           </Notice>
         )}
-        <Button
-          data-testid="reset-submit"
-          className="h-11 w-full"
-          type="submit"
-          disabled={isSubmitting}
-        >
+        <PublicFrameAction data-testid="reset-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Se salvează…' : 'Salvează parola'}
-        </Button>
+        </PublicFrameAction>
       </form>
     </PublicFrame>
   );
