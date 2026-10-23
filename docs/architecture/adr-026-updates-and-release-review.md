@@ -1,6 +1,6 @@
 # ADR 026: Updates written per pull request, reviewed at the release, read from a table
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-24
 
 ## Context
