@@ -4,17 +4,21 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { createLink, type LinkComponent } from '@tanstack/react-router';
 import type { ComponentProps, ReactNode } from 'react';
 
+import { AuthBackdrop } from './auth-backdrop';
 import { CommitVersion } from './commit-version';
 
 export function PublicFrame({
   footerLinks,
   ...props
-}: Omit<ComponentProps<typeof SharedPublicFrame>, 'footer'> & { footerLinks?: ReactNode }) {
+}: Omit<ComponentProps<typeof SharedPublicFrame>, 'footer' | 'backdrop'> & {
+  footerLinks?: ReactNode;
+}) {
   return (
     <SharedPublicFrame
       {...props}
+      backdrop={<AuthBackdrop />}
       footer={
-        <div className="grid justify-items-center gap-2 text-center">
+        <div data-public-footer className="grid justify-items-center gap-2 text-center">
           {footerLinks}
           <CommitVersion />
         </div>
