@@ -1166,8 +1166,9 @@ data.
 Only the release workflow writes it, with the secret key, by an upsert on the tag; the
 published GitHub release is the source, and a correction is an edit there and a run of Deploy
 production with the tag. Every signed-in user reads every row; there is no write policy. The
-seed inserts four invented releases where fake data is allowed, two of them unread for the
-seeded admin, whose profile it backdates and marks as read up to the third.
+seed inserts four invented releases where fake data is allowed: the two newest published after
+the seeded admin's profile was created, and the admin marked as read up to the third, so that
+exactly those two are unread.
 
 A release is **unread** for a person when it was published after their profile was created and
 after the release in their `profiles.releases_acknowledged_through`, compared by `published_at`,

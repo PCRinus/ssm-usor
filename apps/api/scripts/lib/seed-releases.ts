@@ -141,11 +141,14 @@ export function bucharestTag(at: Date): string {
   return `${part('year')}.${part('month')}.${part('day')}`;
 }
 
-export function inventedReleases(now: Date): ReleaseInsert[] {
-  const today = bucharestTag(now);
+// The two newest are published after the admin's profile was created, which on a fresh database
+// is moments before the seed reaches this, so that they are unread for the admin.
+export function inventedReleases(now: Date, adminCreatedAt: Date): ReleaseInsert[] {
+  const newest = new Date(Math.max(now.getTime(), adminCreatedAt.getTime() + 2_000));
+  const previous = new Date(Math.max(now.getTime() - 10_000, adminCreatedAt.getTime() + 1_000));
   const releases: [string, Date, InventedUpdate][] = [
-    [`${today}.2`, now, testsUpdate],
-    [today, new Date(now.getTime() - 10_000), remindersUpdate],
+    [`${bucharestTag(newest)}.2`, newest, testsUpdate],
+    [bucharestTag(previous), previous, remindersUpdate],
     [
       bucharestTag(new Date(now.getTime() - 3 * day)),
       new Date(now.getTime() - 3 * day),
@@ -169,10 +172,17 @@ export function inventedReleases(now: Date): ReleaseInsert[] {
   }));
 }
 
-// The admin's profile is made older than every invented release and set to have read up to the
-// one three days ago, so each run leaves exactly the two of today unread, however old the account.
+// The admin is set to have read up to the release three days ago, so each run leaves exactly the
+// two of today unread, however old the account.
 export async function seedReleases(db: SeedClient, adminUserId: string, now = new Date()) {
-  const rows = inventedReleases(now);
+  const profile = await db
+    .from('profiles')
+    .select('created_at')
+    .eq('user_id', adminUserId)
+    .single();
+  if (profile.error) throw new Error(`Could not read the admin profile: ${profile.error.message}`);
+
+  const rows = inventedReleases(now, new Date(profile.data.created_at));
   const tags = rows.map((row) => row.tag);
 
   // Invented releases of earlier days would also be unread; real ones never share a body.
@@ -198,19 +208,9 @@ export async function seedReleases(db: SeedClient, adminUserId: string, now = ne
   const upserted = await db.from('releases').upsert(rows, { onConflict: 'tag' });
   if (upserted.error) throw new Error(`Could not seed the releases: ${upserted.error.message}`);
 
-  const profile = await db
-    .from('profiles')
-    .select('created_at')
-    .eq('user_id', adminUserId)
-    .single();
-  if (profile.error) throw new Error(`Could not read the admin profile: ${profile.error.message}`);
-  const oldest = new Date(now.getTime() - 15 * day);
   const updated = await db
     .from('profiles')
-    .update({
-      releases_acknowledged_through: rows[2]!.tag,
-      ...(new Date(profile.data.created_at) > oldest ? { created_at: oldest.toISOString() } : {}),
-    })
+    .update({ releases_acknowledged_through: rows[2]!.tag })
     .eq('user_id', adminUserId);
   if (updated.error) {
     throw new Error(`Could not set the admin's read releases: ${updated.error.message}`);

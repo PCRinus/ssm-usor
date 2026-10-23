@@ -12,7 +12,7 @@ describe('bucharestTag', () => {
 
 describe('inventedReleases', () => {
   const now = new Date('2026-10-24T09:00:00Z');
-  const rows = inventedReleases(now);
+  const rows = inventedReleases(now, new Date('2026-09-17T12:00:00Z'));
 
   it('dates two releases today and two in the past, newest first', () => {
     expect(rows.map((row) => [row.tag, row.published_at])).toEqual([
@@ -20,6 +20,20 @@ describe('inventedReleases', () => {
       ['2026.10.24', '2026-10-24T08:59:50.000Z'],
       ['2026.10.21', '2026-10-21T09:00:00.000Z'],
       ['2026.10.10', '2026-10-10T09:00:00.000Z'],
+    ]);
+  });
+
+  it('publishes the two of today after an admin profile created moments ago', () => {
+    const fresh = inventedReleases(now, new Date('2026-10-24T08:59:58Z'));
+    expect(fresh.slice(0, 2).map((row) => [row.tag, row.published_at])).toEqual([
+      ['2026.10.24.2', '2026-10-24T09:00:00.000Z'],
+      ['2026.10.24', '2026-10-24T08:59:59.000Z'],
+    ]);
+
+    const later = inventedReleases(now, new Date('2026-10-24T09:00:00Z'));
+    expect(later.slice(0, 2).map((row) => row.published_at)).toEqual([
+      '2026-10-24T09:00:02.000Z',
+      '2026-10-24T09:00:01.000Z',
     ]);
   });
 
