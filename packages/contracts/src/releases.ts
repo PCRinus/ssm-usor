@@ -3,17 +3,19 @@ import { z } from 'zod';
 /** A release's tag: its day in Bucharest, with `.2`, `.3`, … for later releases that day (ADR 025). */
 export const releaseTagSchema = z.string().regex(/^\d{4}\.\d{2}\.\d{2}(\.\d+)?$/);
 
-export const updateFeatureSchema = z.object({
-  title: z.string().min(1).max(160),
-  text: z.string().min(1).max(600),
-  where: z.string().max(200).nullable(),
-  // A lucide icon name.
-  icon: z
-    .string()
-    .max(60)
-    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
-    .nullable(),
-});
+export const updateFeatureSchema = z
+  .object({
+    title: z.string().min(1).max(160),
+    text: z.string().min(1).max(600),
+    where: z.string().max(200).nullable(),
+    // A lucide icon name.
+    icon: z
+      .string()
+      .max(60)
+      .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
+      .nullable(),
+  })
+  .meta({ id: 'UpdateFeature' });
 
 export type UpdateFeature = z.infer<typeof updateFeatureSchema>;
 

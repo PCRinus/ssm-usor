@@ -220,7 +220,7 @@ export interface PendingInvitationListResponse {
   items: PendingInvitationListResponseItemsItem[];
 }
 
-export type ReleaseListResponseItemsItemFeaturesItem = {
+export interface UpdateFeature {
   /**
    * @minLength 1
    * @maxLength 160
@@ -242,7 +242,7 @@ export type ReleaseListResponseItemsItemFeaturesItem = {
    * @pattern ^[a-z0-9]+(-[a-z0-9]+)*$
    */
   icon: string | null;
-};
+}
 
 export type ReleaseListResponseItemsItem = {
   /** @pattern ^\d{4}\.\d{2}\.\d{2}(\.\d+)?$ */
@@ -258,7 +258,7 @@ export type ReleaseListResponseItemsItem = {
    * @nullable
    */
   lead: string | null;
-  features: ReleaseListResponseItemsItemFeaturesItem[];
+  features: UpdateFeature[];
   improvements: string[];
   fixes: string[];
   unread: boolean;
@@ -281,30 +281,6 @@ export interface AcknowledgeReleasesRequest {
   tag: string;
 }
 
-export type ReleaseFeaturesItem = {
-  /**
-   * @minLength 1
-   * @maxLength 160
-   */
-  title: string;
-  /**
-   * @minLength 1
-   * @maxLength 600
-   */
-  text: string;
-  /**
-   * @maxLength 200
-   * @nullable
-   */
-  where: string | null;
-  /**
-   * @maxLength 60
-   * @nullable
-   * @pattern ^[a-z0-9]+(-[a-z0-9]+)*$
-   */
-  icon: string | null;
-};
-
 export interface Release {
   /** @pattern ^\d{4}\.\d{2}\.\d{2}(\.\d+)?$ */
   tag: string;
@@ -319,7 +295,7 @@ export interface Release {
    * @nullable
    */
   lead: string | null;
-  features: ReleaseFeaturesItem[];
+  features: UpdateFeature[];
   improvements: string[];
   fixes: string[];
   unread: boolean;

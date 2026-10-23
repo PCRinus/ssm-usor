@@ -313,31 +313,7 @@
                 "features": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "title": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 160
-                      },
-                      "text": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 600
-                      },
-                      "where": {
-                        "type": "string",
-                        "nullable": true,
-                        "maxLength": 200
-                      },
-                      "icon": {
-                        "type": "string",
-                        "nullable": true,
-                        "maxLength": 60,
-                        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
-                      }
-                    },
-                    "required": ["title", "text", "where", "icon"]
+                    "$ref": "#/components/schemas/UpdateFeature"
                   }
                 },
                 "improvements": {
@@ -370,6 +346,33 @@
           }
         },
         "required": ["items"]
+      },
+      "UpdateFeature": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 600
+          },
+          "where": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 200
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 60,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          }
+        },
+        "required": ["title", "text", "where", "icon"]
       },
       "AcknowledgeReleasesResponse": {
         "type": "object",
@@ -416,31 +419,7 @@
           "features": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "title": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 160
-                },
-                "text": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 600
-                },
-                "where": {
-                  "type": "string",
-                  "nullable": true,
-                  "maxLength": 200
-                },
-                "icon": {
-                  "type": "string",
-                  "nullable": true,
-                  "maxLength": 60,
-                  "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
-                }
-              },
-              "required": ["title", "text", "where", "icon"]
+              "$ref": "#/components/schemas/UpdateFeature"
             }
           },
           "improvements": {
