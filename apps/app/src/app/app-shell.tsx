@@ -68,7 +68,7 @@ import { readSidebarOpen, saveSidebarOpen } from './sidebar-open';
 
 // `ownerOnly`: a specialist has no leads to see (ADR 007).
 const navigation = [
-  { to: '/dashboard', label: 'Prezentare generală', icon: LayoutDashboard, ownerOnly: false },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, ownerOnly: false },
   { to: '/leads', label: 'Clienți potențiali', icon: Handshake, ownerOnly: true },
   { to: '/clients', label: 'Clienți', icon: Briefcase, ownerOnly: false },
   { to: '/employees', label: 'Angajați', icon: UsersRound, ownerOnly: false },

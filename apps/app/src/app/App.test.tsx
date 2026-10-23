@@ -144,7 +144,7 @@ describe('dashboard authentication and routing', () => {
     const runtime = mount(authFixture(makeSession()).client);
     const user = userEvent.setup();
     await screen.findByTestId('dashboard-page');
-    await waitFor(() => expect(document.title).toBe('Prezentare generală — SSM Ușor'));
+    await waitFor(() => expect(document.title).toBe('Dashboard — SSM Ușor'));
     await user.click(screen.getByTestId('nav-clients'));
     await screen.findByTestId('clients-page');
     await waitFor(() => expect(document.title).toBe('Clienți — SSM Ușor'));

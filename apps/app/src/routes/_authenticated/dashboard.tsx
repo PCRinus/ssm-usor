@@ -7,7 +7,7 @@ import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
 
 export const Route = createFileRoute('/_authenticated/dashboard')({
-  staticData: { title: 'Prezentare generală' },
+  staticData: { title: 'Dashboard' },
   component: DashboardPage,
 });
 
@@ -19,7 +19,7 @@ function DashboardPage() {
 
   return (
     <div data-testid="dashboard-page" className="grid gap-6">
-      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Prezentare generală</h1>
+      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Dashboard</h1>
       <Card className="max-w-2xl">
         <CardHeader>
           <h2 className="text-lg font-semibold">Contul tău</h2>
