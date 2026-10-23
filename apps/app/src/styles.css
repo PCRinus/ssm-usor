@@ -124,3 +124,29 @@ tr[data-pointed] {
 [data-public-footer] {
   --muted-foreground: color-mix(in srgb, var(--brand-forest) 40%, #65736d);
 }
+
+@layer base {
+  :root {
+    --release-sand: #ece6d8;
+    --release-sand-edge: #ddd5c3;
+    --release-sand-muted: #5c6b64;
+    --release-paper: #fffdf8;
+    --release-red: #b42318;
+    --release-ring: #9a8f78;
+    --release-rule: #e3ded0;
+    --release-body: #3f524b;
+    --release-new-edge: #8fb246;
+  }
+}
+
+@theme inline {
+  --color-release-sand: var(--release-sand);
+  --color-release-sand-edge: var(--release-sand-edge);
+  --color-release-sand-muted: var(--release-sand-muted);
+  --color-release-paper: var(--release-paper);
+  --color-release-red: var(--release-red);
+  --color-release-ring: var(--release-ring);
+  --color-release-rule: var(--release-rule);
+  --color-release-body: var(--release-body);
+  --color-release-new-edge: var(--release-new-edge);
+}

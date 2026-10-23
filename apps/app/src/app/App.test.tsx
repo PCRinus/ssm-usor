@@ -340,7 +340,9 @@ describe('generated API integration', () => {
     );
     mount(authFixture(makeSession()).client);
     expect(await screen.findByTestId('dashboard-account-error')).toBeTruthy();
-    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(
+      fetchMock.mock.calls.filter(([input]) => new URL(String(input)).pathname === '/me')
+    ).toHaveLength(1);
     fetchMock.mockImplementation(async () =>
       Response.json({ user: { id: 'user-one', email: 'recovered@example.test' } })
     );

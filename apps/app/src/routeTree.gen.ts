@@ -19,6 +19,7 @@ import { Route as LoginRouteImport } from './routes/login';
 import { Route as OnboardingRouteImport } from './routes/onboarding';
 import { Route as RegisterRouteImport } from './routes/register';
 import { Route as ResetPasswordRouteImport } from './routes/reset-password';
+import { Route as AuthenticatedActualizariRouteImport } from './routes/_authenticated/actualizari';
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients';
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard';
 import { Route as AuthenticatedInstructionsRouteImport } from './routes/_authenticated/instructions';
@@ -29,6 +30,8 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedRisksRouteImport } from './routes/_authenticated/risks';
 import { Route as AuthenticatedSignaturesRouteImport } from './routes/_authenticated/signatures';
 import { Route as AuthenticatedTestsRouteImport } from './routes/_authenticated/tests';
+import { Route as AuthenticatedActualizariIndexRouteImport } from './routes/_authenticated/actualizari/index';
+import { Route as AuthenticatedActualizariTagRouteImport } from './routes/_authenticated/actualizari/$tag';
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients/index';
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients/$clientId';
 import { Route as AuthenticatedClientsNewRouteImport } from './routes/_authenticated/clients/new';
@@ -144,6 +147,12 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any);
+const AuthenticatedActualizariRoute =
+  AuthenticatedActualizariRouteImport.update({
+    id: '/actualizari',
+    path: '/actualizari',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any);
 const AuthenticatedClientsRoute = AuthenticatedClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
@@ -196,6 +205,18 @@ const AuthenticatedTestsRoute = AuthenticatedTestsRouteImport.update({
   path: '/tests',
   getParentRoute: () => AuthenticatedRoute,
 } as any);
+const AuthenticatedActualizariIndexRoute =
+  AuthenticatedActualizariIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedActualizariRoute,
+  } as any);
+const AuthenticatedActualizariTagRoute =
+  AuthenticatedActualizariTagRouteImport.update({
+    id: '/$tag',
+    path: '/$tag',
+    getParentRoute: () => AuthenticatedActualizariRoute,
+  } as any);
 const AuthenticatedClientsIndexRoute =
   AuthenticatedClientsIndexRouteImport.update({
     id: '/',
@@ -598,6 +619,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute;
   '/register': typeof RegisterRoute;
   '/reset-password': typeof ResetPasswordRoute;
+  '/actualizari': typeof AuthenticatedActualizariRouteWithChildren;
   '/clients': typeof AuthenticatedClientsRouteWithChildren;
   '/dashboard': typeof AuthenticatedDashboardRoute;
   '/instructions': typeof AuthenticatedInstructionsRouteWithChildren;
@@ -608,6 +630,7 @@ export interface FileRoutesByFullPath {
   '/risks': typeof AuthenticatedRisksRouteWithChildren;
   '/signatures': typeof AuthenticatedSignaturesRoute;
   '/tests': typeof AuthenticatedTestsRouteWithChildren;
+  '/actualizari/$tag': typeof AuthenticatedActualizariTagRoute;
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRouteWithChildren;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
@@ -620,6 +643,7 @@ export interface FileRoutesByFullPath {
   '/organization/company': typeof AuthenticatedOrganizationCompanyRoute;
   '/organization/team': typeof AuthenticatedOrganizationTeamRoute;
   '/risks/$profileId': typeof AuthenticatedRisksProfileIdRoute;
+  '/actualizari/': typeof AuthenticatedActualizariIndexRoute;
   '/clients/': typeof AuthenticatedClientsIndexRoute;
   '/employees/': typeof AuthenticatedEmployeesIndexRoute;
   '/instructions/': typeof AuthenticatedInstructionsIndexRoute;
@@ -685,6 +709,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute;
   '/profile': typeof AuthenticatedProfileRoute;
   '/signatures': typeof AuthenticatedSignaturesRoute;
+  '/actualizari/$tag': typeof AuthenticatedActualizariTagRoute;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
   '/instructions': typeof AuthenticatedInstructionsIndexRoute;
@@ -697,6 +722,7 @@ export interface FileRoutesByTo {
   '/organization/team': typeof AuthenticatedOrganizationTeamRoute;
   '/risks/$profileId': typeof AuthenticatedRisksProfileIdRoute;
   '/tests': typeof AuthenticatedTestsIndexRoute;
+  '/actualizari': typeof AuthenticatedActualizariIndexRoute;
   '/clients': typeof AuthenticatedClientsIndexRoute;
   '/employees': typeof AuthenticatedEmployeesIndexRoute;
   '/leads': typeof AuthenticatedLeadsIndexRoute;
@@ -751,6 +777,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute;
   '/register': typeof RegisterRoute;
   '/reset-password': typeof ResetPasswordRoute;
+  '/_authenticated/actualizari': typeof AuthenticatedActualizariRouteWithChildren;
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren;
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute;
   '/_authenticated/instructions': typeof AuthenticatedInstructionsRouteWithChildren;
@@ -761,6 +788,7 @@ export interface FileRoutesById {
   '/_authenticated/risks': typeof AuthenticatedRisksRouteWithChildren;
   '/_authenticated/signatures': typeof AuthenticatedSignaturesRoute;
   '/_authenticated/tests': typeof AuthenticatedTestsRouteWithChildren;
+  '/_authenticated/actualizari/$tag': typeof AuthenticatedActualizariTagRoute;
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRouteWithChildren;
   '/_authenticated/clients/new': typeof AuthenticatedClientsNewRoute;
   '/_authenticated/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
@@ -775,6 +803,7 @@ export interface FileRoutesById {
   '/_authenticated/organization/team': typeof AuthenticatedOrganizationTeamRoute;
   '/_authenticated/risks/$profileId': typeof AuthenticatedRisksProfileIdRoute;
   '/_authenticated/tests/_bank': typeof AuthenticatedTestsBankRouteWithChildren;
+  '/_authenticated/actualizari/': typeof AuthenticatedActualizariIndexRoute;
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute;
   '/_authenticated/employees/': typeof AuthenticatedEmployeesIndexRoute;
   '/_authenticated/instructions/': typeof AuthenticatedInstructionsIndexRoute;
@@ -839,6 +868,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/register'
     | '/reset-password'
+    | '/actualizari'
     | '/clients'
     | '/dashboard'
     | '/instructions'
@@ -849,6 +879,7 @@ export interface FileRouteTypes {
     | '/risks'
     | '/signatures'
     | '/tests'
+    | '/actualizari/$tag'
     | '/clients/$clientId'
     | '/clients/new'
     | '/instructions/$moduleId'
@@ -861,6 +892,7 @@ export interface FileRouteTypes {
     | '/organization/company'
     | '/organization/team'
     | '/risks/$profileId'
+    | '/actualizari/'
     | '/clients/'
     | '/employees/'
     | '/instructions/'
@@ -926,6 +958,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/profile'
     | '/signatures'
+    | '/actualizari/$tag'
     | '/clients/new'
     | '/instructions/$moduleId'
     | '/instructions'
@@ -938,6 +971,7 @@ export interface FileRouteTypes {
     | '/organization/team'
     | '/risks/$profileId'
     | '/tests'
+    | '/actualizari'
     | '/clients'
     | '/employees'
     | '/leads'
@@ -991,6 +1025,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/register'
     | '/reset-password'
+    | '/_authenticated/actualizari'
     | '/_authenticated/clients'
     | '/_authenticated/dashboard'
     | '/_authenticated/instructions'
@@ -1001,6 +1036,7 @@ export interface FileRouteTypes {
     | '/_authenticated/risks'
     | '/_authenticated/signatures'
     | '/_authenticated/tests'
+    | '/_authenticated/actualizari/$tag'
     | '/_authenticated/clients/$clientId'
     | '/_authenticated/clients/new'
     | '/_authenticated/instructions/$moduleId'
@@ -1015,6 +1051,7 @@ export interface FileRouteTypes {
     | '/_authenticated/organization/team'
     | '/_authenticated/risks/$profileId'
     | '/_authenticated/tests/_bank'
+    | '/_authenticated/actualizari/'
     | '/_authenticated/clients/'
     | '/_authenticated/employees/'
     | '/_authenticated/instructions/'
@@ -1153,6 +1190,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/_authenticated/actualizari': {
+      id: '/_authenticated/actualizari';
+      path: '/actualizari';
+      fullPath: '/actualizari';
+      preLoaderRoute: typeof AuthenticatedActualizariRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
     '/_authenticated/clients': {
       id: '/_authenticated/clients';
       path: '/clients';
@@ -1222,6 +1266,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/tests';
       preLoaderRoute: typeof AuthenticatedTestsRouteImport;
       parentRoute: typeof AuthenticatedRoute;
+    };
+    '/_authenticated/actualizari/': {
+      id: '/_authenticated/actualizari/';
+      path: '/';
+      fullPath: '/actualizari/';
+      preLoaderRoute: typeof AuthenticatedActualizariIndexRouteImport;
+      parentRoute: typeof AuthenticatedActualizariRoute;
+    };
+    '/_authenticated/actualizari/$tag': {
+      id: '/_authenticated/actualizari/$tag';
+      path: '/$tag';
+      fullPath: '/actualizari/$tag';
+      preLoaderRoute: typeof AuthenticatedActualizariTagRouteImport;
+      parentRoute: typeof AuthenticatedActualizariRoute;
     };
     '/_authenticated/clients/': {
       id: '/_authenticated/clients/';
@@ -1681,6 +1739,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedActualizariRouteChildren {
+  AuthenticatedActualizariTagRoute: typeof AuthenticatedActualizariTagRoute;
+  AuthenticatedActualizariIndexRoute: typeof AuthenticatedActualizariIndexRoute;
+}
+
+const AuthenticatedActualizariRouteChildren: AuthenticatedActualizariRouteChildren =
+  {
+    AuthenticatedActualizariTagRoute: AuthenticatedActualizariTagRoute,
+    AuthenticatedActualizariIndexRoute: AuthenticatedActualizariIndexRoute,
+  };
+
+const AuthenticatedActualizariRouteWithChildren =
+  AuthenticatedActualizariRoute._addFileChildren(
+    AuthenticatedActualizariRouteChildren,
+  );
+
 interface AuthenticatedClientsClientIdContractRouteChildren {
   AuthenticatedClientsClientIdContractEditRoute: typeof AuthenticatedClientsClientIdContractEditRoute;
   AuthenticatedClientsClientIdContractIndexRoute: typeof AuthenticatedClientsClientIdContractIndexRoute;
@@ -2072,6 +2146,7 @@ const AuthenticatedTestsRouteWithChildren =
   AuthenticatedTestsRoute._addFileChildren(AuthenticatedTestsRouteChildren);
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedActualizariRoute: typeof AuthenticatedActualizariRouteWithChildren;
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRouteWithChildren;
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute;
   AuthenticatedInstructionsRoute: typeof AuthenticatedInstructionsRouteWithChildren;
@@ -2086,6 +2161,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedActualizariRoute: AuthenticatedActualizariRouteWithChildren,
   AuthenticatedClientsRoute: AuthenticatedClientsRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedInstructionsRoute: AuthenticatedInstructionsRouteWithChildren,
