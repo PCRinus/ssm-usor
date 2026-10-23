@@ -215,3 +215,11 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 ## Product feedback
 
 **Problem report** (_raportare a unei probleme_): a member's account of app UI or behavior that failed or behaved unexpectedly. A question, feature idea, or concern about generated document content is not a problem report.
+
+## Releases
+
+**Release** (_versiune_): a commit on `main` tagged with the date it was deployed to production, `2026.10.23`, or `2026.10.23.2` for a second one that day. The app prints it as "Versiune 2026.10.23". ADR 025. Avoid: deploy or deployment (which non-prod also gets, without a tag), version number.
+
+**Update** (_actualizare_): what members read about one release: a **headline** (_titlu_), a **lead** (_rezumat_), and items under **Ce e nou** (new features, each with where to find it), **Îmbunătățiri** (improvements) and **Remedieri** (fixes), in Romanian and written for the specialist. The feature that shows them is **Actualizări**. A release with nothing a member sees is **silent** (_fără actualizare_). ADR 026. Avoid: changelog, release notes (the developer list on the GitHub release), news or _noutăți_, what's new, patch notes.
+
+**Unread** (_necitită_): a release published after the member's account was created and after the release they last **acknowledged** (_am înțeles_, _marcată ca citită_). Acknowledging covers everything published so far. ADR 026. Avoid: new (which is a section), seen, dismissed (closing the dialog dismisses it for the session and acknowledges nothing).
