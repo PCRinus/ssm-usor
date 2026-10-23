@@ -18,11 +18,12 @@ import { seedFireSafety, seedFireSafetyProvider } from './lib/seed-fire-safety';
 import { seedInstructionModules } from './lib/seed-instruction-modules';
 import { seedOrganization } from './lib/seed-organization';
 import { seedProtectiveEquipment } from './lib/seed-protective-equipment';
+import { seedReleases } from './lib/seed-releases';
 import { seedRiskEvaluations } from './lib/seed-risk-evaluations';
 import { localSupabase, secretFromCli } from './lib/supabase-cli';
 
 //   pnpm seed                 hosted project from apps/api/.env.seed (admin + organization)
-//   pnpm seed:local           local Docker stack, includes fake clients and employees; account from .env.seed too
+//   pnpm seed:local           local Docker stack, includes fake clients, employees and releases; account from .env.seed too
 //   --fake [--clients 25] [--seed 20260917]   opt in to fake data anywhere
 //   --reset-password          also set SEED_ADMIN_PASSWORD on an existing seeded account
 
@@ -147,6 +148,10 @@ try {
     );
     const profiles = await seedEvaluationProfiles(client, organization.id, user.id);
     console.log(`Added ${profiles} evaluation profiles to the risk library, where missing.`);
+    const releases = await seedReleases(client, user.id);
+    console.log(
+      `Upserted ${releases.releases} invented releases and removed ${releases.removed} of earlier days; ${user.email} has ${releases.unread.join(' and ')} unread.`
+    );
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'The seed failed.');
