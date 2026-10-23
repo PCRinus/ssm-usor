@@ -13,12 +13,17 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "dev": "tsc -p tsconfig.build.json --watch",
-    "test": "vitest run"
+    "test": "vitest run",
+    "assemble": "node --import tsx scripts/assemble.ts",
+    "publish-update": "node --import tsx scripts/publish-update.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "lucide-react": "^1.45.0"
   },
   "devDependencies": {
+    "@types/node": "^24.13.3",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vitest": "^5.0.0"
   }
