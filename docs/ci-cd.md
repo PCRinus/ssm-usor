@@ -172,23 +172,65 @@ release. The job **Choose the release** takes the newest commit on `main` that a
 because each non-prod run deploys whatever the runs before it left undeployed, that run's
 success means non-prod held everything up to the commit. Commits merged after it are left for
 the next release; the run's summary names the commit, its message, and how many newer commits
-on `main` non-prod has not deployed yet. It tags the commit with the date in Bucharest,
-`2026.10.23`, or `2026.10.23.2` for a second release that day, and publishes the GitHub release
-with notes generated from the pull requests merged since the previous one. A commit that
-already carries a release tag is refused: there is nothing new to release, and deploying that
-release again is a run with its tag. The release is created with the run's own token, so it
-starts no other workflow. Then production is deployed with what changed since the release it
-runs.
+on `main` non-prod has not deployed yet. The tag is the date in Bucharest, `2026.10.23`, or
+`2026.10.23.2` for a second release that day. A commit that already carries a release tag is
+refused: there is nothing new to release, and deploying that release again is a run with its
+tag.
+
+The same job then assembles the release's **update**, what members read about it
+([ADR 026](architecture/adr-026-updates-and-release-review.md)). It collects the pull requests
+merged since the newest release in the commit's history, in merge order, takes the
+`## Actualizări` block of each one's description (`CLAUDE.md` says what goes in it), and joins
+them into one update with a headline drafted from its first item. A pull request whose block is
+broken stops the run with its number and the line at fault: fix the description and run again.
+The release body is the update, a horizontal rule, and GitHub's generated list of pull requests
+for developers; with no block at all, it is the list alone and the release is **silent**. The
+run's summary names the pull requests that contributed and those skipped, and shows the whole
+body. The release is created as a **draft**: visible to the repository's writers only, with no
+tag yet, so nothing a member or a rollback could see exists.
+
+**Approve the update** then waits on the `release-approval` environment. GitHub notifies
+Mircea; he reads the draft release, edits its body in GitHub's release editor where the wording
+needs it, and approves under **Review deployments** on the run's page. **Publish the update**
+reads the body again, checks its dialect, and fails the run before publishing anything if it is
+broken, with each error's line; fix the draft's body and re-run the failed jobs, which reads it
+again. Otherwise it publishes the
+release, which creates the tag. **Record the update in non-prod** then writes the update to
+non-prod's `releases` table, production is deployed with what changed since the release it runs,
+and **Record the update in production** writes the same row to production's table once that
+deployment has succeeded, so the table's migrations are there and members meet the update when
+its release runs. Both write with the environment's `SUPABASE_SECRET_KEY`, by an upsert on the
+tag; a silent release writes no row. The release is published with the run's own token, so it
+starts no other workflow.
+
+A rejection fails the run, and nothing is published or deployed; re-running its failed jobs
+asks for the approval again. The draft stays until the next run, which deletes every draft named
+like a release before creating its own from the pull requests, so edits made to a rejected draft
+are lost with it. A second run
+started while the first waits for approval does the same, so approving the first then fails
+with its draft gone; approve the newer run instead.
+
+The `release-approval` environment is configured by hand under Settings → Environments, with
+Mircea as its required reviewer and self-review allowed, since he also starts the run. Its
+protection is the whole gate: without a required reviewer, **Approve the update** runs at once
+and the update is published unread. The `production` environment has no reviewers of its own,
+so one approval covers the whole run.
 
 A run started from any other branch or tag is refused before anything happens: a run uses the
 workflow files of the ref it was started on, and production only runs `main`'s.
 
 **Rolling back.** Run **Deploy production** with an earlier release's tag in `tag`. It creates
-nothing: it checks that the tag's commit is on `main` and that a run of `deploy-non-prod.yml`
-succeeded for exactly that commit, then deploys everything of it to production. A release that
-failed halfway already has its tag, so a run without one refuses it; rerun its failed jobs, or
-run with its tag. Migrations do not roll back: the database keeps the newer schema, so the
+nothing and asks for no approval: it checks that the tag's commit is on `main` and that a run of
+`deploy-non-prod.yml` succeeded for exactly that commit, then deploys everything of it to
+production. Both record jobs rewrite the release's row from its published body; a body that no
+longer parses fails its record job but never holds back the rollback. A release that failed
+after publishing already has its tag, so a run without one refuses it; rerun its failed jobs,
+or run with its tag. Migrations do not roll back: the database keeps the newer schema, so the
 older code has to be compatible with it.
+
+**A typo in a published update** is fixed on GitHub: edit the release's body, then run
+**Deploy production** with its tag. That deploys the release again, everything of it, and
+rewrites its row in both environments. The table is never edited by hand.
 
 **A fix that cannot wait** is a merge to `main` and, once **Deploy non-prod** has run it, a
 release. That release ships everything merged so far. If something merged and unreleased must
