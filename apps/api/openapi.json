@@ -16725,6 +16725,15 @@
           {
             "schema": {
               "type": "string",
+              "enum": ["ssm", "psi"]
+            },
+            "required": false,
+            "name": "domain",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
               "maxLength": 100
             },
             "required": false,

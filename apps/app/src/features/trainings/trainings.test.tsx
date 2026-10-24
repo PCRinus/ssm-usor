@@ -844,6 +844,29 @@ describe('training state in the employee lists', () => {
       )
     );
   });
+
+  it('reads one domain when the link names it, and both again once a state is picked', async () => {
+    mockApi({
+      'GET /employees': () =>
+        Response.json(page([{ ...overdue, client: { id: clientId, name: 'OMV PETROM SA' } }])),
+      'GET /clients': () => Response.json(page([sampleClient])),
+    });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      '/employees?trainingState=overdue&domain=ssm'
+    );
+    const user = userEvent.setup();
+    await screen.findAllByTestId('organization-employees-row');
+    const sent = () => requests('GET', '/employees').at(-1)!.url.searchParams;
+    expect(sent().get('trainingState')).toBe('overdue');
+    expect(sent().get('domain')).toBe('ssm');
+    await user.click(screen.getByTestId('organization-employees-training-filter-due'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ trainingState: 'due' })
+    );
+    await waitFor(() => expect(sent().get('trainingState')).toBe('due'));
+    expect(sent().has('domain')).toBe(false);
+  });
 });
 
 describe('dates typed into the dialog', () => {

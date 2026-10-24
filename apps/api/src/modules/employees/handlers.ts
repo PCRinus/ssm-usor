@@ -10,6 +10,7 @@ import {
   pageRange,
   searchTerms,
   type TestStateFilter,
+  type TrainingDomain,
   type TrainingStateFilter,
 } from '@ssm-usor/contracts';
 
@@ -36,7 +37,11 @@ type EmployeeRow = Database['public']['Tables']['employees']['Row'];
 export const employeeListColumns =
   `id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name), workplace_id, client_workplaces!employees_workplace_in_client(id, name), training_status(ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, psi_state, psi_due_on, psi_last_periodic_on, psi_interval_months, psi_interval_source), ${testStatusColumns}` as const;
 
-type StateFilters = { trainingState?: TrainingStateFilter; testState?: TestStateFilter };
+type StateFilters = {
+  trainingState?: TrainingStateFilter;
+  testState?: TestStateFilter;
+  domain?: TrainingDomain;
+};
 
 // Inner, so that a filter on a status drops the employees it leaves out.
 function listColumnsFor<Columns extends string>(columns: Columns, filters: StateFilters) {
@@ -48,28 +53,28 @@ function listColumnsFor<Columns extends string>(columns: Columns, filters: State
   return filtered as Columns;
 }
 
-// "La zi" means up to date in both domains, and a passed test passed in both; every other state
-// flags someone the specialist has to see to in either.
+// Without a domain, "La zi" means up to date in both domains, and a passed test passed in both;
+// every other state flags someone the specialist has to see to in either.
 function inStates<Q extends { or(filters: string, options: { referencedTable: string }): Q }>(
   query: Q,
-  { trainingState, testState }: StateFilters
+  { trainingState, testState, domain }: StateFilters
 ) {
+  const matching = (state: string, everywhere: boolean) => {
+    if (domain) return `${domain}_state.eq.${state}`;
+    return everywhere
+      ? `and(ssm_state.eq.${state},psi_state.eq.${state})`
+      : `ssm_state.eq.${state},psi_state.eq.${state}`;
+  };
   let filtered = query;
   if (trainingState) {
-    filtered = filtered.or(
-      trainingState === 'current'
-        ? 'and(ssm_state.eq.current,psi_state.eq.current)'
-        : `ssm_state.eq.${trainingState},psi_state.eq.${trainingState}`,
-      { referencedTable: 'training_status' }
-    );
+    filtered = filtered.or(matching(trainingState, trainingState === 'current'), {
+      referencedTable: 'training_status',
+    });
   }
   if (testState) {
-    filtered = filtered.or(
-      testState === 'passed'
-        ? 'and(ssm_state.eq.passed,psi_state.eq.passed)'
-        : `ssm_state.eq.${testState},psi_state.eq.${testState}`,
-      { referencedTable: 'test_status' }
-    );
+    filtered = filtered.or(matching(testState, testState === 'passed'), {
+      referencedTable: 'test_status',
+    });
   }
   return filtered;
 }
@@ -476,9 +481,9 @@ export const listOrganizationEmployees: RouteHandler<
   typeof listOrganizationEmployeesRoute,
   ApiEnv
 > = async (c) => {
-  const { status, clientId, trainingState, testState, q, page, pageSize, sort, order } =
+  const { status, clientId, trainingState, testState, domain, q, page, pageSize, sort, order } =
     c.req.valid('query');
-  const states = { trainingState, testState };
+  const states = { trainingState, testState, domain };
   const db = createDataClient(c);
   const filtered = () => {
     const base = db
