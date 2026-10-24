@@ -9177,6 +9177,7 @@ export type ListOrganizationEmployeesParams = {
   clientId?: string;
   trainingState?: ListOrganizationEmployeesTrainingState;
   testState?: ListOrganizationEmployeesTestState;
+  domain?: ListOrganizationEmployeesDomain;
   /**
    * @maxLength 100
    */
@@ -9227,6 +9228,14 @@ export const ListOrganizationEmployeesTestState = {
   pending: 'pending',
   annual_due: 'annual_due',
   none: 'none',
+} as const;
+
+export type ListOrganizationEmployeesDomain =
+  (typeof ListOrganizationEmployeesDomain)[keyof typeof ListOrganizationEmployeesDomain];
+
+export const ListOrganizationEmployeesDomain = {
+  ssm: 'ssm',
+  psi: 'psi',
 } as const;
 
 export type ListTrainingsParams = {
