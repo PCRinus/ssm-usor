@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { withoutProviderKey } from './claude.js';
+import { withoutProviderKey } from './claude';
 
 describe('withoutProviderKey', () => {
   it('drops the SDK key and keeps the gateway token', async () => {
