@@ -249,6 +249,36 @@ describe('GET /employees', () => {
     );
   });
 
+  it('filters by a training state in one domain only', async () => {
+    mockUpstream();
+    const response = await request('/employees?trainingState=overdue&domain=ssm');
+    expect(response.status).toBe(200);
+    const query = employeesQuery();
+    expect(query.get('select')).toContain('training_status!inner(');
+    expect(query.get('training_status.or')).toBe('(ssm_state.eq.overdue)');
+  });
+
+  it('filters the employees up to date in one domain, whatever the other', async () => {
+    mockUpstream();
+    await request('/employees?trainingState=current&domain=psi');
+    expect(employeesQuery().get('training_status.or')).toBe('(psi_state.eq.current)');
+  });
+
+  it('narrows a test state to the domain too', async () => {
+    mockUpstream();
+    await request('/employees?testState=pending&domain=psi');
+    expect(employeesQuery().get('test_status.or')).toBe('(psi_state.eq.pending)');
+  });
+
+  it('ignores a domain when no state is asked for', async () => {
+    mockUpstream();
+    await request('/employees?domain=ssm');
+    const query = employeesQuery();
+    expect(query.get('select')).not.toContain('training_status!inner');
+    expect(query.get('training_status.or')).toBeNull();
+    expect(query.get('test_status.or')).toBeNull();
+  });
+
   it('reads the training status without filtering when no state is asked for', async () => {
     mockUpstream();
     await request('/employees');
@@ -290,6 +320,7 @@ describe('GET /employees', () => {
     'status=suspended',
     'trainingState=expired',
     'testState=failed',
+    'domain=su',
   ])('rejects %s', async (search) => {
     mockUpstream();
     const response = await request(`/employees?${search}`);

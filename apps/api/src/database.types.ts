@@ -86,11 +86,25 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'agreement_signatures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'agreement_signatures_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'agreement_signatures_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
           },
           {
             foreignKeyName: 'agreement_signatures_employee_id_fkey';
@@ -119,6 +133,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'agreement_signatures_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'agreement_signatures_organization_id_fkey';
@@ -192,11 +213,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'client_documents_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'client_documents_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_documents_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_documents_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'client_documents_organization_id_fkey';
@@ -268,6 +310,13 @@ export type Database = {
             referencedColumns: ['id', 'organization_id'];
           },
           {
+            foreignKeyName: 'client_files_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
             foreignKeyName: 'client_files_employee_of_client';
             columns: ['employee_id', 'client_id'];
             isOneToOne: false;
@@ -287,6 +336,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'client_files_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'client_files_organization_id_fkey';
@@ -367,6 +423,20 @@ export type Database = {
             referencedColumns: ['id', 'organization_id'];
           },
           {
+            foreignKeyName: 'client_fire_safety_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_fire_safety_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
             foreignKeyName: 'client_fire_safety_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
@@ -407,6 +477,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_owner_notes_client_fkey';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_owner_notes_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'client_owner_notes_organization_id_fkey';
@@ -479,11 +563,25 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'client_participants_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'client_participants_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_participants_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
           },
           {
             foreignKeyName: 'client_participants_employee_of_client';
@@ -505,6 +603,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'client_participants_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'client_participants_organization_id_fkey';
@@ -574,11 +679,25 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'client_responsible_persons_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'client_responsible_persons_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_responsible_persons_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
           },
           {
             foreignKeyName: 'client_responsible_persons_employee_of_client';
@@ -600,6 +719,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'client_responsible_persons_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'client_responsible_persons_organization_id_fkey';
@@ -703,11 +829,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'client_workplaces_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'client_workplaces_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_workplaces_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_workplaces_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'client_workplaces_organization_id_fkey';
@@ -851,6 +998,13 @@ export type Database = {
             foreignKeyName: 'clients_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'clients_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
@@ -903,11 +1057,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'document_generations_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'document_generations_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'document_generations_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'document_generations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'document_generations_organization_id_fkey';
@@ -1011,6 +1186,13 @@ export type Database = {
             foreignKeyName: 'document_revisions_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'document_revisions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
@@ -1074,6 +1256,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'documents_behind';
             referencedColumns: ['document_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'document_signed_copies_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'document_signed_copies_organization_id_fkey';
@@ -1172,6 +1361,13 @@ export type Database = {
             foreignKeyName: 'document_templates_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'document_templates_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
@@ -1239,11 +1435,25 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'employee_signing_agreements_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'employee_signing_agreements_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'employee_signing_agreements_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
           },
           {
             foreignKeyName: 'employee_signing_agreements_employee_of_client';
@@ -1265,6 +1475,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'employee_signing_agreements_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'employee_signing_agreements_organization_id_fkey';
@@ -1433,6 +1650,13 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'employees_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'employees_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
@@ -1440,11 +1664,25 @@ export type Database = {
             referencedColumns: ['id', 'organization_id'];
           },
           {
+            foreignKeyName: 'employees_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
             foreignKeyName: 'employees_job_position_in_client';
             columns: ['job_position_id', 'client_id'];
             isOneToOne: false;
             referencedRelation: 'job_positions';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'employees_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'employees_organization_id_fkey';
@@ -1522,6 +1760,13 @@ export type Database = {
             foreignKeyName: 'evaluation_profile_factors_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'evaluation_profile_factors_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
@@ -1577,6 +1822,13 @@ export type Database = {
             foreignKeyName: 'evaluation_profile_measures_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'evaluation_profile_measures_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
@@ -1608,6 +1860,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'evaluation_profiles_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
           {
             foreignKeyName: 'evaluation_profiles_organization_id_fkey';
             columns: ['organization_id'];
@@ -1694,11 +1953,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'fire_buildings_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'fire_buildings_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_buildings_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_buildings_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'fire_buildings_organization_id_fkey';
@@ -1790,11 +2070,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'fire_equipment_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'fire_equipment_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_equipment_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_equipment_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'fire_equipment_organization_id_fkey';
@@ -1871,11 +2172,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'fire_installations_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'fire_installations_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_installations_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_installations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'fire_installations_organization_id_fkey';
@@ -1949,11 +2271,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'fire_maintenance_items_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'fire_maintenance_items_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_maintenance_items_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_maintenance_items_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'fire_maintenance_items_organization_id_fkey';
@@ -2048,11 +2391,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'fire_substances_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'fire_substances_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_substances_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'fire_substances_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'fire_substances_organization_id_fkey';
@@ -2142,6 +2506,13 @@ export type Database = {
             foreignKeyName: 'instruction_module_versions_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'instruction_module_versions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
@@ -2182,6 +2553,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'instruction_modules_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
           {
             foreignKeyName: 'instruction_modules_organization_id_fkey';
             columns: ['organization_id'];
@@ -2250,11 +2628,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'job_position_equipment_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'job_position_equipment_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'job_position_equipment_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'job_position_equipment_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'job_position_equipment_organization_id_fkey';
@@ -2319,6 +2718,13 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'job_position_instructions_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'job_position_instructions_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
@@ -2326,11 +2732,25 @@ export type Database = {
             referencedColumns: ['id', 'organization_id'];
           },
           {
+            foreignKeyName: 'job_position_instructions_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
             foreignKeyName: 'job_position_instructions_module_in_organization';
             columns: ['module_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'instruction_modules';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'job_position_instructions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'job_position_instructions_organization_id_fkey';
@@ -2416,11 +2836,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'job_positions_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'job_positions_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'job_positions_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'job_positions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'job_positions_organization_id_fkey';
@@ -2598,6 +3039,13 @@ export type Database = {
             foreignKeyName: 'organization_invitations_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'organization_invitations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
@@ -2626,6 +3074,13 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'organization_members_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
           {
             foreignKeyName: 'organization_members_organization_id_fkey';
             columns: ['organization_id'];
@@ -2799,11 +3254,25 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'participant_invitations_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'participant_invitations_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'participant_invitations_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
           },
           {
             foreignKeyName: 'participant_invitations_employee_of_client';
@@ -2825,6 +3294,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'participant_invitations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'participant_invitations_organization_id_fkey';
@@ -2892,6 +3368,13 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'prevention_measures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'prevention_measures_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
@@ -2899,11 +3382,25 @@ export type Database = {
             referencedColumns: ['id', 'organization_id'];
           },
           {
+            foreignKeyName: 'prevention_measures_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
             foreignKeyName: 'prevention_measures_factor_in_client';
             columns: ['factor_id', 'client_id'];
             isOneToOne: false;
             referencedRelation: 'risk_factors';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'prevention_measures_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'prevention_measures_organization_id_fkey';
@@ -3003,6 +3500,13 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'regeneration_job_items_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'regeneration_job_items_job_id_fkey';
             columns: ['job_id'];
             isOneToOne: false;
@@ -3049,6 +3553,13 @@ export type Database = {
           type_key?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'regeneration_jobs_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
           {
             foreignKeyName: 'regeneration_jobs_organization_id_fkey';
             columns: ['organization_id'];
@@ -3162,11 +3673,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'risk_evaluations_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'risk_evaluations_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'risk_evaluations_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'risk_evaluations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'risk_evaluations_organization_id_fkey';
@@ -3261,6 +3793,13 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'risk_factors_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'risk_factors_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
@@ -3268,11 +3807,25 @@ export type Database = {
             referencedColumns: ['id', 'organization_id'];
           },
           {
+            foreignKeyName: 'risk_factors_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
             foreignKeyName: 'risk_factors_evaluation_in_client';
             columns: ['evaluation_id', 'client_id'];
             isOneToOne: false;
             referencedRelation: 'risk_evaluations';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'risk_factors_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'risk_factors_organization_id_fkey';
@@ -3352,6 +3905,13 @@ export type Database = {
             foreignKeyName: 'service_contract_sends_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'service_contract_sends_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
@@ -3420,6 +3980,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'service_contracts_client_fkey';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'service_contracts_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'service_contracts_organization_id_fkey';
@@ -3504,11 +4078,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'signature_requests_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'signature_requests_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'signature_requests_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'signature_requests_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'signature_requests_organization_id_fkey';
@@ -3672,11 +4267,25 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'signed_sheets_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'signed_sheets_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'signed_sheets_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
           },
           {
             foreignKeyName: 'signed_sheets_employee_of_client';
@@ -3698,6 +4307,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'signed_sheets_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'signed_sheets_organization_id_fkey';
@@ -3981,11 +4597,25 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'test_attempts_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'test_attempts_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'test_attempts_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
           },
           {
             foreignKeyName: 'test_attempts_employee_of_client';
@@ -4014,6 +4644,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'document_revisions';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'test_attempts_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'test_attempts_organization_id_fkey';
@@ -4051,6 +4688,13 @@ export type Database = {
           question_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'test_question_hides_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
           {
             foreignKeyName: 'test_question_hides_organization_id_fkey';
             columns: ['organization_id'];
@@ -4114,6 +4758,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'test_questions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
           {
             foreignKeyName: 'test_questions_organization_id_fkey';
             columns: ['organization_id'];
@@ -4208,11 +4859,25 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'test_results_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'test_results_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'test_results_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
           },
           {
             foreignKeyName: 'test_results_employee_of_client';
@@ -4234,6 +4899,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_results_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'test_results_organization_id_fkey';
@@ -4336,11 +5008,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'test_sheet_signatures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'test_sheet_signatures_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'test_sheet_signatures_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'test_sheet_signatures_organization_id_fkey';
@@ -4431,11 +5124,25 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'test_sheets_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'test_sheets_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
           },
           {
             foreignKeyName: 'test_sheets_employee_of_client';
@@ -4457,6 +5164,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'test_sheets_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'test_sheets_organization_id_fkey';
@@ -4536,11 +5250,25 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'training_records_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'training_records_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'training_records_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
           },
           {
             foreignKeyName: 'training_records_employee_of_client';
@@ -4562,6 +5290,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'training_records_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'training_records_organization_id_fkey';
@@ -4680,11 +5415,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'training_signatures_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'training_signatures_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'training_signatures_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'training_signatures_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'training_signatures_organization_id_fkey';
@@ -4798,11 +5554,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'trainings_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'trainings_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'trainings_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'trainings_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'trainings_organization_id_fkey';
@@ -4887,6 +5664,56 @@ export type Database = {
         };
         Relationships: [];
       };
+      clients_missing_basic_data: {
+        Row: {
+          client_id: string | null;
+          client_name: string | null;
+          missing: string[] | null;
+          organization_id: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'clients_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'clients_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      dashboard_summary: {
+        Row: {
+          active_clients: number | null;
+          clients_missing_data: number | null;
+          contracts_ending_within_60_days: number | null;
+          contracts_received_to_confirm: number | null;
+          documents_behind: number | null;
+          drafts_to_issue: number | null;
+          employee_signatures_oldest_issued_at: string | null;
+          employee_signatures_pending: number | null;
+          employees: number | null;
+          next_due_count: number | null;
+          next_due_on: string | null;
+          organization_id: string | null;
+          psi_current: number | null;
+          psi_due: number | null;
+          psi_overdue: number | null;
+          psi_untrained: number | null;
+          ssm_current: number | null;
+          ssm_due: number | null;
+          ssm_overdue: number | null;
+          ssm_untrained: number | null;
+          tests_pending: number | null;
+        };
+        Relationships: [];
+      };
       documents_behind: {
         Row: {
           behind_template: boolean | null;
@@ -4919,11 +5746,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'client_documents_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'client_documents_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_documents_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_documents_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'client_documents_organization_id_fkey';
@@ -4965,11 +5813,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'employees_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'employees_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'employees_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'employees_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'employees_organization_id_fkey';
@@ -5016,11 +5885,32 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'employees_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
             foreignKeyName: 'employees_client_in_organization';
             columns: ['client_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'clients';
             referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'employees_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'employees_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
           },
           {
             foreignKeyName: 'employees_organization_id_fkey';
@@ -5260,6 +6150,13 @@ export type Database = {
           organization_id: string;
           organization_name: string;
           participant_id: string;
+        }[];
+      };
+      dashboard_employees_at_month_ends: {
+        Args: { p_organization_id: string };
+        Returns: {
+          employees: number;
+          month: string;
         }[];
       };
       effective_user_id: { Args: never; Returns: string };
