@@ -45,6 +45,7 @@ The pnpm/Turborepo workspace contains:
 - `packages/contracts` — runtime schemas and shared transport types.
 - `packages/api-http` — the fetch adapter both SPAs' generated API clients call;
 - `packages/design-tokens` — shared brand colors, typography, radii, and Tailwind theme;
+- `packages/help-topics` — the help topics the app links to, generated from the articles (`pnpm generate:help-topics`);
 - `packages/ui` — shared shadcn React primitives and the Tailwind CSS entry point.
 
 See [shared UI and styling](docs/shared-ui.md) for component imports, Astro usage, and adding
