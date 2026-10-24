@@ -35,6 +35,7 @@ Docker, seed a local user, and connect the SPA/API without using the hosted proj
 The pnpm/Turborepo workspace contains:
 
 - `apps/marketing` — the static Astro acquisition site and landing-page concepts;
+- `apps/help` — the members' help site, Starlight at `help.ssmusor.ro` ([ADR 028](docs/architecture/adr-028-help-site.md));
 - `apps/app` — the client-only React/Vite application shell;
 - `apps/portal` — the participants' portal, a second React/Vite SPA ([guide](docs/portal.md));
 - `apps/api` — the Cloudflare Worker API;
