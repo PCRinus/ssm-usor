@@ -205,6 +205,6 @@ După prima semnătură electronică, fișa se păstrează semnată, rând cu r�
 
 ## Semnăturile unei instruiri
 
-Fiecare instruire înregistrată în aplicație are rubrici de semnătură: **Instruit**, **Instructor** și, unde fișa le are, **Verificator** și **Admite la lucru**. Fișa PSI are doar rubricile celui instruit și a celui care a instruit.
+Fiecare instruire înregistrată în aplicație are rubrici de semnătură: **Instruit**, **Instructor** și, unde fișa le are, **Verificator** și **Admite la lucru**. Fișa PSI are doar rubricile celui instruit și ale celui care a instruit.
 
 Angajatul își semnează rubrica din portal, cu un cod primit pe email sau prin SMS. O rubrică semnată de mână o marchezi cu **Marchează semnat pe hârtie**. O instruire de pe fișa de hârtie nu are rubrici în aplicație: semnăturile ei sunt pe hârtie.
