@@ -35,7 +35,8 @@ The site is in Romanian only. Starlight's own interface strings are set to Roman
 The sidebar follows the app's own sidebar, so a member finds an article where they would find the screen:
 
 - **Primii pași**
-- **Clienți**: Date firmă, Angajați, Posturi și echipament, Evaluarea riscurilor, Documente SSM, Documente PSI, Fișiere
+- **Clienți potențiali și contracte**
+- **Clienți**: Date firmă, Angajați, Posturi și echipament, Instruire și fișe, Evaluarea riscurilor, Documente SSM, Documente PSI, Fișiere
 - **Instrucțiuni**
 - **Riscuri**
 - **Teste**
@@ -43,6 +44,8 @@ The sidebar follows the app's own sidebar, so a member finds an article where th
 - **Legislație**
 - **Organizație**
 - **Contul meu**
+
+Every directory of articles has its place in the sidebar, and the build fails on one that has none: Starlight would otherwise publish its articles where only a link reaches them.
 
 There are also a few **Cum funcționează** pages for logic that spans screens: what makes a set ready to generate, the training and test states and their dates, the signatures and the portal, and the updates of a document behind its template or law.
 
@@ -184,12 +187,13 @@ Each step is a pull request stacked on the step it names.
    - the `help_opened` event.
 5. The **Angajați** articles, on step 4: its topics wired into the employee forms, and its hints shortened. This area sets the voice and depth, and Mircea reads it before the rest are written.
 6. The other areas, on step 5, one pull request each, written in parallel:
+   - Clienți potențiali și contracte;
    - Clienți and Date firmă;
    - Posturi și echipament;
    - Evaluarea riscurilor and Riscuri;
    - Documente SSM;
    - Documente PSI;
-   - Instruire and fișe;
+   - Instruire și fișe;
    - Teste;
    - Semnături și participanți;
    - Instrucțiuni;
