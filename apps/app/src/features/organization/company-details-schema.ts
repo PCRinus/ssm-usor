@@ -16,14 +16,16 @@ import { optionalText, textOrNull } from './optional-text';
 
 type CompanyDetails = OrganizationCompanyDetailsResponse['companyDetails'];
 
+export const optionalCuiField = z
+  .string()
+  .trim()
+  .refine(
+    (value) => value === '' || isValidCuiInput(value),
+    'CUI invalid. Verifică cifrele și cifra de control.'
+  );
+
 export const companyDetailsFormSchema = z.object({
-  cui: z
-    .string()
-    .trim()
-    .refine(
-      (value) => value === '' || isValidCuiInput(value),
-      'CUI invalid. Verifică cifrele și cifra de control.'
-    ),
+  cui: optionalCuiField,
   vatPayer: z.boolean(),
   legalName: optionalText(
     2,

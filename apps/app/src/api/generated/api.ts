@@ -11483,6 +11483,7 @@ export const getLookupCompanyUrl = (params: LookupCompanyParams) => {
 };
 
 /**
+ * For members, and for an account with a confirmed email and no membership yet, whose onboarding looks up its own firm.
  * @summary Look up public company data by CUI (ANAF)
  */
 export const lookupCompany = async (

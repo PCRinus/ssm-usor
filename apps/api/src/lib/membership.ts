@@ -33,6 +33,17 @@ export const requireMembership = createMiddleware<ApiEnv>(async (c, next) => {
   await next();
 });
 
+// For what onboarding needs before the organization exists. It lets through whoever
+// create_organization accepts, an account with a confirmed email, without a membership.
+// Unlike requireMembership it sets no `membership`.
+export const requireConfirmedEmailOrMembership = createMiddleware<ApiEnv>(async (c, next) => {
+  if (c.get('emailConfirmed')) {
+    await next();
+    return;
+  }
+  return requireMembership(c, next);
+});
+
 // Runs after requireMembership. The database checks the role again; this gives the
 // caller a clear answer before any work is done.
 export const requireOwner = createMiddleware<ApiEnv>(async (c, next) => {

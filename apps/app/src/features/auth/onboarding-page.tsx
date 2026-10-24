@@ -1,28 +1,40 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { currentTermsVersion } from '@ssm-usor/contracts';
+import { currentTermsVersion, isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
+import { toast } from '@ssm-usor/ui/lib/toast';
 import { Navigate, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import {
   type ApiErrorResponse,
   getGetMeQueryKey,
   getListMyInvitationsQueryKey,
+  lookupCompany,
   type MeResponse,
+  type UpdateOrganizationCompanyDetailsRequest,
   useCreateOrganization,
   useListMyInvitations,
+  useUpdateOrganizationCompanyDetails,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { captureAsMember } from '@/app/observability/posthog';
 import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
 import { Field, FieldMessage } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useMe } from '@/features/account/use-me';
+import { AnafLookupButton } from '@/features/clients/anaf-lookup-button';
 import { roleLabels } from '@/features/organization/labels';
 
 import { useAuth } from './auth-context';
-import { onboardingSchema, type OnboardingValues } from './onboarding-schema';
+import {
+  type CompanyLookup,
+  onboardingSchema,
+  type OnboardingValues,
+  toOnboardingCompanyDetails,
+} from './onboarding-schema';
 
 export function OnboardingPage() {
   const me = useMe();
@@ -54,11 +66,18 @@ export function OnboardingPage() {
   return <OnboardingForm me={me.data} />;
 }
 
+type LookupState =
+  | { status: 'idle' | 'loading' }
+  | { status: 'found'; company: CompanyLookup }
+  | { status: 'error'; message: string };
+
 function OnboardingForm({ me }: { me: MeResponse }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const { auth } = useAuth();
   const navigate = useNavigate();
   const create = useCreateOrganization({ request: apiRequest });
+  const saveCompanyDetails = useUpdateOrganizationCompanyDetails({ request: apiRequest });
+  const [lookup, setLookup] = useState<LookupState>({ status: 'idle' });
   const invitations = useListMyInvitations({
     request: apiRequest,
     query: { queryKey: [...getListMyInvitationsQueryKey(), me.user.id] },
@@ -67,18 +86,64 @@ function OnboardingForm({ me }: { me: MeResponse }) {
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
       fullName: me.profile?.fullName ?? '',
+      cui: '',
       organizationName: '',
       acceptsTerms: false,
     },
   });
   const formRef = useRevealErrors(form);
   const { errors, isSubmitting } = form.formState;
+  const busy = isSubmitting || lookup.status === 'loading';
 
-  const onSubmit = form.handleSubmit(async ({ fullName, organizationName }) => {
+  async function lookupCui() {
+    const input = form.getValues('cui');
+    if (!isValidCuiInput(input)) {
+      form.setError('cui', { message: 'Introdu un CUI valid înainte de căutare.' });
+      return;
+    }
+    form.clearErrors('cui');
+    setLookup({ status: 'loading' });
+    try {
+      const { company } = await lookupCompany({ cui: normalizeCui(input)!.cui }, apiRequest);
+      form.setValue('organizationName', company.legalName, { shouldDirty: true });
+      form.clearErrors('organizationName');
+      setLookup({ status: 'found', company });
+    } catch (cause) {
+      setLookup({
+        status: 'error',
+        message:
+          cause instanceof ApiHttpError && cause.status === 404
+            ? 'Nu am găsit nicio companie cu acest CUI la ANAF. Poți continua fără datele firmei.'
+            : 'Serviciul ANAF nu este disponibil momentan. Poți continua și completa datele firmei mai târziu.',
+      });
+    }
+  }
+
+  // The organization exists by now, so a failure here only leaves its details to fill in later.
+  async function saveDetails(data: UpdateOrganizationCompanyDetailsRequest) {
+    try {
+      await saveCompanyDetails.mutateAsync({ data });
+    } catch {
+      toast.warning(
+        'Organizația a fost creată, dar nu am putut salva datele firmei. Le poți completa în Organizație → Date firmă.',
+        {
+          duration: 10_000,
+          action: {
+            label: 'Date firmă',
+            onClick: () => void navigate({ to: '/organization/company' }),
+          },
+        }
+      );
+    }
+  }
+
+  const onSubmit = form.handleSubmit(async ({ fullName, cui, organizationName }) => {
+    let created = false;
     try {
       await create.mutateAsync({
         data: { fullName, organizationName, termsVersion: currentTermsVersion },
       });
+      created = true;
     } catch (cause) {
       const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
       // Already a member, for instance after accepting an invitation in another tab:
@@ -92,6 +157,17 @@ function OnboardingForm({ me }: { me: MeResponse }) {
         });
         return;
       }
+    }
+    if (created) {
+      const details = toOnboardingCompanyDetails(
+        cui,
+        lookup.status === 'found' ? lookup.company : null
+      );
+      captureAsMember(me.user.id, 'organization_created', {
+        with_cui: details !== null,
+        details_from_anaf: details?.fromAnaf ?? false,
+      });
+      if (details) await saveDetails(details.request);
     }
     await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
     await navigate({ to: '/dashboard', replace: true });
@@ -156,6 +232,49 @@ function OnboardingForm({ me }: { me: MeResponse }) {
             {...form.register('fullName')}
           />
         </Field>
+        <Field
+          id="onboarding-cui"
+          label="CUI"
+          mark="optional"
+          hint="Caută-l la ANAF ca să preiei denumirea, sediul și numărul de înregistrare ale firmei."
+          error={errors.cui}
+        >
+          <div className="flex flex-wrap gap-2">
+            <Input
+              id="onboarding-cui"
+              data-testid="onboarding-cui"
+              className="h-11 max-w-56"
+              inputMode="numeric"
+              autoComplete="off"
+              disabled={busy}
+              aria-invalid={Boolean(errors.cui)}
+              aria-describedby={errors.cui ? 'onboarding-cui-error' : 'onboarding-cui-hint'}
+              {...form.register('cui', { onChange: () => setLookup({ status: 'idle' }) })}
+            />
+            <AnafLookupButton
+              testId="onboarding-lookup"
+              loading={lookup.status === 'loading'}
+              disabled={busy}
+              onClick={() => void lookupCui()}
+            />
+          </div>
+        </Field>
+        {lookup.status === 'found' && (
+          <Notice
+            variant={lookup.company.inactive ? 'warning' : 'success'}
+            data-testid="onboarding-lookup-status"
+          >
+            Date preluate de la ANAF pentru {lookup.company.legalName}.{' '}
+            {lookup.company.inactive
+              ? 'Atenție: compania figurează ca inactivă.'
+              : 'Le găsești apoi în Organizație → Date firmă.'}
+          </Notice>
+        )}
+        {lookup.status === 'error' && (
+          <Notice variant="warning" role="alert" data-testid="onboarding-lookup-status">
+            {lookup.message}
+          </Notice>
+        )}
         <Field
           id="onboarding-organization"
           label="Numele organizației"
@@ -230,7 +349,7 @@ function OnboardingForm({ me }: { me: MeResponse }) {
             {errors.root.server.message}
           </p>
         )}
-        <PublicFrameAction data-testid="onboarding-submit" type="submit" disabled={isSubmitting}>
+        <PublicFrameAction data-testid="onboarding-submit" type="submit" disabled={busy}>
           {isSubmitting ? 'Se creează organizația…' : 'Creează organizația'}
         </PublicFrameAction>
       </form>

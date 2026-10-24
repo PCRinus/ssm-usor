@@ -5,14 +5,35 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
+const captured = vi.hoisted(() => vi.fn());
+vi.mock('@/app/observability/posthog', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/app/observability/posthog')>()),
+  captureAsMember: captured,
+}));
+
 const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM SRL' };
 
 const fetchMock = vi.fn<typeof fetch>();
+
+const anafCompany = {
+  cui: '1590082',
+  legalName: 'OMV PETROM SA',
+  vatPayer: true,
+  caenCode: '0610',
+  tradeRegisterNumber: 'J1997008302407',
+  countyCode: 'B',
+  locality: 'Sector 1 Mun. București',
+  addressLine: 'Str. Coralilor, nr. 22',
+  registrationStatus: 'INREGISTRAT din data 23.10.1997',
+  inactive: false,
+};
 
 function mockApi({
   invitations = [] as unknown[],
   create = () => Response.json({ organization, role: 'owner' }, { status: 201 }),
   profile = null as { fullName: string } | null,
+  lookup = () => Response.json({ company: anafCompany }),
+  saveDetails = (body: unknown) => Response.json({ companyDetails: body }),
 } = {}) {
   let member = false;
   fetchMock.mockImplementation(async (input, init) => {
@@ -28,8 +49,12 @@ function mockApi({
     if (pathname === '/me/invitations') return Response.json({ items: invitations });
     if (pathname === '/organization' && method === 'POST') {
       const response = create();
-      member = response.ok;
+      member = response.ok || response.status === 409;
       return response;
+    }
+    if (pathname === '/companies/lookup') return lookup();
+    if (pathname === '/organization/company-details' && method === 'PUT') {
+      return saveDetails(JSON.parse(init?.body as string));
     }
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
@@ -40,9 +65,18 @@ const created = () =>
     .filter(([input, init]) => String(input).endsWith('/organization') && init?.method === 'POST')
     .map(([, init]) => JSON.parse(init?.body as string));
 
+const savedDetails = () =>
+  fetchMock.mock.calls
+    .filter(
+      ([input, init]) =>
+        String(input).endsWith('/organization/company-details') && init?.method === 'PUT'
+    )
+    .map(([, init]) => JSON.parse(init?.body as string));
+
 const authError = (code: string) => ({ message: code, code });
 
 beforeEach(() => {
+  captured.mockReset();
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
   mockApi();
@@ -69,6 +103,9 @@ describe('register', () => {
       email: 'Ion@Example.test',
       password: 'Parola123',
     });
+    expect(captured).toHaveBeenCalledExactlyOnceWith('user-one', 'signed_up', {
+      method: 'password',
+    });
   });
 
   it('applies the password rules before calling Supabase', async () => {
@@ -89,7 +126,7 @@ describe('register', () => {
   it('says so when registration is switched off', async () => {
     const auth = authFixture();
     auth.client.signUp.mockResolvedValue({
-      data: { session: null },
+      data: { session: null, user: null },
       error: authError('signup_disabled'),
     });
     mountApp(auth.client, '/register');
@@ -102,6 +139,7 @@ describe('register', () => {
     expect((await screen.findByTestId('register-error')).textContent).toMatch(
       /nu este disponibilă momentan/
     );
+    expect(captured).not.toHaveBeenCalled();
   });
 
   it('is not linked from the login page unless the build flag is on', async () => {
@@ -157,9 +195,17 @@ describe('confirm email', () => {
 describe('onboarding', () => {
   const mount = () => mountApp(authFixture(makeSession()).client, '/onboarding');
 
-  async function fill(user: ReturnType<typeof userEvent.setup>, { accept = true } = {}) {
+  async function fill(
+    user: ReturnType<typeof userEvent.setup>,
+    { accept = true, cui = '', lookup = false, name = 'Protect SSM SRL' } = {}
+  ) {
     await user.type(await screen.findByTestId('onboarding-full-name'), 'Ana Popescu');
-    await user.type(screen.getByTestId('onboarding-organization'), 'Protect SSM SRL');
+    if (cui) await user.type(screen.getByTestId('onboarding-cui'), cui);
+    if (lookup) {
+      await user.click(screen.getByTestId('onboarding-lookup'));
+      await screen.findByTestId('onboarding-lookup-status');
+    }
+    if (name) await user.type(screen.getByTestId('onboarding-organization'), name);
     if (accept) await user.click(screen.getByTestId('onboarding-terms'));
     await user.click(screen.getByTestId('onboarding-submit'));
   }
@@ -177,6 +223,137 @@ describe('onboarding', () => {
     await waitFor(() =>
       expect(screen.getByTestId('account-organization').textContent).toBe('Protect SSM SRL')
     );
+    expect(savedDetails()).toEqual([]);
+    expect(captured).toHaveBeenCalledExactlyOnceWith('user-one', 'organization_created', {
+      with_cui: false,
+      details_from_anaf: false,
+    });
+  });
+
+  it('names the organization after the ANAF record and saves what ANAF gives', async () => {
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    await fill(user, { cui: 'RO1590082', lookup: true, name: '' });
+
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    expect(created()).toEqual([
+      { fullName: 'Ana Popescu', organizationName: 'OMV PETROM SA', termsVersion: '2026-09-23' },
+    ]);
+    expect(savedDetails()).toEqual([
+      {
+        cui: '1590082',
+        legalName: 'OMV PETROM SA',
+        vatPayer: true,
+        tradeRegisterNumber: 'J1997008302407',
+        countyCode: 'B',
+        locality: 'Sector 1 Mun. București',
+        addressLine: 'Str. Coralilor, nr. 22',
+        phone: null,
+        legalRepresentativeName: null,
+        legalRepresentativeRole: null,
+        iban: null,
+        bankName: null,
+      },
+    ]);
+    expect(captured).toHaveBeenCalledExactlyOnceWith('user-one', 'organization_created', {
+      with_cui: true,
+      details_from_anaf: true,
+    });
+  });
+
+  it('keeps the name the person edits after the lookup', async () => {
+    mount();
+    const user = userEvent.setup();
+
+    await fill(user, { cui: '1590082', lookup: true, name: ' Energie' });
+
+    await waitFor(() => expect(created()).toHaveLength(1));
+    expect(created()[0].organizationName).toBe('OMV PETROM SA Energie');
+  });
+
+  it('saves the CUI alone when ANAF has no record of it', async () => {
+    mockApi({
+      lookup: () => Response.json({ error: 'not_found', message: 'x' }, { status: 404 }),
+    });
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByTestId('onboarding-cui'), '1590082');
+    await user.click(screen.getByTestId('onboarding-lookup'));
+    expect((await screen.findByTestId('onboarding-lookup-status')).textContent).toMatch(
+      /Nu am găsit nicio companie/
+    );
+    await fill(user);
+
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    expect(savedDetails()).toEqual([
+      expect.objectContaining({ cui: '1590082', legalName: null, vatPayer: false, locality: null }),
+    ]);
+    expect(captured).toHaveBeenCalledExactlyOnceWith('user-one', 'organization_created', {
+      with_cui: true,
+      details_from_anaf: false,
+    });
+  });
+
+  it('ignores a lookup made for another CUI than the one submitted', async () => {
+    mount();
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByTestId('onboarding-cui'), '1590082');
+    await user.click(screen.getByTestId('onboarding-lookup'));
+    await screen.findByTestId('onboarding-lookup-status');
+    await user.clear(screen.getByTestId('onboarding-cui'));
+    await user.type(screen.getByTestId('onboarding-cui'), '14399840');
+    await fill(user);
+
+    await waitFor(() => expect(savedDetails()).toHaveLength(1));
+    expect(savedDetails()[0]).toMatchObject({ cui: '14399840', legalName: null });
+    expect(screen.queryByTestId('onboarding-lookup-status')).toBeNull();
+  });
+
+  it('rejects an invalid CUI', async () => {
+    mount();
+    const user = userEvent.setup();
+
+    await fill(user, { cui: '1590083' });
+
+    expect((await screen.findByTestId('onboarding-cui-error')).textContent).toMatch(/CUI invalid/);
+    expect(created()).toEqual([]);
+  });
+
+  it('opens the app and points to the firm details when saving them fails', async () => {
+    mockApi({
+      saveDetails: () => Response.json({ error: 'internal_error', message: 'x' }, { status: 500 }),
+    });
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    await fill(user, { cui: '1590082', lookup: true, name: '' });
+
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    expect(
+      await screen.findByText(/nu am putut salva datele firmei/, { exact: false })
+    ).toBeTruthy();
+    expect(created()).toHaveLength(1);
+  });
+
+  it('does not touch the details of an organization the account already belongs to', async () => {
+    mockApi({
+      create: () =>
+        Response.json(
+          { error: 'conflict', message: 'x', reason: 'already_in_organization' },
+          { status: 409 }
+        ),
+    });
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    await fill(user, { cui: '1590082', lookup: true });
+
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    expect(savedDetails()).toEqual([]);
+    expect(captured).not.toHaveBeenCalled();
   });
 
   it('requires the terms to be accepted', async () => {

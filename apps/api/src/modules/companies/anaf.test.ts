@@ -48,12 +48,17 @@ const anafFound = {
 
 const fetchMock = vi.fn<typeof fetch>();
 
-function mockUpstream(anaf: (init?: RequestInit) => Response | Promise<Response>) {
+function mockUpstream(
+  anaf: (init?: RequestInit) => Response | Promise<Response>,
+  { account = user as Record<string, unknown>, member = true } = {}
+) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
+    if (url.pathname === '/auth/v1/user') return Response.json(account);
     if (url.pathname === '/rest/v1/rpc/current_membership') {
-      return Response.json([{ user_id: user.id, organization_id: 'org', role: 'owner' }]);
+      return Response.json(
+        member ? [{ user_id: user.id, organization_id: 'org', role: 'owner' }] : []
+      );
     }
     if (String(input) === anafLookupUrl) return anaf(init);
     throw new Error(`Unexpected upstream request: ${url}`);
@@ -163,6 +168,24 @@ describe('GET /companies/lookup', () => {
     const body = apiErrorResponseSchema.parse(await response.json());
     expect(body.error).toBe('service_unavailable');
     expect(JSON.stringify(body)).not.toContain('Sensitive');
+  });
+
+  it('serves an account with a confirmed email before it has an organization', async () => {
+    mockUpstream(() => Response.json({ found: [anafFound], notFound: [] }), {
+      account: { ...user, email_confirmed_at: '2026-09-01T00:05:00Z' },
+      member: false,
+    });
+    const response = await lookup('1590082');
+    expect(response.status).toBe(200);
+    expect(companyLookupResponseSchema.parse(await response.json()).company.cui).toBe('1590082');
+  });
+
+  it('refuses an account with neither a confirmed email nor a membership', async () => {
+    mockUpstream(() => Response.json({ found: [anafFound], notFound: [] }), { member: false });
+    const response = await lookup('1590082');
+    expect(response.status).toBe(403);
+    expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('forbidden');
+    expect(anafCalls()).toHaveLength(0);
   });
 
   it('requires authentication', async () => {

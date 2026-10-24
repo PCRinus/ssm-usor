@@ -47,6 +47,7 @@ export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
   if (!user.success) throw new ApiError('service_unavailable');
 
   c.set('user', user.data);
+  c.set('emailConfirmed', Boolean(data.user.email_confirmed_at));
   c.set('accessToken', token);
   await next();
 });

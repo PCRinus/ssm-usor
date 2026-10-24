@@ -15806,6 +15806,7 @@
       "get": {
         "operationId": "lookupCompany",
         "summary": "Look up public company data by CUI (ANAF)",
+        "description": "For members, and for an account with a confirmed email and no membership yet, whose onboarding looks up its own firm.",
         "security": [
           {
             "bearerAuth": []
@@ -15855,7 +15856,7 @@
             }
           },
           "403": {
-            "description": "The account is not a member of an organization",
+            "description": "The email is not confirmed and the account is not a member of an organization",
             "content": {
               "application/json": {
                 "schema": {

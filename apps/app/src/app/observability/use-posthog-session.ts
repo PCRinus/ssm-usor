@@ -6,7 +6,7 @@ import type { MeResponse } from '@/api/generated/api';
 import { getSupportIdentity } from '@/api/generated/api';
 import { useAuth } from '@/features/auth/auth-context';
 
-import { loadPostHog, openSupportChat, stopPostHog } from './posthog';
+import { loadPostHog, openSupportChat, sendPendingEvents, stopPostHog } from './posthog';
 
 export function usePostHogSession(me: MeResponse | undefined) {
   const { session } = useAuth();
@@ -76,6 +76,7 @@ export function usePostHogSession(me: MeResponse | undefined) {
         target_organization_id: targetOrganizationId,
       }),
     });
+    sendPendingEvents(client, userId);
   }, [
     client,
     userId,

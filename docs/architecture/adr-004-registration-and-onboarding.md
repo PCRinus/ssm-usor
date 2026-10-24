@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-09-18
+- Amended 2026-10-24: onboarding takes an optional CUI and looks it up at ANAF; see the amendment below.
 
 ## Context
 
@@ -54,3 +55,13 @@ That is accepted for now. Supabase limits how often one address can be emailed (
 - The waitlist's launch announcement, with its unsubscribe link, becomes possible and stays separate work.
 - The browser flow tests cover registration against the local stack. The post-deploy checks do not register anyone on production.
 - Until a CAPTCHA exists, anyone who finds the switch can make us send confirmation emails, within Supabase's rate limits.
+
+## Amendment (2026-10-24): the CUI at onboarding
+
+The firm's legal data used to wait for Organizație → Date firmă, and every generated document reported it missing until then. Onboarding now also asks for the CUI, optional, with the ANAF lookup of the client form. A found record names the organization, which the person can still rename, and its legal name, trade register number, county, locality, address and VAT status are kept. Someone without the CUI finishes onboarding as before.
+
+The details are saved once the organization exists, through the owner's company-details route. That route replaces every field, which is safe only for an organization with nothing saved yet, so an account that turns out to be a member already saves nothing. The create-organization function is unchanged and there is no migration. A CUI the lookup did not find is saved alone. If the save fails, the organization stays, the person goes on to the app, and a message points to Date firmă.
+
+`GET /companies/lookup` now also serves an account with a confirmed email and no membership, the accounts the create-organization function accepts. It neither throttles nor caches ANAF; anyone can register and create an organization, so it was no less open before.
+
+Two PostHog events measure the journey: `signed_up` with `method`, and `organization_created` with `with_cui` and `details_from_anaf`. They carry no personal or company data. PostHog still starts only for members ([ADR 009](adr-009-problem-report-intake.md)), who have accepted the terms with their organization, so both events wait in the browser and go out, stamped with when they happened, in that account's first member session there. A sign-up confirmed in another browser, or never followed by an organization, is not counted.
