@@ -57,25 +57,31 @@ export function Field({
 }) {
   return (
     <div className={cn('grid min-w-0 content-start gap-2', className)}>
-      <div className="flex items-center gap-1">
+      {/* Inline, so a label too long for its line wraps word by word; the help link never
+          goes to a line of its own. */}
+      <div className="text-sm leading-none whitespace-nowrap">
         {/* The label names the control for assistive technology but does not act for it: a click
             beside a picker opened its list, and the row is as wide as the field. The help link
             stays outside it, or the label would cancel its click. */}
-        <Label htmlFor={id} className="w-fit gap-1" onClick={(event) => event.preventDefault()}>
+        <Label
+          htmlFor={id}
+          className="inline whitespace-normal"
+          onClick={(event) => event.preventDefault()}
+        >
           {label}
           {mark === 'required' && (
             <>
-              <span aria-hidden="true" className="text-destructive">
+              <span aria-hidden="true" className="ml-1 text-destructive">
                 *
               </span>
               <span className="sr-only">(obligatoriu)</span>
             </>
           )}
           {mark === 'optional' && (
-            <span className="font-normal text-muted-foreground">(opțional)</span>
+            <span className="ml-1 font-normal text-muted-foreground">(opțional)</span>
           )}
         </Label>
-        {help && <HelpLink topic={help} label={`Ajutor: ${label}`} />}
+        {help && <HelpLink topic={help} label={`Ajutor: ${label}`} className="ml-1 align-middle" />}
       </div>
       {children}
       {hint && !error && (
