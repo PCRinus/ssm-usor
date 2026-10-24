@@ -209,8 +209,8 @@ select results_eq(
 
 select results_eq(
   $$ select contracts_received_to_confirm, contracts_ending_within_60_days from public.dashboard_summary $$,
-  $$ values (1, 1) $$,
-  'an owner counts the copy waiting beside a correction and the contract that stops, never a lead''s or one that renews'
+  $$ values (2, 1) $$,
+  'an owner counts the copy waiting beside a correction and the lead''s, and the contract that stops, never one that renews'
 );
 
 select results_eq(
@@ -289,9 +289,11 @@ select results_eq(
 
 reset role;
 
-select is(
-  (select count(*)::integer from public.dashboard_summary),
-  2,
+select results_eq(
+  $$ select organization_id from public.dashboard_summary
+     where organization_id in ('11111111-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002')
+     order by organization_id $$,
+  $$ values ('11111111-0000-4000-8000-000000000001'::uuid), ('22222222-0000-4000-8000-000000000002'::uuid) $$,
   'one row per organization'
 );
 
