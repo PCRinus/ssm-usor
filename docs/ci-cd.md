@@ -83,6 +83,14 @@ root configuration, workflow files) only has its formatting and lint checked, an
 tests. In practice that is documentation. In a deployment, validation and the tests run only
 when something is selected to deploy.
 
+`pnpm check:generated` also regenerates the help topics (`packages/help-topics/src/topics.ts`)
+from the articles' front matter, and the help site's build fails when a topic's anchor is not
+on its page or when a topic id or source shows in the built pages or the search index ([ADR
+028](architecture/adr-028-help-site.md)). On pull requests, **Validate repository** also
+compares the changed files with every help article's `sources` and warns, in the job summary
+and on the article, about each article whose source changed while it did not. That step never
+fails the job.
+
 In a deployment, one build job runs alongside validation and builds every selected
 application with a single Turbo invocation, which keeps the builds off the critical path. Every
 deployment job needs validation, the tests and the build, so nothing built is deployed unless
