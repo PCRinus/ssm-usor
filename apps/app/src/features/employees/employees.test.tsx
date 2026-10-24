@@ -1006,7 +1006,9 @@ describe('training sheet fields on employees (ADR 021)', () => {
     );
     await fillRequired(user);
     await user.click(screen.getByTestId('employee-submit'));
-    expect(await screen.findByTestId('workplaceId-error')).toBeTruthy();
+    expect((await screen.findByTestId('workplaceId-error')).textContent).toBe(
+      'Punctul de lucru ales nu mai este activ la acest client. Alege altul.'
+    );
     expect(requests(`/clients/${clientId}/workplaces`).length).toBeGreaterThan(1);
   });
 });
@@ -1527,5 +1529,59 @@ describe('employee editing', () => {
       within(taken).getByRole('link', { name: 'De ce?' }).getAttribute('data-help-topic')
     ).toBe('angajati.duplicat');
     expect(screen.getByTestId('edit-employee-page')).toBeTruthy();
+  });
+
+  it('shows the hire date the API refuses in Romanian, on its field', async () => {
+    mockApi({
+      detail: () => Response.json({ employee: stored }),
+      update: () =>
+        Response.json(
+          {
+            error: 'validation_error',
+            message: 'The hire date cannot follow the leave date.',
+            issues: [{ path: 'hiredAt', message: 'The hire date cannot follow the leave date.' }],
+          },
+          { status: 400 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, editPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('edit-employee-page');
+    await user.click(screen.getByTestId('employee-submit'));
+    expect((await screen.findByTestId('hiredAt-error')).textContent).toBe(
+      'Data angajării nu poate fi după data plecării.'
+    );
+    expect(screen.queryByTestId('employee-form-error')).toBeNull();
+  });
+
+  it('puts a position archived in the meantime on the post field', async () => {
+    mockApi({
+      detail: () => Response.json({ employee: stored }),
+      update: () =>
+        Response.json(
+          {
+            error: 'validation_error',
+            message: 'This job position does not exist under this client.',
+            issues: [
+              {
+                path: 'jobPositionId',
+                message: 'This job position does not exist under this client.',
+              },
+            ],
+          },
+          { status: 400 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, editPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('edit-employee-page');
+    await screen.findByText(/Sudor/);
+    const positionLoads = requests(positionsPath).length;
+    await user.click(screen.getByTestId('employee-submit'));
+    expect((await screen.findByTestId('jobPosition-error')).textContent).toBe(
+      'Postul ales nu mai există la acest client. Alege altul.'
+    );
+    expect(screen.queryByTestId('employee-form-error')).toBeNull();
+    await waitFor(() => expect(requests(positionsPath).length).toBeGreaterThan(positionLoads));
   });
 });

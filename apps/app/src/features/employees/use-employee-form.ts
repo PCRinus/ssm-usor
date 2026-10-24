@@ -18,12 +18,14 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { useAuth } from '@/features/auth/auth-context';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { type IssueTarget, setApiIssues } from '@/lib/api-issues';
 
 import {
   birthDateFromCnp,
   type Employee,
   employeeFormSchema,
   type EmployeeFormValues,
+  employeeMessages,
   emptyEmployeeForm,
   toCreateEmployeeRequest,
   toEmployeeForm,
@@ -34,6 +36,22 @@ const formFields = new Set<keyof EmployeeFormValues>(Object.keys(emptyEmployeeFo
 
 function isFormField(path: string): path is keyof EmployeeFormValues {
   return formFields.has(path as keyof EmployeeFormValues);
+}
+
+const issueTargets: Partial<Record<string, IssueTarget<EmployeeFormValues>>> = {
+  jobPositionId: {
+    field: 'jobPosition',
+    message: 'Postul ales nu mai există la acest client. Alege altul.',
+  },
+  hiredAt: { field: 'hiredAt', message: 'Data angajării nu poate fi după data plecării.' },
+  workplaceId: {
+    field: 'workplaceId',
+    message: 'Punctul de lucru ales nu mai este activ la acest client. Alege altul.',
+  },
+};
+
+function issueTarget(path: string): IssueTarget<EmployeeFormValues> | undefined {
+  return issueTargets[path] ?? (isFormField(path) ? { field: path } : undefined);
 }
 
 // With an employee, the form corrects what was entered about them; without, it adds one.
@@ -119,11 +137,9 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
         if (cause.status === 409) {
           const message = body?.message ?? '';
           if (message.includes('CNP')) {
-            form.setError('cnp', { message: 'Există deja un angajat cu acest CNP la client.' });
+            form.setError('cnp', { message: employeeMessages.cnpTaken });
           } else if (message.includes('number')) {
-            form.setError('employeeNumber', {
-              message: 'Există deja un angajat cu această marcă la client.',
-            });
+            form.setError('employeeNumber', { message: employeeMessages.numberTaken });
           } else {
             form.setError('root.server', {
               message: employee
@@ -137,14 +153,12 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
           if (body.issues.some((issue) => issue.path === 'workplaceId')) {
             await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
           }
-          let mapped = false;
-          for (const issue of body.issues) {
-            if (isFormField(issue.path)) {
-              form.setError(issue.path, { message: issue.message });
-              mapped = true;
-            }
+          if (body.issues.some((issue) => issue.path === 'jobPositionId')) {
+            await queryClient.invalidateQueries({
+              queryKey: getListJobPositionsQueryKey(clientId),
+            });
           }
-          if (mapped) return;
+          if (setApiIssues(form.setError, body.issues, issueTarget)) return;
         }
         if (cause.status === 404) {
           form.setError('root.server', {

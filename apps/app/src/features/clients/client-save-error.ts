@@ -3,6 +3,7 @@ import type { UseFormReturn } from 'react-hook-form';
 
 import type { ApiErrorResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { setApiIssues } from '@/lib/api-issues';
 
 import { type ClientFormValues, type ClientStage, emptyClientForm } from './client-form-schema';
 
@@ -56,15 +57,13 @@ export function reportClientSaveError(
       form.setError('root.server', { message: words.gone });
       return;
     }
-    if (cause.status === 400 && body?.issues?.length) {
-      let mapped = false;
-      for (const issue of body.issues) {
-        if (isShown(issue.path)) {
-          form.setError(issue.path, { message: issue.message });
-          mapped = true;
-        }
-      }
-      if (mapped) return;
+    if (
+      cause.status === 400 &&
+      setApiIssues(form.setError, body?.issues, (path) =>
+        isShown(path) ? { field: path } : undefined
+      )
+    ) {
+      return;
     }
     if (cause.status === 401) {
       form.setError('root.server', {
