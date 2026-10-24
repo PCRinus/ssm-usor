@@ -84,7 +84,7 @@ function RegisterPage() {
     <PublicFrame
       testId="register-page"
       title="Creează cont"
-      description="Pentru servicii externe de prevenire și protecție. După confirmarea adresei de email îți configurezi organizația."
+      description="Pentru servicii externe de prevenire și protecție. După ce îți creezi contul, îți configurezi organizația."
     >
       <GoogleSignIn origin={{ from: '/register' }} />
       <form
