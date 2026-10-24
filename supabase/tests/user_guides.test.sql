@@ -1,5 +1,5 @@
 begin;
-select plan(13);
+select plan(14);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -65,6 +65,13 @@ select throws_ok(
   '42501',
   null,
   'a user cannot record a guide for someone else'
+);
+
+select throws_ok(
+  $$ insert into public.user_guides (user_id, guide, version, status, updated_at) values ('aaaaaaaa-0000-4000-8000-000000000001', 'clients', 1, 'completed', '2020-01-01') $$,
+  '42501',
+  null,
+  'a user cannot set when their guide was recorded'
 );
 
 update public.user_guides set status = 'skipped' where user_id = 'bbbbbbbb-0000-4000-8000-000000000002';
