@@ -133,6 +133,8 @@ Postul spune ce muncă face angajatul, deci ce riscuri are, ce echipament prime�
 
 Alegi postul din posturile clientului. Lângă fiecare vezi categoria de personal și câți angajați îl ocupă. Dacă postul nu e în listă, alege **Adaugă un post nou…**: îl creezi pe loc și formularul îl alege.
 
+Dacă postul ales a fost arhivat între timp, vezi sub câmp „Postul ales nu mai există la acest client. Alege altul.”
+
 Un angajat ocupă un singur post. Cine face muncă mixtă ocupă un post care spune asta, de exemplu „Administrator – vânzător”.
 
 Pentru documentele SSM, programul de instruire al clientului trebuie să aibă un interval pentru fiecare categorie de personal în care are angajați actuali. Un angajat pus pe un post dintr-o categorie fără interval nu schimbă singur programul; aplicația îți cere intervalul când generezi documentele.
@@ -151,7 +153,7 @@ Numărul contractului individual de muncă, opțional, cel mult 50 de caractere.
 
 Ziua din contract. Până se înregistrează o instruire la locul de muncă, de la data angajării se socotește termenul următoarei instruiri.
 
-La un fost angajat, data angajării nu poate fi după data plecării. Dacă te-ai înșelat la data plecării, corecteaz-o întâi: reactivează angajatul și marchează din nou plecarea, cu data bună.
+La un fost angajat, data angajării nu poate fi după data plecării; altfel vezi sub câmp „Data angajării nu poate fi după data plecării.” Dacă te-ai înșelat la data plecării, corecteaz-o întâi: reactivează angajatul și marchează din nou plecarea, cu data bună.
 
 ## Contactul
 
@@ -177,7 +179,7 @@ Unde lucrează angajatul, dintre punctele de lucru ale clientului. La un client 
 
 La un client cu mai multe puncte de lucru active, fișele cer punctul de lucru, pentru că „Locul de muncă” de pe fișă tipărește punctul de lucru împreună cu zona de lucru a postului, de exemplu „Str. Fabricii 3 – Atelier”.
 
-Dacă punctul de lucru lipsește, alege **Adaugă un punct de lucru nou…**: îl adaugi pe loc și formularul îl alege. Un punct de lucru arhivat rămâne la angajații care îl aveau, marcat **Arhivat**, dar nu mai poate fi ales din nou.
+Dacă punctul de lucru lipsește, alege **Adaugă un punct de lucru nou…**: îl adaugi pe loc și formularul îl alege. Un punct de lucru arhivat rămâne la angajații care îl aveau, marcat **Arhivat**, dar nu mai poate fi ales din nou. Dacă punctul ales a fost arhivat între timp, vezi sub câmp „Punctul de lucru ales nu mai este activ la acest client. Alege altul.”
 
 ### Data nașterii
 
