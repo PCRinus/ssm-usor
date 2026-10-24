@@ -1,6 +1,6 @@
 # ADR 028: A help site for members, linked from every field it explains
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-24
 
 ## Context
