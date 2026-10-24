@@ -143,7 +143,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/confirm-email.tsx`                                                                 | `/confirm-email`                                            | Public. Where a signup confirmation email lands; confirms on a button press.                                                                                                                                |
 | `routes/onboarding.tsx`                                                                    | `/onboarding`                                               | Signed in, outside the shell. An account without an organization creates one.                                                                                                                               |
 | `routes/_authenticated.tsx`                                                                | pathless                                                    | Session guard and the app shell for every protected page.                                                                                                                                                   |
-| `routes/_authenticated/dashboard.tsx`                                                      | `/dashboard`                                                | Protected landing page with the account email and logout.                                                                                                                                                   |
+| `routes/_authenticated/dashboard.tsx`                                                      | `/dashboard`                                                | The Dashboard: what to do, the clients' trainings, the portfolio, and the contracts for owners.                                                                                                             |
 | `routes/_authenticated/organization.tsx`                                                   | `/organization`                                             | The organization's name, the caller's role, and the row of sections.                                                                                                                                        |
 | `routes/_authenticated/organization/index.tsx`                                             | `/organization`                                             | Redirects to the team.                                                                                                                                                                                      |
 | `routes/_authenticated/organization/team.tsx`                                              | `/organization/team`                                        | The members for everyone; invitations, the invite dialog and the row menus for owners.                                                                                                                      |
@@ -231,7 +231,7 @@ errors. Login always navigates to `/dashboard`; arbitrary redirect query paramet
 
 `src/app/app-runtime.ts` creates one QueryClient, auth store, and router per app instance. The query
 client is both a React provider and typed router context, available for generated Orval query options
-in route loaders. The dashboard uses the generated `useGetMe` hook with request configuration
+in route loaders. Pages call the generated hooks, such as `useGetMe`, with request configuration
 from the router context. See the [API client guide](api-client.md) for generation and error handling.
 
 ## Authentication behavior
@@ -250,7 +250,7 @@ from the router context. See the [API client guide](api-client.md) for generatio
 
 These browser guards control navigation only. The [Hono API](api.md) independently verifies bearer
 tokens for `/me`. Application permissions belong in API handlers as business routes are added;
-being signed in does not itself make a user an administrator. The dashboard loads the verified account identity through the generated client.
+being signed in does not itself make a user an administrator.
 Business data and application roles will be added in later steps.
 
 ## Accepting an invitation
@@ -407,7 +407,26 @@ keeps the parent highlighted. "Instrucțiuni", "Teste" and "Legislație" have ch
 `instruction-sections.ts`, `test-bank-sections.ts` and `legislation-sections.ts`, the same lists
 their tab bars read.
 
-- `/dashboard`: overview and existing account/API status.
+- `/dashboard`: the first page after sign-in ([ADR 027](architecture/adr-027-dashboard.md)), fed by
+  one request, `GET /dashboard/summary`, in `src/features/dashboard/`. A greeting by the hour in
+  Bucharest with the first word of the profile's name, the number of things to do and of overdue
+  trainings, and the day. **Ce ai de făcut**, the page's one lime panel, holds a tile each for the
+  caller's own signatures (`/signatures`), the drafts to issue (`/clients` least documented
+  first) and the clients missing basic data (red, `/clients`). **Situația clienților** has a row
+  for SSM and one for PSI, each with its overdue count, a strip over the four training states
+  and a link per state to `/employees?trainingState=…&domain=…`; under 640 px of card width the
+  strip goes under the count (a container query). A third row counts the documents behind
+  (`/legislatie/documente`). A bottom row of cards: **Așteptăm de la angajați** (their pending
+  signatures with the age of the oldest, the hiring tests waiting), **Portofoliu** (active
+  clients, employees with the change since the previous month, twelve monthly bars with the
+  month and total in a tooltip) and, for owners only (`contracts` is null for a specialist),
+  **Contracte**. Every item is `DashboardItem`: a 40 px badge, the number and its label on one
+  baseline, a detail line, a chevron when it links. The zero rules: a tile or row at zero is not
+  rendered, a card left with no rows is not rendered, the SSM and PSI rows and the portfolio
+  always stay, and with its three tiles at zero the panel shows one dashed tile "Totul e la zi"
+  with the next training due, if any. The bottom row is an auto-fit grid, so what remains shares
+  the row; the portfolio alone is capped at 560 px. Nothing grows with the number of clients.
+  Its colours are the `--dashboard-*` tokens in `src/styles.css`.
 - `/clients`: the organization's active clients from `GET /clients` on the shared data table,
   built to show which still need work. "Companie" has the registered office (locality, county)
   under the name; then "CUI", "Angajați" (current employees), "Documentație SSM" and
@@ -1185,8 +1204,8 @@ their tab bars read.
   name in generated documents; emptying it sends `null`. Saving refreshes `/me`, so the
   account menu follows.
 
-`src/features/account/use-me.ts` is the one `/me` query the shell, the dashboard, and these pages
-share. The account menu shows the user's name and organization once it has loaded, and falls
+`src/features/account/use-me.ts` is the one `/me` query the shell, the dashboard's greeting, and
+these pages share. The account menu shows the user's name and organization once it has loaded, and falls
 back to "Contul meu" and the email.
 
 Actions that leave the user on the same page (invitation sent, resent, revoked, profile
