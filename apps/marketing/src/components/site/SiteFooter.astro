@@ -11,7 +11,7 @@ const shortCommitSha = commitSha.slice(0, 7);
 
 <footer class="foot">
   <div class="wrap">
-    <Image src={logo} alt="SSM Ușor" height={26} densities={[1, 2, 3]} />
+    <Image src={logo} alt="SSM Ușor" height={40} densities={[1, 2, 3]} />
     <nav aria-label="Legal">
       {footer.legal.map((item) => (
         <a href={item.href}>{item.label}</a>
@@ -52,7 +52,7 @@ const shortCommitSha = commitSha.slice(0, 7);
   .wrap > :global(img) {
     display: block;
     width: auto;
-    height: 26px;
+    height: 40px;
   }
   nav {
     display: flex;

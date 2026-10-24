@@ -15,7 +15,7 @@ const { home = '/' } = Astro.props;
 <header class="top">
   <div class="wrap bar">
     <a class="brand" href={home} aria-label="SSM Ușor, pagina principală">
-      <Image src={logo} alt="SSM Ușor" height={30} densities={[1, 2, 3]} loading="eager" />
+      <Image src={logo} alt="SSM Ușor" height={50} densities={[1, 2, 3]} loading="eager" />
     </a>
     <nav aria-label="Secțiuni">
       {nav.map((item) => (
@@ -52,12 +52,12 @@ const { home = '/' } = Astro.props;
     display: flex;
     align-items: center;
     gap: 32px;
-    height: 68px;
+    height: 76px;
   }
   .brand :global(img) {
     display: block;
     width: auto;
-    height: 30px;
+    height: 50px;
   }
   nav {
     display: flex;
@@ -85,10 +85,10 @@ const { home = '/' } = Astro.props;
     }
     .bar {
       gap: 12px;
-      height: 60px;
+      height: 66px;
     }
     .brand :global(img) {
-      height: 26px;
+      height: 44px;
     }
   }
 </style>
