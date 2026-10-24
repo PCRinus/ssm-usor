@@ -12,6 +12,11 @@ test('sign in, load API identity, restore the session, and sign out', async ({ p
   if (!email || !password)
     throw new Error('Set E2E_EMAIL and E2E_PASSWORD for the authenticated project');
 
+  // The welcome tour covers the dashboard until the account has seen it, once per environment.
+  await page.addLocatorHandler(page.getByTestId('guide-tooltip'), async (tooltip) => {
+    await tooltip.getByTestId('guide-skip').click();
+  });
+
   const meUrl = new URL('/me', process.env.E2E_API_URL ?? 'http://localhost:8787').href;
   // The greeting waits on the dashboard's own request, so it shows only once the API accepted the token.
   const greeting = page.getByTestId('dashboard-greeting');

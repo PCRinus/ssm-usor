@@ -188,6 +188,7 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
       <section
         aria-labelledby="dashboard-todo"
         data-testid="dashboard-todo"
+        data-tour="dashboard-todo"
         className="rounded-[20px] border border-dashboard-panel-border bg-dashboard-panel p-3.5 sm:p-4"
       >
         <div className="flex items-baseline justify-between gap-3 px-0.5 pb-2.5 sm:px-1 sm:pb-3">
