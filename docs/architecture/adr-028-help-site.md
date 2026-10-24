@@ -103,7 +103,7 @@ No hint is removed before its topic exists.
 
 ### Keeping the articles current
 
-An article's front matter also lists its sources: the ADRs and the paths in the code whose behaviour it describes.
+An article's front matter also lists its sources: the ADRs and the paths in the code whose behaviour it describes. Like `topics`, the list is for the tooling and is never rendered: the site's content schema declares both fields, and no page or search index shows them. They sit in the article, not in a separate map, so whoever edits the article sees what it depends on.
 
 ```yaml
 sources:
