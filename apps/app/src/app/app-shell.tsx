@@ -344,19 +344,19 @@ function AppNavigation({
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild data-testid="account-profile">
-                  <Link to="/profile">
+                  <Link to="/profile" onClick={closeOnMobile}>
                     <UserRound aria-hidden="true" />
                     Profilul meu
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild data-testid="account-settings">
-                  <Link to="/setari">
+                  <Link to="/setari" onClick={closeOnMobile}>
                     <Settings aria-hidden="true" />
                     Setări
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild data-testid="account-organization-link">
-                  <Link to="/organization">
+                  <Link to="/organization" onClick={closeOnMobile}>
                     <Building2 aria-hidden="true" />
                     Organizație
                   </Link>
