@@ -1633,6 +1633,39 @@ throws, so the Legislație page can warn when the latest run failed or is too ol
 A run that read some pages and not others is `failed`; the acts it did read are saved all the
 same.
 
+## Dashboard
+
+The dashboard's numbers ([ADR 027](architecture/adr-027-dashboard.md)) are read from two views
+and a function, all security invoker, so a count over a table the caller may not read, the
+service contracts and their copies for a specialist, is zero. The employees they count are
+those the employees list shows: not archived, `active`, of an active client (stage `client`,
+not archived).
+
+`dashboard_summary` has one row per organization the caller can read: `ssm_overdue`,
+`ssm_due`, `ssm_untrained`, `ssm_current` and the same four for `psi`, from
+`employee_training_status`; `employees`; `next_due_on`, the nearest due date of an employee
+current or due in either domain, and `next_due_count`, how many employees it concerns;
+`tests_pending`, employees with a hiring test waiting in either domain; `drafts_to_issue`,
+documents of the two sets whose newest revision is a draft, of the newest period for a dated
+type; `documents_behind`, the rows of that view; `clients_missing_data`, the rows of
+`clients_missing_basic_data`; `employee_signatures_pending` and
+`employee_signatures_oldest_issued_at`, pending trainee slots; `active_clients`;
+`contracts_received_to_confirm`, copies received through the return link and not confirmed on
+an issued service contract; and `contracts_ending_within_60_days`, contracts that do not renew
+by themselves and end, start plus duration less a day, between today and 60 days on, in
+Bucharest.
+
+`clients_missing_basic_data` lists the active clients failing a rule of the readiness check
+that reads their own rows, with `missing`, the codes of `missingDocumentData` in its order:
+the legal representative's name and role, the six responsible roles of the two sets, at least
+one current job position, and the answers of every current position about equipment,
+instruction modules and fire-safety modules.
+
+`dashboard_employees_at_month_ends(organization)` returns twelve rows, `month` (its first day)
+and `employees`, oldest first: the employees of the organization's active clients, archived
+ones left out, hired by the month's last day and not left by it, the current month counted up
+to today.
+
 ## Working with the schema
 
 ```bash
