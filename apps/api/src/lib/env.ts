@@ -61,6 +61,7 @@ export type ApiEnv = {
   };
   Variables: {
     user: CurrentUser;
+    emailConfirmed: boolean;
     accessToken: string;
     membership: Membership;
     participations: Participation[];

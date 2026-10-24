@@ -2,16 +2,18 @@ import { createRoute } from '@hono/zod-openapi';
 import { companyLookupQuerySchema, companyLookupResponseSchema } from '@ssm-usor/contracts';
 
 import { requireAuth } from '../../lib/auth';
-import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import { requireConfirmedEmailOrMembership } from '../../lib/membership';
+import { authErrors, bearerSecurity, errorContent } from '../../lib/openapi';
 
 export const lookupCompanyRoute = createRoute({
   method: 'get',
   path: '/companies/lookup',
   operationId: 'lookupCompany',
   summary: 'Look up public company data by CUI (ANAF)',
+  description:
+    'For members, and for an account with a confirmed email and no membership yet, whose onboarding looks up its own firm.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, requireConfirmedEmailOrMembership] as const,
   request: { query: companyLookupQuerySchema.meta({ id: 'CompanyLookupQuery' }) },
   responses: {
     200: {
@@ -24,6 +26,10 @@ export const lookupCompanyRoute = createRoute({
     },
     400: { description: 'Invalid CUI', content: errorContent },
     404: { description: 'No company registered with this CUI', content: errorContent },
-    ...membershipErrors,
+    403: {
+      description: 'The email is not confirmed and the account is not a member of an organization',
+      content: errorContent,
+    },
+    ...authErrors,
   },
 });

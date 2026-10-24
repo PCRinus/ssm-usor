@@ -141,7 +141,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /contract-returns/upload`                                        | Public, by emailed token              | The same as lookup, `received`, after keeping the uploaded PDF as the received copy                                                                                                                |
 | `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                                                                                                                      |
 | `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                                                                                                        |
-| `GET /companies/lookup`                                                | Verified user with a membership       | `{ "company": { … } }` from ANAF, by `?cui=`                                                                                                                                                       |
+| `GET /companies/lookup`                                                | Member, or confirmed email            | `{ "company": { … } }` from ANAF, by `?cui=`                                                                                                                                                       |
 | `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=&trainingState=&testState=&q=`                                                                            |
 | `GET /employees`                                                       | Verified user with a membership       | The organization's employees across its active clients, each with `client`; `?clientId=&status=&trainingState=&testState=&q=`                                                                      |
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                                                                                                                        |
@@ -216,7 +216,10 @@ helper `current_membership()` and answers `403 forbidden` when the user has no m
 county list, CAEN format), stores the CUI as digits, and treats an `RO` prefix as VAT
 registration. `GET /companies/lookup` proxies ANAF's public VAT registry (no CORS, roughly one
 request per second) and maps the record onto the client form fields; the form must work without
-it. `PUT /clients/{clientId}` takes the same body without `legalRepresentativeName`, which the
+it. Onboarding looks up the new organization's own CUI, so the route also serves an account with
+a confirmed email and no membership, the same accounts `POST /organization` accepts
+(`requireConfirmedEmailOrMembership`). It neither throttles nor caches: anyone can sign up and
+create an organization, so it was as open before. `PUT /clients/{clientId}` takes the same body without `legalRepresentativeName`, which the
 document details own, and answers `409` for a CUI another client has and for an archived client.
 A `409` of these routes carries a `reason`: `cui_taken`, `cui_taken_by_archived` (the holder is
 archived, so the caller cannot see it in the list they came from), `cui_taken_by_lead` (the
