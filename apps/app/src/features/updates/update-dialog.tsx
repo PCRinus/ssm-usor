@@ -190,7 +190,7 @@ export function UpdateDialog() {
             className="min-h-8 flex-1 border-l-[1.5px] border-dashed border-release-ring"
           />
           <ReleaseTag tag={release.tag} size="dialog" label />
-          <div className="grid gap-0.5 pt-[22px] text-center">
+          <div className="grid gap-0.5 pt-12 text-center">
             <span className="text-sm font-semibold">Versiune nouă</span>
             <span className="text-[13px] text-release-sand-muted">publicată pe {published}</span>
           </div>
