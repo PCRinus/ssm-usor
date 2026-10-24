@@ -92,7 +92,7 @@ Intervalul vine din locuri diferite în cele două domenii:
 - **SSM**: intervalul propriu al postului, dacă postul are unul; altfel, intervalul din programul de instruire al clientului pentru categoria de personal a postului. Sub interval scrie „din postul …” sau „din programul de instruire al clientului”, cu link spre locul unde îl schimbi.
 - **PSI**: întotdeauna intervalul din datele de instruire PSI ale clientului, pentru categoria de personal a postului. Un post nu își poate avea propriul interval PSI.
 
-În SSM, intervalul e de cel mult 6 luni pentru personalul de execuție și de cel mult 12 luni pentru personalul tehnico-administrativ (HG 1425/2006, art. 96).
+În SSM, intervalul se stabilește prin programul de instruire-testare și nu poate depăși 6 luni; pentru personalul tehnico-administrativ, cel mult 12 luni (HG 1425/2006, art. 96 alin. (2), (2¹) și (3)).
 
 **Nestabilit** înseamnă că programul clientului nu are încă un interval pentru categoria angajatului, sau că specialistul a ales „Nu se aplică” pentru ea. **Stabilește intervalul** te duce în programul de instruire al clientului.
 
@@ -140,9 +140,9 @@ Cardul **Testare** arată starea testării, ce urmează, rezultatele și încerc
 
 Un test nu se trimite. Îl așteaptă pe angajat de la sine, din momentul în care e îndeplinită condiția:
 
-- **Testul la angajare SSM** (TASSM), după ce înregistrezi instruirea introductiv-generală, pe care o încheie (HG 1425/2006, art. 89).
-- **Testul la angajare PSI** (TASU), după ce înregistrezi instruirea la locul de muncă; un singur test încheie ambele instruiri la angajare (OMAI 712/2005, art. 14 și 20).
-- **Testul anual PSI** (TPSU), la 12 luni de la ultimul test PSI promovat, până îl promovează (OMAI 712/2005, art. 30).
+- **Testul la angajare SSM** (TASSM), după ce înregistrezi instruirea introductiv-generală, pe care o încheie (HG 1425/2006, art. 89 alin. (1)).
+- **Testul la angajare PSI** (TASU), după ce înregistrezi instruirea la locul de muncă. OMAI 712/2005 cere câte o verificare pe bază de teste: la sfârșitul instructajului introductiv-general (art. 14) și înainte de admiterea definitivă la lucru, după instructajul la locul de muncă (art. 20). Aplicația le acoperă deocamdată cu un singur test, după instruirea la locul de muncă.
+- **Testul anual PSI** (TPSU). OMAI 712/2005 cere o verificare anuală pe bază de test, consemnată în fișa individuală (art. 30); aplicația o cere la 12 luni de la ultimul test PSI promovat, până angajatul îl promovează.
 
 În SSM nu există test periodic.
 
@@ -177,7 +177,7 @@ Pe fișa individuală SSM, rezultatele apar în blocul „Rezultatele testărilo
 
 ## Fișa individuală de instruire
 
-Fiecare angajat are două fișe: fișa individuală de instruire SSM, după modelul din anexa 11 la HG 1425/2006, și fișa individuală de instructaj PSI, după modelul din anexa la OMAI 712/2005.
+Fiecare angajat are două fișe: fișa de instruire individuală SSM, după modelul din anexa nr. 11 la normele metodologice aprobate prin HG 1425/2006, și fișa individuală de instructaj în domeniul situațiilor de urgență, după modelul din anexa la dispozițiile generale aprobate prin OMAI 712/2005 (art. 46).
 
 O fișă nu e un document din setul clientului. Se întocmește în momentul în care o descarci sau o previzualizezi, din datele angajatului și din instruirile lui de atunci, ca PDF. Nu are versiuni și nu se editează. Tipărește:
 

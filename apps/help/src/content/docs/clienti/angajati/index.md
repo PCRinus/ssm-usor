@@ -155,8 +155,8 @@ Doar în PSI: au trecut 12 luni de la ultimul test promovat, iar testul anual î
 
 Aplicația numără angajații actuali ai clientului; foștii angajați nu intră în număr. După acest număr se decide ce documente îi trebuie clientului:
 
-- de la 10 angajați, setul SSM cere decizia privind reprezentanții lucrătorilor: cel puțin unul de la 10 angajați și doi de la 50 (HG 1425/2006, art. 53 alin. (1));
-- de la 10 angajați, setul PSI cuprinde și documentele pe care OMAI 163/2007 le cere doar operatorilor cu cel puțin numărul de salariați al unei întreprinderi mici (art. 20 alin. (1)), prag pe care aplicația îl socotește la 10 angajați.
+- de la 10 angajați, setul SSM cere decizia privind reprezentanții lucrătorilor: unul între 10 și 49 de lucrători, doi între 50 și 100, iar peste 100 numărul din art. 60 alin. (3) (HG 1425/2006, art. 53 alin. (2));
+- de la 10 angajați, setul PSI cuprinde și documentele pe care OMAI 163/2007 le cere doar operatorilor cu cel puțin numărul de salariați al unei întreprinderi mici (art. 20 alin. (1)), adică cel puțin 10 salariați; legea se uită la numărul mediu anual de salariați, iar aplicația numără angajații actuali.
 
 Un document generat când clientul avea 10 angajați rămâne în set și dacă numărul scade sub 10. Ține deci lista la zi: un angajat care a plecat și nu e marcat ca atare schimbă ce documente îi cere aplicația clientului.
 

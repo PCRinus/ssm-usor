@@ -43,7 +43,7 @@ Pe tabul **Date** al unui angajat, două carduri țin de semnarea electronică: 
 
 În portal, angajatul își vede instruirile, fișele individuale și datele pe care le tipăresc fișele, își semnează rubricile din instruiri și susține testele. Nu vede CNP-ul și nici observațiile tale. Intră cu un cod primit pe email sau prin SMS, fără parolă.
 
-Prin portal, angajatul își exercită și dreptul de acces la datele pe care angajatorul le ține despre el (GDPR, art. 15).
+Portalul îi dă angajatului acces direct la o parte din datele pe care angajatorul le ține despre el. Dreptul de acces din GDPR (art. 15) rămâne neschimbat: angajatul îl exercită printr-o cerere către angajator.
 
 Cardul arată dacă angajatul are acces, cu ce adresă și din ce zi, și în ce limbă folosește portalul. Tot aici poate apărea avertismentul **Act adițional nesemnat**, despre care vezi mai jos.
 
@@ -72,9 +72,9 @@ Un angajat care pleacă de la client își păstrează accesul: evidența lui r�
 
 ## Actul adițional privind semnarea electronică
 
-Actul adițional la contractul individual de muncă e acordul angajatului de a semna electronic fișele de instruire. HG 1425/2006, art. 81, cere ca procedura semnării electronice a fișei să fie cuprinsă în contractul individual de muncă (alin. (3²)). Angajatorul nu-l poate obliga pe angajat să semneze electronic (Codul muncii, art. 16 alin. (1⁶)), așa că fiecare angajat își dă acordul separat.
+Actul adițional la contractul individual de muncă e acordul angajatului de a semna electronic fișele de instruire. HG 1425/2006, art. 81, cere ca procedura semnării electronice a fișei să fie cuprinsă în contractul individual de muncă (alin. (3²)). Actul adițional modifică contractul, care se modifică doar prin acordul părților (Codul muncii, art. 41 alin. (1)), iar angajatorul nu-l poate obliga pe angajat să-l semneze electronic (art. 16 alin. (1⁶)). De aceea fiecare angajat își dă acordul separat.
 
-Angajatul semnează actul în portal, unde îl găsește de la prima autentificare, înaintea oricărei instruiri. Apoi administratorul clientului îl contrasemnează în portal pentru angajator, pentru că ambele părți semnează același act în același fel (Codul muncii, art. 16 alin. (1⁷)).
+Angajatul semnează actul în portal, unde îl găsește de la prima autentificare, înaintea oricărei instruiri. Apoi administratorul clientului îl contrasemnează în portal pentru angajator, pentru că la modificarea contractului părțile folosesc același tip de semnătură: dacă angajatul semnează electronic, semnează electronic și angajatorul (Codul muncii, art. 16 alin. (1⁷)).
 
 Fără actul adițional semnat, angajatul poate semna în continuare instruirile. Lipsa apare ca avertisment, **Act adițional nesemnat**, pe pagina lui și în portal, dar nu blochează nimic.
 

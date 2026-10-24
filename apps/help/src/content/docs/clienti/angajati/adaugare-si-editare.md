@@ -212,7 +212,7 @@ Autorizațiile cerute de munca lui, de exemplu ISCIR sau electrician autorizat A
 
 Drumul obișnuit de acasă la locul de muncă și înapoi, cu mijlocul de transport, de exemplu „Str. Florilor 5 – Str. Fabricii 3, cu autobuzul 12”. Cel mult 1000 de caractere.
 
-Fișa SSM îl cere: fără traseu, nu se poate întocmi. Contează pentru că un accident petrecut pe traseul normal și în durata normală a deplasării e accident de muncă (Legea 319/2006, art. 30 alin. (1) lit. g)), iar traseul declarat e cel cu care se compară o cercetare.
+Fișa SSM îl cere: fără traseu, nu se poate întocmi. Contează pentru că un accident petrecut în timpul și pe traseul normal de la domiciliu la locul de muncă și înapoi, fără abateri nejustificate, e accident de muncă (Legea 319/2006, art. 30 alin. (1) lit. g) și alin. (2)), iar traseul declarat e cel cu care se compară o cercetare.
 
 Nu e obligatoriu în formular, pentru că rar îl știi când introduci un angajat nou. Completează-l înainte de prima instruire: angajatul semnează fișa pe pagina care tipărește traseul.
 
