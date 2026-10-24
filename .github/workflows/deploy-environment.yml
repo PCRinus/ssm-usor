@@ -218,6 +218,7 @@ jobs:
       GIT_COMMIT_SHA: ${{ inputs.sha }}
       RELEASE_TAG: ${{ inputs.release }}
       VITE_API_URL: ${{ vars.API_URL }}
+      VITE_HELP_URL: ${{ vars.HELP_URL }}
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
       VITE_POSTHOG_PROJECT_TOKEN: ${{ vars.VITE_POSTHOG_PROJECT_TOKEN }}
@@ -236,7 +237,8 @@ jobs:
           ref: ${{ inputs.sha }}
 
       # The marketing site falls back to production's addresses when one is empty, which in
-      # non-prod would send its visitors to production without a word.
+      # non-prod would send its visitors to production without a word, and the SPA built
+      # without the help address would drop its help links.
       - name: Check environment addresses
         env:
           APP_URL: ${{ vars.APP_URL }}
@@ -244,7 +246,7 @@ jobs:
           MARKETING_URL: ${{ vars.MARKETING_URL }}
         shell: bash
         run: |
-          for name in VITE_API_URL APP_URL PORTAL_URL MARKETING_URL; do
+          for name in VITE_API_URL APP_URL PORTAL_URL MARKETING_URL VITE_HELP_URL; do
             if [[ "${!name}" != https://* ]]; then
               echo "::error::Set ${name/VITE_/} to an https:// address in this environment's GitHub variables."
               exit 1
@@ -1238,6 +1240,7 @@ jobs:
     timeout-minutes: 15
     environment:
       name: ${{ inputs.environment }}
+      url: ${{ vars.HELP_URL }}
     steps:
       - uses: actions/checkout@v7
         with:

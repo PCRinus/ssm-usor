@@ -41,7 +41,7 @@ available as a required PR check, including on documentation-only changes.
 | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | `apps/marketing/**`                                                                                                                       | Marketing                                            |
 | `apps/help/**`                                                                                                                            | Help site                                            |
-| `apps/app/**`                                                                                                                             | SPA                                                  |
+| `apps/app/**`, `packages/help-topics/**`                                                                                                  | SPA                                                  |
 | `apps/portal/**`                                                                                                                          | Portal                                               |
 | `packages/api-http/**`                                                                                                                    | SPA and portal                                       |
 | `apps/api/**` (except the shared contract below)                                                                                          | API                                                  |
@@ -100,11 +100,11 @@ deployment job whose `if:` starts with `!cancelled()` checks each of them by nam
 would otherwise run after a failure. It builds with the environment's public
 configuration, because the SPA, the portal and the marketing site carry it in their bundles: a
 release builds again and never reuses non-prod's artifacts. The addresses come from the
-environment's `API_URL`, `APP_URL`, `PORTAL_URL` and `MARKETING_URL` variables, and the build
-fails when one is not an `https://` address, since the marketing site would otherwise fall back
-to production's. The `VITE_*` and `PUBLIC_*` values and the commit SHA embedded in the frontend
-footers are part of their Turbo build hashes, so one environment's cached build never serves
-the other. Turbo builds workspace dependencies before the selected application; the
+environment's `API_URL`, `APP_URL`, `PORTAL_URL`, `MARKETING_URL` and `HELP_URL` variables, and
+the build fails when one is not an `https://` address, since the marketing site would otherwise
+fall back to production's and the SPA would lose its help links. The `VITE_*` and `PUBLIC_*`
+values and the commit SHA embedded in the frontend footers are part of their Turbo build hashes,
+so one environment's cached build never serves the other. Turbo builds workspace dependencies before the selected application; the
 dry-run task depends on that build.
 
 Each build uploads a `release-<application>-<environment>-<commit>` artifact, retained for seven

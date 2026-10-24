@@ -19,6 +19,7 @@ api:
 app:
   - *shared
   - 'apps/app/**'
+  - 'packages/help-topics/**'
   - &ui
     - 'packages/ui/**'
     - 'packages/design-tokens/**'
