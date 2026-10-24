@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
+import { slug } from 'github-slugger';
 
 const docs = fileURLToPath(new URL('./src/content/docs/', import.meta.url));
 const article = /\.mdx?$/;
@@ -23,8 +24,14 @@ function hasArticles(directory) {
   );
 }
 
+// Starlight slugs each path segment of an article's id with github-slugger.
 function slugOf(path) {
-  return path.replace(article, '').replace(/(^|\/)index$/, '');
+  return path
+    .replace(article, '')
+    .replace(/(^|\/)index$/, '')
+    .split('/')
+    .map((segment) => slug(segment))
+    .join('/');
 }
 
 // Starlight autogenerates a group from a directory whether or not it holds articles, and labels
