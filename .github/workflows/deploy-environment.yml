@@ -2,9 +2,8 @@ name: Deploy an environment
 
 # Everything that deploys one environment (ADR 025): deploy-non-prod.yml calls it for non-prod on
 # every push to main, deploy-production.yml for production when it is run by hand. One workflow
-# for both, so what non-prod tries is what production runs. GitHub bills every job rounded up to
-# a whole minute, which is why the builds share one job and why nothing runs that has nothing to
-# do.
+# for both, so what non-prod tries is what production runs. Each job pays its own checkout and
+# install, which is why the builds share one job and why nothing runs that has nothing to do.
 on:
   workflow_call:
     inputs:
@@ -146,7 +145,7 @@ jobs:
     name: Validate repository
     needs: changes
     # Only when there is something to deploy: a push of documentation alone was validated by
-    # its pull request and would pay six minutes here to deploy nothing.
+    # its pull request and would spend six minutes here to deploy nothing.
     if: >-
       needs.changes.outputs.projects != '[]' ||
       needs.changes.outputs.database == 'true' ||
@@ -172,11 +171,39 @@ jobs:
         with:
           database: ${{ needs.changes.outputs.database == 'true' || needs.changes.outputs.api == 'true' }}
 
+  test:
+    name: Run tests
+    # Beside validation rather than inside it, as in the pull request: the tests alone take
+    # about as long as every other check together.
+    needs: changes
+    if: >-
+      needs.changes.outputs.projects != '[]' ||
+      needs.changes.outputs.database == 'true' ||
+      needs.changes.outputs.templates == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: deploy-test-${{ inputs.environment }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha }}
+
+      - uses: ./.github/actions/setup
+        with:
+          turbo-cache: 'true'
+          cache-scope: test
+
+      - name: Test
+        run: pnpm test
+
   build:
     name: Build applications
     # Alongside validation, to keep it off the critical path. Nothing built here is deployed
-    # unless validation succeeds too: every deployment job needs both. One job for all of them:
-    # a job per application billed a minute or two each for a build of under a minute.
+    # unless validation and the tests succeed too: every deployment job needs all three. One job
+    # for all of them: a job per application repeated the checkout and install for a build of
+    # under a minute.
     needs: changes
     if: needs.changes.outputs.projects != '[]'
     runs-on: ubuntu-latest
@@ -354,7 +381,7 @@ jobs:
 
   deploy-database:
     name: Deploy database migrations
-    needs: [changes, validate]
+    needs: [changes, validate, test]
     if: needs.changes.outputs.database == 'true'
     runs-on: ubuntu-latest
     # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
@@ -407,16 +434,17 @@ jobs:
 
   deploy-templates:
     name: Register document templates
-    needs: [changes, validate, deploy-database]
+    needs: [changes, validate, test, deploy-database]
     # When a template, the script or a migration changed since the last deployment. It used to
     # run on every push, as a way around a comparison that lost what superseded runs carried;
-    # the comparison no longer does, and a job that does nothing still bills a minute.
+    # the comparison no longer does, and a job that does nothing still pays for its setup.
     # After the migrations: the registry and the bucket come from one. A skipped migration job
     # is fine only when the database was not selected.
     if: >-
       !cancelled() &&
       needs.changes.outputs.templates == 'true' &&
       needs.validate.result == 'success' &&
+      needs.test.result == 'success' &&
       (needs.deploy-database.result == 'success' ||
         (needs.deploy-database.result == 'skipped' && needs.changes.outputs.database != 'true'))
     runs-on: ubuntu-latest
@@ -453,7 +481,7 @@ jobs:
 
   deploy-pdf:
     name: Deploy PDF Worker
-    needs: [changes, validate, build]
+    needs: [changes, validate, test, build]
     if: needs.changes.outputs.pdf == 'true'
     runs-on: ubuntu-latest
     # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
@@ -497,7 +525,7 @@ jobs:
 
   deploy-mail:
     name: Deploy mail Worker
-    needs: [changes, validate, build]
+    needs: [changes, validate, test, build]
     if: needs.changes.outputs.mail == 'true'
     runs-on: ubuntu-latest
     # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
@@ -545,7 +573,7 @@ jobs:
 
   deploy-sms:
     name: Deploy SMS Worker
-    needs: [changes, validate, build]
+    needs: [changes, validate, test, build]
     if: needs.changes.outputs.sms == 'true'
     runs-on: ubuntu-latest
     # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
@@ -601,13 +629,14 @@ jobs:
 
   deploy-legislation:
     name: Deploy legislation Worker
-    needs: [changes, validate, build, deploy-database]
+    needs: [changes, validate, test, build, deploy-database]
     # After the migrations: the check records every run in a table one of them creates. A
     # skipped migration job is fine only when the database was not selected.
     if: >-
       !cancelled() &&
       needs.changes.outputs.legislation == 'true' &&
       needs.validate.result == 'success' &&
+      needs.test.result == 'success' &&
       needs.build.result == 'success' &&
       (needs.deploy-database.result == 'success' ||
         (needs.deploy-database.result == 'skipped' && needs.changes.outputs.database != 'true'))
@@ -678,13 +707,14 @@ jobs:
 
   deploy-api:
     name: Deploy API
-    needs: [changes, validate, build, deploy-database, deploy-mail, deploy-sms, deploy-pdf]
+    needs: [changes, validate, test, build, deploy-database, deploy-mail, deploy-sms, deploy-pdf]
     # Migrations and the mail and SMS Workers land before code that depends on them: the API's
     # service bindings cannot deploy against a Worker that does not exist. Skipped jobs are fine.
     if: >-
       !cancelled() &&
       needs.changes.outputs.api == 'true' &&
       needs.validate.result == 'success' &&
+      needs.test.result == 'success' &&
       needs.build.result == 'success' &&
       (needs.deploy-database.result == 'success' || needs.deploy-database.result == 'skipped') &&
       (needs.deploy-mail.result == 'success' || needs.deploy-mail.result == 'skipped') &&
@@ -809,7 +839,7 @@ jobs:
 
   deploy-auth-config:
     name: Deploy Supabase configuration
-    needs: [changes, validate, deploy-api]
+    needs: [changes, validate, test, deploy-api]
     # After the API: the Send Email and Send SMS hooks must not point at an endpoint that is not
     # deployed yet.
     # A skipped API deployment is fine only when the API was not selected; when it was selected
@@ -818,6 +848,7 @@ jobs:
       !cancelled() &&
       needs.changes.outputs.database == 'true' &&
       needs.validate.result == 'success' &&
+      needs.test.result == 'success' &&
       (needs.deploy-api.result == 'success' ||
         (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true'))
     runs-on: ubuntu-latest
@@ -885,12 +916,13 @@ jobs:
 
   deploy-app:
     name: Deploy SPA
-    needs: [changes, validate, build, deploy-api]
+    needs: [changes, validate, test, build, deploy-api]
     # Explicitly allow a skipped API job on SPA-only releases, but never a failed one.
     if: >-
       !cancelled() &&
       needs.changes.outputs.app == 'true' &&
       needs.validate.result == 'success' &&
+      needs.test.result == 'success' &&
       needs.build.result == 'success' &&
       (needs.deploy-api.result == 'success' ||
         (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true'))
@@ -1011,13 +1043,14 @@ jobs:
 
   deploy-portal:
     name: Deploy portal
-    needs: [changes, validate, build, deploy-api]
+    needs: [changes, validate, test, build, deploy-api]
     # Like the SPA, after the API it calls, and a skipped API job only on releases without it.
     # It does not wait for the SPA: the two share nothing at runtime.
     if: >-
       !cancelled() &&
       needs.changes.outputs.portal == 'true' &&
       needs.validate.result == 'success' &&
+      needs.test.result == 'success' &&
       needs.build.result == 'success' &&
       (needs.deploy-api.result == 'success' ||
         (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true'))
@@ -1132,7 +1165,7 @@ jobs:
 
   deploy-marketing:
     name: Deploy marketing site
-    needs: [changes, validate, build]
+    needs: [changes, validate, test, build]
     if: needs.changes.outputs.marketing == 'true'
     runs-on: ubuntu-latest
     # Never beside a deployment of the same thing, and never cancelled halfway: a newer run

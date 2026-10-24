@@ -11,12 +11,14 @@ production**) deploys production when started by hand from `main` (see [Releases
 and the deployment both run live once, in the composite action `.github/actions/validate`, so
 they cannot drift apart.
 
-**Minutes decide the shape.** GitHub bills every job rounded up to a whole minute, against a
-monthly allowance, so a six-second job costs a minute and five one-minute builds cost up to
-ten. Hence: few jobs, the slow starts inside a job overlapped instead of queued, nothing run
-that has nothing to do, and no run that a newer run makes pointless. A composite action
-shares steps inside one job. The reusable workflow adds no job of its own: its jobs are the
-calling run's; only production pays one more, the job that chooses the release.
+**Wall time and setup decide the shape.** The repository is public, so GitHub-hosted runners
+cost nothing; what a job costs is time. Every job pays its own checkout and install, about half
+a minute, before it does anything, so work that is short beside that setup shares a job, while
+work long enough to hold up the run gets a job of its own beside the others. Hence: few jobs,
+the slow starts inside a job overlapped instead of queued, the tests beside validation instead
+of after it, nothing run that has nothing to do, and no run that a newer run makes pointless. A
+composite action shares steps inside one job. The reusable workflow adds no job of its own: its
+jobs are the calling run's; only production adds one, the job that chooses the release.
 A separate manual **Seed database** workflow seeds an environment's project on demand; see the
 [application deployment guide](app-deployment.md#seed-the-hosted-project).
 The daily legislation check is not a workflow: it is the cron trigger of the
@@ -62,8 +64,11 @@ inputs when introducing them. Generated API files must still be committed and pa
 
 ## Validation, builds, and artifacts
 
-Generated-code checks, lint, type checks, and unit/integration tests run repository-wide once
-per revision, in one job. When the database or API is selected, validation also starts a local
+Generated-code checks, lint and type checks run repository-wide once per revision, in one job,
+**Validate repository**. The unit and integration tests (`pnpm test`) run once per revision in
+a job of their own, **Run tests**, beside it: they take about as long as every other check
+together, so after them they would double the job. Both jobs restore and save Turbo's cache, in
+scopes of their own. When the database or API is selected, validation also starts a local
 Supabase database in Docker, applies every migration from scratch, runs the pgTAP policy tests,
 and fails if `apps/api/src/database.types.ts` no longer matches the schema. The stack starts
 in the background at the top of the job and is collected before the database tests, so its
@@ -73,13 +78,16 @@ environment or publishing, once for each environment in `wrangler.jsonc` (produc
 top level, then `non-prod`), so a mistake in either fails before the merge.
 
 A pull request that touches no code (the `code` filter: applications, packages, Supabase,
-root configuration, workflow files) only has its formatting and lint checked. In practice
-that is documentation. In a deployment, validation runs only when something is selected to deploy.
+root configuration, workflow files) only has its formatting and lint checked, and skips the
+tests. In practice that is documentation. In a deployment, validation and the tests run only
+when something is selected to deploy.
 
 In a deployment, one build job runs alongside validation and builds every selected
-application with a single Turbo invocation, which keeps the builds off the critical path. Every deployment job needs both,
-so nothing built is deployed unless validation also succeeds; a build for a commit that
-fails validation is wasted work, not a risk. It builds with the environment's public
+application with a single Turbo invocation, which keeps the builds off the critical path. Every
+deployment job needs validation, the tests and the build, so nothing built is deployed unless
+the other two also succeed; a build for a commit that fails them is wasted work, not a risk. A
+deployment job whose `if:` starts with `!cancelled()` checks each of them by name, since it
+would otherwise run after a failure. It builds with the environment's public
 configuration, because the SPA, the portal and the marketing site carry it in their bundles: a
 release builds again and never reuses non-prod's artifacts. The addresses come from the
 environment's `API_URL`, `APP_URL`, `PORTAL_URL` and `MARKETING_URL` variables, and the build

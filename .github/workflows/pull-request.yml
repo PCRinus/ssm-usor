@@ -1,8 +1,8 @@
 name: Pull request
 
 # What a pull request has to pass. Nothing here deploys, and nothing here has access to
-# production: the deployment workflow runs on main. GitHub bills every job rounded up to a whole
-# minute, so the checks live in few jobs, and the slow starts inside them overlap.
+# production: the deployment workflow runs on main. Each job pays its own checkout and install,
+# so the checks live in few jobs, and the slow starts inside them overlap.
 on:
   pull_request:
 
@@ -86,11 +86,30 @@ jobs:
           apps/pdf/signer/.venv/bin/ruff check apps/pdf/signer
           pnpm --filter @ssm-usor/pdf test:signer
 
+  # Beside validation rather than inside it: the tests alone take about as long as every other
+  # check together.
+  test:
+    name: Run tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup
+        with:
+          turbo-cache: 'true'
+          cache-scope: test
+
+      - name: Test
+        run: pnpm test
+
   # Browser flows that create users: invitations, member management, passwords, documents.
   # They run against a throwaway local stack (local Supabase, the API served by Node with an
   # in-memory mailer, a preview build of the SPA), never against production. They run here
   # and not again after the merge: the deployment does not wait for them, and repeating them
-  # there cost six billed minutes a merge for what this run has already shown.
+  # there took six runner minutes a merge for what this run has already shown.
   flows:
     name: Browser flow tests
     needs: changes
