@@ -901,7 +901,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     }
   });
 
-  it('keeps an unchanged workplace out of the edit, even an archived one, and sends a new one', async () => {
+  it('keeps an unchanged workplace and position out of the edit, even archived ones, and sends a new workplace', async () => {
     mockApi({
       detail: () => Response.json({ employee: withSheet }),
       workplaces: () => Response.json({ items: [registeredOffice] }),
@@ -923,6 +923,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
       unknown
     >;
     expect(unchanged).not.toHaveProperty('workplaceId');
+    expect(unchanged).not.toHaveProperty('jobPositionId');
     expect(unchanged).toMatchObject({ qualification: 'Sudor autorizat', commuteMinutes: 35 });
 
     await user.click(screen.getByTestId('employee-edit'));
@@ -1497,13 +1498,14 @@ describe('employee editing', () => {
     expect(runtime.router.state.location.pathname).toBe(`${employeesPath}/${sampleEmployee.id}`);
     expect(await screen.findByText('Datele angajatului au fost salvate.')).toBeTruthy();
     const [, init] = requests(`${employeesPath}/${sampleEmployee.id}`, 'PUT')[0]!;
-    expect(JSON.parse(String(init?.body))).toMatchObject({
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    expect(body).toMatchObject({
       lastName: 'Popescu-Ionescu',
       phone: '+393331234567',
       cnp: '1900101400127',
       jobTitle: 'Muncitor calificat',
-      jobPositionId: sampleEmployee.jobPosition.id,
     });
+    expect(body).not.toHaveProperty('jobPositionId');
     expect(requests(employeesPath, 'POST')).toHaveLength(0);
   });
 

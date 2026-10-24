@@ -225,6 +225,11 @@ export function toUpdateEmployeeRequest(
   values: EmployeeFormValues,
   employee: Employee
 ): UpdateEmployeeRequest {
-  const { workplaceId, ...request } = toCreateEmployeeRequest(values);
-  return workplaceId === (employee.workplace?.id ?? null) ? request : { ...request, workplaceId };
+  const { workplaceId, jobPositionId, ...request } = toCreateEmployeeRequest(values);
+  // A former employee may hold a position archived since; sent again, it would be refused.
+  return {
+    ...request,
+    ...(jobPositionId === employee.jobPosition.id ? {} : { jobPositionId }),
+    ...(workplaceId === (employee.workplace?.id ?? null) ? {} : { workplaceId }),
+  };
 }
