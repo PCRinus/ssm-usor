@@ -6,7 +6,9 @@ import {
   draftPrompt,
   type DraftSource,
   draftUpdate,
+  limits,
   type ModelDraft,
+  systemPrompt,
   validateDraft,
 } from './draft';
 import { assembleRelease, collectBlocks, type PullRequest } from './release';
@@ -324,5 +326,15 @@ describe('assembleRelease with a draft', () => {
     expect(result.summary).toContain(
       '- #570, Remedieri: Lista de clienți își păstrează ordinea când te întorci la ea. (propus)'
     );
+  });
+});
+
+describe('systemPrompt', () => {
+  it('is the prompt file without its preamble, with the limits filled in', () => {
+    expect(systemPrompt.startsWith('## Who reads it')).toBe(true);
+    expect(systemPrompt).toContain(`at most ${limits.headline} characters`);
+    expect(systemPrompt).toContain(`at most ${limits.lead} characters`);
+    expect(systemPrompt).not.toContain('{{');
+    expect(systemPrompt).toContain('## Contract');
   });
 });

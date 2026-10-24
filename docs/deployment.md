@@ -113,8 +113,10 @@ release still goes out, with the first item as its headline. To set it up once:
    the update runs before any environment is chosen.
 
 The request goes to the gateway's Anthropic endpoint unchanged, so the model, the effort and the
-structured output are set in `packages/release-notes/scripts/draft.ts` and `claude.ts`; the
-gateway's own logs show every call, its tokens and its cost. To rotate the token, create a new
+structured output are set in `packages/release-notes/scripts/draft.ts` and `claude.ts`, and the
+instructions the model follows are `packages/release-notes/prompts/update-draft.md`, whose voice
+sections can be edited without touching code; the gateway's own logs show every call, its tokens
+and its cost. To rotate the token, create a new
 one, replace the secret, then delete the old token.
 
 ## Connect `ssmusor.ro` to Cloudflare
