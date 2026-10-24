@@ -58,6 +58,7 @@ test('a person registers, confirms their address, and sets up their organization
   await expect(page).toHaveURL(/\/onboarding$/);
 
   await page.getByTestId('onboarding-full-name').fill('Felicia Fondatoare');
+  await page.getByTestId('onboarding-cui').fill('RO1590082');
   await page.getByTestId('onboarding-organization').fill('Prevent SSM E2E SRL');
   await page.getByTestId('onboarding-submit').click();
   await expect(page.getByTestId('onboarding-terms-error')).toBeVisible();
@@ -71,6 +72,9 @@ test('a person registers, confirms their address, and sets up their organization
   await page.getByTestId('nav-organization').click();
   await expect(page.getByTestId('invite-open')).toBeVisible();
   await expect(page.getByTestId('member-row')).toContainText('Administrator');
+
+  await page.goto('/organization/company');
+  await expect(page.getByTestId('company-cui')).toHaveValue('1590082');
 
   await signOut(page);
   await page.goto(link);
