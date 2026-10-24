@@ -31,6 +31,7 @@ export * from './person-names';
 export * from './phone';
 export * from './profile';
 export * from './protective-equipment';
+export * from './releases';
 export * from './risk-evaluations';
 export * from './risk-levels';
 export * from './service-contracts';

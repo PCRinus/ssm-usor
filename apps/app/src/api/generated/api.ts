@@ -220,6 +220,87 @@ export interface PendingInvitationListResponse {
   items: PendingInvitationListResponseItemsItem[];
 }
 
+export interface UpdateFeature {
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  title: string;
+  /**
+   * @minLength 1
+   * @maxLength 600
+   */
+  text: string;
+  /**
+   * @maxLength 200
+   * @nullable
+   */
+  where: string | null;
+  /**
+   * @maxLength 60
+   * @nullable
+   * @pattern ^[a-z0-9]+(-[a-z0-9]+)*$
+   */
+  icon: string | null;
+}
+
+export type ReleaseListResponseItemsItem = {
+  /** @pattern ^\d{4}\.\d{2}\.\d{2}(\.\d+)?$ */
+  tag: string;
+  publishedAt: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  headline: string;
+  /**
+   * @maxLength 600
+   * @nullable
+   */
+  lead: string | null;
+  features: UpdateFeature[];
+  improvements: string[];
+  fixes: string[];
+  unread: boolean;
+};
+
+export interface ReleaseListResponse {
+  items: ReleaseListResponseItemsItem[];
+}
+
+export interface AcknowledgeReleasesResponse {
+  /**
+   * @nullable
+   * @pattern ^\d{4}\.\d{2}\.\d{2}(\.\d+)?$
+   */
+  acknowledgedThrough: string | null;
+}
+
+export interface AcknowledgeReleasesRequest {
+  /** @pattern ^\d{4}\.\d{2}\.\d{2}(\.\d+)?$ */
+  tag: string;
+}
+
+export interface Release {
+  /** @pattern ^\d{4}\.\d{2}\.\d{2}(\.\d+)?$ */
+  tag: string;
+  publishedAt: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  headline: string;
+  /**
+   * @maxLength 600
+   * @nullable
+   */
+  lead: string | null;
+  features: UpdateFeature[];
+  improvements: string[];
+  fixes: string[];
+  unread: boolean;
+}
+
 /**
  * @nullable
  */
@@ -10064,6 +10145,351 @@ export function useListMyInvitations<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getListMyInvitationsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListReleasesUrl = () => {
+  return `/releases`;
+};
+
+/**
+ * Every release that has an update, newest first, in full, each marked unread or not for the caller (ADR 026). Not organization data: an account without a membership may call it too. Not paginated.
+ * @summary List the releases with their updates
+ */
+export const listReleases = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ReleaseListResponse> => {
+  return apiFetch<ReleaseListResponse>(getListReleasesUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListReleasesQueryKey = () => {
+  return [`/releases`] as const;
+};
+
+export const getListReleasesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listReleases>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleases>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListReleasesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listReleases>>> = ({ signal }) =>
+    listReleases({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listReleases>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListReleasesQueryResult = NonNullable<Awaited<ReturnType<typeof listReleases>>>;
+export type ListReleasesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListReleases<
+  TData = Awaited<ReturnType<typeof listReleases>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleases>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listReleases>>,
+          TError,
+          Awaited<ReturnType<typeof listReleases>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListReleases<
+  TData = Awaited<ReturnType<typeof listReleases>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleases>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listReleases>>,
+          TError,
+          Awaited<ReturnType<typeof listReleases>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListReleases<
+  TData = Awaited<ReturnType<typeof listReleases>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleases>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the releases with their updates
+ */
+
+export function useListReleases<
+  TData = Awaited<ReturnType<typeof listReleases>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleases>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListReleasesQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getAcknowledgeReleasesUrl = () => {
+  return `/releases/acknowledge`;
+};
+
+/**
+ * Records the release on the caller's profile, unless a release published later is acknowledged already; that one is kept and returned. `409` with `reason: profile_missing` for an account that has not named itself yet, which has nothing unread.
+ * @summary Acknowledge every release up to and including one
+ */
+export const acknowledgeReleases = async (
+  acknowledgeReleasesRequest: AcknowledgeReleasesRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<AcknowledgeReleasesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<AcknowledgeReleasesResponse>(getAcknowledgeReleasesUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(acknowledgeReleasesRequest),
+  });
+};
+
+export const getAcknowledgeReleasesMutationKey = () => ['acknowledgeReleases'] as const;
+
+export const getAcknowledgeReleasesMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acknowledgeReleases>>,
+    TError,
+    AcknowledgeReleasesMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof acknowledgeReleases>>,
+  TError,
+  AcknowledgeReleasesMutationVariables,
+  TContext
+> => {
+  const mutationKey = getAcknowledgeReleasesMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof acknowledgeReleases>>,
+    AcknowledgeReleasesMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return acknowledgeReleases(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AcknowledgeReleasesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof acknowledgeReleases>>
+>;
+export type AcknowledgeReleasesMutationBody = AcknowledgeReleasesRequest;
+export type AcknowledgeReleasesMutationError = ErrorType<ApiErrorResponse>;
+export type AcknowledgeReleasesMutationVariables = { data: AcknowledgeReleasesRequest };
+
+/**
+ * @summary Acknowledge every release up to and including one
+ */
+export const useAcknowledgeReleases = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof acknowledgeReleases>>,
+      TError,
+      AcknowledgeReleasesMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof acknowledgeReleases>>,
+  TError,
+  AcknowledgeReleasesMutationVariables,
+  TContext
+> => {
+  return useMutation(getAcknowledgeReleasesMutationOptions(options), queryClient);
+};
+
+export const getGetReleaseUrl = (tag: string) => {
+  return `/releases/${tag}`;
+};
+
+/**
+ * @summary Get one release with its update
+ */
+export const getRelease = async (
+  tag: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<Release> => {
+  return apiFetch<Release>(getGetReleaseUrl(tag), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetReleaseQueryKey = (tag: string) => {
+  return [`/releases/${tag}`] as const;
+};
+
+export const getGetReleaseQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRelease>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  tag: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRelease>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetReleaseQueryKey(tag);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRelease>>> = ({ signal }) =>
+    getRelease(tag, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: tag !== null && tag !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getRelease>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetReleaseQueryResult = NonNullable<Awaited<ReturnType<typeof getRelease>>>;
+export type GetReleaseQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetRelease<
+  TData = Awaited<ReturnType<typeof getRelease>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  tag: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRelease>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRelease>>,
+          TError,
+          Awaited<ReturnType<typeof getRelease>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetRelease<
+  TData = Awaited<ReturnType<typeof getRelease>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  tag: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRelease>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRelease>>,
+          TError,
+          Awaited<ReturnType<typeof getRelease>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetRelease<
+  TData = Awaited<ReturnType<typeof getRelease>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  tag: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRelease>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get one release with its update
+ */
+
+export function useGetRelease<
+  TData = Awaited<ReturnType<typeof getRelease>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  tag: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRelease>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetReleaseQueryOptions(tag, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

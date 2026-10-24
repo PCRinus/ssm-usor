@@ -1146,10 +1146,39 @@ generated document they exist nowhere else.
 who created their account through an invitation. The email stays in `auth.users` and is not
 copied. A user reads the profiles of their own organization, creates their own, and changes
 only their own `full_name`; column grants keep the terms columns for acceptance to write.
+`releases_acknowledged_through` names the last release the person acknowledged
+([Releases](#releases)); they write it on their own row too.
 
 `public.organization_member_list()` returns the members of the caller's organization with
 their email, name, role, and join date. It runs as `security definer` because `auth.users`
 is not readable by signed-in users.
+
+## Releases
+
+`releases` holds the update of each release that has one
+([ADR 026](architecture/adr-026-updates-and-release-review.md)): the `tag` (`2026.10.23`, or
+`2026.10.23.2` for a later release that day), `published_at`, the `headline`, the `lead`, and
+the three sections, `features` as a JSON array of `{ title, text, where, icon }`,
+`improvements` and `fixes` as text arrays. `body` keeps the release body the row was parsed
+from, up to its horizontal rule. The table is the same for everyone and is not organization
+data.
+
+Only the release workflow writes it, with the secret key, by an upsert on the tag; the
+published GitHub release is the source, and a correction is an edit there and a run of Deploy
+production with the tag. Every signed-in user reads every row; there is no write policy. The
+seed inserts four invented releases where fake data is allowed: the two newest published after
+the seeded admin's profile was created, and the admin marked as read up to the third, so that
+exactly those two are unread.
+
+A release is **unread** for a person when it was published after their profile was created and
+after the release in their `profiles.releases_acknowledged_through`, compared by `published_at`,
+never by tag, since `2026.10.23.10` sorts before `2026.10.23.2` as text. An account without a
+profile has nothing unread. The view `release_list` (`security_invoker`) is every release with
+`unread` computed for `auth.uid()`, the real caller also during an impersonation.
+`acknowledge_releases(through)` records a release on the caller's profile unless one published
+later is recorded already, and returns the tag the profile keeps; it raises `REL01` for an
+unknown tag and `REL02` for an account without a profile. Deleting a release clears the
+pointers to it.
 
 ## Organization invitations
 

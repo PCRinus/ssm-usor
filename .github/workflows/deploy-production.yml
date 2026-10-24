@@ -3,8 +3,13 @@ run-name: ${{ inputs.tag && format('Deploy production {0}', inputs.tag) || 'Depl
 
 # Actions → Deploy production → "Run workflow", on main: releases the newest commit non-prod has
 # deployed, tagged with the date (2026.10.23, then 2026.10.23.2), and deploys to production what
-# changed since the release production runs (ADR 025). With a tag it deploys that release again,
-# everything of it: a rollback, or a release that failed halfway.
+# changed since the release production runs (ADR 025). Before anything is published, the update
+# members read is assembled from the merged pull requests' `## Actualizări` blocks into a draft
+# release, and the run waits until Mircea approves it on the release-approval environment; the
+# approved body is then published and written to the releases table of production and non-prod
+# (ADR 026). With a tag it deploys that release again, everything of it: a rollback, or a release
+# that failed halfway, and rewrites its update from the release's body, which is how a typo in a
+# published update is fixed.
 on:
   workflow_dispatch:
     inputs:
@@ -20,21 +25,26 @@ jobs:
   check:
     name: Choose the release
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    # Two runs at once would choose the same commit and tag; the second waits, then finds the
-    # commit released and stops.
+    timeout-minutes: 10
+    # Two runs at once would choose the same commit and tag; the second waits, then either finds
+    # the commit released and stops, or replaces the first one's draft, which the first then
+    # fails to publish.
     concurrency:
       group: deploy-production-release
       cancel-in-progress: false
     permissions:
-      # To create the tag and the release.
+      # To create the draft release and generate its notes.
       contents: write
       # To find the non-prod deployment of the commit and the last production deployment.
       actions: read
+      # To read the merged pull requests' descriptions.
+      pull-requests: read
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
       tag: ${{ steps.commit.outputs.tag }}
       baseline: ${{ steps.baseline.outputs.sha }}
+      draft: ${{ steps.draft.outputs.id }}
+      draft-url: ${{ steps.draft.outputs.url }}
     steps:
       # Production only receives what non-prod has run. A successful run of deploy-non-prod.yml
       # for the commit means non-prod has everything up to it, since each run deploys what the
@@ -158,8 +168,100 @@ jobs:
           echo "Production runs $tag, $sha, deployed by run $run."
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
-      # GITHUB_TOKEN rather than a personal token: a release it creates starts no other workflow.
-      - name: Publish the release
+      # Main's head, like this workflow file, rather than the chosen commit, which may predate the
+      # scripts; the full history still reaches the chosen commit, since it is on main.
+      - uses: actions/checkout@v7
+        if: inputs.tag == ''
+        with:
+          fetch-depth: 0
+
+      # The update covers what was merged since the newest release in the commit's history, not
+      # since the release production runs: after a rollback, or a release whose deployment failed,
+      # those differ, and the pull requests in between were already announced.
+      - name: Collect the merged pull requests
+        id: pulls
+        if: inputs.tag == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.commit.outputs.sha }}
+        shell: bash
+        run: |
+          release_tag='^[0-9]{4}\.[0-9]{2}\.[0-9]{2}(\.[0-9]+)?$'
+          previous=$(git tag --merged "$SHA" --sort=-v:refname | grep -m 1 -E "$release_tag" || true)
+          if [[ -z "$previous" ]]; then
+            echo '[]' > "$RUNNER_TEMP/pulls.json"
+            echo "No earlier release is in the history of $SHA, so no pull requests are collected and the update is silent." \
+              | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "previous=$previous" >> "$GITHUB_OUTPUT"
+
+          dir=$RUNNER_TEMP/pulls
+          mkdir -p "$dir"
+          echo '[]' > "$dir/none.json"
+          for commit in $(git rev-list --first-parent --reverse "$previous..$SHA"); do
+            gh api "repos/$GITHUB_REPOSITORY/commits/$commit/pulls" \
+              --jq '[.[] | select(.merged_at != null and .base.ref == "main")]' > "$dir/$commit.json"
+            if [[ $(jq length "$dir/$commit.json") == 0 ]] && second=$(git rev-parse -q --verify "$commit^2"); then
+              gh api "repos/$GITHUB_REPOSITORY/commits/$second/pulls" \
+                --jq "[.[] | select(.merged_at != null and .merge_commit_sha == \"$commit\")]" > "$dir/$commit.json"
+            fi
+            if [[ $(jq length "$dir/$commit.json") == 0 ]]; then
+              echo "::warning::No merged pull request found for $commit; it adds nothing to the update."
+            fi
+          done
+          jq -s 'add | unique_by(.number) | sort_by(.merged_at, .number) | map({number, title, url: .html_url, body})' \
+            "$dir"/*.json > "$RUNNER_TEMP/pulls.json"
+          echo "Collected $(jq length "$RUNNER_TEMP/pulls.json") pull requests merged since $previous."
+
+      - name: Generate the notes for developers
+        if: inputs.tag == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.commit.outputs.tag }}
+          SHA: ${{ steps.commit.outputs.sha }}
+          PREVIOUS: ${{ steps.pulls.outputs.previous }}
+        shell: bash
+        run: |
+          args=(-f tag_name="$TAG" -f target_commitish="$SHA")
+          if [[ -n "$PREVIOUS" ]]; then
+            args+=(-f previous_tag_name="$PREVIOUS")
+          fi
+          gh api -X POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" "${args[@]}" --jq .body \
+            > "$RUNNER_TEMP/trailer.md"
+
+      - uses: ./.github/actions/setup
+        if: inputs.tag == ''
+
+      - name: Assemble the update
+        if: inputs.tag == ''
+        working-directory: packages/release-notes
+        shell: bash
+        env:
+          AI_GATEWAY_URL: ${{ vars.AI_GATEWAY_URL }}
+          AI_GATEWAY_TOKEN: ${{ secrets.AI_GATEWAY_TOKEN }}
+        run: |
+          node --import tsx scripts/assemble.ts \
+            --pull-requests "$RUNNER_TEMP/pulls.json" \
+            --trailer "$RUNNER_TEMP/trailer.md" \
+            --out "$RUNNER_TEMP/body.md" | tee "$RUNNER_TEMP/summary.md"
+          {
+            echo
+            cat "$RUNNER_TEMP/summary.md"
+            echo
+            echo '<details><summary>The draft release body</summary>'
+            echo
+            echo '`````markdown'
+            cat "$RUNNER_TEMP/body.md"
+            echo '`````'
+            echo
+            echo '</details>'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # A draft creates no tag, so nothing a member or a rollback sees exists before approval.
+      # Every draft named like a release is this workflow's, left by a rejected or replaced run.
+      - name: Create the draft release
+        id: draft
         if: inputs.tag == ''
         env:
           GH_TOKEN: ${{ github.token }}
@@ -167,11 +269,108 @@ jobs:
           SHA: ${{ steps.commit.outputs.sha }}
         shell: bash
         run: |
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$SHA" --title "$TAG" --generate-notes
+          for stale in $(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --paginate \
+            --jq '.[] | select(.draft and (.tag_name | test("^[0-9]{4}[.][0-9]{2}[.][0-9]{2}([.][0-9]+)?$"))) | .id'); do
+            echo "Deleting draft release $stale, left by a run that was rejected or replaced."
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$stale"
+          done
+
+          release=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" \
+            -f tag_name="$TAG" -f target_commitish="$SHA" -f name="$TAG" -F draft=true \
+            -F body=@"$RUNNER_TEMP/body.md")
+          id=$(jq -r .id <<< "$release")
+          url=$(jq -r .html_url <<< "$release")
+          if [[ $(gh api "repos/$GITHUB_REPOSITORY/releases/$id" --jq .draft) != true ]]; then
+            echo "::error::Release $id was created, but not as a draft."
+            exit 1
+          fi
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" > /dev/null 2>&1; then
+            echo "::error::Creating the draft of $TAG created its tag too."
+            exit 1
+          fi
+          echo "Drafted $TAG as release $id: $url"
+          {
+            echo
+            echo "The update is the [draft release $TAG]($url). Edit its body there if the wording needs it, then approve or reject the run under **Review deployments**."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+  # The pause is the required reviewer set by hand on the release-approval environment; without
+  # that protection this job runs at once and the release goes out unread.
+  approve:
+    name: Approve the update
+    needs: check
+    if: inputs.tag == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: release-approval
+      url: ${{ needs.check.outputs.draft-url }}
+    permissions: {}
+    steps:
+      - name: Approved
+        env:
+          URL: ${{ needs.check.outputs.draft-url }}
+        run: echo "The update in $URL was approved."
+
+  publish:
+    name: Publish the update
+    needs: [check, approve]
+    if: inputs.tag == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ID: ${{ needs.check.outputs.draft }}
+      TAG: ${{ needs.check.outputs.tag }}
+      SHA: ${{ needs.check.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      # Read again rather than reused from the check job: the body may have been edited during
+      # the review.
+      - name: Read the approved draft
+        shell: bash
+        run: |
+          if ! draft=$(gh api "repos/$GITHUB_REPOSITORY/releases/$ID" --jq '{draft, body}'); then
+            echo "::error::Draft release $ID is gone; a later run of Deploy production replaced it."
+            exit 1
+          fi
+          if [[ $(jq -r .draft <<< "$draft") != true ]]; then
+            echo "::error::Release $ID is no longer a draft; it was published outside this run."
+            exit 1
+          fi
+          jq -r '.body // ""' <<< "$draft" > "$RUNNER_TEMP/body.md"
+
+      - name: Check the update
+        working-directory: packages/release-notes
+        shell: bash
+        run: node --import tsx scripts/publish-update.ts --check --body "$RUNNER_TEMP/body.md"
+
+      # GITHUB_TOKEN rather than a personal token: a release it publishes, and the tag that
+      # publishing creates, start no other workflow.
+      - name: Publish the release
+        shell: bash
+        run: |
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$ID" \
+            -F draft=false -f tag_name="$TAG" -f target_commitish="$SHA" -f make_latest=true \
+            --jq '"Published [\(.tag_name)](\(.html_url)) at \(.published_at)."' | tee -a "$GITHUB_STEP_SUMMARY"
+          tagged=$(gh api "repos/$GITHUB_REPOSITORY/commits/refs/tags/$TAG" --jq .sha || true)
+          if [[ "$tagged" != "$SHA" ]]; then
+            echo "::error::Publishing $TAG left its tag on ${tagged:-no commit}, not on $SHA."
+            exit 1
+          fi
 
   production:
     name: Production ${{ needs.check.outputs.tag }}
-    needs: check
+    needs: [check, publish]
+    # On a release, nothing deploys unless the update was approved and published. A rollback
+    # skips both, and a broken body never holds it back.
+    if: ${{ !cancelled() && needs.check.result == 'success' && (inputs.tag != '' || needs.publish.result == 'success') }}
     uses: ./.github/workflows/deploy-environment.yml
     permissions:
       contents: read
@@ -183,3 +382,76 @@ jobs:
       baseline: ${{ needs.check.outputs.baseline }}
       release: ${{ needs.check.outputs.tag }}
     secrets: inherit
+
+  # Non-prod already runs the commit, so its row is written as soon as the release is published.
+  record-non-prod:
+    name: Record the update in non-prod
+    needs: [check, publish]
+    if: ${{ !cancelled() && needs.check.result == 'success' && (inputs.tag != '' || needs.publish.result == 'success') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: non-prod
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.check.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Write the update to releases
+        working-directory: packages/release-notes
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        shell: bash
+        run: |
+          release=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body,publishedAt)
+          jq -r .body <<< "$release" > "$RUNNER_TEMP/body.md"
+          node --import tsx scripts/publish-update.ts --tag "$TAG" \
+            --published-at "$(jq -r .publishedAt <<< "$release")" \
+            --body "$RUNNER_TEMP/body.md" > "$RUNNER_TEMP/result.txt"
+          echo "Non-prod: $(cat "$RUNNER_TEMP/result.txt")" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Report the failure
+        if: failure()
+        run: |
+          echo "Non-prod: the update of $TAG was not written; see the job's log." >> "$GITHUB_STEP_SUMMARY"
+
+  # After the deployment, not before: the migrations that create or change the releases table
+  # reach production in it, and members meet the update only once its release runs.
+  record-production:
+    name: Record the update in production
+    needs: [check, production]
+    if: ${{ !cancelled() && needs.production.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.check.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Write the update to releases
+        working-directory: packages/release-notes
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        shell: bash
+        run: |
+          release=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body,publishedAt)
+          jq -r .body <<< "$release" > "$RUNNER_TEMP/body.md"
+          node --import tsx scripts/publish-update.ts --tag "$TAG" \
+            --published-at "$(jq -r .publishedAt <<< "$release")" \
+            --body "$RUNNER_TEMP/body.md" > "$RUNNER_TEMP/result.txt"
+          echo "Production: $(cat "$RUNNER_TEMP/result.txt")" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Report the failure
+        if: failure()
+        run: |
+          echo "Production: the update of $TAG was not written; see the job's log." >> "$GITHUB_STEP_SUMMARY"

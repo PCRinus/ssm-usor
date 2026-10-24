@@ -26,7 +26,32 @@ const created = {
   users: [] as string[],
   organizations: [] as string[],
   templateVersions: [] as { id: string; storagePath: string }[],
+  releases: [] as string[],
 };
+
+// Unread means published after the account's profile was created, so a release dated in 2000
+// is unread for an account backdated before it and for no account another test creates.
+export async function createReleaseUnreadOnlyFor(userId: string, headline: string) {
+  const backdated = await admin
+    .from('profiles')
+    .update({ created_at: '2000-01-01T00:00:00Z' })
+    .eq('user_id', userId);
+  if (backdated.error) throw backdated.error;
+  const tag = `2000.01.02.${Date.now() % 1_000_000}`;
+  const release = await admin.from('releases').insert({
+    tag,
+    published_at: '2000-01-02T08:00:00Z',
+    headline,
+    lead: 'O versiune scrisă de testele de flux.',
+    features: [{ title: 'O funcție nouă', text: 'Descrierea ei.', where: null, icon: 'sparkles' }],
+    improvements: ['O îmbunătățire.'],
+    fixes: [],
+    body: `# ${headline}`,
+  });
+  if (release.error) throw release.error;
+  created.releases.push(tag);
+  return tag;
+}
 
 export async function createAccount(name: string, fullName?: string) {
   const email = addressOf(name);
@@ -629,6 +654,10 @@ export async function cleanUp() {
     if (removed.error?.code === '23503') continue;
     if (removed.error) throw removed.error;
     await admin.storage.from('document-templates').remove([version.storagePath]);
+  }
+  if (created.releases.length > 0) {
+    const removed = await admin.from('releases').delete().in('tag', created.releases);
+    if (removed.error) throw removed.error;
   }
 }
 

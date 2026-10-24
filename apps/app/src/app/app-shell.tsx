@@ -48,10 +48,19 @@ import {
   Scale,
   ShieldAlert,
   Signature,
+  Sparkles,
   UserRound,
   UsersRound,
 } from 'lucide-react';
-import { type ComponentProps, Fragment, type ReactNode, useEffect, useState } from 'react';
+import {
+  type ComponentProps,
+  Fragment,
+  lazy,
+  type ReactNode,
+  Suspense,
+  useEffect,
+  useState,
+} from 'react';
 
 import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
@@ -60,11 +69,19 @@ import { useAuth } from '@/features/auth/auth-context';
 import { instructionSections } from '@/features/instructions/instruction-sections';
 import { testBankSections } from '@/features/knowledge-tests/test-bank-sections';
 import { legislationSections } from '@/features/legislation/legislation-sections';
+import { newCount } from '@/features/updates/release-format';
+import { useReleases } from '@/features/updates/use-releases';
 
+import { releaseTag } from './build-version';
 import { CommitVersion } from './commit-version';
 import { ReportProblemDialog } from './report-problem-dialog';
 import { loaderCrumb } from './route-title';
 import { readSidebarOpen, saveSidebarOpen } from './sidebar-open';
+
+// Most page loads have nothing unread, so the dialog and its drawer stay out of the first download.
+const UpdateDialog = lazy(() =>
+  import('@/features/updates/update-dialog').then((module) => ({ default: module.UpdateDialog }))
+);
 
 // `ownerOnly`: a specialist has no leads to see (ADR 007).
 const navigation = [
@@ -143,6 +160,7 @@ function AppNavigation({
   onSignOut,
   onReportProblem,
   unreadCount,
+  unreadReleases,
 }: {
   email: string;
   // Both are missing while the account loads, and for an account that has neither.
@@ -153,6 +171,7 @@ function AppNavigation({
   onSignOut: () => Promise<void>;
   onReportProblem: () => Promise<void>;
   unreadCount: number;
+  unreadReleases: number;
 }) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { isMobile, setOpenMobile } = useSidebar();
@@ -227,6 +246,29 @@ function AppNavigation({
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={within('/actualizari')} tooltip="Actualizări">
+              <Link
+                to="/actualizari"
+                data-testid="nav-actualizari"
+                aria-current={
+                  pathname === '/actualizari' ? 'page' : within('/actualizari') ? 'true' : undefined
+                }
+                onClick={closeOnMobile}
+              >
+                <Sparkles aria-hidden="true" />
+                <span>Actualizări</span>
+                {unreadReleases > 0 && (
+                  <span
+                    data-testid="nav-actualizari-badge"
+                    className="ml-auto shrink-0 rounded-full bg-brand-lime px-2 py-px text-xs font-semibold text-foreground group-data-[collapsible=icon]:hidden"
+                  >
+                    {newCount(unreadReleases)}
+                  </span>
+                )}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Raportează o problemă"
@@ -350,6 +392,8 @@ export function AppShell() {
   // A failed load leaves the menu with the email alone; the pages report the failure.
   const me = useMe();
   const { openSupport, unreadCount } = usePostHogSession(me.data);
+  const releases = useReleases();
+  const shippedTag = releaseTag();
 
   async function reportProblem() {
     if (await openSupport()) return;
@@ -412,6 +456,7 @@ export function AppShell() {
           onSignOut={signOut}
           onReportProblem={reportProblem}
           unreadCount={unreadCount}
+          unreadReleases={releases.unreadCount}
         />
         <div className={cn('flex min-w-0 flex-1 flex-col', editorPage && 'min-h-0')}>
           <main
@@ -468,12 +513,17 @@ export function AppShell() {
           {!editorPage && (
             <footer className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-4 text-xs text-muted-foreground sm:px-8 lg:px-10">
               <span>© {new Date().getFullYear()} SSM Ușor</span>
-              <CommitVersion />
+              <CommitVersion linked={Boolean(shippedTag && releases.find(shippedTag))} />
             </footer>
           )}
         </div>
       </div>
       <ReportProblemDialog open={reportingByEmail} onClose={() => setReportingByEmail(false)} />
+      {releases.newestUnread && (
+        <Suspense fallback={null}>
+          <UpdateDialog />
+        </Suspense>
+      )}
     </SidebarProvider>
   );
 }

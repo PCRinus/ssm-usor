@@ -52,6 +52,9 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership" }`; the last two are null when absent                                                                                                                           |
 | `PATCH /me/profile`                                                    | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                                                                                                                            |
 | `GET /me/invitations`                                                  | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token                                                                                                               |
+| `GET /releases`                                                        | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, every release with its update, newest first, each with `unread` for the caller; not paginated                                                                                |
+| `GET /releases/{tag}`                                                  | Verified, non-anonymous Supabase user | One release with its update and `unread`; `404` for an unknown tag                                                                                                                                 |
+| `POST /releases/acknowledge`                                           | Verified, non-anonymous Supabase user | `{ "acknowledgedThrough" }` after acknowledging every release up to `{ tag }`                                                                                                                      |
 | `POST /organization`                                                   | Verified user without a membership    | `201` with the new membership, after creating the organization                                                                                                                                     |
 | `GET /organization/members`                                            | Verified user with a membership       | `{ "items": [ … ] }` with names, emails, and roles                                                                                                                                                 |
 | `PATCH /organization/members/{userId}`                                 | Owner                                 | `204` after changing the member's role                                                                                                                                                             |
@@ -767,6 +770,27 @@ owner; memberships have no write policy. Nobody acts on their own membership (`4
 owner. Someone who is not a member of the caller's organization is `404`. Removing deletes
 the membership only: the account, the profile, and what the person created stay, the person
 sees no organization, and can be invited again.
+
+## Releases
+
+[ADR 026](architecture/adr-026-updates-and-release-review.md). The update of each release,
+read from the `releases` table through the view `release_list` with the caller's token
+([data model](data-model.md#releases)). The routes need a signed-in account and no
+membership, since releases are not organization data; they carry no `portal` tag, so the
+portal's client does not have them.
+
+`GET /releases` lists every release in full, newest `publishedAt` first, not paginated:
+there are few. `GET /releases/{tag}` returns one, `404` when no release has the tag and `400`
+when the path is not a tag. Each release has `unread` for the caller: published after their
+profile was created and after the release they last acknowledged.
+
+`POST /releases/acknowledge` takes `{ tag }` and acknowledges everything published up to and
+including that release, through `acknowledge_releases`. When the caller has already
+acknowledged a release published later, that one is kept; either way the answer is
+`{ "acknowledgedThrough" }`, the tag the profile keeps. `404` for an unknown tag. An account
+without a profile gets `409` with `reason: profile_missing`: a profile needs a name, which
+this request does not carry, and such an account has nothing unread. The API exposes no write
+to the table itself; only the release workflow writes it.
 
 ## Participants
 

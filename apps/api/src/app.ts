@@ -27,6 +27,7 @@ import { organizationRouter } from './modules/organization';
 import { participantsRouter } from './modules/participants';
 import { portalRouter } from './modules/portal';
 import { protectiveEquipmentRouter } from './modules/protective-equipment';
+import { releasesRouter } from './modules/releases';
 import { riskEvaluationsRouter } from './modules/risk-evaluations';
 import { serviceContractsRouter } from './modules/service-contracts';
 import { signingRouter } from './modules/signing';
@@ -74,6 +75,7 @@ export function createApp() {
 
   app.route('/', healthRouter);
   app.route('/', meRouter);
+  app.route('/', releasesRouter);
   app.route('/', clientsRouter);
   app.route('/', companiesRouter);
   app.route('/', employeesRouter);
