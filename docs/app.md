@@ -1197,3 +1197,57 @@ validation stay inline with `role="alert"`, next to their cause, so they persist
 
 Sign-out is available from the sidebar account menu on every authenticated route.
 Failed sign-out keeps the session and displays a retry action in the shared layout.
+
+## Actualizări
+
+What members read about each release, its **update**
+([ADR 026](architecture/adr-026-updates-and-release-review.md)), lives in
+`src/features/updates/`. The app has no dialect: the release workflow parses the
+release body into the `releases` table, and the app reads the rows through `GET /releases`,
+never Markdown. `use-releases.ts` is the one query everything shares: keyed by the signed-in
+user, since `unread` is per account, and kept fresh for five minutes. The shell reads it for the
+sidebar badge, the footer link and the dialog, the two pages read it, and their route loaders
+fill it first with `releasesQueryOptions`. The release page finds its row in the list instead
+of calling `GET /releases/{tag}`; a tag that is not in the list is the not-found screen.
+`useAcknowledgeReleases` posts the newest tag to `POST /releases/acknowledge`, which covers
+everything published so far, marks those rows read in the cache, and refetches; a failure is a
+toast, and with nothing unread it sends nothing.
+
+- The dialog (`update-dialog.tsx`) is mounted by the shell only while a release is unread, and
+  shows the newest one: the sand panel with the hanging calendar tag (`release-tag.tsx`) and the
+  publication day, then the headline, the lead, up to three new features with their icons (or,
+  in a release without features, up to three improvements and fixes, each with a check), and on
+  desktop "și încă N îmbunătățiri" for the rest. **Am înțeles** acknowledges through the newest
+  release. The cross, Escape and a click outside dismiss it for the browser session only: the
+  tag goes to `sessionStorage` (`dismissal.ts`), so a reload keeps it closed, the badge stays,
+  and only a newer release opens it again; where storage throws, as in some private windows, it
+  shows again on the next load. **Vezi detaliile** dismisses it and opens the release's page.
+  Under 768 px (`useIsMobile`) it is a bottom sheet with a smaller tag, the feature titles alone
+  and no count. It never opens on `/actualizari` or a release page, which show the same thing.
+- The sidebar's footer holds "Actualizări", above "Raportează o problemă", with a lime badge
+  ("2 noi") while releases are unread; the icon rail hides the badge. The page footer's
+  "Versiune 2026.10.24" links to that release's page when the build's `VITE_RELEASE_TAG` has a
+  row in the list, and stays plain text otherwise, as on non-prod and local builds.
+- `/actualizari` lists every release newest first, grouped by month: the tag and weekday beside
+  a card with the headline, the lead, counts per section ("2 noi", "3 îmbunătățiri",
+  "1 remediere") and a "Necitită" mark. **Marchează toate ca citite** shows while something is
+  unread. With no release yet it says "Nicio actualizare încă."
+- `/actualizari/<tag>` (breadcrumb: the tag) has the sand header, then **Ce e nou** as cards with
+  the title, the paragraph and "Unde o găsești: …", **Îmbunătățiri** and **Remedieri** as plain
+  lists, links to the sections when there is more than one ("Pe această pagină" beside the text
+  on desktop, chips above it on a phone), and links to the previous release and to the list.
+  Opening the page of an unread release acknowledges everything published so far, as
+  **Am înțeles** does.
+- Two chunks stay out of the first download: the dialog, which most page loads never need, and
+  `feature-icon.tsx`, loaded inside the dialog, since `lucide-react/dynamic` carries the import
+  map of every lucide icon. An icon name the build does not know draws `sparkles`.
+- The colours are the `--release-*` tokens in `src/styles.css` (sand, its edge and muted text,
+  paper, the tag's red, ring and rule, body text, the edge of the "new" square), exposed to
+  Tailwind as `release-*`.
+
+The flow test `e2e/flows/updates.spec.ts` cannot rely on the seeded releases, which every local
+account sees. `createReleaseUnreadOnlyFor` backdates its account's profile to 2000 and inserts a
+release dated the next day: unread means published after the profile was created, so the
+release is unread for that account alone, and the test removes it afterwards. The test checks
+that the dialog closes for the session while the badge stays, that **Marchează toate ca citite**
+clears the marks and the badge, and that the card opens the release page.
