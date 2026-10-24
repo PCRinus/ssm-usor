@@ -49,7 +49,8 @@ available as a required PR check, including on documentation-only changes.
 | `apps/sms/**`                                                                                                                             | SMS Worker ([guide](sms.md))                         |
 | `apps/pdf/**`, `packages/contracts/src/pdf.ts`                                                                                            | PDF Worker and its container image ([guide](pdf.md)) |
 | `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                   |
-| `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA, portal, marketing and help site                 |
+| `packages/ui/**`                                                                                                                          | SPA, portal and marketing                            |
+| `packages/design-tokens/**`                                                                                                               | SPA, portal, marketing and help site                 |
 | `packages/contracts/**`                                                                                                                   | API, SPA, portal, mail and SMS Workers               |
 | `apps/api/openapi.json`                                                                                                                   | API and SPA                                          |
 | `orval.config.ts`                                                                                                                         | SPA                                                  |
