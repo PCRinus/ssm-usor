@@ -52,6 +52,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership" }`; the last two are null when absent                                                                                                                           |
 | `PATCH /me/profile`                                                    | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                                                                                                                            |
 | `GET /me/invitations`                                                  | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token                                                                                                               |
+| `GET /me/guides`                                                       | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, the guides the caller finished or skipped, each with its version                                                                                                             |
+| `PUT /me/guides/{guide}`                                               | Verified, non-anonymous Supabase user | The saved guide state after recording `{ version, status }` for the caller                                                                                                                         |
 | `GET /releases`                                                        | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, every release with its update, newest first, each with `unread` for the caller; not paginated                                                                                |
 | `GET /releases/{tag}`                                                  | Verified, non-anonymous Supabase user | One release with its update and `unread`; `404` for an unknown tag                                                                                                                                 |
 | `POST /releases/acknowledge`                                           | Verified, non-anonymous Supabase user | `{ "acknowledgedThrough" }` after acknowledging every release up to `{ tag }`                                                                                                                      |
@@ -799,6 +801,20 @@ acknowledged a release published later, that one is kept; either way the answer 
 without a profile gets `409` with `reason: profile_missing`: a profile needs a name, which
 this request does not carry, and such an account has nothing unread. The API exposes no write
 to the table itself; only the release workflow writes it.
+
+## Guides
+
+The in-app guides, such as the welcome tour, are defined by the SPA; the API keeps where each
+person stands with them, in `user_guides` ([data model](data-model.md#user-guides)). The
+routes need a signed-in account and no membership, and read and write with the caller's token,
+so they act on the real caller also during an impersonation.
+
+`GET /me/guides` lists one `{ guide, version, status, updatedAt }` per guide the caller has
+finished (`completed`) or skipped (`skipped`), not paginated. A guide missing from the list was
+never seen. `PUT /me/guides/{guide}` takes `{ version, status }` and replaces what was recorded
+for that guide, through `record_user_guide`; `400` for a guide id that is not a lowercase slug.
+Whether a guide shows again is the SPA's call: when it has no entry, or its version is lower
+than the guide's current one.
 
 ## Dashboard
 
