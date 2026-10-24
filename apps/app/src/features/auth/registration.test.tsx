@@ -5,6 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
+const captured = vi.hoisted(() => vi.fn());
+vi.mock('@/app/observability/posthog', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/app/observability/posthog')>()),
+  captureAsMember: captured,
+}));
+
 const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM SRL' };
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -43,6 +49,7 @@ const created = () =>
 const authError = (code: string) => ({ message: code, code });
 
 beforeEach(() => {
+  captured.mockReset();
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
   mockApi();
@@ -69,6 +76,9 @@ describe('register', () => {
       email: 'Ion@Example.test',
       password: 'Parola123',
     });
+    expect(captured).toHaveBeenCalledExactlyOnceWith('user-one', 'signed_up', {
+      method: 'password',
+    });
   });
 
   it('applies the password rules before calling Supabase', async () => {
@@ -89,7 +99,7 @@ describe('register', () => {
   it('says so when registration is switched off', async () => {
     const auth = authFixture();
     auth.client.signUp.mockResolvedValue({
-      data: { session: null },
+      data: { session: null, user: null },
       error: authError('signup_disabled'),
     });
     mountApp(auth.client, '/register');
@@ -102,6 +112,7 @@ describe('register', () => {
     expect((await screen.findByTestId('register-error')).textContent).toMatch(
       /nu este disponibilă momentan/
     );
+    expect(captured).not.toHaveBeenCalled();
   });
 
   it('is not linked from the login page unless the build flag is on', async () => {

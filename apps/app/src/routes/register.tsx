@@ -4,6 +4,7 @@ import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
+import { captureAsMember } from '@/app/observability/posthog';
 import { PublicFrame, PublicFrameAction, PublicFrameLink } from '@/app/public-frame';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -43,12 +44,14 @@ function RegisterPage() {
   const email = useWatch({ control: form.control, name: 'email' });
 
   const onSubmit = form.handleSubmit(async ({ email, password }) => {
+    let userId: string | null;
     try {
-      await auth.signUp(email, password);
+      userId = await auth.signUp(email, password);
     } catch (cause) {
       form.setError('root.auth', { message: registerErrorMessage(cause) });
       return;
     }
+    if (userId) captureAsMember(userId, 'signed_up', { method: 'password' });
     // Where confirmations are off, signing up signs in; go straight to onboarding.
     if (auth.getSnapshot().session) await navigate({ to: '/onboarding', replace: true });
     else setSentTo(email);
