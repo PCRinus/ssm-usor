@@ -37,9 +37,17 @@ export function GuideTooltip({
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button {...skipProps} data-testid="guide-skip" variant="ghost" size="sm" className="-ml-3">
-          Sari peste
-        </Button>
+        {!isLastStep && (
+          <Button
+            {...skipProps}
+            data-testid="guide-skip"
+            variant="ghost"
+            size="sm"
+            className="-ml-3"
+          >
+            Sari peste
+          </Button>
+        )}
         <div className="ml-auto flex gap-2">
           {index > 0 && (
             <Button {...backProps} data-testid="guide-back" variant="outline" size="sm">

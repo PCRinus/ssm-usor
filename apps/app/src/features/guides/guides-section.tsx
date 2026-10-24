@@ -1,7 +1,7 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { RotateCcw } from 'lucide-react';
+import { Play, RotateCcw } from 'lucide-react';
 
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -65,8 +65,17 @@ export function GuidesSection() {
                   size="sm"
                   onClick={() => startGuide(guide)}
                 >
-                  <RotateCcw aria-hidden="true" />
-                  Reia turul
+                  {progress === 'not_started' ? (
+                    <>
+                      <Play aria-hidden="true" />
+                      Pornește turul
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw aria-hidden="true" />
+                      Reia turul
+                    </>
+                  )}
                 </Button>
               </li>
             );

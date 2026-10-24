@@ -134,6 +134,7 @@ describe('the welcome tour', () => {
       await waitFor(() =>
         expect(screen.getByTestId('guide-progress').textContent).toBe(`${step} din 4`)
       );
+      if (step === 4) expect(screen.queryByTestId('guide-skip')).toBeNull();
       await user.click(screen.getByTestId('guide-next'));
     }
 
@@ -173,6 +174,14 @@ describe('the welcome tour', () => {
     await userEvent.setup().click(within(dialog).getByTestId('update-dialog-acknowledge'));
 
     expect(await screen.findByTestId('guide-tooltip')).toBeTruthy();
+  });
+
+  it('offers to start a tour not taken yet', async () => {
+    mockApi();
+    mount('/setari');
+
+    expect((await screen.findByTestId('guide-welcome-status')).textContent).toBe('Neînceput');
+    expect(screen.getByTestId('guide-welcome-replay').textContent).toBe('Pornește turul');
   });
 
   it('shows its status in Setări and starts again from there on the dashboard', async () => {
