@@ -29,6 +29,10 @@ const shortCommitSha = commitSha.slice(0, 7);
         <code aria-hidden="true">{shortCommitSha}</code>
       </span>
     </span>
+    <p class="fine">
+      Exemplele de pe site sunt ilustrative. SSM Ușor nu oferă consultanță juridică și nu
+      înlocuiește responsabilitatea specialistului autorizat.
+    </p>
   </div>
 </footer>
 
@@ -63,6 +67,12 @@ const shortCommitSha = commitSha.slice(0, 7);
   }
   .version code {
     font-size: 12px;
+  }
+  .fine {
+    flex-basis: 100%;
+    max-width: 72ch;
+    margin: 0;
+    font-size: 13px;
   }
   @media (max-width: 760px) {
     .copy {

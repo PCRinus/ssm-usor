@@ -216,7 +216,7 @@ export const portal = {
 export const access = {
   title: 'Conturile noi se deschid în curând.',
   intro: 'Lasă-ne adresa de email și îți scriem în ziua în care poți crea cont.',
-  // "Modelele de documente sunt verificate juridic…" waits for the legal review (issue #61).
+  // "Modelele de documente sunt verificate juridic…" belongs here only once the legal review is done.
   trust: [
     'Ce ai emis rămâne exact cum l-ai emis.',
     'Datele clienților tăi rămân ale tale.',
