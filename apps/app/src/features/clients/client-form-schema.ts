@@ -41,7 +41,11 @@ export const clientFormSchema = z.object({
   declaredEmployeeCount: z
     .string()
     .trim()
-    .regex(/^[0-9]{0,7}$/, 'Introdu un număr întreg de angajați.'),
+    .regex(/^[0-9]{0,7}$/, 'Introdu un număr întreg de angajați.')
+    .refine(
+      (value) => value.length === 0 || Number(value) <= 1_000_000,
+      'Numărul de angajați este de cel mult 1.000.000.'
+    ),
   contactName: optionalText(160, 'Numele are cel mult 160 de caractere.').refine(
     (value) => value.length === 0 || value.length >= 2,
     'Numele persoanei de contact are cel puțin 2 caractere.'
