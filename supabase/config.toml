@@ -109,8 +109,9 @@ secrets = "v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXNtcy1ob29rLW9ubHk="
 
 # Sign-in with Google (ADR 027). Each environment has its own OAuth client in the Google Cloud
 # project `ssm-usor`: production's, and one shared by non-prod and the local stack. CI fills the
-# two values from the GitHub environment's secrets; locally they come from supabase/.env, and
-# without them the provider stays switched on with an id Google refuses.
+# two values from the GitHub environment's secrets; locally they come from supabase/.env.
+# Unlike the hooks' secrets, an unset value here does not stop `supabase start` (checked in CI
+# on 2026-10-24); the provider is then on without a usable client, and Google refuses it.
 [auth.external.google]
 enabled = true
 client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
