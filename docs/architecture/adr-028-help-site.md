@@ -167,21 +167,23 @@ The named tab keeps most of the panel's benefit. A short summary can still go in
 
 ## Order of work
 
+Each step is a pull request stacked on the step it names.
+
 1. This ADR.
-2. `apps/help`:
+2. `apps/help`, on step 1:
    - Starlight with the design tokens and the Romanian interface;
    - the sidebar skeleton and the Primii pași page;
    - the noindex Worker and the deploy to both environments.
-3. The topic front matter, the manifest generator with its checks, `packages/help-topics`, and the CI diff and sources warning. On step 2.
-4. The app's links:
+3. The topics and their checks, on step 2:
+   - the topic front matter and the manifest generator with its checks;
+   - `packages/help-topics`;
+   - the CI diff and the sources warning.
+4. The app's links, on step 3:
    - `Field`'s `help` prop, `HelpLink` and the "Ajutor" sidebar item;
    - the help origin per environment;
    - the `help_opened` event.
-
-   On step 3.
-
-5. **Angajați** articles, its topics wired into the employee forms, and its hints shortened. On step 4. This area sets the voice and depth, and Mircea reads it before the rest are written.
-6. The other areas, one pull request each, in parallel, on step 5:
+5. The **Angajați** articles, on step 4: its topics wired into the employee forms, and its hints shortened. This area sets the voice and depth, and Mircea reads it before the rest are written.
+6. The other areas, on step 5, one pull request each, written in parallel:
    - Clienți and Date firmă;
    - Posturi și echipament;
    - Evaluarea riscurilor and Riscuri;
@@ -194,4 +196,4 @@ The named tab keeps most of the panel's benefit. A short summary can still go in
    - Legislație;
    - Organizație and Contul meu;
    - the Cum funcționează pages.
-7. The gate (the handoff table and routes, the help Worker's cookie, the app's `/ajutor` route), before the pricing pages go live.
+7. The gate, before the pricing pages go live: the handoff table and routes, the help Worker's cookie, and the app's `/ajutor` route.
