@@ -1,21 +1,21 @@
 @import '@ssm-usor/design-tokens/tokens.css';
 
-/* The tokens have no dark palette, so the dark shades below are forest tints of the brand. */
+/* The tokens have no dark palette: dark is a neutral grey with the brand's lime as its accent. */
 :root {
   --sl-font: var(--font-body);
 
-  --sl-color-white: var(--brand-cream);
-  --sl-color-gray-1: var(--muted);
-  --sl-color-gray-2: var(--border);
-  --sl-color-gray-3: #9fb39c;
-  --sl-color-gray-4: #5d776e;
-  --sl-color-gray-5: #2a5045;
-  --sl-color-gray-6: var(--brand-forest);
-  --sl-color-black: #10241f;
+  --sl-color-white: #f4f5f4;
+  --sl-color-gray-1: #e2e4e2;
+  --sl-color-gray-2: #c2c6c3;
+  --sl-color-gray-3: #8d938f;
+  --sl-color-gray-4: #5e6460;
+  --sl-color-gray-5: #3c403e;
+  --sl-color-gray-6: #262927;
+  --sl-color-black: #161817;
 
-  --sl-color-accent-low: var(--success-foreground);
+  --sl-color-accent-low: #2a3519;
   --sl-color-accent: var(--brand-lime);
-  --sl-color-accent-high: var(--brand-lime);
+  --sl-color-accent-high: #d4e9a8;
 }
 
 :root[data-theme='light'] {
