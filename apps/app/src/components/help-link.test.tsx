@@ -26,6 +26,12 @@ describe('helpHref', () => {
     expect(helpHref()).toBe('https://help.ssmusor.ro/');
   });
 
+  it('ignores a trailing slash on the origin', () => {
+    vi.stubEnv('VITE_HELP_URL', 'https://help.ssmusor.ro/');
+    expect(helpHref(topic)).toBe(`https://help.ssmusor.ro${path}#${anchor}`);
+    expect(helpHref()).toBe('https://help.ssmusor.ro/');
+  });
+
   it('uses the help dev server in development', () => {
     vi.stubEnv('VITE_HELP_URL', undefined);
     expect(helpHref(topic)).toBe(`http://localhost:4331${path}#${anchor}`);

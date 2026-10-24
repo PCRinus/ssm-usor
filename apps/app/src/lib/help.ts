@@ -13,7 +13,8 @@ export function helpHref(topic?: HelpTopic) {
   const helpOrigin =
     import.meta.env.VITE_HELP_URL ?? (import.meta.env.DEV ? 'http://localhost:4331' : undefined);
   if (!helpOrigin) return undefined;
-  return topic ? helpTopicUrl(helpOrigin, topic) : `${helpOrigin}/`;
+  const origin = helpOrigin.replace(/\/+$/, '');
+  return topic ? helpTopicUrl(origin, topic) : `${origin}/`;
 }
 
 export function captureHelpOpened(topic?: HelpTopic) {

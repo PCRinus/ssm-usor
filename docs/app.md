@@ -135,7 +135,7 @@ for transport types, which come from the generated client.
 
 The app links to the members' help site ([ADR 028](architecture/adr-028-help-site.md)) through
 the topics generated into `@ssm-usor/help-topics`, so a link to a topic no article lists fails
-the typecheck. `src/components/help-link.tsx` builds every address from `VITE_HELP_URL`, which
+the typecheck. `src/lib/help.ts` builds every address from `VITE_HELP_URL`, which
 defaults to the help dev server (`http://localhost:4331`) in development; a build without it
 shows no help links, and the deployment refuses to build without the environment's `HELP_URL`.
 Every link opens in the one tab named `ssm-usor-ajutor`, without `noopener`, so a second click
