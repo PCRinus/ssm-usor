@@ -1,8 +1,9 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
-import { fail, required } from './cli.js';
-import { assembleRelease, describeFailures, type PullRequest } from './release.js';
+import { fail, required, warn } from './cli.js';
+import { draftUpdate } from './draft.js';
+import { assembleRelease, collectBlocks, describeFailures, type PullRequest } from './release.js';
 
 const { values } = parseArgs({
   options: {
@@ -16,13 +17,21 @@ const pullRequests = readPullRequests(required(values['pull-requests'], 'pull-re
 const trailer = values.trailer === undefined ? '' : readFileSync(values.trailer, 'utf8');
 const out = required(values.out, 'out');
 
-const result = assembleRelease(pullRequests, trailer);
-if (result.kind === 'invalid') {
+const collected = collectBlocks(pullRequests);
+if (collected.kind === 'invalid') {
   fail([
-    ...describeFailures(result.failures),
+    ...describeFailures(collected.failures),
     'Fix the ## Actualizări block in the description of each pull request named above, then run Deploy production again.',
   ]);
 }
+const draft = await draftUpdate(
+  { pullRequests, contributions: collected.contributions },
+  { apiKey: process.env.ANTHROPIC_API_KEY }
+);
+if (draft.kind === 'fallback' && process.env.ANTHROPIC_API_KEY && pullRequests.length > 0) {
+  warn(`No model draft, the update keeps the first item as its headline: ${draft.reason}.`);
+}
+const result = assembleRelease(pullRequests, collected, trailer, draft);
 writeFileSync(out, `${result.body}\n`);
 console.log(result.summary);
 

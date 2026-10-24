@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { parseReleaseBody } from '../src/parse';
-import { assembleRelease, describeFailures, type PullRequest, releaseRow } from './release';
+import type { DraftOutcome } from './draft';
+import {
+  assembleRelease,
+  collectBlocks,
+  describeFailures,
+  type PullRequest,
+  releaseRow,
+} from './release';
 
 function pullRequest(number: number, title: string, body: string | null): PullRequest {
   return { number, title, url: `https://github.com/PCRinus/ssm-usor/pull/${number}`, body };
@@ -85,14 +92,17 @@ const trailer = [
   '**Full Changelog**: https://github.com/PCRinus/ssm-usor/compare/2026.10.20...2026.10.24',
 ].join('\n');
 
+const noModel: DraftOutcome = { kind: 'fallback', reason: 'ANTHROPIC_API_KEY is not set' };
+
+function assemble(pullRequests: PullRequest[], notes: string, draft = noModel) {
+  const collected = collectBlocks(pullRequests);
+  if (collected.kind !== 'collected') throw new Error(collected.kind);
+  return assembleRelease(pullRequests, collected, notes, draft);
+}
+
 describe('assembleRelease', () => {
   it('collects the blocks in merge order and keeps the generated notes after the rule', () => {
-    const result = assembleRelease(
-      [knowledgeTests, dependencyBump, employeeFilter, refactor],
-      trailer
-    );
-    expect(result.kind).toBe('assembled');
-    if (result.kind !== 'assembled') return;
+    const result = assemble([knowledgeTests, dependencyBump, employeeFilter, refactor], trailer);
 
     expect(result.body).toBe(
       [
@@ -119,18 +129,19 @@ describe('assembleRelease', () => {
   });
 
   it('names the pull requests that contributed and those skipped, with the counts', () => {
-    const result = assembleRelease([knowledgeTests, dependencyBump, employeeFilter], trailer);
-    if (result.kind !== 'assembled') throw new Error(result.kind);
+    const result = assemble([knowledgeTests, dependencyBump, employeeFilter], trailer);
 
     expect(result.summary).toContain('Headline: Teste compuse din banca de întrebări');
+    expect(result.summary).toContain(
+      'Headline from the first item (no model: ANTHROPIC_API_KEY is not set).'
+    );
     expect(result.summary).toContain('1 new feature, 1 improvement, 1 fix');
     expect(result.summary).toMatch(/Contributed:\n- \[#543\].*\n- \[#548\]/);
     expect(result.summary).toMatch(/No block, skipped:\n- \[#560\]/);
   });
 
   it('is silent when no pull request carries a block, and the body is only the notes', () => {
-    const result = assembleRelease([dependencyBump, refactor], trailer);
-    if (result.kind !== 'assembled') throw new Error(result.kind);
+    const result = assemble([dependencyBump, refactor], trailer);
 
     expect(result.body).toBe(`---\n\n${trailer}`);
     expect(parseReleaseBody(result.body).kind).toBe('silent');
@@ -140,15 +151,14 @@ describe('assembleRelease', () => {
   });
 
   it('is silent when nothing was merged', () => {
-    const result = assembleRelease([], '');
-    if (result.kind !== 'assembled') throw new Error(result.kind);
+    const result = assemble([], '');
 
     expect(result.body).toBe('');
     expect(result.summary).toContain('Silent: no pull requests were merged');
   });
 
   it('fails on a broken block and names the pull request and the line', () => {
-    const result = assembleRelease([knowledgeTests, brokenBlock], trailer);
+    const result = collectBlocks([knowledgeTests, brokenBlock]);
     expect(result.kind).toBe('invalid');
     if (result.kind !== 'invalid') return;
 

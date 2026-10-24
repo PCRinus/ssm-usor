@@ -181,13 +181,18 @@ The same job then assembles the release's **update**, what members read about it
 ([ADR 026](architecture/adr-026-updates-and-release-review.md)). It collects the pull requests
 merged since the newest release in the commit's history, in merge order, takes the
 `## Actualizări` block of each one's description (`CLAUDE.md` says what goes in it), and joins
-them into one update with a headline drafted from its first item. A pull request whose block is
+them into one update. With the repository secret `ANTHROPIC_API_KEY`, which the owner adds by
+hand, Claude drafts the headline and the lead, merges items that describe the same change, and
+proposes lines marked "(propus)" for pull requests that look user-facing but carry no block;
+without the secret, or when the call or its answer fails a check, the headline is the first item
+and the lead is empty, and the summary says which happened and why. A pull request whose block is
 broken stops the run with its number and the line at fault: fix the description and run again.
 The release body is the update, a horizontal rule, and GitHub's generated list of pull requests
-for developers; with no block at all, it is the list alone and the release is **silent**. The
-run's summary names the pull requests that contributed and those skipped, and shows the whole
-body. The release is created as a **draft**: visible to the repository's writers only, with no
-tag yet, so nothing a member or a rollback could see exists.
+for developers; with no block and no proposed line, it is the list alone and the release is
+**silent**. The run's summary names the pull requests that contributed and those skipped, lists
+the proposed lines, and shows the whole body. The release is created as a **draft**: visible to
+the repository's writers only, with no tag yet, so nothing a member or a rollback could see
+exists.
 
 **Approve the update** then waits on the `release-approval` environment. GitHub notifies
 Mircea; he reads the draft release, edits its body in GitHub's release editor where the wording

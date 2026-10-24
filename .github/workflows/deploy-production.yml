@@ -237,6 +237,8 @@ jobs:
         if: inputs.tag == ''
         working-directory: packages/release-notes
         shell: bash
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           node --import tsx scripts/assemble.ts \
             --pull-requests "$RUNNER_TEMP/pulls.json" \

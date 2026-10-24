@@ -1,3 +1,4 @@
+import { sectionTitles } from '../src/dialect.js';
 import {
   assembleReleaseBody,
   countItems,
@@ -8,6 +9,7 @@ import {
   type UpdateFeature,
   type UpdateSections,
 } from '../src/index.js';
+import type { DraftOutcome } from './draft.js';
 
 export interface PullRequest {
   number: number;
@@ -21,13 +23,26 @@ export interface PullRequestFailure {
   errors: ParseError[];
 }
 
-export type AssembledRelease =
-  | { kind: 'assembled'; body: string; summary: string }
-  | { kind: 'invalid'; failures: PullRequestFailure[] };
+export interface Contribution {
+  pullRequest: PullRequest;
+  sections: UpdateSections;
+}
 
-export function assembleRelease(pullRequests: PullRequest[], trailer: string): AssembledRelease {
-  const blocks: UpdateSections[] = [];
-  const contributed: PullRequest[] = [];
+export interface CollectedBlocks {
+  kind: 'collected';
+  contributions: Contribution[];
+  skipped: PullRequest[];
+}
+
+export type CollectResult = CollectedBlocks | { kind: 'invalid'; failures: PullRequestFailure[] };
+
+export interface AssembledRelease {
+  body: string;
+  summary: string;
+}
+
+export function collectBlocks(pullRequests: PullRequest[]): CollectResult {
+  const contributions: Contribution[] = [];
   const skipped: PullRequest[] = [];
   const failures: PullRequestFailure[] = [];
 
@@ -38,20 +53,38 @@ export function assembleRelease(pullRequests: PullRequest[], trailer: string): A
     } else if (result.kind === 'none') {
       skipped.push(pullRequest);
     } else {
-      blocks.push(result.sections);
-      contributed.push(pullRequest);
+      contributions.push({ pullRequest, sections: result.sections });
     }
   }
   if (failures.length > 0) return { kind: 'invalid', failures };
+  return { kind: 'collected', contributions, skipped };
+}
 
-  const body = assembleReleaseBody({ blocks, trailer });
-  return { kind: 'assembled', body, summary: summarize(pullRequests, contributed, skipped, body) };
+export function assembleRelease(
+  pullRequests: PullRequest[],
+  collected: CollectedBlocks,
+  trailer: string,
+  draft: DraftOutcome
+): AssembledRelease {
+  const body =
+    draft.kind === 'drafted'
+      ? assembleReleaseBody({
+          headline: draft.update?.headline,
+          lead: draft.update?.lead,
+          blocks: draft.update === null ? [] : [draft.update],
+          trailer,
+        })
+      : assembleReleaseBody({
+          blocks: collected.contributions.map((contribution) => contribution.sections),
+          trailer,
+        });
+  return { body, summary: summarize(pullRequests, collected, draft, body) };
 }
 
 function summarize(
   all: PullRequest[],
-  contributed: PullRequest[],
-  skipped: PullRequest[],
+  { contributions, skipped }: CollectedBlocks,
+  draft: DraftOutcome,
   body: string
 ): string {
   const lines = ['### Update', ''];
@@ -67,17 +100,38 @@ function summarize(
   }
   if (parsed.kind === 'silent') {
     lines.push(
-      `Silent: none of the ${all.length} pull requests carries a \`## Actualizări\` block.`
+      `Silent: none of the ${all.length} pull requests carries a \`## Actualizări\` block.`,
+      '',
+      draft.kind === 'drafted'
+        ? `No lines proposed by ${draft.model}.`
+        : `No lines proposed (no model: ${draft.reason}).`
     );
   } else {
     lines.push(
       `Headline: ${parsed.update.headline}`,
       '',
+      draft.kind === 'drafted'
+        ? `Headline and lead drafted by ${draft.model}.`
+        : `Headline from the first item (no model: ${draft.reason}).`,
+      '',
       `${describeCounts(countItems(parsed.update))}.`
     );
   }
-  if (contributed.length > 0) {
-    lines.push('', 'Contributed:', ...contributed.map(listItem));
+  if (draft.kind === 'drafted' && draft.proposed.length > 0) {
+    lines.push(
+      '',
+      'Proposed by the model for pull requests without a block, to check or delete before approving:',
+      ...draft.proposed.map(
+        (line) => `- #${line.pullRequest}, ${sectionTitles[line.section]}: ${line.text}`
+      )
+    );
+  }
+  if (contributions.length > 0) {
+    lines.push(
+      '',
+      'Contributed:',
+      ...contributions.map(({ pullRequest }) => listItem(pullRequest))
+    );
   }
   if (skipped.length > 0) {
     lines.push('', 'No block, skipped:', ...skipped.map(listItem));

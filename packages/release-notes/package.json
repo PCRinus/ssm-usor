@@ -18,8 +18,10 @@
     "publish-update": "node --import tsx scripts/publish-update.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.1.0",
     "@supabase/supabase-js": "^2.117.2",
-    "lucide-react": "^1.45.0"
+    "lucide-react": "^1.45.0",
+    "zod": "^4.6.4"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
