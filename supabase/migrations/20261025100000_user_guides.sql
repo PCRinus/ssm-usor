@@ -23,7 +23,8 @@ create trigger user_guides_set_updated_at before update on public.user_guides
 alter table public.user_guides enable row level security;
 
 revoke all on table public.user_guides from anon, authenticated;
-grant select, insert on table public.user_guides to authenticated;
+grant select on table public.user_guides to authenticated;
+grant insert (user_id, guide, version, status) on table public.user_guides to authenticated;
 grant update (version, status) on table public.user_guides to authenticated;
 
 create policy "users read their own guides"
