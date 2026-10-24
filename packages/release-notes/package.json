@@ -18,15 +18,15 @@
     "publish-update": "node --import tsx scripts/publish-update.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.1.0",
-    "@supabase/supabase-js": "^2.117.2",
-    "lucide-react": "^1.45.0",
-    "zod": "^4.6.4"
+    "@anthropic-ai/sdk": "^1.2.0",
+    "@supabase/supabase-js": "^2.118.0",
+    "lucide-react": "^1.61.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
-    "tsx": "^4.23.13",
+    "@types/node": "^24.19.2",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.5"
   }
 }

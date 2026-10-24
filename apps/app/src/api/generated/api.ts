@@ -7735,7 +7735,7 @@ export interface ContractReturnUploadRequest {
    * @maxLength 200
    */
   token: string;
-  file: Blob;
+  file: Blob | File;
 }
 
 export type MembershipResponseOrganization = {

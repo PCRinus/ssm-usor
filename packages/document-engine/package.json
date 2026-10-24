@@ -36,14 +36,14 @@
   },
   "dependencies": {
     "docxtemplater": "3.69.3",
-    "pizzip": "^3.2.0"
+    "pizzip": "^3.3.0"
   },
   "devDependencies": {
     "@docx-editor.dev/core": "catalog:",
     "@docx-editor.dev/fonts": "catalog:",
-    "@types/node": "^24.0.0",
-    "tsx": "^4.20.0",
+    "@types/node": "^24.19.2",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.5"
   }
 }
