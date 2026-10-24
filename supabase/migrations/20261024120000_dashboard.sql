@@ -181,7 +181,8 @@ left join lateral (
   where c.organization_id = o.id and c.stage = 'client' and c.archived_at is null
 ) as portfolio on true
 -- The copy of the revision in force: a correction drafted beside it leaves the contract
--- received, as the clients list shows it.
+-- received, as the clients list shows it. Leads count: a copy mostly comes back before the
+-- lead is promoted, and the owner who sees this row is the one who promotes it.
 left join lateral (
   select count(*)::integer as copies
   from public.document_signed_copies sc
@@ -193,7 +194,6 @@ left join lateral (
     and sc.confirmed_at is null
     and r.status = 'issued'
     and d.type_key = 'service_contract'
-    and c.stage = 'client'
     and c.archived_at is null
 ) as received on true
 -- A contract that renews by itself never ends, so it is nothing to act on (ADR 027).
@@ -220,7 +220,7 @@ comment on column public.dashboard_summary.next_due_count is
 comment on column public.dashboard_summary.employee_signatures_pending is
   'Pending trainee slots, of training records and test sheets, on active clients.';
 comment on column public.dashboard_summary.contracts_received_to_confirm is
-  'Signed copies of the issued service contract received through the return link and not yet confirmed, on active clients.';
+  'Signed copies of the issued service contract received through the return link and not yet confirmed, on clients and leads not archived.';
 comment on column public.dashboard_summary.contracts_ending_within_60_days is
   'Service contracts of active clients that do not renew by themselves and end between today and 60 days from now, in Bucharest.';
 

@@ -11,7 +11,7 @@ The page was designed over six rounds on a canvas (rounds 5 and 6, boards "R6Mai
 
 What the code had, swept on 2026-10-24. No aggregate: every list endpoint returns a `total`, so the page would need a dozen requests, and some numbers exist in no list at all. The training state is computed per employee by the view `employee_training_status` (_neinstruit_, _la zi_, _scadentă_ within 30 days of the Romanian day, _depășită_) and the test state by `employee_test_status` ([ADR 021](adr-021-training-records-and-individual-sheets.md), [ADR 024](adr-024-knowledge-tests.md)). The `trainingState` filter of `GET /employees` matches either domain, and `current` means both, so a link from an SSM count would list PSI's too. The readiness of a client's documentation is computed in TypeScript from about twenty reads per client (`missingDocumentData`, [ADR 005](adr-005-document-generation.md) and its successors) and stored nowhere. No history of headcount is kept. A client has no specialist assigned, so a specialist answers for the whole organization.
 
-Mircea decided on 2026-10-24: "clienți cu date lipsă" counts the clients failing a cheap subset of the readiness rules, computed in SQL, the detail line saying "date de bază"; the portfolio's monthly bars come from the employment dates; the contracts card counts only active clients' contracts, never a lead's, and leaves out the contracts that renew by themselves; "semnături de la angajați" links to the clients list until the employees list can filter on it (#580).
+Mircea decided on 2026-10-24: "clienți cu date lipsă" counts the clients failing a cheap subset of the readiness rules, computed in SQL, the detail line saying "date de bază"; the portfolio's monthly bars come from the employment dates; the contracts card counts the received copies of clients and leads alike, since a copy mostly comes back before the lead is promoted, and the ending contracts of active clients only, leaving out the contracts that renew by themselves; "semnături de la angajați" links to the clients list until the employees list can filter on it (#580).
 
 ## Decision
 
@@ -61,7 +61,7 @@ The bars are the employees of the organization's clients at the end of each of t
 
 ### The contracts, for owners
 
-The card counts the signed copies received through the return link ([ADR 007](adr-007-leads-and-service-contracts.md)) and not yet confirmed, on the revision of the service contract in force, a correction drafted beside it included, as the clients list shows such a contract as received. It also counts the contracts ending between today and 60 days from now, the end being the start plus the duration less one day, as the contract prints it; a contract that renews by itself never ends and is left out. Both count active clients only, never a lead.
+The card counts the signed copies received through the return link ([ADR 007](adr-007-leads-and-service-contracts.md)) and not yet confirmed, on the revision of the service contract in force, a correction drafted beside it included, as the clients list shows such a contract as received. It also counts the contracts ending between today and 60 days from now, the end being the start plus the duration less one day, as the contract prints it; a contract that renews by itself never ends and is left out. The copies count leads as well as clients, since the copy mostly comes back while the company is still a lead and the owner who sees the row is the one who promotes it; the ending contracts count active clients only.
 
 ### When numbers are zero
 
@@ -83,7 +83,6 @@ The card counts the signed copies received through the return link ([ADR 007](ad
 
 - The schema gains two views and a function; `GET /employees` gains a parameter; the API gains one endpoint; `/dashboard` is replaced. The generated types gain the relationships PostgREST infers through the views' `organization_id` and `client_id`, as for `client_list`.
 - Each load computes the training and test states of every current employee of the organization, which the employees list does a page at a time. At the sizes providers have today that is cheap; a stored state is the next step if it stops being so.
-- A received copy of a contract returned while its client is still a lead is counted only once the lead becomes a client.
 - `docs/data-model.md` and `docs/api.md` describe the views, the function, the parameter and the endpoint; `docs/app.md` the page.
 
 ## Order of work
