@@ -1,0 +1,40 @@
+@import '@ssm-usor/design-tokens/tokens.css';
+
+/* The tokens have no dark palette, so the dark shades below are forest tints of the brand. */
+:root {
+  --sl-font: var(--font-body);
+
+  --sl-color-white: var(--brand-cream);
+  --sl-color-gray-1: var(--muted);
+  --sl-color-gray-2: var(--border);
+  --sl-color-gray-3: #9fb39c;
+  --sl-color-gray-4: #5d776e;
+  --sl-color-gray-5: #2a5045;
+  --sl-color-gray-6: var(--brand-forest);
+  --sl-color-black: #10241f;
+
+  --sl-color-accent-low: var(--success-foreground);
+  --sl-color-accent: var(--brand-lime);
+  --sl-color-accent-high: var(--brand-lime);
+}
+
+:root[data-theme='light'] {
+  --sl-color-white: var(--brand-forest);
+  --sl-color-gray-1: #213f37;
+  --sl-color-gray-2: #2f4a43;
+  --sl-color-gray-3: var(--muted-foreground);
+  --sl-color-gray-4: #8a978f;
+  --sl-color-gray-5: var(--input);
+  --sl-color-gray-6: var(--muted);
+  --sl-color-gray-7: var(--card);
+  --sl-color-black: var(--card);
+
+  --sl-color-accent-low: color-mix(in srgb, var(--brand-lime) 38%, #ffffff);
+  --sl-color-accent: var(--brand-forest);
+  --sl-color-accent-high: var(--brand-forest);
+
+  --sl-color-bg: var(--background);
+  --sl-color-bg-sidebar: var(--card);
+  --sl-color-hairline-light: var(--border);
+  --sl-color-hairline-shade: var(--border);
+}

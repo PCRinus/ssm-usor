@@ -1,0 +1,26 @@
+{
+  "name": "@ssm-usor/help",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "dev": "astro dev --port 4331",
+    "stop": "astro dev stop && astro preview stop",
+    "preview": "astro preview --port 4332",
+    "typecheck": "astro check",
+    "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
+    "deploy": "pnpm build && wrangler deploy"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@astrojs/starlight": "^0.42.6",
+    "@ssm-usor/design-tokens": "workspace:*",
+    "astro": "^7.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.152.0"
+  }
+}
