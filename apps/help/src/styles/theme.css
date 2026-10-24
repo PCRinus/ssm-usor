@@ -38,3 +38,8 @@
   --sl-color-hairline-light: var(--border);
   --sl-color-hairline-shade: var(--border);
 }
+
+/* Starlight sets this inline, sized for the English labels. */
+starlight-theme-select label {
+  --sl-select-width: 8.5em !important;
+}
