@@ -89,6 +89,34 @@ deployment uses. The version tag is the full commit SHA on all of them.
 A version that only uploads a secret carries no message; the dashboard lists it next to the
 annotated one.
 
+## AI Gateway for the update draft
+
+**Deploy production** drafts each release's update with Claude Haiku 5.5 through
+[Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/), paid from the account's
+prepaid AI Gateway credits (Unified Billing), so no Anthropic account or key exists anywhere
+([ADR 026](architecture/adr-026-updates-and-release-review.md)). Without the settings below the
+release still goes out, with the first item as its headline. To set it up once:
+
+1. In the Cloudflare dashboard, open **AI → AI Gateway** and select **Create Gateway**. Name it
+   `ssm-usor`, keep **Authenticated Gateway** on and log collection on; caching and rate limiting
+   stay off. The gateway can also be created with the API, with a token holding
+   **AI Gateway → Edit**.
+2. On the same page, under **Credits Available**, select **Manage** and top up. One release costs
+   well under a cent; a small balance with auto top-up off lasts years.
+3. In **My Profile → API Tokens**, create a custom token named `ssm-usor-release-notes` with the
+   single permission **Account → AI Gateway → Run** for this account. Any token with that
+   permission can call every gateway in the account, so it gets nothing else and is kept apart
+   from the deployment token.
+4. In the GitHub repository settings, add the variable `AI_GATEWAY_URL` with the value
+   `https://gateway.ai.cloudflare.com/v1/<account id>/ssm-usor` and the secret `AI_GATEWAY_TOKEN`
+   with the token's value. Both are repository-level, not environment-level: the job that drafts
+   the update runs before any environment is chosen.
+
+The request goes to the gateway's Anthropic endpoint unchanged, so the model, the effort and the
+structured output are set in `packages/release-notes/scripts/draft.ts` and `claude.ts`; the
+gateway's own logs show every call, its tokens and its cost. To rotate the token, create a new
+one, replace the secret, then delete the old token.
+
 ## Connect `ssmusor.ro` to Cloudflare
 
 The domain remains registered with RoTLD. Connecting it to Cloudflare changes only its authoritative

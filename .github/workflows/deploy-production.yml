@@ -238,7 +238,8 @@ jobs:
         working-directory: packages/release-notes
         shell: bash
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AI_GATEWAY_URL: ${{ vars.AI_GATEWAY_URL }}
+          AI_GATEWAY_TOKEN: ${{ secrets.AI_GATEWAY_TOKEN }}
         run: |
           node --import tsx scripts/assemble.ts \
             --pull-requests "$RUNNER_TEMP/pulls.json" \

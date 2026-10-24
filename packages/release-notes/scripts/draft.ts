@@ -6,7 +6,7 @@ import { clean, foldKey, type SectionKey } from '../src/dialect.js';
 import { parseReleaseBody, renderUpdate, type Update, type UpdateFeature } from '../src/index.js';
 import type { Contribution, PullRequest } from './release.js';
 
-export const draftModel = 'claude-opus-5-5';
+export const draftModel = 'claude-haiku-5-5';
 
 export const limits = {
   headline: 80,
@@ -60,8 +60,13 @@ export interface DraftSource {
   contributions: Contribution[];
 }
 
+export interface Gateway {
+  url: string;
+  token: string;
+}
+
 export interface DraftOptions {
-  apiKey: string | undefined;
+  gateway: Gateway | undefined;
   call?: DraftCall;
 }
 
@@ -70,11 +75,12 @@ export async function draftUpdate(
   options: DraftOptions
 ): Promise<DraftOutcome> {
   if (source.pullRequests.length === 0) return fallback('nothing was merged');
-  if (!options.apiKey) return fallback('ANTHROPIC_API_KEY is not set');
+  if (options.gateway === undefined)
+    return fallback('AI_GATEWAY_URL and AI_GATEWAY_TOKEN are not set');
 
   let answer: unknown;
   try {
-    const call = options.call ?? (await import('./claude.js')).claudeCall(options.apiKey);
+    const call = options.call ?? (await import('./claude.js')).claudeCall(options.gateway);
     answer = await call(draftPrompt(source));
   } catch (error) {
     return fallback(`the call failed: ${error instanceof Error ? error.message : String(error)}`);

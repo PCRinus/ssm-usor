@@ -264,13 +264,15 @@ describe('validateDraft', () => {
   });
 });
 
+const gateway = { url: 'https://gateway.example/v1/account/ssm-usor', token: 'test-token' };
+
 describe('draftUpdate', () => {
   it('falls back without a key and never calls the model', async () => {
     const call = vi.fn();
 
-    await expect(draftUpdate(source, { apiKey: undefined, call })).resolves.toEqual({
+    await expect(draftUpdate(source, { gateway: undefined, call })).resolves.toEqual({
       kind: 'fallback',
-      reason: 'ANTHROPIC_API_KEY is not set',
+      reason: 'AI_GATEWAY_URL and AI_GATEWAY_TOKEN are not set',
     });
     expect(call).not.toHaveBeenCalled();
   });
@@ -278,7 +280,7 @@ describe('draftUpdate', () => {
   it('sends the pull requests and the numbered items, and returns the accepted draft', async () => {
     const call = vi.fn().mockResolvedValue(goodDraft());
 
-    const outcome = await draftUpdate(source, { apiKey: 'test-key', call });
+    const outcome = await draftUpdate(source, { gateway, call });
 
     expect(outcome).toMatchObject({ kind: 'drafted', model: draftModel });
     const prompt = call.mock.calls[0]![0];
@@ -289,14 +291,14 @@ describe('draftUpdate', () => {
 
   it('falls back when the call fails or the answer is rejected', async () => {
     const failing = vi.fn().mockRejectedValue(new Error('overloaded'));
-    await expect(draftUpdate(source, { apiKey: 'test-key', call: failing })).resolves.toEqual({
+    await expect(draftUpdate(source, { gateway, call: failing })).resolves.toEqual({
       kind: 'fallback',
       reason: 'the call failed: overloaded',
     });
 
     const grown = { ...goodDraft(), fixes: [...goodDraft().fixes, { sources: ['R2'], text: 'x' }] };
     const rejecting = vi.fn().mockResolvedValue(grown);
-    await expect(draftUpdate(source, { apiKey: 'test-key', call: rejecting })).resolves.toEqual({
+    await expect(draftUpdate(source, { gateway, call: rejecting })).resolves.toEqual({
       kind: 'fallback',
       reason: 'the draft was rejected: it cites R2, which no pull request wrote',
     });
@@ -308,7 +310,7 @@ describe('assembleRelease with a draft', () => {
     const collected = collectBlocks(pullRequests);
     if (collected.kind !== 'collected') throw new Error(collected.kind);
     const draft = await draftUpdate(source, {
-      apiKey: 'test-key',
+      gateway,
       call: vi.fn().mockResolvedValue(goodDraft()),
     });
 

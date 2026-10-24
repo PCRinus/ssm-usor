@@ -92,7 +92,10 @@ const trailer = [
   '**Full Changelog**: https://github.com/PCRinus/ssm-usor/compare/2026.10.20...2026.10.24',
 ].join('\n');
 
-const noModel: DraftOutcome = { kind: 'fallback', reason: 'ANTHROPIC_API_KEY is not set' };
+const noModel: DraftOutcome = {
+  kind: 'fallback',
+  reason: 'AI_GATEWAY_URL and AI_GATEWAY_TOKEN are not set',
+};
 
 function assemble(pullRequests: PullRequest[], notes: string, draft = noModel) {
   const collected = collectBlocks(pullRequests);
@@ -133,7 +136,7 @@ describe('assembleRelease', () => {
 
     expect(result.summary).toContain('Headline: Teste compuse din banca de întrebări');
     expect(result.summary).toContain(
-      'Headline from the first item (no model: ANTHROPIC_API_KEY is not set).'
+      'Headline from the first item (no model: AI_GATEWAY_URL and AI_GATEWAY_TOKEN are not set).'
     );
     expect(result.summary).toContain('1 new feature, 1 improvement, 1 fix');
     expect(result.summary).toMatch(/Contributed:\n- \[#543\].*\n- \[#548\]/);

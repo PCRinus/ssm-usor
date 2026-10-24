@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
 import { fail, required, warn } from './cli.js';
-import { draftUpdate } from './draft.js';
+import { draftUpdate, type Gateway } from './draft.js';
 import { assembleRelease, collectBlocks, describeFailures, type PullRequest } from './release.js';
 
 const { values } = parseArgs({
@@ -24,16 +24,29 @@ if (collected.kind === 'invalid') {
     'Fix the ## Actualizări block in the description of each pull request named above, then run Deploy production again.',
   ]);
 }
+const gateway = readGateway();
 const draft = await draftUpdate(
   { pullRequests, contributions: collected.contributions },
-  { apiKey: process.env.ANTHROPIC_API_KEY }
+  { gateway }
 );
-if (draft.kind === 'fallback' && process.env.ANTHROPIC_API_KEY && pullRequests.length > 0) {
+if (draft.kind === 'fallback' && gateway !== undefined && pullRequests.length > 0) {
   warn(`No model draft, the update keeps the first item as its headline: ${draft.reason}.`);
 }
 const result = assembleRelease(pullRequests, collected, trailer, draft);
 writeFileSync(out, `${result.body}\n`);
 console.log(result.summary);
+
+function readGateway(): Gateway | undefined {
+  const url = process.env.AI_GATEWAY_URL;
+  const token = process.env.AI_GATEWAY_TOKEN;
+  if (url && token) return { url, token };
+  if (url || token) {
+    warn(
+      'AI_GATEWAY_URL and AI_GATEWAY_TOKEN must both be set for the model draft; neither is used.'
+    );
+  }
+  return undefined;
+}
 
 function readPullRequests(path: string): PullRequest[] {
   const data: unknown = JSON.parse(readFileSync(path, 'utf8'));
