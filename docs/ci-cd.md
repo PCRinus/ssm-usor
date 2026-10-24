@@ -179,7 +179,9 @@ tag.
 
 The same job then assembles the release's **update**, what members read about it
 ([ADR 026](architecture/adr-026-updates-and-release-review.md)). It collects the pull requests
-merged since the newest release in the commit's history, in merge order, takes the
+merged since the newest release in the commit's history, in merge order (a stack merged at once
+is one merge commit that GitHub attributes to the bottom pull request, so the other members are
+read through the stack), takes the
 `## Actualizări` block of each one's description (`CLAUDE.md` says what goes in it), and joins
 them into one update. With the repository variable `AI_GATEWAY_URL` and the secret
 `AI_GATEWAY_TOKEN`, which the owner adds by hand ([deployment guide](deployment.md#ai-gateway-for-the-update-draft)),
