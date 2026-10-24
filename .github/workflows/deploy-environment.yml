@@ -399,6 +399,8 @@ jobs:
       SUPABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
       SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
       SUPABASE_AUTH_SMS_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_SMS_HOOK_SECRET }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -415,6 +417,8 @@ jobs:
           : "${SUPABASE_PROJECT_ID:?Set SUPABASE_PROJECT_ID in GitHub variables}"
           : "${SUPABASE_AUTH_HOOK_SECRET:?Set SUPABASE_AUTH_HOOK_SECRET in GitHub secrets}"
           : "${SUPABASE_AUTH_SMS_HOOK_SECRET:?Set SUPABASE_AUTH_SMS_HOOK_SECRET in GitHub secrets}"
+          : "${SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID:?Set SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID in GitHub secrets}"
+          : "${SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET:?Set SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET in GitHub secrets}"
           remote=$(python3 -c 'import sys, tomllib; print(tomllib.load(open("supabase/config.toml", "rb")).get("remotes", {}).get(sys.argv[1], {}).get("project_id", ""))' "$ENVIRONMENT")
           if [[ "$remote" != "$SUPABASE_PROJECT_ID" ]]; then
             echo "::error::SUPABASE_PROJECT_ID is $SUPABASE_PROJECT_ID, but [remotes.$ENVIRONMENT] in supabase/config.toml names ${remote:-no project}."
@@ -867,6 +871,8 @@ jobs:
       # Read by supabase/config.toml through env(); the API holds the same values.
       SUPABASE_AUTH_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_HOOK_SECRET }}
       SUPABASE_AUTH_SMS_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_SMS_HOOK_SECRET }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID }}
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -879,6 +885,8 @@ jobs:
           : "${SUPABASE_PROJECT_ID:?Set SUPABASE_PROJECT_ID in GitHub variables}"
           : "${SUPABASE_AUTH_HOOK_SECRET:?Set SUPABASE_AUTH_HOOK_SECRET in GitHub secrets}"
           : "${SUPABASE_AUTH_SMS_HOOK_SECRET:?Set SUPABASE_AUTH_SMS_HOOK_SECRET in GitHub secrets}"
+          : "${SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID:?Set SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID in GitHub secrets}"
+          : "${SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET:?Set SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET in GitHub secrets}"
           remote=$(python3 -c 'import sys, tomllib; print(tomllib.load(open("supabase/config.toml", "rb")).get("remotes", {}).get(sys.argv[1], {}).get("project_id", ""))' "$ENVIRONMENT")
           if [[ "$remote" != "$SUPABASE_PROJECT_ID" ]]; then
             echo "::error::SUPABASE_PROJECT_ID is $SUPABASE_PROJECT_ID, but [remotes.$ENVIRONMENT] in supabase/config.toml names ${remote:-no project}."

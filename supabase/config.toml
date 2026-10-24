@@ -36,7 +36,11 @@ port = 54324
 [auth]
 enabled = true
 site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://127.0.0.1:5173"]
+additional_redirect_urls = [
+  "http://127.0.0.1:5173",
+  "http://localhost:5173/auth/callback",
+  "http://127.0.0.1:5173/auth/callback",
+]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
@@ -103,6 +107,17 @@ enabled = true
 uri = "http://host.docker.internal:8797/hooks/supabase/send-sms"
 secrets = "v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXNtcy1ob29rLW9ubHk="
 
+# Sign-in with Google (ADR 027). Each environment has its own OAuth client in the Google Cloud
+# project `ssm-usor`: production's, and one shared by non-prod and the local stack. CI fills the
+# two values from the GitHub environment's secrets; locally they come from supabase/.env.
+# Unlike the hooks' secrets, an unset value here does not stop `supabase start` (checked in CI
+# on 2026-10-24); the provider is then on without a usable client, and Google refuses it.
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+skip_nonce_check = false
+
 # Per hour, for the whole project. The default of 30 is less than a client onboarding a floor of
 # employees in one afternoon needs, and the cap is what bounds the cost of misuse (ADR 022).
 # Emails go through the Send Email hook, which the default of 2 still applies to: the third
@@ -135,7 +150,7 @@ project_id = "xvhiwymggufbvjdfywjg"
 
 [remotes.production.auth]
 site_url = "https://app.ssmusor.ro"
-additional_redirect_urls = []
+additional_redirect_urls = ["https://app.ssmusor.ro/auth/callback"]
 
 [remotes.production.auth.hook.send_email]
 enabled = true
@@ -158,7 +173,7 @@ project_id = "vzgwbdxmimbcqftltmmo"
 
 [remotes.non-prod.auth]
 site_url = "https://app.non-prod.ssmusor.ro"
-additional_redirect_urls = []
+additional_redirect_urls = ["https://app.non-prod.ssmusor.ro/auth/callback"]
 
 [remotes.non-prod.auth.hook.send_email]
 enabled = true

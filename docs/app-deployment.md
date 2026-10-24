@@ -51,6 +51,8 @@ and protection rules of the environment it deploys. Add these values to both:
 | `TURNSTILE_SECRET_KEY`                                          | Secret   | Secret key of the Turnstile widget protecting the marketing site's waitlist form.                                                                                                                                                                                                                                                             |
 | `RESEND_API_KEY`                                                | Secret   | Sending-only Resend key for the mail Worker; see the [mail Worker guide](mail.md).                                                                                                                                                                                                                                                            |
 | `SUPABASE_AUTH_SMS_HOOK_SECRET`                                 | Secret   | Signs Supabase Auth's Send SMS hook, chosen like `SUPABASE_AUTH_HOOK_SECRET` but a different value. CI gives the same value to Supabase and to the API.                                                                                                                                                                                       |
+| `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID`                       | Secret   | The environment's Google OAuth client ID for sign-in with Google (ADR 027); see [Google sign-in](#google-sign-in). Read by `supabase/config.toml` through `env()`.                                                                                                                                                                            |
+| `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`                          | Secret   | That client's secret.                                                                                                                                                                                                                                                                                                                         |
 | `SIGNING_CA_KEY`                                                | Secret   | The app's signing authority's P-256 private key, PKCS#8 PEM (ADR 023). `pnpm --filter @ssm-usor/api signing:ca` makes it with the next two; passed only to the API Worker. Losing it leaves earlier certificates unverifiable against new ones, so keep it.                                                                                   |
 | `SIGNING_CA_CERT`                                               | Secret   | That authority's self-signed certificate, PEM, ten years.                                                                                                                                                                                                                                                                                     |
 | `SIGNING_KEY_ENCRYPTION_KEY`                                    | Secret   | 32 random bytes, base64: the AES-256-GCM key under which signers' private keys are stored. A new value makes every signer's identity reissue at their next signature.                                                                                                                                                                         |
@@ -90,6 +92,54 @@ The Supabase secret key is used by the **Seed database** workflow and uploaded t
 a Worker secret together with `TURNSTILE_SECRET_KEY`; the API reads it only for the
 [waitlist](api.md#waitlist). The API deploys without either secret, with a warning, and the
 waitlist answers `503` until both exist.
+
+## Google sign-in
+
+Sign-in with Google (ADR 027) is configured in two places that have no API to declare them:
+the Google Cloud console and the Supabase custom domain. Both were set up on 2026-10-24 and are
+recorded here so they can be checked or rebuilt.
+
+**Google Cloud.** Project `ssm-usor` in the `ssmusor.ro` organization, owned by the Workspace
+admin `mircea@ssmusor.ro`; no billing account. Under **Google Auth Platform**:
+
+- **Branding:** app name `SSM Ușor`, support email `contact@ssmusor.ro`, home page
+  `https://ssmusor.ro`, privacy policy `https://ssmusor.ro/confidentialitate`, terms
+  `https://ssmusor.ro/termeni`, developer contact `mircea@ssmusor.ro`, no logo (a logo starts a
+  brand verification). Authorized domains: `ssmusor.ro`, `xvhiwymggufbvjdfywjg.supabase.co` and
+  `vzgwbdxmimbcqftltmmo.supabase.co`; plain `supabase.co` is refused as a public suffix.
+- **Audience:** External, publishing status **In production**. Internal would admit only
+  `@ssmusor.ro` accounts, and Testing only listed test users.
+- **Data access:** no scopes added. Supabase asks for `openid`, `email` and `profile`, which need
+  no verification.
+- **Clients**, both of type Web application:
+
+  | Client                  | Authorized redirect URIs                                                                                | GitHub environment |
+  | ----------------------- | ------------------------------------------------------------------------------------------------------- | ------------------ |
+  | `SSM Ușor – production` | `https://auth.ssmusor.ro/auth/v1/callback`, `https://xvhiwymggufbvjdfywjg.supabase.co/auth/v1/callback` | `production`       |
+  | `SSM Ușor – non-prod`   | `https://vzgwbdxmimbcqftltmmo.supabase.co/auth/v1/callback`, `http://127.0.0.1:54321/auth/v1/callback`  | `non-prod`, local  |
+
+Each client's ID and secret are the `SUPABASE_AUTH_EXTERNAL_GOOGLE_*` secrets of its GitHub
+environment, and the non-prod pair is also in `supabase/.env` for the local stack. Both clients'
+JSON files are kept in the password manager. Google shows a client secret only when it is
+created. To rotate one, add a secret to the client in the console, set it in GitHub with
+`gh secret set SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET --env <environment>`, deploy that
+environment so `supabase config push` applies it, and only then disable the old secret.
+
+**Supabase custom domain.** Production serves its API at `auth.ssmusor.ro` (a Pro add-on), so
+Google's account picker names the app's domain instead of the project's `supabase.co` address.
+It was added with the dashboard's **Custom domains** section; the CLI equivalent is:
+
+```sh
+supabase domains create --project-ref xvhiwymggufbvjdfywjg --custom-hostname auth.ssmusor.ro
+supabase domains reverify --project-ref xvhiwymggufbvjdfywjg   # until ssl.status is active
+supabase domains activate --project-ref xvhiwymggufbvjdfywjg
+```
+
+It needs two records in the `ssmusor.ro` zone, both made by hand: a CNAME `auth` to
+`xvhiwymggufbvjdfywjg.supabase.co`, **DNS only** (a proxied record breaks the certificate), and
+the TXT `_acme-challenge.auth` value that `create` prints. The project keeps answering at its
+`supabase.co` address, and its tokens keep that address as their issuer. Issue #579 plans to put
+the zone's hand-made records under OpenTofu.
 
 ## Rotating the signing keys
 
