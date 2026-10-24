@@ -5597,6 +5597,30 @@ export type Database = {
           },
         ];
       };
+      user_guides: {
+        Row: {
+          guide: string;
+          status: string;
+          updated_at: string;
+          user_id: string;
+          version: number;
+        };
+        Insert: {
+          guide: string;
+          status: string;
+          updated_at?: string;
+          user_id: string;
+          version: number;
+        };
+        Update: {
+          guide?: string;
+          status?: string;
+          updated_at?: string;
+          user_id?: string;
+          version?: number;
+        };
+        Relationships: [];
+      };
       waitlist_subscribers: {
         Row: {
           confirmation_sent_at: string | null;
@@ -6439,6 +6463,22 @@ export type Database = {
           p_status: string;
         };
         Returns: boolean;
+      };
+      record_user_guide: {
+        Args: { guide: string; status: string; version: number };
+        Returns: {
+          guide: string;
+          status: string;
+          updated_at: string;
+          user_id: string;
+          version: number;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'user_guides';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       refuse_archived_client: {
         Args: { p_client_id: string };

@@ -1,4 +1,7 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
+import type { GuideState } from '@ssm-usor/contracts';
+
+import { guideProgress, welcomeGuide } from '../src/features/guides/guides';
 
 // Playwright writes an accessibility snapshot of a failed test's page into error-context.md, and
 // it records the password field's value. CI uploads that file as an artifact of a public repo.
@@ -12,7 +15,13 @@ test('sign in, load API identity, restore the session, and sign out', async ({ p
   if (!email || !password)
     throw new Error('Set E2E_EMAIL and E2E_PASSWORD for the authenticated project');
 
-  const meUrl = new URL('/me', process.env.E2E_API_URL ?? 'http://localhost:8787').href;
+  const apiUrl = (path: string) =>
+    new URL(path, process.env.E2E_API_URL ?? 'http://localhost:8787').href;
+  const meUrl = apiUrl('/me');
+  const responseTo = (page: Page, url: string, method = 'GET') =>
+    page.waitForResponse(
+      (response) => response.url() === url && response.request().method() === method
+    );
   // The greeting waits on the dashboard's own request, so it shows only once the API accepted the token.
   const greeting = page.getByTestId('dashboard-greeting');
 
@@ -31,10 +40,27 @@ test('sign in, load API identity, restore the session, and sign out', async ({ p
   await expect(greeting).toBeVisible();
 
   const restoredIdentity = page.waitForResponse(meUrl);
+  const restoredReleases = responseTo(page, apiUrl('/releases'));
+  const restoredGuides = responseTo(page, apiUrl('/me/guides'));
   await page.reload();
   expect((await restoredIdentity).status()).toBe(200);
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(greeting).toBeVisible();
+
+  // An unread release opens the update dialog, and the welcome tour waits for it, then covers the
+  // dashboard until this account has seen it: once per release, and once per environment.
+  const releases = (await (await restoredReleases).json()) as { items: { unread: boolean }[] };
+  if (releases.items.some((release) => release.unread)) {
+    const acknowledged = responseTo(page, apiUrl('/releases/acknowledge'), 'POST');
+    await page.getByTestId('update-dialog-acknowledge').click();
+    expect((await acknowledged).status()).toBe(200);
+  }
+  const guides = (await (await restoredGuides).json()) as { items: GuideState[] };
+  if (guideProgress(welcomeGuide, guides.items) === 'not_started') {
+    const skipped = responseTo(page, apiUrl('/me/guides/welcome'), 'PUT');
+    await page.getByTestId('guide-tooltip').getByTestId('guide-skip').click();
+    expect((await skipped).status()).toBe(200);
+  }
 
   await page.getByTestId('account-menu').click();
   await expect(page.getByRole('menu').getByText(email, { exact: true })).toBeVisible();

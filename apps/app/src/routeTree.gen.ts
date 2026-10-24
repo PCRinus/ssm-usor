@@ -28,6 +28,7 @@ import { Route as AuthenticatedLegislatieRouteImport } from './routes/_authentic
 import { Route as AuthenticatedOrganizationRouteImport } from './routes/_authenticated/organization';
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile';
 import { Route as AuthenticatedRisksRouteImport } from './routes/_authenticated/risks';
+import { Route as AuthenticatedSetariRouteImport } from './routes/_authenticated/setari';
 import { Route as AuthenticatedSignaturesRouteImport } from './routes/_authenticated/signatures';
 import { Route as AuthenticatedTestsRouteImport } from './routes/_authenticated/tests';
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback';
@@ -194,6 +195,11 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
 const AuthenticatedRisksRoute = AuthenticatedRisksRouteImport.update({
   id: '/risks',
   path: '/risks',
+  getParentRoute: () => AuthenticatedRoute,
+} as any);
+const AuthenticatedSetariRoute = AuthenticatedSetariRouteImport.update({
+  id: '/setari',
+  path: '/setari',
   getParentRoute: () => AuthenticatedRoute,
 } as any);
 const AuthenticatedSignaturesRoute = AuthenticatedSignaturesRouteImport.update({
@@ -634,6 +640,7 @@ export interface FileRoutesByFullPath {
   '/organization': typeof AuthenticatedOrganizationRouteWithChildren;
   '/profile': typeof AuthenticatedProfileRoute;
   '/risks': typeof AuthenticatedRisksRouteWithChildren;
+  '/setari': typeof AuthenticatedSetariRoute;
   '/signatures': typeof AuthenticatedSignaturesRoute;
   '/tests': typeof AuthenticatedTestsRouteWithChildren;
   '/auth/callback': typeof AuthCallbackRoute;
@@ -715,6 +722,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute;
   '/dashboard': typeof AuthenticatedDashboardRoute;
   '/profile': typeof AuthenticatedProfileRoute;
+  '/setari': typeof AuthenticatedSetariRoute;
   '/signatures': typeof AuthenticatedSignaturesRoute;
   '/auth/callback': typeof AuthCallbackRoute;
   '/actualizari/$tag': typeof AuthenticatedActualizariTagRoute;
@@ -794,6 +802,7 @@ export interface FileRoutesById {
   '/_authenticated/organization': typeof AuthenticatedOrganizationRouteWithChildren;
   '/_authenticated/profile': typeof AuthenticatedProfileRoute;
   '/_authenticated/risks': typeof AuthenticatedRisksRouteWithChildren;
+  '/_authenticated/setari': typeof AuthenticatedSetariRoute;
   '/_authenticated/signatures': typeof AuthenticatedSignaturesRoute;
   '/_authenticated/tests': typeof AuthenticatedTestsRouteWithChildren;
   '/auth/callback': typeof AuthCallbackRoute;
@@ -886,6 +895,7 @@ export interface FileRouteTypes {
     | '/organization'
     | '/profile'
     | '/risks'
+    | '/setari'
     | '/signatures'
     | '/tests'
     | '/auth/callback'
@@ -967,6 +977,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/profile'
+    | '/setari'
     | '/signatures'
     | '/auth/callback'
     | '/actualizari/$tag'
@@ -1045,6 +1056,7 @@ export interface FileRouteTypes {
     | '/_authenticated/organization'
     | '/_authenticated/profile'
     | '/_authenticated/risks'
+    | '/_authenticated/setari'
     | '/_authenticated/signatures'
     | '/_authenticated/tests'
     | '/auth/callback'
@@ -1264,6 +1276,13 @@ declare module '@tanstack/react-router' {
       path: '/risks';
       fullPath: '/risks';
       preLoaderRoute: typeof AuthenticatedRisksRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    '/_authenticated/setari': {
+      id: '/_authenticated/setari';
+      path: '/setari';
+      fullPath: '/setari';
+      preLoaderRoute: typeof AuthenticatedSetariRouteImport;
       parentRoute: typeof AuthenticatedRoute;
     };
     '/_authenticated/signatures': {
@@ -2175,6 +2194,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedOrganizationRoute: typeof AuthenticatedOrganizationRouteWithChildren;
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute;
   AuthenticatedRisksRoute: typeof AuthenticatedRisksRouteWithChildren;
+  AuthenticatedSetariRoute: typeof AuthenticatedSetariRoute;
   AuthenticatedSignaturesRoute: typeof AuthenticatedSignaturesRoute;
   AuthenticatedTestsRoute: typeof AuthenticatedTestsRouteWithChildren;
   AuthenticatedEmployeesIndexRoute: typeof AuthenticatedEmployeesIndexRoute;
@@ -2190,6 +2210,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedOrganizationRoute: AuthenticatedOrganizationRouteWithChildren,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRisksRoute: AuthenticatedRisksRouteWithChildren,
+  AuthenticatedSetariRoute: AuthenticatedSetariRoute,
   AuthenticatedSignaturesRoute: AuthenticatedSignaturesRoute,
   AuthenticatedTestsRoute: AuthenticatedTestsRouteWithChildren,
   AuthenticatedEmployeesIndexRoute: AuthenticatedEmployeesIndexRoute,

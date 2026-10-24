@@ -62,6 +62,7 @@ test('an owner invites a person, who creates an account, joins, and is then mana
   await guest.getByTestId('accept-submit').click();
 
   await expect(guest).toHaveURL(/\/dashboard$/);
+  await guest.getByTestId('guide-tooltip').getByTestId('guide-skip').click();
   await expect(guest.getByTestId('account-name')).toHaveText('Ion Invitat');
   await guest.getByTestId('nav-organization').click();
   await expect(guest.getByTestId('member-row')).toHaveCount(2);

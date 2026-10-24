@@ -46,6 +46,7 @@ import {
   LogOut,
   MessageSquareWarning,
   Scale,
+  Settings,
   ShieldAlert,
   Signature,
   Sparkles,
@@ -66,11 +67,13 @@ import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
+import { GuidesProvider } from '@/features/guides/guides-provider';
 import { instructionSections } from '@/features/instructions/instruction-sections';
 import { testBankSections } from '@/features/knowledge-tests/test-bank-sections';
 import { legislationSections } from '@/features/legislation/legislation-sections';
 import { newCount } from '@/features/updates/release-format';
 import { useReleases } from '@/features/updates/use-releases';
+import { useUpdateDialogOpen } from '@/features/updates/use-update-dialog-open';
 
 import { releaseTag } from './build-version';
 import { CommitVersion } from './commit-version';
@@ -209,6 +212,7 @@ function AppNavigation({
                           <Link
                             to={to}
                             data-testid={`nav-${to.slice(1)}`}
+                            data-tour={`nav-${to.slice(1)}`}
                             aria-current={pathname === to ? 'page' : inside ? 'true' : undefined}
                             onClick={closeOnMobile}
                           >
@@ -244,7 +248,7 @@ function AppNavigation({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter data-tour="sidebar-footer">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={within('/actualizari')} tooltip="Actualizări">
@@ -340,13 +344,19 @@ function AppNavigation({
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild data-testid="account-profile">
-                  <Link to="/profile">
+                  <Link to="/profile" onClick={closeOnMobile}>
                     <UserRound aria-hidden="true" />
                     Profilul meu
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild data-testid="account-settings">
+                  <Link to="/setari" onClick={closeOnMobile}>
+                    <Settings aria-hidden="true" />
+                    Setări
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild data-testid="account-organization-link">
-                  <Link to="/organization">
+                  <Link to="/organization" onClick={closeOnMobile}>
                     <Building2 aria-hidden="true" />
                     Organizație
                   </Link>
@@ -393,6 +403,7 @@ export function AppShell() {
   const me = useMe();
   const { openSupport, unreadCount } = usePostHogSession(me.data);
   const releases = useReleases();
+  const updateDialogOpen = useUpdateDialogOpen();
   const shippedTag = releaseTag();
 
   async function reportProblem() {
@@ -419,111 +430,117 @@ export function AppShell() {
       onOpenChange={saveSidebarOpen}
       className={cn('flex-col', editorPage && 'fixed inset-0 h-dvh min-h-0 overflow-hidden')}
     >
-      <a
-        href="#main-content"
-        className="sr-only z-50 rounded-md bg-card p-3 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
-      >
-        Sari la conținut
-      </a>
-      <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-6">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <SidebarTrigger data-testid="sidebar-toggle" aria-label="Comută meniul lateral" />
-          <Separator orientation="vertical" className="!h-6" />
-          <Link to="/dashboard" aria-label="SSM Ușor — pagina principală">
-            <img
-              data-testid="app-logo"
-              src="/brand/logo.png"
-              alt="SSM Ușor"
-              width={2172}
-              height={724}
-              className="h-auto w-28 sm:w-36"
+      <GuidesProvider holdBack={releases.query.isPending || updateDialogOpen}>
+        <a
+          href="#main-content"
+          className="sr-only z-50 rounded-md bg-card p-3 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+        >
+          Sari la conținut
+        </a>
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <SidebarTrigger
+              data-testid="sidebar-toggle"
+              data-tour="menu"
+              aria-label="Comută meniul lateral"
             />
-          </Link>
-        </div>
-      </header>
-      <div
-        className={cn(
-          'flex flex-1',
-          editorPage ? 'min-h-0 overflow-hidden' : 'min-h-[calc(100svh-4rem)]'
-        )}
-      >
-        <AppNavigation
-          email={email}
-          name={me.data?.profile?.fullName}
-          organizationName={me.data?.membership?.organization.name}
-          isOwner={me.data?.membership?.role === 'owner'}
-          pending={pending}
-          onSignOut={signOut}
-          onReportProblem={reportProblem}
-          unreadCount={unreadCount}
-          unreadReleases={releases.unreadCount}
-        />
-        <div className={cn('flex min-w-0 flex-1 flex-col', editorPage && 'min-h-0')}>
-          <main
-            id="main-content"
-            tabIndex={-1}
-            className={cn(
-              'mx-auto w-full flex-1 outline-none',
-              editorPage
-                ? 'flex min-h-0 max-w-none flex-col overflow-hidden px-3 py-3 sm:px-5'
-                : 'max-w-7xl px-5 py-6 sm:px-8 lg:px-10'
-            )}
-          >
-            {!editorPage && (
-              <Breadcrumb className="mb-7">
-                <BreadcrumbList>
-                  {trail.map((crumb, index) => (
-                    <Fragment key={crumb.to}>
-                      {index > 0 && <BreadcrumbSeparator />}
-                      <BreadcrumbItem>
-                        {index === trail.length - 1 ? (
-                          <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                        ) : (
-                          <BreadcrumbLink asChild>
-                            <Link to={crumb.to}>{crumb.label}</Link>
-                          </BreadcrumbLink>
-                        )}
-                      </BreadcrumbItem>
-                    </Fragment>
-                  ))}
-                </BreadcrumbList>
-              </Breadcrumb>
-            )}
-            {error && (
-              <Notice
-                variant="destructive"
-                data-testid="sign-out-error"
-                className="mb-6"
-                action={
-                  <Button
-                    data-testid="sign-out-retry"
-                    variant="outline"
-                    disabled={pending}
-                    onClick={() => void signOut()}
-                  >
-                    Reîncearcă deconectarea
-                  </Button>
-                }
-              >
-                {error}
-              </Notice>
-            )}
-            <Outlet />
-          </main>
-          {!editorPage && (
-            <footer className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-4 text-xs text-muted-foreground sm:px-8 lg:px-10">
-              <span>© {new Date().getFullYear()} SSM Ușor</span>
-              <CommitVersion linked={Boolean(shippedTag && releases.find(shippedTag))} />
-            </footer>
+            <Separator orientation="vertical" className="!h-6" />
+            <Link to="/dashboard" aria-label="SSM Ușor — pagina principală">
+              <img
+                data-testid="app-logo"
+                src="/brand/logo.png"
+                alt="SSM Ușor"
+                width={2172}
+                height={724}
+                className="h-auto w-28 sm:w-36"
+              />
+            </Link>
+          </div>
+        </header>
+        <div
+          className={cn(
+            'flex flex-1',
+            editorPage ? 'min-h-0 overflow-hidden' : 'min-h-[calc(100svh-4rem)]'
           )}
+        >
+          <AppNavigation
+            email={email}
+            name={me.data?.profile?.fullName}
+            organizationName={me.data?.membership?.organization.name}
+            isOwner={me.data?.membership?.role === 'owner'}
+            pending={pending}
+            onSignOut={signOut}
+            onReportProblem={reportProblem}
+            unreadCount={unreadCount}
+            unreadReleases={releases.unreadCount}
+          />
+          <div className={cn('flex min-w-0 flex-1 flex-col', editorPage && 'min-h-0')}>
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className={cn(
+                'mx-auto w-full flex-1 outline-none',
+                editorPage
+                  ? 'flex min-h-0 max-w-none flex-col overflow-hidden px-3 py-3 sm:px-5'
+                  : 'max-w-7xl px-5 py-6 sm:px-8 lg:px-10'
+              )}
+            >
+              {!editorPage && (
+                <Breadcrumb className="mb-7">
+                  <BreadcrumbList>
+                    {trail.map((crumb, index) => (
+                      <Fragment key={crumb.to}>
+                        {index > 0 && <BreadcrumbSeparator />}
+                        <BreadcrumbItem>
+                          {index === trail.length - 1 ? (
+                            <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                          ) : (
+                            <BreadcrumbLink asChild>
+                              <Link to={crumb.to}>{crumb.label}</Link>
+                            </BreadcrumbLink>
+                          )}
+                        </BreadcrumbItem>
+                      </Fragment>
+                    ))}
+                  </BreadcrumbList>
+                </Breadcrumb>
+              )}
+              {error && (
+                <Notice
+                  variant="destructive"
+                  data-testid="sign-out-error"
+                  className="mb-6"
+                  action={
+                    <Button
+                      data-testid="sign-out-retry"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() => void signOut()}
+                    >
+                      Reîncearcă deconectarea
+                    </Button>
+                  }
+                >
+                  {error}
+                </Notice>
+              )}
+              <Outlet />
+            </main>
+            {!editorPage && (
+              <footer className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-4 text-xs text-muted-foreground sm:px-8 lg:px-10">
+                <span>© {new Date().getFullYear()} SSM Ușor</span>
+                <CommitVersion linked={Boolean(shippedTag && releases.find(shippedTag))} />
+              </footer>
+            )}
+          </div>
         </div>
-      </div>
-      <ReportProblemDialog open={reportingByEmail} onClose={() => setReportingByEmail(false)} />
-      {releases.newestUnread && (
-        <Suspense fallback={null}>
-          <UpdateDialog />
-        </Suspense>
-      )}
+        <ReportProblemDialog open={reportingByEmail} onClose={() => setReportingByEmail(false)} />
+        {releases.newestUnread && (
+          <Suspense fallback={null}>
+            <UpdateDialog />
+          </Suspense>
+        )}
+      </GuidesProvider>
     </SidebarProvider>
   );
 }

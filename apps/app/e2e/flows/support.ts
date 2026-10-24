@@ -9,6 +9,7 @@ import {
   sensitiveGroupsEvaluation,
   workshopEvaluation,
 } from '../../../api/src/modules/documents/risk-evaluations.fixture';
+import { guides } from '../../src/features/guides/guides';
 
 // Fixtures are written with the local stack's secret key, the way the seed script does it.
 const admin = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!, {
@@ -62,6 +63,16 @@ export async function createAccount(name: string, fullName?: string) {
   });
   if (error) throw error;
   created.users.push(data.user.id);
+  // The welcome tour would cover the first page of every flow; guides.spec.ts forgets it.
+  const seen = await admin.from('user_guides').insert(
+    guides.map((guide) => ({
+      user_id: data.user.id,
+      guide: guide.id,
+      version: guide.version,
+      status: 'completed',
+    }))
+  );
+  if (seen.error) throw seen.error;
   if (fullName) {
     const profile = await admin
       .from('profiles')
@@ -69,6 +80,11 @@ export async function createAccount(name: string, fullName?: string) {
     if (profile.error) throw profile.error;
   }
   return { id: data.user.id, email };
+}
+
+export async function forgetGuides(userId: string) {
+  const forgotten = await admin.from('user_guides').delete().eq('user_id', userId);
+  if (forgotten.error) throw forgotten.error;
 }
 
 export async function createOrganization(name: string, ownerId: string) {

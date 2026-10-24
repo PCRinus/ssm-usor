@@ -66,6 +66,7 @@ test('a person registers, confirms their address, and sets up their organization
   await page.getByTestId('onboarding-submit').click();
 
   await expect(page).toHaveURL(/\/dashboard$/);
+  await page.getByTestId('guide-tooltip').getByTestId('guide-skip').click();
   await expect(page.getByTestId('account-name')).toHaveText('Felicia Fondatoare');
   await expect(page.getByTestId('account-organization')).toHaveText('Prevent SSM E2E SRL');
 

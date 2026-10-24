@@ -15,16 +15,17 @@ import {
   DrawerTitle,
 } from '@ssm-usor/ui/components/drawer';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
-import { Link, useLocation } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { Check, X } from 'lucide-react';
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense } from 'react';
 
 import type { Release } from '@/api/generated/api';
 
-import { readDismissedTag, saveDismissedTag } from './dismissal';
+import { saveDismissedTag } from './dismissal';
 import { dialogHighlights, formatReleaseDay, improvementCount } from './release-format';
 import { ReleaseTag } from './release-tag';
 import { useAcknowledgeReleases, useReleases } from './use-releases';
+import { useUpdateDialogOpen } from './use-update-dialog-open';
 
 // Lazy: `lucide-react/dynamic` carries the import map of every lucide icon.
 const FeatureIcon = lazy(() =>
@@ -91,20 +92,13 @@ export function UpdateDialog() {
   const { newestUnread: release } = useReleases();
   const { acknowledge } = useAcknowledgeReleases();
   const phone = useIsMobile();
-  const [dismissed, setDismissed] = useState(readDismissedTag);
-  // A link to a release page lands on what the dialog would show, and that page acknowledges.
-  const onUpdatesPage = useLocation({
-    select: (location) =>
-      location.pathname === '/actualizari' || location.pathname.startsWith('/actualizari/'),
-  });
-  const open = Boolean(release) && release?.tag !== dismissed && !onUpdatesPage;
+  const open = useUpdateDialogOpen();
 
   if (!release) return null;
 
   function dismiss() {
     if (!release) return;
     saveDismissedTag(release.tag);
-    setDismissed(release.tag);
   }
 
   function understood() {
