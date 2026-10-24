@@ -52,6 +52,14 @@ export function authFixture(session: Session | null = null) {
       error: { message: 'Token has expired or is invalid', code: 'otp_expired' },
     }),
     updateUser: vi.fn<AuthClient['updateUser']>().mockResolvedValue({ error: null }),
+    signInWithOAuth: vi.fn<AuthClient['signInWithOAuth']>().mockResolvedValue({ error: null }),
+    exchangeCodeForSession: vi.fn<AuthClient['exchangeCodeForSession']>().mockResolvedValue({
+      data: { session: null },
+      error: {
+        message: 'invalid flow state, no valid flow state found',
+        code: 'flow_state_not_found',
+      },
+    }),
   };
   return {
     client,

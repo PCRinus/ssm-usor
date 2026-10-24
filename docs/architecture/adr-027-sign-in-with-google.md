@@ -22,7 +22,7 @@ Password accounts stay as they are. The portal (ADR 022) keeps its sign-in by co
 
 ### The flow
 
-The SPA starts the sign-in with `signInWithOAuth` and the PKCE flow, sending Google back through Supabase to `/auth/callback`, a public route that exchanges the code for a session and goes on as signing in does: to `/dashboard`, or to `/onboarding` for an account without a membership. A failed or cancelled sign-in returns to the page it started from with a message. `detectSessionInUrl` stays off: the callback page exchanges the code itself, so no other page acts on a URL.
+The SPA starts the sign-in with `signInWithOAuth` and the PKCE flow, sending Google back through Supabase to `/auth/callback`, a public route that exchanges the code for a session and goes on as signing in does: to `/dashboard`, or to `/onboarding` for an account without a membership. Cancelling at Google returns to the page the sign-in started from; a sign-in Google or Supabase refused shows a page that says so, with the way back. `detectSessionInUrl` stays off: the callback page exchanges the code itself, so no other page acts on a URL.
 
 Each environment allows its own `/auth/callback` as a redirect in `supabase/config.toml`, the local stack both `localhost` and `127.0.0.1`.
 
