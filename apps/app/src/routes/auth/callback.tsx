@@ -2,6 +2,7 @@ import { createFileRoute, Link, Navigate, useNavigate } from '@tanstack/react-ro
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
 
+import { captureAsMember } from '@/app/observability/posthog';
 import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
 import { useAuth } from '@/features/auth/auth-context';
 import {
@@ -20,6 +21,13 @@ export const Route = createFileRoute('/auth/callback')({
   component: GoogleCallbackPage,
 });
 
+// Supabase does not say whether the sign-in made the account; one made by it was created the
+// moment it was signed in. A minute covers the round trip through Google.
+function madeBySignIn(user: { created_at: string; last_sign_in_at?: string }) {
+  const signedIn = Date.parse(user.last_sign_in_at ?? '');
+  return Math.abs(signedIn - Date.parse(user.created_at)) < 60_000;
+}
+
 function GoogleCallbackPage() {
   const { code, error } = Route.useSearch();
   const { auth } = useAuth();
@@ -34,6 +42,8 @@ function GoogleCallbackPage() {
       () => {
         if (!current) return;
         forgetGoogleSignInOrigin();
+        const user = auth.getSnapshot().session?.user;
+        if (user && madeBySignIn(user)) captureAsMember(user.id, 'signed_up', { method: 'google' });
         void (origin.invitation
           ? navigate({
               to: '/accept-invitation',

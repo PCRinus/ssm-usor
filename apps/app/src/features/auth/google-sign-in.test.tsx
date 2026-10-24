@@ -6,17 +6,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
+const captured = vi.hoisted(() => vi.fn());
+vi.mock('@/app/observability/posthog', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/app/observability/posthog')>()),
+  captureAsMember: captured,
+}));
+
 const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM SRL' };
 
 const fetchMock = vi.fn<typeof fetch>();
 
-function mockApi({ member = true } = {}) {
+function mockApi({ member = true, profile = true } = {}) {
   fetchMock.mockImplementation(async (input) => {
     const { pathname } = new URL(String(input));
     if (pathname === '/me') {
       return Response.json({
         user: { id: 'user-one', email: 'review@example.test' },
-        profile: {
+        profile: profile && {
           fullName: 'Ana Popescu',
           professionalTitle: null,
           termsVersion: null,
@@ -30,11 +36,18 @@ function mockApi({ member = true } = {}) {
   });
 }
 
-function googleSession(): Session {
+function googleSession({ newAccount = false } = {}): Session {
   const session = makeSession();
+  const now = new Date().toISOString();
   return {
     ...session,
-    user: { ...session.user, app_metadata: { provider: 'google', providers: ['google'] } },
+    user: {
+      ...session.user,
+      app_metadata: { provider: 'google', providers: ['google'] },
+      user_metadata: { full_name: 'Ioana Marinescu', name: 'Ioana Marinescu' },
+      ...(newAccount ? { created_at: now } : {}),
+      last_sign_in_at: now,
+    },
   };
 }
 
@@ -43,6 +56,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
   mockApi();
   sessionStorage.clear();
+  captured.mockReset();
 });
 
 afterEach(() => {
@@ -105,8 +119,24 @@ describe('Google callback', () => {
     expect(auth.client.exchangeCodeForSession).toHaveBeenCalledWith('code-abc');
   });
 
-  it('sends a new account to onboarding', async () => {
-    mockApi({ member: false });
+  it('sends a new account to onboarding with the name from Google, and counts the signup', async () => {
+    mockApi({ member: false, profile: false });
+    const auth = authFixture();
+    auth.client.exchangeCodeForSession.mockResolvedValue({
+      data: { session: googleSession({ newAccount: true }) },
+      error: null,
+    });
+    const runtime = mountApp(auth.client, '/auth/callback?code=code-abc');
+
+    await screen.findByTestId('onboarding-page');
+    expect(runtime.router.state.location.pathname).toBe('/onboarding');
+    expect(screen.getByTestId<HTMLInputElement>('onboarding-full-name').value).toBe(
+      'Ioana Marinescu'
+    );
+    expect(captured).toHaveBeenCalledExactlyOnceWith('user-one', 'signed_up', { method: 'google' });
+  });
+
+  it('does not count a signup for an account that already existed', async () => {
     const auth = authFixture();
     auth.client.exchangeCodeForSession.mockResolvedValue({
       data: { session: googleSession() },
@@ -114,8 +144,8 @@ describe('Google callback', () => {
     });
     const runtime = mountApp(auth.client, '/auth/callback?code=code-abc');
 
-    await screen.findByTestId('onboarding-page');
-    expect(runtime.router.state.location.pathname).toBe('/onboarding');
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
+    expect(captured).not.toHaveBeenCalled();
   });
 
   it('returns to the invitation the sign-in started from', async () => {
