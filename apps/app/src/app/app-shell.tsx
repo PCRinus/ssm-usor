@@ -52,7 +52,15 @@ import {
   UserRound,
   UsersRound,
 } from 'lucide-react';
-import { type ComponentProps, Fragment, type ReactNode, useEffect, useState } from 'react';
+import {
+  type ComponentProps,
+  Fragment,
+  lazy,
+  type ReactNode,
+  Suspense,
+  useEffect,
+  useState,
+} from 'react';
 
 import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
@@ -62,7 +70,6 @@ import { instructionSections } from '@/features/instructions/instruction-section
 import { testBankSections } from '@/features/knowledge-tests/test-bank-sections';
 import { legislationSections } from '@/features/legislation/legislation-sections';
 import { newCount } from '@/features/updates/release-format';
-import { UpdateDialog } from '@/features/updates/update-dialog';
 import { useReleases } from '@/features/updates/use-releases';
 
 import { releaseTag } from './build-version';
@@ -70,6 +77,11 @@ import { CommitVersion } from './commit-version';
 import { ReportProblemDialog } from './report-problem-dialog';
 import { loaderCrumb } from './route-title';
 import { readSidebarOpen, saveSidebarOpen } from './sidebar-open';
+
+// Most page loads have nothing unread, so the dialog and its drawer stay out of the first download.
+const UpdateDialog = lazy(() =>
+  import('@/features/updates/update-dialog').then((module) => ({ default: module.UpdateDialog }))
+);
 
 // `ownerOnly`: a specialist has no leads to see (ADR 007).
 const navigation = [
@@ -507,7 +519,11 @@ export function AppShell() {
         </div>
       </div>
       <ReportProblemDialog open={reportingByEmail} onClose={() => setReportingByEmail(false)} />
-      <UpdateDialog />
+      {releases.newestUnread && (
+        <Suspense fallback={null}>
+          <UpdateDialog />
+        </Suspense>
+      )}
     </SidebarProvider>
   );
 }
