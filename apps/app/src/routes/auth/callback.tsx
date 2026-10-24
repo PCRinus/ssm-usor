@@ -17,6 +17,7 @@ export const Route = createFileRoute('/auth/callback')({
   validateSearch: z.object({
     code: z.string().optional(),
     error: z.string().optional(),
+    error_code: z.string().optional(),
   }),
   component: GoogleCallbackPage,
 });
@@ -29,7 +30,7 @@ function madeBySignIn(user: { created_at: string; last_sign_in_at?: string }) {
 }
 
 function GoogleCallbackPage() {
-  const { code, error } = Route.useSearch();
+  const { code, error, error_code: errorCode } = Route.useSearch();
   const { auth } = useAuth();
   const navigate = useNavigate();
   const [origin] = useState(readGoogleSignInOrigin);
@@ -61,7 +62,9 @@ function GoogleCallbackPage() {
     };
   }, [auth, code, navigate, origin]);
 
-  if (error === 'access_denied') return <Navigate to={origin.from} replace />;
+  // Supabase reports its own refusals, such as a blocked account, as `access_denied` too, but
+  // with an `error_code`; only Google's cancel arrives without one.
+  if (error === 'access_denied' && !errorCode) return <Navigate to={origin.from} replace />;
 
   if (!code || failed) {
     return (

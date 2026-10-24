@@ -180,6 +180,12 @@ describe('Google callback', () => {
     expect(auth.client.exchangeCodeForSession).not.toHaveBeenCalled();
   });
 
+  it('explains a refusal Supabase reports as access_denied', async () => {
+    mountApp(authFixture().client, '/auth/callback?error=access_denied&error_code=signup_disabled');
+
+    await screen.findByTestId('google-callback-failed');
+  });
+
   it('explains a code Supabase refuses', async () => {
     mountApp(authFixture().client, '/auth/callback?code=used-code');
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { PublicFrameAction } from '@/app/public-frame';
 import { Notice } from '@/components/notice';
@@ -9,6 +9,16 @@ import { type GoogleSignInOrigin, rememberGoogleSignInOrigin } from './google-si
 export function GoogleSignIn({ origin }: { origin: GoogleSignInOrigin }) {
   const { auth } = useAuth();
   const [state, setState] = useState<'idle' | 'leaving' | 'failed'>('idle');
+
+  // Back from Google's account picker can restore this page from the back/forward cache, still
+  // 'leaving', with the button disabled.
+  useEffect(() => {
+    const reset = (event: PageTransitionEvent) => {
+      if (event.persisted) setState('idle');
+    };
+    window.addEventListener('pageshow', reset);
+    return () => window.removeEventListener('pageshow', reset);
+  }, []);
 
   async function start() {
     setState('leaving');

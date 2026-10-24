@@ -75,3 +75,21 @@ describe('session transitions', () => {
     auth.dispose();
   });
 });
+
+describe('Google sign-in', () => {
+  it('exchanges a code once, however often it is completed', async () => {
+    const fixture = authFixture();
+    fixture.client.exchangeCodeForSession.mockResolvedValue({
+      data: { session: makeSession() },
+      error: null,
+    });
+    const auth = createAuthStore(fixture.client, createQueryClient());
+
+    await Promise.all([auth.completeOAuth('code-abc'), auth.completeOAuth('code-abc')]);
+    await auth.completeOAuth('code-abc');
+
+    expect(fixture.client.exchangeCodeForSession).toHaveBeenCalledOnce();
+    expect(auth.getSnapshot().session?.user.id).toBe('user-one');
+    auth.dispose();
+  });
+});
