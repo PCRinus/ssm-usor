@@ -10,6 +10,7 @@ export * from './clients';
 export * from './cnp';
 export * from './counties';
 export * from './cui';
+export * from './dashboard';
 export * from './document-data';
 export * from './documents';
 export * from './employees';

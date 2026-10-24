@@ -53,6 +53,7 @@ export function OrganizationEmployeesPage() {
     clientId,
     trainingState,
     testState,
+    domain,
     q,
     page = 1,
     sort = defaultSort.sort,
@@ -66,6 +67,7 @@ export function OrganizationEmployeesPage() {
     ...(clientId ? { clientId } : {}),
     ...(trainingState ? { trainingState } : {}),
     ...(testState ? { testState } : {}),
+    ...(domain ? { domain } : {}),
     ...(q ? { q } : {}),
     page,
     pageSize: defaultPageSize,
@@ -146,7 +148,12 @@ export function OrganizationEmployeesPage() {
                 onChange={(next) =>
                   void navigate({
                     replace: true,
-                    search: (prev) => ({ ...prev, trainingState: next, page: undefined }),
+                    search: (prev) => ({
+                      ...prev,
+                      trainingState: next,
+                      domain: undefined,
+                      page: undefined,
+                    }),
                   })
                 }
               />
@@ -156,7 +163,12 @@ export function OrganizationEmployeesPage() {
                 onChange={(next) =>
                   void navigate({
                     replace: true,
-                    search: (prev) => ({ ...prev, testState: next, page: undefined }),
+                    search: (prev) => ({
+                      ...prev,
+                      testState: next,
+                      domain: undefined,
+                      page: undefined,
+                    }),
                   })
                 }
               />
@@ -251,7 +263,12 @@ export function OrganizationEmployeesPage() {
                 onClear={() =>
                   void navigate({
                     replace: true,
-                    search: (prev) => ({ ...prev, trainingState: undefined, page: undefined }),
+                    search: (prev) => ({
+                      ...prev,
+                      trainingState: undefined,
+                      domain: undefined,
+                      page: undefined,
+                    }),
                   })
                 }
               />
@@ -265,7 +282,12 @@ export function OrganizationEmployeesPage() {
                 onClear={() =>
                   void navigate({
                     replace: true,
-                    search: (prev) => ({ ...prev, testState: undefined, page: undefined }),
+                    search: (prev) => ({
+                      ...prev,
+                      testState: undefined,
+                      domain: undefined,
+                      page: undefined,
+                    }),
                   })
                 }
               />

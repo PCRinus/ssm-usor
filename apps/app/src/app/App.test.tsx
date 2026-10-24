@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthClient } from '@/features/auth/auth-store';
 import { createQueryClient } from '@/lib/query-client';
 import { authFixture, makeSession } from '@/test/auth-fixture';
+import { quietSummary } from '@/test/dashboard-fixture';
 
 import App from './App';
 import { type AppRuntime, createAppRuntime } from './app-runtime';
@@ -13,8 +14,10 @@ import { type AppRuntime, createAppRuntime } from './app-runtime';
 const fetchMock = vi.fn<typeof fetch>();
 beforeEach(() => {
   fetchMock.mockReset();
-  fetchMock.mockImplementation(async () =>
-    Response.json({ user: { id: 'user-one', email: 'verified@example.test' } })
+  fetchMock.mockImplementation(async (input) =>
+    new URL(String(input)).pathname === '/dashboard/summary'
+      ? Response.json(quietSummary)
+      : Response.json({ user: { id: 'user-one', email: 'verified@example.test' } })
   );
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -299,10 +302,10 @@ describe('dashboard authentication and routing', () => {
 });
 
 describe('generated API integration', () => {
-  it('shows the API identity and uses the refreshed token for subsequent queries', async () => {
+  it('loads the dashboard with the session token and uses the refreshed token for subsequent queries', async () => {
     const fixture = authFixture(makeSession());
     const runtime = mount(fixture.client);
-    await screen.findByText('verified@example.test');
+    await screen.findByTestId('dashboard-todo');
     expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('Authorization')).toBe(
       `Bearer ${makeSession().access_token}`
     );
@@ -332,6 +335,7 @@ describe('generated API integration', () => {
   });
 
   it('shows a rejected-session error without retrying 401 responses automatically', async () => {
+    const recovered = fetchMock.getMockImplementation()!;
     fetchMock.mockImplementation(async () =>
       Response.json(
         { error: 'unauthorized', message: 'A valid token is required.' },
@@ -339,14 +343,15 @@ describe('generated API integration', () => {
       )
     );
     mount(authFixture(makeSession()).client);
-    expect(await screen.findByTestId('dashboard-account-error')).toBeTruthy();
+    const error = await screen.findByTestId('dashboard-error');
+    expect(error.textContent).toContain('Sesiunea nu mai este validă');
     expect(
-      fetchMock.mock.calls.filter(([input]) => new URL(String(input)).pathname === '/me')
+      fetchMock.mock.calls.filter(
+        ([input]) => new URL(String(input)).pathname === '/dashboard/summary'
+      )
     ).toHaveLength(1);
-    fetchMock.mockImplementation(async () =>
-      Response.json({ user: { id: 'user-one', email: 'recovered@example.test' } })
-    );
-    await userEvent.setup().click(screen.getByTestId('dashboard-account-retry'));
-    await screen.findByText('recovered@example.test');
+    fetchMock.mockImplementation(recovered);
+    await userEvent.setup().click(within(error).getByRole('button', { name: 'Încearcă din nou' }));
+    await screen.findByTestId('dashboard-todo');
   });
 });
