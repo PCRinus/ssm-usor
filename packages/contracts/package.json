@@ -12,15 +12,15 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "dev": "tsc -p tsconfig.build.json --watch",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "test": "vitest run"
   },
   "dependencies": {
     "libphonenumber-js": "catalog:",
-    "zod": "^4.6.4"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "typescript": "^7.0.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.5"
   }
 }

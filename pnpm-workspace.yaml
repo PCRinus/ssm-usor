@@ -20,3 +20,8 @@ catalog:
   '@lingui/react': 6.9.1
   '@lingui/vite-plugin': 6.9.1
   libphonenumber-js: 1.13.14
+
+# miniflare (under wrangler) and @scalar/json-magic (under orval) pin undici 7.29.1 exactly, which
+# has open advisories. Drop this once neither resolves to 7.29.1.
+overrides:
+  undici@7.29.1: 7.30.1
