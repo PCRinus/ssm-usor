@@ -1,0 +1,20 @@
+{
+  "search.devWarning": "Căutarea funcționează doar în site-ul construit. \nConstruiește site-ul și deschide-l în previzualizare ca să o încerci local.",
+  "themeSelect.auto": "Automată",
+  "tableOfContents.overview": "Începutul paginii",
+  "404.text": "Pagina nu a fost găsită. Verifică adresa sau caută ce ai nevoie în bara de căutare.",
+  "aside.note": "Notă",
+  "expressiveCode.copyButtonCopied": "Copiat!",
+  "expressiveCode.copyButtonTooltip": "Copiază",
+  "expressiveCode.terminalWindowFallbackTitle": "Fereastră de terminal",
+  "pagefind.clear_search": "Șterge",
+  "pagefind.load_more": "Mai multe rezultate",
+  "pagefind.search_label": "Caută în ajutor",
+  "pagefind.filters_label": "Filtre",
+  "pagefind.zero_results": "Niciun rezultat pentru [SEARCH_TERM]",
+  "pagefind.many_results": "Rezultate pentru [SEARCH_TERM]: [COUNT]",
+  "pagefind.one_result": "Un rezultat pentru [SEARCH_TERM]",
+  "pagefind.alt_search": "Niciun rezultat pentru [SEARCH_TERM]. Se afișează rezultatele pentru [DIFFERENT_TERM].",
+  "pagefind.search_suggestion": "Niciun rezultat pentru [SEARCH_TERM]. Încearcă una dintre căutările:",
+  "pagefind.searching": "Se caută [SEARCH_TERM]…"
+}
