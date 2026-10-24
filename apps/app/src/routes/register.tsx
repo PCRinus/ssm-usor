@@ -13,6 +13,7 @@ import { PasswordStrengthIndicator } from '@/components/password-strength-indica
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useAuth } from '@/features/auth/auth-context';
 import { registerErrorMessage } from '@/features/auth/auth-errors';
+import { GoogleSignIn } from '@/features/auth/google-sign-in';
 import {
   newPasswordHint,
   registerSchema,
@@ -85,6 +86,7 @@ function RegisterPage() {
       title="Creează cont"
       description="Pentru servicii externe de prevenire și protecție. După confirmarea adresei de email îți configurezi organizația."
     >
+      <GoogleSignIn origin={{ from: '/register' }} />
       <form
         ref={formRef}
         className="grid gap-5"

@@ -30,6 +30,7 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedRisksRouteImport } from './routes/_authenticated/risks';
 import { Route as AuthenticatedSignaturesRouteImport } from './routes/_authenticated/signatures';
 import { Route as AuthenticatedTestsRouteImport } from './routes/_authenticated/tests';
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback';
 import { Route as AuthenticatedActualizariIndexRouteImport } from './routes/_authenticated/actualizari/index';
 import { Route as AuthenticatedActualizariTagRouteImport } from './routes/_authenticated/actualizari/$tag';
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients/index';
@@ -204,6 +205,11 @@ const AuthenticatedTestsRoute = AuthenticatedTestsRouteImport.update({
   id: '/tests',
   path: '/tests',
   getParentRoute: () => AuthenticatedRoute,
+} as any);
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
 } as any);
 const AuthenticatedActualizariIndexRoute =
   AuthenticatedActualizariIndexRouteImport.update({
@@ -630,6 +636,7 @@ export interface FileRoutesByFullPath {
   '/risks': typeof AuthenticatedRisksRouteWithChildren;
   '/signatures': typeof AuthenticatedSignaturesRoute;
   '/tests': typeof AuthenticatedTestsRouteWithChildren;
+  '/auth/callback': typeof AuthCallbackRoute;
   '/actualizari/$tag': typeof AuthenticatedActualizariTagRoute;
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRouteWithChildren;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
@@ -709,6 +716,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute;
   '/profile': typeof AuthenticatedProfileRoute;
   '/signatures': typeof AuthenticatedSignaturesRoute;
+  '/auth/callback': typeof AuthCallbackRoute;
   '/actualizari/$tag': typeof AuthenticatedActualizariTagRoute;
   '/clients/new': typeof AuthenticatedClientsNewRoute;
   '/instructions/$moduleId': typeof AuthenticatedInstructionsModuleIdRoute;
@@ -788,6 +796,7 @@ export interface FileRoutesById {
   '/_authenticated/risks': typeof AuthenticatedRisksRouteWithChildren;
   '/_authenticated/signatures': typeof AuthenticatedSignaturesRoute;
   '/_authenticated/tests': typeof AuthenticatedTestsRouteWithChildren;
+  '/auth/callback': typeof AuthCallbackRoute;
   '/_authenticated/actualizari/$tag': typeof AuthenticatedActualizariTagRoute;
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRouteWithChildren;
   '/_authenticated/clients/new': typeof AuthenticatedClientsNewRoute;
@@ -879,6 +888,7 @@ export interface FileRouteTypes {
     | '/risks'
     | '/signatures'
     | '/tests'
+    | '/auth/callback'
     | '/actualizari/$tag'
     | '/clients/$clientId'
     | '/clients/new'
@@ -958,6 +968,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/profile'
     | '/signatures'
+    | '/auth/callback'
     | '/actualizari/$tag'
     | '/clients/new'
     | '/instructions/$moduleId'
@@ -1036,6 +1047,7 @@ export interface FileRouteTypes {
     | '/_authenticated/risks'
     | '/_authenticated/signatures'
     | '/_authenticated/tests'
+    | '/auth/callback'
     | '/_authenticated/actualizari/$tag'
     | '/_authenticated/clients/$clientId'
     | '/_authenticated/clients/new'
@@ -1116,6 +1128,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute;
   RegisterRoute: typeof RegisterRoute;
   ResetPasswordRoute: typeof ResetPasswordRoute;
+  AuthCallbackRoute: typeof AuthCallbackRoute;
 }
 
 declare module '@tanstack/react-router' {
@@ -1266,6 +1279,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tests';
       preLoaderRoute: typeof AuthenticatedTestsRouteImport;
       parentRoute: typeof AuthenticatedRoute;
+    };
+    '/auth/callback': {
+      id: '/auth/callback';
+      path: '/auth/callback';
+      fullPath: '/auth/callback';
+      preLoaderRoute: typeof AuthCallbackRouteImport;
+      parentRoute: typeof rootRouteImport;
     };
     '/_authenticated/actualizari/': {
       id: '/_authenticated/actualizari/';
@@ -2190,6 +2210,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

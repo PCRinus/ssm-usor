@@ -7,6 +7,7 @@ import { PublicFrame, PublicFrameAction, PublicFrameLink } from '@/app/public-fr
 import { Notice } from '@/components/notice';
 import { PasswordInput } from '@/components/password-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import { GoogleSignIn } from '@/features/auth/google-sign-in';
 import { useLoginForm } from '@/features/auth/use-login-form';
 
 export const Route = createFileRoute('/login')({
@@ -25,7 +26,8 @@ export const Route = createFileRoute('/login')({
 });
 
 function LoginPage() {
-  const { form, onSubmit } = useLoginForm(Route.useSearch().invitation);
+  const { invitation } = Route.useSearch();
+  const { form, onSubmit } = useLoginForm(invitation);
   const formRef = useRevealErrors(form);
   const { errors, isSubmitting } = form.formState;
 
@@ -45,6 +47,11 @@ function LoginPage() {
         </nav>
       }
     >
+      {/* Google makes an account for anyone without one, so on this page it is a public
+          signup and follows the registration link's flag (ADR 027). */}
+      {import.meta.env.VITE_REGISTRATION_LINK === 'true' && (
+        <GoogleSignIn origin={{ from: '/login', invitation }} />
+      )}
       <form
         ref={formRef}
         className="grid gap-5"
