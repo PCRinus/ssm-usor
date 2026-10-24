@@ -150,3 +150,29 @@ tr[data-pointed] {
   --color-release-body: var(--release-body);
   --color-release-new-edge: var(--release-new-edge);
 }
+
+@layer base {
+  :root {
+    --dashboard-panel: #eef5dc;
+    --dashboard-panel-border: #d3e5a6;
+    --dashboard-tile-border: #d9e8b5;
+    --dashboard-tile-hover-border: #a9c46c;
+    --dashboard-hover: #f6f8f4;
+    --dashboard-quiet: #4d5c55;
+    --dashboard-chevron: #9aa8a1;
+    --dashboard-untrained: #8fa69b;
+    --dashboard-bar: #c8de92;
+  }
+}
+
+@theme inline {
+  --color-dashboard-panel: var(--dashboard-panel);
+  --color-dashboard-panel-border: var(--dashboard-panel-border);
+  --color-dashboard-tile-border: var(--dashboard-tile-border);
+  --color-dashboard-tile-hover-border: var(--dashboard-tile-hover-border);
+  --color-dashboard-hover: var(--dashboard-hover);
+  --color-dashboard-quiet: var(--dashboard-quiet);
+  --color-dashboard-chevron: var(--dashboard-chevron);
+  --color-dashboard-untrained: var(--dashboard-untrained);
+  --color-dashboard-bar: var(--dashboard-bar);
+}
