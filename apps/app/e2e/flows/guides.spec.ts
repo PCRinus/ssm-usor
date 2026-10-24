@@ -13,6 +13,12 @@ async function newMember(name: string) {
 
 const tooltip = (page: Page) => page.getByTestId('guide-tooltip');
 
+const guideRecorded = (page: Page) =>
+  page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/me/guides/welcome') && response.request().method() === 'PUT'
+  );
+
 async function expectStep(page: Page, step: number, title: string) {
   await expect(tooltip(page).getByTestId('guide-progress')).toHaveText(`${step} din 4`);
   await expect(tooltip(page).getByRole('heading', { name: title })).toBeVisible();
@@ -35,10 +41,7 @@ test('the welcome tour shows once, a skip holds across a reload, and Setări sta
   await tooltip(page).getByTestId('guide-next').click();
   await expectStep(page, 2, 'Clienții tăi');
 
-  const recorded = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/me/guides/welcome') && response.request().method() === 'PUT'
-  );
+  const recorded = guideRecorded(page);
   await tooltip(page).getByTestId('guide-skip').click();
   await expect(tooltip(page)).toBeHidden();
   expect((await recorded).status()).toBe(200);
@@ -62,8 +65,10 @@ test('the welcome tour shows once, a skip holds across a reload, and Setări sta
   await tooltip(page).getByTestId('guide-next').click();
   await expectStep(page, 4, 'Setări și noutăți');
   await expect(tooltip(page).getByTestId('guide-next')).toHaveText('Gata');
+  const completed = guideRecorded(page);
   await tooltip(page).getByTestId('guide-next').click();
   await expect(tooltip(page)).toBeHidden();
+  expect((await completed).status()).toBe(200);
 
   await page.goto('/setari');
   await expect(page.getByTestId('guide-welcome-status')).toHaveText('Finalizat');
@@ -85,8 +90,10 @@ test('on a phone the tour points at the menu button, and Escape skips it', async
   expect(tip!.x).toBeGreaterThanOrEqual(0);
   expect(tip!.x + tip!.width).toBeLessThanOrEqual(360);
 
+  const skipped = guideRecorded(page);
   await page.keyboard.press('Escape');
   await expect(tooltip(page)).toBeHidden();
+  expect((await skipped).status()).toBe(200);
   await page.reload();
   await expect(page.getByTestId('dashboard-todo')).toBeVisible();
   await expect(tooltip(page)).toBeHidden();
