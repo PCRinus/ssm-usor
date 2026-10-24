@@ -13,6 +13,7 @@ const paths = [
   'apps/portal/src/routeTree.gen.ts',
   'apps/portal/src/locales',
   'packages/document-engine/templates/citations.json',
+  'packages/help-topics/src/topics.ts',
 ];
 function snapshot() {
   const files = new Map();
@@ -34,6 +35,7 @@ execFileSync('pnpm', ['generate:routes'], { stdio: 'inherit' });
 execFileSync('pnpm', ['--filter', '@ssm-usor/portal', 'i18n:extract'], { stdio: 'inherit' });
 execFileSync('pnpm', ['--filter', '@ssm-usor/portal', 'i18n:compile'], { stdio: 'inherit' });
 execFileSync('pnpm', ['--filter', '@ssm-usor/document-engine', 'citations'], { stdio: 'inherit' });
+execFileSync('pnpm', ['generate:help-topics'], { stdio: 'inherit' });
 const after = snapshot();
 const changed = [...new Set([...before.keys(), ...after.keys()])].filter(
   (path) => before.get(path) !== after.get(path)

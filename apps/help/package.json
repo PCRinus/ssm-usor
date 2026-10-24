@@ -4,11 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "astro build",
+    "build": "astro build && pnpm check:build",
     "dev": "astro dev --port 4331",
     "stop": "astro dev stop && astro preview stop",
     "preview": "astro preview --port 4332",
     "typecheck": "astro check",
+    "test": "vitest run",
+    "generate:topics": "node --import tsx scripts/generate-topics.ts",
+    "check:build": "node --import tsx scripts/check-build.ts",
+    "check:sources": "node --import tsx scripts/check-sources.ts",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
     "deploy": "pnpm build && wrangler deploy"
   },
@@ -20,7 +24,11 @@
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "github-slugger": "^2.0.0",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
-    "wrangler": "^4.152.0"
+    "vitest": "^5.0.5",
+    "wrangler": "^4.152.0",
+    "yaml": "^2.9.1"
   }
 }

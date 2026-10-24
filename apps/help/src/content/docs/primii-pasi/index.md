@@ -4,6 +4,11 @@ description: Ce găsești în ajutor și cum îl deschizi din aplicație.
 sidebar:
   label: Bun venit
   order: 0
+topics:
+  - id: primii-pasi.deschide-ajutorul
+    heading: Deschide ajutorul din aplicație
+sources:
+  - docs/architecture/adr-028-help-site.md
 ---
 
 Ajutorul explică fiecare ecran al aplicației: la ce folosește, ce înseamnă câmpurile care cer mai mult decât eticheta lor și ce reguli aplică aplicația când salvezi sau generezi documente. Pentru fiecare regulă găsești și motivul ei, ce vezi când nu e îndeplinită și cum o rezolvi.
