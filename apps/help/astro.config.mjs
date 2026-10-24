@@ -47,26 +47,50 @@ function group(label, directory, subgroups = []) {
   return [{ label, items: [...articles, ...children] }];
 }
 
-const sidebar = [
-  ...group('Primii pași', 'primii-pasi'),
-  ...group('Clienți', 'clienti', [
-    { label: 'Date firmă', directory: 'date-firma' },
-    { label: 'Angajați', directory: 'angajati' },
-    { label: 'Posturi și echipament', directory: 'posturi' },
-    { label: 'Evaluarea riscurilor', directory: 'evaluarea-riscurilor' },
-    { label: 'Documente SSM', directory: 'documente-ssm' },
-    { label: 'Documente PSI', directory: 'documente-psi' },
-    { label: 'Fișiere', directory: 'fisiere' },
-  ]),
-  ...group('Instrucțiuni', 'instructiuni'),
-  ...group('Riscuri', 'riscuri'),
-  ...group('Teste', 'teste'),
-  ...group('Semnături și participanți', 'semnaturi'),
-  ...group('Legislație', 'legislatie'),
-  ...group('Organizație', 'organizatie'),
-  ...group('Contul meu', 'contul-meu'),
-  ...group('Cum funcționează', 'cum-functioneaza'),
+const clientAreas = [
+  { label: 'Date firmă', directory: 'date-firma' },
+  { label: 'Angajați', directory: 'angajati' },
+  { label: 'Posturi și echipament', directory: 'posturi' },
+  { label: 'Instruire și fișe', directory: 'instruire' },
+  { label: 'Evaluarea riscurilor', directory: 'evaluarea-riscurilor' },
+  { label: 'Documente SSM', directory: 'documente-ssm' },
+  { label: 'Documente PSI', directory: 'documente-psi' },
+  { label: 'Fișiere', directory: 'fisiere' },
 ];
+
+const areas = [
+  ['Primii pași', 'primii-pasi'],
+  ['Clienți potențiali și contracte', 'clienti-potentiali'],
+  ['Clienți', 'clienti'],
+  ['Instrucțiuni', 'instructiuni'],
+  ['Riscuri', 'riscuri'],
+  ['Teste', 'teste'],
+  ['Semnături și participanți', 'semnaturi'],
+  ['Legislație', 'legislatie'],
+  ['Organizație', 'organizatie'],
+  ['Contul meu', 'contul-meu'],
+  ['Cum funcționează', 'cum-functioneaza'],
+];
+
+// Starlight builds every article whether or not the sidebar lists it, so an article in a directory
+// missing here would be reachable by link and absent from the navigation.
+const listed = new Map([
+  ['', areas.map(([, directory]) => directory)],
+  ['clienti', clientAreas.map((area) => area.directory)],
+]);
+for (const [parent, directories] of listed) {
+  for (const entry of entries(parent)) {
+    if (entry.isDirectory() && !directories.includes(entry.name)) {
+      throw new Error(
+        `The help sidebar lists no area for ${[parent, entry.name].filter(Boolean).join('/')}.`
+      );
+    }
+  }
+}
+
+const sidebar = areas.flatMap(([label, directory]) =>
+  group(label, directory, directory === 'clienti' ? clientAreas : [])
+);
 
 export default defineConfig({
   output: 'static',
