@@ -210,6 +210,17 @@ jobs:
               echo "::warning::No merged pull request found for $commit; it adds nothing to the update."
             fi
           done
+          # A stack merged at once is one merge commit, which GitHub maps to the stack's bottom
+          # pull request alone; the rest are read through the stack, kept when their merge commit
+          # is in the range, so a stack merged in two releases is not announced twice.
+          commits=$(git rev-list --first-parent "$previous..$SHA" | jq -R . | jq -s .)
+          for stack in $(jq -r '.[].stack.number // empty' "$dir"/*.json | sort -u); do
+            for number in $(gh api "repos/$GITHUB_REPOSITORY/stacks/$stack" --jq '.pull_requests[].number'); do
+              gh api "repos/$GITHUB_REPOSITORY/pulls/$number" | jq --argjson commits "$commits" \
+                '[select(.merged_at != null and (.merge_commit_sha as $m | $commits | index($m) != null))]' \
+                > "$dir/stack-$stack-$number.json"
+            done
+          done
           jq -s 'add | unique_by(.number) | sort_by(.merged_at, .number) | map({number, title, url: .html_url, body})' \
             "$dir"/*.json > "$RUNNER_TEMP/pulls.json"
           echo "Collected $(jq length "$RUNNER_TEMP/pulls.json") pull requests merged since $previous."
