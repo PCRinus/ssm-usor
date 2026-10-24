@@ -184,17 +184,17 @@ export function UpdateDialog() {
         {...(release.lead ? {} : { 'aria-describedby': undefined })}
         className="flex gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-[0_30px_80px_rgb(15_36_31/0.35)] sm:max-w-[700px]"
       >
-        <div className="flex w-[228px] shrink-0 flex-col items-center bg-release-sand px-6 pb-7">
+        <div className="flex w-[228px] shrink-0 flex-col items-center bg-release-sand px-6">
           <div
             aria-hidden="true"
-            className="min-h-8 flex-3 border-l-[1.5px] border-dashed border-release-ring"
+            className="min-h-8 flex-1 border-l-[1.5px] border-dashed border-release-ring"
           />
           <ReleaseTag tag={release.tag} size="dialog" label />
-          <div aria-hidden="true" className="min-h-[22px] flex-1" />
-          <div className="grid gap-0.5 text-center">
+          <div className="grid gap-0.5 pt-[22px] text-center">
             <span className="text-sm font-semibold">Versiune nouă</span>
             <span className="text-[13px] text-release-sand-muted">publicată pe {published}</span>
           </div>
+          <div aria-hidden="true" className="min-h-7 flex-1" />
         </div>
         <div className="relative flex min-w-0 flex-1 flex-col gap-5 pt-7 pr-7 pb-6 pl-8">
           <DialogClose
