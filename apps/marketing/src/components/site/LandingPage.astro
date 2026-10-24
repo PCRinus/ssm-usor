@@ -1,165 +1,216 @@
 ---
 import FluxLayout from '../../layouts/FluxLayout.astro';
-import { copy, cta, links, status } from './copy';
-import DocumentPacks from './DocumentPacks.astro';
-import PhoneFlow from './PhoneFlow.astro';
-import RiskMethod from './RiskMethod.astro';
-import ShowcasePanels from './ShowcasePanels.astro';
+import BrowserFrame from './BrowserFrame.astro';
+import {
+  access,
+  contract,
+  cta,
+  day,
+  faq,
+  hero,
+  legislation,
+  library,
+  links,
+  page,
+  portal,
+} from './copy';
+import IPhone from './IPhone.astro';
+import { screens } from './screens';
+import StepsCarousel from './StepsCarousel.astro';
+import TrustFacts from './TrustFacts.astro';
 import WaitlistForm from './WaitlistForm.astro';
 
-const scattered = [
-  { label: 'Word', x: 6, y: 8, r: -6 },
-  { label: 'Excel', x: 58, y: 2, r: 4 },
-  { label: 'PDF', x: 30, y: 30, r: 3 },
-  { label: 'Email', x: 70, y: 40, r: -5 },
-  { label: 'Aplicație de semnare', x: 4, y: 58, r: 5 },
-  { label: 'WhatsApp', x: 52, y: 72, r: -3 },
-  { label: 'Dosar fizic', x: 22, y: 80, r: 2 },
-  { label: 'Calendar', x: 72, y: 82, r: 6 },
-];
+const address = 'app.ssmusor.ro';
+const sideShotSizes = '(max-width: 1080px) calc(100vw - 32px), 664px';
+const sideShotWidths = [664, 1000, 1328, 1440];
 ---
 
-<FluxLayout
-  title="SSM Ușor — Word, PDF, email, semnare, arhivă. Sau un singur flux."
-  description="Adaugi clientul și angajații, creezi documentele și testele, semnezi cu toată lumea. Într-un singur loc. Pentru servicii externe SSM din România."
->
-  <section class="hero wrap">
-    <p class="status">{status.short}</p>
-    <h1>Word, PDF, email, semnare, arhivă. Sau un singur flux.</h1>
-    <p class="lede">{copy.lede}</p>
-    <div class="actions">
-      <a
-        class="button primary"
-        href={links.login}
-        data-track="cta_clicked"
-        data-track-prop-target="login"
-        data-track-prop-placement="hero"
-      >
-        {cta.login}
-      </a>
-      <span class="button quiet soon" aria-disabled="true">
-        {cta.signup}
-        <small>{cta.signupNote}</small>
-      </span>
+<FluxLayout title={page.title} description={page.description}>
+  <section class="wrap hero">
+    <div>
+      <h1>{hero.title}</h1>
+      <p class="lede">{hero.lede}</p>
+      <div class="ctas">
+        <a
+          class="button primary"
+          href={links.login}
+          data-track="cta_clicked"
+          data-track-prop-target="login"
+          data-track-prop-placement="hero"
+        >
+          {cta.login}
+        </a>
+        <span class="button soon" aria-disabled="true">
+          {cta.signup}
+          <span class="pill">{cta.signupNote}</span>
+        </span>
+      </div>
+      <p class="status">
+        <span class="dot" aria-hidden="true"></span>
+        <span>
+          {hero.status.before}{' '}
+          <a
+            href="#cont"
+            data-track="cta_clicked"
+            data-track-prop-target="notify"
+            data-track-prop-placement="hero"
+          >
+            {hero.status.link}
+          </a>{' '}
+          {hero.status.after}
+        </span>
+      </p>
     </div>
-    <p class="notify">
-      <a
-        href="#anunta-ma"
-        data-track="cta_clicked"
-        data-track-prop-target="notify"
-        data-track-prop-placement="hero"
-      >
-        {cta.notify}
-      </a>
-    </p>
-
-    <figure class="before-after" aria-label="Fluxul de azi față de fluxul din SSM Ușor">
-      <div class="before">
-        <p class="panel-title">Azi</p>
-        <div class="scatter" aria-hidden="true">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M12 14 C 40 5, 45 45, 66 44"></path>
-            <path d="M66 44 C 80 60, 30 60, 12 62"></path>
-            <path d="M12 62 C 5 80, 40 70, 58 76"></path>
-            <path d="M58 76 C 70 90, 40 100, 28 92"></path>
-            <path d="M34 34 C 20 20, 60 10, 62 6"></path>
-            <path d="M34 34 C 50 50, 60 90, 80 96"></path>
-            <path d="M62 6 C 90 20, 85 40, 66 44"></path>
-          </svg>
-          {scattered.map((tile, index) => (
-            <span style={`left:${tile.x}%; top:${tile.y}%; --r:${tile.r}deg; --i:${index}`}>
-              {tile.label}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div class="after">
-        <p class="panel-title">În SSM Ușor</p>
-        <ol class="line">
-          {copy.steps.map((step, index) => (
-            <li style={`--i:${index}`}>{step.title}</li>
-          ))}
-        </ol>
-      </div>
+    <figure class="stage" aria-label={hero.stageLabel}>
+      <BrowserFrame
+        src={screens.dashboard}
+        alt={hero.dashboardAlt}
+        address={address}
+        sizes="(max-width: 760px) 620px, 880px"
+        widths={[620, 880, 1240, 1440]}
+        eager
+      />
+      <IPhone
+        src={screens.phonePortalSign}
+        alt={hero.phoneAlt}
+        sizes="(max-width: 760px) 150px, 230px"
+        eager
+      />
     </figure>
   </section>
 
-  <section class="steps-section wrap" id="cum">
-    <h2>Patru pași, pentru fiecare client.</h2>
-    <ol class="steps">
-      {copy.steps.map((step, index) => (
-        <li>
-          <span class="n">{index + 1}</span>
-          <h3>{step.title}</h3>
-          <p>{step.text}</p>
-        </li>
-      ))}
-    </ol>
+  <TrustFacts />
+
+  <StepsCarousel />
+
+  <section class="sec flush">
+    <div class="wrap dayband">
+      <div>
+        <h2>{day.title}</h2>
+        <p class="intro">{day.intro}</p>
+      </div>
+      <div class="phonecol">
+        <IPhone
+          src={screens.phoneDashboard}
+          alt={day.phoneAlt}
+          sizes="(max-width: 760px) 220px, 270px"
+        />
+      </div>
+    </div>
   </section>
 
-  <ShowcasePanels />
-
-  <section class="documents" id="documente">
-    <div class="wrap">
-      <div class="section-head">
-        <h2>Ce poți face în platformă.</h2>
-        <p>{copy.documentsNote}</p>
+  <section class="sec flush">
+    <div class="wrap lib">
+      <div>
+        <h2>{library.title}</h2>
+        <p class="intro">{library.intro}</p>
+        <ul class="libitems">
+          {library.items.map((item) => (
+            <li>
+              <span class="ico">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#18342e"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  {item.icon === 'instructions' && (
+                    <path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2zM20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2z" />
+                  )}
+                  {item.icon === 'risk' && (
+                    <path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z" />
+                  )}
+                  {item.icon === 'tests' && (
+                    <>
+                      <rect x="5" y="4" width="14" height="17" rx="2" />
+                      <path d="M9 4V3h6v1M9 12l2 2 4-4" />
+                    </>
+                  )}
+                </svg>
+              </span>
+              <div>
+                <b>{item.title}</b>
+                <span>{item.text}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
-      <div class="doc-groups">
-        {copy.documents.map((group) => (
-          <div>
-            <h3>{group.title}</h3>
-            <ul>
-              {group.items.map((item) => (
-                <li>{item}</li>
-              ))}
-            </ul>
-          </div>
+      <BrowserFrame
+        src={screens.riskLibrary}
+        alt={library.shotAlt}
+        address={address}
+        sizes={sideShotSizes}
+        widths={sideShotWidths}
+      />
+    </div>
+  </section>
+
+  <section class="sec flush">
+    <div class="wrap row">
+      <BrowserFrame
+        src={screens.legislation}
+        alt={legislation.shotAlt}
+        address={address}
+        sizes={sideShotSizes}
+        widths={sideShotWidths}
+      />
+      <div>
+        <h3>{legislation.title}</h3>
+        <p>{legislation.text}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec flush">
+    <div class="wrap row flip">
+      <ol class="note" aria-label={contract.stepsLabel}>
+        {contract.steps.map((step, index) => (
+          <li>
+            <span class="n">{index + 1}</span>
+            {step}
+          </li>
+        ))}
+      </ol>
+      <div>
+        <h3>{contract.title}</h3>
+        <p>{contract.text}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec portal" id="angajati">
+    <div class="wrap portalgrid">
+      <div>
+        <h2>{portal.title}</h2>
+        <p class="intro">{portal.intro}</p>
+        <p class="small">{portal.note}</p>
+      </div>
+      <div class="phones3">
+        {portal.phones.map((phone) => (
+          <IPhone
+            src={screens[phone.screen]}
+            alt={phone.alt}
+            sizes="(max-width: 760px) 31vw, 220px"
+          />
         ))}
       </div>
     </div>
   </section>
 
-  <DocumentPacks />
-
-  <RiskMethod />
-
-  <section class="signers-section wrap" id="semnaturi">
-    <div class="section-head">
-      <h2>Cine semnează ce.</h2>
-      <p>{copy.signatureNote}</p>
-    </div>
-    <ul class="signers">
-      {copy.signers.map((signer) => (
-        <li>
-          <h3>{signer.who}</h3>
-          <p>{signer.signs}</p>
-        </li>
-      ))}
-    </ul>
-  </section>
-
-  <PhoneFlow />
-
-  <section class="also wrap">
-    <h2>Și restul, când ai nevoie.</h2>
-    <ul class="also-list">
-      {copy.also.map((item) => (
-        <li>
-          <h3>{item.title}</h3>
-          <p>{item.text}</p>
-        </li>
-      ))}
-    </ul>
-  </section>
-
-  <section class="access" id="cont">
-    <div class="wrap access-grid">
+  <section class="sec" id="cont">
+    <div class="wrap access">
       <div>
-        <h2>Conturile noi se deschid în curând.</h2>
+        <h2>{access.title}</h2>
+        <p class="intro">{access.intro}</p>
         <WaitlistForm />
         <p class="have-account">
-          Ai deja cont?{' '}
+          {cta.haveAccount}{' '}
           <a
             href={links.login}
             data-track="cta_clicked"
@@ -170,383 +221,291 @@ const scattered = [
           </a>
         </p>
       </div>
-      <ul class="trust">
-        {copy.trust.map((item) => (
-          <li>{item}</li>
+      <ul class="facts2">
+        {access.trust.map((line) => (
+          <li>{line}</li>
         ))}
       </ul>
     </div>
   </section>
 
-  <section class="faq wrap" id="intrebari">
-    <h2>Întrebări frecvente</h2>
-    <div class="faq-list">
-      {copy.faq.map((item) => (
-        <details>
-          <summary>{item.q}</summary>
-          <p>{item.a}</p>
-        </details>
-      ))}
+  <section class="sec flush" id="intrebari">
+    <div class="wrap">
+      <h2>{faq.title}</h2>
+      <div class="faq">
+        {faq.items.map((item) => (
+          <details>
+            <summary>{item.q}</summary>
+            <p>{item.a}</p>
+          </details>
+        ))}
+      </div>
     </div>
   </section>
 </FluxLayout>
 
-<script>
-  const targets = document.querySelectorAll<HTMLElement>('[data-reveal]');
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-            observer.unobserve(entry.target);
-          }
-        }
-      },
-      { threshold: 0.35 }
-    );
-    targets.forEach((target) => observer.observe(target));
-  } else {
-    targets.forEach((target) => target.classList.add('is-visible'));
-  }
-</script>
-
 <style>
   .hero {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: 56px;
     align-items: center;
-    padding: 80px 0 40px;
-    text-align: center;
+    padding: 72px 0 64px;
   }
-  .status {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 28px;
-    font-size: 0.95rem;
-    color: var(--ink-2);
-  }
-  .status::before {
-    content: '';
-    flex-shrink: 0;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--lime);
-  }
-  h1 {
-    max-width: 20ch;
-    font-size: clamp(2.6rem, 5.6vw, 4.8rem);
-    line-height: 1.02;
+  .hero h1 {
+    font-size: 60px;
   }
   .lede {
+    max-width: 46ch;
+    margin-top: 22px;
+    color: var(--ink-2);
+    font-size: 19px;
+  }
+  .ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 32px;
+  }
+  .status {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
     max-width: 44ch;
-    margin: 28px 0 32px;
-    font-family: var(--serif);
-    font-size: 1.35rem;
-    line-height: 1.4;
+    margin-top: 22px;
     color: var(--ink-2);
+    font-size: 15px;
   }
-  .notify {
-    margin-top: 16px;
-    font-size: 0.95rem;
-  }
-  .notify a {
-    color: var(--ink-2);
-    text-underline-offset: 3px;
-  }
-
-  .before-after {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    width: 100%;
-    margin: 56px 0 0;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    overflow: hidden;
-    text-align: left;
-  }
-  .before,
-  .after {
-    padding: 28px 32px 32px;
-  }
-  .before {
-    background: var(--cream);
-    border-right: 1px solid var(--line);
-  }
-  .after {
-    display: flex;
-    flex-direction: column;
-    background: #fff;
-  }
-  .panel-title {
-    margin-bottom: 20px;
-    font-family: var(--serif);
-    font-size: 1.35rem;
-    font-weight: 500;
-  }
-  .scatter {
-    position: relative;
-    height: 300px;
-  }
-  .scatter svg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    fill: none;
-    stroke: var(--sage);
-    stroke-width: 0.6;
-    stroke-dasharray: 2 2;
-    vector-effect: non-scaling-stroke;
-    animation: fade-in 0.8s ease-out 0.55s both;
-  }
-  .scatter span {
-    position: absolute;
-    padding: 8px 12px;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    background: #fff;
-    font-size: 0.9rem;
-    color: var(--ink);
-    transform: rotate(var(--r));
-    box-shadow: 0 2px 0 var(--line);
-    white-space: nowrap;
-    animation: settle 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-    animation-delay: calc(var(--i) * 70ms);
-  }
-  .line {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 6px 0 10px;
-  }
-  .line li {
-    position: relative;
-    padding-left: 34px;
-    font-size: 1.25rem;
-    font-weight: 600;
-    line-height: 1.2;
-    animation: rise 0.5s ease-out both;
-    animation-delay: calc(0.7s + var(--i) * 260ms);
-  }
-  .line li::before {
-    content: '';
-    position: absolute;
-    top: 6px;
-    left: 0;
-    width: 14px;
-    height: 14px;
+  .dot {
+    flex: 0 0 8px;
+    height: 8px;
+    margin-top: 8px;
     border-radius: 50%;
     background: var(--lime);
   }
-  .line li:not(:last-child)::after {
-    content: '';
+  .stage {
+    position: relative;
+    height: 560px;
+    border-radius: 24px;
+    background: var(--lime-soft);
+    overflow: hidden;
+  }
+  .stage > :global(.browser) {
     position: absolute;
-    top: 22px;
-    bottom: -60px;
-    left: 6px;
-    border-left: 2px solid var(--lime);
-    transform: scaleY(0);
-    transform-origin: top;
-    animation: grow-y 0.3s ease-out both;
-    animation-delay: calc(0.95s + var(--i) * 260ms);
+    top: 48px;
+    left: 48px;
+    width: 880px;
+  }
+  .stage > :global(.iphone) {
+    position: absolute;
+    bottom: -150px;
+    left: 24px;
+    width: 230px;
+  }
+  .hero h1,
+  .lede,
+  .ctas,
+  .status,
+  .stage {
+    animation: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .hero h1 {
+    animation-delay: 0.05s;
+  }
+  .lede {
+    animation-delay: 0.15s;
+  }
+  .ctas {
+    animation-delay: 0.25s;
+  }
+  .status {
+    animation-delay: 0.35s;
+  }
+  .stage {
+    animation-delay: 0.2s;
+  }
+  .stage > :global(.browser) {
+    animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.35s both;
+  }
+  .stage > :global(.iphone) {
+    animation: rise-far 1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.6s both;
   }
 
-  /* The one orchestrated moment: tiles settle, then the flow line draws itself. */
-  @keyframes settle {
-    from {
-      opacity: 0;
-      transform: rotate(var(--r)) translateY(12px) scale(0.96);
-    }
-    to {
-      opacity: 1;
-      transform: rotate(var(--r)) translateY(0) scale(1);
-    }
+  .sec {
+    padding: 104px 0;
   }
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+  .sec.flush {
+    padding-top: 0;
   }
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .sec h2 {
+    max-width: 22ch;
   }
-  @keyframes grow-y {
-    to {
-      transform: scaleY(1);
-    }
+  .intro {
+    max-width: 58ch;
+    margin-top: 16px;
+    color: var(--ink-2);
+    font-size: 18px;
   }
 
-  .section-head {
+  .dayband {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    gap: 48px;
+    align-items: center;
+    padding: 64px;
+    border-radius: 28px;
+    background: var(--lime-soft);
+    overflow: hidden;
+  }
+  .phonecol {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px 40px;
-    margin-bottom: 36px;
+    justify-content: center;
+    height: 520px;
   }
-  .section-head p {
-    color: var(--ink-2);
+  .phonecol > :global(.iphone) {
+    width: 270px;
   }
 
-  .steps-section {
-    padding: 64px 0 88px;
-  }
-  .steps-section h2 {
-    margin-bottom: 36px;
-  }
-  .steps {
+  .lib {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 32px;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 64px;
+    align-items: center;
   }
-  .steps li {
-    padding-top: 16px;
-    border-top: 1px solid var(--ink);
+  .libitems {
+    display: grid;
+    gap: 22px;
+    margin-top: 32px;
   }
-  .n {
+  .libitems li {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  .ico {
+    display: inline-grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--lime-soft);
+  }
+  .libitems b {
     display: block;
-    margin-bottom: 20px;
-    font-family: var(--serif);
-    font-size: 1.6rem;
-    line-height: 1;
-    color: var(--ink-2);
+    font-size: 17px;
   }
-  .steps h3 {
-    margin-bottom: 6px;
-  }
-  .steps p {
+  .libitems span:not(.ico) {
     color: var(--ink-2);
+    font-size: 16px;
   }
 
-  .documents {
-    padding: 88px 0;
-    background: var(--ink);
-    color: #eef6f2;
-  }
-  .documents h2 {
-    color: #fff;
-  }
-  .documents .section-head p {
-    color: #b7c8c1;
-  }
-  .doc-groups {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 40px;
-  }
-  .doc-groups h3 {
-    margin-bottom: 10px;
-    padding-top: 14px;
-    border-top: 1px solid var(--lime);
-    color: #fff;
-  }
-  .doc-groups li {
-    padding: 8px 0;
-    border-top: 1px solid var(--forest-line);
-    color: #c6d4ce;
-  }
-
-  .signers-section {
-    padding: 88px 0;
-  }
-  .signers {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-  }
-  .signers li {
-    padding: 22px 24px;
-    border-radius: 12px;
-    background: var(--cream);
-  }
-  .signers h3 {
-    margin-bottom: 6px;
-    font-family: var(--serif);
-    font-size: 1.35rem;
-    font-weight: 500;
-  }
-  .signers p {
-    color: var(--ink-2);
-  }
-
-  .also {
-    padding: 88px 0;
-  }
-  .also h2 {
-    margin-bottom: 32px;
-  }
-  .also-list {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 32px;
-  }
-  .also-list li {
-    padding-top: 12px;
-    border-top: 1px solid var(--sage);
-  }
-  .also-list h3 {
-    margin-bottom: 4px;
-    font-size: 1.05rem;
-  }
-  .also-list p {
-    color: var(--ink-2);
-    font-size: 0.98rem;
-  }
-
-  .access {
-    padding: 88px 0;
-    background: var(--ink);
-    color: #eef6f2;
-  }
-  .access-grid {
+  .row {
     display: grid;
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
     gap: 64px;
     align-items: center;
   }
-  .access h2 {
-    margin-bottom: 24px;
+  .row h3 {
+    font-family: var(--display);
+    font-size: 34px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+  .row p {
+    margin-top: 14px;
+    color: var(--ink-2);
+    font-size: 18px;
+  }
+  .row.flip > :first-child {
+    order: 2;
+  }
+  .note {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+    min-height: 280px;
+    padding: 36px;
+    border-radius: 24px;
+    background: var(--cream);
+  }
+  .note li {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 17px;
+  }
+  .note .n {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #fff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .portal {
+    background: var(--ink);
+    color: #eef6f2;
+  }
+  .portal h2 {
     color: #fff;
+  }
+  .portal .intro {
+    color: #c3d1ca;
+  }
+  .portal .small {
+    margin-top: 20px;
+    color: #9fb3aa;
+    font-size: 15px;
+  }
+  .portalgrid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 56px;
+    align-items: center;
+  }
+  .phones3 {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 24px;
+  }
+  .phones3 > :global(.iphone) {
+    width: 220px;
+  }
+  .phones3 > :global(.iphone:nth-child(2)) {
+    margin-top: 56px;
+  }
+
+  .access {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    gap: 64px;
+    align-items: start;
   }
   .have-account {
-    margin-top: 28px;
-    color: #c5d3cc;
+    margin-top: 8px;
+    color: var(--ink-2);
+    font-size: 14px;
   }
-  .have-account a {
-    color: #fff;
-    text-underline-offset: 3px;
+  .facts2 {
+    border-top: 1px solid var(--line);
   }
-  .trust {
-    display: grid;
-    gap: 14px;
-  }
-  .trust li {
-    padding-top: 12px;
-    border-top: 1px solid var(--forest-line);
-    color: #c6d4ce;
+  .facts2 li {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 16px;
   }
 
   .faq {
-    padding: 88px 0;
-  }
-  .faq h2 {
-    margin-bottom: 24px;
-  }
-  .faq-list {
+    max-width: 860px;
+    margin-top: 36px;
     border-top: 1px solid var(--line);
   }
   details {
@@ -556,104 +515,112 @@ const scattered = [
     display: flex;
     justify-content: space-between;
     gap: 16px;
-    padding: 18px 0;
-    cursor: pointer;
+    padding: 20px 0;
     font-weight: 600;
-    font-size: 1.05rem;
     list-style: none;
+    cursor: pointer;
   }
   summary::-webkit-details-marker {
     display: none;
   }
   summary::after {
     content: '+';
-    flex-shrink: 0;
     color: var(--ink-2);
-    transition: transform 0.2s ease;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1;
   }
   details[open] summary::after {
-    transform: rotate(45deg);
+    content: '−';
   }
   details p {
-    padding-bottom: 20px;
+    max-width: 70ch;
+    padding: 0 0 22px;
     color: var(--ink-2);
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .hero h1,
+    .lede,
+    .ctas,
+    .status,
+    .stage,
+    .stage > :global(.browser),
+    .stage > :global(.iphone) {
+      animation: none;
+    }
+  }
   @media (max-width: 1080px) {
-    .steps,
-    .also-list {
-      grid-template-columns: 1fr 1fr;
+    .row.flip > :first-child {
+      order: 0;
     }
-    .doc-groups {
-      gap: 24px;
-    }
-    .access-grid {
+    .hero,
+    .row,
+    .portalgrid,
+    .dayband,
+    .access,
+    .lib {
       grid-template-columns: 1fr;
-      gap: 32px;
+    }
+    .phones3 {
+      justify-content: flex-start;
     }
   }
   @media (max-width: 760px) {
     .hero {
-      padding: 48px 0 24px;
+      gap: 36px;
+      padding: 40px 0;
     }
-    h1 {
-      font-size: clamp(2.2rem, 10vw, 3rem);
+    .hero h1 {
+      font-size: 40px;
     }
     .lede {
-      font-size: 1.15rem;
+      font-size: 17px;
     }
-    .before-after {
-      grid-template-columns: 1fr;
-      margin-top: 40px;
+    .ctas .button {
+      flex: 1 1 100%;
     }
-    .before {
-      border-right: 0;
-      border-bottom: 1px solid var(--line);
+    .stage {
+      height: 400px;
+      border-radius: 18px;
     }
-    .before,
-    .after {
-      padding: 22px 20px 24px;
+    .stage > :global(.browser) {
+      top: 28px;
+      left: 24px;
+      width: 620px;
     }
-    .scatter {
-      height: 260px;
+    .stage > :global(.iphone) {
+      bottom: -110px;
+      left: 12px;
+      width: 150px;
     }
-    .scatter span {
-      font-size: 0.82rem;
-      padding: 6px 9px;
+    .sec {
+      padding: 64px 0;
     }
-    .line {
-      gap: 22px;
+    .intro {
+      font-size: 16px;
     }
-    .line li {
-      font-size: 1.1rem;
+    .dayband {
+      padding: 28px 20px;
+      border-radius: 20px;
     }
-    .line li:not(:last-child)::after {
-      bottom: -24px;
+    .phonecol {
+      height: 440px;
     }
-    .steps,
-    .doc-groups,
-    .signers,
-    .also-list {
-      grid-template-columns: 1fr;
+    .phonecol > :global(.iphone) {
+      width: 220px;
     }
-    .steps {
-      gap: 20px;
+    .row h3 {
+      font-size: 26px;
     }
-    .n {
-      margin-bottom: 8px;
+    .phones3 {
+      gap: 10px;
     }
-    .signers {
-      gap: 12px;
+    .phones3 > :global(.iphone) {
+      width: 31%;
     }
-    .steps-section {
-      padding: 48px 0 56px;
-    }
-    .documents,
-    .signers-section,
-    .also,
-    .access,
-    .faq {
-      padding-block: 56px;
+    .phones3 > :global(.iphone:nth-child(2)) {
+      margin-top: 24px;
     }
   }
 </style>

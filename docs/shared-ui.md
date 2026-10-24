@@ -13,7 +13,7 @@ needs a genuinely interactive island.
   package, the marketing site directly in `apps/marketing/src/styles/global.css`, where
   `src/styles/flux.css` derives its page roles (`--ink`, `--lime`, `--line`, and so on) from the
   brand variables. Inter is the token font with system fallbacks; this package does not download
-  a font. The marketing site loads Newsreader and Source Sans 3 from Google Fonts on top.
+  a font. The marketing site loads Inter and Inter Tight (headings) from Google Fonts on top.
 - `packages/design-tokens/src/theme.css` maps those variables to Tailwind utilities such as
   `bg-primary`, `text-muted-foreground`, `bg-brand-lime`, and `rounded-lg`.
 - `packages/ui/src/styles/globals.css` imports Tailwind, the theme, animation utilities, and

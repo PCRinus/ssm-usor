@@ -1,0 +1,172 @@
+---
+import type { ImageMetadata } from 'astro';
+import { Picture } from 'astro:assets';
+
+interface Props {
+  src: ImageMetadata;
+  alt: string;
+  sizes: string;
+  eager?: boolean;
+  class?: string;
+}
+
+const { src, alt, sizes, eager = false, class: className } = Astro.props;
+const widths = [280, 420, 560].filter((width) => width < src.width).concat(src.width);
+---
+
+<div class:list={['iphone', className]}>
+  <span class="ip-btn a"></span>
+  <span class="ip-btn v1"></span>
+  <span class="ip-btn v2"></span>
+  <span class="ip-btn p"></span>
+  <div class="ip-frame">
+    <div class="ip-screen">
+      <span class="ip-island"></span>
+      <span class="ip-bar" aria-hidden="true">
+        <span class="ip-time">9:41</span>
+        <span class="ip-icons">
+          <svg viewBox="0 0 18 12">
+            <rect x="0" y="7.5" width="3" height="4.5" rx="0.8"></rect>
+            <rect x="5" y="5" width="3" height="7" rx="0.8"></rect>
+            <rect x="10" y="2.5" width="3" height="9.5" rx="0.8"></rect>
+            <rect x="15" y="0" width="3" height="12" rx="0.8"></rect>
+          </svg>
+          <svg viewBox="0 0 16 12">
+            <path d="M8 2.3c2.4 0 4.6.9 6.3 2.4l1.3-1.4C13.5 1.4 10.9.4 8 .4S2.5 1.4.4 3.3l1.3 1.4C3.4 3.2 5.6 2.3 8 2.3zM8 6c1.4 0 2.7.5 3.7 1.3L13 5.9C11.6 4.8 9.9 4.1 8 4.1s-3.6.7-5 1.8l1.3 1.4C5.3 6.5 6.6 6 8 6zm0 3.6c.6 0 1.1.2 1.5.5L8 11.8l-1.5-1.7c.4-.3.9-.5 1.5-.5z"></path>
+          </svg>
+          <svg viewBox="0 0 27 12">
+            <rect
+              x="0.5"
+              y="0.5"
+              width="23"
+              height="11"
+              rx="3.2"
+              fill="none"
+              stroke="currentColor"
+              stroke-opacity="0.4"
+            ></rect>
+            <rect x="2" y="2" width="20" height="8" rx="1.8"></rect>
+            <path d="M25 4v4c.8-.3 1.4-1.1 1.4-2s-.6-1.7-1.4-2z" fill-opacity="0.45"></path>
+          </svg>
+        </span>
+      </span>
+      <Picture
+        src={src}
+        alt={alt}
+        widths={widths}
+        sizes={sizes}
+        formats={['avif']}
+        fallbackFormat="webp"
+        loading={eager ? 'eager' : 'lazy'}
+        decoding="async"
+      />
+    </div>
+  </div>
+</div>
+
+<style>
+  .iphone {
+    position: relative;
+    container-type: inline-size;
+    width: 240px;
+    flex: none;
+  }
+  .ip-frame {
+    position: relative;
+    border-radius: 15.5cqw;
+    padding: 3.3cqw;
+    background: #101312;
+    box-shadow:
+      0 0 0 0.7cqw #a3aca9,
+      0 0 0 1.1cqw #5f6866,
+      0 30px 50px -24px rgba(24, 52, 46, 0.55);
+  }
+  .ip-screen {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    aspect-ratio: 9 / 19.5;
+    border-radius: 12.4cqw;
+    overflow: hidden;
+    background: #fff;
+  }
+  .ip-island {
+    position: absolute;
+    z-index: 2;
+    top: 2.6cqw;
+    left: 50%;
+    width: 30cqw;
+    height: 8.6cqw;
+    margin-left: -15cqw;
+    border-radius: 99px;
+    background: #000;
+  }
+  .ip-bar {
+    position: relative;
+    flex: 0 0 12.5cqw;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.4cqw 7.5cqw 0 10cqw;
+    background: #fff;
+    color: #0b0b0b;
+    font:
+      600 5.4cqw/1 -apple-system,
+      BlinkMacSystemFont,
+      'SF Pro Text',
+      Inter,
+      sans-serif;
+    letter-spacing: -0.02em;
+  }
+  .ip-time {
+    font-variant-numeric: tabular-nums;
+  }
+  .ip-icons {
+    display: flex;
+    align-items: center;
+    gap: 1.5cqw;
+  }
+  .ip-icons svg {
+    display: block;
+    width: auto;
+    height: 3.7cqw;
+    fill: currentColor;
+  }
+  .ip-screen :global(picture) {
+    display: contents;
+  }
+  .ip-screen :global(img) {
+    display: block;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    object-fit: cover;
+    object-position: top;
+  }
+  .ip-btn {
+    position: absolute;
+    width: 1cqw;
+    border-radius: 1cqw;
+    background: #8b9491;
+  }
+  .ip-btn.a {
+    left: -2cqw;
+    top: 19%;
+    height: 5.5%;
+  }
+  .ip-btn.v1 {
+    left: -2cqw;
+    top: 27.5%;
+    height: 10%;
+  }
+  .ip-btn.v2 {
+    left: -2cqw;
+    top: 39%;
+    height: 10%;
+  }
+  .ip-btn.p {
+    right: -2cqw;
+    top: 30%;
+    height: 15%;
+  }
+</style>
