@@ -40,6 +40,7 @@ available as a required PR check, including on documentation-only changes.
 | Changed files                                                                                                                             | Build/deployment targets                             |
 | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | `apps/marketing/**`                                                                                                                       | Marketing                                            |
+| `apps/help/**`                                                                                                                            | Help site                                            |
 | `apps/app/**`                                                                                                                             | SPA                                                  |
 | `apps/portal/**`                                                                                                                          | Portal                                               |
 | `packages/api-http/**`                                                                                                                    | SPA and portal                                       |
@@ -48,7 +49,7 @@ available as a required PR check, including on documentation-only changes.
 | `apps/sms/**`                                                                                                                             | SMS Worker ([guide](sms.md))                         |
 | `apps/pdf/**`, `packages/contracts/src/pdf.ts`                                                                                            | PDF Worker and its container image ([guide](pdf.md)) |
 | `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                   |
-| `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA, portal and marketing                            |
+| `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA, portal, marketing and help site                 |
 | `packages/contracts/**`                                                                                                                   | API, SPA, portal, mail and SMS Workers               |
 | `apps/api/openapi.json`                                                                                                                   | API and SPA                                          |
 | `orval.config.ts`                                                                                                                         | SPA                                                  |
@@ -99,7 +100,7 @@ dry-run task depends on that build.
 
 Each build uploads a `release-<application>-<environment>-<commit>` artifact, retained for seven
 days. The artifact includes the Wrangler bundle and, for the frontends, the static `dist`
-assets. Deployment jobs download their matching artifact. API, mail, PDF, legislation, and marketing upload the
+assets. Deployment jobs download their matching artifact. API, mail, PDF, legislation, marketing and help upload the
 already-bundled Worker with `--no-bundle`; SPA uploads the built static assets. No deployment
 job runs lint, tests, application builds, or code generation again before publishing.
 
@@ -109,7 +110,7 @@ call, the `wrangler secret bulk` that `wrangler-action` runs before deploying in
 `--env` flag in the action's `command` would not, and non-prod's secrets would land on
 production's Worker. Deployed with `non-prod`, each Worker is named with a `-non-prod` suffix.
 
-Database migrations deploy first when selected, from the environment's Supabase credentials. Mail, SMS and marketing deploy independently; the API waits for the mail and SMS
+Database migrations deploy first when selected, from the environment's Supabase credentials. Mail, SMS, marketing and help deploy independently; the API waits for the mail and SMS
 Workers when they are selected, because its service bindings need those Workers to exist. The mail deployment uploads
 `RESEND_API_KEY` when the environment has it and warns when it does not; the SMS
 deployment uploads the `TWILIO_ACCOUNT_SID` and `SMS_FROM` variables and the `TWILIO_AUTH_TOKEN` secret when all three are
