@@ -154,6 +154,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/organization/company.tsx`                                           | `/organization/company`                                     | "Date firmă": what documents print about the provider as a company. Owners edit.                                                                                                                            |
 | `routes/_authenticated/organization/authorizations.tsx`                                    | `/organization/authorizations`                              | "Abilitări": the certificate of authorization, the fire-safety technician and their authorization. Owners edit.                                                                                             |
 | `routes/_authenticated/profile.tsx`                                                        | `/profile`                                                  | The user's name and professional title (editable), email, and organization.                                                                                                                                 |
+| `routes/_authenticated/setari.tsx`                                                         | `/setari`                                                   | "Setări": the account's preferences, as sections; for now "Ghiduri", the guides with their status and a replay button.                                                                                      |
 | `routes/_authenticated/clients.tsx`                                                        | pathless                                                    | Clients section layout carrying the breadcrumb title.                                                                                                                                                       |
 | `routes/_authenticated/clients/index.tsx`                                                  | `/clients`                                                  | Protected, paginated and sortable list of the organization's active clients.                                                                                                                                |
 | `routes/_authenticated/clients/new.tsx`                                                    | `/clients/new`                                              | Protected form that creates a client, with ANAF prefill by CUI.                                                                                                                                             |
@@ -1207,6 +1208,9 @@ their tab bars read.
   `PATCH /me/profile`, with the email read-only. The title is printed next to the person's
   name in generated documents; emptying it sends `null`. Saving refreshes `/me`, so the
   account menu follows.
+- `/setari` ("Setări", in the account menu under "Profilul meu"): the account's own
+  preferences, one `SectionCard` per kind, so that later ones (dark mode, for one) join as
+  sections. For now its only section is **Ghiduri** ([Guides](#guides)).
 
 `src/features/account/use-me.ts` is the one `/me` query the shell, the dashboard's greeting, and
 these pages share. The account menu shows the user's name and organization once it has loaded, and falls
@@ -1220,6 +1224,51 @@ validation stay inline with `role="alert"`, next to their cause, so they persist
 
 Sign-out is available from the sidebar account menu on every authenticated route.
 Failed sign-out keeps the session and displays a retry action in the shared layout.
+
+## Guides
+
+The in-app guides live in `src/features/guides/`, behind a module of our own so that the tour
+library can be swapped: `guides.ts` defines each guide (an id, a version, the route it runs on and
+its steps) in plain data, and only `guide-tour.tsx` and `guide-tooltip.tsx` know
+[react-joyride](https://react-joyride.com) (v3). Where a person stands with a guide is kept on
+the server per account, `GET /me/guides` and `PUT /me/guides/{guide}`
+([API](api.md#guides)), never in the browser.
+
+- `GuidesProvider`, in the shell, starts a guide by itself on its route when the account has no
+  state for it, or one recorded for a lower version. Raising a guide's `version` therefore shows
+  it again to everyone. A skip counts as seen for this, but shows as "Sărit" in Setări. It holds
+  back while the releases load and while the update dialog is open, so the two never stack:
+  after a release the dialog comes first, the tour when it closes. Landing elsewhere first, the
+  guide waits until its route is reached.
+- `useStartGuide()` starts one on demand, from "Reia turul" in Setări: it opens the guide's
+  route and starts at the first step. `useRecordGuide()` writes the cache first, so a finished
+  guide never restarts while the request runs; a failed request shows the guide again on the
+  next load.
+- The tour starts only once every target is in the page (Joyride's issue #1211 is a tour whose
+  `run` is set before its targets exist). Steps point at `data-tour` attributes, never at classes:
+  `nav-<route>` on each sidebar entry, `sidebar-footer`, `menu` on the header's sidebar button,
+  `dashboard-todo` on the dashboard's panel. The steps are built once per guide and layout, since
+  Joyride restarts on a new steps array.
+- The step card is `GuideTooltip`, our `Card` and `Button`s with the props Joyride hands it
+  spread on: the progress ("2 din 4"), the title, one or two lines, then "Sari peste" on every
+  step, "Înapoi" from the second, and "Următorul", "Gata" on the last. Escape skips (a listener
+  of ours: Joyride's own Escape only closes a step); a click on the overlay does nothing, and the
+  highlighted element does not take clicks while the tour runs.
+- On a phone the sidebar is a modal sheet, which would take the tour's clicks and focus, so the
+  steps on sidebar entries point at the menu button instead, with their own wording
+  (`phoneTarget`, `phoneBody`). The layout is chosen when the tour starts.
+- PostHog gets `guide_started`, `guide_completed` and `guide_skipped` with
+  `{ guide, version, step }`, the step counted from one.
+- The library and the tooltip are one lazy chunk (about 20 KB gzip), out of the first download.
+
+The welcome tour ("Turul aplicației", `welcome`, version 1) runs on `/dashboard` in four steps:
+a centred welcome, "Clienți" in the sidebar, the dashboard's **Ce ai de făcut**, and the
+sidebar's footer with Actualizări and the account menu, where Setări replays it.
+
+`createAccount` in the flow tests records every guide as seen, since a tour would cover the
+first page of every flow; `e2e/flows/guides.spec.ts` forgets them with `forgetGuides` and checks
+that the tour shows once, that a skip holds across a reload, that Setări replays it to "Gata",
+and the phone layout with Escape. The flows that create an account through the app (registration, an accepted invitation) expect the tour on arrival and skip it. The deployed sign-in check skips the tour when it shows.
 
 ## Actualizări
 
