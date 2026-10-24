@@ -25,6 +25,13 @@ export interface AuthClient {
     type: 'recovery' | 'email';
   }): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
   updateUser(attributes: { password: string }): Promise<{ error: AuthError | null }>;
+  signInWithOAuth(credentials: {
+    provider: 'google';
+    options: { redirectTo: string };
+  }): Promise<{ error: AuthError | null }>;
+  exchangeCodeForSession(
+    authCode: string
+  ): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
 }
 
 export interface AuthSnapshot {
@@ -53,6 +60,9 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
   const subscription = client?.onAuthStateChange((_event, session) => publish(session)).data
     .subscription;
   const initialRevision = revision;
+  // The code can be exchanged once: a second exchange, from a re-render or a remount, fails
+  // after the first one has signed the person in.
+  const exchanges = new Map<string, Promise<void>>();
   const ready = client
     ? client
         .getSession()
@@ -155,6 +165,30 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       publish(data.session);
     },
     updatePassword,
+    // Leaves the page for Google; Supabase returns to `redirectTo` with a code.
+    async signInWithGoogle(redirectTo: string) {
+      if (!client) throw new Error('Authentication is not configured.');
+      const { error } = await client.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo },
+      });
+      if (error) throw error;
+    },
+    completeOAuth(code: string) {
+      if (!client) return Promise.reject(new Error('Authentication is not configured.'));
+      let exchange = exchanges.get(code);
+      if (!exchange) {
+        exchange = ready
+          .then(() => client.exchangeCodeForSession(code))
+          .then(({ data, error }) => {
+            if (error) throw error;
+            if (!data.session) throw new Error('No session was returned.');
+            publish(data.session);
+          });
+        exchanges.set(code, exchange);
+      }
+      return exchange;
+    },
     // Proves the person at the keyboard knows the current password before changing it.
     async changePassword(email: string, currentPassword: string, newPassword: string) {
       if (!client) throw new Error('Authentication is not configured.');

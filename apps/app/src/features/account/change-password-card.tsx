@@ -2,9 +2,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { toast } from '@ssm-usor/ui/lib/toast';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { Field } from '@/components/form-field';
+import { Notice } from '@/components/notice';
 import { PasswordInput } from '@/components/password-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useAuth } from '@/features/auth/auth-context';
@@ -21,7 +23,11 @@ const codeOf = (error: unknown) =>
 // Asks for the current password first, so an unlocked screen is not enough to take over
 // the account.
 export function ChangePasswordCard({ email }: { email: string }) {
-  const { auth } = useAuth();
+  const { auth, session } = useAuth();
+  // An account made with Google has no password, so it cannot pass the check below; the reset
+  // email sets a first one. Supabase does not say whether one was set since, so the offer stays.
+  const madeWithGoogle = !(session?.user.app_metadata.providers ?? ['email']).includes('email');
+  const [linkState, setLinkState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const form = useForm<ChangePasswordValues>({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: { currentPassword: '', newPassword: '' },
@@ -43,12 +49,47 @@ export function ChangePasswordCard({ email }: { email: string }) {
     }
   });
 
+  async function sendSetPasswordLink() {
+    setLinkState('sending');
+    try {
+      await auth.requestPasswordReset(email);
+      setLinkState('sent');
+    } catch {
+      setLinkState('idle');
+      toast.error('Nu am putut trimite linkul. Încearcă din nou.');
+    }
+  }
+
   return (
     <Card data-testid="change-password-card">
       <CardHeader>
         <h2 className="text-lg font-semibold">Parolă</h2>
       </CardHeader>
-      <CardContent>
+      <CardContent className="grid gap-5">
+        {madeWithGoogle && (
+          <Notice variant="info" data-testid="set-password-notice">
+            <p>
+              Te-ai înregistrat cu Google. Dacă nu ți-ai setat încă o parolă, îți trimitem un link
+              pe email pentru a o seta și te vei putea autentifica și cu parola.
+            </p>
+            {linkState === 'sent' ? (
+              <p className="mt-2 font-medium" data-testid="set-password-sent">
+                Ți-am trimis linkul la {email}. Este valabil o oră.
+              </p>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3"
+                data-testid="set-password-send"
+                disabled={linkState === 'sending'}
+                onClick={() => void sendSetPasswordLink()}
+              >
+                {linkState === 'sending' ? 'Se trimite…' : 'Trimite linkul'}
+              </Button>
+            )}
+          </Notice>
+        )}
         <form
           ref={formRef}
           onSubmit={(event) => void onSubmit(event)}

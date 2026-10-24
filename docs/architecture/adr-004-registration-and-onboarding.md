@@ -3,6 +3,7 @@
 - Status: accepted
 - Date: 2026-09-18
 - Amended 2026-10-24: onboarding takes an optional CUI and looks it up at ANAF; see the amendment below.
+- Amended by [ADR 027](adr-027-sign-in-with-google.md): an account made with Google needs no emailed confirmation.
 
 ## Context
 

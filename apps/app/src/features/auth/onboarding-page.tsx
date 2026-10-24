@@ -66,6 +66,12 @@ export function OnboardingPage() {
   return <OnboardingForm me={me.data} />;
 }
 
+// Google fills `full_name`, and `name` with the same value, on an account it made (ADR 027).
+function googleName(metadata: Record<string, unknown> | undefined) {
+  const name = metadata?.full_name ?? metadata?.name;
+  return typeof name === 'string' && name.trim() ? name.trim() : undefined;
+}
+
 type LookupState =
   | { status: 'idle' | 'loading' }
   | { status: 'found'; company: CompanyLookup }
@@ -73,7 +79,7 @@ type LookupState =
 
 function OnboardingForm({ me }: { me: MeResponse }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const { auth } = useAuth();
+  const { auth, session } = useAuth();
   const navigate = useNavigate();
   const create = useCreateOrganization({ request: apiRequest });
   const saveCompanyDetails = useUpdateOrganizationCompanyDetails({ request: apiRequest });
@@ -85,7 +91,7 @@ function OnboardingForm({ me }: { me: MeResponse }) {
   const form = useForm<OnboardingValues>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
-      fullName: me.profile?.fullName ?? '',
+      fullName: me.profile?.fullName ?? googleName(session?.user.user_metadata) ?? '',
       cui: '',
       organizationName: '',
       acceptsTerms: false,
