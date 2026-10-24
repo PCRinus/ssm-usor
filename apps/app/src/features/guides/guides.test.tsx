@@ -22,6 +22,8 @@ const skipped: GuideState = {
   updatedAt: '2026-10-25T09:00:00.000Z',
 };
 
+const completed: GuideState = { ...skipped, status: 'completed' };
+
 const unreadRelease: Release = {
   tag: '2026.10.25',
   publishedAt: '2026-10-25T08:00:00.000Z',
@@ -170,6 +172,12 @@ describe('the welcome tour', () => {
     mount();
 
     const dialog = await screen.findByTestId('update-dialog');
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith('/me/guides'))).toBe(
+        true
+      )
+    );
+    await new Promise((resolve) => setTimeout(resolve, 100));
     expect(screen.queryByTestId('guide-tooltip')).toBeNull();
     await userEvent.setup().click(within(dialog).getByTestId('update-dialog-acknowledge'));
 
@@ -194,5 +202,34 @@ describe('the welcome tour', () => {
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
     const tooltip = await screen.findByTestId('guide-tooltip');
     expect(within(tooltip).getByTestId('guide-progress').textContent).toBe('1 din 4');
+  });
+
+  it('keeps a finished tour finished when its replay is skipped', async () => {
+    mockApi({ guides: [completed] });
+    mount('/setari');
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('guide-welcome-replay'));
+    await user.click(within(await screen.findByTestId('guide-tooltip')).getByTestId('guide-skip'));
+
+    await waitFor(() => expect(screen.queryByTestId('guide-tooltip')).toBeNull());
+    expect(recorded()).toEqual([]);
+  });
+
+  it('forgets a replay left before it ends', async () => {
+    mockApi({ guides: [completed] });
+    const runtime = mount('/setari');
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('guide-welcome-replay'));
+    await screen.findByTestId('guide-tooltip');
+    runtime.router.history.back();
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/setari'));
+    await waitFor(() => expect(screen.queryByTestId('guide-tooltip')).toBeNull());
+
+    await runtime.router.navigate({ to: '/dashboard' });
+    await screen.findByTestId('dashboard-todo');
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(screen.queryByTestId('guide-tooltip')).toBeNull();
   });
 });

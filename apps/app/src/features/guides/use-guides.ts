@@ -37,6 +37,15 @@ export function useRecordGuide() {
   // The cache changes first, so a finished tour does not start again while the request runs. A
   // failed request leaves it so: the tour then shows again on the next load, not right away.
   return (guide: Guide, status: GuideState['status']) => {
+    const current = queryClient
+      .getQueryData<GuideStateListResponse>(queryKey)
+      ?.items.find((item) => item.guide === guide.id);
+    if (
+      status === 'skipped' &&
+      current?.status === 'completed' &&
+      current.version === guide.version
+    )
+      return;
     const state: GuideState = {
       guide: guide.id,
       version: guide.version,
