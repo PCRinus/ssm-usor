@@ -12,7 +12,7 @@ import { staleArticles, stepSummary, warningAnnotation } from './lib/sources';
 try {
   const base = process.argv[2];
   if (!base) throw new Error('Pass the commit to compare with, such as HEAD^1.');
-  const changed = execFileSync('git', ['diff', '--name-only', `${base}...HEAD`], {
+  const changed = execFileSync('git', ['diff', '--name-only', '--no-renames', `${base}...HEAD`], {
     cwd: repositoryRoot,
     encoding: 'utf8',
   })

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { staleArticles, stepSummary, warningAnnotation } from './lib/sources';
+import { staleArticles, stepSummary, unmatchedSources, warningAnnotation } from './lib/sources';
 
 const angajati = {
   file: 'apps/help/src/content/docs/clienti/angajati/index.md',
@@ -61,5 +61,41 @@ describe('reporting', () => {
       '- `apps/help/src/content/docs/clienti/angajati/index.md`: `packages/contracts/src/employees.ts`'
     );
     expect(stepSummary([])).toBe('');
+  });
+});
+
+describe('unmatchedSources', () => {
+  const tracked = [
+    'docs/architecture/adr-021.md',
+    'supabase/migrations/20261001_employee_training_status.sql',
+  ];
+
+  it('accepts a path and a glob that match a tracked file', () => {
+    expect(
+      unmatchedSources(
+        [
+          {
+            file: 'a.md',
+            sources: [
+              'docs/architecture/adr-021.md',
+              'supabase/migrations/*employee_training_status*',
+            ],
+          },
+        ],
+        tracked
+      )
+    ).toEqual([]);
+  });
+
+  it('names a source that matches nothing, such as a renamed file or a directory without **', () => {
+    expect(
+      unmatchedSources(
+        [{ file: 'a.md', sources: ['packages/contracts/src/employees.ts', 'supabase/migrations'] }],
+        tracked
+      )
+    ).toEqual([
+      { file: 'a.md', source: 'packages/contracts/src/employees.ts' },
+      { file: 'a.md', source: 'supabase/migrations' },
+    ]);
   });
 });
