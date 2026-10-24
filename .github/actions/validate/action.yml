@@ -1,9 +1,10 @@
 name: Validate the repository
 description: >-
   The checks a change has to pass, shared by the pull request and the deployment workflows so
-  the two cannot drift apart. Run it after the setup action, in one job: GitHub bills every job
-  rounded up to a whole minute, so the checks run one after another in a single job and the
-  slow start of the local Supabase stack overlaps with them instead of following them.
+  the two cannot drift apart. Run it after the setup action, in one job, so the slow start of
+  the local Supabase stack overlaps with the checks instead of following them. The unit tests
+  are not here: they take as long as everything else together and run in a job of their own
+  beside this one.
 
 inputs:
   mode:
@@ -55,11 +56,6 @@ runs:
       if: inputs.mode == 'full'
       shell: bash
       run: pnpm typecheck
-
-    - name: Test
-      if: inputs.mode == 'full'
-      shell: bash
-      run: pnpm test
 
     - name: Check migrations, policies, and generated database types
       if: inputs.mode == 'full' && inputs.database == 'true'
