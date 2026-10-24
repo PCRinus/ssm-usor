@@ -1,11 +1,53 @@
 import type { PostHog } from 'posthog-js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { openSupportChat, stopPostHog } from './posthog';
+import { captureAsMember, openSupportChat, sendPendingEvents, stopPostHog } from './posthog';
 
 afterEach(() => {
   document.getElementById('ph-conversations-widget-container')?.remove();
+  localStorage.clear();
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
+
+describe('events from before PostHog runs', () => {
+  const capturing = () => {
+    const capture = vi.fn();
+    return { capture, client: { capture } as unknown as PostHog };
+  };
+
+  it("sends them, with when they happened, in the account's first member session", () => {
+    vi.stubEnv('VITE_POSTHOG_PROJECT_TOKEN', 'phc_test');
+    captureAsMember('user-one', 'signed_up', { method: 'password' });
+    const { capture, client } = capturing();
+
+    sendPendingEvents(client, 'user-one');
+    sendPendingEvents(client, 'user-one');
+
+    expect(capture).toHaveBeenCalledExactlyOnceWith(
+      'signed_up',
+      { method: 'password' },
+      { timestamp: expect.any(Date) }
+    );
+  });
+
+  it('drops one that names another account than the member signing in', () => {
+    vi.stubEnv('VITE_POSTHOG_PROJECT_TOKEN', 'phc_test');
+    captureAsMember('user-one', 'signed_up', { method: 'password' });
+    const { capture, client } = capturing();
+
+    sendPendingEvents(client, 'user-two');
+    sendPendingEvents(client, 'user-one');
+
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('keeps nothing where PostHog is not configured', () => {
+    vi.stubEnv('VITE_POSTHOG_PROJECT_TOKEN', '');
+    captureAsMember('user-one', 'signed_up', { method: 'password' });
+
+    expect(localStorage.length).toBe(0);
+  });
 });
 
 describe('PostHog Support adapter', () => {

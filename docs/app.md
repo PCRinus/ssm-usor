@@ -19,6 +19,10 @@ it keeps the real administrator as the actor and marks the target member and org
 context. The replay masks text, input values, and element attributes; network recording includes
 URL, method, status, and timing but excludes headers and bodies. The Support widget attaches the
 replay link and current URL to a new report. Sign-out clears the PostHog and Support identities.
+An event from before the account is a member, such as `signed_up`, goes through
+`captureAsMember`: it waits in the browser's storage under the account's id and is sent, with
+its original time, once that account's member session has identified it (ADR 004, amendment of
+2026-10-24).
 
 In each EU PostHog project, enable Error Tracking, Session Replay, and Support. Enable the Support
 widget for the app domain and set its greeting, button text, and new-ticket email notification in

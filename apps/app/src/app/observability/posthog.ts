@@ -1,4 +1,5 @@
 import type { PostHog } from 'posthog-js';
+import { z } from 'zod';
 
 let clientPromise: Promise<PostHog | null> | null = null;
 
@@ -51,6 +52,59 @@ export function loadPostHog(): Promise<PostHog | null> {
 // off until the session opts in.
 export function captureEvent(event: string, properties: Record<string, unknown>) {
   void clientPromise?.then((client) => client?.capture(event, properties)).catch(() => {});
+}
+
+const pendingEventsKey = 'ssm-usor.posthog-pending-events';
+
+const pendingEventsSchema = z.array(
+  z.object({
+    userId: z.string(),
+    event: z.string(),
+    properties: z.record(z.string(), z.unknown()),
+    timestamp: z.iso.datetime(),
+  })
+);
+
+function readPendingEvents() {
+  const parsed = pendingEventsSchema.safeParse(
+    JSON.parse(localStorage.getItem(pendingEventsKey) ?? '[]')
+  );
+  return parsed.success ? parsed.data : [];
+}
+
+// PostHog runs only for members, who have accepted the terms with their organization, so an
+// event from before that waits in this browser for the account's first member session. It
+// names its account because another one may be the next to sign in here.
+export function captureAsMember(
+  userId: string,
+  event: string,
+  properties: Record<string, unknown>
+) {
+  if (!import.meta.env.VITE_POSTHOG_PROJECT_TOKEN?.trim()) return;
+  try {
+    localStorage.setItem(
+      pendingEventsKey,
+      JSON.stringify([
+        ...readPendingEvents(),
+        { userId, event, properties, timestamp: new Date().toISOString() },
+      ])
+    );
+  } catch {
+    // Storage can be full or blocked; the event is lost, the page is not.
+  }
+}
+
+export function sendPendingEvents(client: PostHog, userId: string) {
+  let pending: z.infer<typeof pendingEventsSchema>;
+  try {
+    pending = readPendingEvents();
+    localStorage.removeItem(pendingEventsKey);
+  } catch {
+    return;
+  }
+  for (const { userId: owner, event, properties, timestamp } of pending) {
+    if (owner === userId) client.capture(event, properties, { timestamp: new Date(timestamp) });
+  }
 }
 
 export function stopPostHog(client: PostHog) {
