@@ -43,7 +43,7 @@ Pe tabul **Date** al unui angajat, două carduri țin de semnarea electronică: 
 
 În portal, angajatul își vede instruirile, fișele individuale și datele pe care le tipăresc fișele, își semnează rubricile din instruiri și susține testele. Nu vede CNP-ul și nici observațiile tale. Intră cu un cod primit pe email sau prin SMS, fără parolă.
 
-Portalul îi servește și dreptul de acces la datele pe care angajatorul le ține despre el (GDPR, art. 15).
+Prin portal, angajatul își exercită și dreptul de acces la datele pe care angajatorul le ține despre el (GDPR, art. 15).
 
 Cardul arată dacă angajatul are acces, cu ce adresă și din ce zi, și în ce limbă folosește portalul. Tot aici poate apărea avertismentul **Act adițional nesemnat**, despre care vezi mai jos.
 
@@ -53,7 +53,7 @@ Cardul arată dacă angajatul are acces, cu ce adresă și din ce zi, și în ce
 
 Invitația e valabilă 30 de zile. Până o acceptă, vezi **Invitat**, cu data trimiterii și data la care expiră; după 30 de zile, **Invitație expirată**. **Retrimite** reînnoiește invitația și retrimite mesajul, cel mult o dată la 10 minute.
 
-Câteva mesaje pe care le poți primi:
+Câteva mesaje pe care le poți vedea:
 
 - „Această adresă aparține deja unui participant al clientului.”: altă persoană a clientului intră deja cu această adresă. Fiecare persoană are nevoie de adresa ei.
 - „Angajatul are deja o invitație deschisă la cealaltă adresă. Revoc-o înainte de a-l invita la aceasta.”
@@ -84,7 +84,7 @@ Fără actul adițional semnat, angajatul poate semna în continuare instruirile
 - **Generat**: l-ai descărcat, ca să fie semnat de mână, sau angajatul l-a semnat în portal și se așteaptă semnătura administratorului clientului (**Act adițional așteaptă angajatorul**).
 - **Semnat electronic**: l-au semnat în portal atât angajatul, cât și administratorul clientului.
 - **Semnat pe hârtie**: l-ai marcat semnat de mână de ambele părți.
-- **Clauza în contract**: contractul de muncă cuprinde deja clauza, așa că actul adițional nu mai e nevoie.
+- **Clauza în contract**: contractul de muncă cuprinde deja clauza, așa că nu mai e nevoie de actul adițional.
 - **Revenire la semnarea olografă**: angajatul a cerut în scris să semneze din nou de mână.
 
 ### Ce trebuie completat înainte

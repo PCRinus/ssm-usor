@@ -101,7 +101,7 @@ Caută după nume sau după marcă. Fiecare cuvânt scris trebuie să se regăse
 - **La zi** înseamnă la zi și în SSM, și în PSI;
 - celelalte stări (**Scadente**, **Depășite**, **Neinstruiți**; **De susținut**, **Anual scadent**, **Fără test**) îi arată pe cei care sunt în acea stare în cel puțin un domeniu.
 
-Așa, filtrul îți arată pe oricine are ceva de rezolvat, indiferent de domeniu. Când niciun angajat nu e în starea aleasă, lista spune asta și îți oferă **Arată toți angajații**.
+Astfel, filtrul îți arată pe oricine are ceva de rezolvat, indiferent de domeniu. Când niciun angajat nu e în starea aleasă, lista spune asta și îți oferă **Arată toți angajații**.
 
 ### Angajații tuturor clienților
 
@@ -129,7 +129,7 @@ Termenul cade în următoarele 30 de zile, cu ziua de azi inclusiv. Sub stare ve
 
 ### Depășită
 
-Termenul a trecut. Sub stare vezi „din” și data de la care e depășită. Angajatul revine **La zi** când înregistrezi instruirea periodică.
+Termenul a trecut. Sub stare vezi „din” și termenul care a trecut. Angajatul revine **La zi** când înregistrezi instruirea periodică.
 
 ## Starea testării
 

@@ -63,7 +63,7 @@ Pe pagina unui angajat, **Instruire SSM** și **Instruire PSI** adună tot ce ț
 
 ## Taburile de instruire
 
-Cele două taburi arată la fel. Sus ai **Descarcă fișa**, **Previzualizează** și **Înregistrează o instruire**. Dedesubt:
+Cele două taburi arată la fel. Sus ai **Descarcă fișa SSM** (sau **PSI**), **Previzualizează** și **Înregistrează o instruire**. Dedesubt:
 
 - **Starea instruirii**: Neinstruit, La zi, Scadentă sau Depășită (vezi [Starea instruirii](/clienti/angajati/));
 - **Următoarea instruire**: termenul, sau de ce nu există încă unul;
@@ -74,7 +74,7 @@ Cele două taburi arată la fel. Sus ai **Descarcă fișa**, **Previzualizează*
 
 ## Termenul următoarei instruiri
 
-Termenul e ziua de la care angajatul trebuie instruit din nou. Aplicația îl calculează așa: ia ziua ultimei instruiri periodice; dacă nu există, ziua instruirii la locul de muncă; dacă nici ea nu e înregistrată, data angajării. La ea adaugă intervalul de instruire.
+Termenul e ultima zi până la care angajatul trebuie instruit din nou. Aplicația îl calculează așa: ia ziua ultimei instruiri periodice; dacă nu există, ziua instruirii la locul de muncă; dacă nici ea nu e înregistrată, data angajării. La ea adaugă intervalul de instruire.
 
 De exemplu: un angajat instruit la locul de muncă pe 10 martie 2026, cu un interval de 6 luni, are termenul pe 10 septembrie 2026. După periodica din 4 septembrie 2026, termenul devine 4 martie 2027.
 
@@ -120,9 +120,9 @@ Pe fișa SSM, instruirile suplimentare au tabelul lor. Pe fișa PSI apar în tab
 
 ### Instruirile de pe fișa de hârtie
 
-Pentru un angajat a cărui instruire s-a ținut până acum pe hârtie, înregistrează instruirile trecute cu sursa **De pe fișa de hârtie**: ziua, durata și materialul ca pe fișă. Semnăturile rămân pe hârtie, iar instruirea apare cu eticheta **De pe fișa de hârtie**.
+Pentru un angajat a cărui instruire s-a ținut până acum pe hârtie, înregistrează instruirile trecute cu sursa **Preluată de pe fișa de hârtie**: ziua, durata și materialul ca pe fișă. Semnăturile rămân pe hârtie, iar instruirea apare cu eticheta **De pe fișa de hârtie**.
 
-Ca termenele să fie corecte, ajung instruirile la angajare și ultima instruire periodică. Fotografia sau scanul fișei de hârtie îl încarci în **Fișiere**, pe tabul **Date**.
+Ca termenele să fie corecte, sunt de ajuns instruirile la angajare și ultima instruire periodică. Fotografia sau scanul fișei de hârtie îl încarci în **Fișiere**, pe tabul **Date**.
 
 Poți înregistra astfel și instruirile unui fost angajat.
 
@@ -141,7 +141,7 @@ Cardul **Testare** arată starea testării, ce urmează, rezultatele și încerc
 Un test nu se trimite. Îl așteaptă pe angajat de la sine, din momentul în care e îndeplinită condiția:
 
 - **Testul la angajare SSM** (TASSM), după ce înregistrezi instruirea introductiv-generală, pe care o încheie (HG 1425/2006, art. 89).
-- **Testul la angajare PSI** (TASU), după ce înregistrezi instruirea la locul de muncă; un singur test le încheie pe amândouă instruirile la angajare (OMAI 712/2005, art. 14 și 20).
+- **Testul la angajare PSI** (TASU), după ce înregistrezi instruirea la locul de muncă; un singur test încheie ambele instruiri la angajare (OMAI 712/2005, art. 14 și 20).
 - **Testul anual PSI** (TPSU), la 12 luni de la ultimul test PSI promovat, până îl promovează (OMAI 712/2005, art. 30).
 
 În SSM nu există test periodic.
@@ -150,7 +150,7 @@ Cât timp testul la angajare nu e promovat, vezi un avertisment pe tab. Aplicaț
 
 ### Testul în portal
 
-Un angajat cu acces la portal găsește testul acolo. Primește 10 întrebări alese la întâmplare din banca de întrebări a organizației și promovează cu 7 răspunsuri complet corecte din 10. Poate relua testul imediat, de câte ori e nevoie, cu alte întrebări.
+Un angajat cu acces la portal găsește testul acolo. Primește 10 întrebări alese la întâmplare din banca de întrebări a organizației și promovează cu 7 răspunsuri complet corecte din 10. Poate relua testul imediat, de câte ori e nevoie; întrebările se trag și se amestecă din nou la fiecare încercare.
 
 La **Încercări în portal** vezi fiecare încercare cu scorul ei și dacă a fost promovată. **În curs** înseamnă o încercare începută și neterminată; angajatul o poate continua de unde a rămas.
 
@@ -164,8 +164,8 @@ Butonul apare cât timp testul la angajare e de susținut și, în PSI, oricând
 
 Examinatorul apare pe fișa individuală, în rândul rezultatului. Aplicația îl propune:
 
-- în SSM, pe cel care a ținut instruirea introductiv-generală a angajatului;
-- în PSI, pe cadrul tehnic PSI al organizației.
+- în SSM, pe cel care a ținut instruirea introductiv-generală a angajatului; la un rezultat de pe hârtie, pe specialistul SSM al organizației;
+- în PSI, pe cadrul tehnic PSI al organizației sau, dacă nu e numit, pe cel care a ținut instruirea introductiv-generală.
 
 Dacă nu are pe cine propune, scrie „nenumit încă” și ai **Numește examinatorul**. Îl poți schimba cu **Modifică examinatorul** până când examinatorul semnează fișa de test.
 
@@ -200,7 +200,7 @@ Atunci vezi pe tab „Fișa SSM nu se poate întocmi încă” și **Vezi ce lip
 
 După prima semnătură electronică, fișa se păstrează semnată, rând cu rând. Când se umple, continuă pe o fișă nouă.
 
-- **Descarcă fișa (copie de citire)** îți dă toate fișele angajatului într-un singur PDF, bun de citit și de tipărit. Copia nu are semnături valabile.
+- **Descarcă fișa SSM (copie de citire)**, și la fel pentru PSI, îți dă toate fișele angajatului într-un singur PDF, bun de citit și de tipărit. Copia nu are semnături valabile.
 - **Originalele** îți dă fiecare fișă semnată, cu semnăturile ei verificabile: „Fișa 1”, apoi „Fișa 2 (continuare)” și așa mai departe. Pe acestea le arăți la un control.
 
 ## Semnăturile unei instruiri

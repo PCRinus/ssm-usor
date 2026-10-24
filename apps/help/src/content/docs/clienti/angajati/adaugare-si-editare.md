@@ -175,7 +175,7 @@ Câmpurile din această secțiune sunt opționale în formular și apar pe fișe
 
 ### Punctul de lucru
 
-Unde lucrează angajatul, dintre punctele de lucru ale clientului. La un client cu un singur punct de lucru activ, acesta e ales automat; îl poți șterge dacă nu e cel bun.
+Unde lucrează angajatul, dintre punctele de lucru ale clientului. Când adaugi un angajat la un client cu un singur punct de lucru activ, acesta e ales automat; îl poți șterge dacă nu e cel bun.
 
 La un client cu mai multe puncte de lucru active, fișele cer punctul de lucru, pentru că „Locul de muncă” de pe fișă tipărește punctul de lucru împreună cu zona de lucru a postului, de exemplu „Str. Fabricii 3 – Atelier”.
 
@@ -245,6 +245,6 @@ Funcția din contract se schimbă odată cu postul doar dacă avea aceeași denu
 Când un câmp nu e bun, mesajul apare sub el și pagina te duce la primul câmp greșit. Celelalte mesaje apar sub formular:
 
 - „Clientul este arhivat; nu mai pot fi adăugați angajați.”: clientul a fost arhivat între timp.
-- „Datele intră în conflict cu alt angajat al clientului.”: un alt angajat are deja o dată unică a acestuia; verifică CNP-ul și marca.
+- „Datele intră în conflict cu alt angajat al clientului.”: un alt angajat are deja CNP-ul sau marca acestuia; verifică CNP-ul și marca.
 - „Angajatul nu mai există la acest client.” sau „Clientul nu mai există în organizația ta.”: reîncarcă lista.
 - „Nu am putut salva angajatul. Verifică conexiunea și încearcă din nou.”: salvarea nu a ajuns la aplicație; ce ai scris rămâne în formular, încearcă din nou.
