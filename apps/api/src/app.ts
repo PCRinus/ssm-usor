@@ -11,6 +11,7 @@ import { clientFilesRouter } from './modules/client-files';
 import { clientsRouter } from './modules/clients';
 import { companiesRouter } from './modules/companies';
 import { contractReturnsRouter } from './modules/contract-returns';
+import { dashboardRouter } from './modules/dashboard';
 import { documentDataRouter } from './modules/document-data';
 import { documentsRouter } from './modules/documents';
 import { employeesRouter } from './modules/employees';
@@ -76,6 +77,7 @@ export function createApp() {
   app.route('/', healthRouter);
   app.route('/', meRouter);
   app.route('/', releasesRouter);
+  app.route('/', dashboardRouter);
   app.route('/', clientsRouter);
   app.route('/', companiesRouter);
   app.route('/', employeesRouter);

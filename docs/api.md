@@ -55,6 +55,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /releases`                                                        | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, every release with its update, newest first, each with `unread` for the caller; not paginated                                                                                |
 | `GET /releases/{tag}`                                                  | Verified, non-anonymous Supabase user | One release with its update and `unread`; `404` for an unknown tag                                                                                                                                 |
 | `POST /releases/acknowledge`                                           | Verified, non-anonymous Supabase user | `{ "acknowledgedThrough" }` after acknowledging every release up to `{ tag }`                                                                                                                      |
+| `GET /dashboard/summary`                                               | Verified user with a membership       | The dashboard's counts for the organization in one answer; `contracts` is null unless the caller is an owner                                                                                       |
 | `POST /organization`                                                   | Verified user without a membership    | `201` with the new membership, after creating the organization                                                                                                                                     |
 | `GET /organization/members`                                            | Verified user with a membership       | `{ "items": [ … ] }` with names, emails, and roles                                                                                                                                                 |
 | `PATCH /organization/members/{userId}`                                 | Owner                                 | `204` after changing the member's role                                                                                                                                                             |
@@ -795,6 +796,16 @@ acknowledged a release published later, that one is kept; either way the answer 
 without a profile gets `409` with `reason: profile_missing`: a profile needs a name, which
 this request does not carry, and such an account has nothing unread. The API exposes no write
 to the table itself; only the release workflow writes it.
+
+## Dashboard
+
+[ADR 027](architecture/adr-027-dashboard.md). `GET /dashboard/summary` answers every count of
+the dashboard in one request, computed each time: the organization's row of the view
+`dashboard_summary`, the twelve month ends of `dashboard_employees_at_month_ends`, and a count
+of the caller's own pending signature slots with the predicates of `GET /me/signature-requests`
+([data model](data-model.md#dashboard)). All three read with the caller's token. `contracts` is
+null for a member who is not an owner; the policies would give a specialist zeros anyway. An
+organization without a row answers zeros.
 
 ## Participants
 

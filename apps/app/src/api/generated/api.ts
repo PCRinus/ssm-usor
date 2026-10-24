@@ -301,6 +301,89 @@ export interface Release {
   unread: boolean;
 }
 
+export type DashboardSummaryTodoEmployeeSignatures = {
+  /** @minimum 0 */
+  pending: number;
+  /** @nullable */
+  oldestIssuedAt: string | null;
+};
+
+export type DashboardSummaryTodo = {
+  /** @minimum 0 */
+  mySignatures: number;
+  /** @minimum 0 */
+  draftsToIssue: number;
+  /** @minimum 0 */
+  clientsMissingData: number;
+  /** @minimum 0 */
+  documentsBehind: number;
+  employeeSignatures: DashboardSummaryTodoEmployeeSignatures;
+  /** @minimum 0 */
+  testsPending: number;
+};
+
+export interface DashboardTrainingCounts {
+  /** @minimum 0 */
+  overdue: number;
+  /** @minimum 0 */
+  due: number;
+  /** @minimum 0 */
+  untrained: number;
+  /** @minimum 0 */
+  current: number;
+  /** @minimum 0 */
+  total: number;
+}
+
+export type DashboardSummaryTrainings = {
+  ssm: DashboardTrainingCounts;
+  psi: DashboardTrainingCounts;
+};
+
+/**
+ * @nullable
+ */
+export type DashboardSummaryNextDue = {
+  on: string;
+  /** @minimum 0 */
+  employees: number;
+} | null;
+
+export type DashboardSummaryPortfolioEmployeesAtMonthEndsItem = {
+  /** @pattern ^\d{4}-\d{2}$ */
+  month: string;
+  /** @minimum 0 */
+  employees: number;
+};
+
+export type DashboardSummaryPortfolio = {
+  /** @minimum 0 */
+  activeClients: number;
+  /** @minimum 0 */
+  employees: number;
+  employeesAtMonthEnds: DashboardSummaryPortfolioEmployeesAtMonthEndsItem[];
+};
+
+/**
+ * @nullable
+ */
+export type DashboardSummaryContracts = {
+  /** @minimum 0 */
+  receivedToConfirm: number;
+  /** @minimum 0 */
+  endingWithin60Days: number;
+} | null;
+
+export interface DashboardSummary {
+  todo: DashboardSummaryTodo;
+  trainings: DashboardSummaryTrainings;
+  /** @nullable */
+  nextDue: DashboardSummaryNextDue;
+  portfolio: DashboardSummaryPortfolio;
+  /** @nullable */
+  contracts: DashboardSummaryContracts;
+}
+
 /**
  * @nullable
  */
@@ -10499,6 +10582,130 @@ export function useGetRelease<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getGetReleaseQueryOptions(tag, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetDashboardSummaryUrl = () => {
+  return `/dashboard/summary`;
+};
+
+/**
+ * Every count of the dashboard in one answer (ADR 027), computed on each request. `contracts` is null unless the caller is an owner.
+ * @summary Get the dashboard's counts for the caller's organization
+ */
+export const getDashboardSummary = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<DashboardSummary> => {
+  return apiFetch<DashboardSummary>(getGetDashboardSummaryUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetDashboardSummaryQueryKey = () => {
+  return [`/dashboard/summary`] as const;
+};
+
+export const getGetDashboardSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDashboardSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDashboardSummaryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardSummary>>> = ({ signal }) =>
+    getDashboardSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardSummary>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetDashboardSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDashboardSummary>>
+>;
+export type GetDashboardSummaryQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetDashboardSummary<
+  TData = Awaited<ReturnType<typeof getDashboardSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDashboardSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getDashboardSummary>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDashboardSummary<
+  TData = Awaited<ReturnType<typeof getDashboardSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDashboardSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getDashboardSummary>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDashboardSummary<
+  TData = Awaited<ReturnType<typeof getDashboardSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the dashboard's counts for the caller's organization
+ */
+
+export function useGetDashboardSummary<
+  TData = Awaited<ReturnType<typeof getDashboardSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDashboardSummaryQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
