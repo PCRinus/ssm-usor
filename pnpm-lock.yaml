@@ -171,6 +171,9 @@ importers:
       '@ssm-usor/document-engine':
         specifier: workspace:*
         version: link:../../packages/document-engine
+      '@ssm-usor/help-topics':
+        specifier: workspace:*
+        version: link:../../packages/help-topics
       '@ssm-usor/ui':
         specifier: workspace:*
         version: link:../../packages/ui

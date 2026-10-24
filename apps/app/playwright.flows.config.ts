@@ -94,6 +94,7 @@ export default defineConfig({
       timeout: 180_000,
       env: {
         VITE_API_URL: apiUrl,
+        VITE_HELP_URL: 'http://localhost:4331',
         VITE_SUPABASE_URL: supabase.url,
         VITE_SUPABASE_PUBLISHABLE_KEY: supabase.publishableKey,
       },

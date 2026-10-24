@@ -15,6 +15,7 @@
         "VITE_SUPABASE_URL",
         "VITE_SUPABASE_PUBLISHABLE_KEY",
         "VITE_API_URL",
+        "VITE_HELP_URL",
         "POSTHOG_PROJECT_ID",
         "POSTHOG_SOURCEMAPS_UPLOAD_KEY"
       ]
@@ -24,7 +25,8 @@
         "GIT_COMMIT_SHA",
         "VITE_SUPABASE_URL",
         "VITE_SUPABASE_PUBLISHABLE_KEY",
-        "VITE_API_URL"
+        "VITE_API_URL",
+        "VITE_HELP_URL"
       ]
     }
   }

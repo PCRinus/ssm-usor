@@ -43,6 +43,7 @@ import {
   ClipboardCheck,
   Handshake,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   MessageSquareWarning,
   Scale,
@@ -74,6 +75,7 @@ import { legislationSections } from '@/features/legislation/legislation-sections
 import { newCount } from '@/features/updates/release-format';
 import { useReleases } from '@/features/updates/use-releases';
 import { useUpdateDialogOpen } from '@/features/updates/use-update-dialog-open';
+import { captureHelpOpened, helpHref, helpTarget } from '@/lib/help';
 
 import { releaseTag } from './build-version';
 import { CommitVersion } from './commit-version';
@@ -182,6 +184,7 @@ function AppNavigation({
     if (isMobile) setOpenMobile(false);
   };
   const within = (to: string) => pathname === to || pathname.startsWith(`${to}/`);
+  const helpHome = helpHref();
   return (
     <Sidebar collapsible="icon" className="sticky top-16 bottom-auto h-[calc(100svh-4rem)]">
       <SidebarContent>
@@ -273,6 +276,24 @@ function AppNavigation({
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          {helpHome && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Ajutor">
+                <a
+                  href={helpHome}
+                  target={helpTarget}
+                  data-testid="nav-ajutor"
+                  onClick={() => {
+                    captureHelpOpened();
+                    closeOnMobile();
+                  }}
+                >
+                  <LifeBuoy aria-hidden="true" />
+                  <span>Ajutor</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Raportează o problemă"
