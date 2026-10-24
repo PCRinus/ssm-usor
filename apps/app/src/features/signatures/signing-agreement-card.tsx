@@ -30,6 +30,7 @@ import {
   useListClientFiles,
 } from '@/api/generated/api';
 import { Field } from '@/components/form-field';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useMe } from '@/features/account/use-me';
@@ -168,7 +169,12 @@ export function SigningAgreementCard({
     <SectionCard
       data-testid="signing-agreement-card"
       title="Actul adițional privind semnarea electronică"
-      description="Acordul angajatului de a semna electronic fișele de instruire, la contractul individual de muncă. Fără el, angajatul poate semna în continuare; lipsa lui apare ca avertisment."
+      description={
+        <>
+          Acordul angajatului de a semna electronic fișele de instruire, la contractul individual de
+          muncă. <HelpLink topic="angajati.act-aditional">Află mai mult</HelpLink>
+        </>
+      }
       action={
         query.isSuccess && (
           <div className="flex flex-wrap justify-end gap-2">

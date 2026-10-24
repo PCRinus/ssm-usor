@@ -35,6 +35,7 @@ import {
 } from '@/api/generated/api';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { todayIso } from '@/features/employees/employee-format';
@@ -238,9 +239,15 @@ function ResultForm({
             {result ? 'Modifică examinatorul' : 'Înregistrează un rezultat de pe hârtie'}
           </DialogTitle>
           <DialogDescription>
-            {result
-              ? 'Examinatorul apare în fișa individuală, în rândul rezultatului.'
-              : 'Pentru un test completat pe exemplarul tipărit și promovat. Un test nepromovat nu se înregistrează: contează susținerea următoare.'}
+            {result ? (
+              'Examinatorul apare în fișa individuală, în rândul rezultatului.'
+            ) : (
+              <>
+                Pentru un test completat pe exemplarul tipărit și promovat. Un test nepromovat nu se
+                înregistrează: contează susținerea următoare.{' '}
+                <HelpLink topic="angajati.rezultat-de-pe-hartie">Află mai mult</HelpLink>
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="mt-5 grid gap-5">
@@ -304,6 +311,7 @@ function ResultForm({
               id="test-result-examiner-name"
               label="Examinatorul"
               mark="required"
+              help="angajati.examinator"
               error={errors.examinerName}
             >
               <Input
@@ -322,6 +330,7 @@ function ResultForm({
               id="test-result-examiner-job-title"
               label="Funcția"
               mark="required"
+              help="angajati.examinator"
               error={errors.examinerJobTitle}
             >
               <Input

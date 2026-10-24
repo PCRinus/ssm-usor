@@ -13,6 +13,7 @@ import { Link, useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useInviteEmployeeParticipant } from '@/api/generated/api';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 
 import type { ParticipantMessage } from './participant-actions';
@@ -108,7 +109,8 @@ function InviteEmployeeForm({
           <DialogTitle>Invită în portal</DialogTitle>
           <DialogDescription>
             Trimitem adresa portalului. Angajatul intră cu un cod primit la aceeași adresă, fără
-            parolă, și își vede instruirile, fișele și datele. Invitația este valabilă 30 de zile.
+            parolă, și își vede instruirile, fișele și datele. Invitația este valabilă 30 de zile.{' '}
+            <HelpLink topic="angajati.invitatie">Află mai mult</HelpLink>
           </DialogDescription>
         </DialogHeader>
         {options.length === 0 ? (
@@ -127,7 +129,8 @@ function InviteEmployeeForm({
               </Button>
             }
           >
-            Angajatul nu are email sau telefon. Adaugă unul în datele lui, apoi trimite invitația.
+            Angajatul nu are email sau telefon. Adaugă unul în datele lui, apoi trimite invitația.{' '}
+            <HelpLink topic="angajati.invitatie-fara-adresa">De ce?</HelpLink>
           </Notice>
         ) : (
           <fieldset className="mt-5 grid gap-2">

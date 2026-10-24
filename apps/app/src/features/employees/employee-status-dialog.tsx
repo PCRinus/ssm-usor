@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
-import { Label } from '@ssm-usor/ui/components/label';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
@@ -23,7 +22,8 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { DatePicker } from '@/components/date-picker';
-import { FieldMessage } from '@/components/form-field';
+import { Field } from '@/components/form-field';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 
 import { formatDate, todayIso } from './employee-format';
@@ -145,14 +145,21 @@ function StatusForm({
               <>
                 <span className="font-medium text-foreground">{name}</span> revine printre angajații
                 actuali. Folosește acțiunea doar pentru a corecta o greșeală; o reangajare după o
-                pauză se înregistrează ca angajat nou.
+                pauză se înregistrează ca angajat nou.{' '}
+                <HelpLink topic="angajati.reactivare">Află mai mult</HelpLink>
               </>
             )}
           </DialogDescription>
         </DialogHeader>
         {action === 'terminate' && (
-          <div className="mt-5 grid gap-2">
-            <Label htmlFor="terminatedAt">Data plecării</Label>
+          <Field
+            id="terminatedAt"
+            label="Data plecării"
+            hint={`Angajat din ${formatDate(employee.hiredAt)}.`}
+            help="angajati.data-plecarii"
+            error={dateError ? { type: 'manual', message: dateError } : undefined}
+            className="mt-5"
+          >
             <DatePicker
               id="terminatedAt"
               testId="employee-terminated-at"
@@ -164,16 +171,7 @@ function StatusForm({
               onChange={setTerminatedAt}
               required
             />
-            {!dateError && (
-              <p id="terminatedAt-hint" className="text-xs text-muted-foreground">
-                Angajat din {formatDate(employee.hiredAt)}.
-              </p>
-            )}
-            <FieldMessage
-              id="terminatedAt-error"
-              error={dateError ? { type: 'manual', message: dateError } : undefined}
-            />
-          </div>
+          </Field>
         )}
         {error && (
           <Notice variant="destructive" data-testid="employee-status-error" className="mt-4">

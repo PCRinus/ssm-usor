@@ -533,9 +533,11 @@ describe('employee creation', () => {
     setDate(screen.getByTestId('employee-hired-at'), '2020-03-01');
     setDate(birthDate, '1990-01-02');
     await user.click(screen.getByTestId('employee-submit'));
-    expect((await screen.findByTestId('birthDate-error')).textContent).toBe(
-      'Data nașterii nu corespunde cu CNP-ul.'
-    );
+    const mismatch = await screen.findByTestId('birthDate-error');
+    expect(mismatch.textContent).toBe('Data nașterii nu corespunde cu CNP-ul. De ce?');
+    expect(
+      within(mismatch).getByRole('link', { name: 'De ce?' }).getAttribute('data-help-topic')
+    ).toBe('angajati.data-nasterii');
     expect(requests(employeesPath, 'POST')).toHaveLength(0);
   });
 
@@ -1519,7 +1521,11 @@ describe('employee editing', () => {
     const user = userEvent.setup();
     await screen.findByTestId('edit-employee-page');
     await user.click(screen.getByTestId('employee-submit'));
-    expect((await screen.findByTestId('cnp-error')).textContent).toContain('CNP');
+    const taken = await screen.findByTestId('cnp-error');
+    expect(taken.textContent).toContain('CNP');
+    expect(
+      within(taken).getByRole('link', { name: 'De ce?' }).getAttribute('data-help-topic')
+    ).toBe('angajati.duplicat');
     expect(screen.getByTestId('edit-employee-page')).toBeTruthy();
   });
 });

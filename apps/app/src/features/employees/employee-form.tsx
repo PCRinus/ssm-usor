@@ -17,7 +17,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { JobPositionCombobox } from '@/features/job-positions/job-position-combobox';
 import { type EmployeeFocus, useFocusRequest } from '@/features/missing-data/focus';
 
-import type { Employee, EmployeeFormValues } from './employee-form-schema';
+import { type Employee, employeeErrorHelp, type EmployeeFormValues } from './employee-form-schema';
 import { todayIso } from './employee-format';
 import { EmployeeWorkplaceCombobox } from './employee-workplace-combobox';
 import { useEmployeeForm } from './use-employee-form';
@@ -104,11 +104,14 @@ export function EmployeeForm({
             </Field>
           </FormSection>
 
-          <FormSection
-            title="Identificare"
-            description="Introdu numele din actul de identitate. CNP-ul este opțional și apare doar pe fișa angajatului."
-          >
-            <Field id="lastName" label="Nume" mark="required" error={errors.lastName}>
+          <FormSection title="Identificare" description="Numele din actul de identitate.">
+            <Field
+              id="lastName"
+              label="Nume"
+              mark="required"
+              help="angajati.nume"
+              error={errors.lastName}
+            >
               <Input
                 id="lastName"
                 data-testid="employee-last-name"
@@ -119,7 +122,13 @@ export function EmployeeForm({
                 {...control('lastName')}
               />
             </Field>
-            <Field id="firstName" label="Prenume" mark="required" error={errors.firstName}>
+            <Field
+              id="firstName"
+              label="Prenume"
+              mark="required"
+              help="angajati.nume"
+              error={errors.firstName}
+            >
               <Input
                 id="firstName"
                 data-testid="employee-first-name"
@@ -134,8 +143,10 @@ export function EmployeeForm({
               id="cnp"
               label="CNP"
               mark="optional"
-              hint="13 cifre. Completează automat data nașterii."
+              hint="13 cifre."
+              help="angajati.cnp"
               error={errors.cnp}
+              errorHelp={employeeErrorHelp(errors.cnp)}
             >
               <Input
                 id="cnp"
@@ -151,8 +162,9 @@ export function EmployeeForm({
               id="employeeNumber"
               label="Marca"
               mark="optional"
-              hint="Numărul intern al angajatului la client, dacă există."
+              help="angajati.marca"
               error={errors.employeeNumber}
+              errorHelp={employeeErrorHelp(errors.employeeNumber)}
             >
               <Input
                 id="employeeNumber"
@@ -160,20 +172,17 @@ export function EmployeeForm({
                 className="h-11"
                 {...register('employeeNumber')}
                 autoComplete="off"
-                {...control('employeeNumber', true)}
+                {...control('employeeNumber')}
               />
             </Field>
           </FormSection>
 
-          <FormSection
-            title="Angajare"
-            description="Data angajării stabilește de când se calculează termenele de instruire."
-          >
+          <FormSection title="Angajare" help="angajati.termen-instruire">
             <Field
               id="jobPosition"
               label="Post de lucru"
               mark="required"
-              hint="Munca pe care o face, cu riscurile și instruirea ei. Dacă postul lipsește din listă, adaugă-l de acolo."
+              help="angajati.post-de-lucru"
               error={errors.jobPosition}
             >
               <Controller
@@ -190,7 +199,7 @@ export function EmployeeForm({
                     onBlur={field.onBlur}
                     disabled={isSaving}
                     invalid={Boolean(errors.jobPosition)}
-                    describedBy={describedBy('jobPosition', errors.jobPosition, true)}
+                    describedBy={describedBy('jobPosition', errors.jobPosition)}
                   />
                 )}
               />
@@ -199,7 +208,8 @@ export function EmployeeForm({
               id="jobTitle"
               label="Funcția din contract"
               mark="required"
-              hint="Se completează după post. Schimb-o dacă în contract scrie altfel."
+              hint="Ca în contractul de muncă."
+              help="angajati.functia-din-contract"
               error={errors.jobTitle}
             >
               <Input
@@ -216,7 +226,8 @@ export function EmployeeForm({
               id="contractNumber"
               label="Nr. contractului individual de muncă"
               mark="optional"
-              hint="Se tipărește pe actul adițional privind semnarea electronică."
+              hint="De exemplu 125/2024."
+              help="angajati.numar-contract"
               error={errors.contractNumber}
             >
               <Input
@@ -232,7 +243,8 @@ export function EmployeeForm({
               id="hiredAt"
               label="Data angajării"
               mark="required"
-              hint="Ziua din contract, în formatul zz.ll.aaaa."
+              hint="zz.ll.aaaa, ca în contract."
+              help="angajati.data-angajarii"
               error={errors.hiredAt}
             >
               <Controller
@@ -255,9 +267,16 @@ export function EmployeeForm({
 
           <FormSection
             title="Contact"
-            description="Pentru invitații la instruiri și semnarea documentelor online."
+            description="Pentru portal și codurile de semnare."
+            help="angajati.contact"
           >
-            <Field id="email" label="Email" mark="optional" error={errors.email}>
+            <Field
+              id="email"
+              label="Email"
+              mark="optional"
+              help="angajati.email"
+              error={errors.email}
+            >
               <Input
                 id="email"
                 data-testid="employee-email"
@@ -268,7 +287,13 @@ export function EmployeeForm({
                 {...control('email')}
               />
             </Field>
-            <Field id="phone" label="Telefon" mark="optional" error={errors.phone}>
+            <Field
+              id="phone"
+              label="Telefon"
+              mark="optional"
+              help="angajati.telefon"
+              error={errors.phone}
+            >
               <Controller
                 control={formControl}
                 name="phone"
@@ -291,13 +316,14 @@ export function EmployeeForm({
 
           <FormSection
             title="Fișa de instruire"
-            description="Aceste date sunt opționale și apar pe fișa de instruire."
+            description="Opționale; apar pe fișa de instruire."
+            help="angajati.date-fisa"
           >
             <Field
               id="workplaceId"
               label="Punct de lucru"
               mark="optional"
-              hint="Unde lucrează angajatul. Dacă clientul are un singur punct de lucru, acesta e ales automat."
+              help="angajati.punct-de-lucru"
               error={errors.workplaceId}
               className="sm:col-span-2"
             >
@@ -316,12 +342,19 @@ export function EmployeeForm({
                     onBlur={field.onBlur}
                     disabled={isSaving}
                     invalid={Boolean(errors.workplaceId)}
-                    describedBy={describedBy('workplaceId', errors.workplaceId, true)}
+                    describedBy={describedBy('workplaceId', errors.workplaceId)}
                   />
                 )}
               />
             </Field>
-            <Field id="birthDate" label="Data nașterii" mark="optional" error={errors.birthDate}>
+            <Field
+              id="birthDate"
+              label="Data nașterii"
+              mark="optional"
+              help="angajati.data-nasterii"
+              error={errors.birthDate}
+              errorHelp={employeeErrorHelp(errors.birthDate)}
+            >
               <Controller
                 control={formControl}
                 name="birthDate"
@@ -338,7 +371,13 @@ export function EmployeeForm({
                 )}
               />
             </Field>
-            <Field id="birthPlace" label="Locul nașterii" mark="optional" error={errors.birthPlace}>
+            <Field
+              id="birthPlace"
+              label="Locul nașterii"
+              mark="optional"
+              help="angajati.domiciliu"
+              error={errors.birthPlace}
+            >
               <Input
                 id="birthPlace"
                 data-testid="employee-birth-place"
@@ -352,6 +391,7 @@ export function EmployeeForm({
               id="homeAddress"
               label="Domiciliu"
               mark="optional"
+              help="angajati.domiciliu"
               error={errors.homeAddress}
               className="sm:col-span-2"
             >
@@ -364,7 +404,13 @@ export function EmployeeForm({
                 {...control('homeAddress')}
               />
             </Field>
-            <Field id="bloodGroup" label="Grupa sanguină" mark="optional" error={errors.bloodGroup}>
+            <Field
+              id="bloodGroup"
+              label="Grupa sanguină"
+              mark="optional"
+              help="angajati.grupa-sanguina"
+              error={errors.bloodGroup}
+            >
               <NativeSelect
                 id="bloodGroup"
                 data-testid="employee-blood-group"
@@ -379,7 +425,13 @@ export function EmployeeForm({
                 ))}
               </NativeSelect>
             </Field>
-            <Field id="rhFactor" label="Rh" mark="optional" error={errors.rhFactor}>
+            <Field
+              id="rhFactor"
+              label="Rh"
+              mark="optional"
+              help="angajati.grupa-sanguina"
+              error={errors.rhFactor}
+            >
               <NativeSelect
                 id="rhFactor"
                 data-testid="employee-rh-factor"
@@ -398,6 +450,7 @@ export function EmployeeForm({
               id="qualification"
               label="Calificarea"
               mark="optional"
+              help="angajati.calificare"
               error={errors.qualification}
             >
               <Input
@@ -410,7 +463,13 @@ export function EmployeeForm({
                 {...control('qualification')}
               />
             </Field>
-            <Field id="education" label="Studiile" mark="optional" error={errors.education}>
+            <Field
+              id="education"
+              label="Studiile"
+              mark="optional"
+              help="angajati.calificare"
+              error={errors.education}
+            >
               <Input
                 id="education"
                 data-testid="employee-education"
@@ -426,6 +485,7 @@ export function EmployeeForm({
               label="Autorizații"
               mark="optional"
               hint="De exemplu ISCIR, electrician autorizat ANRE."
+              help="angajati.autorizatii"
               error={errors.authorizations}
               className="sm:col-span-2"
             >
@@ -442,7 +502,8 @@ export function EmployeeForm({
               id="commuteRoute"
               label="Traseul de deplasare"
               mark="optional"
-              hint="De acasă la locul de muncă și înapoi, cu mijlocul de transport."
+              hint="De acasă la locul de muncă, cu mijlocul de transport."
+              help="angajati.traseu"
               error={errors.commuteRoute}
               className="sm:col-span-2"
             >
@@ -460,6 +521,7 @@ export function EmployeeForm({
               id="commuteMinutes"
               label="Durata deplasării (minute)"
               mark="optional"
+              help="angajati.durata-deplasarii"
               error={errors.commuteMinutes}
             >
               <Input
@@ -480,6 +542,7 @@ export function EmployeeForm({
               id="notes"
               label="Observații"
               mark="optional"
+              help="angajati.observatii"
               error={errors.notes}
               className="sm:col-span-2"
             >
