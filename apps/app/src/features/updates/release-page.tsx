@@ -1,5 +1,4 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { cn } from '@ssm-usor/ui/lib/utils';
 import { type ErrorComponentProps, Link, useLocation, useRouter } from '@tanstack/react-router';
 import { useEffect, useRef } from 'react';
 
@@ -7,32 +6,25 @@ import type { Release } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
 
-import { formatReleaseDay, formatReleaseDayBeside } from './release-format';
+import { KindSquare } from './kind-square';
+import { formatReleaseDay, formatReleaseDayBeside, kindTitles } from './release-format';
 import { ReleaseTag } from './release-tag';
 import { useAcknowledgeReleases, useReleases } from './use-releases';
 
 const sectionIds = { features: 'ce-e-nou', improvements: 'imbunatatiri', fixes: 'remedieri' };
 
-const squares = {
-  features: 'bg-brand-lime shadow-[0_0_0_1px_var(--release-new-edge)]',
-  improvements: 'bg-info-border',
-  fixes: 'bg-warning-border',
-};
-
 type SectionKey = keyof typeof sectionIds;
 
 function sectionsOf(release: Release) {
   return [
-    { key: 'features' as const, title: 'Ce e nou', count: release.features.length },
-    { key: 'improvements' as const, title: 'Îmbunătățiri', count: release.improvements.length },
-    { key: 'fixes' as const, title: 'Remedieri', count: release.fixes.length },
+    { key: 'features' as const, title: kindTitles.features, count: release.features.length },
+    {
+      key: 'improvements' as const,
+      title: kindTitles.improvements,
+      count: release.improvements.length,
+    },
+    { key: 'fixes' as const, title: kindTitles.fixes, count: release.fixes.length },
   ].filter((section) => section.count > 0);
-}
-
-function Square({ kind, className }: { kind: SectionKey; className?: string }) {
-  return (
-    <span aria-hidden="true" className={cn('size-2.5 rounded-[3px]', squares[kind], className)} />
-  );
 }
 
 function SectionHeading({
@@ -46,7 +38,7 @@ function SectionHeading({
 }) {
   return (
     <h2 id={id} className="flex items-center gap-2.5 text-[19px] font-bold sm:text-xl">
-      <Square kind={kind} />
+      <KindSquare kind={kind} />
       {children}
     </h2>
   );
@@ -78,7 +70,7 @@ function SectionLinks({
             className="flex h-11 shrink-0 items-center rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             <span className="inline-flex h-9 items-center gap-1.5 rounded-full border border-input bg-card px-3.5 text-sm whitespace-nowrap">
-              <Square kind={section.key} className="size-2 rounded-[2px]" />
+              <KindSquare kind={section.key} className="size-2 rounded-[2px]" />
               {section.title}, {section.count}
             </span>
           </Link>

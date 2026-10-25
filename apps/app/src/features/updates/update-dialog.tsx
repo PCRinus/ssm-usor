@@ -15,14 +15,16 @@ import {
   DrawerTitle,
 } from '@ssm-usor/ui/components/drawer';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
-import { Check, X } from 'lucide-react';
-import { lazy, Suspense } from 'react';
+import { TrendingUp, Wrench, X } from 'lucide-react';
+import { lazy, type ReactNode, Suspense } from 'react';
 
 import type { Release } from '@/api/generated/api';
 
 import { saveDismissedTag } from './dismissal';
-import { dialogHighlights, formatReleaseDay, improvementCount } from './release-format';
+import { KindSquare } from './kind-square';
+import { dialogHighlights, formatReleaseDay, kindTitles, type ReleaseKind } from './release-format';
 import { ReleaseTag } from './release-tag';
 import { useAcknowledgeReleases, useReleases } from './use-releases';
 import { useUpdateDialogOpen } from './use-update-dialog-open';
@@ -32,58 +34,111 @@ const FeatureIcon = lazy(() =>
   import('./feature-icon').then((module) => ({ default: module.FeatureIcon }))
 );
 
-function Highlights({ release, phone }: { release: Release; phone: boolean }) {
-  const { features, lines } = dialogHighlights(release);
-  const square = phone ? 'size-8 rounded-[9px]' : 'size-9 rounded-[10px]';
-  const icon = phone ? 'size-4' : 'size-[18px]';
-  const fallback = <span className={icon} />;
+const tiles: Record<ReleaseKind, string> = {
+  features: 'bg-success text-success-foreground',
+  improvements: 'bg-info text-info-foreground',
+  fixes: 'bg-warning text-warning-foreground',
+};
+
+function Group({ kind, children }: { kind: ReleaseKind; children: ReactNode }) {
   return (
-    <ul className={phone ? 'grid gap-2.5' : 'grid gap-3.5'} data-testid="update-dialog-highlights">
-      {features.map((feature) => (
-        <li
-          key={feature.title}
-          className={phone ? 'flex items-center gap-3 text-sm' : 'flex items-start gap-3.5'}
-        >
-          <span className={`flex shrink-0 items-center justify-center bg-muted ${square}`}>
-            <Suspense fallback={fallback}>
-              <FeatureIcon name={feature.icon} className={icon} />
-            </Suspense>
-          </span>
-          {phone ? (
-            <span>{feature.title}</span>
-          ) : (
-            <span className="grid gap-0.5 pt-px">
-              <span className="text-sm font-semibold">{feature.title}</span>
-              <span className="text-[13px] leading-[1.45] text-muted-foreground">
-                {feature.text}
-              </span>
-            </span>
-          )}
-        </li>
+    <div className="grid gap-3">
+      <h3 className="flex items-center gap-2 text-xs font-semibold tracking-[0.04em] text-muted-foreground uppercase">
+        <KindSquare kind={kind} />
+        {kindTitles[kind]}
+      </h3>
+      <ul className="grid gap-3">{children}</ul>
+    </div>
+  );
+}
+
+function Tile({
+  kind,
+  phone,
+  children,
+}: {
+  kind: ReleaseKind;
+  phone: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        'flex shrink-0 items-center justify-center',
+        phone ? 'size-8 rounded-[9px]' : 'size-[34px] rounded-[10px]',
+        tiles[kind]
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+function Highlights({ release, phone }: { release: Release; phone: boolean }) {
+  const { features, improvements, fixes } = dialogHighlights(release);
+  const icon = phone ? 'size-4' : 'size-[18px]';
+  const lines = [
+    { kind: 'improvements' as const, items: improvements, Icon: TrendingUp },
+    { kind: 'fixes' as const, items: fixes, Icon: Wrench },
+  ].filter(({ items }) => items.length > 0);
+  return (
+    <div className={phone ? 'grid gap-4' : 'grid gap-5'} data-testid="update-dialog-highlights">
+      {features.length > 0 && (
+        <Group kind="features">
+          {features.map((feature) => {
+            // The headline of a one-feature release is usually that feature's title.
+            const titled = feature.title !== release.headline;
+            return (
+              <li
+                key={feature.title}
+                className={cn('flex gap-3.5', titled && phone ? 'items-center' : 'items-start')}
+              >
+                <Tile kind="features" phone={phone}>
+                  <Suspense fallback={<span className={icon} />}>
+                    <FeatureIcon name={feature.icon} className={icon} />
+                  </Suspense>
+                </Tile>
+                {titled ? (
+                  <span className="grid gap-0.5">
+                    <span className="text-sm font-semibold">{feature.title}</span>
+                    {!phone && (
+                      <span className="text-[13px] leading-[1.45] text-muted-foreground">
+                        {feature.text}
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  <span className="text-[15px] leading-normal text-release-body">
+                    {feature.text}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </Group>
+      )}
+      {lines.map(({ kind, items, Icon }) => (
+        <Group key={kind} kind={kind}>
+          {items.map((line) => (
+            <li key={line} className="flex items-center gap-3.5 text-sm">
+              <Tile kind={kind} phone={phone}>
+                <Icon aria-hidden="true" className={icon} />
+              </Tile>
+              <span>{line}</span>
+            </li>
+          ))}
+        </Group>
       ))}
-      {lines.map((line) => (
-        <li
-          key={line}
-          className={
-            phone ? 'flex items-center gap-3 text-sm' : 'flex items-center gap-3.5 text-sm'
-          }
-        >
-          <span className={`flex shrink-0 items-center justify-center bg-muted ${square}`}>
-            <Check aria-hidden="true" className={icon} />
-          </span>
-          <span>{line}</span>
-        </li>
-      ))}
-    </ul>
+    </div>
   );
 }
 
 function MoreCount({ release }: { release: Release }) {
-  const { more } = dialogHighlights(release);
-  if (more === 0) return null;
+  const { rest } = dialogHighlights(release);
+  if (!rest) return null;
   return (
-    <span data-testid="update-dialog-more" className="ml-auto text-[13px] text-muted-foreground">
-      și încă {improvementCount(more)}
+    <span data-testid="update-dialog-more" className="text-[13px] text-muted-foreground">
+      {rest}
     </span>
   );
 }
@@ -152,6 +207,7 @@ export function UpdateDialog() {
               )}
             </div>
             <Highlights release={release} phone />
+            <MoreCount release={release} />
             <div className="grid gap-2 pt-1">
               <Button
                 data-testid="update-dialog-acknowledge"
@@ -176,7 +232,7 @@ export function UpdateDialog() {
         data-testid="update-dialog"
         showCloseButton={false}
         {...(release.lead ? {} : { 'aria-describedby': undefined })}
-        className="flex gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-[0_30px_80px_rgb(15_36_31/0.35)] sm:max-w-[700px]"
+        className="flex gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-[0_30px_80px_rgb(15_36_31/0.35)] sm:max-w-[740px]"
       >
         <div className="flex w-[228px] shrink-0 flex-col items-center bg-release-sand px-6">
           <div
@@ -190,25 +246,31 @@ export function UpdateDialog() {
           </div>
           <div aria-hidden="true" className="min-h-7 flex-1" />
         </div>
-        <div className="relative flex min-w-0 flex-1 flex-col gap-5 pt-7 pr-7 pb-6 pl-8">
+        <div className="relative flex min-w-0 flex-1 flex-col">
           <DialogClose
             aria-label="Închide"
             className="absolute top-3.5 right-3.5 flex size-9 items-center justify-center rounded-lg text-muted-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X aria-hidden="true" className="size-[18px]" />
           </DialogClose>
-          <div className="grid gap-2.5 pr-8">
-            <DialogTitle className="text-2xl leading-[1.2] font-bold tracking-[-0.015em]">
-              {release.headline}
-            </DialogTitle>
-            {release.lead && (
-              <DialogDescription className="text-[15px] leading-[1.55] text-release-body">
-                {release.lead}
-              </DialogDescription>
-            )}
+          <div className="flex flex-1 flex-col gap-[22px] px-8 pt-[30px] pb-[26px]">
+            <div className="grid gap-2.5 pr-8">
+              <DialogTitle className="text-2xl leading-[1.2] font-bold tracking-[-0.015em]">
+                {release.headline}
+              </DialogTitle>
+              {release.lead && (
+                <DialogDescription className="text-[15px] leading-[1.55] text-release-body">
+                  {release.lead}
+                </DialogDescription>
+              )}
+            </div>
+            <Highlights release={release} phone={false} />
           </div>
-          <Highlights release={release} phone={false} />
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center gap-2 border-t border-muted bg-background/60 py-4 pr-5 pl-8">
+            <MoreCount release={release} />
+            <Button asChild variant="outline" className="ml-auto h-10 rounded-[10px] px-4">
+              {details}
+            </Button>
             <Button
               data-testid="update-dialog-acknowledge"
               className="h-10 rounded-[10px] px-5 font-semibold"
@@ -216,10 +278,6 @@ export function UpdateDialog() {
             >
               Am înțeles
             </Button>
-            <Button asChild variant="outline" className="h-10 rounded-[10px] px-4">
-              {details}
-            </Button>
-            <MoreCount release={release} />
           </div>
         </div>
       </DialogContent>
