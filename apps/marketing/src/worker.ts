@@ -4,6 +4,13 @@ interface AssetsBinding {
 
 interface Env {
   ASSETS: AssetsBinding;
+  SEARCH_INDEXING?: string;
+}
+
+function robotsTxt(indexable: boolean, origin: string): string {
+  return indexable
+    ? `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap-index.xml\n`
+    : 'User-agent: *\nDisallow: /\n';
 }
 
 export default {
@@ -15,10 +22,21 @@ export default {
       return Response.redirect(url, 308);
     }
 
+    // Only a deployment that opts in is indexed, so non-prod and previews stay out of search.
+    const indexable = env.SEARCH_INDEXING === 'allow';
+
+    if (url.pathname === '/robots.txt') {
+      return new Response(robotsTxt(indexable, url.origin), {
+        headers: { 'content-type': 'text/plain; charset=utf-8' },
+      });
+    }
+
     const assetResponse = await env.ASSETS.fetch(request);
     const response = new Response(assetResponse.body, assetResponse);
 
-    response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    if (!indexable) {
+      response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    }
 
     return response;
   },
