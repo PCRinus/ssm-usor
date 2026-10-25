@@ -136,17 +136,38 @@ describe('formatting', () => {
     expect(fixCount(20)).toBe('20 de remedieri');
   });
 
-  it('counts what the dialog leaves out, and shows plain lines when there are no features', () => {
-    expect(dialogHighlights(newest).more).toBe(3);
-    expect(dialogHighlights({ ...newest, improvements: [], fixes: [] }).more).toBe(0);
+  it('picks up to three features and fills four rows, counting what it leaves out', () => {
+    expect(dialogHighlights(newest)).toEqual({
+      features: newest.features,
+      improvements: [newest.improvements[0]],
+      fixes: [],
+      rest: 'și încă 1 îmbunătățire și 1 remediere',
+    });
+    expect(dialogHighlights({ ...newest, improvements: [], fixes: [] }).rest).toBeNull();
     expect(
       dialogHighlights({ ...newest, features: [...newest.features, feature('A patra')], fixes: [] })
-        .more
-    ).toBe(3);
-    const lines = dialogHighlights(fixesOnly);
-    expect(lines.features).toEqual([]);
-    expect(lines.lines).toEqual(fixesOnly.fixes);
-    expect(lines.more).toBe(0);
+        .rest
+    ).toBe('și încă 1 noutate și 1 îmbunătățire');
+    expect(dialogHighlights(fixesOnly)).toEqual({
+      features: [],
+      improvements: [],
+      fixes: fixesOnly.fixes,
+      rest: null,
+    });
+  });
+
+  it('shares the rows between improvements and fixes', () => {
+    const lines = dialogHighlights({
+      ...fixesOnly,
+      improvements: ['Unu.', 'Doi.', 'Trei.', 'Patru.', 'Cinci.'],
+      fixes: ['A.', 'B.', 'C.'],
+    });
+    expect(lines.improvements).toEqual(['Unu.', 'Doi.']);
+    expect(lines.fixes).toEqual(['A.', 'B.']);
+    expect(lines.rest).toBe('și încă 3 îmbunătățiri și 1 remediere');
+    expect(dialogHighlights({ ...fixesOnly, improvements: ['Unu.'] }).fixes).toEqual(
+      fixesOnly.fixes
+    );
   });
 
   it('survives a storage that throws', () => {
@@ -171,23 +192,37 @@ describe('the update dialog', () => {
     const rows = within(within(dialog).getByTestId('update-dialog-highlights')).getAllByRole(
       'listitem'
     );
-    expect(rows.map((row) => row.textContent)).toEqual(
-      newest.features.map((item) => `${item.title}${item.text}`)
-    );
+    expect(rows.map((row) => row.textContent)).toEqual([
+      ...newest.features.map((item) => `${item.title}${item.text}`),
+      newest.improvements[0],
+    ]);
+    expect(within(dialog).getByRole('heading', { name: 'Îmbunătățiri' })).toBeTruthy();
+    expect(within(dialog).queryByRole('heading', { name: 'Remedieri' })).toBeNull();
     expect(within(dialog).getByTestId('update-dialog-more').textContent).toBe(
-      'și încă 3 îmbunătățiri'
+      'și încă 1 îmbunătățire și 1 remediere'
     );
     expect(within(dialog).getByText('publicată pe 6 noiembrie 2026')).toBeTruthy();
     expect(screen.getByTestId('nav-actualizari-badge').textContent).toBe('2 noi');
   });
 
   it('says "1 îmbunătățire" for one more line', async () => {
-    mockApi([{ ...newest, improvements: ['Una.'], fixes: [] }]);
+    mockApi([{ ...newest, improvements: ['Una.', 'Două.'], fixes: [] }]);
     mount();
     const dialog = await screen.findByRole('dialog', { name: newest.headline });
     expect(within(dialog).getByTestId('update-dialog-more').textContent).toBe(
       'și încă 1 îmbunătățire'
     );
+  });
+
+  it('shows the only feature by its text when its title is the headline', async () => {
+    const help = feature('Ajutor pentru fiecare câmp', 'life-buoy');
+    mockApi([{ ...reminders, headline: help.title, lead: null, features: [help] }]);
+    mount();
+    const dialog = await screen.findByRole('dialog', { name: help.title });
+    const rows = within(within(dialog).getByTestId('update-dialog-highlights')).getAllByRole(
+      'listitem'
+    );
+    expect(rows.map((row) => row.textContent)).toEqual([help.text, reminders.improvements[0]]);
   });
 
   it('leaves the count out when the highlights are everything', async () => {
