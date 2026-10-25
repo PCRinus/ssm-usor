@@ -40,6 +40,11 @@ export default {
     const assetResponse = await env.ASSETS.fetch(request);
     const response = new Response(assetResponse.body, assetResponse);
 
+    // Static assets serve .txt as bare text/plain, and llms.txt is Romanian.
+    if (response.headers.get('content-type') === 'text/plain') {
+      response.headers.set('content-type', 'text/plain; charset=utf-8');
+    }
+
     if (!indexable) {
       response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
     }
