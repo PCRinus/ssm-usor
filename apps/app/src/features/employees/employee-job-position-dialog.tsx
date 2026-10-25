@@ -24,6 +24,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Field } from '@/components/form-field';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { JobPositionCombobox } from '@/features/job-positions/job-position-combobox';
@@ -136,8 +137,8 @@ function Form({
         <DialogHeader>
           <DialogTitle>Schimbă postul de lucru</DialogTitle>
           <DialogDescription>
-            Noul post schimbă riscurile și instruirea. Funcția din contract se actualizează doar
-            dacă avea aceeași denumire ca postul vechi. O poți schimba și separat.
+            Funcția urmează postul doar dacă avea aceeași denumire.{' '}
+            <HelpLink topic="angajati.schimbare-post">Află mai mult</HelpLink>
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">

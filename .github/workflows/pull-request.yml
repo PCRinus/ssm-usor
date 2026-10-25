@@ -47,7 +47,7 @@ jobs:
           CHANGES: ${{ steps.filter.outputs.changes }}
         shell: bash
         run: |
-          echo "projects=$(jq -c 'map(select(IN("api", "app", "portal", "mail", "sms", "pdf", "legislation", "marketing")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
+          echo "projects=$(jq -c 'map(select(IN("api", "app", "portal", "mail", "sms", "pdf", "legislation", "marketing", "help")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
 
   validate:
     name: Validate repository
@@ -55,11 +55,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # The merge commit and its first parent, the base branch, which the help check compares with.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
 
       - uses: ./.github/actions/setup
         with:
           turbo-cache: 'true'
+
+      # Warns, never fails: most changes to a source do not change what a member sees (ADR 028).
+      - name: Name help articles whose sources changed
+        continue-on-error: true
+        run: pnpm --filter @ssm-usor/help check:sources HEAD^1
 
       # A change that touches no code, which in practice means documentation, is only checked
       # for formatting and lint.

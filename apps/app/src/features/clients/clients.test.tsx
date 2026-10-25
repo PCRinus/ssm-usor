@@ -648,7 +648,7 @@ describe('client creation', () => {
     await user.type(screen.getByTestId('client-legal-name'), 'Firma Mea SRL');
     await user.click(screen.getByTestId('client-submit'));
     expect((await screen.findByTestId('caenCode-error')).textContent).toBe(
-      'CAEN code must have four digits.'
+      'Valoarea nu a fost acceptată. Verifică acest câmp.'
     );
     await user.click(screen.getByTestId('client-submit'));
     await waitFor(() => expect(screen.getByTestId('client-form-error')).toBeTruthy());

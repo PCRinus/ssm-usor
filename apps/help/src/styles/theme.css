@@ -1,0 +1,45 @@
+@import '@ssm-usor/design-tokens/tokens.css';
+
+/* The tokens have no dark palette: dark is a neutral grey with the brand's lime as its accent. */
+:root {
+  --sl-font: var(--font-body);
+
+  --sl-color-white: #f4f5f4;
+  --sl-color-gray-1: #e2e4e2;
+  --sl-color-gray-2: #c2c6c3;
+  --sl-color-gray-3: #8d938f;
+  --sl-color-gray-4: #5e6460;
+  --sl-color-gray-5: #3c403e;
+  --sl-color-gray-6: #262927;
+  --sl-color-black: #161817;
+
+  --sl-color-accent-low: #2a3519;
+  --sl-color-accent: var(--brand-lime);
+  --sl-color-accent-high: #d4e9a8;
+}
+
+:root[data-theme='light'] {
+  --sl-color-white: var(--brand-forest);
+  --sl-color-gray-1: #213f37;
+  --sl-color-gray-2: #2f4a43;
+  --sl-color-gray-3: var(--muted-foreground);
+  --sl-color-gray-4: #8a978f;
+  --sl-color-gray-5: var(--input);
+  --sl-color-gray-6: var(--muted);
+  --sl-color-gray-7: var(--card);
+  --sl-color-black: var(--card);
+
+  --sl-color-accent-low: color-mix(in srgb, var(--brand-lime) 38%, #ffffff);
+  --sl-color-accent: var(--brand-forest);
+  --sl-color-accent-high: var(--brand-forest);
+
+  --sl-color-bg: var(--background);
+  --sl-color-bg-sidebar: var(--card);
+  --sl-color-hairline-light: var(--border);
+  --sl-color-hairline-shade: var(--border);
+}
+
+/* Starlight sets this inline, sized for the English labels. */
+starlight-theme-select label {
+  --sl-select-width: 8.5em !important;
+}

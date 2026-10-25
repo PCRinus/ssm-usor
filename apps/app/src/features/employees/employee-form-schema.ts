@@ -7,6 +7,8 @@ import {
   type RhFactor,
   rhFactors,
 } from '@ssm-usor/contracts';
+import type { HelpTopic } from '@ssm-usor/help-topics/topics';
+import type { FieldError } from 'react-hook-form';
 import { z } from 'zod';
 
 import type {
@@ -15,6 +17,27 @@ import type {
   UpdateEmployeeRequest,
 } from '@/api/generated/api';
 import { optionalPhoneField } from '@/lib/phone';
+
+export const employeeMessages = {
+  cnpInvalid: 'CNP invalid. Verifică cele 13 cifre, data nașterii și cifra de control.',
+  cnpTaken: 'Există deja un angajat cu acest CNP la client.',
+  numberTaken: 'Există deja un angajat cu această marcă la client.',
+  bornAfterHire: 'Data nașterii trebuie să fie înaintea datei angajării.',
+  birthNotInCnp: 'Data nașterii nu corespunde cu CNP-ul.',
+} as const;
+
+// The rule behind a message, when the message alone does not say why.
+const messageTopics: Partial<Record<string, HelpTopic>> = {
+  [employeeMessages.cnpInvalid]: 'angajati.cnp-invalid',
+  [employeeMessages.cnpTaken]: 'angajati.duplicat',
+  [employeeMessages.numberTaken]: 'angajati.duplicat',
+  [employeeMessages.bornAfterHire]: 'angajati.data-nasterii',
+  [employeeMessages.birthNotInCnp]: 'angajati.data-nasterii',
+};
+
+export function employeeErrorHelp(error: FieldError | undefined) {
+  return error?.message ? messageTopics[error.message] : undefined;
+}
 
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 const optionalText = (max: number, message: string) => z.string().trim().max(max, message);
@@ -35,10 +58,7 @@ export const employeeFormSchema = z
     cnp: z
       .string()
       .trim()
-      .refine(
-        (value) => value === '' || isValidCnpInput(value),
-        'CNP invalid. Verifică cele 13 cifre, data nașterii și cifra de control.'
-      ),
+      .refine((value) => value === '' || isValidCnpInput(value), employeeMessages.cnpInvalid),
     employeeNumber: optionalText(40, 'Marca poate avea cel mult 40 de caractere.'),
     email: z
       .string()
@@ -94,7 +114,7 @@ export const employeeFormSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['birthDate'],
-        message: 'Data nașterii trebuie să fie înaintea datei angajării.',
+        message: employeeMessages.bornAfterHire,
       });
     }
     // Same rule as the API: the CNP encodes the birth date for Romanian citizens.
@@ -103,7 +123,7 @@ export const employeeFormSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['birthDate'],
-        message: 'Data nașterii nu corespunde cu CNP-ul.',
+        message: employeeMessages.birthNotInCnp,
       });
     }
   });
@@ -205,6 +225,11 @@ export function toUpdateEmployeeRequest(
   values: EmployeeFormValues,
   employee: Employee
 ): UpdateEmployeeRequest {
-  const { workplaceId, ...request } = toCreateEmployeeRequest(values);
-  return workplaceId === (employee.workplace?.id ?? null) ? request : { ...request, workplaceId };
+  const { workplaceId, jobPositionId, ...request } = toCreateEmployeeRequest(values);
+  // A former employee may hold a position archived since; sent again, it would be refused.
+  return {
+    ...request,
+    ...(jobPositionId === employee.jobPosition.id ? {} : { jobPositionId }),
+    ...(workplaceId === (employee.workplace?.id ?? null) ? {} : { workplaceId }),
+  };
 }

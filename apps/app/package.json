@@ -23,6 +23,7 @@
     "@ssm-usor/api-http": "workspace:*",
     "@ssm-usor/contracts": "workspace:*",
     "@ssm-usor/document-engine": "workspace:*",
+    "@ssm-usor/help-topics": "workspace:*",
     "@ssm-usor/ui": "workspace:*",
     "@supabase/supabase-js": "^2.118.0",
     "@tanstack/react-query": "^5.104.5",

@@ -1,0 +1,115 @@
+import { readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+import starlight from '@astrojs/starlight';
+import { defineConfig } from 'astro/config';
+import { slug } from 'github-slugger';
+
+const docs = fileURLToPath(new URL('./src/content/docs/', import.meta.url));
+const article = /\.mdx?$/;
+
+function entries(directory) {
+  try {
+    return readdirSync(docs + directory, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+}
+
+function hasArticles(directory) {
+  return entries(directory).some((entry) =>
+    entry.isDirectory()
+      ? hasArticles(`${directory}/${entry.name}`)
+      : entry.isFile() && article.test(entry.name)
+  );
+}
+
+// Starlight slugs each path segment of an article's id with github-slugger.
+function slugOf(path) {
+  return path
+    .replace(article, '')
+    .replace(/(^|\/)index$/, '')
+    .split('/')
+    .map((segment) => slug(segment))
+    .join('/');
+}
+
+// Starlight autogenerates a group from a directory whether or not it holds articles, and labels
+// nested directories by their name, so empty groups are dropped and nested ones are labelled here.
+function group(label, directory, subgroups = []) {
+  const children = subgroups
+    .filter((subgroup) => hasArticles(`${directory}/${subgroup.directory}`))
+    .map((subgroup) => ({
+      label: subgroup.label,
+      items: [{ autogenerate: { directory: `${directory}/${subgroup.directory}` } }],
+    }));
+  if (!children.length) {
+    return hasArticles(directory) ? [{ label, items: [{ autogenerate: { directory } }] }] : [];
+  }
+  const articles = entries(directory)
+    .filter((entry) => entry.isFile() && article.test(entry.name))
+    .map((entry) => entry.name)
+    .sort()
+    .map((name) => slugOf(`${directory}/${name}`));
+  return [{ label, items: [...articles, ...children] }];
+}
+
+const clientAreas = [
+  { label: 'Date firmă', directory: 'date-firma' },
+  { label: 'Angajați', directory: 'angajati' },
+  { label: 'Posturi și echipament', directory: 'posturi' },
+  { label: 'Instruire și fișe', directory: 'instruire' },
+  { label: 'Evaluarea riscurilor', directory: 'evaluarea-riscurilor' },
+  { label: 'Documente SSM', directory: 'documente-ssm' },
+  { label: 'Documente PSI', directory: 'documente-psi' },
+  { label: 'Fișiere', directory: 'fisiere' },
+];
+
+const areas = [
+  ['Primii pași', 'primii-pasi'],
+  ['Clienți potențiali și contracte', 'clienti-potentiali'],
+  ['Clienți', 'clienti'],
+  ['Instrucțiuni', 'instructiuni'],
+  ['Riscuri', 'riscuri'],
+  ['Teste', 'teste'],
+  ['Semnături și participanți', 'semnaturi'],
+  ['Legislație', 'legislatie'],
+  ['Organizație', 'organizatie'],
+  ['Contul meu', 'contul-meu'],
+  ['Cum funcționează', 'cum-functioneaza'],
+];
+
+// Starlight builds every article whether or not the sidebar lists it, so an article in a directory
+// missing here would be reachable by link and absent from the navigation.
+const listed = new Map([
+  ['', areas.map(([, directory]) => directory)],
+  ['clienti', clientAreas.map((area) => area.directory)],
+]);
+for (const [parent, directories] of listed) {
+  for (const entry of entries(parent)) {
+    if (entry.isDirectory() && !directories.includes(entry.name)) {
+      throw new Error(
+        `The help sidebar lists no area for ${[parent, entry.name].filter(Boolean).join('/')}.`
+      );
+    }
+  }
+}
+
+const sidebar = areas.flatMap(([label, directory]) =>
+  group(label, directory, directory === 'clienti' ? clientAreas : [])
+);
+
+export default defineConfig({
+  output: 'static',
+  integrations: [
+    starlight({
+      title: 'SSM Ușor — Ajutor',
+      defaultLocale: 'root',
+      locales: { root: { label: 'Română', lang: 'ro' } },
+      favicon: '/brand/favicon.png',
+      components: { SiteTitle: './src/components/SiteTitle.astro' },
+      customCss: ['./src/styles/theme.css'],
+      sidebar,
+    }),
+  ],
+});

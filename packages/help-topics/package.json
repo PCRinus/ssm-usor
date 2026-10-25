@@ -1,0 +1,19 @@
+{
+  "name": "@ssm-usor/help-topics",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./topics": "./src/topics.ts",
+    "./url": "./src/url.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

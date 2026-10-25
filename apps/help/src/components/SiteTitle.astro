@@ -1,0 +1,45 @@
+---
+import light from '../assets/logo.png';
+import dark from '../assets/logo-dark.png';
+
+const { siteTitleHref } = Astro.locals.starlightRoute;
+---
+
+<a href={siteTitleHref} class="site-title sl-flex">
+  <img
+    class="light:sl-hidden print:hidden"
+    alt="SSM Ușor"
+    src={dark.src}
+    width={dark.width}
+    height={dark.height}
+  />
+  <img
+    class="dark:sl-hidden print:block"
+    alt="SSM Ușor"
+    src={light.src}
+    width={light.width}
+    height={light.height}
+  />
+  <span class="section">Ajutor</span>
+</a>
+
+<style>
+  .site-title {
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  img {
+    height: 2.5rem;
+    width: auto;
+  }
+  .section {
+    border-inline-start: 1px solid var(--sl-color-hairline-light);
+    padding-inline-start: 0.75rem;
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-lg);
+    font-weight: 600;
+  }
+</style>

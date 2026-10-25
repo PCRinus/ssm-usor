@@ -40,7 +40,8 @@ available as a required PR check, including on documentation-only changes.
 | Changed files                                                                                                                             | Build/deployment targets                             |
 | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | `apps/marketing/**`                                                                                                                       | Marketing                                            |
-| `apps/app/**`                                                                                                                             | SPA                                                  |
+| `apps/help/**`                                                                                                                            | Help site                                            |
+| `apps/app/**`, `packages/help-topics/**`                                                                                                  | SPA                                                  |
 | `apps/portal/**`                                                                                                                          | Portal                                               |
 | `packages/api-http/**`                                                                                                                    | SPA and portal                                       |
 | `apps/api/**` (except the shared contract below)                                                                                          | API                                                  |
@@ -48,7 +49,8 @@ available as a required PR check, including on documentation-only changes.
 | `apps/sms/**`                                                                                                                             | SMS Worker ([guide](sms.md))                         |
 | `apps/pdf/**`, `packages/contracts/src/pdf.ts`                                                                                            | PDF Worker and its container image ([guide](pdf.md)) |
 | `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                   |
-| `packages/ui/**`, `packages/design-tokens/**`                                                                                             | SPA, portal and marketing                            |
+| `packages/ui/**`                                                                                                                          | SPA, portal and marketing                            |
+| `packages/design-tokens/**`                                                                                                               | SPA, portal, marketing and help site                 |
 | `packages/contracts/**`                                                                                                                   | API, SPA, portal, mail and SMS Workers               |
 | `apps/api/openapi.json`                                                                                                                   | API and SPA                                          |
 | `orval.config.ts`                                                                                                                         | SPA                                                  |
@@ -82,6 +84,14 @@ root configuration, workflow files) only has its formatting and lint checked, an
 tests. In practice that is documentation. In a deployment, validation and the tests run only
 when something is selected to deploy.
 
+`pnpm check:generated` also regenerates the help topics (`packages/help-topics/src/topics.ts`)
+from the articles' front matter, and the help site's build fails when a topic's anchor is not
+on its page or when a topic id or source shows in the built pages or the search index ([ADR
+028](architecture/adr-028-help-site.md)). On pull requests, **Validate repository** also
+compares the changed files with every help article's `sources` and warns, in the job summary
+and on the article, about each article whose source changed while it did not. That step never
+fails the job.
+
 In a deployment, one build job runs alongside validation and builds every selected
 application with a single Turbo invocation, which keeps the builds off the critical path. Every
 deployment job needs validation, the tests and the build, so nothing built is deployed unless
@@ -90,16 +100,16 @@ deployment job whose `if:` starts with `!cancelled()` checks each of them by nam
 would otherwise run after a failure. It builds with the environment's public
 configuration, because the SPA, the portal and the marketing site carry it in their bundles: a
 release builds again and never reuses non-prod's artifacts. The addresses come from the
-environment's `API_URL`, `APP_URL`, `PORTAL_URL` and `MARKETING_URL` variables, and the build
-fails when one is not an `https://` address, since the marketing site would otherwise fall back
-to production's. The `VITE_*` and `PUBLIC_*` values and the commit SHA embedded in the frontend
-footers are part of their Turbo build hashes, so one environment's cached build never serves
-the other. Turbo builds workspace dependencies before the selected application; the
+environment's `API_URL`, `APP_URL`, `PORTAL_URL`, `MARKETING_URL` and `HELP_URL` variables, and
+the build fails when one is not an `https://` address, since the marketing site would otherwise
+fall back to production's and the SPA would lose its help links. The `VITE_*` and `PUBLIC_*`
+values and the commit SHA embedded in the frontend footers are part of their Turbo build hashes,
+so one environment's cached build never serves the other. Turbo builds workspace dependencies before the selected application; the
 dry-run task depends on that build.
 
 Each build uploads a `release-<application>-<environment>-<commit>` artifact, retained for seven
 days. The artifact includes the Wrangler bundle and, for the frontends, the static `dist`
-assets. Deployment jobs download their matching artifact. API, mail, PDF, legislation, and marketing upload the
+assets. Deployment jobs download their matching artifact. API, mail, PDF, legislation, marketing and help upload the
 already-bundled Worker with `--no-bundle`; SPA uploads the built static assets. No deployment
 job runs lint, tests, application builds, or code generation again before publishing.
 
@@ -109,7 +119,7 @@ call, the `wrangler secret bulk` that `wrangler-action` runs before deploying in
 `--env` flag in the action's `command` would not, and non-prod's secrets would land on
 production's Worker. Deployed with `non-prod`, each Worker is named with a `-non-prod` suffix.
 
-Database migrations deploy first when selected, from the environment's Supabase credentials. Mail, SMS and marketing deploy independently; the API waits for the mail and SMS
+Database migrations deploy first when selected, from the environment's Supabase credentials. Mail, SMS, marketing and help deploy independently; the API waits for the mail and SMS
 Workers when they are selected, because its service bindings need those Workers to exist. The mail deployment uploads
 `RESEND_API_KEY` when the environment has it and warns when it does not; the SMS
 deployment uploads the `TWILIO_ACCOUNT_SID` and `SMS_FROM` variables and the `TWILIO_AUTH_TOKEN` secret when all three are

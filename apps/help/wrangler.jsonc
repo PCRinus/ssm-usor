@@ -1,0 +1,34 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "ssm-usor-help",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-08-31",
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "help.ssmusor.ro",
+      "custom_domain": true,
+    },
+  ],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash",
+    // The sign-in gate (ADR 028) has to see every request, the search index included.
+    "run_worker_first": true,
+  },
+  "observability": {
+    "enabled": true,
+  },
+  "env": {
+    "non-prod": {
+      "routes": [
+        {
+          "pattern": "help.non-prod.ssmusor.ro",
+          "custom_domain": true,
+        },
+      ],
+    },
+  },
+}

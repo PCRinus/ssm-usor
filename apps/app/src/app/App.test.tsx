@@ -199,6 +199,36 @@ describe('dashboard authentication and routing', () => {
     expect(localStorage.getItem('ssm-usor:sidebar-open')).toBeNull();
   });
 
+  it('opens the help home in the help tab and closes mobile navigation', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({
+        matches: true,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }))
+    );
+    mount(authFixture(makeSession()).client, '/clients');
+    const user = userEvent.setup();
+    await screen.findByTestId('clients-page');
+    await user.click(screen.getByTestId('sidebar-toggle'));
+    const drawer = await screen.findByRole('dialog');
+    const help = within(drawer).getByRole('link', { name: 'Ajutor' });
+    expect(help.getAttribute('href')).toBe('http://localhost:4331/');
+    expect(help.getAttribute('target')).toBe('ssm-usor-ajutor');
+    const footerItems = help
+      .closest('[data-sidebar="footer"]')!
+      .querySelectorAll('[data-sidebar="menu-button"]');
+    expect(Array.from(footerItems, (item) => item.textContent?.trim()).slice(0, 3)).toEqual([
+      'Actualizări',
+      'Ajutor',
+      'Raportează o problemă',
+    ]);
+    help.addEventListener('click', (event) => event.preventDefault());
+    await user.click(help);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
   it('remembers collapsing and expanding the navigation, by the trigger and by the shortcut', async () => {
     mount(authFixture(makeSession()).client);
     const user = userEvent.setup();

@@ -73,6 +73,7 @@ jobs:
       pdf: ${{ steps.select.outputs.pdf }}
       legislation: ${{ steps.select.outputs.legislation }}
       marketing: ${{ steps.select.outputs.marketing }}
+      help: ${{ steps.select.outputs.help }}
       database: ${{ steps.select.outputs.database }}
       templates: ${{ steps.select.outputs.templates }}
       projects: ${{ steps.select.outputs.projects }}
@@ -134,12 +135,12 @@ jobs:
           CHANGES: ${{ steps.filter.outputs.changes || '[]' }}
         shell: bash
         run: |
-          all='["api","app","portal","mail","sms","pdf","legislation","marketing","database","templates"]'
+          all='["api","app","portal","mail","sms","pdf","legislation","marketing","help","database","templates"]'
           if [[ "$EVERYTHING" == true ]]; then CHANGES=$all; fi
           for name in $(jq -r '.[]' <<< "$all"); do
             echo "$name=$(jq --arg name "$name" 'index($name) != null' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
           done
-          echo "projects=$(jq -c 'map(select(IN("api", "app", "portal", "mail", "sms", "pdf", "legislation", "marketing")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
+          echo "projects=$(jq -c 'map(select(IN("api", "app", "portal", "mail", "sms", "pdf", "legislation", "marketing", "help")))' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
 
   validate:
     name: Validate repository
@@ -217,6 +218,7 @@ jobs:
       GIT_COMMIT_SHA: ${{ inputs.sha }}
       RELEASE_TAG: ${{ inputs.release }}
       VITE_API_URL: ${{ vars.API_URL }}
+      VITE_HELP_URL: ${{ vars.HELP_URL }}
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
       VITE_POSTHOG_PROJECT_TOKEN: ${{ vars.VITE_POSTHOG_PROJECT_TOKEN }}
@@ -235,7 +237,8 @@ jobs:
           ref: ${{ inputs.sha }}
 
       # The marketing site falls back to production's addresses when one is empty, which in
-      # non-prod would send its visitors to production without a word.
+      # non-prod would send its visitors to production without a word, and the SPA built
+      # without the help address would drop its help links.
       - name: Check environment addresses
         env:
           APP_URL: ${{ vars.APP_URL }}
@@ -243,7 +246,7 @@ jobs:
           MARKETING_URL: ${{ vars.MARKETING_URL }}
         shell: bash
         run: |
-          for name in VITE_API_URL APP_URL PORTAL_URL MARKETING_URL; do
+          for name in VITE_API_URL APP_URL PORTAL_URL MARKETING_URL VITE_HELP_URL; do
             if [[ "${!name}" != https://* ]]; then
               echo "::error::Set ${name/VITE_/} to an https:// address in this environment's GitHub variables."
               exit 1
@@ -374,6 +377,17 @@ jobs:
         with:
           name: release-marketing-${{ inputs.environment }}-${{ inputs.sha }}
           path: ${{ runner.temp }}/release-marketing/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+      - name: Upload validated help release
+        if: needs.changes.outputs.help == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-help-${{ inputs.environment }}-${{ inputs.sha }}
+          path: ${{ runner.temp }}/release-help/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
@@ -1206,6 +1220,48 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/marketing
+          packageManager: pnpm
+          command: >-
+            deploy .wrangler/release/worker/worker.js --no-bundle
+            --assets .wrangler/release/dist
+            --tag ${{ inputs.sha }}
+            --message "${{ steps.metadata.outputs.message }}"
+
+  deploy-help:
+    name: Deploy help site
+    needs: [changes, validate, test, build]
+    if: needs.changes.outputs.help == 'true'
+    runs-on: ubuntu-latest
+    # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
+    # waits its turn.
+    concurrency:
+      group: deploy-help-${{ inputs.environment }}
+      cancel-in-progress: false
+    timeout-minutes: 15
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ vars.HELP_URL }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.sha }}
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-help-${{ inputs.environment }}-${{ inputs.sha }}
+          path: apps/help/.wrangler/release
+
+      - name: Prepare deployment message
+        id: metadata
+        uses: ./.github/actions/deployment-message
+
+      - name: Deploy validated help bundle and assets
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/help
           packageManager: pnpm
           command: >-
             deploy .wrangler/release/worker/worker.js --no-bundle

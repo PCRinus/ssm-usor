@@ -36,6 +36,7 @@ publishable key:
 
 ```dotenv
 VITE_API_URL=http://localhost:8787
+VITE_HELP_URL=http://localhost:4331
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
 ```
@@ -129,6 +130,30 @@ credentials on the server. UI-only schemas stay local; reusable API payload sche
 `packages/contracts`, and Hono must independently validate incoming API requests. The SPA depends
 on `@ssm-usor/contracts` for shared value helpers such as the county list and CUI checksum, not
 for transport types, which come from the generated client.
+
+## Help links
+
+The app links to the members' help site ([ADR 028](architecture/adr-028-help-site.md)) through
+the topics generated into `@ssm-usor/help-topics`, so a link to a topic no article lists fails
+the typecheck. `src/lib/help.ts` builds every address from `VITE_HELP_URL`, which
+defaults to the help dev server (`http://localhost:4331`) in development; a build without it
+shows no help links, and the deployment refuses to build without the environment's `HELP_URL`.
+Every link opens in the one tab named `ssm-usor-ajutor`, without `noopener`, so a second click
+reuses the help tab, and sends `help_opened` to PostHog with the topic id (`home` for the site's
+home).
+
+- `Field`'s `help` puts a "?" link after the label, named "Ajutor: <label>". It sits outside the
+  label, so the label's click handling is unchanged, and adds one tab stop before the control.
+- `errorHelp` on `Field`, or `help` on `FieldMessage`, ends the message with "De ce?" linking the
+  topic of the rule it reports. The message itself still says what is wrong and how to fix it.
+- `HelpLink` is the same link elsewhere: a "?" icon with a `label`, or inline text such as
+  "Află mai mult" given as its children, beside a section heading, in a `Notice` or a dialog's
+  description.
+- The sidebar footer's "Ajutor" opens the help site's home.
+
+When an area's articles land, its hints are reread. A hint keeps only what to type: a format, an
+example, a unit, a limit. The why, the rule and its consequences go to the topic, and the field
+gets `help`. A hint that only explains is removed, and never before its topic exists.
 
 ## Routes and providers
 
@@ -1296,8 +1321,8 @@ toast, and with nothing unread it sends nothing.
   shows again on the next load. **Vezi detaliile** dismisses it and opens the release's page.
   Under 768 px (`useIsMobile`) it is a bottom sheet with a smaller tag, the feature titles alone
   and no count. It never opens on `/actualizari` or a release page, which show the same thing.
-- The sidebar's footer holds "Actualizări", above "Raportează o problemă", with a lime badge
-  ("2 noi") while releases are unread; the icon rail hides the badge. The page footer's
+- The sidebar's footer holds "Actualizări", above "Ajutor" and "Raportează o problemă", with a
+  lime badge ("2 noi") while releases are unread; the icon rail hides the badge. The page footer's
   "Versiune 2026.10.24" links to that release's page when the build's `VITE_RELEASE_TAG` has a
   row in the list, and stays plain text otherwise, as on non-prod and local builds.
 - `/actualizari` lists every release newest first, grouped by month: the tag and weekday beside
