@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Acord de prelucrare a datelor"
   description="Condițiile în care SSM Ușor prelucrează date personale în numele serviciilor externe de prevenire și protecție, conform articolului 28 din GDPR."
-  updated="18 septembrie 2026"
+  updated="25 octombrie 2026"
 >
   <p>
     Acest acord face parte din <a href="/termeni/">Termenii și condițiile</a> Platformei SSM Ușor și
@@ -95,10 +95,19 @@ const M = legalEntity.filled ? 'span' : 'mark';
       <M>{legalEntity.emailProvider}</M>: email tranzacțional;
     </li>
     <li>
-      <M>{legalEntity.signatureProvider}</M>: semnătură electronică, pentru documentele trimise la
-      semnat.
+      Twilio Inc.: SMS, pentru invitațiile în portal, codurile de conectare și de semnare și
+      anunțurile despre instruirile de semnat trimise pe telefon;
+    </li>
+    <li>
+      PostHog: analiza utilizării Platformei și a portalului, înregistrări ale sesiunii, urmărirea
+      erorilor și asistență, cu proiect găzduit în Uniunea Europeană.
     </li>
   </ul>
+  <p>
+    Semnătura electronică a documentelor trimise la semnat nu folosește un subîmputernicit:
+    Platforma face ea însăși o semnătură electronică avansată, cu certificate emise de ea, pe
+    infrastructura Cloudflare.
+  </p>
   <p>
     Le impunem obligații de protecție a datelor echivalente cu cele de aici și răspundem față de
     Furnizor pentru ele. Anunțăm adăugarea sau înlocuirea unui subîmputernicit cu cel puțin 15 zile

@@ -1,0 +1,240 @@
+---
+import { facts } from './copy';
+
+const stars = [
+  '34.00,10.40 34.81,12.89 37.42,12.89 35.31,14.42 36.12,16.91 34.00,15.38 31.88,16.91 32.69,14.42 30.58,12.89 33.19,12.89',
+  '44.00,13.08 44.81,15.57 47.42,15.57 45.31,17.10 46.12,19.59 44.00,18.05 41.88,19.59 42.69,17.10 40.58,15.57 43.19,15.57',
+  '51.32,20.40 52.13,22.89 54.74,22.89 52.63,24.42 53.44,26.91 51.32,25.38 49.20,26.91 50.01,24.42 47.90,22.89 50.51,22.89',
+  '54.00,30.40 54.81,32.89 57.42,32.89 55.31,34.42 56.12,36.91 54.00,35.38 51.88,36.91 52.69,34.42 50.58,32.89 53.19,32.89',
+  '51.32,40.40 52.13,42.89 54.74,42.89 52.63,44.42 53.44,46.91 51.32,45.38 49.20,46.91 50.01,44.42 47.90,42.89 50.51,42.89',
+  '44.00,47.72 44.81,50.21 47.42,50.21 45.31,51.75 46.12,54.23 44.00,52.70 41.88,54.23 42.69,51.75 40.58,50.21 43.19,50.21',
+  '34.00,50.40 34.81,52.89 37.42,52.89 35.31,54.42 36.12,56.91 34.00,55.38 31.88,56.91 32.69,54.42 30.58,52.89 33.19,52.89',
+  '24.00,47.72 24.81,50.21 27.42,50.21 25.31,51.75 26.12,54.23 24.00,52.70 21.88,54.23 22.69,51.75 20.58,50.21 23.19,50.21',
+  '16.68,40.40 17.49,42.89 20.10,42.89 17.99,44.42 18.80,46.91 16.68,45.38 14.56,46.91 15.37,44.42 13.26,42.89 15.87,42.89',
+  '14.00,30.40 14.81,32.89 17.42,32.89 15.31,34.42 16.12,36.91 14.00,35.38 11.88,36.91 12.69,34.42 10.58,32.89 13.19,32.89',
+  '16.68,20.40 17.49,22.89 20.10,22.89 17.99,24.42 18.80,26.91 16.68,25.38 14.56,26.91 15.37,24.42 13.26,22.89 15.87,22.89',
+  '24.00,13.08 24.81,15.57 27.42,15.57 25.31,17.10 26.12,19.59 24.00,18.05 21.88,19.59 22.69,17.10 20.58,15.57 23.19,15.57',
+];
+---
+
+<section class="facts" aria-label="Pe scurt">
+  <ul class="wrap">
+    {facts.map((fact) => (
+      <li>
+        {fact.mark === 'eu' && (
+          <svg class="mark" viewBox="0 0 68 68" aria-hidden="true">
+            <circle cx="34" cy="34" r="33" fill="#003399" />
+            <g fill="#FFCC00">
+              {stars.map((points) => (
+                <polygon points={points} />
+              ))}
+            </g>
+          </svg>
+        )}
+        {fact.mark === 'signature' && (
+          <svg class="mark" viewBox="0 0 68 68" aria-hidden="true">
+            <circle cx="34" cy="34" r="33" fill="#eaf2d6" />
+            <rect
+              x="18"
+              y="13"
+              width="32"
+              height="42"
+              rx="4"
+              fill="#ffffff"
+              stroke="#18342e"
+              stroke-width="1.6"
+            />
+            <path
+              d="M24 22h20M24 28h20M24 34h13"
+              stroke="#9fb39c"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M23 46c3-5 5 2 8-2s3-4 5 0 4 1 7-2"
+              fill="none"
+              stroke="#18342e"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <circle cx="49" cy="50" r="8" fill="#b6d86f" stroke="#ffffff" stroke-width="2" />
+            <path
+              d="M45.5 50l2.4 2.4 4.4-4.6"
+              fill="none"
+              stroke="#18342e"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        )}
+        {fact.mark === 'legislation' && (
+          <svg class="mark" viewBox="0 0 68 68" aria-hidden="true">
+            <circle cx="34" cy="34" r="33" fill="#eaf2d6" />
+            <text
+              x="32"
+              y="44"
+              text-anchor="middle"
+              font-family="Inter Tight, Inter, sans-serif"
+              font-size="30"
+              font-weight="700"
+              fill="#18342e"
+            >
+              §
+            </text>
+            <circle cx="47" cy="47" r="9" fill="#18342e" stroke="#eaf2d6" stroke-width="2" />
+            <path
+              d="M43 47a4 4 0 0 1 6.8-2.8M51 47a4 4 0 0 1-6.8 2.8"
+              fill="none"
+              stroke="#b6d86f"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+            <path
+              d="M49.8 42.2v2.2h-2.2M44.2 51.8v-2.2h2.2"
+              fill="none"
+              stroke="#b6d86f"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        )}
+        {fact.mark === 'formats' && (
+          <svg class="mark" viewBox="0 0 68 68" aria-hidden="true">
+            <circle cx="34" cy="34" r="33" fill="#eaf2d6" />
+            <g transform="rotate(-8 27 34)">
+              <rect
+                x="13"
+                y="17"
+                width="26"
+                height="33"
+                rx="4"
+                fill="#ffffff"
+                stroke="#18342e"
+                stroke-width="1.6"
+              />
+              <text
+                x="21"
+                y="30"
+                text-anchor="middle"
+                font-family="Inter, sans-serif"
+                font-size="7"
+                font-weight="700"
+                fill="#18342e"
+              >
+                DOC
+              </text>
+            </g>
+            <g transform="rotate(7 42 36)">
+              <rect x="29" y="19" width="26" height="33" rx="4" fill="#18342e" />
+              <text
+                x="42"
+                y="40"
+                text-anchor="middle"
+                font-family="Inter, sans-serif"
+                font-size="9"
+                font-weight="700"
+                fill="#b6d86f"
+              >
+                PDF
+              </text>
+            </g>
+          </svg>
+        )}
+        <div>
+          <b>{fact.title}</b>
+          <span>{fact.text}</span>
+        </div>
+      </li>
+    ))}
+  </ul>
+</section>
+
+<style>
+  .facts {
+    padding-block: 8px 0;
+  }
+  ul {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: #fff;
+    overflow: hidden;
+  }
+  li {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 26px 24px;
+    animation: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  li + li {
+    border-left: 1px solid var(--line);
+  }
+  li:nth-child(1) {
+    animation-delay: 0.55s;
+  }
+  li:nth-child(2) {
+    animation-delay: 0.63s;
+  }
+  li:nth-child(3) {
+    animation-delay: 0.71s;
+  }
+  li:nth-child(4) {
+    animation-delay: 0.79s;
+  }
+  .mark {
+    display: block;
+    flex: 0 0 68px;
+    width: 68px;
+    height: 68px;
+  }
+  b {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  li span {
+    display: block;
+    margin-top: 3px;
+    color: var(--ink-2);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    li {
+      animation: none;
+    }
+  }
+  @media (max-width: 1080px) {
+    ul {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    li:nth-child(3) {
+      border-left: 0;
+    }
+    li:nth-child(n + 3) {
+      border-top: 1px solid var(--line);
+    }
+  }
+  @media (max-width: 760px) {
+    ul {
+      grid-template-columns: 1fr;
+    }
+    li {
+      padding: 20px;
+    }
+    li + li {
+      border-left: 0;
+      border-top: 1px solid var(--line);
+    }
+    .mark {
+      flex-basis: 56px;
+      width: 56px;
+      height: 56px;
+    }
+  }
+</style>

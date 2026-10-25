@@ -1,5 +1,8 @@
 ---
-import { cta, links } from './copy';
+import { Image } from 'astro:assets';
+
+import logo from '../../assets/brand/logo.png';
+import { cta, links, nav } from './copy';
 
 interface Props {
   /** Path of the landing page, so section links work from any page. */
@@ -11,18 +14,17 @@ const { home = '/' } = Astro.props;
 
 <header class="top">
   <div class="wrap bar">
-    <a class="brand" href={home} aria-label="SSM Ușor">
-      <img src="/brand/logo.png" alt="SSM Ușor" width="150" height="50" />
+    <a class="brand" href={home} aria-label="SSM Ușor, pagina principală">
+      <Image src={logo} alt="SSM Ușor" height={50} densities={[1, 2, 3]} loading="eager" />
     </a>
     <nav aria-label="Secțiuni">
-      <a href={`${home}#cum`}>Cum funcționează</a>
-      <a href={`${home}#documente`}>Documente</a>
-      <a href={`${home}#semnaturi`}>Semnături</a>
-      <a href={`${home}#intrebari`}>Întrebări</a>
+      {nav.map((item) => (
+        <a href={`${home}${item.href}`}>{item.label}</a>
+      ))}
     </nav>
     <div class="auth">
       <a
-        class="button quiet small"
+        class="button quiet"
         href={links.login}
         data-track="cta_clicked"
         data-track-prop-target="login"
@@ -30,9 +32,9 @@ const { home = '/' } = Astro.props;
       >
         {cta.login}
       </a>
-      <span class="button primary small soon" aria-disabled="true">
+      <span class="button soon" aria-disabled="true">
         {cta.signup}
-        <small>{cta.signupNote}</small>
+        <span class="pill">{cta.signupNote}</span>
       </span>
     </div>
   </div>
@@ -40,24 +42,28 @@ const { home = '/' } = Astro.props;
 
 <style>
   .top {
+    position: sticky;
+    top: 0;
+    z-index: 5;
     border-bottom: 1px solid var(--line);
-    background: #fff;
+    background: rgba(255, 255, 255, 0.94);
   }
   .bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    min-height: 76px;
+    gap: 32px;
+    height: 76px;
   }
-  .brand img {
-    width: 150px;
-    height: auto;
+  .brand :global(img) {
+    display: block;
+    width: auto;
+    height: 50px;
   }
   nav {
     display: flex;
-    gap: 28px;
-    font-size: 0.98rem;
+    gap: 26px;
+    margin-left: 12px;
+    font-size: 15px;
   }
   nav a {
     color: var(--ink-2);
@@ -68,12 +74,21 @@ const { home = '/' } = Astro.props;
   }
   .auth {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
   }
   @media (max-width: 760px) {
     nav,
     .auth .soon {
       display: none;
+    }
+    .bar {
+      gap: 12px;
+      height: 66px;
+    }
+    .brand :global(img) {
+      height: 44px;
     }
   }
 </style>

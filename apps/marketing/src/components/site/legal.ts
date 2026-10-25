@@ -12,8 +12,5 @@ export const legalEntity = {
   address: '',
   /** Empty falls back to the operator's seat. */
   city: '',
-  /** Named once chosen; until then, honest fallback wording. */
-  signatureProvider:
-    'un prestator calificat de servicii de încredere, comunicat la deschiderea contului',
   emailProvider: 'Resend (Plus Five Five, Inc.)',
 };

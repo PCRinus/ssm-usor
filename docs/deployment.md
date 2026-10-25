@@ -4,8 +4,12 @@ For the React SPA and Hono API, see the [application deployment guide](app-deplo
 
 The marketing site is deployed as a Cloudflare Worker with Static Assets. Astro generates the
 files in `apps/marketing/dist`, while `apps/marketing/src/worker.ts` redirects HTTP to HTTPS and
-serves those assets publicly. The existing `X-Robots-Tag: noindex, nofollow, noarchive` header
-remains in place while the site is being developed.
+serves those assets publicly. Search engines may index production only: `SEARCH_INDEXING` in
+`wrangler.jsonc` is `allow` for production and `block` for `non-prod`. Production serves a
+`robots.txt` that allows crawling and names the sitemap; any other deployment, or one without the
+variable, answers every request with `X-Robots-Tag: noindex, nofollow, noarchive` and a
+`robots.txt` that disallows everything. The `/abonare/` pages carry their own `noindex` meta tag
+everywhere.
 
 ## GitHub environment
 

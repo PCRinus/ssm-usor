@@ -1,0 +1,390 @@
+---
+import BrowserFrame from './BrowserFrame.astro';
+import { steps } from './copy';
+import IPhone from './IPhone.astro';
+import { screens } from './screens';
+
+const desktopSizes =
+  '(max-width: 760px) calc(100vw - 72px), (max-width: 1080px) calc(100vw - 112px), 620px';
+const desktopWidths = [640, 960, 1280];
+---
+
+<section class="sec" id="cum">
+  <div class="wrap steps" data-steps>
+    <h2>{steps.title}</h2>
+    <div class="seg" role="tablist" aria-label={steps.label}>
+      {steps.items.map((step, index) => (
+        <button
+          type="button"
+          role="tab"
+          class:list={['step', { on: index === 0 }]}
+          id={`step-tab-${index + 1}`}
+          aria-controls={`step-panel-${index + 1}`}
+          aria-selected={index === 0 ? 'true' : 'false'}
+          tabindex={index === 0 ? 0 : -1}
+        >
+          <span class="fill" aria-hidden="true" />
+          <span class="n">{index + 1}</span>
+          {step.tab}
+        </button>
+      ))}
+    </div>
+    <div class="stack">
+      {steps.items.map((step, index) => (
+        <div
+          class:list={['panel', 'slide', { on: index === 0 }]}
+          role="tabpanel"
+          id={`step-panel-${index + 1}`}
+          aria-labelledby={`step-tab-${index + 1}`}
+          tabindex="0"
+          hidden={index !== 0}
+          inert={index !== 0}
+        >
+          {step.visual.kind === 'desktop' && (
+            <BrowserFrame
+              src={screens[step.visual.shot.screen]}
+              alt={step.visual.shot.alt}
+              sizes={desktopSizes}
+              widths={desktopWidths}
+            />
+          )}
+          {step.visual.kind === 'phones' && (
+            <div class="phonepair">
+              <IPhone
+                src={screens[step.visual.first.screen]}
+                alt={step.visual.first.alt}
+                sizes="(max-width: 760px) 44vw, 220px"
+              />
+              <IPhone
+                src={screens[step.visual.second.screen]}
+                alt={step.visual.second.alt}
+                sizes="(max-width: 760px) 44vw, 220px"
+              />
+            </div>
+          )}
+          {step.visual.kind === 'combo' && (
+            <div class="combo">
+              <BrowserFrame
+                src={screens[step.visual.desktop.screen]}
+                alt={step.visual.desktop.alt}
+                sizes={desktopSizes}
+                widths={desktopWidths}
+              />
+              <IPhone
+                src={screens[step.visual.phone.screen]}
+                alt={step.visual.phone.alt}
+                sizes="(max-width: 760px) 34vw, 170px"
+              />
+            </div>
+          )}
+          <div>
+            <h3>{step.title}</h3>
+            <p>{step.text}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>('[data-steps]')) {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const panels = [...root.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+    const seg = root.querySelector<HTMLElement>('[role="tablist"]')!;
+    const stillQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let current = 0;
+    let hovered = false;
+    let focused = false;
+
+    const select = (index: number, { focus = false } = {}) => {
+      if (index === current) return;
+      tabs.forEach((tab, i) => {
+        const on = i === index;
+        tab.classList.toggle('on', on);
+        tab.setAttribute('aria-selected', String(on));
+        tab.tabIndex = on ? 0 : -1;
+      });
+      panels.forEach((panel, i) => {
+        const on = i === index;
+        panel.classList.toggle('on', on);
+        panel.hidden = !on;
+        panel.inert = !on;
+      });
+      current = index;
+      const tab = tabs[index]!;
+      if (focus) tab.focus();
+      const left = tab.offsetLeft - (seg.clientWidth - tab.offsetWidth) / 2;
+      seg.scrollTo({ left, behavior: stillQuery.matches ? 'auto' : 'smooth' });
+    };
+
+    const updatePaused = () => {
+      root.classList.toggle('paused', hovered || focused || document.hidden);
+    };
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => select(index));
+      tab.addEventListener('keydown', (event) => {
+        const last = tabs.length - 1;
+        const next =
+          event.key === 'ArrowRight'
+            ? current === last
+              ? 0
+              : current + 1
+            : event.key === 'ArrowLeft'
+              ? current === 0
+                ? last
+                : current - 1
+              : event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? last
+                  : undefined;
+        if (next === undefined) return;
+        event.preventDefault();
+        select(next, { focus: true });
+      });
+      // The progress bar's animation is the timer, so pausing it pauses the autoplay too.
+      tab.querySelector('.fill')!.addEventListener('animationend', () => {
+        if (index === current) select((current + 1) % tabs.length);
+      });
+    });
+
+    root.addEventListener('mouseenter', () => {
+      hovered = true;
+      updatePaused();
+    });
+    root.addEventListener('mouseleave', () => {
+      hovered = false;
+      updatePaused();
+    });
+    root.addEventListener('focusin', () => {
+      focused = true;
+      updatePaused();
+    });
+    root.addEventListener('focusout', (event) => {
+      focused = root.contains(event.relatedTarget as Node | null);
+      updatePaused();
+    });
+    document.addEventListener('visibilitychange', updatePaused);
+
+    root.dataset.autoplay = '';
+  }
+</script>
+
+<style>
+  .sec {
+    padding: 104px 0;
+  }
+  h2 {
+    max-width: 22ch;
+  }
+  .seg {
+    display: flex;
+    gap: 4px;
+    width: max-content;
+    max-width: 100%;
+    margin-top: 36px;
+    padding: 5px;
+    border: 1px solid #e4e9e2;
+    border-radius: 999px;
+    background: #f1f3ec;
+    overflow-x: auto;
+  }
+  .step {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 20px 0 8px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink-2);
+    font: 600 15px/1 var(--sans);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .step:hover {
+    color: var(--ink);
+  }
+  .step:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: -2px;
+  }
+  .n {
+    display: inline-grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e4e9e2;
+    color: var(--ink);
+    font-size: 13px;
+  }
+  .step.on {
+    background: #fff;
+    color: var(--ink);
+    box-shadow:
+      0 1px 2px rgba(24, 52, 46, 0.12),
+      0 4px 12px -6px rgba(24, 52, 46, 0.25);
+  }
+  .step.on .n {
+    background: var(--lime);
+  }
+  .fill {
+    position: absolute;
+    left: 44px;
+    bottom: 6px;
+    width: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--ink);
+    --fill-end: calc(100% - 64px);
+  }
+  [data-autoplay] .step.on .fill {
+    animation: grow 8s linear forwards;
+  }
+  .paused .step.on .fill {
+    animation-play-state: paused;
+  }
+  @keyframes grow {
+    from {
+      width: 0;
+    }
+    to {
+      width: var(--fill-end);
+    }
+  }
+
+  .stack {
+    display: grid;
+    margin-top: 24px;
+  }
+  .slide {
+    grid-area: 1 / 1;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.22s ease,
+      visibility 0s linear 0.22s;
+  }
+  /* Kept in the layout so the outgoing panel can fade out; visibility hides it from assistive tech. */
+  .slide[hidden] {
+    display: grid;
+  }
+  .slide.on {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 0.35s ease 0.22s,
+      visibility 0s linear 0.22s;
+  }
+  .panel {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 56px;
+    align-items: center;
+    min-height: 520px;
+    padding: 40px;
+    border-radius: 24px;
+    background: var(--cream);
+  }
+  .panel:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 4px;
+  }
+  .panel h3 {
+    font-family: var(--display);
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.12;
+  }
+  .panel p {
+    margin-top: 14px;
+    color: var(--ink-2);
+    font-size: 18px;
+  }
+  .phonepair {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 28px;
+  }
+  .phonepair > :global(.iphone) {
+    width: 220px;
+  }
+  .phonepair > :global(.iphone + .iphone) {
+    margin-top: 48px;
+  }
+  .combo {
+    position: relative;
+    padding-bottom: 40px;
+  }
+  .combo > :global(.browser) {
+    width: 88%;
+  }
+  .combo > :global(.iphone) {
+    position: absolute;
+    right: 0;
+    bottom: -20px;
+    width: 170px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-autoplay] .step.on .fill {
+      animation: none;
+    }
+    .step.on .fill {
+      width: var(--fill-end);
+    }
+    .slide,
+    .slide.on {
+      transition: none;
+    }
+  }
+  @media (max-width: 1080px) {
+    .panel {
+      grid-template-columns: 1fr;
+      align-content: start;
+    }
+  }
+  @media (max-width: 760px) {
+    .sec {
+      padding: 64px 0;
+    }
+    .seg {
+      width: 100%;
+      margin-top: 28px;
+    }
+    .step {
+      padding: 0 14px 0 6px;
+      font-size: 14px;
+    }
+    .fill {
+      left: 38px;
+      --fill-end: calc(100% - 52px);
+    }
+    .panel {
+      gap: 28px;
+      min-height: 0;
+      padding: 20px;
+      border-radius: 18px;
+    }
+    .panel h3 {
+      font-size: 24px;
+    }
+    .phonepair {
+      gap: 14px;
+    }
+    .phonepair > :global(.iphone) {
+      width: 44%;
+    }
+    .combo > :global(.iphone) {
+      width: 34%;
+    }
+  }
+</style>

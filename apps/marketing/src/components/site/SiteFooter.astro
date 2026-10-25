@@ -1,5 +1,8 @@
 ---
-import { links } from './copy';
+import { Image } from 'astro:assets';
+
+import logo from '../../assets/brand/logo.png';
+import { footer, links } from './copy';
 
 const year = new Date().getFullYear();
 const commitSha = import.meta.env.PUBLIC_COMMIT_SHA ?? 'local';
@@ -7,76 +10,73 @@ const shortCommitSha = commitSha.slice(0, 7);
 ---
 
 <footer class="foot">
-  <div class="wrap foot-grid">
-    <img src="/brand/logo.png" alt="SSM Ușor" width="130" height="43" />
+  <div class="wrap">
+    <Image src={logo} alt="SSM Ușor" height={40} densities={[1, 2, 3]} />
     <nav aria-label="Legal">
-      <a href="/termeni/">Termeni și condiții</a>
-      <a href="/confidentialitate/">Politica de confidențialitate</a>
-      <a href="/prelucrare-date/">Prelucrarea datelor</a>
+      {footer.legal.map((item) => (
+        <a href={item.href}>{item.label}</a>
+      ))}
       <a href={`mailto:${links.email}`}>{links.email}</a>
     </nav>
-    <div class="fine">
-      <p>
-        Exemplele de pe site sunt ilustrative. SSM Ușor nu oferă consultanță juridică și nu
-        înlocuiește responsabilitatea specialistului autorizat. {year} SSM Ușor.
-      </p>
+    <span class="copy">
+      © {year} SSM Ușor
       <span
         class="version"
         title={`Commit ${commitSha}`}
         aria-label={`Versiunea site-ului: commit ${commitSha}`}
       >
-        Versiune <code aria-hidden="true">{shortCommitSha}</code>
+        {' · '}
+        <code aria-hidden="true">{shortCommitSha}</code>
       </span>
-    </div>
+    </span>
+    <p class="fine">
+      Exemplele de pe site sunt ilustrative. SSM Ușor nu oferă consultanță juridică și nu
+      înlocuiește responsabilitatea specialistului autorizat.
+    </p>
   </div>
 </footer>
 
 <style>
   .foot {
-    padding: 36px 0 72px;
+    padding: 40px 0 56px;
     border-top: 1px solid var(--line);
-    background: #fff;
-    font-size: 0.95rem;
+    color: var(--ink-2);
+    font-size: 14px;
   }
-  .foot-grid {
-    display: grid;
-    grid-template-columns: 160px 1fr 1fr;
-    gap: 32px;
+  .wrap {
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    gap: 20px 32px;
   }
-  .foot-grid img {
-    width: 130px;
-    height: auto;
+  .wrap > :global(img) {
+    display: block;
+    width: auto;
+    height: 40px;
   }
   nav {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 24px;
+    gap: 20px;
   }
   nav a {
-    color: var(--ink);
-    text-decoration: none;
-    text-underline-offset: 3px;
+    color: var(--ink-2);
   }
-  nav a:hover {
-    text-decoration: underline;
+  .copy {
+    margin-left: auto;
+  }
+  .version code {
+    font-size: 12px;
   }
   .fine {
-    color: var(--ink-2);
-    font-size: 0.88rem;
-  }
-  .version {
-    display: inline-block;
-    margin-top: 8px;
-    font-size: 0.78rem;
+    flex-basis: 100%;
+    max-width: 72ch;
+    margin: 0;
+    font-size: 13px;
   }
   @media (max-width: 760px) {
-    .foot-grid {
-      grid-template-columns: 1fr;
-      gap: 20px;
-    }
-    nav {
-      flex-direction: column;
+    .copy {
+      margin-left: 0;
     }
   }
 </style>

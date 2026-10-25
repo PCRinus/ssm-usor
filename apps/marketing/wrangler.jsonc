@@ -20,6 +20,9 @@
   "observability": {
     "enabled": true,
   },
+  "vars": {
+    "SEARCH_INDEXING": "allow",
+  },
   "env": {
     "non-prod": {
       "routes": [
@@ -28,6 +31,9 @@
           "custom_domain": true,
         },
       ],
+      "vars": {
+        "SEARCH_INDEXING": "block",
+      },
     },
   },
 }

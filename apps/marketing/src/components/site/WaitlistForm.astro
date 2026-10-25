@@ -21,7 +21,9 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.ssmusor.ro';
     data-error={waitlist.error}
     data-challenge-failed={waitlist.challengeFailed}
   >
-    <label for="waitlist-email">{cta.notify}</label>
+    <label class="sr-only" for="waitlist-email">
+      {waitlist.label}
+    </label>
     <div class="row">
       <input
         id="waitlist-email"
@@ -33,7 +35,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.ssmusor.ro';
         placeholder={waitlist.placeholder}
         aria-describedby="waitlist-consent"
       />
-      <button class="button primary light" type="submit">
+      <button class="button primary" type="submit">
         {waitlist.submit}
       </button>
     </div>
@@ -45,7 +47,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.ssmusor.ro';
   </form>
 ) : (
   <p class="waitlist-fallback" id="anunta-ma">
-    <a class="button ghost" href={links.notifyHref}>
+    <a class="button primary" href={links.notifyHref}>
       {cta.notify}
     </a>
   </p>
@@ -172,37 +174,38 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.ssmusor.ro';
 <style>
   .waitlist {
     max-width: 520px;
+    margin-top: 28px;
   }
-  label {
-    display: block;
-    margin-bottom: 10px;
-    font-weight: 600;
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
   .row {
     display: flex;
-    flex-wrap: wrap;
     gap: 10px;
   }
   input {
-    flex: 1 1 220px;
+    flex: 1;
+    min-width: 0;
     min-height: 48px;
-    padding: 0 18px;
-    border: 1px solid #5a7a6f;
-    border-radius: 999px;
-    background: transparent;
-    color: #fff;
-    font: inherit;
+    padding: 0 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ink);
+    font: 16px var(--sans);
   }
   input::placeholder {
-    color: #9fb39c;
+    color: var(--muted-ink);
   }
   input:focus-visible {
+    border-color: var(--ink);
     outline: 2px solid var(--lime);
     outline-offset: 2px;
-  }
-  button {
-    cursor: pointer;
-    font-family: inherit;
   }
   button:disabled {
     cursor: progress;
@@ -210,9 +213,8 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.ssmusor.ro';
   }
   .consent {
     margin-top: 12px;
-    color: #c5d3cc;
-    font-size: 0.9rem;
-    line-height: 1.45;
+    color: var(--ink-2);
+    font-size: 14px;
   }
   .consent a {
     color: inherit;
@@ -223,16 +225,24 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.ssmusor.ro';
   }
   .feedback {
     margin-top: 12px;
-    font-size: 0.98rem;
+    font-size: 15px;
     line-height: 1.45;
   }
   .feedback:empty {
     display: none;
   }
   .waitlist[data-state='done'] .feedback {
-    color: var(--lime);
+    color: var(--success-foreground);
   }
   .waitlist[data-state='failed'] .feedback {
-    color: #ffc9c2;
+    color: var(--destructive-foreground);
+  }
+  .waitlist-fallback {
+    margin-top: 28px;
+  }
+  @media (max-width: 760px) {
+    .row {
+      flex-direction: column;
+    }
   }
 </style>
