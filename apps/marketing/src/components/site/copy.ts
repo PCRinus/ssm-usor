@@ -38,7 +38,7 @@ export const page = {
     'Documentele SSM și SU ale clienților, completate din datele lor. Instruiri la zi și fișe semnate de angajați pe telefon. Pentru servicii externe SSM.',
   siteName: 'SSM Ușor',
   imageAlt:
-    'Sigla SSM Ușor, titlul „Mai puțin timp în Word. Mai mult timp la clienți.” și pagina de start din aplicație',
+    'Sigla SSM Ușor, titlul „De la clientul nou la fișa semnată.” și pagina de start din aplicație',
 };
 
 export const nav = [
