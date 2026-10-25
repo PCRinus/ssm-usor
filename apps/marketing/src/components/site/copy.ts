@@ -33,9 +33,12 @@ export const waitlist = {
 };
 
 export const page = {
-  title: 'SSM Ușor: documente SSM și SU (PSI), instruiri și semnături pentru servicii externe',
+  title: 'Program SSM și SU (PSI) pentru servicii externe | SSM Ușor',
   description:
-    'Pregătește documentele SSM și SU ale clienților, ține instruirile la zi și trimite angajaților fișele de semnat pe telefon. Pentru servicii externe de prevenire și protecție.',
+    'Documentele SSM și SU ale clienților, completate din datele lor. Instruiri la zi și fișe semnate de angajați pe telefon. Pentru servicii externe SSM.',
+  siteName: 'SSM Ușor',
+  imageAlt:
+    'Sigla SSM Ușor, titlul „Mai puțin timp în Word. Mai mult timp la clienți.” și pagina de start din aplicație',
 };
 
 export const nav = [

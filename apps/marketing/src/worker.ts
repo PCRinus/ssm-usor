@@ -17,6 +17,12 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    if (url.hostname.startsWith('www.')) {
+      url.hostname = url.hostname.slice('www.'.length);
+      url.protocol = 'https:';
+      return Response.redirect(url, 308);
+    }
+
     if (url.protocol === 'http:') {
       url.protocol = 'https:';
       return Response.redirect(url, 308);

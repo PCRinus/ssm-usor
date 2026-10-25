@@ -17,15 +17,18 @@ import {
 import IPhone from './IPhone.astro';
 import { screens } from './screens';
 import StepsCarousel from './StepsCarousel.astro';
+import { homeStructuredData, jsonForScript } from './structuredData';
 import TrustFacts from './TrustFacts.astro';
 import WaitlistForm from './WaitlistForm.astro';
 
 const address = 'app.ssmusor.ro';
+const structuredData = jsonForScript(homeStructuredData(Astro.site ?? Astro.url));
 const sideShotSizes = '(max-width: 1080px) calc(100vw - 32px), 664px';
 const sideShotWidths = [664, 1000, 1328, 1440];
 ---
 
 <FluxLayout title={page.title} description={page.description}>
+  <script slot="head" type="application/ld+json" set:html={structuredData} />
   <section class="wrap hero">
     <div>
       <h1>{hero.title}</h1>

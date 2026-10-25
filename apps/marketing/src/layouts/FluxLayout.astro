@@ -23,6 +23,7 @@ const { title, description, home, noindex = false } = Astro.props;
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700&display=swap"
     />
+    <slot name="head" />
   </Fragment>
   <div class="flux">
     <SiteHeader home={home} />
