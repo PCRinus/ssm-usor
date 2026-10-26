@@ -207,8 +207,8 @@ describe('onboarding', () => {
     }
     if (name) await user.type(screen.getByTestId('onboarding-organization'), name);
     if (accept) {
+      await user.click(screen.getByTestId('onboarding-dpa'));
       await user.click(screen.getByTestId('onboarding-terms'));
-      await user.click(screen.getByTestId('onboarding-clauses'));
     }
     await user.click(screen.getByTestId('onboarding-submit'));
   }
@@ -381,7 +381,7 @@ describe('onboarding', () => {
     expect(created()).toEqual([]);
   });
 
-  it('requires the clauses of article 1203 to be accepted on their own', async () => {
+  it('requires the data processing agreement to be accepted on its own', async () => {
     mount();
     const user = userEvent.setup();
 
@@ -390,8 +390,8 @@ describe('onboarding', () => {
     await user.click(screen.getByTestId('onboarding-terms'));
     await user.click(screen.getByTestId('onboarding-submit'));
 
-    expect((await screen.findByTestId('onboarding-clauses-error')).textContent).toMatch(
-      /în mod expres/
+    expect((await screen.findByTestId('onboarding-dpa-error')).textContent).toMatch(
+      /acordul de prelucrare a datelor/
     );
     expect(created()).toEqual([]);
   });

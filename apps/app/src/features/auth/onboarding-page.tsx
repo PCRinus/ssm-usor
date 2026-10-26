@@ -94,8 +94,8 @@ function OnboardingForm({ me }: { me: MeResponse }) {
       fullName: me.profile?.fullName ?? googleName(session?.user.user_metadata) ?? '',
       cui: '',
       organizationName: '',
+      acceptsDataProcessing: false,
       acceptsTerms: false,
-      acceptsSpecialClauses: false,
     },
   });
   const formRef = useRevealErrors(form);
@@ -313,6 +313,42 @@ function OnboardingForm({ me }: { me: MeResponse }) {
           <div className="flex items-start gap-3">
             <Controller
               control={form.control}
+              name="acceptsDataProcessing"
+              render={({ field }) => (
+                <Checkbox
+                  id="onboarding-dpa"
+                  data-testid="onboarding-dpa"
+                  className="mt-0.5"
+                  checked={field.value}
+                  disabled={isSubmitting}
+                  aria-invalid={Boolean(errors.acceptsDataProcessing)}
+                  aria-describedby={
+                    errors.acceptsDataProcessing ? 'onboarding-dpa-error' : undefined
+                  }
+                  onCheckedChange={(checked) => field.onChange(checked === true)}
+                  onBlur={field.onBlur}
+                />
+              )}
+            />
+            <label htmlFor="onboarding-dpa" className="text-sm leading-relaxed">
+              Accept, în numele organizației,{' '}
+              <a
+                className="underline"
+                href="https://ssmusor.ro/prelucrare-date/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Acordul de prelucrare a datelor
+              </a>
+              .
+            </label>
+          </div>
+          <FieldMessage id="onboarding-dpa-error" error={errors.acceptsDataProcessing} />
+        </div>
+        <div className="grid gap-2">
+          <div className="flex items-start gap-3">
+            <Controller
+              control={form.control}
               name="acceptsTerms"
               render={({ field }) => (
                 <Checkbox
@@ -329,7 +365,7 @@ function OnboardingForm({ me }: { me: MeResponse }) {
               )}
             />
             <label htmlFor="onboarding-terms" className="text-sm leading-relaxed">
-              Accept, în numele organizației,{' '}
+              Accept{' '}
               <a
                 className="underline"
                 href="https://ssmusor.ro/termeni/"
@@ -337,58 +373,11 @@ function OnboardingForm({ me }: { me: MeResponse }) {
                 rel="noreferrer"
               >
                 Termenii și condițiile
-              </a>{' '}
-              și{' '}
-              <a
-                className="underline"
-                href="https://ssmusor.ro/prelucrare-date/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Acordul de prelucrare a datelor
               </a>
-              .
+              , inclusiv clauzele despre abonament, răspundere și încetare (punctele 8–10 și 12).
             </label>
           </div>
           <FieldMessage id="onboarding-terms-error" error={errors.acceptsTerms} />
-        </div>
-        <div className="grid gap-2">
-          <div className="flex items-start gap-3">
-            <Controller
-              control={form.control}
-              name="acceptsSpecialClauses"
-              render={({ field }) => (
-                <Checkbox
-                  id="onboarding-clauses"
-                  data-testid="onboarding-clauses"
-                  className="mt-0.5"
-                  checked={field.value}
-                  disabled={isSubmitting}
-                  aria-invalid={Boolean(errors.acceptsSpecialClauses)}
-                  aria-describedby={
-                    errors.acceptsSpecialClauses ? 'onboarding-clauses-error' : undefined
-                  }
-                  onCheckedChange={(checked) => field.onChange(checked === true)}
-                  onBlur={field.onBlur}
-                />
-              )}
-            />
-            <label htmlFor="onboarding-clauses" className="text-sm leading-relaxed">
-              Accept în mod expres clauzele de la punctele 8, 9, 10 și 12 din{' '}
-              <a
-                className="underline"
-                href="https://ssmusor.ro/termeni/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Termeni
-              </a>
-              : reînnoirea automată a abonamentului, modificarea prețurilor cu notificare,
-              nerestituirea sumelor plătite, trecerea contului în modul doar citire, încetarea și
-              ștergerea datelor, limitarea răspunderii, legea aplicabilă și instanța competentă.
-            </label>
-          </div>
-          <FieldMessage id="onboarding-clauses-error" error={errors.acceptsSpecialClauses} />
         </div>
         {errors.root?.server && (
           <p

@@ -766,8 +766,8 @@ signed in without a membership.
 route. `409` with `reason: already_in_organization` for an account that has one, `403` with
 `reason: email_not_confirmed` otherwise refused. `termsVersion` must be the current one from
 the contracts: the checkbox on the page accepts that version and no other. `acceptsSpecialClauses`
-must be `true`: the second checkbox, the express acceptance of the Terms' standard clauses
-(ADR 029), which the database records and requires too.
+must be `true`: the Terms checkbox names the clauses accepted expressly (ADR 029), which the
+database records and requires too.
 
 `GET /me/invitations` lists the open invitations sent to the caller's confirmed address, so
 the page can point them out before the person creates an organization of their own. It carries

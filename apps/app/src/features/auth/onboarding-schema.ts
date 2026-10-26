@@ -17,13 +17,13 @@ export const onboardingSchema = z.object({
     .trim()
     .min(2, 'Completează numele organizației.')
     .max(160, 'Numele poate avea cel mult 160 de caractere.'),
+  acceptsDataProcessing: z.boolean().refine((accepted) => accepted, {
+    message: 'Pentru a continua trebuie să accepți acordul de prelucrare a datelor.',
+  }),
+  // Names the clauses that Civil Code art. 1203 wants accepted expressly (ADR 029), so ticking it
+  // is recorded as that express acceptance too.
   acceptsTerms: z.boolean().refine((accepted) => accepted, {
     message: 'Pentru a continua trebuie să accepți termenii.',
-  }),
-  // Art. 1203 of the Civil Code: standard clauses such as automatic renewal or limited liability
-  // bind only when accepted expressly, apart from the terms as a whole (ADR 029).
-  acceptsSpecialClauses: z.boolean().refine((accepted) => accepted, {
-    message: 'Pentru a continua trebuie să accepți în mod expres aceste clauze.',
   }),
 });
 
