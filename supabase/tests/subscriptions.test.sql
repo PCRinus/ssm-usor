@@ -1,5 +1,5 @@
 begin;
-select plan(28);
+select plan(30);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -88,7 +88,7 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', 'Tester', 'someone') $$,
+  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', 'Tester', 'someone', false) $$,
   '42501', null,
   'a member cannot extend a trial'
 );
@@ -109,7 +109,7 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', 'Tester', 'someone') $$,
+  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', 'Tester', 'someone', false) $$,
   '42501', null,
   'an anonymous caller cannot extend a trial'
 );
@@ -155,37 +155,37 @@ reset role;
 set local role service_role;
 
 select throws_ok(
-  $$ select * from public.extend_trial('nobody@test', now() + interval '90 days', 'Tester', 'mircea') $$,
+  $$ select * from public.extend_trial('nobody@test', now() + interval '90 days', 'Tester', 'mircea', false) $$,
   'TRL01', 'owner_not_found',
   'an unknown owner email is refused'
 );
 
 select throws_ok(
-  $$ select * from public.extend_trial('twin@test', now() + interval '90 days', 'Tester', 'mircea') $$,
+  $$ select * from public.extend_trial('twin@test', now() + interval '90 days', 'Tester', 'mircea', false) $$,
   'TRL05', 'owner_ambiguous',
   'an email that matches two owners is refused'
 );
 
 select throws_ok(
-  $$ select * from public.extend_trial('tester@test', now() - interval '1 day', 'Tester', 'mircea') $$,
+  $$ select * from public.extend_trial('tester@test', now() - interval '1 day', 'Tester', 'mircea', false) $$,
   'TRL03', 'trial_end_not_in_future',
   'an end in the past is refused'
 );
 
 select throws_ok(
-  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', ' ', 'mircea') $$,
+  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', ' ', 'mircea', false) $$,
   '22023', 'reason_required',
   'a reason is required'
 );
 
 select throws_ok(
-  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', 'Tester', ' ') $$,
+  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', 'Tester', ' ', false) $$,
   '22023', 'actor_required',
   'who runs it is required'
 );
 
 select results_eq(
-  $$ select organization_name, started from public.extend_trial(' TESTER@test ', now() + interval '90 days', 'Tester round one', 'mircea') $$,
+  $$ select organization_name, started from public.extend_trial(' TESTER@test ', now() + interval '90 days', 'Tester round one', 'mircea', false) $$,
   $$ values ('Tester SSM SRL', false) $$,
   'the owner is found by email whatever its case, and the trial is extended, not started'
 );
@@ -196,6 +196,12 @@ select results_eq(
   'extending moves the trial end and full access with it'
 );
 
+select is(
+  (select trial_sms from public.subscriptions where organization_id = pg_temp.tester_organization()),
+  false,
+  'a trial sends no SMS unless asked'
+);
+
 select results_eq(
   $$ select change, reason, details ->> 'actor' from public.subscription_changes
      where organization_id = pg_temp.tester_organization() and source = 'workflow' $$,
@@ -204,15 +210,21 @@ select results_eq(
 );
 
 select throws_ok(
-  $$ select * from public.extend_trial('tester@test', now() + interval '60 days', 'Shorter', 'mircea') $$,
+  $$ select * from public.extend_trial('tester@test', now() + interval '60 days', 'Shorter', 'mircea', false) $$,
   'TRL04', 'trial_end_not_later',
   'a trial is never shortened'
 );
 
 select results_eq(
-  $$ select started from public.extend_trial('seeded-owner@test', now() + interval '60 days', 'Converted to a trial', 'mircea') $$,
+  $$ select started from public.extend_trial('seeded-owner@test', now() + interval '60 days', 'Converted to a trial', 'mircea', true) $$,
   $$ values (true) $$,
   'an organization without a subscription starts a trial, and says so'
+);
+
+select is(
+  (select trial_sms from public.subscriptions where organization_id = '11111111-0000-4000-8000-000000000001'),
+  true,
+  'and a tester''s trial may include SMS'
 );
 
 select results_eq(
@@ -226,7 +238,7 @@ update public.subscriptions set status = 'active', access_until = null where org
 set local role service_role;
 
 select throws_ok(
-  $$ select * from public.extend_trial('tester@test', now() + interval '120 days', 'Tester', 'mircea') $$,
+  $$ select * from public.extend_trial('tester@test', now() + interval '120 days', 'Tester', 'mircea', false) $$,
   'TRL02', 'subscription_not_in_trial',
   'a paid plan gets no trial'
 );

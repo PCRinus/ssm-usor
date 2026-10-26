@@ -15,6 +15,8 @@ create table public.subscriptions (
   trial_ends_at timestamptz,
   -- When full access ends; null while nothing is due to end.
   access_until timestamptz,
+  -- A trial sends no SMS (ADR 029); a tester's may, at the full allowance of its plan.
+  trial_sms boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint subscriptions_trial_has_end
@@ -217,7 +219,8 @@ create function public.extend_trial(
   p_owner_email text,
   p_until timestamptz,
   p_reason text,
-  p_actor text
+  p_actor text,
+  p_with_sms boolean
 )
 returns table (
   organization_id uuid,
@@ -266,11 +269,14 @@ begin
     raise exception 'trial_end_not_later' using errcode = 'TRL04';
   end if;
 
-  insert into public.subscriptions as s (organization_id, plan, status, trial_ends_at, access_until)
-  values (target, 'profesional', 'trialing', p_until, p_until)
+  insert into public.subscriptions as s (
+    organization_id, plan, status, trial_ends_at, access_until, trial_sms
+  )
+  values (target, 'profesional', 'trialing', p_until, p_until, coalesce(p_with_sms, false))
   on conflict on constraint subscriptions_pkey do update
     set trial_ends_at = excluded.trial_ends_at,
-        access_until = excluded.access_until;
+        access_until = excluded.access_until,
+        trial_sms = excluded.trial_sms;
 
   insert into public.subscription_changes (organization_id, source, change, reason, details)
   values (
@@ -278,12 +284,17 @@ begin
     'workflow',
     case when previous is null then 'trial_started' else 'trial_extended' end,
     btrim(p_reason),
-    jsonb_build_object('from', previous.trial_ends_at, 'to', p_until, 'actor', btrim(p_actor))
+    jsonb_build_object(
+      'from', previous.trial_ends_at,
+      'to', p_until,
+      'actor', btrim(p_actor),
+      'sms', coalesce(p_with_sms, false)
+    )
   );
 
   return query select target, target_name, p_until, previous is null;
 end;
 $$;
 
-revoke all on function public.extend_trial(text, timestamptz, text, text) from public, anon, authenticated;
-grant execute on function public.extend_trial(text, timestamptz, text, text) to service_role;
+revoke all on function public.extend_trial(text, timestamptz, text, text, boolean) from public, anon, authenticated;
+grant execute on function public.extend_trial(text, timestamptz, text, text, boolean) to service_role;

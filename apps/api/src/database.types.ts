@@ -4547,6 +4547,7 @@ export type Database = {
           plan: Database['public']['Enums']['subscription_plan'];
           status: Database['public']['Enums']['subscription_status'];
           trial_ends_at: string | null;
+          trial_sms: boolean;
           updated_at: string;
         };
         Insert: {
@@ -4556,6 +4557,7 @@ export type Database = {
           plan: Database['public']['Enums']['subscription_plan'];
           status: Database['public']['Enums']['subscription_status'];
           trial_ends_at?: string | null;
+          trial_sms?: boolean;
           updated_at?: string;
         };
         Update: {
@@ -4565,6 +4567,7 @@ export type Database = {
           plan?: Database['public']['Enums']['subscription_plan'];
           status?: Database['public']['Enums']['subscription_status'];
           trial_ends_at?: string | null;
+          trial_sms?: boolean;
           updated_at?: string;
         };
         Relationships: [
@@ -6328,6 +6331,7 @@ export type Database = {
           p_owner_email: string;
           p_reason: string;
           p_until: string;
+          p_with_sms: boolean;
         };
         Returns: {
           organization_id: string;

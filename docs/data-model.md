@@ -46,13 +46,13 @@ keeps an owner. Removal deletes the membership only.
 `subscriptions` holds one row per paying or trialing organization
 ([ADR 029](architecture/adr-029-billing-plans-and-trials.md)): the `plan` (`start`,
 `profesional`, `enterprise`), the `status` (`trialing`, `active`, `past_due`, `canceled`), the
-`trial_ends_at` and `access_until`, when full access ends. An organization without a row has
+`trial_ends_at`, `access_until`, when full access ends, and `trial_sms`: a trial sends no SMS unless a
+tester's was given them, at the full allowance of its plan. An organization without a row has
 full access indefinitely: the seeded ones, the end-to-end accounts and every organization
 created before billing. Members read their own organization's row; nobody writes it through the
 data API.
 
-`create_organization` starts a 30-day `profesional` trial. `extend_trial(owner email, until,
-reason, actor)`, for the secret key only, moves a trial's end later, or starts a trial for an
+`create_organization` starts a 30-day `profesional` trial. `extend_trial(owner email, until, reason, actor, with SMS)`, for the secret key only, moves a trial's end later, or starts a trial for an
 organization without a row and returns `started` to say so. It refuses an unknown owner
 (`TRL01`), a subscription past its trial (`TRL02`), an end in the past (`TRL03`), an end not
 later than the current one (`TRL04`), an email that matches more than one owner (`TRL05`), and a
