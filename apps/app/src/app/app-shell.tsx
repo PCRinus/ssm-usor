@@ -72,6 +72,8 @@ import { GuidesProvider } from '@/features/guides/guides-provider';
 import { instructionSections } from '@/features/instructions/instruction-sections';
 import { testBankSections } from '@/features/knowledge-tests/test-bank-sections';
 import { legislationSections } from '@/features/legislation/legislation-sections';
+import { roDate } from '@/features/subscription/subscription-copy';
+import { SubscriptionNotice } from '@/features/subscription/subscription-notice';
 import { newCount } from '@/features/updates/release-format';
 import { useReleases } from '@/features/updates/use-releases';
 import { useUpdateDialogOpen } from '@/features/updates/use-update-dialog-open';
@@ -160,6 +162,7 @@ function AppNavigation({
   email,
   name,
   organizationName,
+  trialEndsAt,
   isOwner,
   pending,
   onSignOut,
@@ -171,6 +174,7 @@ function AppNavigation({
   // Both are missing while the account loads, and for an account that has neither.
   name?: string;
   organizationName?: string;
+  trialEndsAt?: string;
   isOwner: boolean;
   pending: boolean;
   onSignOut: () => Promise<void>;
@@ -362,6 +366,14 @@ function AppNavigation({
                       {organizationName}
                     </span>
                   )}
+                  {trialEndsAt && (
+                    <span
+                      data-testid="account-menu-trial"
+                      className="truncate text-xs font-normal text-muted-foreground"
+                    >
+                      Perioadă de probă până pe {roDate(trialEndsAt)}
+                    </span>
+                  )}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild data-testid="account-profile">
@@ -488,6 +500,11 @@ export function AppShell() {
             email={email}
             name={me.data?.profile?.fullName}
             organizationName={me.data?.membership?.organization.name}
+            trialEndsAt={
+              me.data?.subscription?.status === 'trialing'
+                ? (me.data.subscription.trialEndsAt ?? undefined)
+                : undefined
+            }
             isOwner={me.data?.membership?.role === 'owner'}
             pending={pending}
             onSignOut={signOut}
@@ -545,6 +562,11 @@ export function AppShell() {
                   {error}
                 </Notice>
               )}
+              <SubscriptionNotice
+                subscription={me.data?.subscription}
+                isOwner={me.data?.membership?.role === 'owner'}
+                className={editorPage ? 'mb-3' : 'mb-6'}
+              />
               <Outlet />
             </main>
             {!editorPage && (
