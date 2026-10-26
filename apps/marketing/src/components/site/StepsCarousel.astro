@@ -350,6 +350,14 @@ const desktopWidths = [640, 960, 1280];
       transition: none;
     }
   }
+  @media (max-width: 1080px) {
+    .phonepair > :global(.iphone) {
+      width: 190px;
+    }
+    .phonepair > :global(.iphone + .iphone) {
+      margin-top: 32px;
+    }
+  }
   @media (max-width: 900px) {
     .panel {
       grid-template-columns: 1fr;
@@ -389,8 +397,11 @@ const desktopWidths = [640, 960, 1280];
       gap: 14px;
     }
     .phonepair > :global(.iphone) {
-      width: 44%;
-      max-width: 200px;
+      width: 38%;
+      max-width: 180px;
+    }
+    .phonepair > :global(.iphone + .iphone) {
+      margin-top: 24px;
     }
     .combo > :global(.iphone) {
       width: 34%;
