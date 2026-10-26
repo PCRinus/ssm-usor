@@ -1,8 +1,9 @@
 name: Extinde perioada de probă
 
 # Operator action, run by hand: gives an organization's trial a later end, as for a tester
-# (ADR 029). Replaced by the admin area (#611). The owner's email and the reason go to the
-# subscription's change log.
+# (ADR 029). Replaced by the admin area (#611). The reason and the GitHub account that ran it go
+# to the subscription's change log. An organization without a subscription starts a trial here,
+# and the run says so.
 on:
   workflow_dispatch:
     inputs:
@@ -10,9 +11,9 @@ on:
         description: The environment whose organization to change
         type: choice
         options:
-          - production
           - non-prod
-        default: production
+          - production
+        default: non-prod
       email:
         description: The email of the organization's owner
         type: string
@@ -45,6 +46,7 @@ jobs:
       EMAIL: ${{ inputs.email }}
       UNTIL: ${{ inputs.until }}
       REASON: ${{ inputs.reason }}
+      ACTOR: ${{ github.actor }}
     steps:
       - name: Check the branch
         if: inputs.environment == 'production'
@@ -64,4 +66,4 @@ jobs:
       # The inputs reach the script as environment variables, never spliced into the command.
       - name: Extend the trial
         shell: bash
-        run: pnpm --filter @ssm-usor/api extend-trial --email "$EMAIL" --until "$UNTIL" --reason "$REASON"
+        run: pnpm --filter @ssm-usor/api extend-trial --email="$EMAIL" --until="$UNTIL" --reason="$REASON" --actor="$ACTOR"
