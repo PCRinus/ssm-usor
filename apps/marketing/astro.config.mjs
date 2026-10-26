@@ -17,6 +17,9 @@ function commitSha() {
 export default defineConfig({
   site: process.env.PUBLIC_SITE_URL || 'https://ssmusor.ro',
   output: 'static',
+  // The site's CSS is a few kilobytes per page, cheaper inline than as a request that blocks the
+  // first paint on a slow phone connection.
+  build: { inlineStylesheets: 'always' },
   // Pages reached only from an emailed link stay out of the sitemap.
   integrations: [sitemap({ filter: (page) => !page.includes('/abonare/') })],
   // Fetched from Google at build time and served from our own domain: no render-blocking
