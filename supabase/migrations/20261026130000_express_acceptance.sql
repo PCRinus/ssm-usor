@@ -8,6 +8,7 @@ alter table public.organizations
 -- Errors the API translates:
 --   42501  the caller's email is not confirmed
 --   ORG01  the caller already belongs to an organization
+-- And one it never sees, since its own validation refuses first; only a direct call meets it:
 --   22023  the special clauses were not accepted
 
 drop function public.create_organization(text, text, text);
