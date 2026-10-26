@@ -8,6 +8,7 @@ import { FileImage, FileSpreadsheet, FileText, FileType, type LucideIcon } from 
 
 import type { ApiErrorResponse, ClientFileListResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { isReadOnlyError, readOnlyMessage } from '@/features/subscription/read-only';
 import { dateToIso, formatRoDate } from '@/lib/dates';
 
 export type ClientFile = ClientFileListResponse['items'][number];
@@ -93,6 +94,7 @@ export function uploadFailureMessage(cause: unknown) {
   if (!(cause instanceof ApiHttpError)) {
     return 'Fișierul nu a putut fi încărcat. Verifică conexiunea și încearcă din nou.';
   }
+  if (isReadOnlyError(cause)) return readOnlyMessage;
   const reason = (cause.body as Partial<ApiErrorResponse> | undefined)?.reason;
   if (reason && Object.hasOwn(refusals, reason)) return refusals[reason as keyof typeof refusals];
   if (cause.status === 409) return archivedMessage;

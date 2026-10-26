@@ -14,10 +14,13 @@ import {
 export function SubscriptionNotice({
   subscription,
   isOwner,
+  impersonating,
   className,
 }: {
   subscription: SubscriptionSummary | null | undefined;
   isOwner: boolean;
+  // Support acting as the owner is not told to write to itself.
+  impersonating: boolean;
   className?: string;
 }) {
   if (!subscription) return null;
@@ -39,7 +42,7 @@ export function SubscriptionNotice({
         {endedSentence(subscription)} Poți vedea și descărca tot ce ai
         {subscription.deletesAt && ` până pe ${roDate(subscription.deletesAt)}`}; după aceea datele
         se șterg.{' '}
-        {isOwner ? (
+        {impersonating ? null : isOwner ? (
           <>Ca să continui, scrie-ne la {contact}.</>
         ) : (
           'Administratorul organizației poate reactiva contul.'
@@ -61,7 +64,7 @@ export function SubscriptionNotice({
     >
       Până pe {roDate(subscription.trialEndsAt)} ai tot ce include planul Profesional. După aceea,
       contul rămâne doar pentru citire.{' '}
-      {isOwner ? (
+      {impersonating ? null : isOwner ? (
         <>Ca să continui, scrie-ne la {contact}.</>
       ) : (
         'Administratorul organizației alege cum continuați.'

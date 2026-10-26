@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest';
 
 import { SubscriptionNotice } from './subscription-notice';
 
-const inDays = (days: number) => new Date(Date.now() + days * 86_400_000 - 60_000).toISOString();
+const inDays = (days: number) => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() + days, 12).toISOString();
+};
 
 const trial = (endsIn: number): SubscriptionSummary => ({
   plan: 'profesional',
@@ -17,14 +20,16 @@ const trial = (endsIn: number): SubscriptionSummary => ({
 
 describe('SubscriptionNotice', () => {
   it('stays out of the way early in a trial and without a subscription', () => {
-    const { container, rerender } = render(<SubscriptionNotice subscription={trial(20)} isOwner />);
+    const { container, rerender } = render(
+      <SubscriptionNotice subscription={trial(20)} isOwner impersonating={false} />
+    );
     expect(container.innerHTML).toBe('');
-    rerender(<SubscriptionNotice subscription={null} isOwner />);
+    rerender(<SubscriptionNotice subscription={null} isOwner impersonating={false} />);
     expect(container.innerHTML).toBe('');
   });
 
   it('warns in the last week of a trial', () => {
-    render(<SubscriptionNotice subscription={trial(3)} isOwner />);
+    render(<SubscriptionNotice subscription={trial(3)} isOwner impersonating={false} />);
     expect(screen.getByTestId('subscription-trial-ending').textContent).toContain(
       'Perioada de probă se încheie în 3 zile'
     );
@@ -44,6 +49,7 @@ describe('SubscriptionNotice', () => {
           deletesAt: '2026-12-25T10:00:00.000Z',
         }}
         isOwner={false}
+        impersonating={false}
       />
     );
     const notice = screen.getByTestId('subscription-read-only').textContent;

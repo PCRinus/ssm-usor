@@ -501,7 +501,7 @@ export function AppShell() {
             name={me.data?.profile?.fullName}
             organizationName={me.data?.membership?.organization.name}
             trialEndsAt={
-              me.data?.subscription?.status === 'trialing'
+              me.data?.subscription?.status === 'trialing' && me.data.subscription.access === 'full'
                 ? (me.data.subscription.trialEndsAt ?? undefined)
                 : undefined
             }
@@ -565,6 +565,7 @@ export function AppShell() {
               <SubscriptionNotice
                 subscription={me.data?.subscription}
                 isOwner={me.data?.membership?.role === 'owner'}
+                impersonating={Boolean(me.data?.impersonation)}
                 className={editorPage ? 'mb-3' : 'mb-6'}
               />
               <Outlet />

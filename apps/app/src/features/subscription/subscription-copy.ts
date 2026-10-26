@@ -14,8 +14,11 @@ export function roDate(timestamp: string) {
   return formatRoDate(dateToIso(new Date(timestamp)));
 }
 
+// Calendar days in the reader's zone: a trial that ends tonight ends "azi", whatever the hour.
 export function daysUntil(timestamp: string, now = new Date()) {
-  return Math.max(0, Math.ceil((new Date(timestamp).getTime() - now.getTime()) / dayMs));
+  const day = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const days = Math.round((day(new Date(timestamp)).getTime() - day(now).getTime()) / dayMs);
+  return Math.max(0, days);
 }
 
 /** "azi", "mâine", "în 3 zile", "în 20 de zile". */

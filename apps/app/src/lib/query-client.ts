@@ -1,22 +1,15 @@
-import { readOnlyReason } from '@ssm-usor/contracts';
 import { MutationCache, QueryClient } from '@tanstack/react-query';
 
 import { getGetMeQueryKey } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
-
-function isReadOnly(error: unknown) {
-  return (
-    error instanceof ApiHttpError &&
-    (error.body as { reason?: unknown } | null)?.reason === readOnlyReason
-  );
-}
+import { isReadOnlyError } from '@/features/subscription/read-only';
 
 export function createQueryClient() {
   const queryClient: QueryClient = new QueryClient({
     // A change refused because the organization just turned read-only brings the banner up at once.
     mutationCache: new MutationCache({
       onError: (error) => {
-        if (isReadOnly(error)) void queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        if (isReadOnlyError(error))
+          void queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       },
     }),
     defaultOptions: {
