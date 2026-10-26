@@ -44,8 +44,14 @@ export const page = {
 export const nav = [
   { href: '#cum', label: 'Cum funcționează' },
   { href: '#angajati', label: 'Pentru angajați' },
+  { href: '/preturi/', label: 'Prețuri' },
   { href: '#intrebari', label: 'Întrebări' },
 ];
+
+/** Section links (`#…`) point into the landing page wherever the header is shown. */
+export function navHref(href: string, home = '/'): string {
+  return href.startsWith('#') ? `${home}${href}` : href;
+}
 
 export const hero = {
   title: 'Mai puțin timp în Word. Mai mult timp la clienți.',
@@ -230,6 +236,8 @@ export const access = {
 export interface Faq {
   q: string;
   a: string;
+  /** A part of `a` shown as a link. */
+  link?: { text: string; href: string };
 }
 
 export const faq = {
@@ -277,7 +285,8 @@ export const faq = {
     },
     {
       q: 'Cât costă?',
-      a: 'Prețurile nu sunt publicate încă. Îți scriem odată cu deschiderea conturilor.',
+      a: 'De la 39 € + TVA pe lună, cu oricâți clienți. Prețul depinde de câți angajați au clienții tăi în total; detaliile sunt pe pagina de prețuri.',
+      link: { text: 'pagina de prețuri', href: '/preturi/' },
     },
   ] satisfies Faq[],
 };

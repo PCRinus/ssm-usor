@@ -1,5 +1,6 @@
 ---
 import FluxLayout from '../../layouts/FluxLayout.astro';
+import BillingToggle from './BillingToggle.astro';
 import BrowserFrame from './BrowserFrame.astro';
 import {
   access,
@@ -14,7 +15,10 @@ import {
   page,
   portal,
 } from './copy';
+import FaqAnswer from './FaqAnswer.astro';
 import IPhone from './IPhone.astro';
+import PlanCards from './PlanCards.astro';
+import { pricingLinks, pricingSection } from './pricing';
 import { screens } from './screens';
 import StepsCarousel from './StepsCarousel.astro';
 import { homeStructuredData, jsonForScript } from './structuredData';
@@ -86,6 +90,41 @@ const sideShotWidths = [664, 1000, 1328, 1440];
   <TrustFacts />
 
   <StepsCarousel />
+
+  <section class="sec flush" id="preturi" data-billing-scope data-billing="monthly">
+    <div class="wrap">
+      <div class="pricehead">
+        <div>
+          <h2>{pricingSection.title}</h2>
+          <p class="intro">{pricingSection.intro}</p>
+        </div>
+        <div class="acts">
+          <a
+            class="button quiet"
+            href={pricingLinks.calculator}
+            data-track="cta_clicked"
+            data-track-prop-target="calculator"
+            data-track-prop-placement="landing_pricing"
+          >
+            {pricingSection.calculator}
+          </a>
+          <a
+            class="button quiet"
+            href={pricingLinks.compare}
+            data-track="cta_clicked"
+            data-track-prop-target="compare"
+            data-track-prop-placement="landing_pricing"
+          >
+            {pricingSection.compare}
+          </a>
+        </div>
+      </div>
+      <div class="billingrow">
+        <BillingToggle placement="landing_pricing" />
+      </div>
+      <PlanCards placement="landing_pricing" />
+    </div>
+  </section>
 
   <section class="sec flush">
     <div class="wrap dayband">
@@ -241,7 +280,9 @@ const sideShotWidths = [664, 1000, 1328, 1440];
         {faq.items.map((item) => (
           <details>
             <summary>{item.q}</summary>
-            <p>{item.a}</p>
+            <p>
+              <FaqAnswer item={item} />
+            </p>
           </details>
         ))}
       </div>
@@ -350,6 +391,22 @@ const sideShotWidths = [664, 1000, 1328, 1440];
     margin-top: 16px;
     color: var(--ink-2);
     font-size: 18px;
+  }
+
+  .pricehead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px 48px;
+  }
+  .acts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .billingrow {
+    margin: 32px 0 36px;
   }
 
   .dayband {
@@ -582,8 +639,15 @@ const sideShotWidths = [664, 1000, 1328, 1440];
     .lede {
       font-size: 17px;
     }
-    .ctas .button {
+    .ctas .button,
+    .acts .button {
       flex: 1 1 100%;
+    }
+    .acts {
+      width: 100%;
+    }
+    .billingrow {
+      margin: 24px 0 32px;
     }
     .stage {
       height: 400px;

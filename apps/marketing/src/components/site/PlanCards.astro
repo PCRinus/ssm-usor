@@ -1,0 +1,223 @@
+---
+import PlanLine from './PlanLine.astro';
+import { billing, enterprise, monthlyPrice, pricedPlans, priceNote, pricingCta } from './pricing';
+
+interface Props {
+  placement: string;
+}
+
+const { placement } = Astro.props;
+---
+
+<div class="plans">
+  {pricedPlans.map((plan, index) => (
+    <article class:list={['plan', { top: index === 0 }]}>
+      {plan.badge && <span class="badge">{plan.badge}</span>}
+      <div>
+        <h3>{plan.name}</h3>
+        <p class="who">{plan.who}</p>
+      </div>
+      <div>
+        <p class="price">
+          <span class="amt">
+            <span class="when-monthly">{monthlyPrice(plan, 'monthly')}</span>
+            <span class="when-annual">{monthlyPrice(plan, 'annual')}</span>
+          </span>
+          <span class="per">{billing.perMonth}</span>
+        </p>
+        <p class="sub">
+          <span class="when-monthly">{priceNote(plan, 'monthly')}</span>
+          <span class="when-annual">{priceNote(plan, 'annual')}</span>
+        </p>
+      </div>
+      <div class="cta">
+        <a
+          href={pricingCta.href}
+          data-track="cta_clicked"
+          data-track-prop-target="notify"
+          data-track-prop-placement={placement}
+          data-track-prop-plan={plan.id}
+        >
+          {pricingCta.label}
+        </a>
+        <small>{pricingCta.note}</small>
+      </div>
+      {plan.lead && <p class="lead">{plan.lead}</p>}
+      <ul class:list={{ first: !plan.lead }}>
+        {plan.lines.map((line) => (
+          <PlanLine line={line} />
+        ))}
+      </ul>
+    </article>
+  ))}
+  <article class="plan">
+    <div>
+      <h3>{enterprise.name}</h3>
+      <p class="who">{enterprise.who}</p>
+    </div>
+    <div>
+      <p class="price">
+        <span class="ask">{enterprise.ask}</span>
+      </p>
+      <p class="sub">{enterprise.askNote}</p>
+    </div>
+    <div class="cta">
+      <a
+        href={pricingCta.quoteHref}
+        data-track="cta_clicked"
+        data-track-prop-target="quote"
+        data-track-prop-placement={placement}
+        data-track-prop-plan={enterprise.id}
+      >
+        {pricingCta.quote}
+      </a>
+      <small>{pricingCta.quoteNote}</small>
+    </div>
+    <p class="lead">{enterprise.lead}</p>
+    <ul>
+      {enterprise.lines.map((line) => (
+        <PlanLine line={line} />
+      ))}
+    </ul>
+  </article>
+</div>
+
+<style>
+  .plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 20px;
+    align-items: stretch;
+  }
+  .plan {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 32px 28px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: #fff;
+  }
+  .plan.top {
+    border: 2px solid var(--ink);
+  }
+  .badge {
+    position: absolute;
+    top: -14px;
+    left: 28px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--lime);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  h3 {
+    font-family: var(--display);
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .who {
+    margin-top: 6px;
+    color: var(--ink-2);
+    font-size: 16px;
+  }
+  .price {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .amt {
+    font-family: var(--display);
+    font-size: 52px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .ask {
+    font-family: var(--display);
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 52px;
+  }
+  .per {
+    color: var(--ink-2);
+    font-size: 15px;
+  }
+  .sub {
+    margin-top: 4px;
+    color: var(--ink-2);
+    font-size: 14px;
+  }
+  .cta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .cta a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 8px 16px;
+    border: 1px solid var(--ink);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ink);
+    font: 600 15px/1.3 var(--sans);
+    text-align: center;
+    text-decoration: none;
+  }
+  .cta a:hover {
+    background: var(--lime-soft);
+  }
+  .top .cta a {
+    background: var(--ink);
+    color: #fff;
+  }
+  .top .cta a:hover {
+    background: var(--moss);
+  }
+  .cta a:focus-visible {
+    outline: 3px solid var(--lime);
+    outline-offset: 2px;
+  }
+  .cta small {
+    color: var(--ink-2);
+    font-size: 13px;
+    text-align: center;
+  }
+  .lead {
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-2);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  ul {
+    display: grid;
+    gap: 12px;
+  }
+  ul.first {
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  @media (max-width: 760px) {
+    .plan {
+      padding: 28px 20px;
+    }
+    .amt {
+      font-size: 44px;
+    }
+    .ask {
+      font-size: 28px;
+      line-height: 44px;
+    }
+  }
+</style>

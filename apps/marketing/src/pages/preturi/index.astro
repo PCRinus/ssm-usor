@@ -1,0 +1,518 @@
+---
+import BillingToggle from '../../components/site/BillingToggle.astro';
+import PlanCards from '../../components/site/PlanCards.astro';
+import {
+  addOns,
+  billing,
+  type Cell,
+  comingSoon,
+  compare,
+  monthlyPrice,
+  pricedPlans,
+  pricingCta,
+  pricingLinks,
+  pricingPage,
+} from '../../components/site/pricing';
+import { jsonForScript, pricingStructuredData } from '../../components/site/structuredData';
+import FluxLayout from '../../layouts/FluxLayout.astro';
+
+const structuredData = jsonForScript(pricingStructuredData(Astro.site ?? Astro.url));
+const [start] = pricedPlans;
+const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' : 'text');
+---
+
+<FluxLayout title={pricingPage.title} description={pricingPage.description} current="/preturi/">
+  <script slot="head" type="application/ld+json" set:html={structuredData} />
+  <div class="page" data-billing-scope data-billing="monthly">
+    <div class="wrap">
+      <header class="head">
+        <span class="eyebrow">{pricingPage.eyebrow}</span>
+        <h1>{pricingPage.heading}</h1>
+        <p class="intro">{pricingPage.intro}</p>
+        <BillingToggle placement="pricing_page" />
+      </header>
+
+      <section class="cards" id="planuri" aria-label="Planuri">
+        <PlanCards placement="pricing_page" />
+        <p class="calc">
+          {pricingPage.calculatorPrompt}{' '}
+          <a
+            href={pricingLinks.calculator}
+            data-track="cta_clicked"
+            data-track-prop-target="calculator"
+            data-track-prop-placement="pricing_page"
+          >
+            {pricingPage.calculatorLink}
+          </a>
+        </p>
+      </section>
+
+      <div class="extras">
+        <section class="addons" aria-labelledby="addons-title">
+          <h2 id="addons-title">{addOns.title}</h2>
+          {addOns.items.map((item) => (
+            <div class="addon">
+              <span>
+                {item.label}
+                {item.hint && <span class="hint">{item.hint}</span>}
+              </span>
+              <strong>{item.price}</strong>
+            </div>
+          ))}
+          <p class="note">{addOns.note}</p>
+        </section>
+        <section class="soon" aria-labelledby="soon-title">
+          <h2 id="soon-title">{comingSoon.title}</h2>
+          <ul>
+            {comingSoon.items.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <section class="compare" id="compara" aria-labelledby="compare-title">
+        <h2 id="compare-title">{compare.title}</h2>
+        <div class="scroller" tabindex="0" role="region" aria-labelledby="compare-title">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" class="what">
+                  {compare.firstColumn}
+                </th>
+                {pricedPlans.map((plan, index) => (
+                  <th scope="col" class:list={['plancol', { hl: index === 0 }]}>
+                    <div class="colhead">
+                      {plan.badge ? (
+                        <span class="badge">{plan.badge}</span>
+                      ) : (
+                        <span class="badge-space" />
+                      )}
+                      <span class="name">{plan.name}</span>
+                      <span class="price">
+                        <span class="amt">
+                          <span class="when-monthly">{monthlyPrice(plan, 'monthly')}</span>
+                          <span class="when-annual">{monthlyPrice(plan, 'annual')}</span>
+                        </span>
+                        <span class="per">{billing.perMonth}</span>
+                      </span>
+                      <a
+                        class:list={['colcta', { filled: plan === start }]}
+                        href={pricingCta.href}
+                        data-track="cta_clicked"
+                        data-track-prop-target="notify"
+                        data-track-prop-placement="pricing_table"
+                        data-track-prop-plan={plan.id}
+                      >
+                        {pricingCta.short}
+                      </a>
+                    </div>
+                  </th>
+                ))}
+                <th scope="col" class="plancol">
+                  <div class="colhead">
+                    <span class="badge-space"></span>
+                    <span class="name">Enterprise</span>
+                    <span class="amt">{compare.enterpriseAsk}</span>
+                    <a
+                      class="colcta"
+                      href={pricingCta.quoteHref}
+                      data-track="cta_clicked"
+                      data-track-prop-target="quote"
+                      data-track-prop-placement="pricing_table"
+                      data-track-prop-plan="enterprise"
+                    >
+                      {pricingCta.quote}
+                    </a>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            {compare.groups.map((group) => (
+              <tbody>
+                <tr>
+                  <th scope="colgroup" colspan="4" class="group">
+                    {group.title}
+                  </th>
+                </tr>
+                {group.rows.map((row) => (
+                  <tr class="row">
+                    <th scope="row">{row.label}</th>
+                    {row.cells.map((cell, index) => (
+                      <td class:list={{ hl: index === 0 }}>
+                        {cellKind(cell) === 'yes' && (
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#2a5045"
+                            stroke-width="2.2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            role="img"
+                            aria-label={compare.included}
+                          >
+                            <path d="M5 12.5l4.5 4.5L19 7.5" />
+                          </svg>
+                        )}
+                        {cellKind(cell) === 'no' && (
+                          <>
+                            <span class="none" aria-hidden="true">
+                              —
+                            </span>
+                            <span class="sr-only">{compare.notIncluded}</span>
+                          </>
+                        )}
+                        {cellKind(cell) === 'text' && cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            ))}
+          </table>
+        </div>
+      </section>
+
+      <section class="faq" id="intrebari" aria-label="Întrebări despre prețuri">
+        {pricingPage.faq.map((item) => (
+          <details>
+            <summary>{item.q}</summary>
+            <p>{item.a}</p>
+          </details>
+        ))}
+        <p class="footnote">{pricingPage.footnote}</p>
+      </section>
+    </div>
+  </div>
+</FluxLayout>
+
+<style>
+  .page {
+    padding: 96px 0;
+  }
+  .page > .wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    max-width: 1160px;
+  }
+  .head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+  }
+  .eyebrow {
+    color: var(--ink-2);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  h1 {
+    max-width: 760px;
+    font-size: 46px;
+  }
+  .intro {
+    max-width: 640px;
+    color: var(--ink-2);
+    font-size: 18px;
+    text-wrap: pretty;
+  }
+
+  .cards {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .calc {
+    color: var(--ink-2);
+    text-align: center;
+  }
+  .calc a {
+    font-weight: 600;
+  }
+
+  .extras {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .extras h2 {
+    font-family: var(--sans);
+    font-size: 18px;
+    letter-spacing: 0;
+    line-height: 1.4;
+  }
+  .addons,
+  .soon {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 28px;
+    border-radius: 18px;
+  }
+  .addons {
+    background: var(--lime-soft);
+  }
+  .addon {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .addon:not(:last-of-type) {
+    padding-bottom: 12px;
+    border-bottom: 1px solid #c9dba3;
+  }
+  .addon > span {
+    display: flex;
+    flex-direction: column;
+  }
+  .hint {
+    color: var(--moss);
+    font-size: 14px;
+  }
+  .addon strong {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .note {
+    color: var(--moss);
+    font-size: 14px;
+  }
+  .soon {
+    border: 1px dashed #b9c4bd;
+  }
+  .soon ul {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    color: var(--ink-2);
+  }
+
+  .compare {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-top: 24px;
+  }
+  .compare h2 {
+    font-size: 34px;
+    line-height: 1.1;
+    text-align: center;
+  }
+  .scroller {
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    overflow-x: auto;
+  }
+  .scroller:focus-visible {
+    outline: 3px solid var(--lime);
+    outline-offset: 2px;
+  }
+  table {
+    width: 100%;
+    min-width: 780px;
+    border-collapse: collapse;
+    font-size: 15px;
+  }
+  thead tr {
+    background: #f8f7f1;
+  }
+  .what {
+    width: 34%;
+    padding: 28px 24px;
+    color: var(--ink-2);
+    font-weight: 500;
+    text-align: left;
+    vertical-align: bottom;
+  }
+  .plancol {
+    padding: 28px 20px;
+    border-left: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+  }
+  .plancol.hl {
+    background: var(--lime-soft);
+  }
+  .colhead {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .badge {
+    align-self: flex-start;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--lime);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge-space {
+    height: 21px;
+  }
+  .name {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .price {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .amt {
+    font-family: var(--display);
+    font-size: 36px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .per {
+    color: var(--ink-2);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .colcta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    margin-top: 6px;
+    border: 1px solid var(--ink);
+    border-radius: 10px;
+    background: #fff;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .colcta.filled {
+    background: var(--ink);
+    color: #fff;
+  }
+  .colcta.filled:hover {
+    background: var(--moss);
+    color: #fff;
+  }
+  .group {
+    padding: 22px 24px 10px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-2);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+  .row {
+    border-top: 1px solid #eef1ee;
+  }
+  .row th {
+    padding: 14px 24px;
+    font-weight: 500;
+    text-align: left;
+  }
+  .row td {
+    padding: 14px 20px;
+    border-left: 1px solid #eef1ee;
+    vertical-align: middle;
+  }
+  .row td.hl {
+    background: #f6f9ee;
+  }
+  .row svg {
+    display: block;
+  }
+  .none {
+    color: #9aa59f;
+  }
+
+  .faq {
+    width: 100%;
+    max-width: 820px;
+    margin: 0 auto;
+    border-top: 1px solid var(--line);
+  }
+  details {
+    padding-block: 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 17px;
+    font-weight: 600;
+    list-style: none;
+    cursor: pointer;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary::after {
+    content: '+';
+    color: var(--ink-2);
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1;
+  }
+  details[open] summary::after {
+    content: '−';
+  }
+  details p {
+    margin-top: 10px;
+    color: var(--ink-2);
+  }
+  .footnote {
+    margin-top: 18px;
+    color: var(--ink-2);
+    font-size: 14px;
+    text-align: center;
+  }
+
+  @media (max-width: 760px) {
+    .page {
+      padding: 56px 0 72px;
+    }
+    .page > .wrap {
+      gap: 40px;
+    }
+    h1 {
+      font-size: 36px;
+    }
+    .intro {
+      font-size: 16px;
+    }
+    .compare h2 {
+      font-size: 28px;
+    }
+    .addons,
+    .soon {
+      padding: 24px 20px;
+    }
+    table {
+      min-width: 660px;
+    }
+    .what,
+    .row th {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      width: 150px;
+      padding-inline: 16px;
+      box-shadow: 1px 0 0 var(--line);
+    }
+    .what {
+      background: #f8f7f1;
+    }
+    .row th {
+      background: #fff;
+      font-size: 14px;
+    }
+  }
+</style>

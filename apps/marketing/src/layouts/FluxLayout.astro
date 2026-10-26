@@ -9,10 +9,11 @@ interface Props {
   title: string;
   description: string;
   home?: string;
+  current?: string;
   noindex?: boolean;
 }
 
-const { title, description, home, noindex = false } = Astro.props;
+const { title, description, home, current, noindex = false } = Astro.props;
 ---
 
 <BaseLayout title={title} description={description} themeColor="#ffffff" noindex={noindex}>
@@ -26,7 +27,7 @@ const { title, description, home, noindex = false } = Astro.props;
     <slot name="head" />
   </Fragment>
   <div class="flux">
-    <SiteHeader home={home} />
+    <SiteHeader home={home} current={current} />
     <main>
       <slot />
     </main>
