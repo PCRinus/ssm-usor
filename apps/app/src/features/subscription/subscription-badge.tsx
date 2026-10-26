@@ -80,6 +80,7 @@ export function SubscriptionBadge({
       <PopoverContent
         align="start"
         sideOffset={8}
+        collisionPadding={16}
         data-testid="subscription-details"
         className="w-[calc(100vw-2rem)] rounded-xl p-4 sm:w-[340px]"
       >
