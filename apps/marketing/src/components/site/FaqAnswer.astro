@@ -1,0 +1,20 @@
+---
+import type { Faq } from './copy';
+
+interface Props {
+  item: Faq;
+}
+
+const { item } = Astro.props;
+const at = item.link ? item.a.indexOf(item.link.text) : -1;
+---
+
+{at < 0 ? (
+  item.a
+) : (
+  <>
+    {item.a.slice(0, at)}
+    <a href={item.link!.href}>{item.link!.text}</a>
+    {item.a.slice(at + item.link!.text.length)}
+  </>
+)}
