@@ -4,6 +4,7 @@ import { createMiddleware } from 'hono/factory';
 import { endTime, startTime } from 'hono/timing';
 
 import type { Database } from '../database.types';
+import { assertWritable } from './access';
 import { createDataClient, fromDatabaseError } from './db';
 import type { ApiEnv } from './env';
 import { ApiError } from './errors';
@@ -19,6 +20,7 @@ export interface Participation {
   fullName: string;
   noticeVersion: string | null;
   language: PortalLanguage | null;
+  access: Database['public']['Enums']['access_level'];
 }
 
 // Accepting first links a first sign-in to its open invitations, so the person lands on the
@@ -47,8 +49,16 @@ export const requireParticipant = createMiddleware<ApiEnv>(async (c, next) => {
       fullName: row.full_name,
       noticeVersion: row.notice_version,
       language: portalLanguages.find((language) => language === row.language) ?? null,
+      access: row.access,
     }))
   );
+  const participantId = c.req.param('participantId');
+  if (participantId) {
+    assertWritable(
+      c,
+      c.get('participations').find((candidate) => candidate.participantId === participantId)?.access
+    );
+  }
   await next();
 });
 

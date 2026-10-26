@@ -2,6 +2,7 @@ import { createMiddleware } from 'hono/factory';
 import { endTime, startTime } from 'hono/timing';
 
 import type { Database } from '../database.types';
+import { assertWritable } from './access';
 import { createDataClient, fromDatabaseError } from './db';
 import type { ApiEnv } from './env';
 import { ApiError } from './errors';
@@ -11,6 +12,7 @@ export interface Membership {
   userId: string;
   organizationId: string;
   role: Database['public']['Enums']['organization_role'];
+  access: Database['public']['Enums']['access_level'];
 }
 
 // Resolves the caller's effective organization through the database helper, so the
@@ -29,7 +31,9 @@ export const requireMembership = createMiddleware<ApiEnv>(async (c, next) => {
     userId: membership.user_id,
     organizationId: membership.organization_id,
     role: membership.role,
+    access: membership.access,
   });
+  assertWritable(c, membership.access);
   await next();
 });
 

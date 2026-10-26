@@ -1,11 +1,14 @@
 import type { RouteHandler } from '@hono/zod-openapi';
-import type {
-  MeResponse,
-  PendingInvitationListResponse,
-  Profile,
-  SupportIdentity,
+import {
+  type MeResponse,
+  type PendingInvitationListResponse,
+  type Profile,
+  readOnlyDays,
+  type SubscriptionSummary,
+  type SupportIdentity,
 } from '@ssm-usor/contracts';
 
+import type { Database } from '../../database.types';
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
@@ -34,6 +37,30 @@ function toProfile(row: ProfileRow): Profile {
   };
 }
 
+type SubscriptionRow = Pick<
+  Database['public']['Tables']['subscriptions']['Row'],
+  'plan' | 'status' | 'trial_ends_at' | 'access_until'
+>;
+
+function toSubscription(
+  row: SubscriptionRow,
+  access: SubscriptionSummary['access']
+): SubscriptionSummary {
+  const iso = (value: string | null) => (value ? new Date(value).toISOString() : null);
+  const deletesAt =
+    access === 'read_only' && row.access_until
+      ? new Date(new Date(row.access_until).getTime() + readOnlyDays * 86_400_000).toISOString()
+      : null;
+  return {
+    plan: row.plan,
+    status: row.status,
+    trialEndsAt: iso(row.trial_ends_at),
+    accessUntil: iso(row.access_until),
+    access,
+    deletesAt,
+  };
+}
+
 export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
   const user = c.get('user');
   const db = createDataClient(c);
@@ -48,10 +75,21 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
   // By the membership's id, not whatever the policies show: a member who is also a participant
   // of another organization's client sees that organization too (ADR 022).
   const organizationId = membership.data[0]?.organization_id;
-  const organization = organizationId
-    ? await db.from('organizations').select('id, name').eq('id', organizationId).maybeSingle()
-    : { data: null, error: null };
+  const [organization, subscription] = organizationId
+    ? await Promise.all([
+        db.from('organizations').select('id, name').eq('id', organizationId).maybeSingle(),
+        db
+          .from('subscriptions')
+          .select('plan, status, trial_ends_at, access_until')
+          .eq('organization_id', organizationId)
+          .maybeSingle(),
+      ])
+    : [
+        { data: null, error: null },
+        { data: null, error: null },
+      ];
   if (organization.error) throw fromDatabaseError(organization.error, 'me organization');
+  if (subscription.error) throw fromDatabaseError(subscription.error, 'me subscription');
 
   const role = membership.data[0]?.role;
   return c.json(
@@ -68,6 +106,10 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
               targetMemberId: membership.data[0].user_id,
               targetOrganizationId: membership.data[0].organization_id,
             }
+          : null,
+      subscription:
+        subscription.data && membership.data[0]
+          ? toSubscription(subscription.data, membership.data[0].access)
           : null,
     } satisfies MeResponse,
     200

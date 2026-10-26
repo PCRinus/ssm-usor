@@ -18,6 +18,7 @@ import {
   startRegenerationRequestSchema,
 } from '@ssm-usor/contracts';
 
+import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
 import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
@@ -331,7 +332,7 @@ export const printDocumentRoute = createRoute({
   description:
     'Takes the bytes of a `.docx`, up to 15 MB, as the editor shows it, unsaved edits included, and answers with its PDF, made by the converter that makes the PDF at issuing. Nothing is stored. The PDF made at issuing is at the download link of the revision.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, allowWhileReadOnly, requireMembership] as const,
   request: {
     params: documentParams,
     body: {

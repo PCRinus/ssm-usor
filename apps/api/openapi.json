@@ -197,6 +197,40 @@
               }
             },
             "required": ["targetMemberId", "targetOrganizationId"]
+          },
+          "subscription": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "plan": {
+                "type": "string",
+                "enum": ["start", "profesional", "enterprise"]
+              },
+              "status": {
+                "type": "string",
+                "enum": ["trialing", "active", "past_due", "canceled"]
+              },
+              "trialEndsAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "accessUntil": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "access": {
+                "type": "string",
+                "enum": ["full", "read_only"]
+              },
+              "deletesAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              }
+            },
+            "required": ["plan", "status", "trialEndsAt", "accessUntil", "access", "deletesAt"]
           }
         },
         "required": ["user", "profile", "membership"]
