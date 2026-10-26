@@ -9,7 +9,8 @@ import { localSupabase } from './lib/supabase-cli';
 import { endOfRomanianDay } from './lib/trial-end';
 
 //   pnpm extend-trial --email owner@firma.ro --until 2027-01-31 --reason "Tester, runda 1" --actor mircea
-//   --local   against the local Docker stack instead of SUPABASE_URL and SUPABASE_SECRET_KEY
+//   --with-sms   the trial sends SMS, at the full allowance of its plan; without it, none
+//   --local      against the local Docker stack instead of SUPABASE_URL and SUPABASE_SECRET_KEY
 // Until the admin area exists (#611), this is how a tester's trial gets a later end (ADR 029).
 
 const { values } = parseArgs({
@@ -18,6 +19,7 @@ const { values } = parseArgs({
     until: { type: 'string' },
     reason: { type: 'string' },
     actor: { type: 'string' },
+    'with-sms': { type: 'boolean', default: false },
     local: { type: 'boolean', default: false },
   },
 });
@@ -41,6 +43,7 @@ try {
     p_until: until.toISOString(),
     p_reason: values.reason,
     p_actor: values.actor,
+    p_with_sms: values['with-sms'],
   });
   if (error) {
     const known: Record<string, string> = {
@@ -54,10 +57,11 @@ try {
     throw new Error(known[error.code] ?? `${error.code}: ${error.message}`);
   }
   const row = data[0]!;
+  const sms = values['with-sms'] ? 'with SMS' : 'without SMS';
   console.log(
     row.started
-      ? `"${row.organization_name}" (${row.organization_id}) had no subscription and now starts a trial that ends ${row.trial_ends_at}.`
-      : `The trial of "${row.organization_name}" (${row.organization_id}) now ends ${row.trial_ends_at}.`
+      ? `"${row.organization_name}" (${row.organization_id}) had no subscription and now starts a trial, ${sms}, that ends ${row.trial_ends_at}.`
+      : `The trial of "${row.organization_name}" (${row.organization_id}), ${sms}, now ends ${row.trial_ends_at}.`
   );
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);

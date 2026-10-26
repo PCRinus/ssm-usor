@@ -26,6 +26,10 @@ on:
         description: Why, for example "Tester, runda 1"
         type: string
         required: true
+      with-sms:
+        description: Send SMS during the trial, at the full allowance of its plan (for a tester whose workers have no email)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -47,6 +51,7 @@ jobs:
       UNTIL: ${{ inputs.until }}
       REASON: ${{ inputs.reason }}
       ACTOR: ${{ github.actor }}
+      WITH_SMS: ${{ inputs.with-sms }}
     steps:
       - name: Check the branch
         if: inputs.environment == 'production'
@@ -66,4 +71,7 @@ jobs:
       # The inputs reach the script as environment variables, never spliced into the command.
       - name: Extend the trial
         shell: bash
-        run: pnpm --filter @ssm-usor/api extend-trial --email="$EMAIL" --until="$UNTIL" --reason="$REASON" --actor="$ACTOR"
+        run: |
+          args=(--email="$EMAIL" --until="$UNTIL" --reason="$REASON" --actor="$ACTOR")
+          [[ "$WITH_SMS" == "true" ]] && args+=(--with-sms)
+          pnpm --filter @ssm-usor/api extend-trial "${args[@]}"
