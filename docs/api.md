@@ -782,8 +782,10 @@ While the organization is read-only, every member request that changes something
 `PUT`, `PATCH`, `DELETE`) answers `403` with `reason: read_only` from the membership middleware,
 before the handler runs. A participant's change through `/portal/participants/{participantId}/…`
 answers the same. Exempt, through `allowWhileReadOnly` placed before those middlewares:
-printing a document's unsaved edits, and the portal's notice and language. Reads are never
-affected.
+printing a document's unsaved edits, the portal's notice and language, and what only takes
+access away: removing a member, revoking a member's invitation, revoking a participant or a
+participant's invitation. Reads are never affected. Accepting an invitation and a client's
+upload through the contract return link stay open (ADR 029).
 
 ## Members
 

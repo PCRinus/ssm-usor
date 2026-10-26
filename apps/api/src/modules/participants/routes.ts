@@ -7,6 +7,7 @@ import {
   participantInvitationSchema,
 } from '@ssm-usor/contracts';
 
+import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
 import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
@@ -183,7 +184,7 @@ export const revokeParticipantInvitationRoute = createRoute({
   description:
     'A code received at the address no longer makes the person a participant. The account stays.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, allowWhileReadOnly, requireMembership] as const,
   request: { params: invitationParams },
   responses: {
     204: { description: 'Revoked' },
@@ -201,7 +202,7 @@ export const revokeClientParticipantRoute = createRoute({
   description:
     'The person no longer sees the client in the portal. Their records stay, and they can be invited again.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, allowWhileReadOnly, requireMembership] as const,
   request: { params: participantParams },
   responses: {
     204: { description: 'Revoked' },

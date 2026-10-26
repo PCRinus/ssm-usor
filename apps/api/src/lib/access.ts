@@ -8,9 +8,9 @@ import { ApiError } from './errors';
 
 const changes = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-// For a route whose method changes nothing for the organization, such as printing a PDF of
-// unsaved edits or accepting the portal's notice. Goes before the membership or participant
-// middleware.
+// For a route that only reads, or only takes access away: printing unsaved edits, the portal's
+// notice, removing a member or revoking a participant, which an owner must be able to do
+// read-only or not. Goes before the membership or participant middleware.
 export const allowWhileReadOnly = createMiddleware<ApiEnv>(async (c, next) => {
   c.set('readOnlyAllowed', true);
   await next();

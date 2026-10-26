@@ -111,6 +111,15 @@ describe('read-only access', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('read_only');
   });
 
+  it('still lets an owner revoke a participant', async () => {
+    mockUpstream('read_only');
+
+    const response = await request(`/client-participants/${participantId}/revoke`, 'POST');
+
+    expect(response.status).not.toBe(403);
+    expect(upstreamPaths()).toContain('/rest/v1/rpc/revoke_client_participant');
+  });
+
   it("still takes a participant's acceptance of the notice", async () => {
     mockUpstream('read_only');
 
