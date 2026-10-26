@@ -52,10 +52,13 @@ created before billing. Members read their own organization's row; nobody writes
 data API.
 
 `create_organization` starts a 30-day `profesional` trial. `extend_trial(owner email, until,
-reason)`, for the secret key only, moves a trial's end, or starts a trial for an organization
-without a row; it refuses an unknown owner (`SUB01`), a subscription past its trial (`SUB02`),
-an end in the past (`SUB03`) and a missing reason (`22023`). Every change is written to
-`subscription_changes` (`source`, `change`, `reason`, `details`), which no signed-in user reads.
+reason, actor)`, for the secret key only, moves a trial's end later, or starts a trial for an
+organization without a row and returns `started` to say so. It refuses an unknown owner
+(`TRL01`), a subscription past its trial (`TRL02`), an end in the past (`TRL03`), an end not
+later than the current one (`TRL04`), an email that matches more than one owner (`TRL05`), and a
+missing reason or actor (`22023`). Every change is written to `subscription_changes` (`source`,
+`change`, `reason`, `details` with the actor), which no signed-in user reads. Only an `active`
+subscription may have no `access_until`, so a cancelled or failing one always has an end.
 
 `access_at(access_until)` answers `full` before that moment, or when there is none, and
 `read_only` after it. `current_membership()` and `current_participations()` carry the result as

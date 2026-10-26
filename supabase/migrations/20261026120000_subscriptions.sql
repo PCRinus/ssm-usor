@@ -18,7 +18,11 @@ create table public.subscriptions (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint subscriptions_trial_has_end
-    check (status <> 'trialing' or (trial_ends_at is not null and access_until is not null))
+    check (status <> 'trialing' or trial_ends_at is not null),
+  -- Only a renewing paid plan may run without an end; anything else without one would be free
+  -- access forever.
+  constraint subscriptions_access_ends
+    check (status = 'active' or access_until is not null)
 );
 
 comment on table public.subscriptions is 'An organization''s plan, status and dates (ADR 029). Written only by security-definer functions and the secret key.';
@@ -198,21 +202,35 @@ end;
 $$;
 
 -- Errors the workflow reports:
---   SUB01  no organization has an owner with that email
---   SUB02  the organization pays for a plan; its trial is over
---   SUB03  the new end is not in the future
---   22023  a reason is required
+--   TRL01  no organization has an owner with that email
+--   TRL02  the organization pays for a plan; its trial is over
+--   TRL03  the new end is not in the future
+--   TRL04  the new end is not later than the trial's current end
+--   TRL05  more than one owner has that email
+--   22023  a reason, or who runs it, is missing
 
 -- A tester's trial gets a later end: never a discount (ADR 029). Run with the secret key by the
 -- "Extinde perioada de probă" workflow until the admin area exists. An organization without a
--- subscription starts a trial here.
-create function public.extend_trial(p_owner_email text, p_until timestamptz, p_reason text)
-returns table (organization_id uuid, organization_name text, trial_ends_at timestamptz)
+-- subscription starts a trial here, which puts a free account on a clock, so the result says
+-- whether it started one.
+create function public.extend_trial(
+  p_owner_email text,
+  p_until timestamptz,
+  p_reason text,
+  p_actor text
+)
+returns table (
+  organization_id uuid,
+  organization_name text,
+  trial_ends_at timestamptz,
+  started boolean
+)
 language plpgsql
 security definer
 set search_path = ''
 as $$
 declare
+  owners int;
   target uuid;
   target_name text;
   previous public.subscriptions;
@@ -220,22 +238,32 @@ begin
   if p_reason is null or char_length(btrim(p_reason)) < 3 then
     raise exception 'reason_required' using errcode = '22023';
   end if;
+  if p_actor is null or btrim(p_actor) = '' then
+    raise exception 'actor_required' using errcode = '22023';
+  end if;
   if p_until is null or p_until <= now() then
-    raise exception 'trial_end_not_in_future' using errcode = 'SUB03';
+    raise exception 'trial_end_not_in_future' using errcode = 'TRL03';
   end if;
 
-  select o.id, o.name into target, target_name
+  select count(*), min(o.id::text)::uuid into owners, target
   from auth.users u
   join public.organization_members m on m.user_id = u.id and m.role = 'owner'
   join public.organizations o on o.id = m.organization_id
   where lower(u.email) = lower(btrim(p_owner_email));
-  if target is null then
-    raise exception 'owner_not_found' using errcode = 'SUB01';
+  if owners = 0 then
+    raise exception 'owner_not_found' using errcode = 'TRL01';
   end if;
+  if owners > 1 then
+    raise exception 'owner_ambiguous' using errcode = 'TRL05';
+  end if;
+  select o.name into target_name from public.organizations o where o.id = target;
 
   select * into previous from public.subscriptions s where s.organization_id = target for update;
   if found and previous.status <> 'trialing' then
-    raise exception 'subscription_not_in_trial' using errcode = 'SUB02';
+    raise exception 'subscription_not_in_trial' using errcode = 'TRL02';
+  end if;
+  if found and p_until <= previous.trial_ends_at then
+    raise exception 'trial_end_not_later' using errcode = 'TRL04';
   end if;
 
   insert into public.subscriptions as s (organization_id, plan, status, trial_ends_at, access_until)
@@ -248,14 +276,14 @@ begin
   values (
     target,
     'workflow',
-    'trial_extended',
+    case when previous is null then 'trial_started' else 'trial_extended' end,
     btrim(p_reason),
-    jsonb_build_object('from', previous.trial_ends_at, 'to', p_until)
+    jsonb_build_object('from', previous.trial_ends_at, 'to', p_until, 'actor', btrim(p_actor))
   );
 
-  return query select target, target_name, p_until;
+  return query select target, target_name, p_until, previous is null;
 end;
 $$;
 
-revoke all on function public.extend_trial(text, timestamptz, text) from public, anon, authenticated;
-grant execute on function public.extend_trial(text, timestamptz, text) to service_role;
+revoke all on function public.extend_trial(text, timestamptz, text, text) from public, anon, authenticated;
+grant execute on function public.extend_trial(text, timestamptz, text, text) to service_role;

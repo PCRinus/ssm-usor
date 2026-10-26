@@ -6323,10 +6323,16 @@ export type Database = {
         }[];
       };
       extend_trial: {
-        Args: { p_owner_email: string; p_reason: string; p_until: string };
+        Args: {
+          p_actor: string;
+          p_owner_email: string;
+          p_reason: string;
+          p_until: string;
+        };
         Returns: {
           organization_id: string;
           organization_name: string;
+          started: boolean;
           trial_ends_at: string;
         }[];
       };

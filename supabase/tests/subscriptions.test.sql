@@ -1,21 +1,33 @@
 begin;
-select plan(17);
+select plan(28);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
   ('aaaaaaaa-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'seeded-owner@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
-  ('bbbbbbbb-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'Tester@test', 'x', now(), '{"provider":"email"}', '{}', now(), now());
+  ('bbbbbbbb-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'Tester@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
+  ('cccccccc-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'client-admin@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
+  ('dddddddd-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'twin@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
+  ('dddddddd-0000-4000-8000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'TWIN@test', 'x', now(), '{"provider":"email"}', '{}', now(), now());
 
 insert into public.organizations (id, name) values
-  ('11111111-0000-4000-8000-000000000001', 'Seeded Org');
+  ('11111111-0000-4000-8000-000000000001', 'Seeded Org'),
+  ('33333333-0000-4000-8000-000000000001', 'Twin One'),
+  ('33333333-0000-4000-8000-000000000002', 'Twin Two');
 
 insert into public.organization_members (user_id, organization_id, role) values
-  ('aaaaaaaa-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'owner');
+  ('aaaaaaaa-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'owner'),
+  ('dddddddd-0000-4000-8000-000000000001', '33333333-0000-4000-8000-000000000001', 'owner'),
+  ('dddddddd-0000-4000-8000-000000000002', '33333333-0000-4000-8000-000000000002', 'owner');
 
 create or replace function pg_temp.act_as(user_id text)
 returns void language sql as $$
   select set_config('role', 'authenticated', true),
          set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated', 'app_metadata', '{"provider":"email"}'::jsonb)::text, true);
+$$;
+
+create or replace function pg_temp.tester_organization()
+returns uuid language sql as $$
+  select organization_id from public.organization_members where user_id = 'bbbbbbbb-0000-4000-8000-000000000001';
 $$;
 
 -- An organization without a subscription -------------------------------------------
@@ -58,13 +70,25 @@ select throws_ok(
 );
 
 select throws_ok(
+  $$ insert into public.subscriptions (organization_id, plan, status) values ('11111111-0000-4000-8000-000000000001', 'start', 'active') $$,
+  '42501', null,
+  'a member cannot create a subscription'
+);
+
+select throws_ok(
+  $$ delete from public.subscriptions $$,
+  '42501', null,
+  'a member cannot delete the subscription'
+);
+
+select throws_ok(
   $$ select * from public.subscription_changes $$,
   '42501', null,
   'a member cannot read the change log'
 );
 
 select throws_ok(
-  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', 'Tester') $$,
+  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', 'Tester', 'someone') $$,
   '42501', null,
   'a member cannot extend a trial'
 );
@@ -76,13 +100,39 @@ select is_empty(
 );
 
 reset role;
+set local role anon;
+
+select throws_ok(
+  $$ select public.access_at(now()) $$,
+  '42501', null,
+  'an anonymous caller cannot use the access rule'
+);
+
+select throws_ok(
+  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', 'Tester', 'someone') $$,
+  '42501', null,
+  'an anonymous caller cannot extend a trial'
+);
+
+reset role;
 
 select results_eq(
-  $$ select source, change from public.subscription_changes
-     where organization_id = (select organization_id from public.organization_members where user_id = 'bbbbbbbb-0000-4000-8000-000000000001') $$,
+  $$ select source, change from public.subscription_changes where organization_id = pg_temp.tester_organization() $$,
   $$ values ('onboarding', 'trial_started') $$,
   'starting the trial is logged'
 );
+
+select throws_ok(
+  $$ update public.subscriptions set status = 'canceled', access_until = null where organization_id = pg_temp.tester_organization() $$,
+  '23514', null,
+  'only a renewing paid plan may run without an end of access'
+);
+
+-- A participant of the tester's client ---------------------------------------------
+insert into public.clients (id, organization_id, legal_name, cui, stage)
+values ('c1c1c1c1-0000-4000-8000-000000000001', pg_temp.tester_organization(), 'Client One', '1590082', 'client');
+insert into public.client_participants (organization_id, client_id, kind, full_name, user_id)
+values (pg_temp.tester_organization(), 'c1c1c1c1-0000-4000-8000-000000000001', 'client_administrator', 'Clara Client', 'cccccccc-0000-4000-8000-000000000001');
 
 -- Ending and extending -------------------------------------------------------------
 update public.subscriptions set access_until = now() - interval '1 day', trial_ends_at = now() - interval '1 day';
@@ -94,50 +144,91 @@ select is(
   'after the trial ends the organization is read-only'
 );
 
+select pg_temp.act_as('cccccccc-0000-4000-8000-000000000001');
+select is(
+  (select access from public.current_participations()),
+  'read_only'::public.access_level,
+  'and so is it for the participants of its clients'
+);
+
 reset role;
 set local role service_role;
 
 select throws_ok(
-  $$ select * from public.extend_trial('nobody@test', now() + interval '90 days', 'Tester') $$,
-  'SUB01', 'owner_not_found',
+  $$ select * from public.extend_trial('nobody@test', now() + interval '90 days', 'Tester', 'mircea') $$,
+  'TRL01', 'owner_not_found',
   'an unknown owner email is refused'
 );
 
 select throws_ok(
-  $$ select * from public.extend_trial('tester@test', now() - interval '1 day', 'Tester') $$,
-  'SUB03', 'trial_end_not_in_future',
+  $$ select * from public.extend_trial('twin@test', now() + interval '90 days', 'Tester', 'mircea') $$,
+  'TRL05', 'owner_ambiguous',
+  'an email that matches two owners is refused'
+);
+
+select throws_ok(
+  $$ select * from public.extend_trial('tester@test', now() - interval '1 day', 'Tester', 'mircea') $$,
+  'TRL03', 'trial_end_not_in_future',
   'an end in the past is refused'
 );
 
 select throws_ok(
-  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', ' ') $$,
+  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', ' ', 'mircea') $$,
   '22023', 'reason_required',
   'a reason is required'
 );
 
-select results_eq(
-  $$ select organization_name from public.extend_trial(' TESTER@test ', now() + interval '90 days', 'Tester round one') $$,
-  $$ values ('Tester SSM SRL') $$,
-  'the owner is found by email whatever its case'
+select throws_ok(
+  $$ select * from public.extend_trial('tester@test', now() + interval '90 days', 'Tester', ' ') $$,
+  '22023', 'actor_required',
+  'who runs it is required'
 );
 
 select results_eq(
-  $$ select status::text, access_until > now() + interval '89 days' from public.subscriptions s
-     join public.organization_members m on m.organization_id = s.organization_id
-     where m.user_id = 'bbbbbbbb-0000-4000-8000-000000000001' $$,
+  $$ select organization_name, started from public.extend_trial(' TESTER@test ', now() + interval '90 days', 'Tester round one', 'mircea') $$,
+  $$ values ('Tester SSM SRL', false) $$,
+  'the owner is found by email whatever its case, and the trial is extended, not started'
+);
+
+select results_eq(
+  $$ select status::text, access_until > now() + interval '89 days' from public.subscriptions where organization_id = pg_temp.tester_organization() $$,
   $$ values ('trialing', true) $$,
   'extending moves the trial end and full access with it'
 );
 
 select results_eq(
-  $$ select source, change, reason from public.subscription_changes where change = 'trial_extended' $$,
-  $$ values ('workflow', 'trial_extended', 'Tester round one') $$,
-  'the extension is logged with its reason'
+  $$ select change, reason, details ->> 'actor' from public.subscription_changes
+     where organization_id = pg_temp.tester_organization() and source = 'workflow' $$,
+  $$ values ('trial_extended', 'Tester round one', 'mircea') $$,
+  'the extension is logged with its reason and who ran it'
 );
 
-select lives_ok(
-  $$ select * from public.extend_trial('seeded-owner@test', now() + interval '60 days', 'Converted to a trial') $$,
-  'an organization without a subscription starts a trial when extended'
+select throws_ok(
+  $$ select * from public.extend_trial('tester@test', now() + interval '60 days', 'Shorter', 'mircea') $$,
+  'TRL04', 'trial_end_not_later',
+  'a trial is never shortened'
+);
+
+select results_eq(
+  $$ select started from public.extend_trial('seeded-owner@test', now() + interval '60 days', 'Converted to a trial', 'mircea') $$,
+  $$ values (true) $$,
+  'an organization without a subscription starts a trial, and says so'
+);
+
+select results_eq(
+  $$ select change from public.subscription_changes where organization_id = '11111111-0000-4000-8000-000000000001' $$,
+  $$ values ('trial_started') $$,
+  'and logs a start, not an extension'
+);
+
+reset role;
+update public.subscriptions set status = 'active', access_until = null where organization_id = pg_temp.tester_organization();
+set local role service_role;
+
+select throws_ok(
+  $$ select * from public.extend_trial('tester@test', now() + interval '120 days', 'Tester', 'mircea') $$,
+  'TRL02', 'subscription_not_in_trial',
+  'a paid plan gets no trial'
 );
 
 select * from finish();
