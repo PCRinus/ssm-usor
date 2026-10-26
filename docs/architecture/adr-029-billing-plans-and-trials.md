@@ -5,7 +5,7 @@
 
 ## Context
 
-The prices are published at `ssmusor.ro/preturi/` since #606–#608: Start at 39 € and Profesional at 149 € a month without VAT, Enterprise on request, an annual price worth two months, packs of employees and an extra member as add-ons. The page promises a 30-day trial without a card at launch and says that going over a limit never blocks the work. Sign-up is not public yet ([ADR 004](adr-004-registration-and-onboarding.md)): registration and onboarding are built and live, nothing links to them, and every organization so far came from the seed or from a tester.
+The prices are published at `ssmusor.ro/preturi/` since #606–#608: Start at 39 € and Profesional at 149 € a month without VAT, Enterprise on request, an annual price of ten months (two months free), packs of employees and an extra member as add-ons. The page promises a 30-day trial without a card at launch and says that going over a limit never blocks the work. Sign-up is not public yet ([ADR 004](adr-004-registration-and-onboarding.md)): registration and onboarding are built and live, nothing links to them, and every organization so far came from the seed or from a tester.
 
 Nothing in the app knows about plans, trials or payment. Before the waitlist hears that accounts are open, the app has to start a trial, take payment, issue the Romanian invoice, count usage against the plan, and end an account the way the Terms already promise (30 days to export, then deletion: Termeni point 6, Acordul de prelucrare point 9). Before that, two or three testers start using it for free in exchange for their feedback.
 
