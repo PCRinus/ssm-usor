@@ -19,7 +19,7 @@ The decisions below were taken in conversation on 2026-10-25 and 2026-10-26. The
 
 Three plans: **Start**, **Profesional**, **Enterprise**. A plan is about scale and team, never about compliance: every plan has every document, training, test and signature. Enterprise is a quote, sold by email, not a self-serve plan.
 
-Every new organization starts a **trial** of 30 days with Profesional's features, employees (1,500) and members (3), but with SMS codes capped at 50 for the whole trial, not Profesional's 300 a month: each code costs us money and a trial is free. After the 50 codes, sign-in and signing codes go by email where the person has one. No card is asked for. The trial lives in our database; Stripe knows nothing of an organization until it picks a plan.
+Every new organization starts a **trial** of 30 days with Profesional's features, employees (1,500) and members (3), but **without SMS**: sign-in and signing codes go by email, and SMS start when a plan is chosen. A free account that can send SMS invites SMS pumping, and an allowance that jumps from a trial's few codes to a plan's hundreds reads oddly. A participant without an email cannot be invited during a trial; the invitation says why and what to do. No card is asked for. The trial lives in our database; Stripe knows nothing of an organization until it picks a plan.
 
 When the trial ends without a plan, the organization becomes **read-only** (below). The pricing page's FAQ says today that without a plan the documents stay viewable and downloadable with no end; it changes to say 30 days.
 
@@ -64,7 +64,7 @@ Stripe Billing on Mircea's PFA account (individual / sole proprietor, Romania). 
 
 A Stripe invoice is not a Romanian one: it has Stripe's numbering, no VAT in lei for a euro invoice, and Stripe sends nothing to e-Factura. On `invoice.paid` with an amount above zero, the API calls Oblio's API (`POST /api/docs/invoice`, OAuth with the account email and the API secret) with the lines of the Stripe invoice. Oblio numbers it in a series of its own, `SSMU`, so the PFA's other invoices keep their numbering. It shows the VAT in lei at the BNR rate, sends the invoice to the client by email (`sendEmail`) and to e-Factura (with "Trimite automat e-Factura în SPV" on in Oblio). The Oblio number and PDF link are stored against the Stripe invoice id, which makes the call idempotent and feeds Setări → Facturi. A refund issues a storno against the original (`referenceDocument`, `refund: 1`).
 
-An invoice is issued only once paid, never for a payment that may still fail. Oblio has no test mode, so non-prod records what it would have issued and calls nothing.
+An invoice is issued only once paid, never for a payment that may still fail. Oblio has no test mode and its API issues an invoice at once, without a draft. Non-prod therefore issues **proformas** instead, in the same account, in a series of their own, `TEST`, from the same data: a proforma is not a fiscal document, is never sent to e-Factura, and leaves the invoice numbering alone. Non-prod never asks Oblio to email them. The accountant is told the series holds test proformas, which are not recorded.
 
 The Stripe marketplace app "RO E-Factura" (Derikon Labs) was considered: it makes Stripe's invoices the official ones and uploads them to e-Factura. It was set aside because it converts no VAT to lei, issues the invoice when Stripe finalizes it rather than when it is paid, needs our SPV certificate and write access to Stripe, and would split the PFA's books between two systems. Connectors such as Make or Zapier were set aside for the lack of idempotency and for adding a processor of client data.
 
@@ -82,6 +82,7 @@ What is counted: active employees of active clients (former employees, leads and
 
 - **Employees over the plan's number.** At once: a banner and an email offering the pack, and nothing blocks. If no pack is added within a month, the organization cannot add employees, or clients that have employees, until it adds a pack or archives clients; everything it already has keeps working. A pack is never added on the owner's behalf. The pricing page's FAQ changes to say so.
 - **Members.** Inviting past the plan's members needs the extra member first.
+- **SMS go only to Romanian numbers (+40)**, against SMS pumping; the invitation forms say so where the phone is entered. Lifting it is #622.
 - **SMS over the month's allowance** keep being sent, at about 0.10 € each, billed as one metered line on the next invoice; warnings at 80 % and 100 %. Stopping them would stop employees without an email from signing, which is the work the app exists for. This replaces the "+100 SMS" pack. The comparison table gets "apoi 0,10 € / SMS". Our code texts are plain ASCII, one SMS segment each (Twilio, about 0.072 € to Romania).
 
 ### Cancelling and ending an account
@@ -94,7 +95,7 @@ The employer, not the provider, keeps its employees' records. So each client als
 
 ### Tester trials
 
-Testers get an **extended trial**: the same trial with a later end, never a discount and never a payment for their work, which would read as a barter of services subject to VAT. Until the admin area exists (#611, deferred until after the tester round), a manual GitHub workflow, "Extinde perioada de probă", sets an organization's trial end: the environment, the owner's email, the date and a reason, written to `subscription_changes` with the GitHub account that ran it. It only moves an end later, never earlier. For an organization without a subscription it starts a trial, and says so, since that puts a free account on a clock.
+Testers get an **extended trial**: the same trial with a later end, never a discount and never a payment for their work, which would read as a barter of services subject to VAT. A tester's trial may include SMS, at the full allowance of the plan it tries (Profesional's), when the tester needs workers without an email; the workflow's option for it is off by default. Until the admin area exists (#611, deferred until after the tester round), a manual GitHub workflow, "Extinde perioada de probă", sets an organization's trial end: the environment, the owner's email, the date and a reason, written to `subscription_changes` with the GitHub account that ran it. It only moves an end later, never earlier. For an organization without a subscription it starts a trial, and says so, since that puts a free account on a clock.
 
 ### Terms and express acceptance
 
@@ -122,9 +123,9 @@ The seller's identity (name, CUI, registry number, invoice series, Stripe accoun
 **Phase 2, before the waitlist email and public sign-up:**
 
 7. Stripe: the setup script, checkout, the webhook handler, the customer portal, plan and pack changes with their proration.
-8. Oblio: the invoice on payment, the storno on refund, the non-prod stand-in.
+8. Oblio: the invoice on payment, the storno on refund, the `TEST` proformas on non-prod.
 9. Setări → Abonament: status and next payment, usage against limits with the SMS counter, choosing and changing the plan, packs, the link to Stripe's portal, the Facturi list. A help article for it.
-10. Usage and limits: the counts, the banners and emails, the one-month block on adding employees, metered SMS.
+10. Usage and limits: the counts, the banners and emails, the one-month block on adding employees, no SMS during a trial unless a tester's includes them, SMS to +40 only, metered SMS.
 11. The emails: trial ending (7, 3, 1 days), payment failed, read-only and the deletion countdown, limits passed, SMS at 80 % and 100 %.
 12. "Exportă tot", the per-client handover link, "Anunță participanții", and the deletion job.
 13. The two Profesional lines already sold: "Fiecare coleg își vede clienții lui" and "Documente fără marca SSM Ușor".
