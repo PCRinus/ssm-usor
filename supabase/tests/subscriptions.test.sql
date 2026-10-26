@@ -41,7 +41,7 @@ select is(
 
 -- Onboarding starts the trial ------------------------------------------------------
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');
-select public.create_organization('Tester SSM SRL', 'Tina Tester', '2026-09-23');
+select public.create_organization('Tester SSM SRL', 'Tina Tester', '2026-10-26', true);
 
 select results_eq(
   $$ select plan::text, status::text, trial_ends_at = access_until,

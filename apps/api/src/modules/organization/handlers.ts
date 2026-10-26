@@ -39,12 +39,13 @@ function fromMemberError(error: PostgrestError, context: string): ApiError {
 export const createOrganization: RouteHandler<typeof createOrganizationRoute, ApiEnv> = async (
   c
 ) => {
-  const { organizationName, fullName, termsVersion } = c.req.valid('json');
+  const { organizationName, fullName, termsVersion, acceptsSpecialClauses } = c.req.valid('json');
 
   const { data: id, error } = await createDataClient(c).rpc('create_organization', {
     organization_name: organizationName,
     owner_full_name: fullName,
     accepted_terms_version: termsVersion,
+    accepts_special_clauses: acceptsSpecialClauses,
   });
   if (error) {
     if (error.code === 'ORG01') {

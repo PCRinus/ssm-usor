@@ -28,10 +28,12 @@ trusts is `app_metadata.role = 'admin'`, which only the Auth Admin API can set.
 A user without a membership can sign in but sees nothing, and the API answers `403 forbidden`.
 Organizations are created by the seed, and by onboarding
 ([ADR 004](architecture/adr-004-registration-and-onboarding.md)):
-`create_organization(name, owner name, terms version)` lets a signed-in account with a
+`create_organization(name, owner name, terms version, accepts special clauses)` lets a signed-in account with a
 confirmed email and no membership create its organization, become its `owner`, name itself,
 and record the accepted terms, on the organization (`terms_version`, `terms_accepted_at`,
-`terms_accepted_by`) and on the profile, in one transaction. It refuses an account that
+`terms_accepted_by`) and on the profile, in one transaction. The express acceptance of the
+Terms' standard clauses (ADR 029) is required (`22023` without it) and kept as
+`special_clauses_accepted_at` on the organization; organizations created before it have null. It refuses an account that
 already belongs to an organization (`ORG01`). `my_open_invitations()` lists the open
 invitations sent to the caller's confirmed address, without tokens, so onboarding can point
 them out first. Memberships come from the seed and from

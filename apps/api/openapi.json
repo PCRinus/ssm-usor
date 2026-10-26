@@ -11260,9 +11260,13 @@
           "termsVersion": {
             "type": "string",
             "enum": ["2026-10-26"]
+          },
+          "acceptsSpecialClauses": {
+            "type": "boolean",
+            "enum": [true]
           }
         },
-        "required": ["organizationName", "fullName", "termsVersion"]
+        "required": ["organizationName", "fullName", "termsVersion", "acceptsSpecialClauses"]
       },
       "OrganizationMemberListResponse": {
         "type": "object",

@@ -7962,6 +7962,7 @@ export interface CreateOrganizationRequest {
    */
   fullName: string;
   termsVersion: CreateOrganizationRequestTermsVersion;
+  acceptsSpecialClauses: true;
 }
 
 export type OrganizationMemberListResponseItemsItemRole =

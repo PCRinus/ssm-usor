@@ -761,11 +761,13 @@ creating anything while either is missing.
 Supabase's signup, which the SPA calls directly; the API's part starts once the person is
 signed in without a membership.
 
-`POST /organization` takes `{ organizationName, fullName, termsVersion }` and calls
+`POST /organization` takes `{ organizationName, fullName, termsVersion, acceptsSpecialClauses }` and calls
 `create_organization` as the caller. It needs no membership, unlike every other organization
 route. `409` with `reason: already_in_organization` for an account that has one, `403` with
 `reason: email_not_confirmed` otherwise refused. `termsVersion` must be the current one from
-the contracts: the checkbox on the page accepts that version and no other.
+the contracts: the checkbox on the page accepts that version and no other. `acceptsSpecialClauses`
+must be `true`: the second checkbox, the express acceptance of the Terms' standard clauses
+(ADR 029), which the database records and requires too.
 
 `GET /me/invitations` lists the open invitations sent to the caller's confirmed address, so
 the page can point them out before the person creates an organization of their own. It carries

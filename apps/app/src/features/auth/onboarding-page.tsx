@@ -148,7 +148,12 @@ function OnboardingForm({ me }: { me: MeResponse }) {
     let created = false;
     try {
       await create.mutateAsync({
-        data: { fullName, organizationName, termsVersion: currentTermsVersion },
+        data: {
+          fullName,
+          organizationName,
+          termsVersion: currentTermsVersion,
+          acceptsSpecialClauses: true,
+        },
       });
       created = true;
     } catch (cause) {
@@ -369,10 +374,18 @@ function OnboardingForm({ me }: { me: MeResponse }) {
               )}
             />
             <label htmlFor="onboarding-clauses" className="text-sm leading-relaxed">
-              Accept în mod expres clauzele de la punctele 8, 9, 10 și 12 din Termeni: reînnoirea
-              automată a abonamentului, modificarea prețurilor cu notificare, trecerea contului în
-              modul doar citire și încetarea, limitarea răspunderii, legea aplicabilă și instanța
-              competentă.
+              Accept în mod expres clauzele de la punctele 8, 9, 10 și 12 din{' '}
+              <a
+                className="underline"
+                href="https://ssmusor.ro/termeni/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Termeni
+              </a>
+              : reînnoirea automată a abonamentului, modificarea prețurilor cu notificare,
+              nerestituirea sumelor plătite, trecerea contului în modul doar citire, încetarea și
+              ștergerea datelor, limitarea răspunderii, legea aplicabilă și instanța competentă.
             </label>
           </div>
           <FieldMessage id="onboarding-clauses-error" error={errors.acceptsSpecialClauses} />

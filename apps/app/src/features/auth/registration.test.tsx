@@ -221,7 +221,12 @@ describe('onboarding', () => {
 
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
     expect(created()).toEqual([
-      { fullName: 'Ana Popescu', organizationName: 'Protect SSM SRL', termsVersion: '2026-10-26' },
+      {
+        fullName: 'Ana Popescu',
+        organizationName: 'Protect SSM SRL',
+        termsVersion: '2026-10-26',
+        acceptsSpecialClauses: true,
+      },
     ]);
     await waitFor(() =>
       expect(screen.getByTestId('account-organization').textContent).toBe('Protect SSM SRL')
@@ -241,7 +246,12 @@ describe('onboarding', () => {
 
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
     expect(created()).toEqual([
-      { fullName: 'Ana Popescu', organizationName: 'OMV PETROM SA', termsVersion: '2026-10-26' },
+      {
+        fullName: 'Ana Popescu',
+        organizationName: 'OMV PETROM SA',
+        termsVersion: '2026-10-26',
+        acceptsSpecialClauses: true,
+      },
     ]);
     expect(savedDetails()).toEqual([
       {

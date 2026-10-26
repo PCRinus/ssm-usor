@@ -50,6 +50,8 @@ export const createOrganizationRequestSchema = z.object({
   fullName: fullNameSchema,
   // Accepted on the organization's behalf, with a checkbox, when it is created.
   termsVersion: z.literal(currentTermsVersion),
+  // The second checkbox: the standard clauses of Civil Code art. 1203, accepted expressly.
+  acceptsSpecialClauses: z.literal(true),
 });
 
 export type CreateOrganizationRequest = z.infer<typeof createOrganizationRequestSchema>;
