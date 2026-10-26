@@ -150,14 +150,17 @@ const desktopWidths = [640, 960, 1280];
       });
     });
 
-    root.addEventListener('mouseenter', () => {
-      hovered = true;
-      updatePaused();
-    });
-    root.addEventListener('mouseleave', () => {
-      hovered = false;
-      updatePaused();
-    });
+    const stack = root.querySelector<HTMLElement>('.stack')!;
+    for (const area of [seg, stack]) {
+      area.addEventListener('mouseenter', () => {
+        hovered = true;
+        updatePaused();
+      });
+      area.addEventListener('mouseleave', () => {
+        hovered = false;
+        updatePaused();
+      });
+    }
     root.addEventListener('focusin', () => {
       focused = true;
       updatePaused();
@@ -190,6 +193,7 @@ const desktopWidths = [640, 960, 1280];
     border-radius: 999px;
     background: #f1f3ec;
     overflow-x: auto;
+    scrollbar-width: none;
   }
   .step {
     position: relative;
@@ -346,10 +350,14 @@ const desktopWidths = [640, 960, 1280];
       transition: none;
     }
   }
-  @media (max-width: 1080px) {
+  @media (max-width: 900px) {
     .panel {
       grid-template-columns: 1fr;
       align-content: start;
+    }
+    .panel > :global(.browser),
+    .combo {
+      max-width: 600px;
     }
   }
   @media (max-width: 760px) {
@@ -382,6 +390,7 @@ const desktopWidths = [640, 960, 1280];
     }
     .phonepair > :global(.iphone) {
       width: 44%;
+      max-width: 200px;
     }
     .combo > :global(.iphone) {
       width: 34%;

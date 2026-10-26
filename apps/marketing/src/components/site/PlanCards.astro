@@ -85,15 +85,18 @@ const { placement } = Astro.props;
 <style>
   .plans {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* Cards share five rows: heading, price, button, lead line, list. Start has no lead line, so
+       its list spans the last two; the flexible last row absorbs that height. Only the first band
+       is flexible, since repeated fr rows would all grow to the same height. */
+    grid-template-rows: auto auto auto auto 1fr;
     gap: 20px;
-    align-items: stretch;
   }
   .plan {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    display: grid;
+    grid-row: span 5;
+    grid-template-rows: subgrid;
     padding: 32px 28px;
     border: 1px solid var(--line);
     border-radius: 18px;
@@ -203,10 +206,25 @@ const { placement } = Astro.props;
   ul {
     display: grid;
     gap: 12px;
+    align-content: start;
   }
   ul.first {
+    grid-row: span 2;
     padding-top: 20px;
     border-top: 1px solid var(--line);
+  }
+  @media (max-width: 941px) {
+    .plans {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .plan:last-child {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 631px) {
+    .plans {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
   @media (max-width: 760px) {
     .plan {
