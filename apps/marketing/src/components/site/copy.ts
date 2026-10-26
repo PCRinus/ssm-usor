@@ -115,7 +115,7 @@ export const steps = {
     {
       tab: 'Adaugi clientul',
       title: 'Adaugi clientul.',
-      text: 'Scrii CUI-ul și datele firmei se completează singure. Adaugi angajații și postul fiecăruia.',
+      text: 'Scrii CUI-ul și datele firmei se completează singure. Adaugi angajații și postul fiecăruia. Evaluarea riscurilor, echipamentul de protecție și instrucțiunile le faci o dată pe post, nu pentru fiecare om.',
       visual: {
         kind: 'desktop',
         shot: {
@@ -149,7 +149,7 @@ export const steps = {
     {
       tab: 'Semnează toată lumea',
       title: 'Semnează toată lumea, de pe telefon.',
-      text: 'Angajații semnează fișele fără parolă și fără nimic de instalat. Tu semnezi alături, din aplicație.',
+      text: 'Angajații semnează fișele fără parolă și fără nimic de instalat. Tu semnezi alături, din aplicație. Nu mai treci pe la fiecare om cu hârtiile ca să strângi semnăturile.',
       visual: {
         kind: 'combo',
         desktop: { screen: 'signatures', alt: 'Lista ta de semnături, pe clienți' },

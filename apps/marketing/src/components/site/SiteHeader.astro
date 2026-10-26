@@ -60,6 +60,9 @@ const { home = '/', current } = Astro.props;
     gap: 32px;
     height: 76px;
   }
+  .brand {
+    flex: none;
+  }
   .brand :global(img) {
     display: block;
     width: auto;
@@ -74,6 +77,7 @@ const { home = '/', current } = Astro.props;
   nav a {
     color: var(--ink-2);
     text-decoration: none;
+    white-space: nowrap;
   }
   nav a:hover {
     color: var(--ink);
@@ -88,11 +92,17 @@ const { home = '/', current } = Astro.props;
     gap: 10px;
     margin-left: auto;
   }
-  @media (max-width: 760px) {
-    nav,
+  @media (max-width: 1100px) {
     .auth .soon {
       display: none;
     }
+  }
+  @media (max-width: 860px) {
+    nav {
+      display: none;
+    }
+  }
+  @media (max-width: 760px) {
     .bar {
       gap: 12px;
       height: 66px;

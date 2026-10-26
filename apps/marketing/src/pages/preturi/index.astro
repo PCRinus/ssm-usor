@@ -7,6 +7,7 @@ import {
   type Cell,
   comingSoon,
   compare,
+  enterprise,
   monthlyPrice,
   pricedPlans,
   pricingCta,
@@ -113,7 +114,10 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
                   <div class="colhead">
                     <span class="badge-space"></span>
                     <span class="name">Enterprise</span>
-                    <span class="amt">{compare.enterpriseAsk}</span>
+                    <span class="price">
+                      <span class="amt ask">{compare.enterpriseAsk}</span>
+                      <span class="per">{enterprise.askNote}</span>
+                    </span>
                     <a
                       class="colcta"
                       href={pricingCta.quoteHref}
@@ -132,7 +136,7 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
               <tbody>
                 <tr>
                   <th scope="colgroup" colspan="4" class="group">
-                    {group.title}
+                    <span>{group.title}</span>
                   </th>
                 </tr>
                 {group.rows.map((row) => (
@@ -306,6 +310,8 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
     text-align: center;
   }
   .scroller {
+    /* Contains the absolutely placed screen-reader texts, which otherwise widen the page. */
+    position: relative;
     border: 1px solid var(--line);
     border-radius: 18px;
     overflow-x: auto;
@@ -318,6 +324,7 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
     width: 100%;
     min-width: 780px;
     border-collapse: collapse;
+    table-layout: fixed;
     font-size: 15px;
   }
   thead tr {
@@ -335,7 +342,8 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
     padding: 28px 20px;
     border-left: 1px solid var(--line);
     text-align: left;
-    vertical-align: top;
+    /* A badge that wraps grows upwards, so names, prices and buttons stay level across columns. */
+    vertical-align: bottom;
   }
   .plancol.hl {
     background: var(--lime-soft);
@@ -373,8 +381,14 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
     font-variant-numeric: tabular-nums;
     font-weight: 700;
     letter-spacing: -0.02em;
+    line-height: 44px;
+  }
+  .amt.ask {
+    font-size: 26px;
+    white-space: nowrap;
   }
   .per {
+    flex-basis: 100%;
     color: var(--ink-2);
     font-size: 13px;
     font-weight: 500;
@@ -513,6 +527,11 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
     .row th {
       background: #fff;
       font-size: 14px;
+    }
+    .group span {
+      display: inline-block;
+      position: sticky;
+      left: 16px;
     }
   }
 </style>

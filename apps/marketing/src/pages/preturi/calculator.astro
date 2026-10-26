@@ -66,7 +66,12 @@ const initial = quote(employees, members);
                     preset.employees === employees && preset.members === members ? 'true' : 'false'
                   }
                 >
-                  {preset.label}
+                  {preset.label.split(' · ').map((part, index) => (
+                    <>
+                      {index > 0 && ' · '}
+                      <span>{part}</span>
+                    </>
+                  ))}
                 </button>
               ))}
             </div>
@@ -324,6 +329,10 @@ const initial = quote(employees, members);
     color: var(--ink);
     font: 500 14px/1.2 var(--sans);
     cursor: pointer;
+  }
+  /* A long label breaks after the dot, never in the middle of the employee count. */
+  .presets button span {
+    white-space: nowrap;
   }
   .presets button[aria-pressed='true'] {
     border-color: var(--ink);
