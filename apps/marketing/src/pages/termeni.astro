@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Termeni și condiții"
   description="Condițiile de utilizare a platformei SSM Ușor pentru servicii externe de prevenire și protecție."
-  updated="25 octombrie 2026"
+  updated="26 octombrie 2026"
 >
   {!legalEntity.filled && (
     <p class="note">
@@ -37,6 +37,10 @@ const M = legalEntity.filled ? 'span' : 'mark';
     Platforma este un instrument software prin care un serviciu extern de prevenire și protecție
     („Furnizorul”) își gestionează clienții, angajații acestora, documentele, instruirile, testările
     și semnăturile electronice aferente activității de securitate și sănătate în muncă.
+  </p>
+  <p>
+    Platforma se adresează exclusiv profesioniștilor: Furnizorul o folosește în activitatea sa
+    economică, iar acești termeni nu se aplică unor contracte încheiate cu consumatori.
   </p>
   <p>
     Platforma nu oferă consultanță juridică sau de specialitate și nu înlocuiește obligațiile,
@@ -107,12 +111,52 @@ const M = legalEntity.filled ? 'span' : 'mark';
     și păstrarea lor sunt în <a href="/confidentialitate/">Politica de confidențialitate</a>.
   </p>
 
-  <h2>8. Prețuri și plată</h2>
+  <h2>8. Abonament, perioadă de probă și plată</h2>
   <p>
-    Până la publicarea unei liste de prețuri, accesul se acordă în condițiile convenite în scris cu
-    fiecare Furnizor. Prețurile viitoare vor fi comunicate cu cel puțin 30 de zile înainte de a se
-    aplica unui cont existent.
+    Planurile, pachetele și prețurile sunt cele publicate pe{' '}
+    <a href="/preturi/">pagina de prețuri</a>, în euro, fără TVA; TVA se adaugă la plată.
   </p>
+  <ul>
+    <li>
+      <strong>Perioada de probă.</strong> O organizație nouă are 30 de zile în care folosește tot ce
+      include planul Profesional, fără card. Dacă la sfârșitul ei nu alege un plan, contul trece în
+      modul doar citire, conform punctului 10.
+    </li>
+    <li>
+      <strong>Plata și reînnoirea automată.</strong> Abonamentul se plătește în avans, lunar sau
+      anual, cu cardul, prin procesatorul nostru de plăți, Stripe. Se reînnoiește automat la
+      sfârșitul fiecărei perioade, la prețul în vigoare, până când îl anulezi. Factura fiscală se
+      emite după fiecare plată și se trimite pe email și în sistemul RO e-Factura.
+    </li>
+    <li>
+      <strong>Schimbări în timpul unei perioade.</strong> Un pachet sau un utilizator adăugat ori
+      trecerea la un plan superior se facturează proporțional cu zilele rămase, pe factura
+      următoare; la abonamentul anual, imediat. Renunțarea la un pachet sau trecerea la un plan
+      inferior se aplică de la următoarea reînnoire, fără credit pentru perioada rămasă.
+    </li>
+    <li>
+      <strong>Limitele planului.</strong> Când numărul de angajați activi ai clienților tăi
+      depășește limita planului, te anunțăm. Dacă după o lună nu ai adăugat un pachet și nu ai
+      arhivat clienți, nu mai poți adăuga angajați până o faci; tot ce există în cont continuă să
+      funcționeze. Codurile prin SMS trimise peste cele incluse într-o lună se facturează la prețul
+      publicat, pe factura următoare.
+    </li>
+    <li>
+      <strong>Plata eșuată.</strong> Dacă o reînnoire nu poate fi încasată, reîncercăm timp de cel
+      mult 14 zile, timp în care contul funcționează normal. Dacă plata nu reușește, contul trece în
+      modul doar citire, conform punctului 10.
+    </li>
+    <li>
+      <strong>Anularea.</strong> Poți anula abonamentul oricând. Rămâne activ până la sfârșitul
+      perioadei plătite și nu se mai reînnoiește. Sumele plătite pentru o perioadă începută, lunară
+      sau anuală, nu se restituie.
+    </li>
+    <li>
+      <strong>Modificarea prețurilor.</strong> Te anunțăm prin email cu cel puțin 30 de zile
+      înainte. Noul preț se aplică de la prima reînnoire de după acest termen, iar până atunci poți
+      anula. Un abonament anual păstrează prețul până la sfârșitul anului plătit.
+    </li>
+  </ul>
 
   <h2>9. Răspundere</h2>
   <p>
@@ -122,11 +166,17 @@ const M = legalEntity.filled ? 'span' : 'mark';
     neîndeplinirea obligațiilor legale ale Furnizorului ori ale clienților săi.
   </p>
 
-  <h2>10. Încetare</h2>
+  <h2>10. Încetare și modul doar citire</h2>
   <p>
     Poți închide contul oricând. Putem suspenda sau închide un cont în caz de încălcare a acestor
-    termeni, cu notificare prealabilă atunci când este posibil. La încetare se aplică prevederile
-    privind exportul și ștergerea datelor de la punctul 6.
+    termeni, cu notificare prealabilă atunci când este posibil.
+  </p>
+  <p>
+    La sfârșitul perioadei de probă fără un plan ales, la sfârșitul perioadei plătite după anulare
+    sau după o plată eșuată, contul trece în modul doar citire timp de 30 de zile: tu, colegii tăi
+    și participanții clienților tăi vedeți și descărcați tot ce există în cont, dar nu se mai poate
+    modifica nimic. Dacă alegi un plan în acest timp, contul revine la normal, cu tot ce conținea.
+    După cele 30 de zile, datele sunt șterse, conform punctului 6.
   </p>
 
   <h2>11. Modificări</h2>

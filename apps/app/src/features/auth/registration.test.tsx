@@ -206,7 +206,10 @@ describe('onboarding', () => {
       await screen.findByTestId('onboarding-lookup-status');
     }
     if (name) await user.type(screen.getByTestId('onboarding-organization'), name);
-    if (accept) await user.click(screen.getByTestId('onboarding-terms'));
+    if (accept) {
+      await user.click(screen.getByTestId('onboarding-terms'));
+      await user.click(screen.getByTestId('onboarding-clauses'));
+    }
     await user.click(screen.getByTestId('onboarding-submit'));
   }
 
@@ -218,7 +221,7 @@ describe('onboarding', () => {
 
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
     expect(created()).toEqual([
-      { fullName: 'Ana Popescu', organizationName: 'Protect SSM SRL', termsVersion: '2026-09-23' },
+      { fullName: 'Ana Popescu', organizationName: 'Protect SSM SRL', termsVersion: '2026-10-26' },
     ]);
     await waitFor(() =>
       expect(screen.getByTestId('account-organization').textContent).toBe('Protect SSM SRL')
@@ -238,7 +241,7 @@ describe('onboarding', () => {
 
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
     expect(created()).toEqual([
-      { fullName: 'Ana Popescu', organizationName: 'OMV PETROM SA', termsVersion: '2026-09-23' },
+      { fullName: 'Ana Popescu', organizationName: 'OMV PETROM SA', termsVersion: '2026-10-26' },
     ]);
     expect(savedDetails()).toEqual([
       {
@@ -364,6 +367,21 @@ describe('onboarding', () => {
 
     expect((await screen.findByTestId('onboarding-terms-error')).textContent).toMatch(
       /trebuie să accepți termenii/
+    );
+    expect(created()).toEqual([]);
+  });
+
+  it('requires the clauses of article 1203 to be accepted on their own', async () => {
+    mount();
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByTestId('onboarding-full-name'), 'Ana Popescu');
+    await user.type(screen.getByTestId('onboarding-organization'), 'Protect SSM SRL');
+    await user.click(screen.getByTestId('onboarding-terms'));
+    await user.click(screen.getByTestId('onboarding-submit'));
+
+    expect((await screen.findByTestId('onboarding-clauses-error')).textContent).toMatch(
+      /în mod expres/
     );
     expect(created()).toEqual([]);
   });

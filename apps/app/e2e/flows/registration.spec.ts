@@ -63,6 +63,7 @@ test('a person registers, confirms their address, and sets up their organization
   await page.getByTestId('onboarding-submit').click();
   await expect(page.getByTestId('onboarding-terms-error')).toBeVisible();
   await page.getByTestId('onboarding-terms').click();
+  await page.getByTestId('onboarding-clauses').click();
   await page.getByTestId('onboarding-submit').click();
 
   await expect(page).toHaveURL(/\/dashboard$/);

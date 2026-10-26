@@ -95,6 +95,7 @@ function OnboardingForm({ me }: { me: MeResponse }) {
       cui: '',
       organizationName: '',
       acceptsTerms: false,
+      acceptsSpecialClauses: false,
     },
   });
   const formRef = useRevealErrors(form);
@@ -345,6 +346,36 @@ function OnboardingForm({ me }: { me: MeResponse }) {
             </label>
           </div>
           <FieldMessage id="onboarding-terms-error" error={errors.acceptsTerms} />
+        </div>
+        <div className="grid gap-2">
+          <div className="flex items-start gap-3">
+            <Controller
+              control={form.control}
+              name="acceptsSpecialClauses"
+              render={({ field }) => (
+                <Checkbox
+                  id="onboarding-clauses"
+                  data-testid="onboarding-clauses"
+                  className="mt-0.5"
+                  checked={field.value}
+                  disabled={isSubmitting}
+                  aria-invalid={Boolean(errors.acceptsSpecialClauses)}
+                  aria-describedby={
+                    errors.acceptsSpecialClauses ? 'onboarding-clauses-error' : undefined
+                  }
+                  onCheckedChange={(checked) => field.onChange(checked === true)}
+                  onBlur={field.onBlur}
+                />
+              )}
+            />
+            <label htmlFor="onboarding-clauses" className="text-sm leading-relaxed">
+              Accept în mod expres clauzele de la punctele 8, 9, 10 și 12 din Termeni: reînnoirea
+              automată a abonamentului, modificarea prețurilor cu notificare, trecerea contului în
+              modul doar citire și încetarea, limitarea răspunderii, legea aplicabilă și instanța
+              competentă.
+            </label>
+          </div>
+          <FieldMessage id="onboarding-clauses-error" error={errors.acceptsSpecialClauses} />
         </div>
         {errors.root?.server && (
           <p

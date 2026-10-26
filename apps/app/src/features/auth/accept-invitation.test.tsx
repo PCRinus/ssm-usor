@@ -114,7 +114,7 @@ describe('accept invitation: a person without an account', () => {
         token: 'tok-123',
         fullName: 'Ion Ionescu',
         password: 'Parola123',
-        termsVersion: '2026-09-23',
+        termsVersion: '2026-10-26',
       },
     ]);
     expect(auth.client.signInWithPassword).toHaveBeenCalledWith({
@@ -230,7 +230,7 @@ describe('accept invitation: a person who already has an account', () => {
 
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/organization/team'));
     expect(bodies('/invitations/join')).toEqual([
-      { token: 'tok-123', termsVersion: '2026-09-23', fullName: 'Ion Ionescu' },
+      { token: 'tok-123', termsVersion: '2026-10-26', fullName: 'Ion Ionescu' },
     ]);
   });
 
@@ -249,7 +249,7 @@ describe('accept invitation: a person who already has an account', () => {
 
     await waitFor(() =>
       expect(bodies('/invitations/join')).toEqual([
-        { token: 'tok-123', termsVersion: '2026-09-23' },
+        { token: 'tok-123', termsVersion: '2026-10-26' },
       ])
     );
   });

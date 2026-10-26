@@ -20,6 +20,11 @@ export const onboardingSchema = z.object({
   acceptsTerms: z.boolean().refine((accepted) => accepted, {
     message: 'Pentru a continua trebuie să accepți termenii.',
   }),
+  // Art. 1203 of the Civil Code: standard clauses such as automatic renewal or limited liability
+  // bind only when accepted expressly, apart from the terms as a whole (ADR 029).
+  acceptsSpecialClauses: z.boolean().refine((accepted) => accepted, {
+    message: 'Pentru a continua trebuie să accepți în mod expres aceste clauze.',
+  }),
 });
 
 export type OnboardingValues = z.infer<typeof onboardingSchema>;
