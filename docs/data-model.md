@@ -41,6 +41,27 @@ changes a role with `change_organization_member_role(user, role)` and removes a 
 the caller, and refuse the caller's own membership (`MEM01`), so an organization always
 keeps an owner. Removal deletes the membership only.
 
+## Subscriptions and access
+
+`subscriptions` holds one row per paying or trialing organization
+([ADR 029](architecture/adr-029-billing-plans-and-trials.md)): the `plan` (`start`,
+`profesional`, `enterprise`), the `status` (`trialing`, `active`, `past_due`, `canceled`), the
+`trial_ends_at` and `access_until`, when full access ends. An organization without a row has
+full access indefinitely: the seeded ones, the end-to-end accounts and every organization
+created before billing. Members read their own organization's row; nobody writes it through the
+data API.
+
+`create_organization` starts a 30-day `profesional` trial. `extend_trial(owner email, until,
+reason)`, for the secret key only, moves a trial's end, or starts a trial for an organization
+without a row; it refuses an unknown owner (`SUB01`), a subscription past its trial (`SUB02`),
+an end in the past (`SUB03`) and a missing reason (`22023`). Every change is written to
+`subscription_changes` (`source`, `change`, `reason`, `details`), which no signed-in user reads.
+
+`access_at(access_until)` answers `full` before that moment, or when there is none, and
+`read_only` after it. `current_membership()` and `current_participations()` carry the result as
+`access`, so the API checks it on every request without another call. Read-only is enforced
+by the API, not by policies.
+
 ## Platform admins and impersonation
 
 `public.is_platform_admin()` is true for a JWT whose `app_metadata.role` is `admin`. Platform
