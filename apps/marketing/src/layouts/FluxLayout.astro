@@ -1,6 +1,8 @@
 ---
 import '../styles/flux.css';
 
+import { Font } from 'astro:assets';
+
 import SiteFooter from '../components/site/SiteFooter.astro';
 import SiteHeader from '../components/site/SiteHeader.astro';
 import BaseLayout from './BaseLayout.astro';
@@ -18,12 +20,8 @@ const { title, description, home, current, noindex = false } = Astro.props;
 
 <BaseLayout title={title} description={description} themeColor="#ffffff" noindex={noindex}>
   <Fragment slot="head">
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700&display=swap"
-    />
+    <Font cssVariable="--font-inter" preload />
+    <Font cssVariable="--font-inter-tight" />
     <slot name="head" />
   </Fragment>
   <div class="flux">

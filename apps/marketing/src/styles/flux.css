@@ -1,3 +1,20 @@
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial');
+  size-adjust: 107.12%;
+  ascent-override: 90.44%;
+  descent-override: 22.52%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Inter Tight Fallback';
+  src: local('Arial');
+  size-adjust: 96.39%;
+  ascent-override: 100.51%;
+  descent-override: 25.03%;
+  line-gap-override: 0%;
+}
+
 /*
  * Brand colors come from @ssm-usor/design-tokens (imported in global.css); the site-specific
  * roles below derive from them so a palette change in the tokens package reaches both apps.
@@ -11,8 +28,8 @@
   --lime-soft: #eaf2d6;
   --moss: #2a5045;
   --muted-ink: #7b8782;
-  --sans: Inter, ui-sans-serif, system-ui, sans-serif;
-  --display: 'Inter Tight', Inter, ui-sans-serif, system-ui, sans-serif;
+  --sans: var(--font-inter);
+  --display: var(--font-inter-tight);
   color: var(--ink);
   background: #fff;
   font-family: var(--sans);

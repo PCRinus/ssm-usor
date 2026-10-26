@@ -45,6 +45,11 @@ export default {
       response.headers.set('content-type', 'text/plain; charset=utf-8');
     }
 
+    // Astro names every file under /_astro/ by its content hash, so a cached copy never goes stale.
+    if (url.pathname.startsWith('/_astro/') && response.ok) {
+      response.headers.set('cache-control', 'public, max-age=31536000, immutable');
+    }
+
     if (!indexable) {
       response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
     }
