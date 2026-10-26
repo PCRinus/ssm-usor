@@ -236,7 +236,7 @@ export const pricingPage = {
     },
     {
       q: 'Pot încerca înainte să plătesc?',
-      a: 'Da. Ai 30 de zile cu tot ce include Profesional, fără card, cu 50 de coduri prin SMS. Dacă nu alegi un plan, contul rămâne încă 30 de zile doar pentru citire: vezi și descarci tot, apoi datele se șterg.',
+      a: 'Da. Ai 30 de zile cu tot ce include Profesional, fără card; în această perioadă codurile se trimit pe email, iar SMS-urile pornesc când alegi un plan. Dacă nu alegi un plan, contul rămâne încă 30 de zile doar pentru citire: vezi și descarci tot, apoi datele se șterg.',
     },
     {
       q: 'Pot renunța oricând?',
