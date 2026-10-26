@@ -14,6 +14,7 @@
     "e2e:server": "node --import tsx scripts/e2e-server.ts",
     "seed": "node --env-file-if-exists=.env.seed --import tsx scripts/seed.ts",
     "seed:local": "node --env-file-if-exists=.env.seed --import tsx scripts/seed.ts --local",
+    "extend-trial": "node --import tsx scripts/extend-trial.ts",
     "templates:register": "node --env-file-if-exists=.env.seed --import tsx scripts/register-templates.ts",
     "templates:register:local": "node --import tsx scripts/register-templates.ts --local",
     "signed-sheet:check:local": "node --import tsx scripts/check-signed-sheet.ts",

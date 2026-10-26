@@ -4,10 +4,12 @@ import { useRef, useState } from 'react';
 
 import {
   type ClientFileResponse,
+  getGetMeQueryKey,
   getListClientFilesQueryKey,
   getUploadClientFileUrl,
 } from '@/api/generated/api';
 import { apiUpload } from '@/api/http';
+import { isReadOnlyError } from '@/features/subscription/read-only';
 
 import { fileCountLabel, refusalBeforeUpload, uploadFailureMessage } from './client-file-format';
 
@@ -91,6 +93,8 @@ export function useClientFileUploads(
       await queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(clientId) });
       change(job.key, { state: 'uploaded', percent: 100 });
     } catch (cause) {
+      if (isReadOnlyError(cause))
+        void queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       job.batch.failed += 1;
       change(job.key, { state: 'failed', error: uploadFailureMessage(cause) });
     }

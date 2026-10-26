@@ -6,6 +6,7 @@ import {
   organizationMemberListResponseSchema,
 } from '@ssm-usor/contracts';
 
+import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
 import { requireMembership, requireOwner } from '../../lib/membership';
 import {
@@ -114,7 +115,7 @@ export const removeMemberRoute = createRoute({
   description:
     'Owners only, and never themselves. Only the membership is deleted: the account, the profile, and what the person created stay, and they can be invited again.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership, requireOwner] as const,
+  middleware: [requireAuth, allowWhileReadOnly, requireMembership, requireOwner] as const,
   request: { params: memberParams },
   responses: {
     204: { description: 'Removed' },

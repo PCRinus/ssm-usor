@@ -1,5 +1,5 @@
 begin;
-select plan(14);
+select plan(16);
 
 -- Fixtures: a fresh confirmed account, an unconfirmed one, an owner with an organization
 -- that has invited the fresh account, and an expired and a revoked invitation for it too.
@@ -36,7 +36,7 @@ $$;
 select pg_temp.act_as('ffffffff-0000-4000-8000-000000000002');
 
 select throws_ok(
-  $$ select public.create_organization('Too Early SRL', 'Una Unconfirmed', '2026-09') $$,
+  $$ select public.create_organization('Too Early SRL', 'Una Unconfirmed', '2026-09', true) $$,
   '42501', 'email_not_confirmed',
   'an account with an unconfirmed email cannot create an organization'
 );
@@ -56,13 +56,13 @@ select results_eq(
 );
 
 select throws_ok(
-  $$ select public.create_organization('X', 'Flavia Fresh', '2026-09') $$,
+  $$ select public.create_organization('X', 'Flavia Fresh', '2026-09', true) $$,
   '23514', null,
   'the organization name keeps its length rule'
 );
 
 select throws_ok(
-  $$ select public.create_organization('Fresh SSM SRL', 'F', '2026-09') $$,
+  $$ select public.create_organization('Fresh SSM SRL', 'F', '2026-09', true) $$,
   '23514', null,
   'the owner name keeps its length rule'
 );
@@ -73,8 +73,14 @@ select is(
   'a refused creation leaves no organization behind'
 );
 
+select throws_ok(
+  $$ select public.create_organization('Fresh SSM SRL', 'Flavia Fresh', '2026-09', false) $$,
+  '22023', 'special_clauses_not_accepted',
+  'the special clauses must be accepted expressly'
+);
+
 select lives_ok(
-  $$ select public.create_organization('  Fresh SSM SRL ', ' Flavia Fresh ', '2026-09') $$,
+  $$ select public.create_organization('  Fresh SSM SRL ', ' Flavia Fresh ', '2026-09', true) $$,
   'a confirmed account without a membership creates its organization'
 );
 
@@ -92,8 +98,14 @@ select results_eq(
   'the owner is named and their acceptance recorded on the profile'
 );
 
+select is(
+  (select special_clauses_accepted_at is not null from public.organizations where name = 'Fresh SSM SRL'),
+  true,
+  'the express acceptance is recorded on the organization'
+);
+
 select throws_ok(
-  $$ select public.create_organization('Second SRL', 'Flavia Fresh', '2026-09') $$,
+  $$ select public.create_organization('Second SRL', 'Flavia Fresh', '2026-09', true) $$,
   'ORG01', 'already_in_organization',
   'an account that belongs to an organization cannot create another'
 );
@@ -115,14 +127,14 @@ select is(
 -- An existing owner, and nobody ---------------------------------------------------
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 select throws_ok(
-  $$ select public.create_organization('Another SRL', 'Ana Owner', '2026-09') $$,
+  $$ select public.create_organization('Another SRL', 'Ana Owner', '2026-09', true) $$,
   'ORG01', 'already_in_organization',
   'an owner cannot create a second organization'
 );
 
 select set_config('role', 'anon', true), set_config('request.jwt.claims', '{"role":"anon"}', true);
 select throws_ok(
-  $$ select public.create_organization('Anon SRL', 'No Body', '2026-09') $$,
+  $$ select public.create_organization('Anon SRL', 'No Body', '2026-09', true) $$,
   '42501', null,
   'a visitor who is not signed in cannot create an organization'
 );

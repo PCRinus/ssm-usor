@@ -18,19 +18,35 @@ const profileRow = {
   terms_accepted_at: '2026-09-18T10:00:00+00:00',
 };
 
+const trialRow = {
+  plan: 'profesional',
+  status: 'trialing',
+  trial_ends_at: '2026-11-25T10:00:00+00:00',
+  access_until: '2026-11-25T10:00:00+00:00',
+};
+
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockUpstream({
   profile = profileRow as typeof profileRow | null,
   member = true,
   memberUserId = user.id,
+  subscription = null as typeof trialRow | null,
+  access = 'full',
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     if (url.pathname === '/auth/v1/user') return Response.json({ ...user, is_anonymous: false });
     if (url.pathname === '/rest/v1/rpc/current_membership') {
       return Response.json(
-        member ? [{ user_id: memberUserId, organization_id: organization.id, role: 'owner' }] : []
+        member
+          ? [{ user_id: memberUserId, organization_id: organization.id, role: 'owner', access }]
+          : []
+      );
+    }
+    if (url.pathname === '/rest/v1/subscriptions') {
+      return Response.json(
+        url.searchParams.get('organization_id') === `eq.${organization.id}` ? subscription : null
       );
     }
     if (url.pathname === '/rest/v1/rpc/my_open_invitations') {
@@ -109,6 +125,33 @@ describe('GET /me', () => {
       },
       membership: { organization, role: 'owner' },
       impersonation: null,
+      subscription: null,
+    });
+  });
+
+  it('reports a trial with its end and full access', async () => {
+    mockUpstream({ subscription: trialRow });
+
+    const response = await request('/me');
+
+    expect(meResponseSchema.parse(await response.json()).subscription).toEqual({
+      plan: 'profesional',
+      status: 'trialing',
+      trialEndsAt: '2026-11-25T10:00:00.000Z',
+      accessUntil: '2026-11-25T10:00:00.000Z',
+      access: 'full',
+      deletesAt: null,
+    });
+  });
+
+  it('reports when a read-only organization is deleted, 30 days after its access ended', async () => {
+    mockUpstream({ subscription: trialRow, access: 'read_only' });
+
+    const response = await request('/me');
+
+    expect(meResponseSchema.parse(await response.json()).subscription).toMatchObject({
+      access: 'read_only',
+      deletesAt: '2026-12-25T10:00:00.000Z',
     });
   });
 
@@ -135,6 +178,7 @@ describe('GET /me', () => {
       profile: null,
       membership: null,
       impersonation: null,
+      subscription: null,
     });
   });
 

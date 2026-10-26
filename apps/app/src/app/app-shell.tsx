@@ -72,6 +72,8 @@ import { GuidesProvider } from '@/features/guides/guides-provider';
 import { instructionSections } from '@/features/instructions/instruction-sections';
 import { testBankSections } from '@/features/knowledge-tests/test-bank-sections';
 import { legislationSections } from '@/features/legislation/legislation-sections';
+import { SubscriptionBadge } from '@/features/subscription/subscription-badge';
+import { SubscriptionBar } from '@/features/subscription/subscription-bar';
 import { newCount } from '@/features/updates/release-format';
 import { useReleases } from '@/features/updates/use-releases';
 import { useUpdateDialogOpen } from '@/features/updates/use-update-dialog-open';
@@ -459,7 +461,7 @@ export function AppShell() {
           Sari la conținut
         </a>
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-6">
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
             <SidebarTrigger
               data-testid="sidebar-toggle"
               data-tour="menu"
@@ -476,6 +478,14 @@ export function AppShell() {
                 className="h-auto w-28 sm:w-36"
               />
             </Link>
+            {me.data?.subscription && (
+              <SubscriptionBadge
+                subscription={me.data.subscription}
+                isOwner={me.data.membership?.role === 'owner'}
+                impersonating={Boolean(me.data.impersonation)}
+                className="ml-auto sm:ml-0"
+              />
+            )}
           </div>
         </header>
         <div
@@ -496,6 +506,12 @@ export function AppShell() {
             unreadReleases={releases.unreadCount}
           />
           <div className={cn('flex min-w-0 flex-1 flex-col', editorPage && 'min-h-0')}>
+            {me.data?.subscription && !editorPage && (
+              <SubscriptionBar
+                subscription={me.data.subscription}
+                canAct={me.data.membership?.role === 'owner' && !me.data.impersonation}
+              />
+            )}
             <main
               id="main-content"
               tabIndex={-1}

@@ -65,6 +65,7 @@ export type ApiEnv = {
     accessToken: string;
     membership: Membership;
     participations: Participation[];
+    readOnlyAllowed: boolean;
   };
 };
 

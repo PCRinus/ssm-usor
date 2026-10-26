@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { missingDocumentDataSchema } from './documents';
 import { membershipSchema } from './organizations';
 import { profileSchema } from './profile';
+import { subscriptionSummarySchema } from './subscriptions';
 
 export * from './caen';
 export * from './client-files';
@@ -42,6 +43,7 @@ export * from './signed-sheet';
 export * from './signer';
 export * from './signer-http';
 export * from './sms';
+export * from './subscriptions';
 export * from './tests';
 export * from './training-sheets';
 export * from './trainings';
@@ -82,6 +84,8 @@ export const meResponseSchema = z.object({
     .object({ targetMemberId: z.uuid(), targetOrganizationId: z.uuid() })
     .nullable()
     .optional(),
+  // Null for an organization without a subscription, which has full access indefinitely.
+  subscription: subscriptionSummarySchema.nullable().optional(),
 });
 
 export type MeResponse = z.infer<typeof meResponseSchema>;

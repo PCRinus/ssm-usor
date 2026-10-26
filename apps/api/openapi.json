@@ -197,6 +197,40 @@
               }
             },
             "required": ["targetMemberId", "targetOrganizationId"]
+          },
+          "subscription": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "plan": {
+                "type": "string",
+                "enum": ["start", "profesional", "enterprise"]
+              },
+              "status": {
+                "type": "string",
+                "enum": ["trialing", "active", "past_due", "canceled"]
+              },
+              "trialEndsAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "accessUntil": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "access": {
+                "type": "string",
+                "enum": ["full", "read_only"]
+              },
+              "deletesAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              }
+            },
+            "required": ["plan", "status", "trialEndsAt", "accessUntil", "access", "deletesAt"]
           }
         },
         "required": ["user", "profile", "membership"]
@@ -11225,10 +11259,14 @@
           },
           "termsVersion": {
             "type": "string",
-            "enum": ["2026-09-23"]
+            "enum": ["2026-10-26"]
+          },
+          "acceptsSpecialClauses": {
+            "type": "boolean",
+            "enum": [true]
           }
         },
-        "required": ["organizationName", "fullName", "termsVersion"]
+        "required": ["organizationName", "fullName", "termsVersion", "acceptsSpecialClauses"]
       },
       "OrganizationMemberListResponse": {
         "type": "object",
@@ -11671,7 +11709,7 @@
           },
           "termsVersion": {
             "type": "string",
-            "enum": ["2026-09-23"]
+            "enum": ["2026-10-26"]
           }
         },
         "required": ["token", "fullName", "password", "termsVersion"]
@@ -11691,7 +11729,7 @@
           },
           "termsVersion": {
             "type": "string",
-            "enum": ["2026-09-23"]
+            "enum": ["2026-10-26"]
           }
         },
         "required": ["token", "termsVersion"]

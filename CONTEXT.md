@@ -223,3 +223,15 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 **Update** (_actualizare_): what members read about one release: a **headline** (_titlu_), a **lead** (_rezumat_), and items under **Ce e nou** (new features, each with where to find it), **Îmbunătățiri** (improvements) and **Remedieri** (fixes), in Romanian and written for the specialist. The feature that shows them is **Actualizări**. A release with nothing a member sees is **silent** (_fără actualizare_). ADR 026. Avoid: changelog, release notes (the developer list on the GitHub release), news or _noutăți_, what's new, patch notes.
 
 **Unread** (_necitită_): a release published after the member's account was created and after the release they last **acknowledged** (_am înțeles_, _marcată ca citită_). Acknowledging covers everything published so far. ADR 026. Avoid: new (which is a section), seen, dismissed (closing the dialog dismisses it for the session and acknowledges nothing).
+
+## Billing
+
+**Plan** (_plan_): what an organization pays for: **Start**, **Profesional** or **Enterprise**. A plan sets scale and team (employees, members, SMS codes), never which documents, trainings or signatures exist. ADR 029. Avoid: tier, package, which is an add-on.
+
+**Pack** (_pachet_): an add-on bought on top of a plan: 50 or 500 more employees, or one more member. Never added on the owner's behalf. ADR 029. Avoid: add-on in the interface, upgrade.
+
+**Trial** (_perioadă de probă_): the first 30 days of a new organization, with what Profesional includes except SMS, and no card. A tester's is extended, never discounted, and may include SMS. ADR 029. Avoid: free plan, demo.
+
+**Subscription** (_abonament_): an organization's plan, billing interval, status and dates, kept in our database and mirrored by Stripe once a plan is chosen. An organization without one has full access indefinitely. ADR 029. Avoid: account, license.
+
+**Access** (_acces_): what an organization may do, derived from its subscription's dates: **full**, then **read-only** (_doar citire_) for 30 days after a trial, a paid period or a failed payment ends, then deleted. ADR 029. Avoid: suspended, locked, frozen (which archived clients are).

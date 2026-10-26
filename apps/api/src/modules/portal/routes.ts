@@ -13,6 +13,7 @@ import {
   trainingSheetSequenceQuerySchema,
 } from '@ssm-usor/contracts';
 
+import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
 import { authErrors, bearerSecurity, errorContent } from '../../lib/openapi';
 import { requireParticipant } from '../../lib/participant';
@@ -109,7 +110,7 @@ export const recordPortalNoticeRoute = createRoute({
   summary: 'Record that the privacy notice was shown',
   description: 'The version shown and the time are kept on the participation.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireParticipant] as const,
+  middleware: [requireAuth, allowWhileReadOnly, requireParticipant] as const,
   request: {
     params: participantParams,
     body: {
@@ -136,7 +137,7 @@ export const setPortalLanguageRoute = createRoute({
   summary: 'Choose the language the portal is shown in',
   description: 'Kept on the participation; the portal uses it at every sign-in.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireParticipant] as const,
+  middleware: [requireAuth, allowWhileReadOnly, requireParticipant] as const,
   request: {
     params: participantParams,
     body: {

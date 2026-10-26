@@ -1,7 +1,17 @@
-import { QueryClient } from '@tanstack/react-query';
+import { MutationCache, QueryClient } from '@tanstack/react-query';
+
+import { getGetMeQueryKey } from '@/api/generated/api';
+import { isReadOnlyError } from '@/features/subscription/read-only';
 
 export function createQueryClient() {
-  return new QueryClient({
+  const queryClient: QueryClient = new QueryClient({
+    // A change refused because the organization just turned read-only brings the banner up at once.
+    mutationCache: new MutationCache({
+      onError: (error) => {
+        if (isReadOnlyError(error))
+          void queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      },
+    }),
     defaultOptions: {
       queries: {
         staleTime: 30_000,
@@ -14,4 +24,5 @@ export function createQueryClient() {
       mutations: { retry: false },
     },
   });
+  return queryClient;
 }

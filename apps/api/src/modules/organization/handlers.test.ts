@@ -202,7 +202,8 @@ describe('POST /organization', () => {
   const body = {
     organizationName: '  Protect SSM SRL ',
     fullName: ' Ana Popescu ',
-    termsVersion: '2026-09-23',
+    termsVersion: '2026-10-26',
+    acceptsSpecialClauses: true,
   };
   const databaseError = (code: string, message: string) => () =>
     Response.json({ code, message }, { status: 400 });
@@ -221,7 +222,8 @@ describe('POST /organization', () => {
       {
         organization_name: 'Protect SSM SRL',
         owner_full_name: 'Ana Popescu',
-        accepted_terms_version: '2026-09-23',
+        accepted_terms_version: '2026-10-26',
+        accepts_special_clauses: true,
       },
     ]);
   });
@@ -256,6 +258,7 @@ describe('POST /organization', () => {
     [{ organizationName: 'X' }, 'organizationName'],
     [{ fullName: ' A ' }, 'fullName'],
     [{ termsVersion: '2020-01' }, 'termsVersion'],
+    [{ acceptsSpecialClauses: false }, 'acceptsSpecialClauses'],
   ])('rejects %o before calling the database', async (override, path) => {
     mockUpstream();
 

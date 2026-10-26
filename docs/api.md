@@ -49,7 +49,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /waitlist/confirm`                                                | Public, by emailed token              | `303` to the marketing site's confirmed or invalid-link page                                                                                                                                       |
 | `POST /hooks/supabase/send-email`                                      | Supabase Auth, by signature           | `200 {}` after handing the recovery, signup, password-changed or sign-in code email to the mail Worker                                                                                             |
 | `POST /hooks/supabase/send-sms`                                        | Supabase Auth, by signature           | `200 {}` after handing the portal's sign-in code to the SMS Worker                                                                                                                                 |
-| `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership" }`; the last two are null when absent                                                                                                                           |
+| `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership", "subscription" }`; null when absent                                                                                                                            |
 | `PATCH /me/profile`                                                    | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                                                                                                                            |
 | `GET /me/invitations`                                                  | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token                                                                                                               |
 | `GET /me/guides`                                                       | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, the guides the caller finished or skipped, each with its version                                                                                                             |
@@ -761,15 +761,33 @@ creating anything while either is missing.
 Supabase's signup, which the SPA calls directly; the API's part starts once the person is
 signed in without a membership.
 
-`POST /organization` takes `{ organizationName, fullName, termsVersion }` and calls
+`POST /organization` takes `{ organizationName, fullName, termsVersion, acceptsSpecialClauses }` and calls
 `create_organization` as the caller. It needs no membership, unlike every other organization
 route. `409` with `reason: already_in_organization` for an account that has one, `403` with
 `reason: email_not_confirmed` otherwise refused. `termsVersion` must be the current one from
-the contracts: the checkbox on the page accepts that version and no other.
+the contracts: the checkbox on the page accepts that version and no other. `acceptsSpecialClauses`
+must be `true`: the Terms checkbox names the clauses accepted expressly (ADR 029), which the
+database records and requires too.
 
 `GET /me/invitations` lists the open invitations sent to the caller's confirmed address, so
 the page can point them out before the person creates an organization of their own. It carries
 no id and no token; only the emailed link accepts an invitation.
+
+## Subscriptions and read-only access
+
+[ADR 029](architecture/adr-029-billing-plans-and-trials.md). `GET /me` carries the
+organization's `subscription`: `{ plan, status, trialEndsAt, accessUntil, access, deletesAt }`,
+or null for an organization without one, which has full access. `access` is `full` or
+`read_only`; `deletesAt` is 30 days after `accessUntil` once read-only.
+
+While the organization is read-only, every member request that changes something (`POST`,
+`PUT`, `PATCH`, `DELETE`) answers `403` with `reason: read_only` from the membership middleware,
+before the handler runs. A participant's change through `/portal/participants/{participantId}/…`
+answers the same. Exempt, through `allowWhileReadOnly` placed before those middlewares:
+printing a document's unsaved edits, the portal's notice and language, and what only takes
+access away: removing a member, revoking a member's invitation, revoking a participant or a
+participant's invitation. Reads are never affected. Accepting an invitation and a client's
+upload through the contract return link stay open (ADR 029).
 
 ## Members
 
@@ -1787,16 +1805,16 @@ generates the SPA’s TanStack Query client used by the dashboard to call `/me`.
 All responses use `Cache-Control: no-store`. Errors share `{ "error": "…", "message": "…" }`,
 with an optional `reason` where one status covers cases the client words differently:
 
-| Status | Error                 | Meaning                                                                                                               |
-| ------ | --------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `400`  | `validation_error`    | Invalid body or query; `issues` lists field paths and messages.                                                       |
-| `401`  | `unauthorized`        | Missing, invalid, expired, or rejected bearer token; anonymous users are rejected too.                                |
-| `403`  | `forbidden`           | No organization membership, not an owner where one is required, or the database policy rejected the write.            |
-| `404`  | `not_found`           | No matching route, no company registered with the CUI, or no such client, employee, workplace, or responsible person. |
-| `409`  | `conflict`            | Duplicate CUI, CNP, or employee number, an employee added to an archived client, or an invitation conflict.           |
-| `422`  | `unprocessable`       | A well-formed request the data refuses, such as a signer who cannot sign the slot.                                    |
-| `503`  | `service_unavailable` | Missing/invalid Supabase configuration, timeout, rate limit, or authentication service failure.                       |
-| `500`  | `internal_error`      | Unexpected API failure.                                                                                               |
+| Status | Error                 | Meaning                                                                                                                                                    |
+| ------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `400`  | `validation_error`    | Invalid body or query; `issues` lists field paths and messages.                                                                                            |
+| `401`  | `unauthorized`        | Missing, invalid, expired, or rejected bearer token; anonymous users are rejected too.                                                                     |
+| `403`  | `forbidden`           | No organization membership, not an owner where one is required, a read-only organization (`reason: read_only`), or the database policy rejected the write. |
+| `404`  | `not_found`           | No matching route, no company registered with the CUI, or no such client, employee, workplace, or responsible person.                                      |
+| `409`  | `conflict`            | Duplicate CUI, CNP, or employee number, an employee added to an archived client, or an invitation conflict.                                                |
+| `422`  | `unprocessable`       | A well-formed request the data refuses, such as a signer who cannot sign the slot.                                                                         |
+| `503`  | `service_unavailable` | Missing/invalid Supabase configuration, timeout, rate limit, or authentication service failure.                                                            |
+| `500`  | `internal_error`      | Unexpected API failure.                                                                                                                                    |
 
 Upstream error details are not returned to callers; database failures are logged by context
 only. Authentication failures include `WWW-Authenticate: Bearer`.

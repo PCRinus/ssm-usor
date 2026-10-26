@@ -125,7 +125,7 @@ export const addOns = {
     { label: '50 de angajați în plus', hint: 'aproximativ 15 clienți mici', price: '15 € / lună' },
     { label: 'Un coleg în plus', price: '15 € / lună' },
   ],
-  note: 'Dacă treci de limită, aplicația merge mai departe. Îți propunem un pachet și alegi tu când îl adaugi.',
+  note: 'Dacă treci de limită, lucrezi mai departe cu tot ce ai. Îți propunem un pachet, iar după o lună, ca să adaugi angajați noi, îl adaugi întâi.',
 };
 
 export const comingSoon = {
@@ -187,7 +187,10 @@ export const compare = {
         { label: 'Instruiri la zi și fișe individuale', cells: [true, true, true] },
         { label: 'Teste de verificare', cells: [true, true, true] },
         { label: 'Semnătură electronică avansată', cells: ['Inclusă', 'Inclusă', 'Inclusă'] },
-        { label: 'Coduri de semnare prin SMS, pe lună', cells: ['50', '300', 'După nevoie'] },
+        {
+          label: 'Coduri de semnare prin SMS, pe lună',
+          cells: ['50, apoi 0,10 € fiecare', '300, apoi 0,10 € fiecare', 'După nevoie'],
+        },
         { label: 'Clientul vede instruirile și fișele angajaților', cells: [true, true, true] },
       ],
     },
@@ -229,15 +232,15 @@ export const pricingPage = {
     },
     {
       q: 'Ce se întâmplă dacă trec de limită?',
-      a: 'Lucrezi mai departe, nimic nu se blochează. Îți arătăm un pachet de 50 de angajați și ai o lună să te hotărăști.',
+      a: 'Lucrezi mai departe cu tot ce ai. Îți arătăm un pachet de 50 de angajați; dacă după o lună nu l-ai adăugat, nu mai poți adăuga angajați noi până nu o faci sau arhivezi clienții cu care nu mai lucrezi.',
     },
     {
       q: 'Pot încerca înainte să plătesc?',
-      a: 'Da. Ai 30 de zile cu tot ce include Profesional, fără card. Dacă nu alegi un plan, îți poți vedea și descărca în continuare documentele.',
+      a: 'Da. Ai 30 de zile cu tot ce include Profesional, fără card; în această perioadă codurile se trimit pe email, iar SMS-urile pornesc când alegi un plan. Dacă nu alegi un plan, contul rămâne încă 30 de zile doar pentru citire: vezi și descarci tot, apoi datele se șterg.',
     },
     {
       q: 'Pot renunța oricând?',
-      a: 'Da. Planul lunar se oprește la sfârșitul lunii plătite, fără penalizări. Documentele rămân ale tale și le descarci oricând în Word și PDF.',
+      a: 'Da. Abonamentul rămâne activ până la sfârșitul perioadei plătite, fără penalizări. După aceea ai încă 30 de zile în care vezi și descarci tot, în Word și PDF; apoi datele se șterg.',
     },
   ],
 };

@@ -281,7 +281,7 @@ export const faq = {
     },
     {
       q: 'Pot să îmi iau documentele dacă renunț?',
-      a: 'Da. Le descarci oricând, pentru fiecare client, în Word sau PDF.',
+      a: 'Da. Le descarci oricând, pentru fiecare client, în Word sau PDF, și încă 30 de zile după ce renunți.',
     },
     {
       q: 'Cât costă?',

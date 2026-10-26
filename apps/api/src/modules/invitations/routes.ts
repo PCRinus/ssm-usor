@@ -10,6 +10,7 @@ import {
   joinWithInvitationRequestSchema,
 } from '@ssm-usor/contracts';
 
+import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
 import { requireMembership, requireOwner } from '../../lib/membership';
 import {
@@ -112,7 +113,7 @@ export const revokeInvitationRoute = createRoute({
   summary: 'Revoke a pending invitation',
   description: 'Owners only. The emailed link stops working.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership, requireOwner] as const,
+  middleware: [requireAuth, allowWhileReadOnly, requireMembership, requireOwner] as const,
   request: { params: invitationParams },
   responses: {
     204: { description: 'Revoked' },

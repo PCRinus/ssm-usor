@@ -3114,6 +3114,7 @@ export type Database = {
           risk_evaluator_certificate: string | null;
           risk_evaluator_name: string | null;
           risk_evaluator_title: string | null;
+          special_clauses_accepted_at: string | null;
           terms_accepted_at: string | null;
           terms_accepted_by: string | null;
           terms_version: string | null;
@@ -3144,6 +3145,7 @@ export type Database = {
           risk_evaluator_certificate?: string | null;
           risk_evaluator_name?: string | null;
           risk_evaluator_title?: string | null;
+          special_clauses_accepted_at?: string | null;
           terms_accepted_at?: string | null;
           terms_accepted_by?: string | null;
           terms_version?: string | null;
@@ -3174,6 +3176,7 @@ export type Database = {
           risk_evaluator_certificate?: string | null;
           risk_evaluator_name?: string | null;
           risk_evaluator_title?: string | null;
+          special_clauses_accepted_at?: string | null;
           terms_accepted_at?: string | null;
           terms_accepted_by?: string | null;
           terms_version?: string | null;
@@ -4490,6 +4493,99 @@ export type Database = {
             columns: ['participant_id'];
             isOneToOne: false;
             referencedRelation: 'client_participants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      subscription_changes: {
+        Row: {
+          change: string;
+          changed_at: string;
+          details: Json;
+          id: number;
+          organization_id: string;
+          reason: string | null;
+          source: string;
+        };
+        Insert: {
+          change: string;
+          changed_at?: string;
+          details?: Json;
+          id?: never;
+          organization_id: string;
+          reason?: string | null;
+          source: string;
+        };
+        Update: {
+          change?: string;
+          changed_at?: string;
+          details?: Json;
+          id?: never;
+          organization_id?: string;
+          reason?: string | null;
+          source?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'subscription_changes_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'subscription_changes_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      subscriptions: {
+        Row: {
+          access_until: string | null;
+          created_at: string;
+          organization_id: string;
+          plan: Database['public']['Enums']['subscription_plan'];
+          status: Database['public']['Enums']['subscription_status'];
+          trial_ends_at: string | null;
+          trial_sms: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          access_until?: string | null;
+          created_at?: string;
+          organization_id: string;
+          plan: Database['public']['Enums']['subscription_plan'];
+          status: Database['public']['Enums']['subscription_status'];
+          trial_ends_at?: string | null;
+          trial_sms?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          access_until?: string | null;
+          created_at?: string;
+          organization_id?: string;
+          plan?: Database['public']['Enums']['subscription_plan'];
+          status?: Database['public']['Enums']['subscription_status'];
+          trial_ends_at?: string | null;
+          trial_sms?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'subscriptions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: true;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'subscriptions_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: true;
+            referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
         ];
@@ -5978,6 +6074,10 @@ export type Database = {
         Returns: string;
       };
       accept_participant_invitations: { Args: never; Returns: number };
+      access_at: {
+        Args: { access_until: string };
+        Returns: Database['public']['Enums']['access_level'];
+      };
       acknowledge_releases: { Args: { through: string }; Returns: string };
       active_test_questions: {
         Args: {
@@ -6073,6 +6173,7 @@ export type Database = {
       create_organization: {
         Args: {
           accepted_terms_version: string;
+          accepts_special_clauses: boolean;
           organization_name: string;
           owner_full_name: string;
         };
@@ -6155,6 +6256,7 @@ export type Database = {
       current_membership: {
         Args: never;
         Returns: {
+          access: Database['public']['Enums']['access_level'];
           organization_id: string;
           role: Database['public']['Enums']['organization_role'];
           user_id: string;
@@ -6164,6 +6266,7 @@ export type Database = {
       current_participations: {
         Args: never;
         Returns: {
+          access: Database['public']['Enums']['access_level'];
           client_id: string;
           client_name: string;
           employee_id: string;
@@ -6224,6 +6327,21 @@ export type Database = {
           last_periodic_on: string;
           state: Database['public']['Enums']['training_state'];
           workplace_trained_on: string;
+        }[];
+      };
+      extend_trial: {
+        Args: {
+          p_actor: string;
+          p_owner_email: string;
+          p_reason: string;
+          p_until: string;
+          p_with_sms: boolean;
+        };
+        Returns: {
+          organization_id: string;
+          organization_name: string;
+          started: boolean;
+          trial_ends_at: string;
         }[];
       };
       finish_test_attempt: {
@@ -6814,6 +6932,7 @@ export type Database = {
       };
     };
     Enums: {
+      access_level: 'full' | 'read_only';
       client_stage: 'lead' | 'client';
       document_group: 'documentation_set' | 'other' | 'fire_safety_set';
       document_revision_status: 'draft' | 'issued' | 'superseded';
@@ -6859,6 +6978,8 @@ export type Database = {
       sensitive_groups_state: 'undecided' | 'none' | 'evaluated';
       signer_slot: 'trainee' | 'trainer' | 'verifier' | 'admitter' | 'examiner';
       staff_category: 'technical_administrative' | 'execution';
+      subscription_plan: 'start' | 'profesional' | 'enterprise';
+      subscription_status: 'trialing' | 'active' | 'past_due' | 'canceled';
       supplementary_training_reason:
         | 'absence_over_thirty_days'
         | 'rules_changed'
@@ -6996,6 +7117,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      access_level: ['full', 'read_only'],
       client_stage: ['lead', 'client'],
       document_group: ['documentation_set', 'other', 'fire_safety_set'],
       document_revision_status: ['draft', 'issued', 'superseded'],
@@ -7044,6 +7166,8 @@ export const Constants = {
       sensitive_groups_state: ['undecided', 'none', 'evaluated'],
       signer_slot: ['trainee', 'trainer', 'verifier', 'admitter', 'examiner'],
       staff_category: ['technical_administrative', 'execution'],
+      subscription_plan: ['start', 'profesional', 'enterprise'],
+      subscription_status: ['trialing', 'active', 'past_due', 'canceled'],
       supplementary_training_reason: [
         'absence_over_thirty_days',
         'rules_changed',

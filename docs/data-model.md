@@ -28,10 +28,12 @@ trusts is `app_metadata.role = 'admin'`, which only the Auth Admin API can set.
 A user without a membership can sign in but sees nothing, and the API answers `403 forbidden`.
 Organizations are created by the seed, and by onboarding
 ([ADR 004](architecture/adr-004-registration-and-onboarding.md)):
-`create_organization(name, owner name, terms version)` lets a signed-in account with a
+`create_organization(name, owner name, terms version, accepts special clauses)` lets a signed-in account with a
 confirmed email and no membership create its organization, become its `owner`, name itself,
 and record the accepted terms, on the organization (`terms_version`, `terms_accepted_at`,
-`terms_accepted_by`) and on the profile, in one transaction. It refuses an account that
+`terms_accepted_by`) and on the profile, in one transaction. The express acceptance of the
+Terms' standard clauses (ADR 029) is required (`22023` without it) and kept as
+`special_clauses_accepted_at` on the organization; organizations created before it have null. It refuses an account that
 already belongs to an organization (`ORG01`). `my_open_invitations()` lists the open
 invitations sent to the caller's confirmed address, without tokens, so onboarding can point
 them out first. Memberships come from the seed and from
@@ -40,6 +42,30 @@ changes a role with `change_organization_member_role(user, role)` and removes a 
 `remove_organization_member(user)`. Both lock the organization's memberships before checking
 the caller, and refuse the caller's own membership (`MEM01`), so an organization always
 keeps an owner. Removal deletes the membership only.
+
+## Subscriptions and access
+
+`subscriptions` holds one row per paying or trialing organization
+([ADR 029](architecture/adr-029-billing-plans-and-trials.md)): the `plan` (`start`,
+`profesional`, `enterprise`), the `status` (`trialing`, `active`, `past_due`, `canceled`), the
+`trial_ends_at`, `access_until`, when full access ends, and `trial_sms`: a trial sends no SMS, except a tester's
+trial given SMS, which sends them at the full allowance of its plan. An organization without a row has
+full access indefinitely: the seeded ones, the end-to-end accounts and every organization
+created before billing. Members read their own organization's row; nobody writes it through the
+data API.
+
+`create_organization` starts a 30-day `profesional` trial. `extend_trial(owner email, until, reason, actor, with SMS)`, for the secret key only, moves a trial's end later, or starts a trial for an
+organization without a row and returns `started` to say so. It refuses an unknown owner
+(`TRL01`), a subscription past its trial (`TRL02`), an end in the past (`TRL03`), an end not
+later than the current one (`TRL04`), an email that matches more than one owner (`TRL05`), and a
+missing reason or actor (`22023`). Every change is written to `subscription_changes` (`source`,
+`change`, `reason`, `details` with the actor), which no signed-in user reads. Only an `active`
+subscription may have no `access_until`, so a cancelled or failing one always has an end.
+
+`access_at(access_until)` answers `full` before that moment, or when there is none, and
+`read_only` after it. `current_membership()` and `current_participations()` carry the result as
+`access`, so the API checks it on every request without another call. Read-only is enforced
+by the API, not by policies.
 
 ## Platform admins and impersonation
 

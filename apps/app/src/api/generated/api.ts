@@ -160,6 +160,48 @@ export type MeResponseImpersonation = {
   targetOrganizationId: string;
 } | null;
 
+export type MeResponseSubscriptionPlan =
+  (typeof MeResponseSubscriptionPlan)[keyof typeof MeResponseSubscriptionPlan];
+
+export const MeResponseSubscriptionPlan = {
+  start: 'start',
+  profesional: 'profesional',
+  enterprise: 'enterprise',
+} as const;
+
+export type MeResponseSubscriptionStatus =
+  (typeof MeResponseSubscriptionStatus)[keyof typeof MeResponseSubscriptionStatus];
+
+export const MeResponseSubscriptionStatus = {
+  trialing: 'trialing',
+  active: 'active',
+  past_due: 'past_due',
+  canceled: 'canceled',
+} as const;
+
+export type MeResponseSubscriptionAccess =
+  (typeof MeResponseSubscriptionAccess)[keyof typeof MeResponseSubscriptionAccess];
+
+export const MeResponseSubscriptionAccess = {
+  full: 'full',
+  read_only: 'read_only',
+} as const;
+
+/**
+ * @nullable
+ */
+export type MeResponseSubscription = {
+  plan: MeResponseSubscriptionPlan;
+  status: MeResponseSubscriptionStatus;
+  /** @nullable */
+  trialEndsAt: string | null;
+  /** @nullable */
+  accessUntil: string | null;
+  access: MeResponseSubscriptionAccess;
+  /** @nullable */
+  deletesAt: string | null;
+} | null;
+
 export interface MeResponse {
   user: MeResponseUser;
   /** @nullable */
@@ -168,6 +210,8 @@ export interface MeResponse {
   membership: MeResponseMembership;
   /** @nullable */
   impersonation?: MeResponseImpersonation;
+  /** @nullable */
+  subscription?: MeResponseSubscription;
 }
 
 export interface SupportIdentity {
@@ -7903,7 +7947,7 @@ export type CreateOrganizationRequestTermsVersion =
   (typeof CreateOrganizationRequestTermsVersion)[keyof typeof CreateOrganizationRequestTermsVersion];
 
 export const CreateOrganizationRequestTermsVersion = {
-  '2026-09-23': '2026-09-23',
+  '2026-10-26': '2026-10-26',
 } as const;
 
 export interface CreateOrganizationRequest {
@@ -7918,6 +7962,7 @@ export interface CreateOrganizationRequest {
    */
   fullName: string;
   termsVersion: CreateOrganizationRequestTermsVersion;
+  acceptsSpecialClauses: true;
 }
 
 export type OrganizationMemberListResponseItemsItemRole =
@@ -8199,7 +8244,7 @@ export type AcceptInvitationRequestTermsVersion =
   (typeof AcceptInvitationRequestTermsVersion)[keyof typeof AcceptInvitationRequestTermsVersion];
 
 export const AcceptInvitationRequestTermsVersion = {
-  '2026-09-23': '2026-09-23',
+  '2026-10-26': '2026-10-26',
 } as const;
 
 export interface AcceptInvitationRequest {
@@ -8226,7 +8271,7 @@ export type JoinWithInvitationRequestTermsVersion =
   (typeof JoinWithInvitationRequestTermsVersion)[keyof typeof JoinWithInvitationRequestTermsVersion];
 
 export const JoinWithInvitationRequestTermsVersion = {
-  '2026-09-23': '2026-09-23',
+  '2026-10-26': '2026-10-26',
 } as const;
 
 export interface JoinWithInvitationRequest {

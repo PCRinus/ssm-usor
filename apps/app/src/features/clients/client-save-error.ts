@@ -3,6 +3,7 @@ import type { UseFormReturn } from 'react-hook-form';
 
 import type { ApiErrorResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { isReadOnlyError, readOnlyMessage } from '@/features/subscription/read-only';
 import { setApiIssues } from '@/lib/api-issues';
 
 import { type ClientFormValues, type ClientStage, emptyClientForm } from './client-form-schema';
@@ -69,6 +70,10 @@ export function reportClientSaveError(
       form.setError('root.server', {
         message: 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.',
       });
+      return;
+    }
+    if (isReadOnlyError(cause)) {
+      form.setError('root.server', { message: readOnlyMessage });
       return;
     }
     if (cause.status === 403) {
