@@ -57,7 +57,7 @@ Cardul **Date firmă** arată denumirea, CUI-ul, numărul din Registrul Comerțu
 
 Persoana care reprezintă legal firma, de obicei administratorul. Numele și funcția lui se tipăresc în deciziile generate, în alte documente din seturile SSM și PSI, cum e fișa obiectivului, și în actul adițional privind semnarea electronică.
 
-Fără nume și fără funcție, seturile de documente SSM și PSI nu se pot genera, iar angajații nu pot primi actul adițional în portal. Contractul de prestări servicii le cere și el.
+Cât timp lipsește numele sau funcția, seturile de documente SSM și PSI nu se pot genera, iar angajații nu pot primi actul adițional în portal. Contractul de prestări servicii le cere și el.
 
 ### Numele și prenumele
 
