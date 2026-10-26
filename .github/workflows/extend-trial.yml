@@ -1,0 +1,67 @@
+name: Extinde perioada de probă
+
+# Operator action, run by hand: gives an organization's trial a later end, as for a tester
+# (ADR 029). Replaced by the admin area (#611). The owner's email and the reason go to the
+# subscription's change log.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: The environment whose organization to change
+        type: choice
+        options:
+          - production
+          - non-prod
+        default: production
+      email:
+        description: The email of the organization's owner
+        type: string
+        required: true
+      until:
+        description: The last day of the trial, as YYYY-MM-DD (it ends at midnight, Romanian time)
+        type: string
+        required: true
+      reason:
+        description: Why, for example "Tester, runda 1"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extend-trial-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  extend:
+    name: Extend the trial
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ inputs.environment }}
+    env:
+      SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      EMAIL: ${{ inputs.email }}
+      UNTIL: ${{ inputs.until }}
+      REASON: ${{ inputs.reason }}
+    steps:
+      - name: Check the branch
+        if: inputs.environment == 'production'
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "::error::Change production from main only, not from $GITHUB_REF."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Build the API's workspace packages
+        run: pnpm --filter "@ssm-usor/api^..." build
+
+      # The inputs reach the script as environment variables, never spliced into the command.
+      - name: Extend the trial
+        shell: bash
+        run: pnpm --filter @ssm-usor/api extend-trial --email "$EMAIL" --until "$UNTIL" --reason "$REASON"
