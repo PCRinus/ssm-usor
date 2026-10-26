@@ -185,11 +185,13 @@ describe('client workplaces', () => {
     expect(within(rows[1]!).queryByText('Sediu social')).toBeNull();
   });
 
-  it('says where to start when there are none', async () => {
+  it('says when there are none', async () => {
     mockApi({ items: [] });
     mount();
 
-    expect((await screen.findByTestId('workplaces-empty')).textContent).toContain('sediul social');
+    expect((await screen.findByTestId('workplaces-empty')).textContent).toBe(
+      'Niciun punct de lucru încă.'
+    );
   });
 
   it('adds a workplace, confirms with a toast, and refreshes the list', async () => {

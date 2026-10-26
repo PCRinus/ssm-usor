@@ -51,7 +51,7 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
       description={
         stage === 'lead'
           ? 'Poate fi altcineva decât reprezentantul legal. La această adresă vei putea trimite contractul.'
-          : 'Poate fi altcineva decât reprezentantul legal.'
+          : undefined
       }
     >
       <ContactFields form={form} busy={busy} />
@@ -74,11 +74,7 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
         onSubmit={onSubmit}
       >
         <Card className="gap-0 divide-y py-0">
-          <FormSection
-            title="Identificare"
-            help="clienti.identificare"
-            description="Introdu CUI-ul ca să preiei datele publice. Le poți corecta înainte să le salvezi."
-          >
+          <FormSection title="Identificare" help="clienti.identificare">
             <IdentificationFields
               form={form}
               busy={busy}
@@ -103,7 +99,6 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
                 id="legalRepresentativeName"
                 label="Reprezentant legal"
                 mark="optional"
-                hint="Numele și prenumele."
                 help="detalii.nume-reprezentant"
                 error={errors.legalRepresentativeName}
               >
@@ -113,7 +108,7 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
                   className="h-11"
                   {...register('legalRepresentativeName')}
                   autoComplete="off"
-                  {...input('legalRepresentativeName', true)}
+                  {...input('legalRepresentativeName')}
                 />
               </Field>
             )}

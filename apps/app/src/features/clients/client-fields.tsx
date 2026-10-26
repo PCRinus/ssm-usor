@@ -151,7 +151,6 @@ export function RegistrationFields({ form, busy }: { form: ClientForm; busy: boo
         id="caenCode"
         label="Cod CAEN"
         mark="optional"
-        hint="Caută după cod sau după cuvinte din denumirea activității."
         help="clienti.caen"
         error={errors.caenCode}
       >
@@ -166,7 +165,7 @@ export function RegistrationFields({ form, busy }: { form: ClientForm; busy: boo
               onBlur={field.onBlur}
               disabled={busy}
               invalid={Boolean(errors.caenCode)}
-              describedBy={describedBy('caenCode', errors.caenCode, true)}
+              describedBy={describedBy('caenCode', errors.caenCode)}
             />
           )}
         />

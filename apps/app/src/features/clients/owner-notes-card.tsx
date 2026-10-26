@@ -49,12 +49,7 @@ export function OwnerNotesCard({
   }
 
   return (
-    <SectionCard
-      data-testid="owner-notes-card"
-      title="Notițe"
-      help="detalii.notite"
-      description="Doar administratorii pot vedea aceste notițe. Păstrează aici discuțiile, prețurile și pașii următori."
-    >
+    <SectionCard data-testid="owner-notes-card" title="Notițe" help="detalii.notite">
       {notes.isPending ? (
         <Skeleton className="h-32 w-full" />
       ) : notes.isError ? (

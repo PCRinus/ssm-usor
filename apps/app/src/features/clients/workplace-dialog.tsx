@@ -13,7 +13,6 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -84,9 +83,6 @@ const sheetTexts = [
     help: 'detalii.masuri-specifice',
   },
 ] as const;
-
-const kindHint =
-  'Spațiu fix (sediu, birou, magazin, hală) sau șantier temporar ori mobil. Activitatea se trece mai sus.';
 
 // `null` is closed, 'new' adds a workplace, and a workplace edits it.
 export type WorkplaceEditing = Workplace | 'new' | null;
@@ -194,6 +190,7 @@ function WorkplaceForm({
     <DialogContent
       data-testid="workplace-dialog"
       className="sm:max-w-2xl"
+      aria-describedby={undefined}
       onCloseAutoFocus={onCloseAutoFocus}
     >
       <form
@@ -212,9 +209,6 @@ function WorkplaceForm({
           <DialogTitle>
             {workplace ? 'Modifică punctul de lucru' : 'Adaugă un punct de lucru'}
           </DialogTitle>
-          <DialogDescription>
-            Sediul social și punctele de lucru apar în prezentarea unității din documente.
-          </DialogDescription>
         </DialogHeader>
         <DialogBody className="mt-5 grid gap-5 sm:grid-cols-2">
           <Field
@@ -376,7 +370,6 @@ function WorkplaceForm({
             <Field
               id="workplace-kind"
               label="Felul locului de muncă"
-              hint={kindHint}
               help="detalii.fel-loc-de-munca"
               className="sm:col-span-2"
             >
@@ -384,7 +377,6 @@ function WorkplaceForm({
                 id="workplace-kind"
                 data-testid="workplace-kind"
                 disabled={busy}
-                aria-describedby="workplace-kind-hint"
                 {...form.register('kind')}
               >
                 {workplaceKinds.map((value) => (
