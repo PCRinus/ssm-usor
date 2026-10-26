@@ -87,7 +87,9 @@ export function endedSentence({ status, accessUntil }: SubscriptionSummary) {
 export interface Bar {
   kind: 'trial' | 'pastDue' | 'readOnly';
   lead: string;
-  // Left out on a phone, where the bar keeps to one line.
+  // The lead on a phone, where the bar keeps to one line.
+  short: string;
+  // Left out on a phone.
   detail: string;
   closable: boolean;
 }
@@ -98,6 +100,12 @@ export function barFor(subscription: SubscriptionSummary, now = new Date()): Bar
     return {
       kind: 'readOnly',
       lead: endedSentence(subscription),
+      short:
+        subscription.status === 'trialing'
+          ? 'Proba s-a încheiat.'
+          : subscription.status === 'past_due'
+            ? 'Plata nu a reușit.'
+            : 'Abonamentul s-a încheiat.',
       detail: `Vezi și descarci tot${deletes}; apoi datele se șterg.`,
       closable: false,
     };
@@ -107,6 +115,7 @@ export function barFor(subscription: SubscriptionSummary, now = new Date()): Bar
     return {
       kind: 'pastDue',
       lead: 'Plata abonamentului nu a reușit.',
+      short: 'Plata nu a reușit.',
       detail: `Dacă nu reușește, contul trece în modul doar citire${until}.`,
       closable: false,
     };
@@ -117,6 +126,7 @@ export function barFor(subscription: SubscriptionSummary, now = new Date()): Bar
     return {
       kind: 'trial',
       lead: `Perioada de probă se încheie ${inDaysLabel(days)}.`,
+      short: `Proba se încheie ${inDaysLabel(days)}.`,
       detail: `Până pe ${roDate(subscription.trialEndsAt)} ai tot ce include Profesional.`,
       closable: days > 1,
     };

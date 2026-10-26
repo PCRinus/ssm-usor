@@ -62,7 +62,8 @@ export function SubscriptionBar({
     >
       <Icon aria-hidden="true" className="size-4 shrink-0" />
       <p className="min-w-0 flex-1">
-        <span className="font-semibold">{bar.lead}</span>
+        <span className="font-semibold md:hidden">{bar.short}</span>
+        <span className="hidden font-semibold md:inline">{bar.lead}</span>
         <span className="hidden md:inline"> {bar.detail}</span>
       </p>
       {canAct && (
