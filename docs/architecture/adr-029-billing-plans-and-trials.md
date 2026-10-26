@@ -19,7 +19,7 @@ The decisions below were taken in conversation on 2026-10-25 and 2026-10-26. The
 
 Three plans: **Start**, **Profesional**, **Enterprise**. A plan is about scale and team, never about compliance: every plan has every document, training, test and signature. Enterprise is a quote, sold by email, not a self-serve plan.
 
-Every new organization starts a **trial** of 30 days with everything Profesional includes: 1,500 employees, 3 members and 50 SMS codes. After the 50 SMS codes, sign-in and signing codes go by email where the person has one. No card is asked for. The trial lives in our database; Stripe knows nothing of an organization until it picks a plan.
+Every new organization starts a **trial** of 30 days with Profesional's features, employees (1,500) and members (3), but with SMS codes capped at 50 for the whole trial, not Profesional's 300 a month: each code costs us money and a trial is free. After the 50 codes, sign-in and signing codes go by email where the person has one. No card is asked for. The trial lives in our database; Stripe knows nothing of an organization until it picks a plan.
 
 When the trial ends without a plan, the organization becomes **read-only** (below). The pricing page's FAQ says today that without a plan the documents stay viewable and downloadable with no end; it changes to say 30 days.
 
@@ -35,7 +35,13 @@ Full access ends when a trial ends without a plan, at the end of the period alre
 
 An organization without a subscription row has full access indefinitely. That covers the seeded organizations, the end-to-end test accounts on both environments, and every organization created before this ADR, so nothing needs backfilling. Only onboarding and checkout create rows.
 
-Read-only is enforced by the API: a member's request that changes something (`POST`, `PUT`, `PATCH`, `DELETE`) answers `403` with the reason `read_only` unless the route is on a short allowlist of requests that only read: printing a document, acknowledging an update. A participant's signing, test attempts and notices answer the same. The database does not enforce it: the publishable key ships in the SPA, so a member who calls the data API directly could still write. That is accepted. It saves a read-only account from nothing it could not do through the export, and a write policy on every table is a large change for a case no honest customer meets.
+Read-only is enforced by the API: a member's request that changes something (`POST`, `PUT`, `PATCH`, `DELETE`) answers `403` with the reason `read_only` unless the route is on a short allowlist. The allowlist holds requests that only read or only take access away:
+
+- printing a document's unsaved edits;
+- removing a member, revoking a member's invitation, revoking a participant or a participant's invitation. An owner must always be able to cut off someone who left, read-only or not;
+- the portal's privacy notice and language, without which a participant could not get to what they may still read.
+
+A participant's signing and test attempts answer `403` too. Acknowledging an update is a member's own state and is never checked. Two writes stay open on purpose: accepting an invitation already sent, which gives the person read-only access like everyone else, and a client's upload of the signed service contract through its return link, so a document the provider asked for is not lost. An admin impersonating a member of a read-only organization is read-only too. The database does not enforce it: the publishable key ships in the SPA, so a member who calls the data API directly could still write. That is accepted. It saves a read-only account from nothing it could not do through the export, and a write policy on every table is a large change for a case no honest customer meets.
 
 ### Subscriptions in our database
 
@@ -88,11 +94,11 @@ The employer, not the provider, keeps its employees' records. So each client als
 
 ### Tester trials
 
-Testers get an **extended trial**: the same trial with a later end, never a discount and never a payment for their work, which would read as a barter of services subject to VAT. Until the admin area exists (#611, deferred until after the tester round), a manual GitHub workflow, "Extinde perioada de probă", sets an organization's trial end: the environment, the owner's email, the date and a reason, written to `subscription_changes`.
+Testers get an **extended trial**: the same trial with a later end, never a discount and never a payment for their work, which would read as a barter of services subject to VAT. Until the admin area exists (#611, deferred until after the tester round), a manual GitHub workflow, "Extinde perioada de probă", sets an organization's trial end: the environment, the owner's email, the date and a reason, written to `subscription_changes` with the GitHub account that ran it. It only moves an end later, never earlier. For an organization without a subscription it starts a trial, and says so, since that puts a free account on a clock.
 
 ### Terms and express acceptance
 
-The Terms gain the subscription rules: automatic renewal, cancellation, no refunds, price changes with 30 days' notice, the over-limit rule, extra SMS, read-only and deletion. Article 1203 of the Civil Code gives standard clauses that limit liability, renew the contract tacitly, suspend performance, let one side end the contract, or choose the law and the court, effect only if the other side accepts them expressly in writing. Onboarding therefore gets a second checkbox, beside the existing acceptance, that names those clauses and the points where they are. The terms version is bumped, and the acceptance is recorded as today. The wording goes to a lawyer before sign-up is public.
+The Terms gain the subscription rules: automatic renewal, cancellation, no refunds, price changes with 30 days' notice, the over-limit rule, extra SMS, read-only and deletion. Article 1203 of the Civil Code gives standard clauses that limit liability, renew the contract tacitly, suspend performance, let one side end the contract, or choose the law and the court, effect only if the other side accepts them expressly in writing. Onboarding therefore gets a second checkbox, beside the existing acceptance, that names those clauses and the points where they are. The terms version is bumped. The express acceptance is recorded on its own, as a time on the organization, and the database refuses to create an organization without it, so neither the API nor a direct call to the data API can skip it. A later version that changes those clauses needs the same express acceptance again; point 11's "continued use means acceptance" does not reach them. The wording, and whether a checkbox is enough for "în scris", go to a lawyer before sign-up is public.
 
 ### Administration
 
