@@ -16,14 +16,7 @@ const { home = '/', current } = Astro.props;
 <header class="top">
   <div class="wrap bar">
     <a class="brand" href={home} aria-label="SSM Ușor, pagina principală">
-      <Image
-        src={logo}
-        alt="SSM Ușor"
-        height={50}
-        densities={[1, 2, 3]}
-        loading="eager"
-        fetchpriority="high"
-      />
+      <Image src={logo} alt="SSM Ușor" height={50} densities={[1, 2, 3]} loading="eager" />
     </a>
     <nav aria-label="Secțiuni">
       {nav.map((item) => (
