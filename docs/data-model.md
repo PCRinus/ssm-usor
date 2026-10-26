@@ -46,8 +46,8 @@ keeps an owner. Removal deletes the membership only.
 `subscriptions` holds one row per paying or trialing organization
 ([ADR 029](architecture/adr-029-billing-plans-and-trials.md)): the `plan` (`start`,
 `profesional`, `enterprise`), the `status` (`trialing`, `active`, `past_due`, `canceled`), the
-`trial_ends_at`, `access_until`, when full access ends, and `trial_sms`: a trial sends no SMS unless a
-tester's was given them, at the full allowance of its plan. An organization without a row has
+`trial_ends_at`, `access_until`, when full access ends, and `trial_sms`: a trial sends no SMS, except a tester's
+trial given SMS, which sends them at the full allowance of its plan. An organization without a row has
 full access indefinitely: the seeded ones, the end-to-end accounts and every organization
 created before billing. Members read their own organization's row; nobody writes it through the
 data API.
