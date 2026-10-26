@@ -9,6 +9,7 @@ import { Controller, useWatch } from 'react-hook-form';
 
 import { getListEmployeesQueryKey, useListEmployees } from '@/api/generated/api';
 import { Field } from '@/components/form-field';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
@@ -62,7 +63,7 @@ export function LegalRepresentativeCard({
     <SectionCard
       data-testid="legal-representative-card"
       title="Reprezentant legal"
-      description="Numele și funcția vor apărea în deciziile generate."
+      help="detalii.reprezentant-legal"
       action={
         saved &&
         !readOnly &&
@@ -191,7 +192,7 @@ function LegalRepresentativeForm({
       <Field
         id="details-representative-name"
         label="Nume și prenume"
-        hint="Așa cum apar în decizii."
+        help="detalii.nume-reprezentant"
         error={errors.legalRepresentativeName}
       >
         <Input
@@ -204,8 +205,7 @@ function LegalRepresentativeForm({
           aria-invalid={Boolean(errors.legalRepresentativeName)}
           aria-describedby={describedBy(
             'details-representative-name',
-            errors.legalRepresentativeName,
-            true
+            errors.legalRepresentativeName
           )}
           {...form.register('legalRepresentativeName')}
         />
@@ -214,6 +214,7 @@ function LegalRepresentativeForm({
         id="details-representative-role"
         label="Funcția"
         hint="De exemplu „Administrator”."
+        help="detalii.functia-reprezentantului"
         error={errors.legalRepresentativeRole}
       >
         <Input
@@ -243,7 +244,6 @@ function LegalRepresentativeForm({
                 className="mt-0.5"
                 checked={field.value}
                 disabled={locked}
-                aria-describedby="details-representative-is-employee-description"
                 onCheckedChange={(checked) => {
                   field.onChange(checked === true);
                   if (checked !== true) {
@@ -252,17 +252,14 @@ function LegalRepresentativeForm({
                   }
                 }}
               />
-              <div className="grid gap-0.5">
+              <div className="flex items-center gap-1">
                 <label htmlFor="details-representative-is-employee" className="text-sm font-medium">
                   Administratorul este și angajat al firmei
                 </label>
-                <p
-                  id="details-representative-is-employee-description"
-                  className="text-xs text-muted-foreground"
-                >
-                  Documentele îl numesc o singură dată, nu o dată ca administrator și încă o dată ca
-                  angajat.
-                </p>
+                <HelpLink
+                  topic="detalii.reprezentant-angajat"
+                  label="Ajutor: Administratorul este și angajat al firmei"
+                />
               </div>
             </div>
           )}

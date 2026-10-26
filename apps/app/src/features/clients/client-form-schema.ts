@@ -1,10 +1,33 @@
 import { type CountyCode, countyCodes, isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
+import type { HelpTopic } from '@ssm-usor/help-topics/topics';
+import type { FieldError } from 'react-hook-form';
 import { z } from 'zod';
 
 import type { ClientResponse, CreateClientRequest, UpdateClientRequest } from '@/api/generated/api';
 
 export type Client = ClientResponse['client'];
 export type ClientStage = Client['stage'];
+
+export const clientMessages = {
+  cuiInvalid: 'CUI invalid. Verifică cifrele și cifra de control.',
+  cuiTaken: 'Există deja un client cu acest CUI în organizația ta.',
+  cuiTakenByArchived:
+    'Un client arhivat are deja acest CUI. Îl găsești în lista „Arhivați”, de unde un administrator îl poate restaura.',
+  cuiTakenByLead:
+    'Firma cu acest CUI este deja printre clienții potențiali ai organizației. Un administrator o poate transforma în client.',
+} as const;
+
+// The rule behind a message, when the message alone does not say why.
+const messageTopics: Partial<Record<string, HelpTopic>> = {
+  [clientMessages.cuiInvalid]: 'clienti.cui-invalid',
+  [clientMessages.cuiTaken]: 'clienti.cui-folosit',
+  [clientMessages.cuiTakenByArchived]: 'clienti.cui-folosit',
+  [clientMessages.cuiTakenByLead]: 'clienti.cui-folosit',
+};
+
+export function clientErrorHelp(error: FieldError | undefined) {
+  return error?.message ? messageTopics[error.message] : undefined;
+}
 
 // Form values are strings so inputs stay controlled; the API request is derived on submit.
 const optionalText = (max: number, message: string) => z.string().trim().max(max, message);
@@ -14,7 +37,7 @@ export const clientFormSchema = z.object({
     .string()
     .trim()
     .min(1, 'Introdu codul CUI.')
-    .refine(isValidCuiInput, 'CUI invalid. Verifică cifrele și cifra de control.'),
+    .refine(isValidCuiInput, clientMessages.cuiInvalid),
   vatPayer: z.boolean(),
   legalName: z
     .string()

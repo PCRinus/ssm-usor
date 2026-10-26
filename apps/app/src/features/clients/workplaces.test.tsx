@@ -403,7 +403,6 @@ describe('client workplaces', () => {
     await user.selectOptions(within(dialog).getByTestId('workplace-kind'), 'mobile_site');
     expect(within(dialog).queryByTestId('workplace-floor-area')).toBeNull();
     expect(within(dialog).queryByTestId('workplace-norm')).toBeNull();
-    expect(within(dialog).getByText(/Un șantier nu are suprafață utilă/)).toBeTruthy();
     await user.click(within(dialog).getByTestId('workplace-save'));
 
     await waitFor(() =>

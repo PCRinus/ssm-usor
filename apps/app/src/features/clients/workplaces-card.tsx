@@ -138,6 +138,7 @@ export function WorkplacesCard({
     <SectionCard
       data-testid="workplaces-card"
       title="Sediu și puncte de lucru"
+      help="detalii.puncte-de-lucru"
       action={
         !readOnly && (
           <Button

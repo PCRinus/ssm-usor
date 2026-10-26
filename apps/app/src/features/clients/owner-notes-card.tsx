@@ -52,6 +52,7 @@ export function OwnerNotesCard({
     <SectionCard
       data-testid="owner-notes-card"
       title="Notițe"
+      help="detalii.notite"
       description="Doar administratorii pot vedea aceste notițe. Păstrează aici discuțiile, prețurile și pașii următori."
     >
       {notes.isPending ? (

@@ -1,12 +1,16 @@
+import type { HelpTopic } from '@ssm-usor/help-topics/topics';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Pencil, Plus } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 
+import { HelpLink } from './help-link';
+
 type SectionCardProps = Omit<ComponentProps<typeof Card>, 'title'> & {
   title: ReactNode;
   description?: ReactNode;
+  help?: HelpTopic;
   action?: ReactNode;
   headingLevel?: 2 | 3;
 };
@@ -16,6 +20,7 @@ type SectionCardProps = Omit<ComponentProps<typeof Card>, 'title'> & {
 export function SectionCard({
   title,
   description,
+  help,
   action,
   headingLevel = 2,
   className,
@@ -28,9 +33,27 @@ export function SectionCard({
     // to the card by its id.
     <Card className={cn('scroll-mt-32 gap-5', className)} {...props}>
       <CardHeader className="flex flex-wrap items-start gap-x-4 gap-y-1">
-        <Heading className="flex min-h-8 min-w-[min(100%,8rem)] flex-1 items-center text-lg leading-snug font-semibold">
-          {title}
-        </Heading>
+        {/* The help link stays outside the heading, whose accessible name is the title alone, and
+            follows its last word when the title wraps. */}
+        <div className="flex min-h-8 min-w-[min(100%,8rem)] flex-1 items-center">
+          <div className="min-w-0 whitespace-nowrap">
+            <Heading
+              className={cn(
+                'text-lg leading-snug font-semibold whitespace-normal',
+                help && 'inline'
+              )}
+            >
+              {title}
+            </Heading>
+            {help && (
+              <HelpLink
+                topic={help}
+                label={typeof title === 'string' ? `Ajutor: ${title}` : 'Ajutor'}
+                className="ml-1 align-middle"
+              />
+            )}
+          </div>
+        </div>
         {action && <div className="flex flex-wrap gap-2">{action}</div>}
         {description && (
           <div className="w-full">
