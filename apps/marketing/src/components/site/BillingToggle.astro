@@ -1,0 +1,66 @@
+---
+import { billing } from './pricing';
+
+interface Props {
+  placement: string;
+}
+
+const { placement } = Astro.props;
+---
+
+<div class="billing" role="group" aria-label={billing.label} data-billing-toggle={placement}>
+  <button type="button" data-period="monthly" aria-pressed="true">
+    {billing.monthly}
+  </button>
+  <button type="button" data-period="annual" aria-pressed="false">
+    {billing.annual}
+  </button>
+</div>
+
+<script>
+  import { track } from '../../lib/analytics';
+
+  for (const group of document.querySelectorAll<HTMLElement>('[data-billing-toggle]')) {
+    const scope = group.closest<HTMLElement>('[data-billing-scope]');
+    const buttons = [...group.querySelectorAll<HTMLButtonElement>('button[data-period]')];
+    for (const button of buttons) {
+      button.addEventListener('click', () => {
+        const period = button.dataset.period!;
+        if (!scope || scope.dataset.billing === period) return;
+        scope.dataset.billing = period;
+        for (const other of buttons) other.setAttribute('aria-pressed', String(other === button));
+        track('billing_period_changed', { period, placement: group.dataset.billingToggle! });
+      });
+    }
+  }
+</script>
+
+<style>
+  .billing {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #f8f7f1;
+  }
+  button {
+    min-height: 40px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink);
+    font: 600 15px/1 var(--sans);
+    cursor: pointer;
+  }
+  button[aria-pressed='true'] {
+    background: var(--ink);
+    color: #fff;
+  }
+  button:focus-visible {
+    outline: 3px solid var(--lime);
+    outline-offset: 2px;
+  }
+</style>

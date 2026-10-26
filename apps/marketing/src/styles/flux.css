@@ -107,6 +107,23 @@
   line-height: 1.2;
 }
 
+.flux .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.flux .when-annual,
+.flux [data-billing='annual'] .when-monthly {
+  display: none;
+}
+.flux [data-billing='annual'] .when-annual {
+  display: inline;
+}
+
 @keyframes rise {
   from {
     opacity: 0;

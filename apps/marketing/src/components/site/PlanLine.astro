@@ -1,0 +1,50 @@
+---
+import type { PlanLine } from './pricing';
+
+interface Props {
+  line: PlanLine;
+}
+
+const { line } = Astro.props;
+const at = line.bold ? line.text.indexOf(line.bold) : -1;
+---
+
+<li>
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#2a5045"
+    stroke-width="2.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M5 12.5l4.5 4.5L19 7.5"></path>
+  </svg>
+  <span>
+    {at < 0 ? (
+      line.text
+    ) : (
+      <>
+        {line.text.slice(0, at)}
+        <strong>{line.bold}</strong>
+        {line.text.slice(at + line.bold!.length)}
+      </>
+    )}
+  </span>
+</li>
+
+<style>
+  li {
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    gap: 10px;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+  svg {
+    margin-top: 2px;
+  }
+</style>

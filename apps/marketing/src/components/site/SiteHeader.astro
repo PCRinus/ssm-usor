@@ -2,14 +2,15 @@
 import { Image } from 'astro:assets';
 
 import logo from '../../assets/brand/logo.png';
-import { cta, links, nav } from './copy';
+import { cta, links, nav, navHref } from './copy';
 
 interface Props {
   /** Path of the landing page, so section links work from any page. */
   home?: string;
+  current?: string;
 }
 
-const { home = '/' } = Astro.props;
+const { home = '/', current } = Astro.props;
 ---
 
 <header class="top">
@@ -19,7 +20,12 @@ const { home = '/' } = Astro.props;
     </a>
     <nav aria-label="Secțiuni">
       {nav.map((item) => (
-        <a href={`${home}${item.href}`}>{item.label}</a>
+        <a
+          href={navHref(item.href, home)}
+          aria-current={item.href === current ? 'page' : undefined}
+        >
+          {item.label}
+        </a>
       ))}
     </nav>
     <div class="auth">
@@ -71,6 +77,10 @@ const { home = '/' } = Astro.props;
   }
   nav a:hover {
     color: var(--ink);
+  }
+  nav a[aria-current] {
+    color: var(--ink);
+    font-weight: 600;
   }
   .auth {
     display: flex;

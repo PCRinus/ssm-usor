@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 
-import { faq, footer, hero, links, nav, page, steps } from '../components/site/copy';
+import { faq, footer, hero, links, nav, navHref, page, steps } from '../components/site/copy';
 
 function llmsTxt(site: URL): string {
   const url = (path: string) => new URL(path, site).href;
@@ -8,7 +8,7 @@ function llmsTxt(site: URL): string {
   const stepLines = steps.items.map((step, index) => `${index + 1}. ${step.title} ${step.text}`);
   const pageLinks = [
     `- [${page.siteName}](${url('/')}): ${hero.title}`,
-    ...nav.map((item) => `- [${item.label}](${url(`/${item.href}`)})`),
+    ...nav.map((item) => `- [${item.label}](${url(navHref(item.href))})`),
     ...footer.legal.map((item) => `- [${item.label}](${url(item.href)})`),
   ];
   const questions = faq.items.map((item) => `### ${item.q}\n\n${item.a}`);
