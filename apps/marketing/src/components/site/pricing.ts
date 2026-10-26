@@ -255,3 +255,109 @@ export const pricingLinks = {
   compare: '/preturi/#compara',
   calculator: '/preturi/calculator/',
 };
+
+export interface Quote {
+  plan: PricedPlan;
+  total: number;
+  lines: { label: string; value: string }[];
+  advice: string;
+}
+
+/** Romanian puts "de" between a number and its noun from 20 up, unless the last two digits are 01–19. */
+export function count(n: number, noun: string): string {
+  const rest = n % 100;
+  return `${n.toLocaleString('ro-RO')}${n >= 20 && (rest === 0 || rest >= 20) ? ' de ' : ' '}${noun}`;
+}
+
+export function quote(employees: number, members: number): Quote {
+  const startPacks = Math.ceil(Math.max(0, employees - 250) / 50);
+  const startMembers = Math.max(0, members - 1);
+  const startTotal = start.monthly + 15 * startPacks + 15 * startMembers;
+  const startFits = employees <= 600 && members <= 2;
+  const profPacks = employees > 1500 ? Math.ceil((employees - 1500) / 500) : 0;
+  const profMembers = Math.max(0, members - 3);
+  const profTotal = profesional.monthly + 40 * profPacks + 15 * profMembers;
+  const packs = (n: number, size: number) =>
+    `${n === 1 ? 'Un pachet' : `${n} pachete`} de ${size} de angajați`;
+
+  if (startFits && startTotal <= profTotal) {
+    const lines = [{ label: 'Start, până la 250 de angajați', value: eur(start.monthly) }];
+    if (startPacks) lines.push({ label: packs(startPacks, 50), value: eur(15 * startPacks) });
+    if (startMembers) lines.push({ label: 'Un coleg în plus', value: eur(15) });
+    return {
+      plan: start,
+      total: startTotal,
+      lines,
+      advice:
+        profTotal - startTotal <= 20
+          ? 'Ești aproape de Profesional: la același preț ai până la 1.500 de angajați și trei utilizatori.'
+          : 'Plătești mai mult doar când treci de numărul de angajați inclus.',
+    };
+  }
+
+  const lines = [
+    { label: 'Profesional, până la 1.500 de angajați', value: eur(profesional.monthly) },
+  ];
+  if (profPacks) lines.push({ label: packs(profPacks, 500), value: eur(40 * profPacks) });
+  if (profMembers) {
+    lines.push({
+      label: `${profMembers === 1 ? 'Un utilizator' : `${profMembers} utilizatori`} în plus`,
+      value: eur(15 * profMembers),
+    });
+  }
+  let advice = 'Profesional te costă la fel sau mai puțin decât Start cu pachete.';
+  if (!startFits) {
+    advice =
+      members > 2
+        ? 'Start acoperă cel mult doi utilizatori, așa că o echipă merge pe Profesional.'
+        : 'Start acoperă cel mult 600 de angajați. Profesional are 1.500 incluși.';
+  }
+  return { plan: profesional, total: profTotal, lines, advice };
+}
+
+export const calculator = {
+  title: 'Calculator de preț | SSM Ușor',
+  description:
+    'Află cât plătești pentru SSM Ușor după câți angajați au clienții tăi și câte persoane folosesc aplicația. Prețuri în euro, fără TVA.',
+  back: '← Prețuri',
+  heading: 'Calculează cât plătești',
+  intro:
+    'Oricâți clienți. Prețul depinde doar de câți angajați au clienții tăi, în total, și de câte persoane folosesc aplicația.',
+  employees: 'Câți angajați au clienții tăi, în total?',
+  minEmployees: 50,
+  maxEmployees: 2000,
+  /** About 3.5 employees per client among the small firms our first testers serve. */
+  employeesPerClient: 3.5,
+  examples: 'Exemple',
+  presets: [
+    { label: 'La început · 90 de angajați', employees: 90, members: 1 },
+    { label: '70 de clienți mici · 250 de angajați', employees: 250, members: 1 },
+    { label: '100 de clienți · 350 de angajați', employees: 350, members: 1 },
+    { label: '100 de clienți, cu un coleg · 350 de angajați', employees: 350, members: 2 },
+    { label: 'Firmă cu 3 specialiști · 1.000 de angajați', employees: 1000, members: 3 },
+  ],
+  members: 'Câte persoane folosesc aplicația, cu tot cu tine?',
+  maxMembers: 10,
+  fewer: 'O persoană mai puțin',
+  more: 'O persoană în plus',
+  best: 'Planul potrivit:',
+  terms: 'Prețurile sunt în euro, fără TVA. Anual: două luni gratuite.',
+  summaries: [
+    {
+      title: 'Start · 39 € + TVA pe lună',
+      text: 'Până la 250 de angajați la clienții tăi, apoi 15 € pentru fiecare 50. Un utilizator; al doilea costă 15 € pe lună.',
+    },
+    {
+      title: 'Profesional · 149 € + TVA pe lună',
+      text: 'Până la 1.500 de angajați și 3 utilizatori. Fiecare coleg își vede clienții lui.',
+    },
+  ],
+  enterprise: {
+    title: 'Enterprise · ofertă personalizată',
+    text: 'Pentru firmele mari de servicii externe.',
+  },
+};
+
+export function clientsHint(employees: number): string {
+  return `aproximativ ${count(Math.max(1, Math.round(employees / calculator.employeesPerClient)), 'clienți mici')}`;
+}
