@@ -4,10 +4,10 @@ import { useRef, useState } from 'react';
 
 import {
   type ClientFileResponse,
+  getGetMeQueryKey,
   getListClientFilesQueryKey,
   getUploadClientFileUrl,
 } from '@/api/generated/api';
-import { getGetMeQueryKey } from '@/api/generated/api';
 import { apiUpload } from '@/api/http';
 import { isReadOnlyError } from '@/features/subscription/read-only';
 
