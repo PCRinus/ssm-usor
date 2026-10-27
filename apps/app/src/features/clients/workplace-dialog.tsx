@@ -13,7 +13,6 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -33,6 +32,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Field } from '@/components/form-field';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { LocalityCombobox } from '@/lib/localities/locality-combobox';
@@ -56,6 +56,7 @@ const sheetTexts = [
     label: 'Materiale combustibile',
     placeholder: 'de exemplu, produse finite din lemn, lacuri, solvenți',
     optional: false,
+    help: 'detalii.fisa-loc-de-munca',
   },
   {
     name: 'ignitionSources',
@@ -63,6 +64,7 @@ const sheetTexts = [
     label: 'Surse de aprindere',
     placeholder: 'de natură electrică, termică, autoaprindere',
     optional: false,
+    help: 'detalii.fisa-loc-de-munca',
   },
   {
     name: 'fireRiskEquipment',
@@ -70,6 +72,7 @@ const sheetTexts = [
     label: 'Echipamente și mijloace de lucru',
     placeholder: 'motoare electrice, instalații de ventilație, scule',
     optional: false,
+    help: 'detalii.fisa-loc-de-munca',
   },
   {
     name: 'specificMeasures',
@@ -77,11 +80,9 @@ const sheetTexts = [
     label: 'Măsuri specifice',
     placeholder: 'asigurarea funcționării sistemului de evacuare a gazelor',
     optional: true,
+    help: 'detalii.masuri-specifice',
   },
 ] as const;
-
-const kindHint =
-  'Spațiu fix (sediu, birou, magazin, hală) sau șantier temporar ori mobil. Activitatea se trece mai sus.';
 
 // `null` is closed, 'new' adds a workplace, and a workplace edits it.
 export type WorkplaceEditing = Workplace | 'new' | null;
@@ -189,6 +190,7 @@ function WorkplaceForm({
     <DialogContent
       data-testid="workplace-dialog"
       className="sm:max-w-2xl"
+      aria-describedby={undefined}
       onCloseAutoFocus={onCloseAutoFocus}
     >
       <form
@@ -207,15 +209,13 @@ function WorkplaceForm({
           <DialogTitle>
             {workplace ? 'Modifică punctul de lucru' : 'Adaugă un punct de lucru'}
           </DialogTitle>
-          <DialogDescription>
-            Sediul social și punctele de lucru apar în prezentarea unității din documente.
-          </DialogDescription>
         </DialogHeader>
         <DialogBody className="mt-5 grid gap-5 sm:grid-cols-2">
           <Field
             id="workplace-name"
             label="Denumire"
             mark="required"
+            help="detalii.denumire-punct"
             error={errors.name}
             className="sm:col-span-2"
           >
@@ -249,6 +249,7 @@ function WorkplaceForm({
                 )}
               />
               <Label htmlFor="workplace-registered-office">Este sediul social</Label>
+              <HelpLink topic="detalii.sediu-social" label="Ajutor: Este sediul social" />
             </div>
             {errors.isRegisteredOffice && (
               <p
@@ -265,6 +266,7 @@ function WorkplaceForm({
             id="workplace-county"
             label="Județ"
             mark="optional"
+            help="detalii.adresa-punct"
             error={errors.countyCode}
             className="sm:col-span-2"
           >
@@ -292,6 +294,7 @@ function WorkplaceForm({
             id="workplace-locality"
             label="Localitate"
             mark="optional"
+            help="detalii.adresa-punct"
             error={errors.locality}
             className="sm:col-span-2"
           >
@@ -317,6 +320,7 @@ function WorkplaceForm({
             id="workplace-address"
             label="Adresă"
             mark="optional"
+            help="detalii.adresa-punct"
             error={errors.addressLine}
             className="sm:col-span-2"
           >
@@ -335,17 +339,20 @@ function WorkplaceForm({
             className="mt-2 grid gap-5 border-t pt-6 sm:col-span-2 sm:grid-cols-2"
           >
             <div className="grid gap-1 sm:col-span-2">
-              <h3 id="workplace-fire-title" className="font-semibold">
-                Apărare împotriva incendiilor
-              </h3>
+              <div className="flex items-center gap-1">
+                <h3 id="workplace-fire-title" className="font-semibold">
+                  Apărare împotriva incendiilor
+                </h3>
+                <HelpLink topic="detalii.date-psi" label="Ajutor: Apărare împotriva incendiilor" />
+              </div>
               <p className="text-sm text-muted-foreground">
-                Documentele PSI folosesc toate câmpurile fără „opțional”. Poți salva și fără ele; ce
-                lipsește apare la generare ca de completat.
+                Documentele PSI cer câmpurile fără „opțional”. Poți salva și fără ele.
               </p>
             </div>
             <Field
               id="workplace-activity"
               label="Activitatea"
+              help="detalii.activitate"
               error={errors.activity}
               className="sm:col-span-2"
             >
@@ -363,18 +370,13 @@ function WorkplaceForm({
             <Field
               id="workplace-kind"
               label="Felul locului de muncă"
-              hint={
-                hasAreaAndNorm
-                  ? kindHint
-                  : `${kindHint} Un șantier nu are suprafață utilă și normă de dotare cu stingătoare; documentele tipăresc „—” în locul lor.`
-              }
+              help="detalii.fel-loc-de-munca"
               className="sm:col-span-2"
             >
               <NativeSelect
                 id="workplace-kind"
                 data-testid="workplace-kind"
                 disabled={busy}
-                aria-describedby="workplace-kind-hint"
                 {...form.register('kind')}
               >
                 {workplaceKinds.map((value) => (
@@ -389,6 +391,7 @@ function WorkplaceForm({
                 <Field
                   id="workplace-floor-area"
                   label="Suprafața utilă (m²)"
+                  help="detalii.suprafata-utila"
                   error={errors.floorAreaM2}
                 >
                   <Input
@@ -406,18 +409,9 @@ function WorkplaceForm({
                   id="workplace-norm"
                   label="Norma de dotare cu stingătoare"
                   hint={
-                    <>
-                      <span className="block">
-                        Anexa 6 la Normele generale de apărare împotriva incendiilor (OMAI
-                        163/2007): câte stingătoare la suprafața utilă.
-                      </span>
-                      {norm && (
-                        <span className="mt-1 block">
-                          {fireExtinguisherNormLabels[norm as FireExtinguisherNorm].description}
-                        </span>
-                      )}
-                    </>
+                    norm && fireExtinguisherNormLabels[norm as FireExtinguisherNorm].description
                   }
+                  help="detalii.norma-stingatoare"
                   error={errors.extinguisherNorm}
                 >
                   <NativeSelect
@@ -426,7 +420,11 @@ function WorkplaceForm({
                     disabled={busy}
                     aria-invalid={Boolean(errors.extinguisherNorm)}
                     aria-describedby={
-                      errors.extinguisherNorm ? 'workplace-norm-error' : 'workplace-norm-hint'
+                      errors.extinguisherNorm
+                        ? 'workplace-norm-error'
+                        : norm
+                          ? 'workplace-norm-hint'
+                          : undefined
                     }
                     {...form.register('extinguisherNorm')}
                   >
@@ -446,6 +444,7 @@ function WorkplaceForm({
             <Field
               id="workplace-assembly-point"
               label="Punctul de adunare"
+              help="detalii.punct-de-adunare"
               error={errors.assemblyPoint}
               className="sm:col-span-2"
             >
@@ -462,12 +461,13 @@ function WorkplaceForm({
                 {...form.register('assemblyPoint')}
               />
             </Field>
-            {sheetTexts.map(({ name, id, label, placeholder, optional }) => (
+            {sheetTexts.map(({ name, id, label, placeholder, optional, help }) => (
               <Field
                 key={name}
                 id={id}
                 label={label}
                 mark={optional ? 'optional' : undefined}
+                help={help}
                 error={errors[name]}
                 className="sm:col-span-2"
               >

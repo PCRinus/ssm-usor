@@ -54,6 +54,7 @@ export function CompanyCard({
     <SectionCard
       data-testid="company-card"
       title="Date firmă"
+      help="detalii.date-firma"
       action={
         !readOnly &&
         !editing && <EditAction ref={editRef} data-testid="company-edit" onClick={open} />

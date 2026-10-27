@@ -5,11 +5,12 @@ import type { ComponentProps } from 'react';
 import { Controller, type FieldError, type UseFormReturn, useFormState } from 'react-hook-form';
 
 import { Field } from '@/components/form-field';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 
 import { AnafLookupButton } from './anaf-lookup-button';
 import { CaenCombobox } from './caen-combobox';
-import type { ClientFormValues } from './client-form-schema';
+import { clientErrorHelp, type ClientFormValues } from './client-form-schema';
 import { CountyCombobox } from './county-combobox';
 import type { LookupState } from './use-company-lookup';
 
@@ -52,7 +53,9 @@ export function IdentificationFields({
         label="CUI"
         mark="required"
         hint="Cu sau fără prefixul RO, de exemplu RO1590082."
+        help="clienti.cui"
         error={errors.cui}
+        errorHelp={clientErrorHelp(errors.cui)}
         className="sm:col-span-2"
       >
         <div className="flex flex-wrap gap-2">
@@ -82,6 +85,12 @@ export function IdentificationFields({
           className="sm:col-span-2"
         >
           {lookup.message}
+          {lookup.inactive && (
+            <>
+              {' '}
+              <HelpLink topic="clienti.firma-inactiva">Află mai mult</HelpLink>
+            </>
+          )}
         </Notice>
       )}
       {lookup.status === 'error' && (
@@ -98,6 +107,7 @@ export function IdentificationFields({
         id="legalName"
         label="Denumire"
         mark="required"
+        help="clienti.denumire"
         error={errors.legalName}
         className="sm:col-span-2"
       >
@@ -127,6 +137,7 @@ export function IdentificationFields({
           )}
         />
         <Label htmlFor="vatPayer">Plătitor de TVA</Label>
+        <HelpLink topic="clienti.tva" label="Ajutor: Plătitor de TVA" className="-ml-2" />
       </div>
     </>
   );
@@ -140,7 +151,7 @@ export function RegistrationFields({ form, busy }: { form: ClientForm; busy: boo
         id="caenCode"
         label="Cod CAEN"
         mark="optional"
-        hint="Caută după cod sau după cuvinte din denumirea activității."
+        help="clienti.caen"
         error={errors.caenCode}
       >
         <Controller
@@ -154,7 +165,7 @@ export function RegistrationFields({ form, busy }: { form: ClientForm; busy: boo
               onBlur={field.onBlur}
               disabled={busy}
               invalid={Boolean(errors.caenCode)}
-              describedBy={describedBy('caenCode', errors.caenCode, true)}
+              describedBy={describedBy('caenCode', errors.caenCode)}
             />
           )}
         />
@@ -164,6 +175,7 @@ export function RegistrationFields({ form, busy }: { form: ClientForm; busy: boo
         label="Nr. Registrul Comerțului"
         mark="optional"
         hint="De exemplu J40/1234/2020."
+        help="clienti.registrul-comertului"
         error={errors.tradeRegisterNumber}
       >
         <Input
@@ -182,7 +194,13 @@ export function RegisteredOfficeFields({ form, busy }: { form: ClientForm; busy:
   const { errors } = useFormState({ control: form.control });
   return (
     <>
-      <Field id="countyCode" label="Județ" mark="optional" error={errors.countyCode}>
+      <Field
+        id="countyCode"
+        label="Județ"
+        mark="optional"
+        help="clienti.sediu-social"
+        error={errors.countyCode}
+      >
         <Controller
           control={form.control}
           name="countyCode"
@@ -199,7 +217,13 @@ export function RegisteredOfficeFields({ form, busy }: { form: ClientForm; busy:
           )}
         />
       </Field>
-      <Field id="locality" label="Localitate" mark="optional" error={errors.locality}>
+      <Field
+        id="locality"
+        label="Localitate"
+        mark="optional"
+        help="clienti.sediu-social"
+        error={errors.locality}
+      >
         <Input
           id="locality"
           data-testid="client-locality"
@@ -213,6 +237,7 @@ export function RegisteredOfficeFields({ form, busy }: { form: ClientForm; busy:
         id="addressLine"
         label="Adresă"
         mark="optional"
+        help="clienti.sediu-social"
         error={errors.addressLine}
         className="sm:col-span-2"
       >
@@ -245,6 +270,7 @@ export function ContactFields({
         id="contactName"
         label="Nume"
         mark="optional"
+        help="detalii.persoana-de-contact"
         error={errors.contactName}
         className="sm:col-span-2"
       >
@@ -258,7 +284,13 @@ export function ContactFields({
           {...inputProps('contactName', errors.contactName, busy)}
         />
       </Field>
-      <Field id="contactEmail" label="Email" mark="optional" error={errors.contactEmail}>
+      <Field
+        id="contactEmail"
+        label="Email"
+        mark="optional"
+        help="detalii.contact-email"
+        error={errors.contactEmail}
+      >
         <Input
           id="contactEmail"
           type="email"
@@ -269,7 +301,13 @@ export function ContactFields({
           {...inputProps('contactEmail', errors.contactEmail, busy)}
         />
       </Field>
-      <Field id="contactPhone" label="Telefon" mark="optional" error={errors.contactPhone}>
+      <Field
+        id="contactPhone"
+        label="Telefon"
+        mark="optional"
+        help="detalii.contact-telefon"
+        error={errors.contactPhone}
+      >
         <Input
           id="contactPhone"
           type="tel"

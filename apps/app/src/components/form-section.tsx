@@ -17,9 +17,12 @@ export function FormSection({
   return (
     <section className="grid gap-5 px-6 py-7 md:grid-cols-[11rem_minmax(0,1fr)] md:gap-10">
       <div>
-        <div className="flex items-center gap-1">
-          <h2 className="text-base font-semibold">{title}</h2>
-          {help && <HelpLink topic={help} label={`Ajutor: ${title}`} />}
+        {/* Inline, so the help link follows the title's last word when the title wraps. */}
+        <div className="whitespace-nowrap">
+          <h2 className="inline text-base font-semibold whitespace-normal">{title}</h2>
+          {help && (
+            <HelpLink topic={help} label={`Ajutor: ${title}`} className="ml-1 align-middle" />
+          )}
         </div>
         {description && (
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p>

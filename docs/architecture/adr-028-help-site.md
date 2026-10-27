@@ -45,6 +45,8 @@ The sidebar follows the app's own sidebar, so a member finds an article where th
 - **Organizație**
 - **Contul meu**
 
+(Amended 2026-10-27, Mircea's decision. The client's first area is **Detalii**, as its tab is named since the client page was reorganized; "Date firmă" is the Organizație tab, and only one of the client's cards.)
+
 Every directory of articles has its place in the sidebar, and the build fails on one that has none: Starlight would otherwise publish its articles where only a link reaches them.
 
 There are also a few **Cum funcționează** pages for logic that spans screens: what makes a set ready to generate, the training and test states and their dates, the signatures and the portal, and the updates of a document behind its template or law.

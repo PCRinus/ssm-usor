@@ -6,7 +6,12 @@ import { ApiHttpError } from '@/api/http';
 import { isReadOnlyError, readOnlyMessage } from '@/features/subscription/read-only';
 import { setApiIssues } from '@/lib/api-issues';
 
-import { type ClientFormValues, type ClientStage, emptyClientForm } from './client-form-schema';
+import {
+  type ClientFormValues,
+  clientMessages,
+  type ClientStage,
+  emptyClientForm,
+} from './client-form-schema';
 
 export const clientWording = {
   client: {
@@ -47,10 +52,10 @@ export function reportClientSaveError(
       }
       const message =
         body?.reason === clientConflictReasons.cuiTakenByArchived
-          ? 'Un client arhivat are deja acest CUI. Îl găsești în lista „Arhivați”, de unde un administrator îl poate restaura.'
+          ? clientMessages.cuiTakenByArchived
           : body?.reason === clientConflictReasons.cuiTakenByLead
-            ? 'Firma cu acest CUI este deja printre clienții potențiali ai organizației. Un administrator o poate transforma în client.'
-            : 'Există deja un client cu acest CUI în organizația ta.';
+            ? clientMessages.cuiTakenByLead
+            : clientMessages.cuiTaken;
       form.setError(isShown('cui') ? 'cui' : 'root.server', { message });
       return;
     }

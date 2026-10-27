@@ -47,10 +47,11 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
   const contactSection = (
     <FormSection
       title="Persoană de contact"
+      help="detalii.persoana-de-contact"
       description={
         stage === 'lead'
           ? 'Poate fi altcineva decât reprezentantul legal. La această adresă vei putea trimite contractul.'
-          : 'Poate fi altcineva decât reprezentantul legal.'
+          : undefined
       }
     >
       <ContactFields form={form} busy={busy} />
@@ -73,10 +74,7 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
         onSubmit={onSubmit}
       >
         <Card className="gap-0 divide-y py-0">
-          <FormSection
-            title="Identificare"
-            description="Introdu CUI-ul ca să preiei datele publice. Le poți corecta înainte să le salvezi."
-          >
+          <FormSection title="Identificare" help="clienti.identificare">
             <IdentificationFields
               form={form}
               busy={busy}
@@ -87,11 +85,11 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
 
           {stage === 'lead' && contactSection}
 
-          <FormSection title="Înregistrare">
+          <FormSection title="Înregistrare" help="clienti.inregistrare">
             <RegistrationFields form={form} busy={busy} />
           </FormSection>
 
-          <FormSection title="Sediu social">
+          <FormSection title="Sediu social" help="clienti.sediu-social">
             <RegisteredOfficeFields form={form} busy={busy} />
           </FormSection>
 
@@ -101,7 +99,7 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
                 id="legalRepresentativeName"
                 label="Reprezentant legal"
                 mark="optional"
-                hint="Numele și prenumele, așa cum apar în decizii."
+                help="detalii.nume-reprezentant"
                 error={errors.legalRepresentativeName}
               >
                 <Input
@@ -110,7 +108,7 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
                   className="h-11"
                   {...register('legalRepresentativeName')}
                   autoComplete="off"
-                  {...input('legalRepresentativeName', true)}
+                  {...input('legalRepresentativeName')}
                 />
               </Field>
             )}

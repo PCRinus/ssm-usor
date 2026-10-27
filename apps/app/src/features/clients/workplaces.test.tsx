@@ -185,11 +185,13 @@ describe('client workplaces', () => {
     expect(within(rows[1]!).queryByText('Sediu social')).toBeNull();
   });
 
-  it('says where to start when there are none', async () => {
+  it('says when there are none', async () => {
     mockApi({ items: [] });
     mount();
 
-    expect((await screen.findByTestId('workplaces-empty')).textContent).toContain('sediul social');
+    expect((await screen.findByTestId('workplaces-empty')).textContent).toBe(
+      'Niciun punct de lucru încă.'
+    );
   });
 
   it('adds a workplace, confirms with a toast, and refreshes the list', async () => {
@@ -403,7 +405,6 @@ describe('client workplaces', () => {
     await user.selectOptions(within(dialog).getByTestId('workplace-kind'), 'mobile_site');
     expect(within(dialog).queryByTestId('workplace-floor-area')).toBeNull();
     expect(within(dialog).queryByTestId('workplace-norm')).toBeNull();
-    expect(within(dialog).getByText(/Un șantier nu are suprafață utilă/)).toBeTruthy();
     await user.click(within(dialog).getByTestId('workplace-save'));
 
     await waitFor(() =>

@@ -20,6 +20,7 @@ export function ContactCard({ client, readOnly }: { client: Client; readOnly: bo
     <SectionCard
       data-testid="contact-card"
       title="Persoană de contact"
+      help="detalii.persoana-de-contact"
       action={
         !readOnly &&
         !editing && (
