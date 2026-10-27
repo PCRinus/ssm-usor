@@ -9,7 +9,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { Archive, Plus, Users } from 'lucide-react';
+import { Archive, Plus, ScanText, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { z } from 'zod';
 
@@ -24,6 +24,9 @@ import {
   ClientArchiveDialog,
 } from '@/features/clients/client-archive-dialog';
 import { clientColumns, type ClientRow } from '@/features/clients/client-columns';
+import { ImportListCard } from '@/features/imports/import-list-card';
+import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
+import { StartWays } from '@/features/imports/start-ways';
 
 // Page, sort and the archived view live in the URL; defaults are omitted to keep links short.
 const defaultSort: DataTableSort & { sort: ClientSortKey } = { sort: 'legalName', order: 'asc' };
@@ -71,18 +74,26 @@ function ClientsPage() {
   const isOwner = useMe().data?.membership?.role === 'owner';
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const columns = useMemo(() => clientColumns(isOwner ? setArchiveChange : undefined), [isOwner]);
+  const [importing, setImporting] = useState(false);
 
   return (
     <div data-testid="clients-page" className="space-y-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">Clienți</h1>
-        <Button asChild>
-          <Link to="/clients/new" data-testid="clients-add">
-            <Plus aria-hidden="true" />
-            Adaugă client
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" data-testid="clients-import" onClick={() => setImporting(true)}>
+            <ScanText aria-hidden="true" />
+            Importă din documente
+          </Button>
+          <Button asChild>
+            <Link to="/clients/new" data-testid="clients-add">
+              <Plus aria-hidden="true" />
+              Adaugă client
+            </Link>
+          </Button>
+        </div>
       </div>
+      {!archived && <ImportListCard />}
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3">
           <nav aria-label="Filtrează clienții" className="flex gap-1">
@@ -188,18 +199,20 @@ function ClientsPage() {
                 >
                   Adaugă prima companie pentru a începe să îi organizezi documentele și termenele.
                 </p>
-                <Button asChild variant="outline" className="mt-5">
-                  <Link to="/clients/new">
-                    <Plus aria-hidden="true" />
-                    Adaugă primul client
-                  </Link>
-                </Button>
+                <StartWays onImport={() => setImporting(true)} />
               </>
             )
           }
         />
       </div>
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
+      <ImportUploadDialog
+        open={importing}
+        onClose={() => setImporting(false)}
+        onStarted={(importId) =>
+          void navigate({ to: '/clients/import/$importId', params: { importId } })
+        }
+      />
     </div>
   );
 }
