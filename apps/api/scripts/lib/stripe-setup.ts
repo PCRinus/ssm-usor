@@ -25,6 +25,7 @@ export const webhookEvents = [
   'invoice.payment_failed',
   'invoice.payment_action_required',
   'invoice.upcoming',
+  'charge.refunded',
 ] as const satisfies Stripe.WebhookEndpointUpdateParams.EnabledEvent[];
 
 // Marks what this script made, where Stripe offers nothing better to find it by.
