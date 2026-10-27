@@ -1,6 +1,6 @@
 # ADR 030: Clients and employees imported from their documents, read by a model
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-27
 
 ## Context
