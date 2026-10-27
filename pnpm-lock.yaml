@@ -104,6 +104,9 @@ importers:
       '@ssm-usor/document-engine':
         specifier: workspace:*
         version: link:../../packages/document-engine
+      '@ssm-usor/import':
+        specifier: workspace:*
+        version: link:../../packages/import
       '@ssm-usor/legislation-check':
         specifier: workspace:*
         version: link:../../packages/legislation
