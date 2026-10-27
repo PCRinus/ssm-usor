@@ -353,12 +353,31 @@ async function sync(
   });
 }
 
+// A card that failed to confirm during the trial leaves a plan chosen with no card behind it; the
+// owner's next attempt replaces that plan rather than finding it in the way.
+async function withoutUnconfirmedTrialPlan(
+  billing: StripeBilling,
+  row: SubscriptionRow | null
+): Promise<SubscriptionRow | null> {
+  if (!hasLiveSubscription(row) || row.status !== 'trialing') return row;
+  const subscription = await retrieveSubscription(billing, row.stripe_subscription_id);
+  if (subscription.status !== 'trialing' || subscription.default_payment_method) return row;
+  await releaseSchedule(billing, subscription);
+  await billing.access.stripe.subscriptions.cancel(subscription.id);
+  return saveSubscription(billing.db, billing.organizationId, row, plainTrial(row), {
+    source: 'owner',
+    change: 'unconfirmed_plan_replaced',
+    details: { actor: billing.userId, stripe_subscription: subscription.id },
+  });
+}
+
 export async function createSubscription(
   billing: StripeBilling,
-  row: SubscriptionRow | null,
+  current: SubscriptionRow | null,
   usage: Usage,
   choice: BillingChoice
 ) {
+  const row = await withoutUnconfirmedTrialPlan(billing, current);
   if (hasLiveSubscription(row)) {
     throw conflict('subscription_exists', 'The organization already has a subscription.');
   }

@@ -429,6 +429,49 @@ describe('POST /billing/subscription', () => {
     expect(await reasonOf(response)).toBe('employee_packs_below_need');
   });
 
+  it('replaces a plan chosen in the trial whose card never confirmed', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(
+      subscriptionRow({
+        plan: 'start',
+        stripe_customer_id: 'cus_1Test',
+        stripe_account: 'acct_1Test',
+        stripe_subscription_id: 'sub_1Old',
+        billing_interval: 'month',
+        price_version: 'v1',
+      })
+    );
+    const trialEnd = Math.floor(Date.parse(row(fake).trial_ends_at as string) / 1000);
+    fake.stripe['GET /v1/subscriptions/sub_1Old'] = () => ({
+      ...stripeSubscription({ status: 'trialing', choice: start, trialEnd }),
+      id: 'sub_1Old',
+    });
+    fake.stripe['DELETE /v1/subscriptions/sub_1Old'] = () => ({
+      ...stripeSubscription({ status: 'canceled', choice: start, trialEnd }),
+      id: 'sub_1Old',
+    });
+    fake.stripe['POST /v1/customers/cus_1Test'] = () => ({ id: 'cus_1Test', object: 'customer' });
+    creating(fake, {
+      ...stripeSubscription({ status: 'trialing', choice: pro, trialEnd, periodEnd: trialEnd }),
+      pending_setup_intent: {
+        id: 'seti_2',
+        object: 'setup_intent',
+        client_secret: 'seti_2_secret',
+      },
+    });
+
+    const response = await request('POST', '/billing/subscription', pro);
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({ clientSecret: 'seti_2_secret', intent: 'setup' });
+    expect(
+      fake.calls.some(
+        (call) => call.method === 'DELETE' && call.url.pathname === '/v1/subscriptions/sub_1Old'
+      )
+    ).toBe(true);
+    expect(row(fake)).toMatchObject({ plan: 'profesional', stripe_subscription_id: 'sub_1Test' });
+  });
+
   it('refuses a second subscription', async () => {
     const fake = createFake();
     fake.tables.subscriptions!.push(paidRow(pro));
