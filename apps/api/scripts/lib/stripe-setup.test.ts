@@ -208,11 +208,11 @@ describe('planning the webhook endpoint', () => {
 
 type Stored = Record<string, unknown> & { id: string };
 
-function fakeStripe(options: { livemode?: boolean; webhooks?: Stored[] } = {}) {
+function fakeStripe(options: { livemode?: boolean; webhooks?: Stored[]; prices?: Stored[] } = {}) {
   const livemode = options.livemode ?? false;
   const collections: Record<string, Stored[]> = {
     '/v1/products': [],
-    '/v1/prices': [],
+    '/v1/prices': options.prices ?? [],
     '/v1/billing/meters': [],
     '/v1/tax_rates': [],
     '/v1/billing_portal/configurations': [],
@@ -228,12 +228,15 @@ function fakeStripe(options: { livemode?: boolean; webhooks?: Stored[] } = {}) {
     const json = (body: unknown) =>
       new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
     if (method === 'GET') {
-      return json({
-        object: 'list',
-        url: url.pathname,
-        has_more: false,
-        data: collections[url.pathname] ?? [],
-      });
+      // Like Stripe, prices list only active ones unless asked otherwise.
+      const active =
+        url.searchParams.get('active') ?? (url.pathname === '/v1/prices' ? 'true' : null);
+      const data = (collections[url.pathname] ?? []).filter(
+        (item) =>
+          active === null ||
+          String((item as { active?: boolean | string }).active ?? true) === active
+      );
+      return json({ object: 'list', url: url.pathname, has_more: false, data });
     }
     const body = new URLSearchParams(String(init?.body ?? ''));
     writes.push({ method, path: url.pathname, body });
@@ -312,6 +315,24 @@ describe('a run against Stripe', () => {
         .filter(([key]) => key.startsWith('enabled_events'))
         .map(([, value]) => value)
     ).toEqual([...webhookEvents]);
+  });
+
+  it('reads archived prices too, so a lookup key held by one is not created again', async () => {
+    const archived = {
+      id: 'price_archived',
+      object: 'price',
+      livemode: false,
+      active: false,
+      lookup_key: 'member_annual_v1',
+      product: 'ssm_usor_member',
+      currency: 'eur',
+      unit_amount: 15000,
+      recurring: { interval: 'year', usage_type: 'licensed', meter: null },
+    };
+    const { stripe } = fakeStripe({ webhooks: [webhook], prices: [archived] });
+    const state = await readStripeState(stripe, 'non-prod');
+
+    expect(state.prices.map((price) => price.id)).toEqual(['price_archived']);
   });
 
   it('refuses live data on non-prod', async () => {

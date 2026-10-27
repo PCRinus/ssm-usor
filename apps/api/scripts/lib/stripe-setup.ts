@@ -360,15 +360,21 @@ export async function readStripeState(
   environment: StripeEnvironment
 ): Promise<StripeState> {
   const limit = { limit: 10_000 };
-  const [products, prices, meters, taxRates, portals, domains, webhooks] = await Promise.all([
-    stripe.products.list({ limit: 100 }).autoPagingToArray(limit),
-    stripe.prices.list({ limit: 100 }).autoPagingToArray(limit),
-    stripe.billing.meters.list({ limit: 100 }).autoPagingToArray(limit),
-    stripe.taxRates.list({ limit: 100 }).autoPagingToArray(limit),
-    stripe.billingPortal.configurations.list({ limit: 100 }).autoPagingToArray(limit),
-    stripe.paymentMethodDomains.list({ limit: 100 }).autoPagingToArray(limit),
-    stripe.webhookEndpoints.list({ limit: 100 }).autoPagingToArray(limit),
-  ]);
+  const [products, activePrices, archivedPrices, meters, taxRates, portals, domains, webhooks] =
+    await Promise.all([
+      stripe.products.list({ limit: 100 }).autoPagingToArray(limit),
+      // Stripe lists only active prices unless asked; an archived one still holds its lookup key.
+      stripe.prices.list({ limit: 100, active: true }).autoPagingToArray(limit),
+      stripe.prices.list({ limit: 100, active: false }).autoPagingToArray(limit),
+      stripe.billing.meters.list({ limit: 100 }).autoPagingToArray(limit),
+      stripe.taxRates.list({ limit: 100 }).autoPagingToArray(limit),
+      stripe.billingPortal.configurations.list({ limit: 100 }).autoPagingToArray(limit),
+      stripe.paymentMethodDomains.list({ limit: 100 }).autoPagingToArray(limit),
+      stripe.webhookEndpoints.list({ limit: 100 }).autoPagingToArray(limit),
+    ]);
+  const prices = [
+    ...new Map([...activePrices, ...archivedPrices].map((price) => [price.id, price])).values(),
+  ];
   assertLivemode(
     [...products, ...prices, ...meters, ...taxRates, ...portals, ...domains, ...webhooks],
     environment
