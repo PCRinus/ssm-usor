@@ -103,7 +103,7 @@ create table public.billing_invoices (
   constraint billing_invoices_pdf_after_issue check (pdf_path is null or issued_at is not null)
 );
 
-comment on table public.billing_invoices is 'The invoices and proformas Oblio issued for Stripe payments, and their stornos (ADR 029). Members read their own; only the service role writes.';
+comment on table public.billing_invoices is 'The invoices and proformas Oblio issued for Stripe payments, and their stornos (ADR 029). Owners read their own; only the service role writes.';
 
 create trigger billing_invoices_set_updated_at before update on public.billing_invoices
   for each row execute function public.set_updated_at();
