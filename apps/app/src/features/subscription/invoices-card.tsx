@@ -55,7 +55,7 @@ export function InvoicesCard({ invoices, emptyText }: { invoices: Invoice[]; emp
     return (
       <Button
         variant="link"
-        className="h-9 px-0 font-semibold"
+        className="h-9 px-0 font-semibold has-[>svg]:px-0"
         data-testid="invoice-download"
         disabled={pending || opening === invoice.stripeInvoiceId}
         title={pending ? 'PDF-ul se pregătește. Revino peste câteva minute.' : undefined}

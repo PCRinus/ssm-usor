@@ -61,7 +61,7 @@ export function PaymentCard({
           </div>
           <Button
             variant="link"
-            className="h-9 w-fit px-0 font-semibold"
+            className="h-9 w-fit px-0 font-semibold has-[>svg]:px-0"
             disabled={!canAct || changingCard}
             onClick={onChangeCard}
           >

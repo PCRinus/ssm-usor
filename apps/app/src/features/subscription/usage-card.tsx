@@ -68,7 +68,6 @@ export function UsageCard({
   const live = hasLiveSubscription(subscription) && view !== 'readOnly';
   const employees = overview.usage.employees.used ?? 0;
   const members = overview.usage.members.used ?? 0;
-  const memberMonthly = formatEuro(overview.catalogue.extraMember.prices.month);
   const smsPrice = formatEuro(overview.catalogue.smsOverageCents);
 
   // Until a trial ends the API counts against the trial's limits; once a plan is chosen, the
@@ -129,7 +128,7 @@ export function UsageCard({
         ? `${base} Pentru un coleg nou, administratorul adaugă un utilizator.`
         : base
       : canAdd
-        ? `${base} ${choice.plan === 'start' ? 'Al doilea utilizator' : 'Fiecare utilizator nou'} costă ${memberMonthly} pe lună.`
+        ? `${base} ${choice.plan === 'start' ? 'Al doilea utilizator' : 'Fiecare utilizator nou'} costă ${formatEuro(overview.catalogue.extraMember.prices[choice.interval])} ${choice.interval === 'year' ? 'pe an' : 'pe lună'}.`
         : `${base} Start are cel mult 2 utilizatori.`;
   }
 
