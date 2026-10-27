@@ -7,13 +7,13 @@ import {
   smsOverage,
   vatPercent,
 } from '@ssm-usor/contracts';
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
+
+import { createStripe, metadataKey, stripeApiVersion } from '../../src/modules/billing/stripe';
+
+export { createStripe, metadataKey, stripeApiVersion };
 
 export type StripeEnvironment = 'non-prod' | 'production';
-
-// The version stripe@23.0.1 ships. Flexible billing mode, which an annual plan with a monthly
-// metered SMS item needs, is the default from 2025-09-30.clover on (ADR 029).
-export const stripeApiVersion = '2026-09-30.endive';
 
 export const webhookPath = '/billing/stripe-webhook';
 
@@ -28,19 +28,7 @@ export const webhookEvents = [
   'charge.refunded',
 ] as const satisfies Stripe.WebhookEndpointUpdateParams.EnabledEvent[];
 
-// Marks what this script made, where Stripe offers nothing better to find it by.
-export const metadataKey = 'ssm_usor';
-
 export class SetupError extends Error {}
-
-export function createStripe(secretKey: string, fetchFn?: typeof fetch) {
-  return new Stripe(secretKey, {
-    apiVersion: stripeApiVersion,
-    httpClient: Stripe.createFetchHttpClient(fetchFn),
-    maxNetworkRetries: 2,
-    telemetry: false,
-  });
-}
 
 // Never echo the key: the error reaches a workflow log.
 export function assertKeyMatchesEnvironment(secretKey: string, environment: StripeEnvironment) {
