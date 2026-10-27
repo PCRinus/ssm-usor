@@ -1,5 +1,6 @@
 import type {
   CurrentUser,
+  ExtractorService,
   MailService,
   PdfService,
   SignerService,
@@ -50,6 +51,10 @@ export type ApiEnv = {
     SIGNER?: SignerService;
     // A signer container reached by URL instead, for local development.
     SIGNER_URL?: string;
+    // apps/pdf again, typed for reading an import's files (ADR 030); the same switch.
+    EXTRACTOR?: ExtractorService;
+    // An extractor container reached by URL instead, for local development.
+    EXTRACTOR_URL?: string;
     // The app's certificate authority (ADR 023): its P-256 key as PKCS#8 PEM, its certificate
     // as PEM, and the AES-256 key, base64, under which signers' private keys are stored.
     // `pnpm --filter @ssm-usor/api signing:ca` makes all three.

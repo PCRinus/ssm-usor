@@ -29,6 +29,8 @@ CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,h
 # GOTENBERG_URL=http://localhost:3300
 # Signing PDFs (ADR 023). `pnpm dev:pdf` starts the signer beside the converter.
 # SIGNER_URL=http://localhost:3301
+# Reading the files of an import (ADR 030). `pnpm dev:extractor` starts the extractor (Docker).
+# EXTRACTOR_URL=http://localhost:3302
 # The signing authority (ADR 023): `pnpm --filter @ssm-usor/api signing:ca` prints all three.
 # Without them, signing answers 503 signing_unavailable. Never commit the values.
 # SIGNING_CA_KEY="-----BEGIN PRIVATE KEY-----\n…\n-----END PRIVATE KEY-----"
