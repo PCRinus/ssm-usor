@@ -128,6 +128,38 @@ describe('createModelClient', () => {
     expect(requests).toHaveLength(4);
   });
 
+  it('retries a dropped connection, then fails with a named error', async () => {
+    const dropped = () => {
+      throw new TypeError('Network connection lost.');
+    };
+    const { client, requests, delays } = fakeGateway(dropped, () => completion(answer));
+
+    await expect(client.complete(request)).resolves.toMatchObject({ attempts: 1 });
+    expect(delays).toEqual([2000]);
+    expect(requests).toHaveLength(2);
+
+    const failing = fakeGateway(dropped, dropped, dropped, dropped);
+    await expect(failing.client.complete(request)).rejects.toMatchObject({
+      name: 'GatewayError',
+      status: null,
+    });
+    expect(failing.requests).toHaveLength(4);
+  });
+
+  it('does not retry a request that timed out', async () => {
+    const timedOut = () => {
+      throw new DOMException('The operation timed out.', 'TimeoutError');
+    };
+    const { client, requests } = fakeGateway(timedOut);
+
+    await expect(client.complete(request)).rejects.toMatchObject({
+      name: 'GatewayError',
+      status: null,
+      message: 'The gateway did not answer in time.',
+    });
+    expect(requests).toHaveLength(1);
+  });
+
   it('does not retry a client error', async () => {
     const { client, requests } = fakeGateway(() => new Response('bad request', { status: 400 }));
 

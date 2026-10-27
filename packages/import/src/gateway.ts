@@ -105,16 +105,37 @@ export function createModelClient(options: GatewayOptions) {
     model: ModelId
   ) {
     for (let retry = 0; ; retry++) {
-      const response = await fetchImpl(url, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'cf-aig-authorization': `Bearer ${options.token}`,
-          'cf-aig-metadata': JSON.stringify(metadata),
-        },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(options.timeoutMilliseconds ?? 600_000),
-      });
+      let response: Response;
+      try {
+        response = await fetchImpl(url, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'cf-aig-authorization': `Bearer ${options.token}`,
+            'cf-aig-metadata': JSON.stringify(metadata),
+          },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(options.timeoutMilliseconds ?? 600_000),
+        });
+      } catch (error) {
+        const timedOut =
+          error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError');
+        // A request that ran out its whole timeout is not tried again: three more would outlast
+        // the queue consumer's own limit.
+        if (!timedOut && retry < transientRetries) {
+          await sleep(backoff(retry, null));
+          continue;
+        }
+        const reason = error instanceof Error ? error.message : String(error);
+        throw new GatewayError(
+          timedOut
+            ? 'The gateway did not answer in time.'
+            : `The gateway could not be reached: ${reason.slice(0, 300)}`,
+          null,
+          spent,
+          costOf(model, spent)
+        );
+      }
       if (response.ok) return (await response.json()) as ChatCompletion;
       const text = await response.text();
       if (retryable(response.status) && retry < transientRetries) {
