@@ -81,7 +81,9 @@ The photographs become the employees' client files ([ADR 021](adr-021-training-r
 
 The uploaded files live in a private bucket of their own, `imports`, under `<organization>/<import>/<file>`, while the import is open, since a new client does not exist yet. On confirming they become client files ([ADR 013](adr-013-client-files.md)): one **import folder** (_dosar importat_) per import in "Alte documente", collapsed, named after the day, keeping the upload's folders, with the set-aside files marked "necitit" and a download of the whole folder as a ZIP. The photographs of an employee import go to the employees they belong to. Text extracted, converted files and the proposal are kept with the import, not shown as files.
 
-An abandoned import is deleted with its files after 14 days; a confirmed import keeps its proposal for 30 days, for support, then drops it. The proposal holds CNPs, so it lives no longer than it is useful.
+An abandoned import is deleted with its files after 14 days.
+
+Confirming writes the values into the client's own records, but the import keeps its proposal for 30 days more: every value the model proposed with its file and quote, the choices it offered, the checks' results, and what the member changed, kept or unticked. That is what support reads when a member reports a wrong result, to tell a model's mistake from a missing check or a confusing screen, and to adjust the prompts, the schema or the checks. After 30 days the proposal is deleted. The import itself stays, with its date, who ran it, its counts and its cost, and so do its files in the import folder. The proposal holds CNPs, so it lives no longer than it is useful.
 
 ### Usage is recorded now and limited later
 
