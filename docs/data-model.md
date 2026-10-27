@@ -86,7 +86,10 @@ Stripe invoice (for a storno, by the Stripe refund it reverses, with `storno_of`
 original): the `stripe_account` that issued it, its `kind` (`invoice` in production, `proforma`
 on non-prod), `amount_cents` with VAT in `currency` (negative for a storno), and the Oblio
 `oblio_series`, `oblio_number` and `oblio_link`, set together with `issued_at` once Oblio has
-issued it. Members read their own organization's rows; only the secret key writes.
+issued it. `pdf_path` is our copy of Oblio's PDF in the private `billing-invoices` bucket
+(`<organization id>/<series>-<number>.pdf`), downloaded once after issue; the bucket has no
+policies, so members get the file only through the API's signed link. Members read their own
+organization's rows; only the secret key writes.
 
 ## Platform admins and impersonation
 

@@ -1,5 +1,5 @@
 begin;
-select plan(24);
+select plan(26);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -197,6 +197,20 @@ select throws_ok(
 );
 
 reset role;
+
+select is(
+  (select public from storage.buckets where id = 'billing-invoices'),
+  false,
+  'the invoices bucket is private'
+);
+
+select results_eq(
+  $$ select count(*)::int from pg_policies
+     where schemaname = 'storage' and tablename = 'objects'
+       and (qual like '%billing-invoices%' or with_check like '%billing-invoices%') $$,
+  array[0],
+  'no storage policy opens the invoices bucket to members'
+);
 
 select * from finish();
 rollback;

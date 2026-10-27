@@ -168,6 +168,7 @@ export type Database = {
           oblio_number: string | null;
           oblio_series: string | null;
           organization_id: string;
+          pdf_path: string | null;
           storno_of: string | null;
           stripe_account: string;
           stripe_invoice_id: string;
@@ -183,6 +184,7 @@ export type Database = {
           oblio_number?: string | null;
           oblio_series?: string | null;
           organization_id: string;
+          pdf_path?: string | null;
           storno_of?: string | null;
           stripe_account: string;
           stripe_invoice_id: string;
@@ -198,6 +200,7 @@ export type Database = {
           oblio_number?: string | null;
           oblio_series?: string | null;
           organization_id?: string;
+          pdf_path?: string | null;
           storno_of?: string | null;
           stripe_account?: string;
           stripe_invoice_id?: string;

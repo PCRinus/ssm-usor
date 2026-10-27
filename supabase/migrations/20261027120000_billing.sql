@@ -84,6 +84,11 @@ create table public.billing_invoices (
   oblio_link text
     constraint billing_invoices_oblio_link_https check (oblio_link ~ '^https://'),
   storno_of text references public.billing_invoices (stripe_invoice_id) on delete restrict,
+  -- Our copy of Oblio's PDF in the billing-invoices bucket: access stays behind our own checks and
+  -- outlives a change of Oblio account or link format.
+  pdf_path text
+    constraint billing_invoices_pdf_path_format
+      check (pdf_path ~ '^[0-9a-f-]{36}/[A-Za-z0-9_-]+\.pdf$'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint billing_invoices_oblio_issued
@@ -94,7 +99,8 @@ create table public.billing_invoices (
     ),
   constraint billing_invoices_storno_amount
     check (case when storno_of is null then amount_cents >= 0 else amount_cents < 0 end),
-  constraint billing_invoices_storno_not_itself check (storno_of <> stripe_invoice_id)
+  constraint billing_invoices_storno_not_itself check (storno_of <> stripe_invoice_id),
+  constraint billing_invoices_pdf_after_issue check (pdf_path is null or issued_at is not null)
 );
 
 comment on table public.billing_invoices is 'The invoices and proformas Oblio issued for Stripe payments, and their stornos (ADR 029). Members read their own; only the service role writes.';
@@ -118,3 +124,8 @@ revoke insert, update, delete, truncate on table public.billing_invoices from au
 create policy "members read their organization's invoices"
   on public.billing_invoices for select to authenticated
   using (organization_id = public.current_organization_id());
+
+-- No policies on purpose: members never read the bucket directly; the API checks the member and
+-- hands out a short-lived signed link.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('billing-invoices', 'billing-invoices', false, 5242880, array['application/pdf']);
