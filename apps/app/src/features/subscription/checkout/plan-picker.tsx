@@ -2,6 +2,8 @@ import { type BillingChoice, billingPlans, extraMember, type PaidPlan } from '@s
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, Minus, Plus } from 'lucide-react';
 
+import { HelpLink } from '@/components/help-link';
+
 import {
   employeeLimitOf,
   formatCount,
@@ -191,9 +193,12 @@ export function PlanPicker({
       </BillingCard>
 
       <BillingCard aria-labelledby="pick-extras" data-testid="extras-picker">
-        <h2 id="pick-extras" className="text-base font-semibold">
-          Angajați și utilizatori
-        </h2>
+        <div className="flex items-center gap-1">
+          <h2 id="pick-extras" className="text-base font-semibold">
+            Angajați și utilizatori
+          </h2>
+          <HelpLink topic="organizatie.pachete" label="Ajutor: Angajați și utilizatori" />
+        </div>
         <Stepper
           name="packs"
           label={`Pachete de ${pack.employees} de angajați`}

@@ -203,6 +203,7 @@ export function UsageCard({
   return (
     <BillingCard
       title="Cât folosești"
+      help="organizatie.consum"
       aside={periodLabel(overview, view)}
       data-testid="usage-card"
       aria-label="Cât folosești"

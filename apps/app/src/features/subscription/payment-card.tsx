@@ -31,7 +31,11 @@ export function PaymentCard({
   const brand = card ? cardBrand(card.brand) : null;
 
   return (
-    <BillingCard title="Plată și facturi" data-testid="payment-card">
+    <BillingCard
+      title="Plată și facturi"
+      help="organizatie.plata-si-facturi"
+      data-testid="payment-card"
+    >
       {card && brand ? (
         <div className="grid gap-2.5">
           <div className="flex items-center gap-3">
