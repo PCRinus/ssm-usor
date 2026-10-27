@@ -659,8 +659,12 @@ routes. `GET /clients/{clientId}/files` lists the client's own files the caller 
 those of no employee: a specialist is not told that files for owners only exist. Each
 carries `name`, `note`, `ownersOnly`, `employee` (`{ id, lastName, firstName }` for a file that belongs to one of the client's
 employees, otherwise null), `originalFileName`, `mimeType`, `sizeBytes`, `sha256`,
-`uploadedBy` (`{ id, fullName }`, null once the account is gone) and `canChange`, true for its
-uploader and for an owner. `?employeeId=` lists that employee's files instead ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)); a
+`uploadedBy` (`{ id, fullName }`, null once the account is gone), `canChange`, true for its
+uploader and for an owner, and for a file of an import folder ([ADR 030](architecture/adr-030-import-from-documents.md))
+`importId`, `importPath` (the folders it sat in inside the upload, null at the top) and
+`importRead` with `importReason`, from the import's file row (`import_files.client_file_id`):
+whether the import read it and, if not, why. The four are null for a file uploaded on its own.
+`?employeeId=` lists that employee's files instead ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)); a
 value that is not an id answers `400`, and the id of an employee the client does not have gives
 an empty list.
 
