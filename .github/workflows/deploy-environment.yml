@@ -222,6 +222,7 @@ jobs:
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
       VITE_POSTHOG_PROJECT_TOKEN: ${{ vars.VITE_POSTHOG_PROJECT_TOKEN }}
+      VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.VITE_STRIPE_PUBLISHABLE_KEY }}
       POSTHOG_PROJECT_ID: ${{ vars.POSTHOG_PROJECT_ID }}
       POSTHOG_SOURCEMAPS_UPLOAD_KEY: ${{ secrets.POSTHOG_SOURCEMAPS_UPLOAD_KEY }}
       # Optional: without it the marketing waitlist form falls back to a mailto link.
@@ -774,11 +775,15 @@ jobs:
           SIGNING_CA_KEY: ${{ secrets.SIGNING_CA_KEY }}
           SIGNING_CA_CERT: ${{ secrets.SIGNING_CA_CERT }}
           SIGNING_KEY_ENCRYPTION_KEY: ${{ secrets.SIGNING_KEY_ENCRYPTION_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          OBLIO_CLIENT_ID: ${{ secrets.OBLIO_CLIENT_ID }}
+          OBLIO_CLIENT_SECRET: ${{ secrets.OBLIO_CLIENT_SECRET }}
         shell: bash
         run: |
           {
             echo 'names<<EOF'
-            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET SUPABASE_AUTH_SMS_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY SIGNING_CA_KEY SIGNING_CA_CERT SIGNING_KEY_ENCRYPTION_KEY; do
+            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET SUPABASE_AUTH_SMS_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY SIGNING_CA_KEY SIGNING_CA_CERT SIGNING_KEY_ENCRYPTION_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET OBLIO_CLIENT_ID OBLIO_CLIENT_SECRET; do
               if [[ -n "${!name}" ]]; then
                 echo "$name"
               else
@@ -822,9 +827,16 @@ jobs:
           SIGNING_CA_KEY: ${{ secrets.SIGNING_CA_KEY }}
           SIGNING_CA_CERT: ${{ secrets.SIGNING_CA_CERT }}
           SIGNING_KEY_ENCRYPTION_KEY: ${{ secrets.SIGNING_KEY_ENCRYPTION_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          OBLIO_CLIENT_ID: ${{ secrets.OBLIO_CLIENT_ID }}
+          OBLIO_CLIENT_SECRET: ${{ secrets.OBLIO_CLIENT_SECRET }}
           # Issued documents get their PDF from apps/pdf. Set here and not in wrangler.jsonc,
           # so that `wrangler dev`, where nothing answers that binding, issues without one.
           PDF_CONVERSION: service
+          # Oblio has no test mode, so only production issues fiscal invoices. Here and not in
+          # wrangler.jsonc, whose top level is production's and is what `wrangler dev` reads.
+          OBLIO_DOCUMENTS: ${{ inputs.environment == 'production' && 'invoice' || 'proforma' }}
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -838,6 +850,7 @@ jobs:
             SUPABASE_URL
             SUPABASE_PUBLISHABLE_KEY
             PDF_CONVERSION
+            OBLIO_DOCUMENTS
           secrets: ${{ steps.secrets.outputs.names }}
 
       - name: Check deployed API and browser access

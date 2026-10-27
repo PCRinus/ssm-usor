@@ -16,6 +16,7 @@
         "VITE_SUPABASE_PUBLISHABLE_KEY",
         "VITE_API_URL",
         "VITE_HELP_URL",
+        "VITE_STRIPE_PUBLISHABLE_KEY",
         "POSTHOG_PROJECT_ID",
         "POSTHOG_SOURCEMAPS_UPLOAD_KEY"
       ]
@@ -26,7 +27,8 @@
         "VITE_SUPABASE_URL",
         "VITE_SUPABASE_PUBLISHABLE_KEY",
         "VITE_API_URL",
-        "VITE_HELP_URL"
+        "VITE_HELP_URL",
+        "VITE_STRIPE_PUBLISHABLE_KEY"
       ]
     }
   }
