@@ -42,7 +42,7 @@
     "deploy:pdf": "pnpm --filter @ssm-usor/pdf deploy",
     "deploy:legislation": "pnpm --filter @ssm-usor/legislation deploy",
     "prepare": "lefthook install",
-    "generate:api": "pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build && pnpm --filter @ssm-usor/api openapi:generate && orval --config orval.config.ts && prettier --write apps/api/openapi.json",
+    "generate:api": "pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine --filter @ssm-usor/import build && pnpm --filter @ssm-usor/api openapi:generate && orval --config orval.config.ts && prettier --write apps/api/openapi.json",
     "generate:help-topics": "pnpm --filter @ssm-usor/help generate:topics && prettier --write packages/help-topics/src/topics.ts",
     "generate:routes": "pnpm --filter @ssm-usor/app --filter @ssm-usor/portal generate:routes",
     "check:generated": "node scripts/check-generated.mjs",

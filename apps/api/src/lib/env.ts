@@ -19,6 +19,19 @@ export type RegenerationQueue = {
   sendBatch(messages: Iterable<{ body: RegenerationMessage }>): Promise<unknown>;
 };
 
+export type ImportMessage =
+  | { type: 'prepare'; importId: string; fileId: string }
+  | { type: 'sort'; importId: string }
+  | { type: 'scan'; importId: string; fileId: string }
+  | { type: 'read'; importId: string; waits: number }
+  | { type: 'check'; importId: string }
+  | { type: 'copy'; importId: string };
+
+export type ImportQueue = {
+  send(body: ImportMessage, options?: { delaySeconds?: number }): Promise<unknown>;
+  sendBatch(messages: Iterable<{ body: ImportMessage }>): Promise<unknown>;
+};
+
 export type ApiEnv = {
   Bindings: {
     SUPABASE_URL?: string;
@@ -72,6 +85,12 @@ export type ApiEnv = {
     OBLIO_CLIENT_SECRET?: string;
     // Anything but "invoice" issues proformas, since Oblio has no test mode (ADR 029).
     OBLIO_DOCUMENTS?: string;
+    // Imports from documents (ADR 030), consumed by this same Worker.
+    IMPORT_QUEUE?: ImportQueue;
+    // Cloudflare AI Gateway, through which an import's files reach the models (ADR 030):
+    // https://gateway.ai.cloudflare.com/v1/<account>/<gateway>, and a token with AI Gateway Run.
+    AI_GATEWAY_URL?: string;
+    AI_GATEWAY_TOKEN?: string;
   };
   Variables: {
     user: CurrentUser;
