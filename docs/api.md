@@ -24,7 +24,7 @@ need to copy the example. Wrangler reads `.dev.vars` from the API workspace; res
 changing these values. Do not put the API configuration in the repository root `.env`.
 
 ```bash
-pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
+pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine --filter @ssm-usor/import build
 pnpm dev:api
 ```
 
