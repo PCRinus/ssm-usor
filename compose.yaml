@@ -1,6 +1,7 @@
 # The containers of apps/pdf for local development and the flow tests, built from the same
-# Dockerfiles as the deployed ones and reached by the API through GOTENBERG_URL=http://localhost:3300
-# and SIGNER_URL=http://localhost:3301 in apps/api/.dev.vars (docs/pdf.md).
+# Dockerfiles as the deployed ones and reached by the API through GOTENBERG_URL=http://localhost:3300,
+# SIGNER_URL=http://localhost:3301 and EXTRACTOR_URL=http://localhost:3302 in apps/api/.dev.vars
+# (docs/pdf.md).
 services:
   gotenberg:
     build: apps/pdf
@@ -26,6 +27,22 @@ services:
           'python',
           '-c',
           'import urllib.request; urllib.request.urlopen("http://localhost:3301/health")',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  extractor:
+    build: apps/pdf/extractor
+    container_name: ssm-usor-extractor
+    ports:
+      - '127.0.0.1:3302:3302'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          'fetch("http://localhost:3302/health").then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))',
         ]
       interval: 5s
       timeout: 3s

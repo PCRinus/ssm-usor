@@ -10,6 +10,7 @@ engine, in practice headless LibreOffice, which cannot run in a Worker. `apps/pd
 [Gotenberg](https://gotenberg.dev), and offers one method over a service binding, as
 `apps/mail` does for email. It has no routes and no `workers.dev` address. A second container
 runs the [signer](#signer) of [ADR 023](architecture/adr-023-advanced-electronic-signature.md),
+and a third the [extractor](#extractor) of [ADR 030](architecture/adr-030-import-from-documents.md),
 behind the same entrypoint.
 
 It is a Worker of its own so that Docker, the image registry and the container's lifecycle
@@ -393,11 +394,113 @@ sheet as LibreOffice exports it: the template merged with the sample employee of
 request workflow runs ruff and the tests whenever `apps/pdf` or the signer's contracts change.
 `src/sign.test.ts` covers the forwarding in the Worker without a container.
 
+## Extractor
+
+An import ([ADR 030](architecture/adr-030-import-from-documents.md)) reads a client's files as
+text, and some of them need a tool to become text or an image first: a `.doc` becomes a `.docx`,
+whose XML the API reads with its tables; a PDF gives its text page by page, and a scanned page an
+image for the model; a HEIC photograph becomes a JPEG, which the model and the browser read. The
+extractor is a container of its own, `apps/pdf/extractor`, with LibreOffice, poppler and
+ImageMagick behind a small Node server, one file per request.
+
+It is not a route added to Gotenberg. Gotenberg's pinned LibreOffice decides where the app's own
+documents break pages, so its image changes only for that, and its routes only make PDFs. The
+extractor's LibreOffice only reads: Debian's version, moved with the base image.
+
+### The interface
+
+`ExtractorService` in `packages/contracts/src/extractor.ts`, offered by the `Pdf` entrypoint:
+
+```ts
+docToDocx(doc: ArrayBuffer): Promise<ArrayBuffer>;
+pdfText(pdf: ArrayBuffer): Promise<PdfText>; // { pageCount, pages: [{ number, text, isScan }] }
+pdfPageImage(pdf: ArrayBuffer, page: number): Promise<ArrayBuffer>;
+heicToJpeg(image: ArrayBuffer): Promise<ArrayBuffer>;
+```
+
+A method rejects with `extraction_failed:<reason>` when the file is refused, and with
+`extraction_failed` alone for anything else: an unreachable container, a 5xx, a timeout, or an
+answer that is not what the route makes. `extractionRefusalOf` in the contracts reads the reason
+back. A refusal is about the file, so trying again does not help:
+
+| Reason               | When                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------- |
+| `too_large`          | Over 20 MiB, the limit of a client file; checked before the file is sent                                |
+| `unsupported`        | Not a type the route takes, by its first bytes                                                          |
+| `corrupt`            | The tool could not read it                                                                              |
+| `password_protected` | A PDF that opens only with a password, or a Word file encrypted with one                                |
+| `timeout`            | The tool did not finish within its limit: two minutes for LibreOffice and `pdftotext`, one for the rest |
+| `page_out_of_range`  | A page below 1 or past the PDF's last                                                                   |
+
+The forwarding is `convertDocx`'s: a container that did not start, or answered 5xx, is tried once
+more after two seconds, and a request unanswered after three minutes is not. The reason is logged
+as one JSON line (`extraction_refused`, `extraction_unreachable`, `extraction_timeout`), and the
+container logs its own (`extractor_refused`, `extractor_failed`), without the file's content.
+`src/extract.test.ts` covers the forwarding and `extractor/files.test.ts` the server's own checks,
+both without a container.
+
+### Over HTTP
+
+The file is the request's body, `application/octet-stream`; the result is the answer's body. Port 3302.
+
+| Route                         | Takes                                                         | Answers                                                                      |
+| ----------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `POST /doc-to-docx`           | Word 97–2003, or RTF, HTML or Office Open XML saved as `.doc` | The `.docx`, from LibreOffice                                                |
+| `POST /pdf-text`              | A PDF                                                         | `{ "pageCount", "pages": [{ "number", "text", "isScan" }] }`, as JSON        |
+| `POST /pdf-page-image?page=N` | A PDF                                                         | Page N as a JPEG at 150 dpi, less for a page larger than 2,500 pixels a side |
+| `POST /heic-to-jpeg`          | A HEIC, JPEG or PNG                                           | A JPEG turned upright by its orientation, transparency on white, no metadata |
+| `GET /health`                 |                                                               | `{ "status": "ok" }`                                                         |
+
+A refusal is `{ "error": "<reason>", "detail" }`, with 413 for `too_large`, 415 for
+`unsupported`, 400 for `page_out_of_range` and 422 for the others; anything else that goes wrong
+is a 500.
+
+`pdf-text` runs `pdftotext -layout` once and splits its pages at the form feeds. `isScan` marks a
+page with fewer than 100 characters other than whitespace, since the layout pads lines with
+spaces. A PDF with only an owner password, which forbids copying, is read: poppler does not
+enforce the permission. LibreOffice reports a Word file that needs a password as one it cannot
+load, so the server tells the two apart from the compound file itself: an encrypted `.docx`
+package, or a `.doc` whose File Information Block says it is encrypted or obfuscated. Stripping
+the metadata of a photograph removes its location too.
+
+### The container
+
+| Setting         | Value                                    | Why                                                                                         |
+| --------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Image           | `node:24.22.1-trixie-slim`, about 900 MB | `apps/pdf/extractor/Dockerfile`, the base pinned by digest; LibreOffice is most of the size |
+| Instance type   | `standard-1`                             | LibreOffice, as for Gotenberg                                                               |
+| `max_instances` | 2                                        | One import's files need not wait behind another's                                           |
+| `sleepAfter`    | 5 minutes                                | An import's files arrive in a burst, one queue message each                                 |
+| Internet        | off                                      | It reads what it is handed                                                                  |
+
+The server is TypeScript run by Node's type stripping, with no dependencies and no build step.
+LibreOffice runs one conversion at a time, since two cannot share a profile, and the profile is
+made when the image is built, so a cold start does not wait for it. `tini` is the container's
+first process, so that what LibreOffice leaves behind is reaped.
+
+Measured on 28 October 2026 in Docker on half a CPU (Apple silicon): ready in about a second; a
+`.doc` converts in 2.3 s the first time and 0.4 s after, a two-page PDF's text takes 0.1 s, a
+page image 0.15 s, and a 12-megapixel HEIC 1.1 s, in under 100 MB of memory.
+
+### Running it locally
+
+Not part of `pnpm dev` or `pnpm dev:pdf`, since only an import needs it:
+
+```sh
+pnpm dev:extractor   # docker compose up, waits until the extractor answers /health
+pnpm stop:pdf        # stops it with the others
+```
+
+Then set `EXTRACTOR_URL=http://localhost:3302` in `apps/api/.dev.vars` and restart `pnpm dev`.
+`createExtractor` in `apps/api/src/lib/extractor.ts` picks the `EXTRACTOR` binding (the same `Pdf`
+entrypoint) where `PDF_CONVERSION=service`, else the extractor at `EXTRACTOR_URL`, else nothing.
+The port is published on 127.0.0.1 only, as the others.
+
 ## Deployment
 
 The job "Deploy PDF Worker" runs on `main` when `apps/pdf/**` or the interfaces change.
-`wrangler deploy` uploads the Worker, builds an image for each container class, Gotenberg's
-and the signer's, with the runner's Docker, pushes them to Cloudflare's registry, and rolls the
+`wrangler deploy` uploads the Worker, builds an image for each container class, Gotenberg's,
+the signer's and the extractor's, with the runner's Docker, pushes them to Cloudflare's registry, and rolls the
 containers out. The production build job does the same builds as a dry run, so a broken
 Dockerfile fails before deployment.
 

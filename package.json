@@ -21,6 +21,7 @@
     "dev:pdf": "docker compose up --detach --wait gotenberg signer",
     "dev:stripe": "pnpm --filter @ssm-usor/api dev:stripe",
     "stop:pdf": "docker compose down",
+    "dev:extractor": "docker compose up --detach --wait extractor",
     "ui:add": "shadcn add --cwd apps/app",
     "preview:marketing": "pnpm --filter @ssm-usor/marketing preview:cloudflare",
     "typecheck": "turbo typecheck",

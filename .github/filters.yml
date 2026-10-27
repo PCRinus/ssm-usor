@@ -51,6 +51,8 @@ pdf:
   - 'packages/contracts/src/pdf.ts'
   - 'packages/contracts/src/signer.ts'
   - 'packages/contracts/src/signer-http.ts'
+  - 'packages/contracts/src/extractor.ts'
+  - 'packages/contracts/src/extractor-http.ts'
 # The Worker bundles the act list from the engine.
 legislation:
   - *shared

@@ -2,7 +2,10 @@ import { Container, getContainer } from '@cloudflare/containers';
 import {
   type BeginSignatureOptions,
   type BeginSignatureResult,
+  extractorOverHttp,
+  type ExtractorService,
   type PdfService,
+  type PdfText,
   type SignatureValidation,
   signerOverHttp,
   type SignerService,
@@ -10,17 +13,19 @@ import {
 import { WorkerEntrypoint } from 'cloudflare:workers';
 
 import { convertDocuments, convertDocx, convertForm, mergePdfs } from './convert';
+import { postToExtractor } from './extract';
 import { postToSigner } from './sign';
 
 type PdfEnv = {
   GOTENBERG: DurableObjectNamespace<Gotenberg>;
   SIGNER: DurableObjectNamespace<Signer>;
+  EXTRACTOR: DurableObjectNamespace<Extractor>;
 };
 
 // Word to PDF needs a layout engine, in practice LibreOffice, which cannot run in a Worker
-// (ADR 005), and a PAdES signature needs pyHanko (ADR 023). This Worker owns the containers that
-// run them and offers their methods over a service binding, as apps/mail does for email. It has
-// no routes.
+// (ADR 005), a PAdES signature needs pyHanko (ADR 023), and reading an import's files needs
+// LibreOffice, poppler and ImageMagick (ADR 030). This Worker owns the containers that run them
+// and offers their methods over a service binding, as apps/mail does for email. It has no routes.
 
 export class Gotenberg extends Container {
   defaultPort = 3000;
@@ -43,7 +48,21 @@ export class Signer extends Container {
   enableInternet = false;
 }
 
-export class Pdf extends WorkerEntrypoint<PdfEnv> implements PdfService, SignerService {
+// Beside Gotenberg rather than inside it: Gotenberg's pinned LibreOffice decides where the app's
+// own documents break pages, and its routes only make PDFs.
+export class Extractor extends Container {
+  defaultPort = 3302;
+  pingEndpoint = 'extractor/health';
+  // An import sends its files one queue message each, in a burst, then nothing.
+  sleepAfter = '5m';
+  // It reads what it is handed; an uploaded file must not reach anything.
+  enableInternet = false;
+}
+
+export class Pdf
+  extends WorkerEntrypoint<PdfEnv>
+  implements PdfService, SignerService, ExtractorService
+{
   async convertDocx(docx: ArrayBuffer): Promise<ArrayBuffer> {
     const container = getContainer(this.env.GOTENBERG);
     // `fetch` starts the container when it sleeps and waits for its port.
@@ -99,6 +118,27 @@ export class Pdf extends WorkerEntrypoint<PdfEnv> implements PdfService, SignerS
 
   async stampPages(pdf: ArrayBuffer, text: string): Promise<ArrayBuffer> {
     return this.signer().stampPages(pdf, text);
+  }
+
+  private extractor(): ExtractorService {
+    const container = getContainer(this.env.EXTRACTOR);
+    return extractorOverHttp(postToExtractor((request) => container.fetch(request)));
+  }
+
+  async docToDocx(doc: ArrayBuffer): Promise<ArrayBuffer> {
+    return this.extractor().docToDocx(doc);
+  }
+
+  async pdfText(pdf: ArrayBuffer): Promise<PdfText> {
+    return this.extractor().pdfText(pdf);
+  }
+
+  async pdfPageImage(pdf: ArrayBuffer, page: number): Promise<ArrayBuffer> {
+    return this.extractor().pdfPageImage(pdf, page);
+  }
+
+  async heicToJpeg(image: ArrayBuffer): Promise<ArrayBuffer> {
+    return this.extractor().heicToJpeg(image);
   }
 }
 

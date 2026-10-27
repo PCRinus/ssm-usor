@@ -444,6 +444,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^5.20261023.1
         version: 5.20261023.1
+      '@types/node':
+        specifier: ^24.19.2
+        version: 24.19.2
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
