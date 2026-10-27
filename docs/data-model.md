@@ -72,7 +72,8 @@ customer lives in, which a move from the PFA to an SRL may change), `stripe_cust
 `stripe_subscription_id` (unique), `billing_interval` (`month` or `year`), `price_version` (the
 catalogue version of its prices, such as `v1`), the quantities `employee_packs` and
 `extra_members` (both 0 by default), `invoice_email`, where Oblio sends the invoices instead of
-the owner, and `current_period_end`. All are null during a trial. A Stripe customer needs its
+the owner, and `current_period_end`. During a trial the packs and members are 0 and the others
+are null. A Stripe customer needs its
 account, and a Stripe subscription its customer, interval and price version. The plans, prices
 and Stripe lookup keys themselves live in the plan catalogue in `packages/contracts`, not in the
 database.
