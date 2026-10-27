@@ -1,6 +1,6 @@
 # Data model and tenancy
 
-Status: implemented for organizations, memberships, profiles, invitations, onboarding, impersonations, clients, employees, participants, the facts documents print, generated documents, and client files  
+Status: implemented for organizations, memberships, profiles, invitations, onboarding, impersonations, clients, employees, participants, the facts documents print, generated documents, client files, and imports from documents  
 Audience: engineering
 
 The schema lives in checked-in SQL migrations under `supabase/migrations`, applied by the
@@ -1193,6 +1193,172 @@ the upload and delete policies ask `is_writable_client_file_path`, which also wa
 to be the uploader or an owner and the client to be active. There is no update policy, so an
 object is never replaced. Supabase's database backups do not include these files, and unlike a
 generated document they exist nowhere else.
+
+A client file can come from an import from documents ([ADR 030](architecture/adr-030-import-from-documents.md)):
+`import_id` names the import whose folder it belongs to, and `import_path` the folders it sat in
+inside the upload, with `/` between them, null at the top of the folder and for a file uploaded
+on its own. `client_files_import_idx` on `(import_id, import_path)` lists a folder. The import is
+kept as long as one of its files is (`on delete restrict`).
+
+## Imports from documents
+
+An **import** ([ADR 030](architecture/adr-030-import-from-documents.md)) holds a client's
+uploaded files and the proposal a model read from them until a member confirms or abandons it.
+Created by `20261028100000_imports` and `20261028100100_import_functions`.
+
+`imports` has one row per import, with `organization_id`:
+
+| Column                                                             | Notes                                                                                                                                                                    |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `kind`                                                             | `import_kind`: `client` (the documentation pack) or `employees` (training sheets, always into an existing client).                                                       |
+| `client_id`, `into_existing_client`                                | The client, by the composite key to `clients (id, organization_id)`: set from the start for an existing client, on confirming for a new one; the flag says which it was. |
+| `status`                                                           | `import_status`: `uploading`, `preparing`, `sorting`, `reading`, `checking`, `ready`, then `confirmed`, `abandoned` or `failed`.                                         |
+| `failure_reason`                                                   | In Romanian, for members; required with `failed`.                                                                                                                        |
+| `company_name`, `company_cui`                                      | The company the documents are about, once the reading found it.                                                                                                          |
+| `source_import_id`                                                 | The import whose uploaded files this one took over, when the documents named several companies; the API copies their objects.                                            |
+| `proposal`, `changes`                                              | JSON objects: what the model proposed with its sources and the checks' results, and what the member changed, kept or unticked. Null before review and once dropped.      |
+| `version`                                                          | Counts the saves of `changes`; a save and the confirmation name the version they were made on.                                                                           |
+| `quality`                                                          | Value-free counts per section of how many proposed values were changed, unticked or kept, stored at confirming.                                                          |
+| `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | Every model request of the import, the cost in US dollars as `numeric(12, 6)`.                                                                                           |
+| `created_by`, `created_at`, `started_at`, `ready_at`, `failed_at`  | Who started it, as the real user during an impersonation, and when each step was reached. Checks tie each stamp to its status.                                           |
+| `confirmed_at`, `confirmed_by`, `abandoned_at`                     | The end. A confirmed import has its client.                                                                                                                              |
+| `files_copied_at`, `proposal_dropped_at`, `objects_removed_at`     | The API copied the folder into `client-files`; the proposal was dropped; the clean-up handed over the import's objects, which needs the other two.                       |
+
+`import_files` has one row per uploaded file, with `import_id` and `organization_id` by the
+composite key to `imports (id, organization_id)`, deleted with the import:
+
+| Column                                                             | Notes                                                                                                                                                        |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `upload_path`, `original_file_name`                                | Where the file sat in the upload, its folders and its name, and the name alone, up to 1024 and 255 characters.                                               |
+| `mime_type`, `size_bytes`, `sha256`                                | PDF, `.doc`, `.docx`, JPEG, PNG or HEIC (`image/heic` or `image/heif`); 1 byte to 20 MiB.                                                                    |
+| `storage_path`                                                     | Generated as `<organization>/<import>/<id>.<extension>` from the type; unique.                                                                               |
+| `state`                                                            | `import_file_state`: `uploading` until its object is stored, `uploaded`, `prepared`, then `read`, `set_aside`, `for_employees`, `other_company` or `failed`. |
+| `document_kind`, `reason`, `company_name`, `company_cui`           | What the sorting took the file for (a key `packages/import` names), why it was set aside or failed (in Romanian), and the company it names.                  |
+| `page_count`, `is_scan`                                            | From the extractor.                                                                                                                                          |
+| `text_path`                                                        | The text taken out of it, beside it as `<id>.txt` or `<id>.json`, by a check.                                                                                |
+| `derived_path`, `derived_size_bytes`, `derived_sha256`             | The `.docx` of a `.doc` or the JPEG of a HEIC, beside it as `<id>.docx` or `<id>.jpg`, by a check; the three together.                                       |
+| `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The requests that read this file on its own, a scan or a photograph; the import's totals include them.                                                       |
+| `client_file_id`                                                   | The client file it became in the import folder; set null if that file is deleted.                                                                            |
+
+`limit_import_files` locks the import and refuses a file once the import is past `uploading`
+(`IMP01`), or one that would take it beyond 150 files or 100 MiB (`IMP05`). `protect_import`
+refuses an import into an archived client (`CLA01`) or a lead (`CLL01`), for the secret key too,
+since the API writes imports with it, and keeps a confirmed or abandoned import at its step
+(`IMP06`).
+
+**Who reads and writes.** Members of the organization read its imports and their files; an
+import into a client is read only by those who read the client, since the policy asks for the
+client under the caller's own policies. Nobody signed in inserts, updates or deletes either
+table. The API creates imports and their files' rows with the secret key, after checking the
+member, and its queue consumer records the steps, the files' states, the proposal and the
+usage the same way, the usage through `record_import_usage(import, file, input, cached, output,
+cost)`, which adds to the import and, given a file, to that file. A member's decisions are three
+functions that run as their owner and find the import as the select policy does, answering
+`P0002` for one the caller cannot see: `save_import_changes(import, expected version, changes)`
+stores the review and returns the next version, `abandon_import(import)` ends any import not
+yet confirmed or abandoned, and `apply_client_import` confirms. Both of the first refuse an import
+that is not ready (`IMP01`) and a stale version (`IMP02`); abandoning refuses an ended import
+(`IMP01`).
+
+**The bucket.** `imports` is private, takes PDF, `.doc`, `.docx`, JPEG, PNG, HEIC, plain text
+and JSON, up to 20 MiB. As for client files, the row comes first: members upload only to the
+`storage_path` of a row of theirs that is still `uploading`, in an import still `uploading`,
+whose client, if any, is active (`is_uploadable_import_path`); they read any path a row of theirs
+names, the original, its text or its converted file (`is_readable_import_path`). Both run as the
+caller, so the policies of the rows decide. Text, converted files and every removal are the
+API's.
+
+**Confirming.** `apply_client_import(import, expected version, payload)` writes everything in one
+transaction and returns `{"client_id", "files": [{"client_file_id", "source_path",
+"target_path"}]}`. It refuses another kind of import (`22023`), one not ready (`IMP01`), a stale
+version (`IMP02`), an existing client that is archived (`CLA01`) or whose CUI is not the
+documents' `company_cui` or the payload's `cui` (`IMP03`), and a new client whose CUI the
+organization already has (`IMP04`). Every row passes its constraints and triggers, so an
+employee without a position gets the one named like their job title, and a position's equipment
+decision follows its entries.
+
+The payload is shaped like the tables, not like the proposal; the API maps one onto the other.
+Each object refuses a field it does not name (`22023`), and a column field takes the column's
+values, JSON null or absent leaving the default:
+
+```text
+{
+  "client": { "legal_name", "cui", "vat_payer", "caen_code", "trade_register_number",
+    "county_code", "locality", "address_line", "legal_representative_name",
+    "legal_representative_role", "contact_name", "contact_email", "contact_phone",
+    "periodic_training_minutes", "administrative_training_interval_months",
+    "administrative_training_not_applicable", "worker_training_interval_months",
+    "worker_training_not_applicable", "training_first_month", "training_day_from",
+    "training_day_to", "replace" },
+  "workplaces": [{ "key", "id", "replace", "name", "is_registered_office", "kind",
+    "county_code", "locality", "address_line", "activity", "floor_area_m2",
+    "extinguisher_norm", "assembly_point", "combustible_materials", "ignition_sources",
+    "fire_risk_equipment", "specific_measures" }],
+  "job_positions": [{ "key", "id", "replace", "name", "staff_category", "work_zone",
+    "activities", "training_interval_months" }],
+  "equipment": [{ "job_position_key | job_position_id", "risk", "item", "quantity",
+    "duration_months", "allocation" }],
+  "employees": [{ "key", "job_position_key | job_position_id", "workplace_key | workplace_id",
+    "last_name", "first_name", "job_title", "hired_at", "cnp", "employee_number", "email",
+    "phone", "contract_number" }],
+  "responsible_persons": [{ "employee_key | employee_id", "workplace_key | workplace_id",
+    "full_name", "job_title", "roles" }],
+  "fire_safety": { "periodic_training_hours", "administrative_training_interval_months",
+    "worker_training_interval_months", "training_first_month", "training_day_from",
+    "training_day_to", "smoking_policy", "smoking_place", "waste_kinds", "waste_contractor",
+    "waste_collectors", "has_third_parties", "replace" },
+  "fire_equipment": [{ "workplace_key | workplace_id", "kind", "agent", "capacity", "wheeled",
+    "label", "location", "manufactured_year", "last_service_on", "next_service_on",
+    "maintainer" }],
+  "fire_installations": [{ "workplace_key | workplace_id", "kind", "description",
+    "maintainer", "last_check_on", "next_check_on" }],
+  "quality": { "<section>": { "changed": 0, "unticked": 0, "kept": 0 } }
+}
+```
+
+- Only `client` is required. A new client's import creates the client from it.
+- An existing client's import fills the client's empty columns and keeps the others, except
+  those listed in `replace`, the columns where the member took the documents' value. A
+  training interval and its "not applicable" are one choice: an interval fills only a client
+  that has not declared the category not applicable, and replacing it clears the declaration.
+  `cui`, when given, must be the client's.
+- A workplace or a job position with `id` is an existing row of the client, filled the same
+  way; a job position without `id` named like an active one of the client is that one, as the
+  unique index on the name says. The client's `client_fire_safety` row is filled the same way
+  when it exists. An empty array counts as empty. Every other item is a new row.
+- `key` is any string unique within its list. An item names a row of another list by its `key`
+  in the payload, or by the `id` of an existing row of the client, which the composite foreign
+  keys hold to the same client.
+- The one employee the client import creates is the workers' representative (ADR 010): an
+  `employees` item, with the hire date the member gave, and a `responsible_persons` item naming
+  it. The API's rule that gives a new employee the client's only workplace does not run here;
+  the payload names the workplace.
+- A room, where fire-safety means stand, is a unit's `location`. Buildings, maintenance rows and
+  substances are not imported.
+- `quality` is stored on the import as given.
+
+Then the import folder: a client file for every file of the import except those still
+`uploading` and another company's, named after the file without its extension, in the folders
+of its `upload_path`, uploaded by the member who created the import. A HEIC photograph becomes
+its JPEG, `IMG_0042.jpg`, with the converted file's size and hash; one never converted is left
+out, since `client-files` does not take HEIC. A set-aside file is still in the folder; the app
+marks it "necitit" from its import file's `state`. Each import file gets its `client_file_id`,
+and the import is confirmed with its client, `confirmed_by` and `quality`.
+
+The API then copies each `source_path` in `imports` to its `target_path` in `client-files`,
+treating an object already there as copied, and sets `files_copied_at` with the secret key.
+`import_folder_copies(import)` lists the same copies again, under the caller's policies, for a
+copy that was interrupted.
+
+**Retention.** Two functions for the secret key, which a scheduled job of the API calls and
+which return the paths in `imports` for the API to remove. `delete_abandoned_imports()` deletes
+the imports abandoned, or failed, more than 14 days ago with their files' rows.
+`drop_import_proposals()` nulls `proposal` and `changes` 30 days after confirming and sets
+`proposal_dropped_at`; for every import whose proposal is dropped and whose folder is copied, it
+returns all of its objects once, the originals, the texts and the converted files, clears the
+files' `text_path` and `derived_path`, and sets `objects_removed_at`. The originals of a folder
+not yet copied stay, since they are its only copy. The import keeps its dates, its people, its
+counts and its cost, and its files' rows stay.
 
 ## Profiles
 
