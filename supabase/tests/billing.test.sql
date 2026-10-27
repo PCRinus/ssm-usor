@@ -1,5 +1,5 @@
 begin;
-select plan(26);
+select plan(27);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -136,12 +136,20 @@ select throws_ok(
 );
 
 reset role;
-select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000002');
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 
 select results_eq(
   $$ select stripe_invoice_id from public.billing_invoices order by stripe_invoice_id $$,
   $$ values ('in_1Paid'), ('in_1Pending'), ('re_1Refund') $$,
-  'a member reads its own organization''s invoices and no other'
+  'the owner reads its own organization''s invoices and no other'
+);
+
+reset role;
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000002');
+
+select is_empty(
+  $$ select 1 from public.billing_invoices $$,
+  'a specialist reads no invoices: they are the owner''s'
 );
 
 select results_eq(

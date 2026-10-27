@@ -88,8 +88,8 @@ on non-prod), `amount_cents` with VAT in `currency` (negative for a storno), and
 `oblio_series`, `oblio_number` and `oblio_link`, set together with `issued_at` once Oblio has
 issued it. `pdf_path` is our copy of Oblio's PDF in the private `billing-invoices` bucket
 (`<organization id>/<series>-<number>.pdf`), downloaded once after issue; the bucket has no
-policies, so members get the file only through the API's signed link. Members read their own
-organization's rows; only the secret key writes.
+policies, so the file is reachable only through the API's signed link. Only the owner reads
+the organization's rows, as the invoices are the owner's (ADR 029); only the secret key writes.
 
 ## Platform admins and impersonation
 

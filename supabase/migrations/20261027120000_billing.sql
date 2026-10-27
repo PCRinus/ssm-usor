@@ -121,9 +121,12 @@ revoke all on table public.stripe_events from anon, authenticated;
 revoke all on table public.billing_invoices from anon;
 revoke insert, update, delete, truncate on table public.billing_invoices from authenticated;
 
-create policy "members read their organization's invoices"
+create policy "owners read their organization's invoices"
   on public.billing_invoices for select to authenticated
-  using (organization_id = public.current_organization_id());
+  using (
+    organization_id = (select public.current_organization_id())
+    and (select public.is_organization_owner())
+  );
 
 -- No policies on purpose: members never read the bucket directly; the API checks the member and
 -- hands out a short-lived signed link.
