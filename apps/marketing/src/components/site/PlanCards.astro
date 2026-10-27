@@ -1,6 +1,6 @@
 ---
 import PlanLine from './PlanLine.astro';
-import { billing, enterprise, monthlyPrice, pricedPlans, priceNote, pricingCta } from './pricing';
+import { annualNote, billing, enterprise, monthlyPrice, pricedPlans, pricingCta } from './pricing';
 
 interface Props {
   placement: string;
@@ -26,8 +26,7 @@ const { placement } = Astro.props;
           <span class="per">{billing.perMonth}</span>
         </p>
         <p class="sub">
-          <span class="when-monthly">{priceNote(plan, 'monthly')}</span>
-          <span class="when-annual">{priceNote(plan, 'annual')}</span>
+          <span class="when-annual">{annualNote(plan)}</span>
         </p>
       </div>
       <div class="cta">
@@ -154,6 +153,8 @@ const { placement } = Astro.props;
     font-size: 15px;
   }
   .sub {
+    /* Holds the annual note's line while monthly is selected, so the buttons stay put on toggle. */
+    min-height: 1lh;
     margin-top: 4px;
     color: var(--ink-2);
     font-size: 14px;

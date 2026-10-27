@@ -113,10 +113,8 @@ export function monthlyPrice(plan: PricedPlan, period: BillingPeriod): string {
   return eur(period === 'monthly' ? plan.monthly : Math.round((plan.annual / 12) * 100) / 100);
 }
 
-export function priceNote(plan: PricedPlan, period: BillingPeriod): string {
-  return period === 'monthly'
-    ? `Anual: ${eur(plan.annual)} + TVA`
-    : `Plătit o dată pe an: ${eur(plan.annual)} + TVA`;
+export function annualNote(plan: PricedPlan): string {
+  return `Plătit o dată pe an: ${eur(plan.annual)} + TVA`;
 }
 
 export const addOns = {
