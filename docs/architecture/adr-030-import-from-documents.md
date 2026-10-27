@@ -81,16 +81,13 @@ The photographs become the employees' client files ([ADR 021](adr-021-training-r
 
 The uploaded files live in a private bucket of their own, `imports`, under `<organization>/<import>/<file>`, while the import is open, since a new client does not exist yet. On confirming they become client files ([ADR 013](adr-013-client-files.md)): one **import folder** (_dosar importat_) per import in "Alte documente", collapsed, named after the day, keeping the upload's folders, with the set-aside files marked "necitit" and a download of the whole folder as a ZIP. The photographs of an employee import go to the employees they belong to. Text extracted, converted files and the proposal are kept with the import, not shown as files.
 
-An abandoned import is deleted with its files after 30 days; a confirmed import keeps its proposal for 30 days, for support, then drops it. The proposal holds CNPs, so it lives no longer than it is useful.
+An abandoned import is deleted with its files after 14 days; a confirmed import keeps its proposal for 30 days, for support, then drops it. The proposal holds CNPs, so it lives no longer than it is useful.
 
-### Credits
+### Usage is recorded now and limited later
 
-The model's work is counted in **credits** (_credite_), one unit for both imports. Reading a client's documents together costs a fixed number of credits, and each scan, page of a scanned PDF or photograph read on its own costs one. Each plan and the trial include credits a month ([ADR 029](adr-029-billing-plans-and-trials.md)); the numbers live with the plans in `pricing.ts`.
+The model's work will be counted in **credits** (_credite_), one unit for both imports, charged when the reading starts and given back for failures on our side, with an allowance per plan and trial ([ADR 029](adr-029-billing-plans-and-trials.md)). How many credits an import uses, the allowances and what happens when they run out are decided later, in #640, from real use. Until then the imports have no allowance, and the testers use them freely.
 
-- Credits are charged when the reading starts, since that is when the model costs us money. A failure on our side (the gateway, the model, our code) gives them back; a member who abandons an import after reading does not get them back.
-- The upload dialog says what the import will use and what is left, before the member starts it.
-- With too few credits left, an import cannot start, and the dialog says so. Buying more comes with Stripe in phase 2 of ADR 029. Until then a manual workflow adds credits to an organization, the way "Extinde perioada de probă" moves a trial.
-- An import is also capped in size (files, pages, extracted text) so that no single upload can run up an unbounded cost. Above the cap the dialog asks for fewer files.
+What is built now is what that decision needs and what protects the account meanwhile. Every request's tokens and cost are stored on its import and sent as gateway metadata, so the cost per organization and per import is known from the first one. And an import is capped in size (files, megabytes, extracted text), so no single upload can run up an unbounded cost; above the cap the dialog asks for fewer files.
 
 ### Data protection
 
@@ -113,7 +110,7 @@ The import is the exception to product scope's "no personal data in AI prompts b
 
 - The app now reads a customer's files and sends personal data to a model. The data processing agreement, the privacy policy and product scope change before production, and a provider has to be told 15 days ahead.
 - `apps/pdf` gains a second container class, the extractor, with its own image; the API gains a queue, a bucket and calls to OpenAI through the gateway, and the gateway's token joins the API's secrets.
-- The schema gains the imports, their files, the credits ledger, and a link from client files to the import folder they came from, with the folder path.
+- The schema gains the imports, their files, and a link from client files to the import folder they came from, with the folder path.
 - The app gains a ZIP reader in the browser, a PDF viewer, and the Word editor in view mode inside the review.
 - Accuracy is measured, not assumed: about one value in twenty is wrong or missing, which is why every value carries its source and nothing is written without review. How often members change proposed values is recorded per import, without the values, as the measure of quality.
 - The reference archives and the evaluation stay outside this public repository. Tests use invented documents and recorded model answers.
@@ -128,20 +125,18 @@ Each step is a pull request in one stack, on this ADR.
 1. This ADR; the glossary terms in `CONTEXT.md`; the notes in ADR 013 and ADR 021; product scope §6.9 amended.
 2. A package, `packages/import`: the proposal schema (Zod, with the flattened wire form the model is held to: no nullables, numbers as strings), the prompts with the rules above, the Word-XML-to-text renderer, the quote matcher, the checks. Tested on invented documents.
 3. The extractor container in `apps/pdf`: `.doc` to `.docx`, PDF text with pages and the scan flag, HEIC to JPEG, behind the PDF Worker's binding.
-4. The database: imports, import files, credits and their ledger, the `imports` bucket, the import folder on client files, the policies, and the function that confirms a proposal in one transaction. pgTAP tests.
-5. The API: create an import, upload its files, start the reading (charging credits), the queue's steps with the gateway calls, the proposal with the member's changes, the source of a value, confirm, abandon, the 30-day clean-up. On steps 2–4.
+4. The database: imports, import files, the `imports` bucket, the import folder on client files, the policies, and the function that confirms a proposal in one transaction. pgTAP tests.
+5. The API: create an import, upload its files, start the reading, the queue's steps with the gateway calls and their recorded cost, the proposal with the member's changes, the source of a value, confirm, abandon, the clean-up. On steps 2–4.
 6. The app, upload and progress: the entry points on the client list and the client's page, the upload dialog with the ZIP reader and the folder picker, the processing page, the import's row on the client list.
 7. The app, review: the hub, the section pages, Schimbă, the existing-client differences, the source dialog with the Word viewer, the PDF viewer and the image viewer, confirming, the client page after it, and the import folder in "Alte documente".
-8. Credits: the allowance per plan and trial, the usage line, the refusal, the manual workflow.
-9. The data processing agreement and privacy policy, announced 15 days before step 7 reaches production; the help article.
+8. The data processing agreement and privacy policy, announced 15 days before step 7 reaches production; the help article.
 
 **The employee import**
 
-10. Reading sheets: the photograph prompt and schema, grouping pages into people, matching positions and existing employees, in `packages/import` and the API.
-11. The app: the entry on the Angajați tab, the upload with thumbnails, the people hub, the person page with the photo column, confirming into employees, training records and their files.
+9. Reading sheets: the photograph prompt and schema, grouping pages into people, matching positions and existing employees, in `packages/import` and the API.
+10. The app: the entry on the Angajați tab, the upload with thumbnails, the people hub, the person page with the photo column, confirming into employees, training records and their files.
 
 ## Defaults taken instead of asking
 
-- **How many credits each import uses, and the monthly allowances.** These go in the step 8 pull request for Mircea to set; the evaluation's costs are about $0.13 to read a client's documents and a few cents a photograph.
-- **The size cap of an import.** 150 files and 300 MiB, with 20 MiB a file as for client files, and the extracted text capped below the model's higher price tier.
-- **Retention.** 30 days for an abandoned import and for a confirmed import's proposal; 30 days of gateway logs.
+- **The size cap of an import.** 150 files and 100 MiB, with 20 MiB a file as for client files, and the extracted text capped below the model's higher price tier. The five real archives held 49 to 60 files and 8 to 29 MiB, the largest file 6.7 MiB. Nothing in the path holds a whole import at once: files go from the browser straight to Storage, and every later step takes one file, so the per-file limit is what protects a Worker's 128 MiB of memory. The total protects the model's bill, the member's browser while it opens a ZIP, and the download of an import folder as one ZIP, which is streamed, never built in memory.
+- **Retention.** 14 days for an abandoned import, 30 days for a confirmed import's proposal, 30 days of gateway logs.

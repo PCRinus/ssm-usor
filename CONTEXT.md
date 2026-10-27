@@ -236,7 +236,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Import folder** (_dosar importat_): the files of a confirmed import in "Alte documente", grouped under the day of the import with the upload's folders. ADR 030. Avoid: archive, which is what an archived client is.
 
-**Credit** (_credit_): the unit an import's reading is counted in, one for both imports, included monthly with a plan or a trial. ADR 030. Avoid: token, which is the model's unit, and import as a unit.
+**Credit** (_credit_): the unit an import's reading will be counted in, one for both imports, included monthly with a plan or a trial. Not built yet: the amounts are #640. ADR 030. Avoid: token, which is the model's unit, and import as a unit.
 
 ## Billing
 
