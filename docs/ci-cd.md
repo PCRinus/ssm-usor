@@ -125,12 +125,14 @@ Workers when they are selected, because its service bindings need those Workers 
 deployment uploads the `TWILIO_ACCOUNT_SID` and `SMS_FROM` variables and the `TWILIO_AUTH_TOKEN` secret when all three are
 there and warns when they are not. SPA-only changes skip API deployment. If API and
 SPA both change, API deployment and its HTTP smoke tests must succeed before SPA deployment.
-Before uploading, the API job looks up the `ssm-usor-regeneration` queue (`ssm-usor-regeneration-non-prod`
-in non-prod) the Worker sends to
-and consumes, and creates it when it is missing, because `wrangler deploy` refuses a binding to
+Before uploading, the API job looks up the `ssm-usor-regeneration` and `ssm-usor-import` queues
+(with `-non-prod` after them in non-prod) the Worker sends to
+and consumes, and creates the missing ones, because `wrangler deploy` refuses a binding to
 a queue that does not exist; the deployment token needs **Queues → Edit** for that
 ([deployment guide](deployment.md#create-the-cloudflare-api-token)). The step can be repeated:
-an existing queue is left as it is.
+an existing queue is left as it is. The API job also uploads the repository's `AI_GATEWAY_URL`
+variable and `AI_GATEWAY_TOKEN` secret to the Worker, as secrets, when they are set, for imports
+from documents ([deployment guide](deployment.md#the-same-gateway-for-imports-from-documents)).
 The legislation Worker deploys after the migrations, since its cron writes to a table they
 create, with the environment's `VITE_SUPABASE_URL` as its `SUPABASE_URL` and `SUPABASE_SECRET_KEY`
 as a secret, beside `LEGISLATION_RELAY_CLIENT_ID` and `LEGISLATION_RELAY_CLIENT_SECRET`, the Access

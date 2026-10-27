@@ -779,11 +779,13 @@ jobs:
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           OBLIO_CLIENT_ID: ${{ secrets.OBLIO_CLIENT_ID }}
           OBLIO_CLIENT_SECRET: ${{ secrets.OBLIO_CLIENT_SECRET }}
+          AI_GATEWAY_URL: ${{ vars.AI_GATEWAY_URL }}
+          AI_GATEWAY_TOKEN: ${{ secrets.AI_GATEWAY_TOKEN }}
         shell: bash
         run: |
           {
             echo 'names<<EOF'
-            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET SUPABASE_AUTH_SMS_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY SIGNING_CA_KEY SIGNING_CA_CERT SIGNING_KEY_ENCRYPTION_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET OBLIO_CLIENT_ID OBLIO_CLIENT_SECRET; do
+            for name in SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY SUPABASE_AUTH_HOOK_SECRET SUPABASE_AUTH_SMS_HOOK_SECRET POSTHOG_SUPPORT_SECRET_KEY SIGNING_CA_KEY SIGNING_CA_CERT SIGNING_KEY_ENCRYPTION_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET OBLIO_CLIENT_ID OBLIO_CLIENT_SECRET AI_GATEWAY_URL AI_GATEWAY_TOKEN; do
               if [[ -n "${!name}" ]]; then
                 echo "$name"
               else
@@ -799,20 +801,22 @@ jobs:
 
       # `wrangler deploy` refuses a Worker bound to a queue that does not exist. When the lookup
       # fails for another reason, creating fails too, and says why.
-      - name: Create the regeneration queue if it is missing
+      - name: Create the regeneration and import queues if they are missing
         working-directory: apps/api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
-        # Has to match the queue wrangler.jsonc names for the environment.
+        # Has to match the queues wrangler.jsonc names for the environment.
         run: |
-          queue="ssm-usor-regeneration${CLOUDFLARE_ENV:+-$CLOUDFLARE_ENV}"
-          if pnpm exec wrangler queues info "$queue" > /dev/null 2>&1; then
-            echo "The queue $queue exists."
-          else
-            pnpm exec wrangler queues create "$queue"
-          fi
+          for name in ssm-usor-regeneration ssm-usor-import; do
+            queue="$name${CLOUDFLARE_ENV:+-$CLOUDFLARE_ENV}"
+            if pnpm exec wrangler queues info "$queue" > /dev/null 2>&1; then
+              echo "The queue $queue exists."
+            else
+              pnpm exec wrangler queues create "$queue"
+            fi
+          done
 
       - name: Deploy validated API bundle
         uses: cloudflare/wrangler-action@v4
@@ -831,6 +835,10 @@ jobs:
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           OBLIO_CLIENT_ID: ${{ secrets.OBLIO_CLIENT_ID }}
           OBLIO_CLIENT_SECRET: ${{ secrets.OBLIO_CLIENT_SECRET }}
+          AI_GATEWAY_TOKEN: ${{ secrets.AI_GATEWAY_TOKEN }}
+          # A GitHub variable, uploaded as a secret so that a repository without it still deploys:
+          # the step above selects only the values that are set.
+          AI_GATEWAY_URL: ${{ vars.AI_GATEWAY_URL }}
           # Issued documents get their PDF from apps/pdf. Set here and not in wrangler.jsonc,
           # so that `wrangler dev`, where nothing answers that binding, issues without one.
           PDF_CONVERSION: service
