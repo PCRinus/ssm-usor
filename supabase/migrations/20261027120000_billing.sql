@@ -21,9 +21,9 @@ alter table public.subscriptions
   add column price_version text
     constraint subscriptions_price_version_format check (price_version ~ '^v[0-9]+$'),
   add column employee_packs int not null default 0
-    constraint subscriptions_employee_packs_positive check (employee_packs >= 0),
+    constraint subscriptions_employee_packs_non_negative check (employee_packs >= 0),
   add column extra_members int not null default 0
-    constraint subscriptions_extra_members_positive check (extra_members >= 0),
+    constraint subscriptions_extra_members_non_negative check (extra_members >= 0),
   -- Where Oblio sends the invoices instead of the owner's email; null for the owner's.
   add column invoice_email text
     constraint subscriptions_invoice_email_format
