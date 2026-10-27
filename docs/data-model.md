@@ -67,6 +67,27 @@ subscription may have no `access_until`, so a cancelled or failing one always ha
 `access`, so the API checks it on every request without another call. Read-only is enforced
 by the API, not by policies.
 
+Once a plan is chosen, the row also carries Stripe's side: `stripe_account` (the account the
+customer lives in, which a move from the PFA to an SRL may change), `stripe_customer_id`,
+`stripe_subscription_id` (unique), `billing_interval` (`month` or `year`), `price_version` (the
+catalogue version of its prices, such as `v1`), the quantities `employee_packs` and
+`extra_members` (both 0 by default), `invoice_email`, where Oblio sends the invoices instead of
+the owner, and `current_period_end`. All are null during a trial. A Stripe customer needs its
+account, and a Stripe subscription its customer, interval and price version. The plans, prices
+and Stripe lookup keys themselves live in the plan catalogue in `packages/contracts`, not in the
+database.
+
+`stripe_events` records every webhook event by its Stripe id (`type`, `received_at`,
+`processed_at`, and the `error` of a failed attempt), so an event delivered twice is handled
+once. Nobody reads or writes it but the secret key.
+
+`billing_invoices` holds one row per document Oblio issued for a Stripe payment, keyed by the
+Stripe invoice (for a storno, by the Stripe refund it reverses, with `storno_of` pointing at the
+original): the `stripe_account` that issued it, its `kind` (`invoice` in production, `proforma`
+on non-prod), `amount_cents` with VAT in `currency` (negative for a storno), and the Oblio
+`oblio_series`, `oblio_number` and `oblio_link`, set together with `issued_at` once Oblio has
+issued it. Members read their own organization's rows; only the secret key writes.
+
 ## Platform admins and impersonation
 
 `public.is_platform_admin()` is true for a JWT whose `app_metadata.role` is `admin`. Platform

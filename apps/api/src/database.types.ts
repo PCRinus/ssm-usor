@@ -157,6 +157,76 @@ export type Database = {
           },
         ];
       };
+      billing_invoices: {
+        Row: {
+          amount_cents: number;
+          created_at: string;
+          currency: string;
+          issued_at: string | null;
+          kind: Database['public']['Enums']['billing_document_kind'];
+          oblio_link: string | null;
+          oblio_number: string | null;
+          oblio_series: string | null;
+          organization_id: string;
+          storno_of: string | null;
+          stripe_account: string;
+          stripe_invoice_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          amount_cents: number;
+          created_at?: string;
+          currency: string;
+          issued_at?: string | null;
+          kind: Database['public']['Enums']['billing_document_kind'];
+          oblio_link?: string | null;
+          oblio_number?: string | null;
+          oblio_series?: string | null;
+          organization_id: string;
+          storno_of?: string | null;
+          stripe_account: string;
+          stripe_invoice_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          amount_cents?: number;
+          created_at?: string;
+          currency?: string;
+          issued_at?: string | null;
+          kind?: Database['public']['Enums']['billing_document_kind'];
+          oblio_link?: string | null;
+          oblio_number?: string | null;
+          oblio_series?: string | null;
+          organization_id?: string;
+          storno_of?: string | null;
+          stripe_account?: string;
+          stripe_invoice_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'billing_invoices_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'billing_invoices_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'billing_invoices_storno_of_fkey';
+            columns: ['storno_of'];
+            isOneToOne: false;
+            referencedRelation: 'billing_invoices';
+            referencedColumns: ['stripe_invoice_id'];
+          },
+        ];
+      };
       client_documents: {
         Row: {
           client_id: string;
@@ -4497,6 +4567,30 @@ export type Database = {
           },
         ];
       };
+      stripe_events: {
+        Row: {
+          error: string | null;
+          id: string;
+          processed_at: string | null;
+          received_at: string;
+          type: string;
+        };
+        Insert: {
+          error?: string | null;
+          id: string;
+          processed_at?: string | null;
+          received_at?: string;
+          type: string;
+        };
+        Update: {
+          error?: string | null;
+          id?: string;
+          processed_at?: string | null;
+          received_at?: string;
+          type?: string;
+        };
+        Relationships: [];
+      };
       subscription_changes: {
         Row: {
           change: string;
@@ -4545,30 +4639,57 @@ export type Database = {
       subscriptions: {
         Row: {
           access_until: string | null;
+          billing_interval: Database['public']['Enums']['billing_interval'] | null;
           created_at: string;
+          current_period_end: string | null;
+          employee_packs: number;
+          extra_members: number;
+          invoice_email: string | null;
           organization_id: string;
           plan: Database['public']['Enums']['subscription_plan'];
+          price_version: string | null;
           status: Database['public']['Enums']['subscription_status'];
+          stripe_account: string | null;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
           trial_ends_at: string | null;
           trial_sms: boolean;
           updated_at: string;
         };
         Insert: {
           access_until?: string | null;
+          billing_interval?: Database['public']['Enums']['billing_interval'] | null;
           created_at?: string;
+          current_period_end?: string | null;
+          employee_packs?: number;
+          extra_members?: number;
+          invoice_email?: string | null;
           organization_id: string;
           plan: Database['public']['Enums']['subscription_plan'];
+          price_version?: string | null;
           status: Database['public']['Enums']['subscription_status'];
+          stripe_account?: string | null;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
           trial_ends_at?: string | null;
           trial_sms?: boolean;
           updated_at?: string;
         };
         Update: {
           access_until?: string | null;
+          billing_interval?: Database['public']['Enums']['billing_interval'] | null;
           created_at?: string;
+          current_period_end?: string | null;
+          employee_packs?: number;
+          extra_members?: number;
+          invoice_email?: string | null;
           organization_id?: string;
           plan?: Database['public']['Enums']['subscription_plan'];
+          price_version?: string | null;
           status?: Database['public']['Enums']['subscription_status'];
+          stripe_account?: string | null;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
           trial_ends_at?: string | null;
           trial_sms?: boolean;
           updated_at?: string;
@@ -6933,6 +7054,8 @@ export type Database = {
     };
     Enums: {
       access_level: 'full' | 'read_only';
+      billing_document_kind: 'invoice' | 'proforma';
+      billing_interval: 'month' | 'year';
       client_stage: 'lead' | 'client';
       document_group: 'documentation_set' | 'other' | 'fire_safety_set';
       document_revision_status: 'draft' | 'issued' | 'superseded';
@@ -7118,6 +7241,8 @@ export const Constants = {
   public: {
     Enums: {
       access_level: ['full', 'read_only'],
+      billing_document_kind: ['invoice', 'proforma'],
+      billing_interval: ['month', 'year'],
       client_stage: ['lead', 'client'],
       document_group: ['documentation_set', 'other', 'fire_safety_set'],
       document_revision_status: ['draft', 'issued', 'superseded'],
