@@ -745,3 +745,71 @@ describe('the files of a lead', () => {
     );
   });
 });
+
+describe('the import folder', () => {
+  const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
+  const imported = (id: string, name: string, path: string | null, read = true) => ({
+    ...certificate,
+    id,
+    name: name.replace(/\.[^.]+$/, ''),
+    originalFileName: name,
+    importId,
+    importPath: path,
+    importRead: read,
+    importReason: read ? null : 'Fișierul este protejat cu parolă.',
+    createdAt: '2026-10-27T09:00:00+00:00',
+  });
+
+  it('groups the files of an import under one collapsed row, with their folders and what was not read', async () => {
+    mockApi({
+      items: [
+        certificate,
+        imported('11111111-1111-4111-8111-111111111111', 'Decizie 1.docx', 'dosar.zip/SSM'),
+        imported(
+          '22222222-2222-4222-8222-222222222222',
+          'Evaluare riscuri 2019.pdf',
+          'dosar.zip/SSM',
+          false
+        ),
+        imported('33333333-3333-4333-8333-333333333333', 'Contract 2019.pdf', null),
+      ],
+    });
+    const base = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input)).pathname.startsWith('/storage/')
+        ? new Response(new Uint8Array([37, 80, 68, 70]))
+        : base(input, init)
+    );
+    const saved: Blob[] = [];
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => {
+      saved.push(blob as Blob);
+      return 'blob:zip';
+    });
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    mount();
+
+    const folder = await screen.findByTestId('client-import-folder');
+    expect(folder.textContent).toContain('Dosar importat pe 27.10.2026 · 3 fișiere');
+    expect(screen.getAllByTestId('client-file-row')).toHaveLength(1);
+
+    await userEvent.click(within(folder).getByTestId('client-import-folder-toggle'));
+    expect(screen.getAllByTestId('client-file-row').map((row) => row.textContent)).toEqual([
+      expect.stringContaining('Certificat de înregistrare'),
+      expect.stringContaining('Contract 2019'),
+    ]);
+    const subfolder = screen.getByTestId('client-import-subfolder');
+    expect(subfolder.textContent).toContain('dosar.zip/SSM');
+    await userEvent.click(within(subfolder).getByRole('button'));
+    const unread = screen
+      .getAllByTestId('client-file-row')
+      .find((row) => row.textContent?.includes('Evaluare riscuri 2019'))!;
+    expect(within(unread).getByTestId('client-file-unread').textContent).toBe('Necitit');
+    expect(unread.textContent).toContain('fișierul este protejat cu parolă');
+
+    await userEvent.click(within(folder).getByTestId('client-import-folder-zip'));
+    await waitFor(() => expect(saved).toHaveLength(1));
+    expect(saved[0]!.type).toBe('application/zip');
+    expect(saved[0]!.size).toBeGreaterThan(3 * 4);
+  });
+});
