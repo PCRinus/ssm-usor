@@ -1,5 +1,5 @@
 begin;
-select plan(73);
+select plan(74);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -109,6 +109,15 @@ select throws_ok(
   '23514',
   null,
   'its text sits beside it'
+);
+
+select throws_ok(
+  $$ update public.import_files set derived_path = regexp_replace(storage_path, '\.pdf$', '.jpg'),
+       derived_size_bytes = 1, derived_sha256 = repeat('3', 64)
+     where id = 'f0000000-0000-4000-8000-000000000003' $$,
+  '23514',
+  null,
+  'only a .doc or a HEIC has a converted file'
 );
 
 select throws_ok(

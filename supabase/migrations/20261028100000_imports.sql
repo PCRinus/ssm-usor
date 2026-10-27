@@ -203,10 +203,9 @@ create table public.import_files (
     )
   ),
   constraint import_files_derived_path_beside check (
-    derived_path = regexp_replace(storage_path, '\.[a-z]+$', case
-      when mime_type = 'application/msword' then '.docx'
-      when mime_type in ('image/heic', 'image/heif') then '.jpg'
-    end)
+    derived_path is null
+    or (mime_type = 'application/msword' and derived_path = regexp_replace(storage_path, '\.[a-z]+$', '.docx'))
+    or (mime_type in ('image/heic', 'image/heif') and derived_path = regexp_replace(storage_path, '\.[a-z]+$', '.jpg'))
   ),
   constraint import_files_derived_described check (
     (derived_path is null) = (derived_size_bytes is null) and (derived_path is null) = (derived_sha256 is null)
