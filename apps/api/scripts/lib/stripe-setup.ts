@@ -26,6 +26,8 @@ export const webhookEvents = [
   'invoice.payment_action_required',
   'invoice.upcoming',
   'charge.refunded',
+  // A card saved in the portal after a failed renewal pays the open invoice at once (ADR 029).
+  'customer.updated',
 ] as const satisfies Stripe.WebhookEndpointUpdateParams.EnabledEvent[];
 
 export class SetupError extends Error {}
