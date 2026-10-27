@@ -23,6 +23,7 @@ const trialRow = {
   status: 'trialing',
   trial_ends_at: '2026-11-25T10:00:00+00:00',
   access_until: '2026-11-25T10:00:00+00:00',
+  stripe_subscription_id: null as string | null,
 };
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -136,11 +137,26 @@ describe('GET /me', () => {
 
     expect(meResponseSchema.parse(await response.json()).subscription).toEqual({
       plan: 'profesional',
+      planChosen: false,
       status: 'trialing',
       trialEndsAt: '2026-11-25T10:00:00.000Z',
       accessUntil: '2026-11-25T10:00:00.000Z',
       access: 'full',
       deletesAt: null,
+    });
+  });
+
+  it('names the plan chosen during a trial, which carries on until the first charge', async () => {
+    mockUpstream({
+      subscription: { ...trialRow, plan: 'start', stripe_subscription_id: 'sub_123' },
+    });
+
+    const response = await request('/me');
+
+    expect(meResponseSchema.parse(await response.json()).subscription).toMatchObject({
+      plan: 'start',
+      planChosen: true,
+      status: 'trialing',
     });
   });
 

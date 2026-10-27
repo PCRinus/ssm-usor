@@ -39,7 +39,7 @@ function toProfile(row: ProfileRow): Profile {
 
 type SubscriptionRow = Pick<
   Database['public']['Tables']['subscriptions']['Row'],
-  'plan' | 'status' | 'trial_ends_at' | 'access_until'
+  'plan' | 'status' | 'trial_ends_at' | 'access_until' | 'stripe_subscription_id'
 >;
 
 function toSubscription(
@@ -53,6 +53,7 @@ function toSubscription(
       : null;
   return {
     plan: row.plan,
+    planChosen: row.stripe_subscription_id !== null,
     status: row.status,
     trialEndsAt: iso(row.trial_ends_at),
     accessUntil: iso(row.access_until),
@@ -80,7 +81,7 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
         db.from('organizations').select('id, name').eq('id', organizationId).maybeSingle(),
         db
           .from('subscriptions')
-          .select('plan, status, trial_ends_at, access_until')
+          .select('plan, status, trial_ends_at, access_until, stripe_subscription_id')
           .eq('organization_id', organizationId)
           .maybeSingle(),
       ])

@@ -206,6 +206,9 @@
                 "type": "string",
                 "enum": ["start", "profesional", "enterprise"]
               },
+              "planChosen": {
+                "type": "boolean"
+              },
               "status": {
                 "type": "string",
                 "enum": ["trialing", "active", "past_due", "canceled"]
@@ -230,7 +233,15 @@
                 "format": "date-time"
               }
             },
-            "required": ["plan", "status", "trialEndsAt", "accessUntil", "access", "deletesAt"]
+            "required": [
+              "plan",
+              "planChosen",
+              "status",
+              "trialEndsAt",
+              "accessUntil",
+              "access",
+              "deletesAt"
+            ]
           }
         },
         "required": ["user", "profile", "membership"]

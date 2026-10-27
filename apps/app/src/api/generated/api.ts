@@ -192,6 +192,7 @@ export const MeResponseSubscriptionAccess = {
  */
 export type MeResponseSubscription = {
   plan: MeResponseSubscriptionPlan;
+  planChosen: boolean;
   status: MeResponseSubscriptionStatus;
   /** @nullable */
   trialEndsAt: string | null;

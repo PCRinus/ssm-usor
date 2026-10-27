@@ -13,6 +13,7 @@ const inDays = (days: number) => {
 
 const trial = (days: number): SubscriptionSummary => ({
   plan: 'profesional',
+  planChosen: false,
   status: 'trialing',
   trialEndsAt: inDays(days),
   accessUntil: inDays(days),

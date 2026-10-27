@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-import { subscriptionPlanSchema } from './subscriptions';
+import {
+  accessLevelSchema,
+  subscriptionPlanSchema,
+  subscriptionStatusSchema,
+} from './subscriptions';
 
 export const billingIntervalSchema = z.enum(['month', 'year']);
 export type BillingInterval = z.infer<typeof billingIntervalSchema>;
@@ -178,3 +182,234 @@ export const cataloguePrices: CataloguePrice[] = [
   ),
   smsOverage.price,
 ];
+
+export const billingChoiceSchema = z.object({
+  plan: paidPlanSchema,
+  interval: billingIntervalSchema,
+  employeePacks: z.int().min(0).max(100),
+  extraMembers: z.int().min(0).max(100),
+});
+export type BillingChoice = z.infer<typeof billingChoiceSchema>;
+
+export const billingChoiceProblemReasonSchema = z.enum([
+  'start_employee_ceiling',
+  'start_member_ceiling',
+  'employee_packs_below_need',
+  'extra_members_below_need',
+  'employee_packs_above_plan',
+  'extra_members_above_plan',
+]);
+export type BillingChoiceProblemReason = z.infer<typeof billingChoiceProblemReasonSchema>;
+
+export const billingChoiceProblemSchema = z.object({
+  reason: billingChoiceProblemReasonSchema,
+  // With a `_below_need` reason: the fewest packs or extra members that would do.
+  minimum: z.int().min(0).optional(),
+  // With an `_above_plan` reason: the most the plan allows.
+  maximum: z.int().min(0).optional(),
+});
+export type BillingChoiceProblem = z.infer<typeof billingChoiceProblemSchema>;
+
+const cents = z.int();
+const timestamp = z.iso.datetime({ offset: true });
+
+export const billingAmountsSchema = z.object({
+  subtotalCents: cents,
+  vatCents: cents,
+  totalCents: cents,
+});
+export type BillingAmounts = z.infer<typeof billingAmountsSchema>;
+
+export const billingPreviewLineSchema = z.object({
+  product: billingProductKeySchema,
+  quantity: z.int().min(1),
+  // For the whole quantity and one interval, without VAT.
+  amountCents: cents,
+});
+
+export const billingPreviewSchema = z.object({
+  choice: billingChoiceSchema,
+  // Empty when the choice may be bought; otherwise creating or changing to it answers 409.
+  problems: z.array(billingChoiceProblemSchema),
+  minimums: z.object({ employeePacks: z.int().min(0), extraMembers: z.int().min(0) }),
+  // True when the subscription already is, or is already set to become, this choice.
+  unchanged: z.boolean(),
+  recurring: billingAmountsSchema.extend({
+    interval: billingIntervalSchema,
+    lines: z.array(billingPreviewLineSchema),
+  }),
+  // When the whole choice applies: now, at the trial's end, or at the renewal for a downgrade
+  // or a removal, which waits (ADR 029).
+  appliesAt: timestamp,
+  dueToday: billingAmountsSchema,
+  // The difference for the days left of what changes now: on the next renewal of a monthly
+  // plan, charged today (inside `dueToday`) on an annual one. Null when nothing is prorated.
+  proration: z.object({ subtotalCents: cents, chargedNow: z.boolean() }).nullable(),
+  // The plan's next renewal under this choice, a monthly proration included.
+  nextRenewal: billingAmountsSchema.extend({ at: timestamp }),
+  firstChargeAt: timestamp,
+});
+export type BillingPreview = z.infer<typeof billingPreviewSchema>;
+
+export const billingCheckoutResponseSchema = z.object({
+  // For the Payment Element: `confirmPayment` with a payment secret, `confirmSetup` with a
+  // setup one. Null when nothing waits on the browser.
+  clientSecret: z.string().nullable(),
+  intent: z.enum(['payment', 'setup']).nullable(),
+});
+export type BillingCheckoutResponse = z.infer<typeof billingCheckoutResponseSchema>;
+
+// Stripe's own cancellation feedback values, so the reason reaches its dashboard as it is.
+export const cancellationReasonSchema = z.enum([
+  'too_expensive',
+  'missing_features',
+  'switched_service',
+  'unused',
+  'too_complex',
+  'low_quality',
+  'customer_service',
+  'other',
+]);
+export type CancellationReason = z.infer<typeof cancellationReasonSchema>;
+
+export const cancelSubscriptionRequestSchema = z.object({
+  reason: cancellationReasonSchema.optional(),
+  note: z.string().trim().max(500).optional(),
+});
+export type CancelSubscriptionRequest = z.infer<typeof cancelSubscriptionRequestSchema>;
+
+export const invoiceEmailSchema = z.object({
+  // Null sends the invoices to the owner.
+  email: z.email().max(254).nullable(),
+});
+export type InvoiceEmail = z.infer<typeof invoiceEmailSchema>;
+
+export const billingPortalSessionSchema = z.object({ url: z.url() });
+export type BillingPortalSession = z.infer<typeof billingPortalSessionSchema>;
+
+export const billingInvoiceLinkSchema = z.object({
+  url: z.url(),
+  fileName: z.string(),
+  expiresAt: timestamp,
+});
+export type BillingInvoiceLink = z.infer<typeof billingInvoiceLinkSchema>;
+
+export const billingUsageMeterSchema = z.object({
+  used: z.int().min(0).nullable(),
+  // Null where nothing limits it: no subscription, or Enterprise.
+  limit: z.int().min(0).nullable(),
+});
+export type BillingUsageMeter = z.infer<typeof billingUsageMeterSchema>;
+
+export const billingInvoiceSchema = z.object({
+  stripeInvoiceId: z.string(),
+  kind: z.enum(['invoice', 'proforma']),
+  // Oblio's series and number, such as SSMUSOR-0001; null until Oblio has issued it.
+  number: z.string().nullable(),
+  issuedAt: timestamp.nullable(),
+  // With VAT; negative for a storno.
+  amountCents: cents,
+  currency: z.string(),
+  stornoOf: z.string().nullable(),
+  hasPdf: z.boolean(),
+});
+export type BillingInvoice = z.infer<typeof billingInvoiceSchema>;
+
+const pricePair = z.object({ month: cents, year: cents });
+
+export const billingCatalogueSchema = z.object({
+  currency: z.string(),
+  vatPercent: z.number(),
+  plans: z.array(
+    z.object({
+      key: paidPlanSchema,
+      name: z.string(),
+      prices: pricePair,
+      includedEmployees: z.int(),
+      includedMembers: z.int(),
+      maxMembers: z.int().nullable(),
+      monthlySms: z.int(),
+      employeePack: billingProductKeySchema,
+      maxEmployeePacks: z.int().nullable(),
+    })
+  ),
+  employeePacks: z.array(
+    z.object({
+      key: billingProductKeySchema,
+      name: z.string(),
+      employees: z.int(),
+      prices: pricePair,
+    })
+  ),
+  extraMember: z.object({ name: z.string(), prices: pricePair }),
+  smsOverageCents: cents,
+});
+export type BillingCatalogue = z.infer<typeof billingCatalogueSchema>;
+
+const choiceLimitsSchema = z.object({
+  minimums: z.object({ employeePacks: z.int(), extraMembers: z.int() }),
+  problems: z.array(billingChoiceProblemSchema),
+});
+
+export const billingOverviewSchema = z.object({
+  // Null for an organization without a subscription, which has full access indefinitely.
+  subscription: z
+    .object({
+      plan: subscriptionPlanSchema,
+      planChosen: z.boolean(),
+      status: subscriptionStatusSchema,
+      interval: billingIntervalSchema.nullable(),
+      employeePacks: z.int().min(0),
+      extraMembers: z.int().min(0),
+      trialEndsAt: timestamp.nullable(),
+      currentPeriodEnd: timestamp.nullable(),
+      accessUntil: timestamp.nullable(),
+      access: accessLevelSchema,
+      deletesAt: timestamp.nullable(),
+      // Set while a cancellation waits for the end of the paid period; resuming clears it.
+      cancelsAt: timestamp.nullable(),
+    })
+    .nullable(),
+  usage: z.object({
+    // Active employees of active clients. Until a trial ends, the trial's limits apply, a plan
+    // chosen during it or not.
+    employees: billingUsageMeterSchema,
+    members: billingUsageMeterSchema,
+    // `used` is null: SMS are not counted per organization yet.
+    smsThisMonth: billingUsageMeterSchema,
+  }),
+  catalogue: billingCatalogueSchema,
+  // The owner's alone (ADR 029): null for the other members and for an impersonating admin.
+  owner: z
+    .object({
+      // Null without a renewing subscription.
+      nextPayment: billingAmountsSchema.extend({ at: timestamp }).nullable(),
+      smsOverageCents: cents.nullable(),
+      card: z
+        .object({ brand: z.string(), last4: z.string(), expMonth: z.int(), expYear: z.int() })
+        .nullable(),
+      invoiceEmail: z.email().nullable(),
+      // Where the invoices go while `invoiceEmail` is null.
+      ownerEmail: z.email().nullable(),
+      // A downgrade or removal waiting for the renewal.
+      scheduledChange: billingChoiceSchema.extend({ at: timestamp }).nullable(),
+      // The fewest packs and extra members each plan needs today, and what keeps it out.
+      choices: z.object({ start: choiceLimitsSchema, profesional: choiceLimitsSchema }),
+      invoices: z.array(billingInvoiceSchema),
+    })
+    .nullable(),
+});
+export type BillingOverview = z.infer<typeof billingOverviewSchema>;
+
+/** `reason` values on billing errors, so the SPA can word them itself. */
+export const billingErrorReasons = [
+  ...billingChoiceProblemReasonSchema.options,
+  'subscription_exists',
+  'no_subscription',
+  'enterprise_plan',
+  'company_details_missing',
+  'not_canceling',
+  'unchanged',
+  'pdf_pending',
+] as const;
+export type BillingErrorReason = (typeof billingErrorReasons)[number];
