@@ -7470,6 +7470,14 @@ export type ClientFileListResponseItemsItem = {
   /** @nullable */
   uploadedBy: ClientFileListResponseItemsItemUploadedBy;
   canChange: boolean;
+  /** @nullable */
+  importId: string | null;
+  /** @nullable */
+  importPath: string | null;
+  /** @nullable */
+  importRead: boolean | null;
+  /** @nullable */
+  importReason: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -7528,6 +7536,14 @@ export type ClientFileResponseFile = {
   /** @nullable */
   uploadedBy: ClientFileResponseFileUploadedBy;
   canChange: boolean;
+  /** @nullable */
+  importId: string | null;
+  /** @nullable */
+  importPath: string | null;
+  /** @nullable */
+  importRead: boolean | null;
+  /** @nullable */
+  importReason: string | null;
   createdAt: string;
   updatedAt: string;
 };

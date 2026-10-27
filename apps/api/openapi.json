@@ -10457,6 +10457,23 @@
                 "canChange": {
                   "type": "boolean"
                 },
+                "importId": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "uuid"
+                },
+                "importPath": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "importRead": {
+                  "type": "boolean",
+                  "nullable": true
+                },
+                "importReason": {
+                  "type": "string",
+                  "nullable": true
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -10478,6 +10495,10 @@
                 "sha256",
                 "uploadedBy",
                 "canChange",
+                "importId",
+                "importPath",
+                "importRead",
+                "importReason",
                 "createdAt",
                 "updatedAt"
               ]
@@ -10564,6 +10585,23 @@
               "canChange": {
                 "type": "boolean"
               },
+              "importId": {
+                "type": "string",
+                "nullable": true,
+                "format": "uuid"
+              },
+              "importPath": {
+                "type": "string",
+                "nullable": true
+              },
+              "importRead": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "importReason": {
+                "type": "string",
+                "nullable": true
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
@@ -10585,6 +10623,10 @@
               "sha256",
               "uploadedBy",
               "canChange",
+              "importId",
+              "importPath",
+              "importRead",
+              "importReason",
               "createdAt",
               "updatedAt"
             ]

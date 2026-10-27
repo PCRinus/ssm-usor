@@ -48,9 +48,12 @@ const ownFile = {
   sha256: 'a'.repeat(64),
   storage_path: pathOf(ownFileId, 'pdf'),
   uploaded_by: user.id as string | null,
+  import_id: null as string | null,
+  import_path: null as string | null,
   created_at: '2026-09-30T10:00:00+00:00',
   updated_at: '2026-09-30T10:00:00+00:00',
   employees: null as { id: string; last_name: string; first_name: string } | null,
+  import_files: [] as { state: string; reason: string | null }[],
 };
 const colleagueFile = {
   ...ownFile,
@@ -227,6 +230,41 @@ describe('GET /clients/{clientId}/files', () => {
     expect(listed.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(listed.searchParams.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(listed.searchParams.get('select')).toContain('employees(id,last_name,first_name)');
+  });
+
+  it('names the import folder a file came with, and whether the import read it', async () => {
+    const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
+    mockUpstream({
+      files: () =>
+        Response.json([
+          {
+            ...ownFile,
+            import_id: importId,
+            import_path: 'dosar.zip/SSM',
+            import_files: [{ state: 'read', reason: null }],
+          },
+          {
+            ...colleagueFile,
+            import_id: importId,
+            import_path: null,
+            import_files: [{ state: 'set_aside', reason: 'Formular sau registru necompletat.' }],
+          },
+          ownFile,
+        ]),
+    });
+    const response = await request(`/clients/${clientId}/files`);
+    const { items } = clientFileListResponseSchema.parse(await response.json());
+    expect(
+      items.map((item) => [item.importId, item.importPath, item.importRead, item.importReason])
+    ).toEqual([
+      [importId, 'dosar.zip/SSM', true, null],
+      [importId, null, false, 'Formular sau registru necompletat.'],
+      [null, null, null, null],
+    ]);
+    const listed = new URL(String(calls('/rest/v1/client_files', 'GET')[0]![0]));
+    expect(listed.searchParams.get('select')).toContain(
+      'import_files!import_files_client_file_id_fkey(state,reason)'
+    );
   });
 
   it('refuses an employee filter that is not an id', async () => {
