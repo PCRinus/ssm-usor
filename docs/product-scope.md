@@ -395,7 +395,7 @@ Offline capture, custom audit-form builders, and advanced scoring can follow aft
 - Automated backups, restore tests, disaster-recovery procedure, and defined RPO/RTO before paid launch.
 - Append-only security/audit events with retention controls.
 - Data-processing agreement support, privacy notices, data-subject request tooling, retention/anonymization rules, and export on contract termination.
-- No sensitive document or personal data in application logs, analytics payloads, or AI prompts by default.
+- No sensitive document or personal data in application logs, analytics payloads, or AI prompts by default. The exception is an import from documents that a member starts: its files go to a model, through a sub-processor the data processing agreement names (ADR 030).
 
 ## 7. Explicitly outside the first release
 

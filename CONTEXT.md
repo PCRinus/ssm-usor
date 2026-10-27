@@ -224,6 +224,20 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Unread** (_necitită_): a release published after the member's account was created and after the release they last **acknowledged** (_am înțeles_, _marcată ca citită_). Acknowledging covers everything published so far. ADR 026. Avoid: new (which is a section), seen, dismissed (closing the dialog dismisses it for the session and acknowledges nothing).
 
+## Imports
+
+**Import** (_import din documente_): a client's files read by a model into a proposal that a member reviews and confirms. A **client import** reads a documentation pack and creates a client or completes an existing one; an **employee import** (_import din fișe_) reads photographs of individual training sheets into employees and their training records. One client per import. ADR 030. Avoid: migration, upload (which is one step of it), AI import, scan.
+
+**Proposal** (_propunere_): what an import's reading returns: every value with the file and the quote it came from, the choices where documents disagree, and what is missing. Nothing of it is written until the member confirms. ADR 030. Avoid: draft (which is a document's revision), suggestion, extraction.
+
+**Source** (_sursa_): the file and the passage a proposed value came from, shown in the file itself. ADR 030. Avoid: evidence, citation (which is a template quoting a legal act).
+
+**Possibly from another client** (_posibil de la alt client_): a proposed value found only in passages copied from another company's documents, proposed unticked. ADR 030. Avoid: wrong data, error.
+
+**Import folder** (_dosar importat_): the files of a confirmed import in "Alte documente", grouped under the day of the import with the upload's folders. ADR 030. Avoid: archive, which is what an archived client is.
+
+**Credit** (_credit_): the unit an import's reading is counted in, one for both imports, included monthly with a plan or a trial. ADR 030. Avoid: token, which is the model's unit, and import as a unit.
+
 ## Billing
 
 **Plan** (_plan_): what an organization pays for: **Start**, **Profesional** or **Enterprise**. A plan sets scale and team (employees, members, SMS codes), never which documents, trainings or signatures exist. ADR 029. Avoid: tier, package, which is an add-on.

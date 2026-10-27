@@ -17,6 +17,8 @@ Storage is in place: private buckets, policies on `storage.objects` that reuse `
 
 A **client file** (_fișier_) is a file about a client that the app did not write and does not read: uploaded, named, downloaded, deleted. A **document** stays what ADR 005 made it: one document type, once, for a client, with revisions, a template and a data snapshot. The two do not share a table or a type list. Making client files one more document type was rejected: a document type exists once per client and has revisions that are issued, and a folder of scans has neither.
 
+(Amended 2026-10-27 by [ADR 030](adr-030-import-from-documents.md). The app reads the files of an import from documents, before they become client files. A confirmed import's files land in "Alte documente" as one import folder, which keeps the upload's folders, and HEIC photographs arrive converted to JPEG.)
+
 The client's files together are its **other documents** (_alte documente_), which is the name of the tab. The service contract is no longer one of them. In the code, the "other document" types of ADR 007 are renamed after what they are, the service contract; and the catch-all section of the documentation set's list, also titled "Alte documente", becomes "Alte documente SSM".
 
 ### What a file carries
