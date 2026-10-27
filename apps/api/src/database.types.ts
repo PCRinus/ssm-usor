@@ -328,6 +328,8 @@ export type Database = {
           created_at: string;
           employee_id: string | null;
           id: string;
+          import_id: string | null;
+          import_path: string | null;
           mime_type: string;
           name: string;
           note: string | null;
@@ -345,6 +347,8 @@ export type Database = {
           created_at?: string;
           employee_id?: string | null;
           id?: string;
+          import_id?: string | null;
+          import_path?: string | null;
           mime_type: string;
           name: string;
           note?: string | null;
@@ -362,6 +366,8 @@ export type Database = {
           created_at?: string;
           employee_id?: string | null;
           id?: string;
+          import_id?: string | null;
+          import_path?: string | null;
           mime_type?: string;
           name?: string;
           note?: string | null;
@@ -409,6 +415,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'client_files_import_id_fkey';
+            columns: ['import_id'];
+            isOneToOne: false;
+            referencedRelation: 'imports';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'client_files_organization_id_fkey';
@@ -2529,6 +2542,246 @@ export type Database = {
           target_user_id?: string;
         };
         Relationships: [];
+      };
+      import_files: {
+        Row: {
+          cached_input_tokens: number;
+          client_file_id: string | null;
+          company_cui: string | null;
+          company_name: string | null;
+          cost_usd: number;
+          created_at: string;
+          derived_path: string | null;
+          derived_sha256: string | null;
+          derived_size_bytes: number | null;
+          document_kind: string | null;
+          id: string;
+          import_id: string;
+          input_tokens: number;
+          is_scan: boolean | null;
+          mime_type: string;
+          organization_id: string;
+          original_file_name: string;
+          output_tokens: number;
+          page_count: number | null;
+          reason: string | null;
+          sha256: string;
+          size_bytes: number;
+          state: Database['public']['Enums']['import_file_state'];
+          storage_path: string;
+          text_path: string | null;
+          updated_at: string;
+          upload_path: string;
+        };
+        Insert: {
+          cached_input_tokens?: number;
+          client_file_id?: string | null;
+          company_cui?: string | null;
+          company_name?: string | null;
+          cost_usd?: number;
+          created_at?: string;
+          derived_path?: string | null;
+          derived_sha256?: string | null;
+          derived_size_bytes?: number | null;
+          document_kind?: string | null;
+          id?: string;
+          import_id: string;
+          input_tokens?: number;
+          is_scan?: boolean | null;
+          mime_type: string;
+          organization_id: string;
+          original_file_name: string;
+          output_tokens?: number;
+          page_count?: number | null;
+          reason?: string | null;
+          sha256: string;
+          size_bytes: number;
+          state?: Database['public']['Enums']['import_file_state'];
+          storage_path?: string;
+          text_path?: string | null;
+          updated_at?: string;
+          upload_path: string;
+        };
+        Update: {
+          cached_input_tokens?: number;
+          client_file_id?: string | null;
+          company_cui?: string | null;
+          company_name?: string | null;
+          cost_usd?: number;
+          created_at?: string;
+          derived_path?: string | null;
+          derived_sha256?: string | null;
+          derived_size_bytes?: number | null;
+          document_kind?: string | null;
+          id?: string;
+          import_id?: string;
+          input_tokens?: number;
+          is_scan?: boolean | null;
+          mime_type?: string;
+          organization_id?: string;
+          original_file_name?: string;
+          output_tokens?: number;
+          page_count?: number | null;
+          reason?: string | null;
+          sha256?: string;
+          size_bytes?: number;
+          state?: Database['public']['Enums']['import_file_state'];
+          storage_path?: string;
+          text_path?: string | null;
+          updated_at?: string;
+          upload_path?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'import_files_client_file_id_fkey';
+            columns: ['client_file_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_files';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'import_files_import_in_organization';
+            columns: ['import_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'imports';
+            referencedColumns: ['id', 'organization_id'];
+          },
+        ];
+      };
+      imports: {
+        Row: {
+          abandoned_at: string | null;
+          cached_input_tokens: number;
+          changes: Json | null;
+          client_id: string | null;
+          company_cui: string | null;
+          company_name: string | null;
+          confirmed_at: string | null;
+          confirmed_by: string | null;
+          cost_usd: number;
+          created_at: string;
+          created_by: string | null;
+          failed_at: string | null;
+          failure_reason: string | null;
+          files_copied_at: string | null;
+          id: string;
+          input_tokens: number;
+          into_existing_client: boolean;
+          kind: Database['public']['Enums']['import_kind'];
+          objects_removed_at: string | null;
+          organization_id: string;
+          output_tokens: number;
+          proposal: Json | null;
+          proposal_dropped_at: string | null;
+          quality: Json | null;
+          ready_at: string | null;
+          source_import_id: string | null;
+          started_at: string | null;
+          status: Database['public']['Enums']['import_status'];
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          abandoned_at?: string | null;
+          cached_input_tokens?: number;
+          changes?: Json | null;
+          client_id?: string | null;
+          company_cui?: string | null;
+          company_name?: string | null;
+          confirmed_at?: string | null;
+          confirmed_by?: string | null;
+          cost_usd?: number;
+          created_at?: string;
+          created_by?: string | null;
+          failed_at?: string | null;
+          failure_reason?: string | null;
+          files_copied_at?: string | null;
+          id?: string;
+          input_tokens?: number;
+          into_existing_client: boolean;
+          kind: Database['public']['Enums']['import_kind'];
+          objects_removed_at?: string | null;
+          organization_id: string;
+          output_tokens?: number;
+          proposal?: Json | null;
+          proposal_dropped_at?: string | null;
+          quality?: Json | null;
+          ready_at?: string | null;
+          source_import_id?: string | null;
+          started_at?: string | null;
+          status?: Database['public']['Enums']['import_status'];
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          abandoned_at?: string | null;
+          cached_input_tokens?: number;
+          changes?: Json | null;
+          client_id?: string | null;
+          company_cui?: string | null;
+          company_name?: string | null;
+          confirmed_at?: string | null;
+          confirmed_by?: string | null;
+          cost_usd?: number;
+          created_at?: string;
+          created_by?: string | null;
+          failed_at?: string | null;
+          failure_reason?: string | null;
+          files_copied_at?: string | null;
+          id?: string;
+          input_tokens?: number;
+          into_existing_client?: boolean;
+          kind?: Database['public']['Enums']['import_kind'];
+          objects_removed_at?: string | null;
+          organization_id?: string;
+          output_tokens?: number;
+          proposal?: Json | null;
+          proposal_dropped_at?: string | null;
+          quality?: Json | null;
+          ready_at?: string | null;
+          source_import_id?: string | null;
+          started_at?: string | null;
+          status?: Database['public']['Enums']['import_status'];
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'imports_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'imports_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'imports_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'imports_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'imports_source_import_id_fkey';
+            columns: ['source_import_id'];
+            isOneToOne: false;
+            referencedRelation: 'imports';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       instruction_module_versions: {
         Row: {
@@ -6180,6 +6433,7 @@ export type Database = {
       };
     };
     Functions: {
+      abandon_import: { Args: { p_import_id: string }; Returns: undefined };
       accept_invitation_as: {
         Args: {
           accepted_terms_version: string;
@@ -6264,6 +6518,14 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      apply_client_import: {
+        Args: {
+          p_expected_version: number;
+          p_import_id: string;
+          p_payload: Json;
+        };
+        Returns: Json;
       };
       apply_evaluation_profile: {
         Args: { p_evaluation_id: string; p_profile_id: string };
@@ -6410,6 +6672,8 @@ export type Database = {
           month: string;
         }[];
       };
+      delete_abandoned_imports: { Args: never; Returns: string[] };
+      drop_import_proposals: { Args: never; Returns: string[] };
       effective_user_id: { Args: never; Returns: string };
       employee_client_search_name: {
         Args: { '': Database['public']['Tables']['employees']['Row'] };
@@ -6501,6 +6765,30 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      import_add_key: {
+        Args: { p_id: string; p_item: Json; p_keys: Json; p_what: string };
+        Returns: Json;
+      };
+      import_folder_copies: {
+        Args: { p_import_id: string };
+        Returns: {
+          client_file_id: string;
+          source_path: string;
+          target_path: string;
+        }[];
+      };
+      import_patch: {
+        Args: { p_columns: string[]; p_current: Json; p_proposed: Json };
+        Returns: Json;
+      };
+      import_payload_keys: {
+        Args: { p_allowed: string[]; p_object: Json; p_what: string };
+        Returns: undefined;
+      };
+      import_reference: {
+        Args: { p_item: Json; p_keys: Json; p_name: string };
+        Returns: string;
+      };
       is_client_administrator: {
         Args: { p_client_id: string };
         Returns: boolean;
@@ -6514,7 +6802,9 @@ export type Database = {
         Returns: boolean;
       };
       is_readable_document_path: { Args: { p_path: string }; Returns: boolean };
+      is_readable_import_path: { Args: { p_path: string }; Returns: boolean };
       is_signed_copy_path: { Args: { p_path: string }; Returns: boolean };
+      is_uploadable_import_path: { Args: { p_path: string }; Returns: boolean };
       is_writable_client_file_path: {
         Args: { p_path: string };
         Returns: boolean;
@@ -6538,6 +6828,47 @@ export type Database = {
         }[];
       };
       lock_members_as_owner: { Args: never; Returns: string };
+      lock_visible_import: {
+        Args: { p_import_id: string };
+        Returns: {
+          abandoned_at: string | null;
+          cached_input_tokens: number;
+          changes: Json | null;
+          client_id: string | null;
+          company_cui: string | null;
+          company_name: string | null;
+          confirmed_at: string | null;
+          confirmed_by: string | null;
+          cost_usd: number;
+          created_at: string;
+          created_by: string | null;
+          failed_at: string | null;
+          failure_reason: string | null;
+          files_copied_at: string | null;
+          id: string;
+          input_tokens: number;
+          into_existing_client: boolean;
+          kind: Database['public']['Enums']['import_kind'];
+          objects_removed_at: string | null;
+          organization_id: string;
+          output_tokens: number;
+          proposal: Json | null;
+          proposal_dropped_at: string | null;
+          quality: Json | null;
+          ready_at: string | null;
+          source_import_id: string | null;
+          started_at: string | null;
+          status: Database['public']['Enums']['import_status'];
+          updated_at: string;
+          version: number;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'imports';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       mark_paper_signature: {
         Args: {
           p_record_id: string;
@@ -6692,6 +7023,17 @@ export type Database = {
           title: string;
         }[];
       };
+      record_import_usage: {
+        Args: {
+          p_cached_input_tokens: number;
+          p_cost_usd: number;
+          p_import_file_id: string;
+          p_import_id: string;
+          p_input_tokens: number;
+          p_output_tokens: number;
+        };
+        Returns: undefined;
+      };
       record_participant_notice: {
         Args: { p_participant_id: string; p_version: string };
         Returns: boolean;
@@ -6804,6 +7146,14 @@ export type Database = {
           p_responsible_person?: string;
         };
         Returns: string;
+      };
+      save_import_changes: {
+        Args: {
+          p_changes: Json;
+          p_expected_version: number;
+          p_import_id: string;
+        };
+        Returns: number;
       };
       save_risk_evaluation_as_profile: {
         Args: { p_evaluation_id: string; p_name: string };
@@ -7086,6 +7436,26 @@ export type Database = {
         | 'other';
       fire_smoking_policy: 'forbidden_everywhere' | 'designated_places';
       fire_substances_state: 'undecided' | 'none' | 'listed';
+      import_file_state:
+        | 'uploading'
+        | 'uploaded'
+        | 'prepared'
+        | 'read'
+        | 'set_aside'
+        | 'for_employees'
+        | 'other_company'
+        | 'failed';
+      import_kind: 'client' | 'employees';
+      import_status:
+        | 'uploading'
+        | 'preparing'
+        | 'sorting'
+        | 'reading'
+        | 'checking'
+        | 'ready'
+        | 'confirmed'
+        | 'abandoned'
+        | 'failed';
       instruction_domain: 'ssm' | 'psi';
       instruction_module_group: 'work_activity' | 'work_equipment' | 'protective_equipment';
       knowledge_test: 'hiring' | 'annual';
@@ -7275,6 +7645,28 @@ export const Constants = {
       ],
       fire_smoking_policy: ['forbidden_everywhere', 'designated_places'],
       fire_substances_state: ['undecided', 'none', 'listed'],
+      import_file_state: [
+        'uploading',
+        'uploaded',
+        'prepared',
+        'read',
+        'set_aside',
+        'for_employees',
+        'other_company',
+        'failed',
+      ],
+      import_kind: ['client', 'employees'],
+      import_status: [
+        'uploading',
+        'preparing',
+        'sorting',
+        'reading',
+        'checking',
+        'ready',
+        'confirmed',
+        'abandoned',
+        'failed',
+      ],
       instruction_domain: ['ssm', 'psi'],
       instruction_module_group: ['work_activity', 'work_equipment', 'protective_equipment'],
       knowledge_test: ['hiring', 'annual'],
