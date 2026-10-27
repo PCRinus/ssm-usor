@@ -1,12 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { ImportProcessingPage } from '@/features/imports/import-processing-page';
+import { ImportPage } from '@/features/imports/import-page';
 
 export const Route = createFileRoute('/_authenticated/clients/import/$importId/')({
-  component: ImportPage,
+  component: ImportRoute,
 });
 
-function ImportPage() {
+function ImportRoute() {
   const { importId } = Route.useParams();
-  return <ImportProcessingPage importId={importId} />;
+  return <ImportPage importId={importId} />;
 }

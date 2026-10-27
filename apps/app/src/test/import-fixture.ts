@@ -110,3 +110,181 @@ export const requestsTo = (pathname: string, method = 'GET') =>
 
 export const bodyOf = (pathname: string, method: string, index = 0) =>
   JSON.parse(String(requestsTo(pathname, method)[index]?.[1]?.body)) as unknown;
+
+const src = (file: string, quote: string) => [{ file, quote }];
+const one = (value: string | number, file = 'dosar-ssm.zip/Decizie 1.docx') => ({
+  options: [{ value, sources: src(file, String(value)), otherCompanyName: null }],
+});
+const none = { options: [] };
+
+export function proposalFixture() {
+  return {
+    client: {
+      legalName: one('Brutăria Spicul Auriu SRL'),
+      cui: one('31458207'),
+      tradeRegisterNumber: one('J32/412/2013'),
+      caenCode: one('1071'),
+      countyCode: one('SB'),
+      locality: one('Sibiu'),
+      addressLine: one('Str. Morilor nr. 14'),
+      legalRepresentativeName: {
+        options: [
+          {
+            value: 'Ioana Mureșan',
+            sources: src('dosar-ssm.zip/Decizie 1.docx', 'Ioana Mureșan'),
+            otherCompanyName: null,
+          },
+          {
+            value: 'Dorin Mureșan',
+            sources: src('Contract prestari SSM 2019.pdf', 'Dorin Mureșan'),
+            otherCompanyName: null,
+          },
+        ],
+      },
+      legalRepresentativeRole: one('administrator'),
+      contactName: none,
+      contactPhone: one('0269 214 377', 'Contract prestari SSM 2019.pdf'),
+      contactEmail: {
+        options: [
+          {
+            value: 'office@lactate.ro',
+            sources: src('dosar-ssm.zip/Fise post.doc', 'office@lactate.ro'),
+            otherCompanyName: 'Lactate Câmpia SRL',
+          },
+        ],
+      },
+    },
+    trainingSchedule: {
+      periodicTrainingMinutes: none,
+      administrativeTrainingIntervalMonths: one(12),
+      workerTrainingIntervalMonths: one(6),
+      trainingFirstMonth: none,
+      trainingDayFrom: none,
+      trainingDayTo: none,
+    },
+    fireSafety: {
+      periodicTrainingHours: none,
+      administrativeTrainingIntervalMonths: none,
+      workerTrainingIntervalMonths: none,
+      smokingPolicy: one('designated_places'),
+      smokingPlace: one('curte'),
+      wasteContractor: {
+        options: [
+          { value: 'Salubris SA', sources: src('a.pdf', 'Salubris SA'), otherCompanyName: null },
+          { value: 'Eco Sud SRL', sources: src('b.pdf', 'Eco Sud SRL'), otherCompanyName: null },
+        ],
+      },
+    },
+    workplaces: [
+      {
+        id: 'workplace-1',
+        sources: src('dosar-ssm.zip/Decizie 1.docx', 'Str. Morilor nr. 14'),
+        otherCompanyName: null,
+        name: 'Sediu',
+        countyCode: 'SB',
+        locality: 'Sibiu',
+        addressLine: 'Str. Morilor nr. 14',
+        isRegisteredOffice: true,
+        activity: 'Brutărie',
+        rooms: ['Laborator', 'Magazin'],
+      },
+    ],
+    jobPositions: [
+      {
+        id: 'position-1',
+        sources: src('dosar-ssm.zip/Fise post.doc', 'Brutar'),
+        otherCompanyName: null,
+        name: 'Brutar',
+        staffCategory: 'execution',
+        trainingIntervalMonths: null,
+        workZone: 'Laborator',
+        activities: 'Frământare și coacere',
+      },
+      {
+        id: 'position-2',
+        sources: src('dosar-ssm.zip/Fise post.doc', 'Stivuitorist'),
+        otherCompanyName: 'Lactate Câmpia SRL',
+        name: 'Stivuitorist',
+        staffCategory: 'execution',
+        trainingIntervalMonths: null,
+        workZone: null,
+        activities: 'Conduce motostivuitorul',
+      },
+    ],
+    responsiblePersons: [
+      {
+        id: 'person-1',
+        sources: src('dosar-ssm.zip/Decizie 1.docx', 'Radu Lazăr'),
+        otherCompanyName: null,
+        fullName: 'Radu Lazăr',
+        jobTitle: 'Brutar',
+        roles: ['workers_representative', 'first_aid'],
+        workplace: { name: null, id: null },
+      },
+    ],
+    fireEquipment: [
+      {
+        id: 'extinguisher-1',
+        sources: src('b.pdf', 'stingătoare P6'),
+        otherCompanyName: null,
+        workplace: { name: 'Sediu', id: 'workplace-1' },
+        room: 'Laborator',
+        kind: 'extinguisher',
+        agent: 'powder',
+        capacity: 6,
+        wheeled: false,
+        count: 6,
+      },
+    ],
+    fireInstallations: [],
+    protectiveEquipment: [],
+    employees: [
+      {
+        id: 'employee-1',
+        sources: src('dosar-ssm.zip/Decizie 1.docx', 'Radu Lazăr'),
+        otherCompanyName: null,
+        role: 'workers_representative',
+        lastName: 'Lazăr',
+        firstName: 'Radu',
+        cnp: null,
+        birthDate: null,
+        jobTitle: 'Brutar',
+        hiredAt: null,
+      },
+    ],
+    notes: [],
+    flags: [],
+  };
+}
+
+export const readyBlockers = [
+  { path: 'client.legalRepresentativeName', code: 'choice' },
+  { path: 'fireSafety.wasteContractor', code: 'choice' },
+  { path: 'employees.0.hiredAt', code: 'missing' },
+];
+
+export function readyDetail(overrides: Record<string, unknown> = {}) {
+  return importDetail({
+    status: 'ready',
+    readyAt: '2026-10-28T09:20:00+00:00',
+    version: 3,
+    files: [
+      importFile({ fileName: 'Decizie 1.docx' }),
+      importFile({ fileName: 'Fise post.doc', mimeType: 'application/msword', hasDerived: true }),
+      importFile({
+        fileName: 'Contract prestari SSM 2019.pdf',
+        uploadPath: 'Contract prestari SSM 2019.pdf',
+        mimeType: 'application/pdf',
+      }),
+    ],
+    registeredCompany: {
+      cui: '31458207',
+      legalName: 'BRUTĂRIA SPICUL AURIU SRL',
+      vatPayer: true,
+      inactive: false,
+    },
+    blockers: readyBlockers,
+    proposal: proposalFixture(),
+    ...overrides,
+  });
+}

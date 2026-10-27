@@ -1,0 +1,321 @@
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { authFixture, makeSession } from '@/test/auth-fixture';
+import { bodyOf, clientId, fetchMock, importId, mockApi, readyDetail } from '@/test/import-fixture';
+import { disposeRuntimes, mountApp } from '@/test/mount';
+
+type Detail = ReturnType<typeof readyDetail>;
+
+const existingClient = {
+  id: clientId,
+  legalName: 'Brutăria Spicul Auriu SRL',
+  cui: '31458207',
+  vatPayer: true,
+  caenCode: '1071',
+  tradeRegisterNumber: 'J32/412/2013',
+  countyCode: 'SB',
+  locality: 'Sibiu',
+  addressLine: 'Str. Morilor nr. 14',
+  legalRepresentativeName: null,
+  declaredEmployeeCount: 0,
+  currentEmployeeCount: 0,
+  stage: 'client',
+  contactName: null,
+  contactEmail: null,
+  contactPhone: '0269 214 300',
+  promotedAt: null,
+  createdAt: '2026-09-17T10:00:00+00:00',
+  updatedAt: '2026-09-17T10:00:00+00:00',
+  archivedAt: null,
+};
+
+let saves: number;
+
+function mockReview(detail: Detail, { save }: { save?: (body: unknown) => Response } = {}) {
+  saves = 0;
+  mockApi((init, url) => {
+    const method = init?.method ?? 'GET';
+    if (url.pathname === `/imports/${importId}` && method === 'GET') {
+      return Response.json({ import: detail });
+    }
+    if (url.pathname === `/imports/${importId}/changes`) {
+      saves += 1;
+      const body = JSON.parse(String(init?.body)) as { version: number };
+      return save?.(body) ?? Response.json({ version: body.version + 1 });
+    }
+    if (url.pathname === `/imports/${importId}/confirm`) {
+      return Response.json({ clientId, fileCount: 3 });
+    }
+    if (url.pathname === '/imports') return Response.json({ items: [] });
+    if (url.pathname === '/clients') {
+      return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
+    }
+    if (url.pathname === `/clients/${clientId}`) return Response.json({ client: existingClient });
+    if (url.pathname === `/clients/${clientId}/document-details`) {
+      return Response.json({
+        documentDetails: {
+          legalRepresentativeName: null,
+          legalRepresentativeRole: null,
+          legalRepresentativeEmployeeId: null,
+          legalRepresentativeEmployee: null,
+          periodicTrainingMinutes: null,
+          administrativeTrainingIntervalMonths: null,
+          administrativeTrainingNotApplicable: false,
+          workerTrainingIntervalMonths: null,
+          workerTrainingNotApplicable: false,
+          trainingFirstMonth: null,
+          trainingDayFrom: null,
+          trainingDayTo: null,
+        },
+      });
+    }
+    if (url.pathname === `/clients/${clientId}/fire-safety`) {
+      return Response.json({ fireSafety: null });
+    }
+    if (url.pathname.startsWith(`/clients/${clientId}/`)) return Response.json({}, { status: 404 });
+    return undefined;
+  });
+}
+
+const mount = (path = '') =>
+  mountApp(authFixture(makeSession()).client, `/clients/import/${importId}${path}`);
+
+const savedChanges = (index: number) =>
+  bodyOf(`/imports/${importId}/changes`, 'PUT', index) as {
+    version: number;
+    changes: { fields: Record<string, unknown>; items: Record<string, unknown> };
+  };
+
+beforeEach(() => {
+  fetchMock.mockReset();
+  vi.stubGlobal('fetch', fetchMock);
+});
+
+afterEach(() => {
+  disposeRuntimes();
+  vi.unstubAllGlobals();
+});
+
+describe('the review hub', () => {
+  it('lists what blocks confirming, links each to its row, and gives each section a status', async () => {
+    mockReview(readyDetail());
+    mount();
+
+    const blockers = await screen.findByTestId('import-blockers');
+    expect(blockers.textContent).toContain('Mai ai 2 alegeri și o dată obligatorie');
+    const links = within(blockers).getAllByTestId('import-blocker-link');
+    expect(links.map((link) => link.textContent)).toEqual([
+      'Alege reprezentantul legal',
+      'Alege firma de salubritate',
+      'Scrie data angajării lui Lazăr Radu, reprezentantul lucrătorilor',
+    ]);
+    expect(links[0]!.getAttribute('href')).toBe(
+      `/clients/import/${importId}/identity#review-client-legalRepresentativeName`
+    );
+    const statuses = Object.fromEntries(
+      screen
+        .getAllByTestId('import-section-link')
+        .map((link) => [
+          link.dataset.section,
+          within(link).getByTestId('section-status').textContent,
+        ])
+    );
+    expect(statuses).toEqual({
+      identity: 'Alegere necesară',
+      workplaces: 'Gata',
+      'job-positions': 'De verificat',
+      responsible: 'O dată lipsă',
+      training: 'Gata',
+      'fire-safety': 'Alegere necesară',
+      equipment: 'Gata',
+    });
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Brutăria Spicul Auriu SRL');
+    const confirm = screen.getByTestId('import-confirm');
+    expect(confirm.getAttribute('aria-disabled')).toBe('true');
+    await userEvent.click(confirm);
+    expect(screen.queryByTestId('import-confirm-dialog')).toBeNull();
+  });
+
+  it('confirms a new client and opens its page with what was imported', async () => {
+    mockReview(readyDetail({ blockers: [] }));
+    const runtime = mount();
+
+    await userEvent.click(await screen.findByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    expect(within(dialog).getByRole('heading').textContent).toBe(
+      'Creezi clientul Brutăria Spicul Auriu SRL?'
+    );
+    expect(
+      within(dialog)
+        .getAllByTestId('confirm-line')
+        .map((line) => line.textContent)
+    ).toEqual([
+      expect.stringContaining('1punct de lucru'),
+      expect.stringContaining('1post de lucru'),
+      expect.stringContaining('1responsabil'),
+      expect.stringContaining('1angajat'),
+      expect.stringContaining('6mijloace PSI'),
+    ]);
+    expect(dialog.textContent).toContain('Nu preluăm un element de la alt client.');
+    await userEvent.click(within(dialog).getByTestId('import-confirm-submit'));
+
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`)
+    );
+    expect(bodyOf(`/imports/${importId}/confirm`, 'POST')).toEqual({ version: 3 });
+    expect((await screen.findByTestId('client-imported-notice')).textContent).toContain(
+      'Clientul a fost creat din documente. Cele 3 fișiere sunt în Alte documente, grupate ca dosarul importat.'
+    );
+  });
+});
+
+describe('a section of the review', () => {
+  it('puts the choice first and saves each decision on the version the last save answered', async () => {
+    mockReview(readyDetail());
+    mount('/identity');
+
+    const choice = await screen.findByTestId('review-choice');
+    expect(choice.textContent).toContain('Alege reprezentantul legal');
+    await userEvent.click(within(choice).getByRole('radio', { name: /Ioana Mureșan/ }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0)).toEqual({
+      version: 3,
+      changes: { fields: { 'client.legalRepresentativeName': { option: 0 } }, items: {} },
+    });
+
+    const email = screen
+      .getAllByTestId('review-row')
+      .find((row) => row.textContent?.includes('office@lactate.ro'))!;
+    expect(email.textContent).toContain('Posibil de la alt client');
+    await userEvent.click(within(email).getByTestId('review-include-field'));
+    await waitFor(() => expect(saves).toBe(2));
+    expect(savedChanges(1)).toEqual({
+      version: 4,
+      changes: {
+        fields: {
+          'client.legalRepresentativeName': { option: 0 },
+          'client.contactEmail': { included: true },
+        },
+        items: {},
+      },
+    });
+  });
+
+  it('turns a group into its form in place, and marks the value changed', async () => {
+    mockReview(readyDetail());
+    mount('/identity');
+
+    const groups = await screen.findAllByTestId('review-group');
+    const contact = groups.find((group) => group.textContent?.includes('Persoană de contact'))!;
+    expect(contact.textContent).toContain('0269 214 377');
+    const phoneRow = within(contact)
+      .getAllByTestId('review-row')
+      .find((row) => row.textContent?.includes('Telefon'))!;
+    await userEvent.click(within(phoneRow).getByTestId('review-edit'));
+    const phone = within(contact).getByTestId('client-contact-phone');
+    await userEvent.clear(phone);
+    await userEvent.type(phone, '0745 218 903');
+    await userEvent.click(within(contact).getByTestId('review-group-save'));
+
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'client.contactPhone': { value: '0745 218 903' },
+    });
+    expect(await within(contact).findByTestId('edited-tag')).toBeTruthy();
+    expect(contact.textContent).toContain('Propus din documente: 0269 214 377');
+  });
+
+  it('says plainly when someone else saved in the meantime', async () => {
+    mockReview(readyDetail(), {
+      save: () =>
+        Response.json(
+          { error: 'conflict', message: 'Changed.', reason: 'import_changed' },
+          { status: 409 }
+        ),
+    });
+    mount('/identity');
+
+    const choice = await screen.findByTestId('review-choice');
+    await userEvent.click(within(choice).getByRole('radio', { name: /Dorin Mureșan/ }));
+    expect((await screen.findByTestId('import-review-conflict')).textContent).toContain(
+      'Altcineva a modificat propunerea între timp'
+    );
+  });
+
+  it("leaves another company's post out until ticked, and edits a post in the app's dialog", async () => {
+    mockReview(readyDetail());
+    mount('/job-positions');
+
+    const other = await screen.findByTestId('review-other-company');
+    expect(other.textContent).toContain('Stivuitorist');
+    await userEvent.click(within(other).getByTestId('review-include-item'));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.items).toEqual({ 'position-2': { included: true } });
+
+    const brutar = screen
+      .getAllByTestId('review-item')
+      .find((row) => row.textContent?.includes('Brutar'))!;
+    await userEvent.click(within(brutar).getByTestId('review-edit'));
+    const dialog = await screen.findByTestId('job-position-dialog');
+    expect(within(dialog).getByRole('heading').textContent).toBe('Modifică postul de lucru');
+    const activities = within(dialog).getByTestId('job-position-activities');
+    await userEvent.clear(activities);
+    await userEvent.type(activities, 'Coacere');
+    await userEvent.click(within(dialog).getByTestId('job-position-save'));
+    await waitFor(() => expect(saves).toBe(2));
+    expect(savedChanges(1).changes.items['position-1']).toEqual({
+      values: { activities: 'Coacere' },
+    });
+  });
+
+  it('writes a missing hire date in the item dialog', async () => {
+    mockReview(readyDetail());
+    mount('/responsible');
+
+    const employees = await screen.findByTestId('review-list-employees');
+    expect(employees.textContent).toContain('Lipsește data angajării.');
+    await userEvent.click(within(employees).getByTestId('review-edit'));
+    const dialog = await screen.findByTestId('review-item-dialog');
+    await userEvent.type(within(dialog).getByTestId('review-item-hiredAt'), '2024-03-01');
+    await userEvent.click(within(dialog).getByTestId('review-item-save'));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.items).toEqual({
+      'employee-1': { values: { hiredAt: '2024-03-01' } },
+    });
+  });
+});
+
+describe('completing an existing client (E2)', () => {
+  const existing = () =>
+    readyDetail({
+      intoExistingClient: true,
+      client: { id: clientId, legalName: 'Brutăria Spicul Auriu SRL' },
+      blockers: [],
+    });
+
+  it("keeps the app's value where the documents differ, without blocking, until the member takes theirs", async () => {
+    mockReview(existing());
+    mount();
+
+    const kept = await screen.findByTestId('import-kept');
+    await waitFor(() => expect(kept.textContent).toContain('Telefon'));
+    expect(kept.textContent).toContain('diferă de aplicație, păstrăm valoarea ta');
+    expect(screen.queryByTestId('import-blockers')).toBeNull();
+    expect(screen.getByTestId('import-confirm').getAttribute('aria-disabled')).toBeNull();
+
+    await userEvent.click(within(kept).getByRole('link', { name: 'Telefon' }));
+    const differs = await screen.findByTestId('review-differs-row');
+    expect(differs.textContent).toContain('Rămâne 0269 214 300 (din aplicație)');
+    expect(differs.textContent).toContain(
+      'În documente: 0269 214 377, din Contract prestari SSM 2019.pdf'
+    );
+    await userEvent.click(within(differs).getByTestId('review-use-documents'));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'client.contactPhone': { replace: true },
+    });
+    expect(screen.getByTestId('review-same').textContent).toContain('La fel în documente');
+  });
+});

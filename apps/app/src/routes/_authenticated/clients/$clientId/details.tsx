@@ -7,6 +7,7 @@ import { ContactCard } from '@/features/clients/contact-card';
 import { LegalRepresentativeCard } from '@/features/clients/legal-representative-card';
 import { OwnerNotesCard } from '@/features/clients/owner-notes-card';
 import { WorkplacesCard } from '@/features/clients/workplaces-card';
+import { ImportedNotice } from '@/features/imports/imported-notice';
 import {
   clientDetailsFocus,
   companyFocus,
@@ -36,6 +37,7 @@ function ClientDetailsPage() {
 
   return (
     <div data-testid="client-details-page" className="grid gap-6">
+      <ImportedNotice clientId={client.id} />
       <CompanyCard client={client} readOnly={readOnly} focus={focusAmong(focus, companyFocus)} />
       <LegalRepresentativeCard
         client={client}

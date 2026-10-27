@@ -72,7 +72,13 @@ function fileDetail(file: ImportFile) {
   return [kind, pages].filter(Boolean).join(', ');
 }
 
-export function ImportProcessingPage({ importId }: { importId: string }) {
+export function ImportLoader({
+  importId,
+  children,
+}: {
+  importId: string;
+  children: (detail: ImportDetail) => ReactNode;
+}) {
   const query = useImport(importId);
   if (query.isPending) {
     return (
@@ -97,7 +103,7 @@ export function ImportProcessingPage({ importId }: { importId: string }) {
       </Notice>
     );
   }
-  return <ProcessingView detail={query.data.import} />;
+  return children(query.data.import);
 }
 
 function useUploadStalled(detail: ImportDetail) {
