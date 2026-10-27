@@ -15,6 +15,7 @@
     "seed": "node --env-file-if-exists=.env.seed --import tsx scripts/seed.ts",
     "seed:local": "node --env-file-if-exists=.env.seed --import tsx scripts/seed.ts --local",
     "extend-trial": "node --import tsx scripts/extend-trial.ts",
+    "stripe:setup": "node --import tsx scripts/stripe-setup.ts",
     "templates:register": "node --env-file-if-exists=.env.seed --import tsx scripts/register-templates.ts",
     "templates:register:local": "node --import tsx scripts/register-templates.ts --local",
     "signed-sheet:check:local": "node --import tsx scripts/check-signed-sheet.ts",
@@ -35,6 +36,7 @@
     "fflate": "^0.8.3",
     "hono": "^4.13.13",
     "reflect-metadata": "0.2.2",
+    "stripe": "23.0.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {

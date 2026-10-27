@@ -1,0 +1,61 @@
+name: Configurează Stripe
+
+# Operator action, run by hand (ADR 029). It never deletes anything in Stripe. The webhook
+# endpoint is created by hand in the dashboard, which shows its signing secret only then; the run
+# says how.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: The environment whose Stripe account to configure
+        type: choice
+        options:
+          - non-prod
+          - production
+        default: non-prod
+      apply:
+        description: Make the changes; without it the run only lists them
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stripe-setup-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    name: Configure Stripe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ inputs.environment }}
+    env:
+      ENVIRONMENT: ${{ inputs.environment }}
+      APPLY: ${{ inputs.apply }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      API_URL: ${{ vars.API_URL }}
+      APP_URL: ${{ vars.APP_URL }}
+    steps:
+      - name: Check the branch
+        if: inputs.environment == 'production'
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "::error::Change production from main only, not from $GITHUB_REF."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Build the API's workspace packages
+        run: pnpm --filter "@ssm-usor/api^..." build
+
+      - name: Configure Stripe
+        shell: bash
+        run: |
+          args=(--environment="$ENVIRONMENT" --api-url="$API_URL" --app-url="$APP_URL")
+          [[ "$APPLY" == "true" ]] && args+=(--apply)
+          pnpm --filter @ssm-usor/api stripe:setup "${args[@]}"

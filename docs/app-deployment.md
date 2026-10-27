@@ -188,6 +188,31 @@ reissued identities; losing the authority's key means rolling the authority, bel
 Locally, a new `pnpm --filter @ssm-usor/api signing:ca` in `apps/api/.dev.vars` does the same to
 the local stack's identities.
 
+## Configure Stripe
+
+The **Configurează Stripe** workflow (`.github/workflows/stripe-setup.yml`) makes an
+environment's Stripe account match the plan catalogue in `packages/contracts` (ADR 029): a
+product per plan and add-on, their monthly and annual prices under versioned lookup keys, the
+`sms_overage` billing meter and its monthly metered price, the 21 % VAT rate added to the price,
+the customer portal limited to updating the card, the app's payment method domain, and the
+events of the webhook endpoint. Without `apply` it only lists what it would change. It creates
+what is missing and never deletes; a price whose amount differs from the catalogue stops it,
+since a changed price is a new version. Production runs only from `main`, with a live key, and
+non-prod only with a sandbox key.
+
+Create the webhook endpoint by hand first, in each account's dashboard, at
+`<API_URL>/billing/stripe-webhook` with the API version the script names, and store its signing
+secret right away with `gh secret set STRIPE_WEBHOOK_SECRET --env <environment>`: Stripe shows it
+only at creation. Until it exists, the run fails and says so.
+
+Locally, with the key on the clipboard and never shown:
+
+```sh
+STRIPE_SECRET_KEY="$(pbpaste)" pnpm --filter @ssm-usor/api stripe:setup -- \
+  --environment non-prod --api-url https://api.non-prod.ssmusor.ro \
+  --app-url https://app.non-prod.ssmusor.ro
+```
+
 ## Seed the hosted project
 
 The **Seed database** workflow (`.github/workflows/seed.yml`) is run by hand from the Actions
