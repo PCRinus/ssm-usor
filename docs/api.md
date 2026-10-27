@@ -62,6 +62,16 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /organization/members`                                            | Verified user with a membership       | `{ "items": [ … ] }` with names, emails, and roles                                                                                                                                                 |
 | `PATCH /organization/members/{userId}`                                 | Owner                                 | `204` after changing the member's role                                                                                                                                                             |
 | `DELETE /organization/members/{userId}`                                | Owner                                 | `204` after removing the membership; the account stays                                                                                                                                             |
+| `GET /billing`                                                         | Verified user with a membership       | The Abonament tab: `{ subscription, usage, catalogue, owner }`; `owner` is null except for the owner in person                                                                                     |
+| `POST /billing/preview`                                                | Owner in person                       | What `{ plan, interval, employeePacks, extraMembers }` costs today and at the renewal, and what keeps it out                                                                                       |
+| `POST /billing/subscription`                                           | Owner in person                       | `201 { clientSecret, intent }` after creating the Stripe subscription                                                                                                                              |
+| `PATCH /billing/subscription`                                          | Owner in person                       | `{ clientSecret, intent }` after changing it, at once or at the renewal                                                                                                                            |
+| `POST /billing/subscription/cancel`                                    | Owner in person                       | `204` after setting the cancellation, or dropping a plan chosen in the trial                                                                                                                       |
+| `POST /billing/subscription/resume`                                    | Owner in person                       | `204` after withdrawing a pending cancellation                                                                                                                                                     |
+| `POST /billing/portal-session`                                         | Owner in person                       | `201 { url }`, Stripe's page for the card                                                                                                                                                          |
+| `PUT /billing/invoice-email`                                           | Owner in person                       | `{ email }`, where the invoices go; null for the owner's email                                                                                                                                     |
+| `GET /billing/invoices/{stripeInvoiceId}/pdf`                          | Owner in person                       | `{ url, fileName, expiresAt }`, a one-minute link to our copy                                                                                                                                      |
+| `POST /billing/stripe-webhook`                                         | Stripe, by signature                  | `200 { received: true }` once the event is handled or was already                                                                                                                                  |
 | `GET /organization/invitations`                                        | Owner                                 | `{ "items": [ … ] }`, open and expired invitations                                                                                                                                                 |
 | `POST /organization/invitations`                                       | Owner                                 | `201` with the invitation, after emailing the link                                                                                                                                                 |
 | `POST /organization/invitations/{invitationId}/resend`                 | Owner                                 | The renewed invitation, after emailing a fresh link                                                                                                                                                |
@@ -776,7 +786,7 @@ no id and no token; only the emailed link accepts an invitation.
 ## Subscriptions and read-only access
 
 [ADR 029](architecture/adr-029-billing-plans-and-trials.md). `GET /me` carries the
-organization's `subscription`: `{ plan, status, trialEndsAt, accessUntil, access, deletesAt }`,
+organization's `subscription`: `{ plan, planChosen, status, trialEndsAt, accessUntil, access, deletesAt }`,
 or null for an organization without one, which has full access. `access` is `full` or
 `read_only`; `deletesAt` is 30 days after `accessUntil` once read-only.
 
@@ -788,6 +798,84 @@ printing a document's unsaved edits, the portal's notice and language, and what 
 access away: removing a member, revoking a member's invitation, revoking a participant or a
 participant's invitation. Reads are never affected. Accepting an invitation and a client's
 upload through the contract return link stay open (ADR 029).
+
+## Billing
+
+[ADR 029](architecture/adr-029-billing-plans-and-trials.md), phase 2. The `billing` module calls
+Stripe (`stripe` SDK on its fetch client, API version `2026-09-30.endive`, the one the setup
+script pins) and Oblio. Without `STRIPE_SECRET_KEY` every route that needs Stripe answers `503`
+with `reason: stripe_unset`, the webhook also without `STRIPE_WEBHOOK_SECRET`. The prices, the
+VAT rate, the portal configuration and the account id are read from Stripe by lookup key and
+by the setup script's metadata, and kept for ten minutes per isolate.
+
+Every billing route stays open while the organization is read-only. Only the owner in person
+calls the owner routes: a specialist and an admin impersonating the owner get `403`.
+`GET /billing` answers every member; its `owner` part (next payment, extra SMS so far, card,
+email for invoices, a change set for the renewal, the fewest packs and members each plan needs,
+the invoices) only the owner in person. `usage.smsThisMonth.used` is null: SMS are not counted
+per organization yet (step 10).
+
+A choice is `{ plan: start | profesional, interval: month | year, employeePacks, extraMembers }`.
+It cannot go below the packs today's employees need or the extra members today's members need,
+Start stops at 600 employees and 2 members, and Enterprise never comes through here. A choice
+that breaks one of those answers `409` with the first problem as `reason`
+(`start_employee_ceiling`, `start_member_ceiling`, `employee_packs_below_need`,
+`extra_members_below_need`, `employee_packs_above_plan`, `extra_members_above_plan`);
+`POST /billing/preview` lists them all in `problems` instead. Other `409` reasons:
+`subscription_exists`, `no_subscription`, `enterprise_plan`, `company_details_missing` (the
+legal name or CUI under Date firmă, which the invoice needs), `unchanged`, `not_canceling`,
+`pdf_pending`. A declined card is `422` with `reason: card_declined`.
+
+**Choosing a plan** creates or reuses the Stripe customer (company name and address, the
+owner's email, locale `ro`, `organization_id` in its metadata) and a subscription with the
+plan, the packs, the extra members and the metered SMS price, the 21 % tax rate,
+`default_incomplete`, the card saved on the subscription, card as the only payment method (Apple
+Pay and Google Pay come through it; Link stays off) and flexible billing mode. During a trial
+its `trial_end` is the trial's end and the answer carries a SetupIntent secret (`intent: setup`);
+otherwise the first invoice is charged now and the answer carries its PaymentIntent secret
+(`intent: payment`). An incomplete subscription is not the organization's until it is paid; a
+checkout started again cancels the abandoned one.
+
+**Changing** follows the ADR: an upgrade or an addition applies at once, prorated, on a monthly
+plan as a line on the next invoice (`create_prorations`), on an annual one charged now
+(`always_invoice` with `pending_if_incomplete`, so it applies only once paid, and the answer
+may carry a payment secret); monthly to annual applies at once the same way. A downgrade, a
+removal and annual to monthly wait for the renewal: a subscription schedule made from the
+subscription keeps the current items until the plan item's period end, then the new ones with
+`proration_behavior: none` for one interval, and releases the subscription. A downgrade takes
+the whole choice to the renewal. During a trial every change applies at once and nothing is
+prorated. A new change releases the schedule first.
+
+**Cancelling** sets `cancel_at: max_period_end` (not `cancel_at_period_end`, which on a
+mixed-interval subscription stops at the monthly SMS item's end) and Stripe's cancellation
+feedback, and logs the reason in `subscription_changes`. Before the first charge of a trial the
+subscription is cancelled at once and the organization returns to its plain trial.
+**Resuming** clears `cancel_at`. Reactivating a read-only organization is choosing a plan again.
+
+**The webhook** checks the signature with `constructEventAsync` and Web Crypto, refuses an event
+of the other mode or of a connected account, and inserts the event id into `stripe_events`
+first: an event already processed answers `200` at once; a failure records `error` and answers
+`500`, so Stripe delivers it again. Each subscription event reads the subscription back from
+Stripe and writes the row from it: plan, interval and price version from the items' lookup keys,
+packs and members from their quantities, `current_period_end` from the plan item, and
+`access_until` as the ADR sets it (the trial's end plus 14 days while a chosen plan waits for its
+first charge; null while active, the cancellation date once one is set; 14 days from the first
+failed renewal while past due; the end of the paid period once canceled). An organization
+follows one subscription; another one's late events change nothing. `invoice.payment_failed`
+starts the 14 days (not for the first charge, confirmed in the browser);
+`invoice.payment_action_required` is logged; `invoice.upcoming` only recorded.
+`customer.updated` with a new default card moves the subscription to it and, while past due,
+pays the open invoices at once.
+
+`invoice.paid` above zero adds a `billing_invoices` row, issues the Oblio document through
+`oblio-documents.ts` (`OBLIO_DOCUMENTS=invoice`: series `SSMUSOR` to the email for invoices or
+the first owner's; anything else: a `TEST` proforma to the fixed test client, never emailed),
+stores its series, number and link, then downloads the PDF into `billing-invoices` at
+`<organization_id>/<series>-<number>.pdf`. Each step checks what is done, so a retried event
+issues nothing twice. Lines are named from the catalogue (Stripe's descriptions are English);
+a prorated credit is a negative quantity. `charge.refunded` for a whole charge issues a storno
+of the original invoice, stored as a negative row keyed by the refund id with `storno_of`, or
+cancels the proforma outside production; a partial refund is left alone.
 
 ## Members
 
