@@ -22,6 +22,7 @@ import { filesRouter } from './modules/files';
 import { fireSafetyRouter } from './modules/fire-safety';
 import { guidesRouter } from './modules/guides';
 import { healthRouter } from './modules/health';
+import { importsRouter } from './modules/imports';
 import { instructionModulesRouter } from './modules/instruction-modules';
 import { invitationsRouter } from './modules/invitations';
 import { jobPositionsRouter } from './modules/job-positions';
@@ -97,6 +98,7 @@ export function createApp() {
   app.route('/', documentsRouter);
   app.route('/', clientFilesRouter);
   app.route('/', filesRouter);
+  app.route('/', importsRouter);
   app.route('/', serviceContractsRouter);
   app.route('/', contractReturnsRouter);
   app.route('/', organizationRouter);

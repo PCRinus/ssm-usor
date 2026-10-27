@@ -7568,6 +7568,1414 @@ export interface ClientFileDownloadResponse {
   expiresInSeconds: number;
 }
 
+export type ImportSummaryKind = (typeof ImportSummaryKind)[keyof typeof ImportSummaryKind];
+
+export const ImportSummaryKind = {
+  client: 'client',
+  employees: 'employees',
+} as const;
+
+export type ImportSummaryStatus = (typeof ImportSummaryStatus)[keyof typeof ImportSummaryStatus];
+
+export const ImportSummaryStatus = {
+  uploading: 'uploading',
+  preparing: 'preparing',
+  sorting: 'sorting',
+  reading: 'reading',
+  checking: 'checking',
+  ready: 'ready',
+  confirmed: 'confirmed',
+  abandoned: 'abandoned',
+  failed: 'failed',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ImportSummaryClient = {
+  id: string;
+  legalName: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type ImportSummaryCreatedBy = {
+  id: string;
+  /** @nullable */
+  fullName: string | null;
+} | null;
+
+export interface ImportSummary {
+  id: string;
+  kind: ImportSummaryKind;
+  status: ImportSummaryStatus;
+  /** @nullable */
+  client: ImportSummaryClient;
+  intoExistingClient: boolean;
+  /** @nullable */
+  companyName: string | null;
+  /** @nullable */
+  companyCui: string | null;
+  /** @nullable */
+  sourceImportId: string | null;
+  /** @nullable */
+  failureReason: string | null;
+  /** @minimum 0 */
+  fileCount: number;
+  /** @nullable */
+  createdBy: ImportSummaryCreatedBy;
+  createdAt: string;
+  /** @nullable */
+  startedAt: string | null;
+  /** @nullable */
+  readyAt: string | null;
+  /** @nullable */
+  failedAt: string | null;
+  /** @nullable */
+  confirmedAt: string | null;
+}
+
+export interface ImportSummaryResponse {
+  import: ImportSummary;
+}
+
+export interface CreateImportRequest {
+  clientId?: string;
+}
+
+export type ImportListResponseItemsItemKind =
+  (typeof ImportListResponseItemsItemKind)[keyof typeof ImportListResponseItemsItemKind];
+
+export const ImportListResponseItemsItemKind = {
+  client: 'client',
+  employees: 'employees',
+} as const;
+
+export type ImportListResponseItemsItemStatus =
+  (typeof ImportListResponseItemsItemStatus)[keyof typeof ImportListResponseItemsItemStatus];
+
+export const ImportListResponseItemsItemStatus = {
+  uploading: 'uploading',
+  preparing: 'preparing',
+  sorting: 'sorting',
+  reading: 'reading',
+  checking: 'checking',
+  ready: 'ready',
+  confirmed: 'confirmed',
+  abandoned: 'abandoned',
+  failed: 'failed',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ImportListResponseItemsItemClient = {
+  id: string;
+  legalName: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type ImportListResponseItemsItemCreatedBy = {
+  id: string;
+  /** @nullable */
+  fullName: string | null;
+} | null;
+
+export type ImportListResponseItemsItem = {
+  id: string;
+  kind: ImportListResponseItemsItemKind;
+  status: ImportListResponseItemsItemStatus;
+  /** @nullable */
+  client: ImportListResponseItemsItemClient;
+  intoExistingClient: boolean;
+  /** @nullable */
+  companyName: string | null;
+  /** @nullable */
+  companyCui: string | null;
+  /** @nullable */
+  sourceImportId: string | null;
+  /** @nullable */
+  failureReason: string | null;
+  /** @minimum 0 */
+  fileCount: number;
+  /** @nullable */
+  createdBy: ImportListResponseItemsItemCreatedBy;
+  createdAt: string;
+  /** @nullable */
+  startedAt: string | null;
+  /** @nullable */
+  readyAt: string | null;
+  /** @nullable */
+  failedAt: string | null;
+  /** @nullable */
+  confirmedAt: string | null;
+};
+
+export interface ImportListResponse {
+  items: ImportListResponseItemsItem[];
+}
+
+export type ImportDetailKind = (typeof ImportDetailKind)[keyof typeof ImportDetailKind];
+
+export const ImportDetailKind = {
+  client: 'client',
+  employees: 'employees',
+} as const;
+
+export type ImportDetailStatus = (typeof ImportDetailStatus)[keyof typeof ImportDetailStatus];
+
+export const ImportDetailStatus = {
+  uploading: 'uploading',
+  preparing: 'preparing',
+  sorting: 'sorting',
+  reading: 'reading',
+  checking: 'checking',
+  ready: 'ready',
+  confirmed: 'confirmed',
+  abandoned: 'abandoned',
+  failed: 'failed',
+} as const;
+
+export type ImportDetailFilesItemMimeType =
+  (typeof ImportDetailFilesItemMimeType)[keyof typeof ImportDetailFilesItemMimeType];
+
+export const ImportDetailFilesItemMimeType = {
+  'application/pdf': 'application/pdf',
+  'application/msword': 'application/msword',
+  'application/vndopenxmlformats-officedocumentwordprocessingmldocument':
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/heic': 'image/heic',
+  'image/heif': 'image/heif',
+} as const;
+
+export type ImportDetailFilesItemState =
+  (typeof ImportDetailFilesItemState)[keyof typeof ImportDetailFilesItemState];
+
+export const ImportDetailFilesItemState = {
+  uploading: 'uploading',
+  uploaded: 'uploaded',
+  prepared: 'prepared',
+  read: 'read',
+  set_aside: 'set_aside',
+  for_employees: 'for_employees',
+  other_company: 'other_company',
+  failed: 'failed',
+} as const;
+
+export type ImportDetailBlockersItemCode =
+  (typeof ImportDetailBlockersItemCode)[keyof typeof ImportDetailBlockersItemCode];
+
+export const ImportDetailBlockersItemCode = {
+  choice: 'choice',
+  missing: 'missing',
+  unknown_reference: 'unknown_reference',
+  invalid: 'invalid',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ImportDetailProposalJobPositionsItemStaffCategory =
+  | (typeof ImportDetailProposalJobPositionsItemStaffCategory)[keyof typeof ImportDetailProposalJobPositionsItemStaffCategory]
+  | null;
+
+export const ImportDetailProposalJobPositionsItemStaffCategory = {
+  technical_administrative: 'technical_administrative',
+  execution: 'execution',
+} as const;
+
+export type ImportDetailProposalResponsiblePersonsItemRolesItem =
+  (typeof ImportDetailProposalResponsiblePersonsItemRolesItem)[keyof typeof ImportDetailProposalResponsiblePersonsItemRolesItem];
+
+export const ImportDetailProposalResponsiblePersonsItemRolesItem = {
+  workplace_manager: 'workplace_manager',
+  first_aid: 'first_aid',
+  risk_evaluation_team: 'risk_evaluation_team',
+  imminent_danger: 'imminent_danger',
+  workers_representative: 'workers_representative',
+  fire_safety_coordinator: 'fire_safety_coordinator',
+  fire_intervention_leader: 'fire_intervention_leader',
+} as const;
+
+export type ImportDetailProposalFireEquipmentItemKind =
+  (typeof ImportDetailProposalFireEquipmentItemKind)[keyof typeof ImportDetailProposalFireEquipmentItemKind];
+
+export const ImportDetailProposalFireEquipmentItemKind = {
+  extinguisher: 'extinguisher',
+  sand_box: 'sand_box',
+  fire_post: 'fire_post',
+  fire_blanket: 'fire_blanket',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ImportDetailProposalFireEquipmentItemAgent =
+  | (typeof ImportDetailProposalFireEquipmentItemAgent)[keyof typeof ImportDetailProposalFireEquipmentItemAgent]
+  | null;
+
+export const ImportDetailProposalFireEquipmentItemAgent = {
+  powder: 'powder',
+  co2: 'co2',
+  foam: 'foam',
+  water: 'water',
+  clean_agent: 'clean_agent',
+} as const;
+
+export type ImportDetailProposalFireInstallationsItemKind =
+  (typeof ImportDetailProposalFireInstallationsItemKind)[keyof typeof ImportDetailProposalFireInstallationsItemKind];
+
+export const ImportDetailProposalFireInstallationsItemKind = {
+  detection_alarm: 'detection_alarm',
+  interior_hydrants: 'interior_hydrants',
+  exterior_hydrants: 'exterior_hydrants',
+  sprinklers: 'sprinklers',
+  smoke_exhaust: 'smoke_exhaust',
+  emergency_lighting: 'emergency_lighting',
+  lightning_protection: 'lightning_protection',
+  gas_detection: 'gas_detection',
+  other: 'other',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ImportDetailProposalProtectiveEquipmentItemAllocation =
+  | (typeof ImportDetailProposalProtectiveEquipmentItemAllocation)[keyof typeof ImportDetailProposalProtectiveEquipmentItemAllocation]
+  | null;
+
+export const ImportDetailProposalProtectiveEquipmentItemAllocation = {
+  personal_inventory: 'personal_inventory',
+  section_inventory: 'section_inventory',
+  consumable: 'consumable',
+} as const;
+
+export type ImportDetailProposalEmployeesItemRole =
+  (typeof ImportDetailProposalEmployeesItemRole)[keyof typeof ImportDetailProposalEmployeesItemRole];
+
+export const ImportDetailProposalEmployeesItemRole = {
+  workers_representative: 'workers_representative',
+  legal_representative: 'legal_representative',
+} as const;
+
+export type ImportDetailProposalFlagsItemCode =
+  (typeof ImportDetailProposalFlagsItemCode)[keyof typeof ImportDetailProposalFlagsItemCode];
+
+export const ImportDetailProposalFlagsItemCode = {
+  file_not_found: 'file_not_found',
+  quote_not_found: 'quote_not_found',
+  invalid_cui: 'invalid_cui',
+  invalid_cnp: 'invalid_cnp',
+  cnp_birth_date_mismatch: 'cnp_birth_date_mismatch',
+  value_not_allowed: 'value_not_allowed',
+  duplicate: 'duplicate',
+  missing: 'missing',
+  unknown_reference: 'unknown_reference',
+  cui_not_registered: 'cui_not_registered',
+  legal_name_differs: 'legal_name_differs',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ImportDetailClient = {
+  id: string;
+  legalName: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type ImportDetailCreatedBy = {
+  id: string;
+  /** @nullable */
+  fullName: string | null;
+} | null;
+
+export type ImportDetailFilesItem = {
+  id: string;
+  uploadPath: string;
+  fileName: string;
+  mimeType: ImportDetailFilesItemMimeType;
+  /** @minimum 1 */
+  sizeBytes: number;
+  state: ImportDetailFilesItemState;
+  /** @nullable */
+  documentKind: string | null;
+  /** @nullable */
+  reason: string | null;
+  /** @nullable */
+  companyName: string | null;
+  /** @nullable */
+  companyCui: string | null;
+  /** @nullable */
+  pageCount: number | null;
+  /** @nullable */
+  isScan: boolean | null;
+  hasDerived: boolean;
+};
+
+export type ImportDetailProgress = {
+  /** @minimum 0 */
+  files: number;
+  /** @minimum 0 */
+  prepared: number;
+  /** @minimum 0 */
+  scans: number;
+  /** @minimum 0 */
+  scansRead: number;
+};
+
+export type ImportDetailOtherCompaniesItem = {
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  cui: string | null;
+  fileIds: string[];
+};
+
+/**
+ * @nullable
+ */
+export type ImportDetailRegisteredCompany = {
+  cui: string;
+  legalName: string;
+  vatPayer: boolean;
+  inactive: boolean;
+} | null;
+
+export type ImportDetailChangesFields = {
+  [key: string]: {
+    /** @minimum 0 */
+    option?: number;
+    value?: string | number | null;
+    included?: boolean;
+    replace?: boolean;
+  };
+};
+
+export type ImportDetailChangesItemsValues = {
+  [key: string]: string | number | boolean | null | string[];
+};
+
+export type ImportDetailChangesItems = {
+  [key: string]: {
+    included?: boolean;
+    values?: ImportDetailChangesItemsValues;
+    /** @nullable */
+    existingId?: string | null;
+    replace?: string[];
+  };
+};
+
+/**
+ * @nullable
+ */
+export type ImportDetailChanges = {
+  fields?: ImportDetailChangesFields;
+  items?: ImportDetailChangesItems;
+} | null;
+
+export type ImportDetailBlockersItem = {
+  path: string;
+  code: ImportDetailBlockersItemCode;
+};
+
+export type ImportDetailProposalClientLegalNameOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalClientLegalNameOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalClientLegalNameOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalClientLegalName = {
+  options: ImportDetailProposalClientLegalNameOptionsItem[];
+};
+
+export type ImportDetailProposalClientCuiOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalClientCuiOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalClientCuiOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalClientCui = {
+  options: ImportDetailProposalClientCuiOptionsItem[];
+};
+
+export type ImportDetailProposalClientTradeRegisterNumberOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalClientTradeRegisterNumberOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalClientTradeRegisterNumberOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalClientTradeRegisterNumber = {
+  options: ImportDetailProposalClientTradeRegisterNumberOptionsItem[];
+};
+
+export type ImportDetailProposalClientCaenCodeOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalClientCaenCodeOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalClientCaenCodeOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalClientCaenCode = {
+  options: ImportDetailProposalClientCaenCodeOptionsItem[];
+};
+
+export type ImportDetailProposalClientCountyCodeOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalClientCountyCodeOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalClientCountyCodeOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalClientCountyCode = {
+  options: ImportDetailProposalClientCountyCodeOptionsItem[];
+};
+
+export type ImportDetailProposalClientLocalityOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalClientLocalityOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalClientLocalityOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalClientLocality = {
+  options: ImportDetailProposalClientLocalityOptionsItem[];
+};
+
+export type ImportDetailProposalClientAddressLineOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalClientAddressLineOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalClientAddressLineOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalClientAddressLine = {
+  options: ImportDetailProposalClientAddressLineOptionsItem[];
+};
+
+export type ImportDetailProposalClientLegalRepresentativeNameOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalClientLegalRepresentativeNameOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalClientLegalRepresentativeNameOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalClientLegalRepresentativeName = {
+  options: ImportDetailProposalClientLegalRepresentativeNameOptionsItem[];
+};
+
+export type ImportDetailProposalClientLegalRepresentativeRoleOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalClientLegalRepresentativeRoleOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalClientLegalRepresentativeRoleOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalClientLegalRepresentativeRole = {
+  options: ImportDetailProposalClientLegalRepresentativeRoleOptionsItem[];
+};
+
+export type ImportDetailProposalClientContactNameOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalClientContactNameOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalClientContactNameOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalClientContactName = {
+  options: ImportDetailProposalClientContactNameOptionsItem[];
+};
+
+export type ImportDetailProposalClientContactPhoneOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalClientContactPhoneOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalClientContactPhoneOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalClientContactPhone = {
+  options: ImportDetailProposalClientContactPhoneOptionsItem[];
+};
+
+export type ImportDetailProposalClientContactEmailOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalClientContactEmailOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalClientContactEmailOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalClientContactEmail = {
+  options: ImportDetailProposalClientContactEmailOptionsItem[];
+};
+
+export type ImportDetailProposalClient = {
+  legalName: ImportDetailProposalClientLegalName;
+  cui: ImportDetailProposalClientCui;
+  tradeRegisterNumber: ImportDetailProposalClientTradeRegisterNumber;
+  caenCode: ImportDetailProposalClientCaenCode;
+  countyCode: ImportDetailProposalClientCountyCode;
+  locality: ImportDetailProposalClientLocality;
+  addressLine: ImportDetailProposalClientAddressLine;
+  legalRepresentativeName: ImportDetailProposalClientLegalRepresentativeName;
+  legalRepresentativeRole: ImportDetailProposalClientLegalRepresentativeRole;
+  contactName: ImportDetailProposalClientContactName;
+  contactPhone: ImportDetailProposalClientContactPhone;
+  contactEmail: ImportDetailProposalClientContactEmail;
+};
+
+export type ImportDetailProposalTrainingSchedulePeriodicTrainingMinutesOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalTrainingSchedulePeriodicTrainingMinutesOptionsItem = {
+  value: number;
+  /** @minItems 1 */
+  sources: ImportDetailProposalTrainingSchedulePeriodicTrainingMinutesOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalTrainingSchedulePeriodicTrainingMinutes = {
+  options: ImportDetailProposalTrainingSchedulePeriodicTrainingMinutesOptionsItem[];
+};
+
+export type ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMonthsOptionsItemSourcesItem =
+  {
+    file: string;
+    quote: string;
+  };
+
+export type ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMonthsOptionsItem = {
+  value: number;
+  /** @minItems 1 */
+  sources: ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMonthsOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMonths = {
+  options: ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMonthsOptionsItem[];
+};
+
+export type ImportDetailProposalTrainingScheduleWorkerTrainingIntervalMonthsOptionsItemSourcesItem =
+  {
+    file: string;
+    quote: string;
+  };
+
+export type ImportDetailProposalTrainingScheduleWorkerTrainingIntervalMonthsOptionsItem = {
+  value: number;
+  /** @minItems 1 */
+  sources: ImportDetailProposalTrainingScheduleWorkerTrainingIntervalMonthsOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalTrainingScheduleWorkerTrainingIntervalMonths = {
+  options: ImportDetailProposalTrainingScheduleWorkerTrainingIntervalMonthsOptionsItem[];
+};
+
+export type ImportDetailProposalTrainingScheduleTrainingFirstMonthOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalTrainingScheduleTrainingFirstMonthOptionsItem = {
+  value: number;
+  /** @minItems 1 */
+  sources: ImportDetailProposalTrainingScheduleTrainingFirstMonthOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalTrainingScheduleTrainingFirstMonth = {
+  options: ImportDetailProposalTrainingScheduleTrainingFirstMonthOptionsItem[];
+};
+
+export type ImportDetailProposalTrainingScheduleTrainingDayFromOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalTrainingScheduleTrainingDayFromOptionsItem = {
+  value: number;
+  /** @minItems 1 */
+  sources: ImportDetailProposalTrainingScheduleTrainingDayFromOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalTrainingScheduleTrainingDayFrom = {
+  options: ImportDetailProposalTrainingScheduleTrainingDayFromOptionsItem[];
+};
+
+export type ImportDetailProposalTrainingScheduleTrainingDayToOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalTrainingScheduleTrainingDayToOptionsItem = {
+  value: number;
+  /** @minItems 1 */
+  sources: ImportDetailProposalTrainingScheduleTrainingDayToOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalTrainingScheduleTrainingDayTo = {
+  options: ImportDetailProposalTrainingScheduleTrainingDayToOptionsItem[];
+};
+
+export type ImportDetailProposalTrainingSchedule = {
+  periodicTrainingMinutes: ImportDetailProposalTrainingSchedulePeriodicTrainingMinutes;
+  administrativeTrainingIntervalMonths: ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMonths;
+  workerTrainingIntervalMonths: ImportDetailProposalTrainingScheduleWorkerTrainingIntervalMonths;
+  trainingFirstMonth: ImportDetailProposalTrainingScheduleTrainingFirstMonth;
+  trainingDayFrom: ImportDetailProposalTrainingScheduleTrainingDayFrom;
+  trainingDayTo: ImportDetailProposalTrainingScheduleTrainingDayTo;
+};
+
+export type ImportDetailProposalFireSafetyPeriodicTrainingHoursOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireSafetyPeriodicTrainingHoursOptionsItem = {
+  value: number;
+  /** @minItems 1 */
+  sources: ImportDetailProposalFireSafetyPeriodicTrainingHoursOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalFireSafetyPeriodicTrainingHours = {
+  options: ImportDetailProposalFireSafetyPeriodicTrainingHoursOptionsItem[];
+};
+
+export type ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonthsOptionsItemSourcesItem =
+  {
+    file: string;
+    quote: string;
+  };
+
+export type ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonthsOptionsItem = {
+  value: number;
+  /** @minItems 1 */
+  sources: ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonthsOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonths = {
+  options: ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonthsOptionsItem[];
+};
+
+export type ImportDetailProposalFireSafetyWorkerTrainingIntervalMonthsOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireSafetyWorkerTrainingIntervalMonthsOptionsItem = {
+  value: number;
+  /** @minItems 1 */
+  sources: ImportDetailProposalFireSafetyWorkerTrainingIntervalMonthsOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalFireSafetyWorkerTrainingIntervalMonths = {
+  options: ImportDetailProposalFireSafetyWorkerTrainingIntervalMonthsOptionsItem[];
+};
+
+export type ImportDetailProposalFireSafetySmokingPolicyOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireSafetySmokingPolicyOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalFireSafetySmokingPolicyOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalFireSafetySmokingPolicy = {
+  options: ImportDetailProposalFireSafetySmokingPolicyOptionsItem[];
+};
+
+export type ImportDetailProposalFireSafetySmokingPlaceOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireSafetySmokingPlaceOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalFireSafetySmokingPlaceOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalFireSafetySmokingPlace = {
+  options: ImportDetailProposalFireSafetySmokingPlaceOptionsItem[];
+};
+
+export type ImportDetailProposalFireSafetyWasteContractorOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireSafetyWasteContractorOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalFireSafetyWasteContractorOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalFireSafetyWasteContractor = {
+  options: ImportDetailProposalFireSafetyWasteContractorOptionsItem[];
+};
+
+export type ImportDetailProposalFireSafety = {
+  periodicTrainingHours: ImportDetailProposalFireSafetyPeriodicTrainingHours;
+  administrativeTrainingIntervalMonths: ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonths;
+  workerTrainingIntervalMonths: ImportDetailProposalFireSafetyWorkerTrainingIntervalMonths;
+  smokingPolicy: ImportDetailProposalFireSafetySmokingPolicy;
+  smokingPlace: ImportDetailProposalFireSafetySmokingPlace;
+  wasteContractor: ImportDetailProposalFireSafetyWasteContractor;
+};
+
+export type ImportDetailProposalWorkplacesItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalWorkplacesItem = {
+  /** @minLength 1 */
+  id: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalWorkplacesItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  /** @minLength 1 */
+  name: string;
+  /** @nullable */
+  countyCode: string | null;
+  /** @nullable */
+  locality: string | null;
+  /** @nullable */
+  addressLine: string | null;
+  isRegisteredOffice: boolean;
+  /** @nullable */
+  activity: string | null;
+  /** @items.minLength 1 */
+  rooms: string[];
+};
+
+export type ImportDetailProposalJobPositionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalJobPositionsItem = {
+  /** @minLength 1 */
+  id: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalJobPositionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  /** @minLength 1 */
+  name: string;
+  /** @nullable */
+  staffCategory: ImportDetailProposalJobPositionsItemStaffCategory;
+  /** @nullable */
+  trainingIntervalMonths: number | null;
+  /** @nullable */
+  workZone: string | null;
+  /** @nullable */
+  activities: string | null;
+};
+
+export type ImportDetailProposalResponsiblePersonsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalResponsiblePersonsItemWorkplace = {
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  id: string | null;
+};
+
+export type ImportDetailProposalResponsiblePersonsItem = {
+  /** @minLength 1 */
+  id: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalResponsiblePersonsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  /** @minLength 1 */
+  fullName: string;
+  /** @nullable */
+  jobTitle: string | null;
+  /** @minItems 1 */
+  roles: ImportDetailProposalResponsiblePersonsItemRolesItem[];
+  workplace: ImportDetailProposalResponsiblePersonsItemWorkplace;
+};
+
+export type ImportDetailProposalFireEquipmentItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireEquipmentItemWorkplace = {
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  id: string | null;
+};
+
+export type ImportDetailProposalFireEquipmentItem = {
+  /** @minLength 1 */
+  id: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalFireEquipmentItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  workplace: ImportDetailProposalFireEquipmentItemWorkplace;
+  /** @nullable */
+  room: string | null;
+  kind: ImportDetailProposalFireEquipmentItemKind;
+  /** @nullable */
+  agent: ImportDetailProposalFireEquipmentItemAgent;
+  /** @nullable */
+  capacity: number | null;
+  wheeled: boolean;
+  /** @nullable */
+  count: number | null;
+};
+
+export type ImportDetailProposalFireInstallationsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireInstallationsItemWorkplace = {
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  id: string | null;
+};
+
+export type ImportDetailProposalFireInstallationsItem = {
+  /** @minLength 1 */
+  id: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalFireInstallationsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  workplace: ImportDetailProposalFireInstallationsItemWorkplace;
+  kind: ImportDetailProposalFireInstallationsItemKind;
+  /** @nullable */
+  description: string | null;
+};
+
+export type ImportDetailProposalProtectiveEquipmentItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalProtectiveEquipmentItemJobPosition = {
+  /** @minLength 1 */
+  name: string;
+  /** @nullable */
+  id: string | null;
+};
+
+export type ImportDetailProposalProtectiveEquipmentItem = {
+  /** @minLength 1 */
+  id: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalProtectiveEquipmentItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  jobPosition: ImportDetailProposalProtectiveEquipmentItemJobPosition;
+  /** @nullable */
+  risk: string | null;
+  /** @minLength 1 */
+  item: string;
+  /** @nullable */
+  quantity: number | null;
+  /** @nullable */
+  durationMonths: number | null;
+  /** @nullable */
+  allocation: ImportDetailProposalProtectiveEquipmentItemAllocation;
+};
+
+export type ImportDetailProposalEmployeesItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalEmployeesItem = {
+  /** @minLength 1 */
+  id: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalEmployeesItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  role: ImportDetailProposalEmployeesItemRole;
+  /** @nullable */
+  lastName: string | null;
+  /** @nullable */
+  firstName: string | null;
+  /** @nullable */
+  cnp: string | null;
+  /** @nullable */
+  birthDate: string | null;
+  /** @nullable */
+  jobTitle: string | null;
+  /** @nullable */
+  hiredAt: string | null;
+};
+
+export type ImportDetailProposalFlagsItem = {
+  path: string;
+  code: ImportDetailProposalFlagsItemCode;
+  detail?: string;
+};
+
+/**
+ * @nullable
+ */
+export type ImportDetailProposal = {
+  client: ImportDetailProposalClient;
+  trainingSchedule: ImportDetailProposalTrainingSchedule;
+  fireSafety: ImportDetailProposalFireSafety;
+  workplaces: ImportDetailProposalWorkplacesItem[];
+  jobPositions: ImportDetailProposalJobPositionsItem[];
+  responsiblePersons: ImportDetailProposalResponsiblePersonsItem[];
+  fireEquipment: ImportDetailProposalFireEquipmentItem[];
+  fireInstallations: ImportDetailProposalFireInstallationsItem[];
+  protectiveEquipment: ImportDetailProposalProtectiveEquipmentItem[];
+  employees: ImportDetailProposalEmployeesItem[];
+  notes: string[];
+  flags: ImportDetailProposalFlagsItem[];
+} | null;
+
+export interface ImportDetail {
+  id: string;
+  kind: ImportDetailKind;
+  status: ImportDetailStatus;
+  /** @nullable */
+  client: ImportDetailClient;
+  intoExistingClient: boolean;
+  /** @nullable */
+  companyName: string | null;
+  /** @nullable */
+  companyCui: string | null;
+  /** @nullable */
+  sourceImportId: string | null;
+  /** @nullable */
+  failureReason: string | null;
+  /** @minimum 0 */
+  fileCount: number;
+  /** @nullable */
+  createdBy: ImportDetailCreatedBy;
+  createdAt: string;
+  /** @nullable */
+  startedAt: string | null;
+  /** @nullable */
+  readyAt: string | null;
+  /** @nullable */
+  failedAt: string | null;
+  /** @nullable */
+  confirmedAt: string | null;
+  /** @minimum 0 */
+  version: number;
+  files: ImportDetailFilesItem[];
+  progress: ImportDetailProgress;
+  otherCompanies: ImportDetailOtherCompaniesItem[];
+  /** @nullable */
+  registeredCompany: ImportDetailRegisteredCompany;
+  /** @nullable */
+  changes: ImportDetailChanges;
+  blockers: ImportDetailBlockersItem[];
+  /** @nullable */
+  proposalDroppedAt: string | null;
+  /** @nullable */
+  proposal: ImportDetailProposal;
+}
+
+export interface ImportDetailResponse {
+  import: ImportDetail;
+}
+
+export type RegisterImportFilesResponseFilesItemBucket =
+  (typeof RegisterImportFilesResponseFilesItemBucket)[keyof typeof RegisterImportFilesResponseFilesItemBucket];
+
+export const RegisterImportFilesResponseFilesItemBucket = {
+  imports: 'imports',
+} as const;
+
+export type RegisterImportFilesResponseFilesItem = {
+  id: string;
+  uploadPath: string;
+  bucket: RegisterImportFilesResponseFilesItemBucket;
+  storagePath: string;
+};
+
+export interface RegisterImportFilesResponse {
+  files: RegisterImportFilesResponseFilesItem[];
+}
+
+export type RegisterImportFilesRequestFilesItemMimeType =
+  (typeof RegisterImportFilesRequestFilesItemMimeType)[keyof typeof RegisterImportFilesRequestFilesItemMimeType];
+
+export const RegisterImportFilesRequestFilesItemMimeType = {
+  'application/pdf': 'application/pdf',
+  'application/msword': 'application/msword',
+  'application/vndopenxmlformats-officedocumentwordprocessingmldocument':
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/heic': 'image/heic',
+  'image/heif': 'image/heif',
+} as const;
+
+export type RegisterImportFilesRequestFilesItem = {
+  /**
+   * @minLength 1
+   * @maxLength 1024
+   */
+  uploadPath: string;
+  mimeType: RegisterImportFilesRequestFilesItemMimeType;
+  /**
+   * @minimum 1
+   * @maximum 20971520
+   */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  sha256: string;
+};
+
+export interface RegisterImportFilesRequest {
+  /**
+   * @minItems 1
+   * @maxItems 150
+   */
+  files: RegisterImportFilesRequestFilesItem[];
+}
+
+export interface SaveImportChangesResponse {
+  /** @minimum 0 */
+  version: number;
+}
+
+export type SaveImportChangesRequestChangesFields = {
+  [key: string]: {
+    /** @minimum 0 */
+    option?: number;
+    value?: string | number | null;
+    included?: boolean;
+    replace?: boolean;
+  };
+};
+
+export type SaveImportChangesRequestChangesItemsValues = {
+  [key: string]: string | number | boolean | null | string[];
+};
+
+export type SaveImportChangesRequestChangesItems = {
+  [key: string]: {
+    included?: boolean;
+    values?: SaveImportChangesRequestChangesItemsValues;
+    /** @nullable */
+    existingId?: string | null;
+    replace?: string[];
+  };
+};
+
+export type SaveImportChangesRequestChanges = {
+  fields?: SaveImportChangesRequestChangesFields;
+  items?: SaveImportChangesRequestChangesItems;
+};
+
+export interface SaveImportChangesRequest {
+  /** @minimum 0 */
+  version: number;
+  changes: SaveImportChangesRequestChanges;
+}
+
+export type ImportSourceResponseOriginal = {
+  url: string;
+  mimeType: string;
+};
+
+/**
+ * @nullable
+ */
+export type ImportSourceResponseDerived = {
+  url: string;
+  mimeType: string;
+} | null;
+
+export type ImportSourceResponsePagesItem = {
+  /** @minimum 1 */
+  number: number;
+  text: string;
+};
+
+/**
+ * @nullable
+ */
+export type ImportSourceResponseMatch = {
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  page: number | null;
+  /** @minimum 0 */
+  start: number;
+  /** @minimum 0 */
+  end: number;
+} | null;
+
+export interface ImportSourceResponse {
+  fileId: string;
+  uploadPath: string;
+  fileName: string;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  page: number | null;
+  original: ImportSourceResponseOriginal;
+  /** @nullable */
+  derived: ImportSourceResponseDerived;
+  /** @nullable */
+  text: string | null;
+  /** @nullable */
+  pages: ImportSourceResponsePagesItem[] | null;
+  /** @nullable */
+  match: ImportSourceResponseMatch;
+  expiresInSeconds: number;
+}
+
+export interface ConfirmImportResponse {
+  clientId: string;
+  /** @minimum 0 */
+  fileCount: number;
+}
+
+export interface ConfirmImportRequest {
+  /** @minimum 0 */
+  version: number;
+}
+
+export interface SplitImportRequest {
+  /**
+   * @minItems 1
+   * @maxItems 150
+   */
+  fileIds: string[];
+}
+
 /**
  * @nullable
  */
@@ -10362,6 +11770,25 @@ export const DownloadFileDisposition = {
   attachment: 'attachment',
   inline: 'inline',
 } as const;
+
+export type ListImportsParams = {
+  /**
+   * Only the imports into this client; without it, every open import.
+   */
+  clientId?: string;
+};
+
+export type GetImportSourceParams = {
+  /**
+   * @minLength 1
+   * @maxLength 1100
+   */
+  file: string;
+  /**
+   * @maxLength 2000
+   */
+  quote?: string;
+};
 
 export type UpdateInvoiceEmail200 = {
   /**
@@ -28952,6 +30379,1113 @@ export function useDownloadFile<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getCreateImportUrl = () => {
+  return `/imports`;
+};
+
+/**
+ * A client import (ADR 030) for a new client, or with `clientId` for an existing one, which must be an active client, not a lead. It starts `uploading`: register its files, upload them, then start the reading. Answers `503` with the reason `import_unavailable` where the model gateway, the extractor or the queue is not configured.
+ * @summary Start an import from documents
+ */
+export const createImport = async (
+  createImportRequest: CreateImportRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ImportSummaryResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ImportSummaryResponse>(getCreateImportUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createImportRequest),
+  });
+};
+
+export const getCreateImportMutationKey = () => ['createImport'] as const;
+
+export const getCreateImportMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createImport>>,
+    TError,
+    CreateImportMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createImport>>,
+  TError,
+  CreateImportMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateImportMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createImport>>,
+    CreateImportMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createImport(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateImportMutationResult = NonNullable<Awaited<ReturnType<typeof createImport>>>;
+export type CreateImportMutationBody = CreateImportRequest;
+export type CreateImportMutationError = ErrorType<ApiErrorResponse>;
+export type CreateImportMutationVariables = { data: CreateImportRequest };
+
+/**
+ * @summary Start an import from documents
+ */
+export const useCreateImport = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createImport>>,
+      TError,
+      CreateImportMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createImport>>,
+  TError,
+  CreateImportMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateImportMutationOptions(options), queryClient);
+};
+
+export const getListImportsUrl = (params?: ListImportsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/imports?${stringifiedParams}` : `/imports`;
+};
+
+/**
+ * Every import neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show. Not paginated; an organization has a handful at a time.
+ * @summary List the organization's open imports
+ */
+export const listImports = async (
+  params?: ListImportsParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ImportListResponse> => {
+  return apiFetch<ImportListResponse>(getListImportsUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListImportsQueryKey = (params?: ListImportsParams) => {
+  return [`/imports`, ...(params ? [params] : [])] as const;
+};
+
+export const getListImportsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listImports>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListImportsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listImports>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListImportsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listImports>>> = ({ signal }) =>
+    listImports(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listImports>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListImportsQueryResult = NonNullable<Awaited<ReturnType<typeof listImports>>>;
+export type ListImportsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListImports<
+  TData = Awaited<ReturnType<typeof listImports>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: undefined | ListImportsParams,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listImports>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listImports>>,
+          TError,
+          Awaited<ReturnType<typeof listImports>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListImports<
+  TData = Awaited<ReturnType<typeof listImports>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListImportsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listImports>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listImports>>,
+          TError,
+          Awaited<ReturnType<typeof listImports>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListImports<
+  TData = Awaited<ReturnType<typeof listImports>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListImportsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listImports>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the organization's open imports
+ */
+
+export function useListImports<
+  TData = Awaited<ReturnType<typeof listImports>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListImportsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listImports>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListImportsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetImportUrl = (importId: string) => {
+  return `/imports/${importId}`;
+};
+
+/**
+ * Its step, every file with its state and reason, the progress counts, the other companies the documents named, and from `ready` on the proposal with its flags, the member's changes, the version to save on, and what still blocks confirming. The proposal is null before `ready` and once dropped, 30 days after confirming.
+ * @summary Get an import with its files and proposal
+ */
+export const getImport = async (
+  importId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ImportDetailResponse> => {
+  return apiFetch<ImportDetailResponse>(getGetImportUrl(importId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetImportQueryKey = (importId: string) => {
+  return [`/imports/${importId}`] as const;
+};
+
+export const getGetImportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getImport>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getImport>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetImportQueryKey(importId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getImport>>> = ({ signal }) =>
+    getImport(importId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: importId !== null && importId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getImport>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetImportQueryResult = NonNullable<Awaited<ReturnType<typeof getImport>>>;
+export type GetImportQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetImport<
+  TData = Awaited<ReturnType<typeof getImport>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getImport>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getImport>>,
+          TError,
+          Awaited<ReturnType<typeof getImport>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetImport<
+  TData = Awaited<ReturnType<typeof getImport>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getImport>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getImport>>,
+          TError,
+          Awaited<ReturnType<typeof getImport>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetImport<
+  TData = Awaited<ReturnType<typeof getImport>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getImport>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get an import with its files and proposal
+ */
+
+export function useGetImport<
+  TData = Awaited<ReturnType<typeof getImport>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getImport>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetImportQueryOptions(importId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getRegisterImportFilesUrl = (importId: string) => {
+  return `/imports/${importId}/files`;
+};
+
+/**
+ * One row per file, while the import is `uploading` (else `409` with `import_not_uploading`). Each answer names the bucket and the path the browser uploads the file to in Supabase Storage with the member's own session; the bucket's policy takes only that path, only while the file is uploading. A path the import already has, or twice in one request, answers `409` with `import_duplicate_path`; an extension that is not the type's, `400` with `import_type_mismatch`; more than 150 files or 100 MiB in all, `422` with `import_too_large`. Registering can be repeated in batches.
+ * @summary Register the files the browser is about to upload
+ */
+export const registerImportFiles = async (
+  importId: string,
+  registerImportFilesRequest: RegisterImportFilesRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<RegisterImportFilesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<RegisterImportFilesResponse>(getRegisterImportFilesUrl(importId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(registerImportFilesRequest),
+  });
+};
+
+export const getRegisterImportFilesMutationKey = () => ['registerImportFiles'] as const;
+
+export const getRegisterImportFilesMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerImportFiles>>,
+    TError,
+    RegisterImportFilesMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof registerImportFiles>>,
+  TError,
+  RegisterImportFilesMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRegisterImportFilesMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof registerImportFiles>>,
+    RegisterImportFilesMutationVariables
+  > = (props) => {
+    const { importId, data } = props ?? {};
+
+    return registerImportFiles(importId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterImportFilesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof registerImportFiles>>
+>;
+export type RegisterImportFilesMutationBody = RegisterImportFilesRequest;
+export type RegisterImportFilesMutationError = ErrorType<ApiErrorResponse>;
+export type RegisterImportFilesMutationVariables = {
+  importId: string;
+  data: RegisterImportFilesRequest;
+};
+
+/**
+ * @summary Register the files the browser is about to upload
+ */
+export const useRegisterImportFiles = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof registerImportFiles>>,
+      TError,
+      RegisterImportFilesMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof registerImportFiles>>,
+  TError,
+  RegisterImportFilesMutationVariables,
+  TContext
+> => {
+  return useMutation(getRegisterImportFilesMutationOptions(options), queryClient);
+};
+
+export const getStartImportUrl = (importId: string) => {
+  return `/imports/${importId}/start`;
+};
+
+/**
+ * Files whose upload never arrived are dropped; with none left the answer is `422` with `import_empty`. The import moves to `preparing` and one message per file goes to the import queue. `409` with `import_not_uploading` once started; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.
+ * @summary Start reading the uploaded files
+ */
+export const startImport = async (
+  importId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ImportSummaryResponse> => {
+  return apiFetch<ImportSummaryResponse>(getStartImportUrl(importId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getStartImportMutationKey = () => ['startImport'] as const;
+
+export const getStartImportMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startImport>>,
+    TError,
+    StartImportMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startImport>>,
+  TError,
+  StartImportMutationVariables,
+  TContext
+> => {
+  const mutationKey = getStartImportMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startImport>>,
+    StartImportMutationVariables
+  > = (props) => {
+    const { importId } = props ?? {};
+
+    return startImport(importId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartImportMutationResult = NonNullable<Awaited<ReturnType<typeof startImport>>>;
+
+export type StartImportMutationError = ErrorType<ApiErrorResponse>;
+export type StartImportMutationVariables = { importId: string };
+
+/**
+ * @summary Start reading the uploaded files
+ */
+export const useStartImport = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof startImport>>,
+      TError,
+      StartImportMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof startImport>>,
+  TError,
+  StartImportMutationVariables,
+  TContext
+> => {
+  return useMutation(getStartImportMutationOptions(options), queryClient);
+};
+
+export const getSaveImportChangesUrl = (importId: string) => {
+  return `/imports/${importId}/changes`;
+};
+
+/**
+ * Replaces the changes, on the `version` the caller read, and answers the next version. `409` with `import_changed` when someone saved since, `import_not_ready` when the import is not `ready`.
+ * @summary Save the member's review
+ */
+export const saveImportChanges = async (
+  importId: string,
+  saveImportChangesRequest: SaveImportChangesRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SaveImportChangesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<SaveImportChangesResponse>(getSaveImportChangesUrl(importId), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(saveImportChangesRequest),
+  });
+};
+
+export const getSaveImportChangesMutationKey = () => ['saveImportChanges'] as const;
+
+export const getSaveImportChangesMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveImportChanges>>,
+    TError,
+    SaveImportChangesMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveImportChanges>>,
+  TError,
+  SaveImportChangesMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSaveImportChangesMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveImportChanges>>,
+    SaveImportChangesMutationVariables
+  > = (props) => {
+    const { importId, data } = props ?? {};
+
+    return saveImportChanges(importId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveImportChangesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveImportChanges>>
+>;
+export type SaveImportChangesMutationBody = SaveImportChangesRequest;
+export type SaveImportChangesMutationError = ErrorType<ApiErrorResponse>;
+export type SaveImportChangesMutationVariables = {
+  importId: string;
+  data: SaveImportChangesRequest;
+};
+
+/**
+ * @summary Save the member's review
+ */
+export const useSaveImportChanges = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof saveImportChanges>>,
+      TError,
+      SaveImportChangesMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof saveImportChanges>>,
+  TError,
+  SaveImportChangesMutationVariables,
+  TContext
+> => {
+  return useMutation(getSaveImportChangesMutationOptions(options), queryClient);
+};
+
+export const getGetImportSourceUrl = (importId: string, params: GetImportSourceParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/imports/${importId}/source?${stringifiedParams}`
+    : `/imports/${importId}/source`;
+};
+
+/**
+ * `file` is a source's `file` exactly as the proposal names it: a file's upload path, or `<upload path> (pagina N)` for a page read as an image. The answer links to the original and to the converted file, carries the text taken out of a Word file or the pages of a PDF, and where `quote` is in them.
+ * @summary Get the file a value was quoted from
+ */
+export const getImportSource = async (
+  importId: string,
+  params: GetImportSourceParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ImportSourceResponse> => {
+  return apiFetch<ImportSourceResponse>(getGetImportSourceUrl(importId, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetImportSourceQueryKey = (importId: string, params?: GetImportSourceParams) => {
+  return [`/imports/${importId}/source`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetImportSourceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getImportSource>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  params: GetImportSourceParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getImportSource>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetImportSourceQueryKey(importId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getImportSource>>> = ({ signal }) =>
+    getImportSource(importId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: importId !== null && importId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getImportSource>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetImportSourceQueryResult = NonNullable<Awaited<ReturnType<typeof getImportSource>>>;
+export type GetImportSourceQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetImportSource<
+  TData = Awaited<ReturnType<typeof getImportSource>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  params: GetImportSourceParams,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getImportSource>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getImportSource>>,
+          TError,
+          Awaited<ReturnType<typeof getImportSource>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetImportSource<
+  TData = Awaited<ReturnType<typeof getImportSource>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  params: GetImportSourceParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getImportSource>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getImportSource>>,
+          TError,
+          Awaited<ReturnType<typeof getImportSource>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetImportSource<
+  TData = Awaited<ReturnType<typeof getImportSource>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  params: GetImportSourceParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getImportSource>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the file a value was quoted from
+ */
+
+export function useGetImportSource<
+  TData = Awaited<ReturnType<typeof getImportSource>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  importId: string,
+  params: GetImportSourceParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getImportSource>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetImportSourceQueryOptions(importId, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getConfirmImportUrl = (importId: string) => {
+  return `/imports/${importId}/confirm`;
+};
+
+/**
+ * Writes the proposal with the member's changes into the client, its workplaces, positions, people and fire-safety data in one transaction, and the import folder into its files, on the `version` the caller read. `422` with `import_incomplete` lists in `issues` what still blocks (a choice, a missing or invalid value, an unknown reference). `409` with `import_changed`, `import_not_ready`, `import_other_company` (an existing client's CUI is not the documents') or `import_client_exists` (a new client's CUI is the organization's already). The files are copied into the client's files by the queue after the answer.
+ * @summary Confirm the proposal
+ */
+export const confirmImport = async (
+  importId: string,
+  confirmImportRequest: ConfirmImportRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ConfirmImportResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ConfirmImportResponse>(getConfirmImportUrl(importId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(confirmImportRequest),
+  });
+};
+
+export const getConfirmImportMutationKey = () => ['confirmImport'] as const;
+
+export const getConfirmImportMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmImport>>,
+    TError,
+    ConfirmImportMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmImport>>,
+  TError,
+  ConfirmImportMutationVariables,
+  TContext
+> => {
+  const mutationKey = getConfirmImportMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmImport>>,
+    ConfirmImportMutationVariables
+  > = (props) => {
+    const { importId, data } = props ?? {};
+
+    return confirmImport(importId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmImportMutationResult = NonNullable<Awaited<ReturnType<typeof confirmImport>>>;
+export type ConfirmImportMutationBody = ConfirmImportRequest;
+export type ConfirmImportMutationError = ErrorType<ApiErrorResponse>;
+export type ConfirmImportMutationVariables = { importId: string; data: ConfirmImportRequest };
+
+/**
+ * @summary Confirm the proposal
+ */
+export const useConfirmImport = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof confirmImport>>,
+      TError,
+      ConfirmImportMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof confirmImport>>,
+  TError,
+  ConfirmImportMutationVariables,
+  TContext
+> => {
+  return useMutation(getConfirmImportMutationOptions(options), queryClient);
+};
+
+export const getAbandonImportUrl = (importId: string) => {
+  return `/imports/${importId}/abandon`;
+};
+
+/**
+ * Any import not confirmed or abandoned yet; `409` with `import_ended` otherwise. It is deleted with its files 14 days later.
+ * @summary Abandon an import
+ */
+export const abandonImport = async (
+  importId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getAbandonImportUrl(importId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getAbandonImportMutationKey = () => ['abandonImport'] as const;
+
+export const getAbandonImportMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof abandonImport>>,
+    TError,
+    AbandonImportMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof abandonImport>>,
+  TError,
+  AbandonImportMutationVariables,
+  TContext
+> => {
+  const mutationKey = getAbandonImportMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof abandonImport>>,
+    AbandonImportMutationVariables
+  > = (props) => {
+    const { importId } = props ?? {};
+
+    return abandonImport(importId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AbandonImportMutationResult = NonNullable<Awaited<ReturnType<typeof abandonImport>>>;
+
+export type AbandonImportMutationError = ErrorType<ApiErrorResponse>;
+export type AbandonImportMutationVariables = { importId: string };
+
+/**
+ * @summary Abandon an import
+ */
+export const useAbandonImport = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof abandonImport>>,
+      TError,
+      AbandonImportMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof abandonImport>>,
+  TError,
+  AbandonImportMutationVariables,
+  TContext
+> => {
+  return useMutation(getAbandonImportMutationOptions(options), queryClient);
+};
+
+export const getSplitImportUrl = (importId: string) => {
+  return `/imports/${importId}/split`;
+};
+
+/**
+ * Takes files the sorting found to be about another company, as `otherCompanies` lists them, into a new import for a new client, without uploading them again, and starts reading it. Every file must be `other_company` (else `422` with `import_not_other_company`), and none already split from this import into one not abandoned (`409` with `import_already_split`).
+ * @summary Import another company's files on their own
+ */
+export const splitImport = async (
+  importId: string,
+  splitImportRequest: SplitImportRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ImportSummaryResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<ImportSummaryResponse>(getSplitImportUrl(importId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(splitImportRequest),
+  });
+};
+
+export const getSplitImportMutationKey = () => ['splitImport'] as const;
+
+export const getSplitImportMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof splitImport>>,
+    TError,
+    SplitImportMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof splitImport>>,
+  TError,
+  SplitImportMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSplitImportMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof splitImport>>,
+    SplitImportMutationVariables
+  > = (props) => {
+    const { importId, data } = props ?? {};
+
+    return splitImport(importId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SplitImportMutationResult = NonNullable<Awaited<ReturnType<typeof splitImport>>>;
+export type SplitImportMutationBody = SplitImportRequest;
+export type SplitImportMutationError = ErrorType<ApiErrorResponse>;
+export type SplitImportMutationVariables = { importId: string; data: SplitImportRequest };
+
+/**
+ * @summary Import another company's files on their own
+ */
+export const useSplitImport = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof splitImport>>,
+      TError,
+      SplitImportMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof splitImport>>,
+  TError,
+  SplitImportMutationVariables,
+  TContext
+> => {
+  return useMutation(getSplitImportMutationOptions(options), queryClient);
+};
 
 export const getGetServiceContractUrl = (clientId: string) => {
   return `/clients/${clientId}/service-contract`;
