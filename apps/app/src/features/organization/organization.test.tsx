@@ -412,9 +412,11 @@ describe('organization sections', () => {
       'Echipă',
       'Date firmă',
       'Abilitări',
+      'Abonament',
     ]);
     expect(requests('/organization/company-details')).toHaveLength(0);
     expect(requests('/organization/authorizations')).toHaveLength(0);
+    expect(requests('/billing')).toHaveLength(0);
   });
 
   it('moves between sections', async () => {

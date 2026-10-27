@@ -1,11 +1,12 @@
 import type { SubscriptionSummary } from '@ssm-usor/contracts';
 import { cn } from '@ssm-usor/ui/lib/utils';
+import { Link } from '@tanstack/react-router';
 import { Clock, Lock, TriangleAlert, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { dateToIso } from '@/lib/dates';
 
-import { barFor, contactEmail } from './subscription-copy';
+import { barFor, ownerActionFor, subscriptionPath } from './subscription-copy';
 
 const dismissedKey = 'ssm-usor.trial-bar-dismissed';
 
@@ -67,12 +68,13 @@ export function SubscriptionBar({
         <span className="hidden md:inline"> {bar.detail}</span>
       </p>
       {canAct && (
-        <a
-          href={`mailto:${contactEmail}`}
+        <Link
+          to={subscriptionPath}
+          data-testid="subscription-bar-action"
           className="shrink-0 font-semibold whitespace-nowrap underline underline-offset-2"
         >
-          Scrie-ne
-        </a>
+          {ownerActionFor(subscription).label}
+        </Link>
       )}
       {bar.closable && (
         <button

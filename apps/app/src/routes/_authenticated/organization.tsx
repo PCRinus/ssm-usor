@@ -1,6 +1,6 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { createFileRoute, Link, Outlet } from '@tanstack/react-router';
-import { Award, Building2, UsersRound } from 'lucide-react';
+import { createFileRoute, Link, Outlet, useMatches } from '@tanstack/react-router';
+import { Award, Building2, CreditCard, UsersRound } from 'lucide-react';
 
 import { Notice } from '@/components/notice';
 import { SectionNav } from '@/components/section-nav';
@@ -16,10 +16,14 @@ const sections = [
   { to: '/organization/team', label: 'Echipă', icon: UsersRound },
   { to: '/organization/company', label: 'Date firmă', icon: Building2 },
   { to: '/organization/authorizations', label: 'Abilitări', icon: Award },
+  { to: '/organization/subscription', label: 'Abonament', icon: CreditCard },
 ] as const;
 
 function OrganizationLayout() {
   const me = useMe();
+  const fullPage = useMatches({
+    select: (matches) => matches.some((match) => match.staticData.fullPage),
+  });
 
   if (me.isPending) {
     return (
@@ -46,6 +50,7 @@ function OrganizationLayout() {
   const { membership } = me.data;
   // The shell sends an account without an organization to onboarding before this renders.
   if (!membership) return null;
+  if (fullPage) return <Outlet />;
 
   return (
     <div data-testid="organization-page" className="grid gap-4">

@@ -1,44 +1,21 @@
 import type { SubscriptionSummary } from '@ssm-usor/contracts';
 import { Popover, PopoverContent, PopoverTrigger } from '@ssm-usor/ui/components/popover';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Clock, Layers, Lock, type LucideIcon, ShieldCheck, Sprout } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
+import { useState } from 'react';
 
+import { sealLooks } from './seal-looks';
 import {
-  contactEmail,
   daysLeftLabel,
   daysUntil,
   endedSentence,
+  ownerActionFor,
   planNames,
   pricingUrl,
   roDate,
   sealFor,
-  type SealKind,
+  subscriptionPath,
 } from './subscription-copy';
-
-const sealLooks: Record<SealKind, { icon: LucideIcon; className: string; iconClassName?: string }> =
-  {
-    trial: {
-      icon: Clock,
-      className:
-        'border border-dashed border-success-foreground/45 bg-success text-success-foreground',
-    },
-    start: { icon: Sprout, className: 'border border-input bg-card text-foreground' },
-    profesional: {
-      icon: ShieldCheck,
-      className: 'bg-primary text-primary-foreground',
-      iconClassName: 'text-accent',
-    },
-    enterprise: {
-      icon: Layers,
-      className:
-        'bg-primary text-primary-foreground ring-[1.5px] ring-accent ring-offset-2 ring-offset-card',
-      iconClassName: 'text-accent',
-    },
-    readOnly: {
-      icon: Lock,
-      className: 'border border-warning-border bg-warning text-warning-foreground',
-    },
-  };
 
 export function SubscriptionBadge({
   subscription,
@@ -52,12 +29,13 @@ export function SubscriptionBadge({
   impersonating: boolean;
   className?: string;
 }) {
+  const [open, setOpen] = useState(false);
   const seal = sealFor(subscription);
   const look = sealLooks[seal.kind];
   const Icon = look.icon;
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -88,6 +66,7 @@ export function SubscriptionBadge({
           subscription={subscription}
           canAct={isOwner && !impersonating}
           impersonating={impersonating}
+          onNavigate={() => setOpen(false)}
         />
       </PopoverContent>
     </Popover>
@@ -98,14 +77,18 @@ function SubscriptionDetails({
   subscription,
   canAct,
   impersonating,
+  onNavigate,
 }: {
   subscription: SubscriptionSummary;
   canAct: boolean;
   impersonating: boolean;
+  onNavigate: () => void;
 }) {
   const plan = planNames[subscription.plan];
   const readOnly = subscription.access === 'read_only';
-  const trial = subscription.status === 'trialing' && !readOnly && subscription.trialEndsAt;
+  const trialing = subscription.status === 'trialing' && !readOnly && subscription.trialEndsAt;
+  const trial = trialing && !subscription.planChosen ? trialing : null;
+  const chosen = trialing && subscription.planChosen ? trialing : null;
 
   let title = plan;
   let lines: string[];
@@ -124,18 +107,23 @@ function SubscriptionDetails({
         : `Mai ai ${daysLeftLabel(days)}, până pe ${roDate(trial)}. Ai tot ce include Profesional.`,
       'După aceea, contul rămâne 30 de zile doar pentru citire.',
     ];
+  } else if (chosen) {
+    title = `Ai ales ${plan}`;
+    lines = [`Proba continuă până pe ${roDate(chosen)}. Prima plată e în aceeași zi.`];
   } else if (subscription.status === 'past_due') {
     lines = [
       'Plata abonamentului nu a reușit. Reîncercăm automat.',
       `Dacă nu reușește, contul trece în modul doar citire${subscription.accessUntil ? ` pe ${roDate(subscription.accessUntil)}` : ''}.`,
     ];
-  } else if (subscription.status === 'canceled' && subscription.accessUntil) {
+  } else if (subscription.accessUntil) {
     lines = [
       `Abonamentul a fost anulat și rămâne activ până pe ${roDate(subscription.accessUntil)}.`,
     ];
   } else {
     lines = ['Abonament activ.'];
   }
+  const needsOwner = readOnly || Boolean(trial) || subscription.status === 'past_due';
+  const action = ownerActionFor(subscription);
 
   return (
     <div className="grid gap-3 text-sm">
@@ -148,21 +136,37 @@ function SubscriptionDetails({
           {line}
         </p>
       ))}
-      {canAct && (readOnly || trial || subscription.status === 'past_due') && (
+      {canAct ? (
         <div className="flex flex-wrap items-center gap-3">
-          <a
-            href={`mailto:${contactEmail}`}
-            className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          <Link
+            to={subscriptionPath}
+            onClick={onNavigate}
+            className={cn(
+              'inline-flex h-10 items-center rounded-lg px-4 text-sm font-semibold',
+              action.urgent
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'border border-input bg-card hover:bg-muted'
+            )}
           >
-            Scrie-ne ca să continui
-          </a>
-          <a href={pricingUrl} target="_blank" rel="noreferrer" className="underline">
-            Vezi prețurile
-          </a>
+            {action.label}
+          </Link>
+          {trial && (
+            <a href={pricingUrl} target="_blank" rel="noreferrer" className="underline">
+              Vezi prețurile
+            </a>
+          )}
         </div>
-      )}
-      {!canAct && !impersonating && (readOnly || trial || subscription.status === 'past_due') && (
-        <p className="text-muted-foreground">Administratorul organizației se ocupă de abonament.</p>
+      ) : (
+        <>
+          {!impersonating && needsOwner && (
+            <p className="text-muted-foreground">
+              Administratorul organizației se ocupă de abonament.
+            </p>
+          )}
+          <Link to={subscriptionPath} onClick={onNavigate} className="w-fit underline">
+            Vezi abonamentul
+          </Link>
+        </>
       )}
     </div>
   );
