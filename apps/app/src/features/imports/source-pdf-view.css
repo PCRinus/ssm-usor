@@ -1,0 +1,44 @@
+/* The core of pdf.js's text layer (web/pdf_viewer.css): transparent text placed over the canvas. */
+.import-pdf-page {
+  --scale-round-x: 1px;
+  --scale-round-y: 1px;
+}
+
+.import-pdf-page .textLayer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  line-height: 1;
+  text-align: initial;
+  transform-origin: 0 0;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+
+.import-pdf-page .textLayer :is(span, br) {
+  position: absolute;
+  color: transparent;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.import-pdf-page .textLayer > :not(.markedContent),
+.import-pdf-page .textLayer .markedContent span:not(.markedContent) {
+  --font-height: 0;
+  --scale-x: 1;
+  --rotate: 0deg;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.import-pdf-page .textLayer .markedContent {
+  display: contents;
+}
+
+.import-pdf-page .textLayer .import-quote {
+  background: color-mix(in oklab, var(--warning) 70%, transparent);
+  border-radius: 2px;
+  outline: 2px solid color-mix(in oklab, var(--warning-border) 80%, transparent);
+}
