@@ -1,0 +1,115 @@
+import { describe, expect, it } from 'vitest';
+
+import { type FileTriage, sortFiles, sortingAnswer } from './sorting';
+import { provider } from './test/fixtures';
+
+const triage = (
+  path: string,
+  kind: FileTriage['kind'],
+  companyName: string | null,
+  companyCui: string | null,
+  carriesClientData = true
+) => ({ path, triage: { path, kind, companyName, companyCui, carriesClientData } });
+
+const pack = [
+  triage('Decizia 1.docx', 'decision', 'BRUTĂRIA FICTIVĂ S.R.L.', 'RO 12345674'),
+  triage('Evaluare.doc', 'risk_assessment', 'Brutaria Fictiva', null),
+  triage('PSI/Lista.doc', 'fire_safety_document', 'S.C. BRUTĂRIA FICTIVĂ S.R.L.', '12345674'),
+  triage('Coperta.docx', 'cover', 'Brutăria Fictivă', null, false),
+  triage('Instructaj.doc', 'generic_text', null, null, false),
+  triage('Instructiuni.doc', 'own_instructions', null, null, false),
+  triage('Fise/Georgescu.jpg', 'training_sheet', 'Brutăria Fictivă', null),
+  triage('Contract.docx', 'contract', provider.name, provider.cui),
+  triage('Vechi/Decizia 1.doc', 'decision', 'ATELIERUL INVENTAT S.R.L.', '11122232'),
+  triage('Vechi/Plan.doc', 'risk_assessment', 'Atelierul Inventat', null),
+  { path: 'Scan decizie.pdf', triage: null },
+];
+
+describe('sortFiles', () => {
+  it('imports the company most files name and offers the others separately', () => {
+    const sorting = sortFiles(pack, { provider });
+
+    expect(sorting.company).toEqual({ name: 'BRUTĂRIA FICTIVĂ S.R.L.', cui: '12345674' });
+    expect(Object.fromEntries(sorting.files.map(({ path, ...rest }) => [path, rest]))).toEqual({
+      'Decizia 1.docx': { outcome: 'read' },
+      'Evaluare.doc': { outcome: 'read' },
+      'PSI/Lista.doc': { outcome: 'read' },
+      'Coperta.docx': { outcome: 'set_aside', kind: 'cover' },
+      'Instructaj.doc': { outcome: 'set_aside', kind: 'generic_text' },
+      'Instructiuni.doc': { outcome: 'set_aside', kind: 'own_instructions' },
+      'Fise/Georgescu.jpg': { outcome: 'employee_import' },
+      'Contract.docx': { outcome: 'read' },
+      'Vechi/Decizia 1.doc': {
+        outcome: 'other_company',
+        company: { name: 'ATELIERUL INVENTAT S.R.L.', cui: '11122232' },
+      },
+      'Vechi/Plan.doc': {
+        outcome: 'other_company',
+        company: { name: 'ATELIERUL INVENTAT S.R.L.', cui: '11122232' },
+      },
+      'Scan decizie.pdf': { outcome: 'read' },
+    });
+    expect(sorting.otherCompanies).toEqual([
+      {
+        company: { name: 'ATELIERUL INVENTAT S.R.L.', cui: '11122232' },
+        paths: ['Vechi/Decizia 1.doc', 'Vechi/Plan.doc'],
+      },
+    ]);
+  });
+
+  it('keeps an import into an existing client to that client, even outnumbered', () => {
+    const sorting = sortFiles(
+      [
+        triage('Vechi/Decizia 1.doc', 'decision', 'ATELIERUL INVENTAT S.R.L.', '11122232'),
+        triage('Vechi/Plan.doc', 'risk_assessment', 'Atelierul Inventat', null),
+        triage('Decizia 1.docx', 'decision', 'Brutăria Fictivă', null),
+      ],
+      { provider, client: { legalName: 'BRUTĂRIA FICTIVĂ S.R.L.', cui: '12345674' } }
+    );
+
+    expect(sorting.company).toEqual({ name: 'BRUTĂRIA FICTIVĂ S.R.L.', cui: '12345674' });
+    expect(sorting.files.map((file) => file.outcome)).toEqual([
+      'other_company',
+      'other_company',
+      'read',
+    ]);
+  });
+
+  it('names no company when no file names one', () => {
+    const sorting = sortFiles([triage('Decizia.docx', 'decision', null, null)]);
+
+    expect(sorting).toEqual({
+      company: null,
+      files: [{ path: 'Decizia.docx', outcome: 'read' }],
+      otherCompanies: [],
+    });
+  });
+});
+
+describe('sortingAnswer', () => {
+  it('reads "" as unknown', () => {
+    expect(
+      sortingAnswer.parse({
+        files: [
+          {
+            path: 'Coperta.docx',
+            kind: 'cover',
+            companyName: '',
+            companyCui: '',
+            carriesClientData: false,
+          },
+        ],
+      })
+    ).toEqual({
+      files: [
+        {
+          path: 'Coperta.docx',
+          kind: 'cover',
+          companyName: null,
+          companyCui: null,
+          carriesClientData: false,
+        },
+      ],
+    });
+  });
+});
