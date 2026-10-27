@@ -22,6 +22,7 @@ import { requireMembership } from '../../lib/membership';
 import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
 
 const importParams = z.object({ importId: z.uuid() });
+const importFileParams = z.object({ importId: z.uuid(), fileId: z.uuid() });
 
 const noSuchImport = {
   description: 'The import does not exist in the organization, or the caller cannot see it',
@@ -303,6 +304,27 @@ export const splitImportRoute = createRoute({
     404: noSuchImport,
     409: { description: 'Split already, or the import is abandoned', content: errorContent },
     422: { description: "A file is not another company's", content: errorContent },
+    ...membershipErrors,
+    503: unavailable,
+  },
+});
+
+export const readImportFileRoute = createRoute({
+  method: 'post',
+  path: '/imports/{importId}/files/{fileId}/read',
+  operationId: 'readImportFile',
+  summary: 'Read a file the sorting set aside',
+  description:
+    "Only while the import is `ready` (else `409` with `import_not_ready`) and only a file `set_aside` (else `422` with `import_file_not_set_aside`). The file joins the files to read, the import goes back to `reading` with its proposal and the member's changes dropped and its version moved on, and the reading and the checks run again over every file to read.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: importFileParams },
+  responses: {
+    200: { description: 'The import, reading', content: summaryContent },
+    400: { description: 'Invalid path', content: errorContent },
+    404: { description: 'No such import, or no such file of it', content: errorContent },
+    409: { description: 'Not ready, or saved since', content: errorContent },
+    422: { description: 'The file was not set aside', content: errorContent },
     ...membershipErrors,
     503: unavailable,
   },

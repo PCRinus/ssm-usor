@@ -108,6 +108,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /imports/{importId}/confirm`                                     | Verified user with a membership       | `{ "clientId", "fileCount" }` after writing the proposal and the changes in one transaction; `422` lists what blocks                                                                               |
 | `POST /imports/{importId}/abandon`                                     | Verified user with a membership       | `204`                                                                                                                                                                                              |
 | `POST /imports/{importId}/split`                                       | Verified user with a membership       | `201 { "import": { … } }`, another company's files `{ fileIds }` in a new import, already reading                                                                                                  |
+| `POST /imports/{importId}/files/{fileId}/read`                         | Verified user with a membership       | `200 { "import": { … } }`, a set-aside file of a ready import read again with the rest                                                                                                             |
 | `GET /files/download`                                                  | Public, by signed Storage link        | The file behind `?source=`, named `?name=`; `?disposition=inline` shows a PDF, a JPEG or a PNG                                                                                                     |
 | `GET /organization/company-details`                                    | Verified user with a membership       | `{ "companyDetails": { … } }`: what documents print about the provider as a company                                                                                                                |
 | `PUT /organization/company-details`                                    | Owner                                 | The company details after replacing them                                                                                                                                                           |
@@ -1934,7 +1935,14 @@ split once already into an import not abandoned are `409` (`import_already_split
 import still sorting its files or abandoned (`import_ended`). The function locks the import, so
 of two splits of the same files at once the second waits for the first and gets the `409`. If a
 copy or the start fails, the API removes the objects it copied and deletes the new import, which
-frees the files for another split.
+frees the files for another split; when the objects cannot be removed, it abandons the new import
+instead, so the clean-up finds them by its file rows.
+`POST /imports/{importId}/files/{fileId}/read` sends a `set_aside` file of a `ready` import back
+to be read: the file becomes `read` (`prepared` with a scan message when it has scanned pages),
+the import returns to `reading` with its proposal and changes dropped and its version moved on,
+and a `read` message reads every file again, since the documents are read in one request. Item
+ids may change with the new reading, so changes kept would point at the wrong items. `409`
+with `import_not_ready` or `import_changed`, `422` with `import_file_not_set_aside`.
 
 ### The clean-up
 

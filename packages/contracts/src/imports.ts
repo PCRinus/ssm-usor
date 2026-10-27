@@ -77,6 +77,7 @@ export const importErrorReasons = {
   alreadySplit: 'import_already_split',
   notOtherCompany: 'import_not_other_company',
   outdated: 'import_outdated',
+  notSetAside: 'import_file_not_set_aside',
 } as const;
 
 const uploadPath = z

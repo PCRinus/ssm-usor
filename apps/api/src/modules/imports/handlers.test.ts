@@ -844,3 +844,91 @@ describe('POST /imports/{importId}/abandon', () => {
     expect(await again.json()).toMatchObject({ reason: 'import_ended' });
   });
 });
+
+describe('POST /imports/{importId}/files/{fileId}/read', () => {
+  const ready = { status: 'ready', ready_at: '2026-10-28T09:10:00+00:00', version: 3 };
+
+  it('sends a scan set aside back to be read, with every document again', async () => {
+    let status = 'ready';
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/imports' && method === 'PATCH') {
+        status = 'reading';
+        return Response.json([{ id: importId }]);
+      }
+      if (url.pathname === '/rest/v1/imports') {
+        return Response.json(importRow({ ...ready, status, proposal: { notes: [] } }));
+      }
+      if (url.pathname === '/rest/v1/import_files' && method === 'PATCH') {
+        return new Response(null, { status: 204 });
+      }
+      if (url.pathname === '/rest/v1/import_files') {
+        return Response.json([
+          fileRow(1, { state: 'read' }),
+          fileRow(2, {
+            state: 'set_aside',
+            reason: 'Formular sau registru necompletat.',
+            is_scan: true,
+          }),
+        ]);
+      }
+    });
+    const response = await request(`/imports/${importId}/files/${fileId(2)}/read`, 'POST');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ import: { id: importId, status: 'reading' } });
+    const moved = callsTo('/rest/v1/imports', 'PATCH')[0]!;
+    expect(moved.admin).toBe(true);
+    expect(moved.body).toEqual({
+      status: 'reading',
+      proposal: null,
+      changes: null,
+      ready_at: null,
+      version: 4,
+    });
+    expect(moved.url.searchParams.get('version')).toBe('eq.3');
+    expect(callsTo('/rest/v1/import_files', 'PATCH')[0]!.body).toEqual({
+      state: 'prepared',
+      reason: null,
+    });
+    expect(sent).toEqual([
+      { type: 'scan', importId, fileId: fileId(2) },
+      { type: 'read', importId, waits: 0 },
+    ]);
+  });
+
+  it('refuses before the import is ready, and a file that was not set aside', async () => {
+    let row = importRow({ status: 'reading', started_at: '2026-10-28T09:01:00+00:00' });
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(row);
+      if (url.pathname === '/rest/v1/import_files') {
+        return Response.json([fileRow(1, { state: 'read' })]);
+      }
+    });
+    const early = await request(`/imports/${importId}/files/${fileId(1)}/read`, 'POST');
+    expect(early.status).toBe(409);
+    expect(await early.json()).toMatchObject({ reason: 'import_not_ready' });
+
+    row = importRow(ready);
+    const read = await request(`/imports/${importId}/files/${fileId(1)}/read`, 'POST');
+    expect(read.status).toBe(422);
+    expect(await read.json()).toMatchObject({ reason: 'import_file_not_set_aside' });
+
+    const missing = await request(`/imports/${importId}/files/${fileId(7)}/read`, 'POST');
+    expect(missing.status).toBe(404);
+    expect(sent).toEqual([]);
+  });
+
+  it('answers a conflict when someone saved since', async () => {
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/imports' && method === 'PATCH') return Response.json([]);
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow(ready));
+      if (url.pathname === '/rest/v1/import_files') {
+        return Response.json([fileRow(2, { state: 'set_aside' })]);
+      }
+    });
+    const response = await request(`/imports/${importId}/files/${fileId(2)}/read`, 'POST');
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ reason: 'import_changed' });
+    expect(sent).toEqual([]);
+  });
+});

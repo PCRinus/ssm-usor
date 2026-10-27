@@ -31491,6 +31491,91 @@ export const useSplitImport = <TError = ErrorType<ApiErrorResponse>, TContext = 
   return useMutation(getSplitImportMutationOptions(options), queryClient);
 };
 
+export const getReadImportFileUrl = (importId: string, fileId: string) => {
+  return `/imports/${importId}/files/${fileId}/read`;
+};
+
+/**
+ * Only while the import is `ready` (else `409` with `import_not_ready`) and only a file `set_aside` (else `422` with `import_file_not_set_aside`). The file joins the files to read, the import goes back to `reading` with its proposal and the member's changes dropped and its version moved on, and the reading and the checks run again over every file to read.
+ * @summary Read a file the sorting set aside
+ */
+export const readImportFile = async (
+  importId: string,
+  fileId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<ImportSummaryResponse> => {
+  return apiFetch<ImportSummaryResponse>(getReadImportFileUrl(importId, fileId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getReadImportFileMutationKey = () => ['readImportFile'] as const;
+
+export const getReadImportFileMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof readImportFile>>,
+    TError,
+    ReadImportFileMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof readImportFile>>,
+  TError,
+  ReadImportFileMutationVariables,
+  TContext
+> => {
+  const mutationKey = getReadImportFileMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof readImportFile>>,
+    ReadImportFileMutationVariables
+  > = (props) => {
+    const { importId, fileId } = props ?? {};
+
+    return readImportFile(importId, fileId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReadImportFileMutationResult = NonNullable<Awaited<ReturnType<typeof readImportFile>>>;
+
+export type ReadImportFileMutationError = ErrorType<ApiErrorResponse>;
+export type ReadImportFileMutationVariables = { importId: string; fileId: string };
+
+/**
+ * @summary Read a file the sorting set aside
+ */
+export const useReadImportFile = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof readImportFile>>,
+      TError,
+      ReadImportFileMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof readImportFile>>,
+  TError,
+  ReadImportFileMutationVariables,
+  TContext
+> => {
+  return useMutation(getReadImportFileMutationOptions(options), queryClient);
+};
+
 export const getGetServiceContractUrl = (clientId: string) => {
   return `/clients/${clientId}/service-contract`;
 };

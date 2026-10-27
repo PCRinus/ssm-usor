@@ -38,6 +38,7 @@ import type {
   getImportRoute,
   getImportSourceRoute,
   listImportsRoute,
+  readImportFileRoute,
   registerImportFilesRoute,
   saveImportChangesRoute,
   splitImportRoute,
@@ -755,4 +756,73 @@ export const splitImport: RouteHandler<typeof splitImportRoute, ApiEnv> = async 
     throw error;
   }
   return c.json({ import: await summaryOf(db, split.import_id) }, 201);
+};
+
+// The documents are read together, so a file sent back is read with all of them again; the
+// member's changes go, since the items they point at may not come back with the same ids.
+export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = async (c) => {
+  const queue = requireImportService(c);
+  const { importId, fileId } = c.req.valid('param');
+  const db = createDataClient(c);
+  const row = await findImport(db, importId);
+  if (row.status !== 'ready') {
+    throw conflict('The import is not ready for review.', importErrorReasons.notReady);
+  }
+  const file = (await listFilesOf(db, importId)).find((each) => each.id === fileId);
+  if (!file) throw new ApiError('not_found', 'The import has no such file.');
+  if (file.state !== 'set_aside') {
+    throw new ApiError(
+      'unprocessable',
+      'Only a file set aside is sent back to be read.',
+      undefined,
+      importErrorReasons.notSetAside
+    );
+  }
+  const admin = createAdminClient(c);
+  const moved = await admin
+    .from('imports')
+    .update({
+      status: 'reading',
+      proposal: null,
+      changes: null,
+      ready_at: null,
+      version: row.version + 1,
+    })
+    .eq('id', importId)
+    .eq('status', 'ready')
+    .eq('version', row.version)
+    .select('id');
+  if (moved.error) throw fromDatabaseError(moved.error, 'read a file set aside');
+  if (moved.data.length === 0) throw decisionError({ code: 'IMP02' }, 'read a file set aside');
+  const marked = await admin
+    .from('import_files')
+    .update({ state: file.is_scan ? 'prepared' : 'read', reason: null })
+    .eq('id', fileId);
+  const messages: ImportMessage[] = [
+    ...(file.is_scan ? [{ type: 'scan' as const, importId, fileId }] : []),
+    { type: 'read', importId, waits: 0 },
+  ];
+  try {
+    if (marked.error) throw fromDatabaseError(marked.error, 'mark a file to read');
+    await sendAll(queue, messages);
+  } catch (error) {
+    console.error(`Import ${importId} could not read ${fileId} again: ${describe(error)}`);
+    await admin
+      .from('import_files')
+      .update({ state: 'set_aside', reason: file.reason })
+      .eq('id', fileId);
+    await admin
+      .from('imports')
+      .update({
+        status: 'ready',
+        proposal: row.proposal,
+        changes: row.changes,
+        ready_at: row.ready_at,
+        version: row.version + 2,
+      })
+      .eq('id', importId)
+      .eq('status', 'reading');
+    throw unavailable();
+  }
+  return c.json({ import: await summaryOf(db, importId) }, 200);
 };

@@ -6,6 +6,7 @@ import {
   getImport,
   getImportSource,
   listImports,
+  readImportFile,
   registerImportFiles,
   saveImportChanges,
   splitImport,
@@ -18,6 +19,7 @@ import {
   getImportRoute,
   getImportSourceRoute,
   listImportsRoute,
+  readImportFileRoute,
   registerImportFilesRoute,
   saveImportChangesRoute,
   splitImportRoute,
@@ -34,4 +36,5 @@ export const importsRouter = createRouter()
   .openapi(getImportSourceRoute, getImportSource)
   .openapi(confirmImportRoute, confirmImport)
   .openapi(abandonImportRoute, abandonImport)
-  .openapi(splitImportRoute, splitImport);
+  .openapi(splitImportRoute, splitImport)
+  .openapi(readImportFileRoute, readImportFile);
