@@ -13,7 +13,7 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { useRouteContext } from '@tanstack/react-router';
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import {
@@ -42,9 +42,18 @@ import {
 // `null` is closed, 'new' adds a position, and a position edits it.
 export type JobPositionEditing = JobPosition | 'new' | null;
 
+// A position not saved yet, as an import proposes it: the values come and go back through the
+// caller.
+export type JobPositionDraft = {
+  values: JobPositionFormValues;
+  onSave: (values: JobPositionFormValues) => void;
+  aside?: ReactNode;
+};
+
 export function JobPositionDialog({
   clientId,
   editing,
+  draft,
   onClose,
   initialName,
   onSaved,
@@ -52,6 +61,7 @@ export function JobPositionDialog({
 }: {
   clientId: string;
   editing: JobPositionEditing;
+  draft?: JobPositionDraft | null;
   onClose: () => void;
   /** What a new position's name starts as: what was typed where the dialog was opened from. */
   initialName?: string;
@@ -61,8 +71,17 @@ export function JobPositionDialog({
   onCloseAutoFocus?: (event: Event) => void;
 }) {
   return (
-    <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
-      {editing && (
+    <Dialog open={editing !== null || Boolean(draft)} onOpenChange={(open) => !open && onClose()}>
+      {draft && (
+        <JobPositionForm
+          clientId={clientId}
+          position={null}
+          draft={draft}
+          onCloseAutoFocus={onCloseAutoFocus}
+          onClose={onClose}
+        />
+      )}
+      {!draft && editing && (
         <JobPositionForm
           key={editing === 'new' ? 'new' : editing.id}
           clientId={clientId}
@@ -80,6 +99,7 @@ export function JobPositionDialog({
 function JobPositionForm({
   clientId,
   position,
+  draft,
   initialName = '',
   onSaved,
   onCloseAutoFocus,
@@ -87,6 +107,7 @@ function JobPositionForm({
 }: {
   clientId: string;
   position: JobPosition | null;
+  draft?: JobPositionDraft;
   initialName?: string;
   onSaved?: (position: JobPosition) => void;
   onCloseAutoFocus?: (event: Event) => void;
@@ -98,9 +119,11 @@ function JobPositionForm({
   const update = useUpdateJobPosition({ request: apiRequest });
   const form = useForm<JobPositionFormValues>({
     resolver: zodResolver(jobPositionFormSchema),
-    defaultValues: position
-      ? toJobPositionForm(position)
-      : { ...emptyJobPositionForm, name: initialName },
+    defaultValues: draft
+      ? draft.values
+      : position
+        ? toJobPositionForm(position)
+        : { ...emptyJobPositionForm, name: initialName },
   });
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
@@ -108,6 +131,11 @@ function JobPositionForm({
   const staffCategory = useWatch({ control: form.control, name: 'staffCategory' });
 
   const onSubmit = form.handleSubmit(async (values) => {
+    if (draft) {
+      draft.onSave(values);
+      onClose();
+      return;
+    }
     const data = toJobPositionRequest(values);
     try {
       const saved = position
@@ -164,12 +192,12 @@ function JobPositionForm({
       >
         <DialogHeader>
           <DialogTitle>
-            {position ? 'Modifică postul de lucru' : 'Adaugă un post de lucru'}
+            {position || draft ? 'Modifică postul de lucru' : 'Adaugă un post de lucru'}
           </DialogTitle>
           <DialogDescription>
             Riscurile, echipamentul și instruirea sunt legate de post. Funcția din contract se
             păstrează separat pentru fiecare angajat
-            {position ? ', chiar dacă redenumești postul.' : '.'}
+            {position || draft ? ', chiar dacă redenumești postul.' : '.'}
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">
@@ -281,6 +309,7 @@ function JobPositionForm({
               {...form.register('activities')}
             />
           </Field>
+          {draft?.aside}
         </div>
         {errors.root?.server && (
           <Notice variant="destructive" data-testid="job-position-error" className="mt-4">
@@ -292,7 +321,7 @@ function JobPositionForm({
             Renunță
           </Button>
           <Button type="submit" data-testid="job-position-save" disabled={busy}>
-            {busy ? 'Se salvează…' : position ? 'Salvează' : 'Adaugă'}
+            {busy ? 'Se salvează…' : position || draft ? 'Salvează' : 'Adaugă'}
           </Button>
         </DialogFooter>
       </form>
