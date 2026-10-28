@@ -28,7 +28,15 @@ async function waitForSubscription(request: ApiRequestOptions) {
   for (let attempt = 0; attempt < pollTries; attempt += 1) {
     const overview = await getBilling(request);
     const subscription = overview.subscription;
-    if (hasLiveSubscription(subscription) && subscription?.access === 'full') return true;
+    // Stripe puts the card on the subscription a moment after the bank confirms it; until then
+    // the tab would warn that the card was never confirmed.
+    if (
+      hasLiveSubscription(subscription) &&
+      subscription?.access === 'full' &&
+      overview.owner?.card
+    ) {
+      return true;
+    }
     await new Promise((resolve) => setTimeout(resolve, pollMs));
   }
   return false;

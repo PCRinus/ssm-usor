@@ -108,6 +108,8 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
+const savedCard = { brand: 'visa', last4: '4242', expMonth: 8, expYear: 2028 };
+
 const chosenTrial = (): NonNullable<BillingOverview['subscription']> => ({
   ...trialSubscription(12),
   plan: 'start',
@@ -121,7 +123,7 @@ describe('choosing a plan', () => {
     const trial = overviewWith({ subscription: trialSubscription(12), owner: ownerPart() });
     mockApi({
       overview: trial,
-      after: overviewWith({ subscription: chosenTrial(), owner: ownerPart() }),
+      after: overviewWith({ subscription: chosenTrial(), owner: ownerPart({ card: savedCard }) }),
       routes: {
         'POST /billing/subscription': () =>
           Response.json({ clientSecret: 'seti_secret_1', intent: 'setup' }, { status: 201 }),
@@ -164,6 +166,46 @@ describe('choosing a plan', () => {
       expect(runtime.router.state.location.pathname).toBe('/organization/subscription')
     );
     expect(await screen.findByText(/Azi nu ai plătit nimic; prima plată e pe/)).toBeTruthy();
+  });
+
+  it('waits for the card to reach the subscription before saying the plan is chosen', async () => {
+    const trial = overviewWith({ subscription: trialSubscription(12), owner: ownerPart() });
+    const withoutCardYet = overviewWith({ subscription: chosenTrial(), owner: ownerPart() });
+    const withCard = overviewWith({
+      subscription: chosenTrial(),
+      owner: ownerPart({ card: savedCard }),
+    });
+    let chosen = false;
+    let readsAfterChoosing = 0;
+    mockApi({
+      overview: trial,
+      routes: {
+        'POST /billing/subscription': () => {
+          chosen = true;
+          return Response.json({ clientSecret: 'seti_secret_1', intent: 'setup' }, { status: 201 });
+        },
+        'GET /billing': () => {
+          if (!chosen) return Response.json(trial);
+          readsAfterChoosing += 1;
+          return Response.json(readsAfterChoosing <= 2 ? withoutCardYet : withCard);
+        },
+      },
+    });
+    const runtime = mount();
+
+    const user = userEvent.setup();
+    const submit = await screen.findByRole('button', { name: 'Salvează cardul și alege Start' });
+    await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
+    await user.click(submit);
+
+    await waitFor(
+      () => expect(runtime.router.state.location.pathname).toBe('/organization/subscription'),
+      { timeout: 8000 }
+    );
+    expect((await screen.findByTestId('payment-card-number')).textContent).toBe('Visa •••• 4242');
+    expect(screen.getByTestId('subscription-notice').textContent).not.toContain(
+      'Cardul nu a fost confirmat.'
+    );
   });
 
   it('charges at once when reactivating, and keeps the page on a declined card', async () => {
