@@ -554,6 +554,66 @@ describe('POST /billing/subscription', () => {
     expect(row(fake)).toMatchObject({ plan: 'profesional', stripe_subscription_id: 'sub_1Test' });
   });
 
+  async function checkoutKey(earlier: unknown[]) {
+    const trialEnd = '2099-01-15T21:59:59.999Z';
+    const fake = createFake();
+    fake.tables.subscriptions!.push(
+      subscriptionRow({
+        trial_ends_at: trialEnd,
+        access_until: trialEnd,
+        stripe_customer_id: 'cus_1Test',
+      })
+    );
+    fake.stripe['POST /v1/customers/cus_1Test'] = () => ({ id: 'cus_1Test', object: 'customer' });
+    creating(fake, {
+      ...stripeSubscription({ status: 'trialing', choice: pro }),
+      pending_setup_intent: {
+        id: 'seti_1',
+        object: 'setup_intent',
+        client_secret: 'seti_1_secret',
+      },
+    });
+    fake.stripe['GET /v1/subscriptions'] = () => stripeList(earlier);
+
+    expect((await request('POST', '/billing/subscription', pro)).status).toBe(201);
+    return fake.calls.find(
+      (call) => call.method === 'POST' && call.url.pathname === '/v1/subscriptions'
+    )!.idempotencyKey;
+  }
+
+  it('makes one subscription for two checkouts at the same moment, and a new one after an abandoned checkout', async () => {
+    const first = await checkoutKey([]);
+    const second = await checkoutKey([]);
+    const afterAbandoned = await checkoutKey([
+      stripeSubscription({ id: 'sub_1Gone', status: 'canceled', choice: pro }),
+    ]);
+
+    expect(first).toMatch(/^subscription-/);
+    expect(second).toBe(first);
+    expect(afterAbandoned).not.toBe(first);
+  });
+
+  it('answers a checkout that meets another one under way with a conflict', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(subscriptionRow());
+    creating(fake, {});
+    fake.stripe['POST /v1/subscriptions'] = () =>
+      new Response(
+        JSON.stringify({
+          error: {
+            type: 'idempotency_error',
+            message: 'There is currently another in-progress request using this Idempotent Key.',
+          },
+        }),
+        { status: 400, headers: { 'content-type': 'application/json' } }
+      );
+
+    const response = await request('POST', '/billing/subscription', pro);
+
+    expect(response.status).toBe(409);
+    expect(await reasonOf(response)).toBe('checkout_in_progress');
+  });
+
   it('takes up a subscription an earlier checkout paid for, instead of making a second', async () => {
     const fake = createFake();
     fake.tables.subscriptions!.push(subscriptionRow({ stripe_customer_id: 'cus_1Test' }));

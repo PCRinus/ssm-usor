@@ -419,6 +419,7 @@ export const billingErrorReasons = [
   ...billingChoiceProblemReasonSchema.options,
   'subscription_exists',
   'already_subscribed',
+  'checkout_in_progress',
   'no_subscription',
   'enterprise_plan',
   'company_details_missing',

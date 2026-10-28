@@ -27,7 +27,12 @@ export const fetchMock = vi.fn<typeof fetch>();
 
 type Row = Record<string, unknown>;
 
-export type Call = { method: string; url: URL; body: string | null };
+export type Call = {
+  method: string;
+  url: URL;
+  body: string | null;
+  idempotencyKey: string | null;
+};
 
 export type StripeRoute = (call: Call & { form: URLSearchParams }) => unknown;
 
@@ -296,7 +301,7 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
         : init?.body instanceof URLSearchParams
           ? init.body.toString()
           : null;
-    const call: Call = { method, url, body };
+    const call: Call = { method, url, body, idempotencyKey: headers.get('Idempotency-Key') };
     fake.calls.push(call);
 
     if (url.host === 'api.stripe.com') {

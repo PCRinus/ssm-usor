@@ -395,7 +395,11 @@ async function settleEarlierCheckouts(
   customerId: string
 ) {
   const { stripe } = billing.access;
-  const earlier = await stripe.subscriptions.list({ customer: customerId, limit: 20 });
+  const earlier = await stripe.subscriptions.list({
+    customer: customerId,
+    status: 'all',
+    limit: 100,
+  });
   const live = earlier.data.find(
     (subscription) =>
       paidFor.has(subscription.status) ||
@@ -410,6 +414,7 @@ async function settleEarlierCheckouts(
       await stripe.subscriptions.cancel(subscription.id);
     }
   }
+  return earlier.data.map((subscription) => subscription.id);
 }
 
 function secretOf(subscription: Stripe.Subscription) {
@@ -490,12 +495,12 @@ export async function createSubscription(
       { source: 'owner', change: 'stripe_customer', details: { actor: billing.userId } }
     );
   }
-  await settleEarlierCheckouts(billing, row, customerId);
+  const earlier = await settleEarlierCheckouts(billing, row, customerId);
 
   const trialEndsAt = firstChargeAtTrialEnd(row, billing.now);
   const trialEnd = trialEndsAt ? seconds(trialEndsAt) : undefined;
 
-  const subscription = await stripe.subscriptions.create({
+  const params: Stripe.SubscriptionCreateParams = {
     customer: customerId,
     items: phaseItems(choice, billing.catalogue),
     default_tax_rates: [billing.catalogue.taxRateId],
@@ -509,6 +514,13 @@ export async function createSubscription(
     ...(trialEnd ? { trial_end: trialEnd } : {}),
     metadata: { organization_id: billing.organizationId },
     expand: ['latest_invoice.confirmation_secret', 'pending_setup_intent'],
+  };
+  // Two checkouts that both found no subscription (two tabs, the same second) send the same key,
+  // so Stripe makes one subscription and answers both with it. The subscriptions found before are
+  // in the key, so a checkout after an earlier one was abandoned or replaced never gets that
+  // earlier answer back.
+  const subscription = await stripe.subscriptions.create(params, {
+    idempotencyKey: `subscription-${billing.organizationId}-${await digest({ params, earlier })}`,
   });
 
   // An incomplete subscription is not the organization's until its first payment succeeds; the

@@ -27,6 +27,8 @@ const reasonMessages: Record<string, string> = {
   subscription_exists: 'Organizația are deja un abonament. Reîncarcă pagina ca să-l vezi.',
   already_subscribed:
     'Planul ales mai devreme e deja plătit și activ, așa că nu am mai făcut încă unul. Îl vezi pe pagina abonamentului.',
+  checkout_in_progress:
+    'Abonamentul se alege chiar acum, din altă fereastră. Așteaptă un minut, apoi reîncarcă pagina.',
   no_subscription: 'Organizația nu mai are un abonament activ. Reîncarcă pagina.',
   enterprise_plan: `Abonamentul Enterprise se schimbă prin email, la ${contactEmail}.`,
   company_details_missing:

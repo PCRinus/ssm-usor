@@ -153,6 +153,14 @@ export function fromStripeError(error: Error): Error {
   if (error.type === 'StripeCardError') {
     return new ApiError('unprocessable', error.message, undefined, 'card_declined');
   }
+  if (error.type === 'StripeIdempotencyError') {
+    return new ApiError(
+      'conflict',
+      'Another checkout for this organization is under way.',
+      undefined,
+      'checkout_in_progress'
+    );
+  }
   console.error(`Stripe refused a request: ${error.type} ${error.code ?? ''} ${error.message}`);
   if (error.type === 'StripeInvalidRequestError') {
     return new ApiError(
