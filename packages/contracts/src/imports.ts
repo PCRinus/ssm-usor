@@ -78,6 +78,7 @@ export const importErrorReasons = {
   notOtherCompany: 'import_not_other_company',
   outdated: 'import_outdated',
   notSetAside: 'import_file_not_set_aside',
+  tooMuchText: 'import_too_much_text',
 } as const;
 
 const uploadPath = z

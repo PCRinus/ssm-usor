@@ -11,6 +11,7 @@ import {
   maxReadingCharacters,
   maxReadWaits,
   type PipelineDeps,
+  tooMuchText,
 } from './pipeline';
 import {
   consumeImportBatch,
@@ -695,16 +696,58 @@ describe('the import queue', () => {
     });
   });
 
-  it('fails the import whose documents have more text than one reading takes', async () => {
-    const long = docx(['BRUTĂRIA FICTIVĂ S.R.L.', 'x'.repeat(maxReadingCharacters + 1)]);
-    startWith([{ ...files[0]!, bytes: long }]);
+  it('fails the import whose documents have more text than one reading takes, naming the longest', async () => {
+    const word = (path: string, characters: number): FileSpec => ({
+      ...files[0]!,
+      path,
+      bytes: docx(['x'.repeat(characters)]),
+    });
+    startWith([
+      word('Dosar/Evaluare riscuri.docx', 300_000),
+      word('Dosar/Decizia 1.docx', 240_000),
+      word('Dosar/Tematica.docx', 120_000),
+      word('Dosar/Plan de prevenire.docx', 60_000),
+    ]);
     await drain(deps());
 
     expect(world.imports.get(importId)).toMatchObject({
       status: 'failed',
-      failure_reason: importReasons.tooMuchText,
+      failure_reason:
+        'Documentele au cu 20% mai mult text decât încape într-un import. Cele mai lungi: „Evaluare riscuri.docx” (42% din text), „Decizia 1.docx” (33%) și „Tematica.docx” (17%). Scoate-le pe cele care nu trebuie citite.',
     });
     expect(modelRequests.map((request) => request.name)).toEqual(['import_sorting']);
+  });
+
+  it('sets own instructions aside with a reason of their own', async () => {
+    const instructions: FileSpec = {
+      ...files[0]!,
+      path: 'Dosar/IPSSM.docx',
+      bytes: docx(['BRUTĂRIA FICTIVĂ S.R.L.', 'Instrucțiuni proprii de securitate și sănătate']),
+    };
+    model = (request) =>
+      request.name === 'import_sorting' && request.images.length === 0
+        ? {
+            files: [
+              ...answers.sorting.files,
+              {
+                path: 'Dosar/IPSSM.docx',
+                kind: 'own_instructions',
+                companyName: 'BRUTĂRIA FICTIVĂ S.R.L.',
+                companyCui: '',
+                carriesClientData: true,
+              },
+            ],
+          }
+        : defaultModel(request);
+    startWith([files[0]!, instructions]);
+    await drain(deps());
+
+    expect(world.imports.get(importId)!.status).toBe('ready');
+    expect(world.fileAt('Dosar/IPSSM.docx')).toMatchObject({
+      state: 'set_aside',
+      document_kind: 'own_instructions',
+      reason: fileReasons.ownInstructions,
+    });
   });
 
   it('fails the import when no file could be prepared', async () => {
@@ -779,6 +822,19 @@ const sortingOf = (path: string) => ({
       carriesClientData: true,
     },
   ],
+});
+
+describe('tooMuchText', () => {
+  it('lets text up to the cap through', () => {
+    expect(tooMuchText([{ name: 'Decizia 1.docx', characters: maxReadingCharacters }])).toBeNull();
+  });
+
+  it('names a single file over the cap, shortened', () => {
+    const name = `${'Instructiuni proprii '.repeat(4)}.docx`;
+    expect(tooMuchText([{ name, characters: maxReadingCharacters + 1 }])).toBe(
+      `Documentele au cu 1% mai mult text decât încape într-un import. Tot textul este în „${name.slice(0, 59)}…”.`
+    );
+  });
 });
 
 describe('a scan', () => {

@@ -848,9 +848,26 @@ describe('POST /imports/{importId}/abandon', () => {
 describe('POST /imports/{importId}/files/{fileId}/read', () => {
   const ready = { status: 'ready', ready_at: '2026-10-28T09:10:00+00:00', version: 3 };
 
+  const storedText =
+    (characters: Record<number, number>): Handler =>
+    ({ url, method }) => {
+      if (url.pathname.startsWith('/storage/v1/object/sign/imports/') && method === 'POST') {
+        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+      }
+      for (const [n, count] of Object.entries(characters)) {
+        if (url.pathname.endsWith(`${fileId(Number(n))}.txt`)) {
+          return new Response('x'.repeat(count));
+        }
+      }
+    };
+
   it('sends a scan set aside back to be read, with every document again', async () => {
     let status = 'ready';
-    mockUpstream(({ url, method }) => {
+    const texts = storedText({ 1: 2_000, 2: 300 });
+    mockUpstream((call) => {
+      const { url, method } = call;
+      const text = texts(call);
+      if (text) return text;
       if (url.pathname === '/rest/v1/imports' && method === 'PATCH') {
         status = 'reading';
         return Response.json([{ id: importId }]);
@@ -918,8 +935,38 @@ describe('POST /imports/{importId}/files/{fileId}/read', () => {
     expect(sent).toEqual([]);
   });
 
+  it('refuses a file whose text would pass the cap with the files already read', async () => {
+    const texts = storedText({ 1: 450_000, 2: 160_000 });
+    mockUpstream((call) => {
+      const { url } = call;
+      const text = texts(call);
+      if (text) return text;
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow(ready));
+      if (url.pathname === '/rest/v1/import_files') {
+        return Response.json([
+          fileRow(1, { state: 'read' }),
+          fileRow(2, { state: 'set_aside', document_kind: 'own_instructions' }),
+          fileRow(3, { state: 'set_aside', document_kind: 'cover' }),
+        ]);
+      }
+    });
+    const response = await request(`/imports/${importId}/files/${fileId(2)}/read`, 'POST');
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({ reason: 'import_too_much_text' });
+    expect(
+      calls.filter((call) => call.method === 'GET' && call.url.pathname.endsWith('.txt'))
+    ).toHaveLength(2);
+    expect(calls.filter((call) => call.method === 'PATCH')).toEqual([]);
+    expect(sent).toEqual([]);
+  });
+
   it('answers a conflict when someone saved since', async () => {
-    mockUpstream(({ url, method }) => {
+    const texts = storedText({ 2: 300 });
+    mockUpstream((call) => {
+      const { url, method } = call;
+      const text = texts(call);
+      if (text) return text;
       if (url.pathname === '/rest/v1/imports' && method === 'PATCH') return Response.json([]);
       if (url.pathname === '/rest/v1/imports') return Response.json(importRow(ready));
       if (url.pathname === '/rest/v1/import_files') {
