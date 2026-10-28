@@ -106,6 +106,7 @@ beforeEach(() => {
 afterEach(() => {
   disposeRuntimes();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe('the source dialog', () => {
@@ -185,6 +186,27 @@ describe('the source dialog', () => {
     await waitFor(() =>
       expect(within(dialog).getByTestId('pdf-view').dataset.opened).toBe('Telefon: 0269 214 377')
     );
+  });
+
+  it('asks for a fresh link to download the original, since the first one expires', async () => {
+    mockSources({ 'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf' } });
+    const clicked: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement
+    ) {
+      clicked.push(this.href);
+    });
+    const dialog = await openPhoneSource();
+    await within(dialog).findByTestId('pdf-view');
+    expect(sourceRequests).toBe(1);
+
+    await userEvent.click(within(dialog).getByTestId('source-download'));
+    await waitFor(() =>
+      expect(clicked).toEqual([
+        'https://storage.example/object?token=2&download=Contract%20prestari%20SSM%202019.pdf',
+      ])
+    );
+    expect(within(dialog).getByTestId('pdf-view').dataset.quote).toBe('Telefon: 0269 214 377');
   });
 
   it('says so when the file cannot be opened', async () => {

@@ -12,6 +12,7 @@ import { lazy, Suspense, useState } from 'react';
 
 import {
   getGetImportSourceQueryKey,
+  getImportSource,
   type ImportSourceResponse,
   useGetImportSource,
 } from '@/api/generated/api';
@@ -67,19 +68,47 @@ function SourceContent({
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const [index, setIndex] = useState(0);
   const [notFound, setNotFound] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const current = request.sources[index]!;
   const params = { file: current.file, quote: current.quote.slice(0, 2000) };
   const query = useGetImportSource(importId, params, {
     request: apiRequest,
-    query: { queryKey: getGetImportSourceQueryKey(importId, params), staleTime: 4 * 60_000 },
+    query: {
+      queryKey: getGetImportSourceQueryKey(importId, params),
+      staleTime: 4 * 60_000,
+      gcTime: 4 * 60_000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    },
   });
   const source = query.data;
   const kind = source ? sourceKind(source) : null;
   const fileCount = new Set(request.sources.map((each) => each.file)).size;
   const step = (next: number) => {
     setNotFound(null);
+    setDownloadError(null);
     setIndex(next);
   };
+
+  // The links last five minutes, so the one the viewer opened may be gone by the time of a
+  // download.
+  async function download() {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      const fresh = await getImportSource(importId, params, apiRequest);
+      const anchor = document.createElement('a');
+      anchor.href = downloadLink(fresh.original.url, fresh.fileName);
+      anchor.click();
+    } catch (cause) {
+      setDownloadError(
+        importErrorMessage(cause, 'Nu am putut descărca fișierul. Încearcă din nou.')
+      );
+    } finally {
+      setDownloading(false);
+    }
+  }
   const matchMissing =
     source && (kind === 'word' || kind === 'pdf') && source.match === null && current.quote;
 
@@ -138,6 +167,11 @@ function SourceContent({
               Pasajul nu e marcat: citirea unei scanări nu spune unde se află textul pe pagină.
             </dd>
           </dl>
+        )}
+        {downloadError && (
+          <Notice variant="destructive" data-testid="source-download-error">
+            {downloadError}
+          </Notice>
         )}
         {(matchMissing || notFound) && (
           <Notice variant="warning" data-testid="source-not-found">
@@ -224,15 +258,16 @@ function SourceContent({
         </Button>
         <span className="flex-1" />
         {source && (
-          <Button asChild variant="outline" size="sm">
-            <a
-              href={downloadLink(source.original.url, source.fileName)}
-              title="Fișierul așa cum a fost încărcat, fără marcaj"
-              data-testid="source-download"
-            >
-              <Download aria-hidden="true" />
-              Descarcă originalul
-            </a>
+          <Button
+            variant="outline"
+            size="sm"
+            title="Fișierul așa cum a fost încărcat, fără marcaj"
+            data-testid="source-download"
+            disabled={downloading}
+            onClick={() => void download()}
+          >
+            <Download aria-hidden="true" />
+            Descarcă originalul
           </Button>
         )}
         <Button size="sm" onClick={onClose}>
