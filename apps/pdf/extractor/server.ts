@@ -81,8 +81,9 @@ async function docToDocx(doc: Uint8Array, signal: AbortSignal): Promise<Buffer> 
   });
 }
 
-async function pdfInfo(path: string, signal: AbortSignal, page?: number) {
-  const range = page ? ['-f', String(page), '-l', String(page)] : [];
+// `-l` alone: pdfinfo stops quietly at the last page, but takes a `-f` past it as an error.
+async function pdfInfo(path: string, signal: AbortSignal, sizesUpTo?: number) {
+  const range = sizesUpTo ? ['-l', String(sizesUpTo)] : [];
   const result = await run('pdfinfo', [...range, path], { timeoutMs: 30_000, signal });
   if (result.code !== 0) {
     if (/incorrect password/i.test(result.stderr)) throw new Refused('password_protected');
@@ -114,9 +115,8 @@ async function pdfPageImage(pdf: Uint8Array, page: number, signal: AbortSignal):
   return inTempDir(async (dir) => {
     const path = join(dir, 'document.pdf');
     await writeFile(path, pdf);
-    const { pageCount } = await pdfInfo(path, signal);
+    const { pageCount, pageSizes } = await pdfInfo(path, signal, page);
     if (page > pageCount) throw new Refused('page_out_of_range', `the PDF has ${pageCount} pages`);
-    const { pageSizes } = await pdfInfo(path, signal, page);
     const result = await run(
       'pdftoppm',
       [
