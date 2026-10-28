@@ -48,7 +48,7 @@ The **setup guide** (_ghid de configurare_) is one list for every member. Its st
 14. `training`, _Înregistrează prima instruire_.
 15. `signature`, _Strânge prima semnătură electronică_.
 
-Steps 5 to 15 are **member steps**. Where the organization already has the thing a step adds, the wording drops "primul": _Adaugă un client_, _Emite un document_, group _Primul tău client_. A member who joins an organization that is already set up therefore reads the same list as its founder, as things to learn rather than things missing.
+Steps 5 to 15 are **member steps**. Where the organization already has the thing a step adds, a step's wording drops "primul" (_Adaugă un client_, _Emite un document_) and its group speaks to the member (_Primul tău client_). A member who joins an organization that is already set up therefore reads the same list as its founder, as things to learn rather than things missing.
 
 ### What ticks a step
 
@@ -193,7 +193,7 @@ The tour, react-joyride, the `data-tour` attributes, `user_guides` and `GET`/`PU
 ## Order of work
 
 1. This ADR, and the glossary terms in `CONTEXT.md`.
-2. The database: `setup_progress()`, `setup_step_skips`, the two profile columns, dropping `user_guides`. pgTAP tests for each step's rule, the locks and tenancy, including a member who joined after the organization was set up.
-3. The API: `GET /me/setup`, `PUT /me/setup`, the skips, their contracts; `/me/guides` removed. On step 2.
-4. The SPA: the guide in its three states on desktop and phone, the pill and the ring, the links, Știu deja, Setări → Ghiduri, the events, and the welcome tour removed. From the canvas's "Varianta A" boards. On step 3.
+2. The database: `setup_progress()`, `setup_step_skips`, the two profile columns. pgTAP tests for each step's rule, the locks and tenancy, including a member who joined after the organization was set up.
+3. The API: `GET /me/setup`, `PUT /me/setup`, the skips, their contracts. On step 2.
+4. The SPA: the guide in its three states on desktop and phone, the pill and the ring, the links, Știu deja, Setări → Ghiduri, the events, and the welcome tour removed with `/me/guides` and `user_guides`, which the tour uses until then, so every step stays green. From the canvas's "Varianta A" boards. On step 3.
 5. The import actions: _Importă din documente_ once the client import's upload (#648) is on `main`, and _Importă din fișe_ once the employee import (ADR 030, step 10) is built. Until then each step shows its form action alone.
