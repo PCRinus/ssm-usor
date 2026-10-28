@@ -59,6 +59,26 @@ export function inTrial(row: SubscriptionRow | null, now: Date) {
   );
 }
 
+const trialMarginMs = 3_600_000;
+
+// Within the trial's last hour the first charge is taken now, rather than set for a moment that
+// may have passed by the time Stripe reads it. The preview and the checkout both ask here.
+export function firstChargeAtTrialEnd(row: SubscriptionRow | null, now: Date) {
+  if (!inTrial(row, new Date(now.getTime() + trialMarginMs))) return null;
+  return new Date(row!.trial_ends_at!);
+}
+
+const prorationDateMaxAgeMs = 3_600_000;
+
+export function prorationDateOf(requested: string | undefined, now: Date) {
+  const at = requested ? new Date(requested) : null;
+  const fits =
+    at !== null &&
+    at.getTime() <= now.getTime() &&
+    now.getTime() - at.getTime() <= prorationDateMaxAgeMs;
+  return fits ? at : now;
+}
+
 export function assertBuyable(choice: BillingChoice, usage: Usage) {
   const [problem] = problemsWith(choice, usage);
   if (problem) {
@@ -92,10 +112,13 @@ function itemGroup(lookupKey: string | null) {
 
 // Stripe changes a subscription item by its id: a price or quantity in place, a removal by
 // `deleted`, so the items are matched to the choice by what they are, not by their price.
+// A pending update (`pending_if_incomplete`) takes only an item's price and quantity, so there a
+// removal sets the quantity to 0 instead, and the item is deleted by a later change.
 export function itemChanges(
   subscription: Stripe.Subscription,
   target: BillingChoice,
-  catalogue: StripeCatalogue
+  catalogue: StripeCatalogue,
+  removal: 'delete' | 'zero' = 'delete'
 ): Stripe.SubscriptionUpdateParams.Item[] {
   const wanted = choiceLines(target);
   const changes: Stripe.SubscriptionUpdateParams.Item[] = [];
@@ -108,8 +131,10 @@ export function itemChanges(
       else if (have.price.id !== price || (have.quantity ?? 1) !== want.quantity) {
         changes.push({ id: have.id, price, quantity: want.quantity });
       }
-    } else if (have) {
+    } else if (have && removal === 'delete') {
       changes.push({ id: have.id, deleted: true });
+    } else if (have && (have.quantity ?? 1) !== 0) {
+      changes.push({ id: have.id, quantity: 0 });
     }
   }
   return changes;
@@ -162,8 +187,9 @@ export async function preview(
   };
 
   if (!hasLiveSubscription(row)) {
-    if (inTrial(row, now)) {
-      const trialEnd = new Date(row!.trial_ends_at!).toISOString();
+    const trialEndsAt = firstChargeAtTrialEnd(row, now);
+    if (trialEndsAt) {
+      const trialEnd = trialEndsAt.toISOString();
       return {
         ...base,
         unchanged: false,
@@ -172,6 +198,7 @@ export async function preview(
         proration: null,
         nextRenewal: { at: trialEnd, ...recurringAmounts },
         firstChargeAt: trialEnd,
+        prorationDate: null,
       };
     }
     return {
@@ -182,6 +209,7 @@ export async function preview(
       proration: null,
       nextRenewal: { at: addInterval(now, choice.interval).toISOString(), ...recurringAmounts },
       firstChargeAt: now.toISOString(),
+      prorationDate: null,
     };
   }
 
@@ -199,6 +227,7 @@ export async function preview(
       proration: null,
       nextRenewal: { at: trialEnd, ...recurringAmounts },
       firstChargeAt: trialEnd,
+      prorationDate: null,
     };
   }
 
@@ -211,16 +240,21 @@ export async function preview(
     ? sameChoice(scheduled.choice, choice)
     : split.now === null && split.atRenewal === null;
 
+  const problems = mustWait(split, subscription)
+    ? [...base.problems, { reason: 'split_change' as const }]
+    : base.problems;
+
   let dueToday = none;
   let proration: BillingPreview['proration'] = null;
+  const prorationDate = seconds(now);
   if (split.now) {
     const upcoming = await stripeBilling.access.stripe.invoices.createPreview({
       customer: idOf(subscription.customer) ?? undefined,
       subscription: subscription.id,
       subscription_details: {
-        items: itemChanges(subscription, split.now, stripeBilling.catalogue),
+        items: itemChanges(subscription, split.now, stripeBilling.catalogue, removalFor(split)),
         proration_behavior: split.chargeNow ? 'always_invoice' : 'create_prorations',
-        proration_date: seconds(now),
+        proration_date: prorationDate,
       },
     });
     if (split.chargeNow) {
@@ -240,14 +274,27 @@ export async function preview(
     recurring.subtotalCents + (proration && !proration.chargedNow ? proration.subtotalCents : 0);
   return {
     ...base,
+    problems,
     unchanged,
     appliesAt: (split.atRenewal ? renewalAt : now).toISOString(),
     dueToday,
     proration,
     nextRenewal: { at: nextRenewalAt.toISOString(), ...amounts(nextSubtotal) },
     firstChargeAt: (dueToday.totalCents > 0 ? now : nextRenewalAt).toISOString(),
+    prorationDate: split.now ? fromSeconds(prorationDate).toISOString() : null,
   };
 }
+
+// An annual change charged now applies only once paid, as a pending update, and a schedule set
+// up beside it would be built from the items before it; a later schedule phase or items update
+// would also discard the pending update and void its invoice. So the two go one at a time.
+// An addition still waiting for its payment is such a pending update too.
+function mustWait(split: ChangeSplit, subscription: Stripe.Subscription) {
+  const splitAnnual = split.chargeNow && split.now !== null && split.atRenewal !== null;
+  return splitAnnual || (split.atRenewal !== null && Boolean(subscription.pending_update));
+}
+
+const removalFor = (split: ChangeSplit) => (split.chargeNow ? 'zero' : 'delete');
 
 export async function scheduledChoice(billing: StripeBilling, subscription: Stripe.Subscription) {
   const scheduleId = idOf(subscription.schedule);
@@ -396,12 +443,8 @@ export async function createSubscription(
   }
   await cancelAbandoned(billing, customerId);
 
-  // Within the trial's last hour the first charge is taken now, rather than set for a moment
-  // that may have passed by the time Stripe reads it.
-  const trialEnd =
-    inTrial(row, new Date(billing.now.getTime() + 3_600_000)) && row?.trial_ends_at
-      ? seconds(new Date(row.trial_ends_at))
-      : undefined;
+  const trialEndsAt = firstChargeAtTrialEnd(row, billing.now);
+  const trialEnd = trialEndsAt ? seconds(trialEndsAt) : undefined;
 
   const subscription = await stripe.subscriptions.create({
     customer: customerId,
@@ -448,12 +491,14 @@ async function scheduleRenewal(
       {
         start_date: schedule.phases[0]!.start_date,
         end_date: renewalAt,
-        items: subscription.items.data.map((item) => ({
-          price: item.price.id,
-          ...(item.price.recurring?.usage_type === 'metered'
-            ? {}
-            : { quantity: item.quantity ?? 1 }),
-        })),
+        items: subscription.items.data
+          .filter((item) => item.quantity !== 0)
+          .map((item) => ({
+            price: item.price.id,
+            ...(item.price.recurring?.usage_type === 'metered'
+              ? {}
+              : { quantity: item.quantity ?? 1 }),
+          })),
         default_tax_rates: [billing.catalogue.taxRateId],
       },
       {
@@ -471,7 +516,8 @@ export async function changeSubscription(
   billing: StripeBilling,
   row: SubscriptionRow | null,
   usage: Usage,
-  choice: BillingChoice
+  choice: BillingChoice,
+  requestedProrationDate?: string
 ) {
   if (!hasLiveSubscription(row)) {
     throw conflict('no_subscription', 'The organization has no subscription to change.');
@@ -489,6 +535,13 @@ export async function changeSubscription(
   }
   if (scheduled && sameChoice(scheduled.choice, choice)) {
     throw conflict('unchanged', 'This change is already set for the renewal.');
+  }
+  const split: ChangeSplit = splitChange(current, choice);
+  if (subscription.status !== 'trialing' && mustWait(split, subscription)) {
+    throw conflict(
+      'split_change',
+      'An annual addition charged now and a removal at the renewal go one after the other.'
+    );
   }
   await releaseSchedule(billing, subscription);
   if (sameChoice(current, choice)) {
@@ -510,12 +563,12 @@ export async function changeSubscription(
     return { clientSecret: null, intent: null };
   }
 
-  const split: ChangeSplit = splitChange(current, choice);
   let updated = subscription;
   if (split.now) {
     updated = await stripe.subscriptions.update(subscription.id, {
-      items: itemChanges(subscription, split.now, billing.catalogue),
+      items: itemChanges(subscription, split.now, billing.catalogue, removalFor(split)),
       proration_behavior: split.chargeNow ? 'always_invoice' : 'create_prorations',
+      proration_date: seconds(prorationDateOf(requestedProrationDate, billing.now)),
       // An annual upgrade is charged at once and applies only once paid; a monthly one goes
       // on the next invoice, so it applies at once.
       payment_behavior: split.chargeNow ? 'pending_if_incomplete' : 'allow_incomplete',

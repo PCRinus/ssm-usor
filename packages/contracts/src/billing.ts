@@ -198,6 +198,9 @@ export const billingChoiceProblemReasonSchema = z.enum([
   'extra_members_below_need',
   'employee_packs_above_plan',
   'extra_members_above_plan',
+  // An annual change that both adds now, charged today, and removes at the renewal: the two
+  // go one after the other, the addition first.
+  'split_change',
 ]);
 export type BillingChoiceProblemReason = z.infer<typeof billingChoiceProblemReasonSchema>;
 
@@ -248,8 +251,17 @@ export const billingPreviewSchema = z.object({
   // The plan's next renewal under this choice, a monthly proration included.
   nextRenewal: billingAmountsSchema.extend({ at: timestamp }),
   firstChargeAt: timestamp,
+  // The moment Stripe prorated from; sent back with the change so it charges what was shown.
+  // Null when nothing is prorated.
+  prorationDate: timestamp.nullable(),
 });
 export type BillingPreview = z.infer<typeof billingPreviewSchema>;
+
+export const changeSubscriptionRequestSchema = billingChoiceSchema.extend({
+  // The preview's `prorationDate`; one older than an hour, or in the future, is replaced by now.
+  prorationDate: timestamp.optional(),
+});
+export type ChangeSubscriptionRequest = z.infer<typeof changeSubscriptionRequestSchema>;
 
 export const billingCheckoutResponseSchema = z.object({
   // For the Payment Element: `confirmPayment` with a payment secret, `confirmSetup` with a
@@ -405,6 +417,7 @@ export type BillingOverview = z.infer<typeof billingOverviewSchema>;
 export const billingErrorReasons = [
   ...billingChoiceProblemReasonSchema.options,
   'subscription_exists',
+  'already_subscribed',
   'no_subscription',
   'enterprise_plan',
   'company_details_missing',

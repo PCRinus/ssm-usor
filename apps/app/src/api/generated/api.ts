@@ -8264,6 +8264,7 @@ export const BillingOverviewOwnerChoicesStartProblemsItemReason = {
   extra_members_below_need: 'extra_members_below_need',
   employee_packs_above_plan: 'employee_packs_above_plan',
   extra_members_above_plan: 'extra_members_above_plan',
+  split_change: 'split_change',
 } as const;
 
 export type BillingOverviewOwnerChoicesStartProblemsItem = {
@@ -8294,6 +8295,7 @@ export const BillingOverviewOwnerChoicesProfesionalProblemsItemReason = {
   extra_members_below_need: 'extra_members_below_need',
   employee_packs_above_plan: 'employee_packs_above_plan',
   extra_members_above_plan: 'extra_members_above_plan',
+  split_change: 'split_change',
 } as const;
 
 export type BillingOverviewOwnerChoicesProfesionalProblemsItem = {
@@ -8406,6 +8408,7 @@ export const BillingPreviewProblemsItemReason = {
   extra_members_below_need: 'extra_members_below_need',
   employee_packs_above_plan: 'employee_packs_above_plan',
   extra_members_above_plan: 'extra_members_above_plan',
+  split_change: 'split_change',
 } as const;
 
 export type BillingPreviewProblemsItem = {
@@ -8491,6 +8494,8 @@ export interface BillingPreview {
   proration: BillingPreviewProration;
   nextRenewal: BillingPreviewNextRenewal;
   firstChargeAt: string;
+  /** @nullable */
+  prorationDate: string | null;
 }
 
 export type BillingChoicePlan = (typeof BillingChoicePlan)[keyof typeof BillingChoicePlan];
@@ -8539,6 +8544,38 @@ export interface BillingCheckoutResponse {
   clientSecret: string | null;
   /** @nullable */
   intent: BillingCheckoutResponseIntent;
+}
+
+export type ChangeSubscriptionRequestPlan =
+  (typeof ChangeSubscriptionRequestPlan)[keyof typeof ChangeSubscriptionRequestPlan];
+
+export const ChangeSubscriptionRequestPlan = {
+  start: 'start',
+  profesional: 'profesional',
+} as const;
+
+export type ChangeSubscriptionRequestInterval =
+  (typeof ChangeSubscriptionRequestInterval)[keyof typeof ChangeSubscriptionRequestInterval];
+
+export const ChangeSubscriptionRequestInterval = {
+  month: 'month',
+  year: 'year',
+} as const;
+
+export interface ChangeSubscriptionRequest {
+  plan: ChangeSubscriptionRequestPlan;
+  interval: ChangeSubscriptionRequestInterval;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  employeePacks: number;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  extraMembers: number;
+  prorationDate?: string;
 }
 
 export type CancelSubscriptionRequestReason =
@@ -30418,11 +30455,11 @@ export const getChangeSubscriptionUrl = () => {
 };
 
 /**
- * Upgrades and additions apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. Downgrades, removals and annual to monthly wait for the renewal. During a trial everything applies at once.
+ * Upgrades and additions apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. Downgrades, removals and annual to monthly wait for the renewal. During a trial everything applies at once. An annual change that adds now and removes at the renewal is refused with `split_change`. `prorationDate`, from the preview, makes Stripe prorate as it showed.
  * @summary Change the plan, the interval, the packs or the members
  */
 export const changeSubscription = async (
-  billingChoice: BillingChoice,
+  changeSubscriptionRequest: ChangeSubscriptionRequest,
   options?: Parameters<typeof apiFetch>[1]
 ): Promise<BillingCheckoutResponse> => {
   const getHeaders = (
@@ -30448,7 +30485,7 @@ export const changeSubscription = async (
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(billingChoice),
+    body: JSON.stringify(changeSubscriptionRequest),
   });
 };
 
@@ -30493,9 +30530,9 @@ export const getChangeSubscriptionMutationOptions = <
 export type ChangeSubscriptionMutationResult = NonNullable<
   Awaited<ReturnType<typeof changeSubscription>>
 >;
-export type ChangeSubscriptionMutationBody = BillingChoice;
+export type ChangeSubscriptionMutationBody = ChangeSubscriptionRequest;
 export type ChangeSubscriptionMutationError = ErrorType<ApiErrorResponse>;
-export type ChangeSubscriptionMutationVariables = { data: BillingChoice };
+export type ChangeSubscriptionMutationVariables = { data: ChangeSubscriptionRequest };
 
 /**
  * @summary Change the plan, the interval, the packs or the members

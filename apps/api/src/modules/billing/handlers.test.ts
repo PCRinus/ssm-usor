@@ -304,6 +304,56 @@ describe('POST /billing/preview', () => {
     expect(body.dueToday).toEqual({ subtotalCents: 38250, vatCents: 8033, totalCents: 46283 });
   });
 
+  it("charges now within the trial's last hour, as the checkout will", async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(
+      subscriptionRow({ trial_ends_at: new Date(Date.now() + 30 * 60_000).toISOString() })
+    );
+
+    const body = await previewOf(await request('POST', '/billing/preview', pro));
+
+    expect(body.dueToday.totalCents).toBe(18029);
+    expect(Date.parse(body.firstChargeAt)).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('returns the moment it prorated from', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(paidRow(start));
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: start });
+    fake.stripe['POST /v1/invoices/create_preview'] = () => ({
+      object: 'invoice',
+      subtotal: 14900,
+      total: 18029,
+      lines: stripeList([]),
+    });
+
+    const body = await previewOf(await request('POST', '/billing/preview', pro));
+
+    const sent = stripeWrites(fake, '/v1/invoices/create_preview')[0]!;
+    expect(body.prorationDate).toBe(
+      new Date(Number(sent['subscription_details[proration_date]']) * 1000).toISOString()
+    );
+  });
+
+  it('says an annual addition and a removal go one after the other', async () => {
+    const fake = createFake();
+    const annual = { ...pro, interval: 'year', extraMembers: 2 } as const;
+    fake.tables.subscriptions!.push(paidRow(annual));
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: annual });
+    fake.stripe['POST /v1/invoices/create_preview'] = () => ({
+      object: 'invoice',
+      subtotal: 10000,
+      total: 12100,
+      lines: stripeList([]),
+    });
+
+    const body = await previewOf(
+      await request('POST', '/billing/preview', { ...annual, employeePacks: 1, extraMembers: 0 })
+    );
+
+    expect(body.problems).toEqual([{ reason: 'split_change' }]);
+  });
+
   it('refuses a specialist', async () => {
     createFake({ membership: { user_id: owner.id, role: 'specialist', access: 'full' } });
 
@@ -543,6 +593,61 @@ describe('PATCH /billing/subscription', () => {
       proration_behavior: 'always_invoice',
       payment_behavior: 'pending_if_incomplete',
     });
+  });
+
+  it("sets an annual Start's packs to none rather than deleting them, which a pending update cannot", async () => {
+    const fake = createFake();
+    const annual = { ...start, interval: 'year', employeePacks: 2 } as const;
+    fake.tables.subscriptions!.push(paidRow(annual));
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: annual });
+    fake.stripe['POST /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: annual });
+
+    await request('PATCH', '/billing/subscription', { ...pro, interval: 'year' });
+
+    const sent = stripeWrites(fake, '/v1/subscriptions/sub_1Test')[0]!;
+    expect(sent).toMatchObject({
+      'items[0][id]': 'si_0',
+      'items[0][price]': priceIdOf('profesional_annual_v1'),
+      'items[1][id]': 'si_1',
+      'items[1][quantity]': '0',
+    });
+    expect(Object.keys(sent).some((key) => key.endsWith('[deleted]'))).toBe(false);
+  });
+
+  it('refuses an annual change that adds now and removes at the renewal, before touching Stripe', async () => {
+    const fake = createFake();
+    const annual = { ...pro, interval: 'year', extraMembers: 2 } as const;
+    fake.tables.subscriptions!.push(paidRow(annual));
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: annual });
+
+    const response = await request('PATCH', '/billing/subscription', {
+      ...annual,
+      employeePacks: 1,
+      extraMembers: 0,
+    });
+
+    expect(response.status).toBe(409);
+    expect(await reasonOf(response)).toBe('split_change');
+    expect(stripeCalls(fake).filter((call) => call.method !== 'GET')).toEqual([]);
+  });
+
+  it('prorates from the moment the preview showed, if it is recent', async () => {
+    const changing = async (prorationDate: number) => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow(start));
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: start });
+      fake.stripe['POST /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: pro });
+      await request('PATCH', '/billing/subscription', {
+        ...pro,
+        prorationDate: new Date(prorationDate * 1000).toISOString(),
+      });
+      return Number(stripeWrites(fake, '/v1/subscriptions/sub_1Test')[0]!.proration_date);
+    };
+    const shown = now() - 120;
+
+    expect(await changing(shown)).toBe(shown);
+    expect(await changing(now() - 2 * 3600)).toBeGreaterThanOrEqual(now() - 5);
+    expect(await changing(now() + 600)).toBeLessThanOrEqual(now());
   });
 
   it('leaves a downgrade for the renewal through a subscription schedule', async () => {

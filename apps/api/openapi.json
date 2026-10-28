@@ -11723,7 +11723,8 @@
                                 "employee_packs_below_need",
                                 "extra_members_below_need",
                                 "employee_packs_above_plan",
-                                "extra_members_above_plan"
+                                "extra_members_above_plan",
+                                "split_change"
                               ]
                             },
                             "minimum": {
@@ -11769,7 +11770,8 @@
                                 "employee_packs_below_need",
                                 "extra_members_below_need",
                                 "employee_packs_above_plan",
-                                "extra_members_above_plan"
+                                "extra_members_above_plan",
+                                "split_change"
                               ]
                             },
                             "minimum": {
@@ -11892,7 +11894,8 @@
                     "employee_packs_below_need",
                     "extra_members_below_need",
                     "employee_packs_above_plan",
-                    "extra_members_above_plan"
+                    "extra_members_above_plan",
+                    "split_change"
                   ]
                 },
                 "minimum": {
@@ -12024,6 +12027,11 @@
           "firstChargeAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "prorationDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
           }
         },
         "required": [
@@ -12036,7 +12044,8 @@
           "dueToday",
           "proration",
           "nextRenewal",
-          "firstChargeAt"
+          "firstChargeAt",
+          "prorationDate"
         ]
       },
       "BillingChoice": {
@@ -12077,6 +12086,34 @@
           }
         },
         "required": ["clientSecret", "intent"]
+      },
+      "ChangeSubscriptionRequest": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": ["start", "profesional"]
+          },
+          "interval": {
+            "type": "string",
+            "enum": ["month", "year"]
+          },
+          "employeePacks": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "extraMembers": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "prorationDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["plan", "interval", "employeePacks", "extraMembers"]
       },
       "CancelSubscriptionRequest": {
         "type": "object",
@@ -33201,7 +33238,7 @@
       "patch": {
         "operationId": "changeSubscription",
         "summary": "Change the plan, the interval, the packs or the members",
-        "description": "Upgrades and additions apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. Downgrades, removals and annual to monthly wait for the renewal. During a trial everything applies at once.",
+        "description": "Upgrades and additions apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. Downgrades, removals and annual to monthly wait for the renewal. During a trial everything applies at once. An annual change that adds now and removes at the renewal is refused with `split_change`. `prorationDate`, from the preview, makes Stripe prorate as it showed.",
         "security": [
           {
             "bearerAuth": []
@@ -33212,7 +33249,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BillingChoice"
+                "$ref": "#/components/schemas/ChangeSubscriptionRequest"
               }
             }
           }

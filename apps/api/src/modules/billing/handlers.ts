@@ -294,11 +294,13 @@ export const changeSubscriptionHandler: RouteHandler<
 > = async (c) => {
   const billing = billingOf(c);
   const [row, usage] = await ownerState(billing);
+  const { prorationDate, ...choice } = c.req.valid('json');
   const result = await changeSubscription(
     await withStripe(c, billing),
     row,
     usage,
-    c.req.valid('json')
+    choice,
+    prorationDate
   );
   return c.json(result satisfies BillingCheckoutResponse, 200);
 };

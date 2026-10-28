@@ -7,6 +7,7 @@ import {
   billingPortalSessionSchema,
   billingPreviewSchema,
   cancelSubscriptionRequestSchema,
+  changeSubscriptionRequestSchema,
   invoiceEmailSchema,
 } from '@ssm-usor/contracts';
 
@@ -118,10 +119,19 @@ export const changeSubscriptionRoute = createRoute({
   operationId: 'changeSubscription',
   summary: 'Change the plan, the interval, the packs or the members',
   description:
-    'Upgrades and additions apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. Downgrades, removals and annual to monthly wait for the renewal. During a trial everything applies at once.',
+    'Upgrades and additions apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. Downgrades, removals and annual to monthly wait for the renewal. During a trial everything applies at once. An annual change that adds now and removes at the renewal is refused with `split_change`. `prorationDate`, from the preview, makes Stripe prorate as it showed.',
   security: bearerSecurity,
   middleware: ownerMiddleware,
-  request: { body: choiceBody },
+  request: {
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: changeSubscriptionRequestSchema.meta({ id: 'ChangeSubscriptionRequest' }),
+        },
+      },
+    },
+  },
   responses: {
     200: checkoutResponse,
     400: { description: 'Invalid request body', content: errorContent },
