@@ -115,6 +115,20 @@ describe('checkDuplicates', () => {
       { path: 'responsiblePersons.1', code: 'duplicate', detail: 'responsiblePersons.0' },
     ]);
   });
+
+  it('does not flag two employees of one name whose CNPs differ', () => {
+    const value = proposal();
+    const employee = value.employees[0]!;
+    value.employees = [
+      { ...employee, cnp: '2850315350016' },
+      { ...employee, id: 'employee-2', cnp: '2900101350010' },
+      { ...employee, id: 'employee-3', cnp: null },
+    ];
+
+    expect(checkDuplicates(value)).toEqual([
+      { path: 'employees.2', code: 'duplicate', detail: 'employees.0' },
+    ]);
+  });
 });
 
 describe('checkMissing', () => {

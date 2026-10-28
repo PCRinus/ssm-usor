@@ -266,6 +266,29 @@ describe('toProposal', () => {
     expect(proposal.employees[0]!.sources).toHaveLength(2);
   });
 
+  it('keeps apart two employees of one name whose CNPs differ', () => {
+    const employee = {
+      role: 'workers_representative' as const,
+      lastName: 'Pop',
+      firstName: 'Maria',
+      birthDate: null,
+      jobTitle: 'vânzător',
+      hiredAt: null,
+      ...quoted,
+    };
+    const proposal = toProposal(
+      scanOf({
+        employees: [
+          { ...employee, cnp: '2850315350016' },
+          { ...employee, cnp: '2900101350010' },
+          { ...employee, cnp: null },
+        ],
+      })
+    );
+
+    expect(proposal.employees.map((each) => each.cnp)).toEqual(['2850315350016', '2900101350010']);
+  });
+
   it('takes the marker of an image label off a source’s file, keeping its page', () => {
     const proposal = toProposal(
       scanOf({

@@ -470,8 +470,9 @@ export function toProposal(...readings: Reading[]): Proposal {
       })),
       (a, b) =>
         a.role === b.role &&
-        ((a.cnp !== null && a.cnp === b.cnp) ||
-          (employeeName(a) !== '' && employeeName(a) === employeeName(b))),
+        (a.cnp === null || b.cnp === null
+          ? employeeName(a) !== '' && employeeName(a) === employeeName(b)
+          : a.cnp === b.cnp),
       fillGaps
     ).map((employee, index) => ({ id: `employee-${index + 1}`, ...employee })),
     notes: list((reading) => reading.notes).filter((note) => note.trim() !== ''),

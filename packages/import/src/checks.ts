@@ -218,12 +218,10 @@ export function checkDuplicates(proposal: Proposal): Flag[] {
     ...duplicates('responsiblePersons', proposal.responsiblePersons, (a, b) =>
       samePerson(a.fullName, b.fullName)
     ),
-    ...duplicates(
-      'employees',
-      proposal.employees,
-      (a, b) =>
-        (a.cnp !== null && a.cnp === b.cnp) ||
-        (employeeName(a) !== '' && samePerson(employeeName(a), employeeName(b)))
+    ...duplicates('employees', proposal.employees, (a, b) =>
+      a.cnp === null || b.cnp === null
+        ? employeeName(a) !== '' && samePerson(employeeName(a), employeeName(b))
+        : a.cnp === b.cnp
     ),
   ];
 }
