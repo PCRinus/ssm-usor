@@ -11,7 +11,14 @@ import {
 import { z } from 'zod';
 
 import { findQuote, foldName, foldText, similar } from './match';
-import type { Field, Flag, Option, Proposal, Source } from './proposal';
+import {
+  type Field,
+  type Flag,
+  type Option,
+  type Proposal,
+  proposedIncluded,
+  type Source,
+} from './proposal';
 
 export interface CheckInput {
   // Each file of the import by path, with its extracted text, or null for a file that has
@@ -234,7 +241,9 @@ export function checkMissing(proposal: Proposal, options: { clientExists?: boole
       }
     }
   }
+  // An employee proposed unticked lacks nothing until the member ticks it, which the API checks.
   proposal.employees.forEach((employee, index) => {
+    if (!proposedIncluded(employee)) return;
     for (const name of ['lastName', 'firstName', 'jobTitle', 'hiredAt'] as const) {
       if (employee[name] === null)
         flags.push({ path: `employees.${index}.${name}`, code: 'missing' });

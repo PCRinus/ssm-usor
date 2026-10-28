@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
 
-import { proposalChoices } from './proposal';
+import { proposalChoices, proposedIncluded } from './proposal';
 import { fromWire, type Reading, readingAnswer, toProposal } from './reading';
 import { wireAnswer } from './test/fixtures';
 
@@ -290,5 +290,19 @@ describe('toProposal', () => {
 
     expect(proposal.client.legalName.options[0]!.sources[0]!.file).toBe(scanFile);
     expect(proposal.client.cui.options[0]!.sources[0]!.file).toBe(scanFile);
+  });
+});
+
+describe('proposedIncluded', () => {
+  it('proposes the legal representative as an employee unticked, the workers’ one ticked', () => {
+    const proposal = fromWire(wireAnswer());
+    const employee = proposal.employees[0]!;
+
+    expect(proposedIncluded(employee)).toBe(true);
+    expect(proposedIncluded({ ...employee, role: 'legal_representative' })).toBe(false);
+    expect(proposedIncluded({ ...employee, otherCompanyName: 'ATELIERUL INVENTAT S.R.L.' })).toBe(
+      false
+    );
+    expect(proposedIncluded(proposal.workplaces[0]!)).toBe(true);
   });
 });

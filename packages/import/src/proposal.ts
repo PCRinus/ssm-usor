@@ -191,6 +191,13 @@ export const proposedEmployeeSchema = z.object({
 
 export type ProposedEmployee = z.infer<typeof proposedEmployeeSchema>;
 
+// Unticked, an item is written only when the member ticks it: what only another company's
+// passages give, and the legal representative as an employee, who is one only when the
+// documents show them on the staff (ADR 030), which a reading too often assumes.
+export function proposedIncluded(item: { otherCompanyName: string | null; role?: string }) {
+  return item.otherCompanyName === null && item.role !== 'legal_representative';
+}
+
 export const flagCodes = [
   'file_not_found',
   'quote_not_found',

@@ -138,6 +138,21 @@ describe('checkMissing', () => {
       'employees.0.hiredAt missing',
     ]);
   });
+
+  it('leaves out the legal representative, whom an employee is proposed unticked for', () => {
+    const value: Proposal = proposal();
+    value.employees.push({
+      ...value.employees[0]!,
+      id: 'employee-2',
+      role: 'legal_representative',
+      lastName: 'Vasilescu',
+      firstName: 'Andrei',
+      jobTitle: 'administrator',
+      hiredAt: null,
+    });
+
+    expect(codes(checkMissing(value))).toEqual([]);
+  });
 });
 
 describe('checkReferences', () => {

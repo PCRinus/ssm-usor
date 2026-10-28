@@ -47,7 +47,7 @@ The rules the model is given, from the decisions of 2026-10-26:
 - A workplace is an address; rooms at that address are where fire-safety means stand.
 - Values that appear only in passages copied from another company are proposed unticked, as **possibly from another client**, with the other company's name shown (#621).
 - A one-person company: that person holds every responsible role.
-- The legal representative is also an employee when the documents show them on the staff. The contact person defaults to the legal representative.
+- The legal representative is also an employee when the documents show them on the staff (a one-person company, a post they hold, a place among the exposed staff), never for signing or appointing; that employee is proposed unticked, for the member to confirm. The contact person defaults to the legal representative.
 - An equipment table naming several positions applies to each of them.
 - The hire date comes from "admis la lucru".
 - Where documents disagree, both values are proposed as a choice; mandatory values that are missing are flagged.

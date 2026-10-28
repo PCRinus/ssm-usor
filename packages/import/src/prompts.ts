@@ -90,7 +90,7 @@ Rules:
 - Where documents disagree about a single value, give one fact for each value, each with its own file and quote. Do not choose between them.
 - A workplace is an address. Rooms and areas at that address (kitchen, office, warehouse, workshop) are not workplaces; they are where fire-safety means stand.
 - A one-person company: that person holds every role of responsiblePersons except workers_representative.
-- The legal representative is also an employee when the documents show them on the staff. The contact person defaults to the legal representative.
+- The legal representative is also an employee only when the documents show them on the staff: a one-person company, a post of the client they hold, or their name among the exposed staff of the risk assessment. Signing documents, being named administrator or legal representative, or appointing others in a decision does not. The contact person defaults to the legal representative.
 - An equipment table naming several positions applies to each of them.
 - The hire date comes from the date the person was admitted to work ("admis la lucru").
 
@@ -110,7 +110,7 @@ What to give:
 - fireEquipment: one entry for each kind of means at a place, with its count, only where a type or a count is filled in. workplace: the name of its workplace. room: the room or area. kind: extinguisher, sand_box, fire_post, fire_blanket or other. For an extinguisher, agent (P is powder, G or CO2 is co2, SM is foam, AP is water, clean_agent) and capacity in kilograms or litres ("P6" is powder, 6); wheeled for a wheeled one (carosabil).
 - fireInstallations: detection_alarm, interior_hydrants, exterior_hydrants, sprinklers, smoke_exhaust, emergency_lighting, lightning_protection, gas_detection, or other with a description.
 - protectiveEquipment: jobPositions (every post the entry is for, named as in jobPositions), risk, item, quantity, durationMonths (the normed duration of use in months; "" when it is a dash or until worn), allocation (personal_inventory, section_inventory when kept at the workplace and shared, consumable).
-- employees: only the people a role needs: the workers' representative (role workers_representative) and the legal representative when the documents show them on the staff (role legal_representative: a one-person company, a post they hold, a role in a decision, an exposed person in the risk assessment). Nobody else. lastName and firstName apart; jobTitle: the post as written; hiredAt: "" when no document gives it; cnp and birthDate only when written.
+- employees: only the people a role needs: the workers' representative (role workers_representative) and the legal representative when the documents show them on the staff as the rules say (role legal_representative). Nobody else. lastName and firstName apart; jobTitle: the post as written; hiredAt: "" when no document gives it; cnp and birthDate only when written.
 - notes: in Romanian, short, what a reviewer must know that fits no value, such as a blank template among the documents.`;
 
 export function readingMessages(input: {
