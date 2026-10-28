@@ -31513,7 +31513,7 @@ export const getReadImportFileUrl = (importId: string, fileId: string) => {
 };
 
 /**
- * Only while the import is `ready` (else `409` with `import_not_ready`) and only a file `set_aside` (else `422` with `import_file_not_set_aside`) whose text, with the files already read, fits one import (else `422` with `import_too_much_text`). The file joins the files to read, the import goes back to `reading` with its proposal and the member's changes dropped and its version moved on, and the reading and the checks run again over every file to read.
+ * Only while the import is `ready` (else `409` with `import_not_ready`) and only a file `set_aside` (else `422` with `import_file_not_set_aside`) whose text and scanned pages, with the files already read, fit one import (else `422` with `import_too_much_text` or `import_too_many_scans`). The file joins the files to read, the import goes back to `reading` with its proposal and the member's changes dropped and its version moved on, and the reading and the checks run again over every file to read.
  * @summary Read a file the sorting set aside
  */
 export const readImportFile = async (

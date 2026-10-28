@@ -264,8 +264,8 @@ describe('the processing page', () => {
     );
     mount();
 
-    expect((await screen.findByTestId('import-failed')).textContent).toContain(
-      'Serviciul care citește documentele nu a răspuns.'
+    expect((await screen.findByTestId('import-failed')).textContent).toBe(
+      'Serviciul care citește documentele nu a răspuns. Renunță la import și încearcă din nou.'
     );
     expect(screen.getAllByTestId('import-step').map((step) => step.dataset.state)).toEqual([
       'done',
@@ -377,6 +377,24 @@ describe('the processing page', () => {
     expect(
       await screen.findByText(
         'Cu acest fișier, documentele au prea mult text pentru un singur import.'
+      )
+    ).toBeDefined();
+  });
+
+  it('says when sending a scan back would pass the scanned pages of one import', async () => {
+    mockImport(readingDetail({ status: 'ready', readyAt: '2026-10-28T09:20:00+00:00' }), () =>
+      Response.json(
+        { error: 'unprocessable', message: 'Too many scans.', reason: 'import_too_many_scans' },
+        { status: 422 }
+      )
+    );
+    mount();
+
+    await userEvent.click(await screen.findByTestId('import-read-set-aside'));
+
+    expect(
+      await screen.findByText(
+        'Cu acest fișier, sunt prea multe pagini scanate pentru un singur import: cel mult 150.'
       )
     ).toBeDefined();
   });

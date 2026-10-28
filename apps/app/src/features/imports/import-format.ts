@@ -45,6 +45,8 @@ const reasonMessages: Record<string, string> = {
   [importErrorReasons.alreadySplit]: 'Aceste fișiere au fost deja trimise într-un import separat.',
   [importErrorReasons.tooMuchText]:
     'Cu acest fișier, documentele au prea mult text pentru un singur import.',
+  [importErrorReasons.tooManyScans]:
+    'Cu acest fișier, sunt prea multe pagini scanate pentru un singur import: cel mult 150.',
 };
 
 export const importErrorReason = (cause: unknown) =>

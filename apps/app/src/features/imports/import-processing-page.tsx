@@ -207,7 +207,7 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
       )}
       {detail.status === 'failed' && (
         <Notice variant="destructive" data-testid="import-failed">
-          {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'} Renunță la el și
+          {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'} Renunță la import și
           încearcă din nou.
         </Notice>
       )}
