@@ -80,7 +80,7 @@ export const readingSystemPrompt = (provider: ProviderIdentity, client?: Existin
 ${providerParagraph(provider)}${existingClientParagraph(client)}
 
 Sources:
-- Each file starts with "=== FILE: <path> ===". "file" is that path exactly; "quote" is a short verbatim passage of that file, at most 200 characters, that contains the value. Tables are written as rows of "| cell | cell |": quote the words of the cells. Every value needs its file and quote; a value you cannot quote is left out.
+- Each file starts with "=== FILE: <path> ===", followed by its text or by its image. "file" is that path exactly, "(pagina N)" included; "quote" is a short verbatim passage of that file, at most 200 characters, that contains the value. Tables are written as rows of "| cell | cell |": quote the words of the cells. Every value needs its file and quote; a value you cannot quote is left out.
 - Copy values as written; do not translate or normalise names. Placeholders such as "-", "……", "____" and empty table cells are not values. Never invent counts, dates or names.
 - An empty string means unknown. Numbers are written as digits, dates as YYYY-MM-DD.
 
@@ -122,7 +122,7 @@ export function readingMessages(input: {
     'text' in file
       ? [{ type: 'text', text: `=== FILE: ${file.path} ===\n${file.text}` }]
       : [
-          { type: 'text', text: `=== FILE: ${file.path} (image follows) ===` },
+          { type: 'text', text: `=== FILE: ${file.path} ===` },
           { type: 'image_url', image_url: { url: file.imageUrl } },
         ]
   );

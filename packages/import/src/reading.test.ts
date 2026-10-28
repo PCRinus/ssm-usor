@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
 
 import { proposalChoices } from './proposal';
-import { fromWire, readingAnswer, toProposal } from './reading';
+import { fromWire, type Reading, readingAnswer, toProposal } from './reading';
 import { wireAnswer } from './test/fixtures';
 
 describe('fromWire', () => {
@@ -113,5 +113,46 @@ describe('toProposal', () => {
       'position-3',
       'position-4',
     ]);
+  });
+
+  const scanOf = (overrides: Partial<Reading>): Reading =>
+    readingAnswer.parse({
+      ...wireAnswer(),
+      facts: [],
+      workplaces: [],
+      jobPositions: [],
+      responsiblePersons: [],
+      fireEquipment: [],
+      protectiveEquipment: [],
+      employees: [],
+      notes: [],
+      ...overrides,
+    });
+  const scanFile = 'Dosar/Contract 2019.pdf (pagina 1)';
+
+  it('takes the marker of an image label off a source’s file, keeping its page', () => {
+    const proposal = toProposal(
+      scanOf({
+        facts: [
+          {
+            field: 'client.legalName',
+            value: 'BRUTĂRIA FICTIVĂ S.R.L.',
+            file: `${scanFile} (image follows)`,
+            quote: 'BRUTĂRIA FICTIVĂ',
+            otherCompany: null,
+          },
+          {
+            field: 'client.cui',
+            value: '12345674',
+            file: `=== FILE: ${scanFile} ===`,
+            quote: '12345674',
+            otherCompany: null,
+          },
+        ],
+      })
+    );
+
+    expect(proposal.client.legalName.options[0]!.sources[0]!.file).toBe(scanFile);
+    expect(proposal.client.cui.options[0]!.sources[0]!.file).toBe(scanFile);
   });
 });

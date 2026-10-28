@@ -138,8 +138,19 @@ interface Quoted {
   otherCompany: string | null;
 }
 
+// Models copy more of a file's header than its path, and a scan's reading kept on its file
+// may hold an older label's "(image follows)"; a page's "(pagina N)" stays, since it names it.
+function cleanFile(file: string) {
+  return file
+    .trim()
+    .replace(/^=+\s*FILE:\s*/i, '')
+    .replace(/\s*=+$/, '')
+    .replace(/\s*\(image follows\)$/i, '')
+    .trim();
+}
+
 const traced = (entry: Quoted) => ({
-  sources: [{ file: entry.file, quote: entry.quote }],
+  sources: [{ file: cleanFile(entry.file), quote: entry.quote }],
   otherCompanyName: entry.otherCompany,
 });
 

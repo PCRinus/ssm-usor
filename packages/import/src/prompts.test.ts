@@ -43,7 +43,7 @@ describe('readingMessages', () => {
     }
     expect(user!.content).toEqual([
       { type: 'text', text: '=== FILE: Decizia 1.docx ===\nDECIZIA nr. 1' },
-      { type: 'text', text: '=== FILE: Fișă.jpg (image follows) ===' },
+      { type: 'text', text: '=== FILE: Fișă.jpg ===' },
       { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AAAA' } },
     ]);
   });
