@@ -43,6 +43,8 @@ const reasonMessages: Record<string, string> = {
     'Altcineva a modificat propunerea între timp. Reîncarcă pagina ca să vezi ce s-a schimbat.',
   [importErrorReasons.ended]: 'Importul a fost deja confirmat sau abandonat.',
   [importErrorReasons.alreadySplit]: 'Aceste fișiere au fost deja trimise într-un import separat.',
+  [importErrorReasons.tooMuchText]:
+    'Cu acest fișier, documentele au prea mult text pentru un singur import.',
 };
 
 export const importErrorReason = (cause: unknown) =>
