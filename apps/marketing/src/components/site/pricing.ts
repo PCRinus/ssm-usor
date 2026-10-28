@@ -230,7 +230,7 @@ export const pricingPage = {
     },
     {
       q: 'Ce se întâmplă dacă trec de limită?',
-      a: 'Lucrezi mai departe cu tot ce ai. Îți arătăm un pachet de 50 de angajați; dacă după o lună nu l-ai adăugat, nu mai poți adăuga angajați noi până nu o faci sau arhivezi clienții cu care nu mai lucrezi.',
+      a: 'Lucrezi mai departe cu tot ce ai. Îți arătăm pachetul de angajați în plus al planului tău (50 pe Start, 500 pe Profesional); dacă după o lună nu l-ai adăugat, nu mai poți adăuga angajați noi până nu o faci sau arhivezi clienții cu care nu mai lucrezi.',
     },
     {
       q: 'Pot încerca înainte să plătesc?',

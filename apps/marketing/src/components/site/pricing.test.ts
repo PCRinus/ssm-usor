@@ -7,7 +7,7 @@ import {
 } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { addOns, compare, type CompareRow, eur, pricedPlans, quote } from './pricing';
+import { addOns, compare, type CompareRow, eur, pricedPlans, pricingPage, quote } from './pricing';
 
 const euro = (cents: number) => cents / 100;
 
@@ -67,6 +67,10 @@ describe('the published prices match the plan catalogue Stripe is set up from', 
       `${start.monthlySms}, apoi ${sms} fiecare`,
       `${profesional.monthlySms}, apoi ${sms} fiecare`,
     ]);
+    expect(cells('Angajați la clienții tăi')).toEqual([
+      `Până la ${start.includedEmployees.toLocaleString('ro-RO')}`,
+      `Până la ${profesional.includedEmployees.toLocaleString('ro-RO')}`,
+    ]);
     expect(cells('Utilizatori')).toEqual([
       String(start.includedMembers),
       String(profesional.includedMembers),
@@ -75,5 +79,18 @@ describe('the published prices match the plan catalogue Stripe is set up from', 
       `${eur(euro(startPack.prices.month.unitAmount))} pentru ${startPack.employees}, până la ${startMaxEmployees}`,
       `${eur(euro(profesionalPack.prices.month.unitAmount))} pentru ${profesionalPack.employees}`,
     ]);
+    expect(cells('Utilizator în plus')).toEqual([
+      `${eur(euro(extraMember.prices.month.unitAmount))} pe lună, doar unul`,
+      `${eur(euro(extraMember.prices.month.unitAmount))} pe lună fiecare`,
+    ]);
+  });
+
+  it("the FAQ names each plan's pack", () => {
+    const answer = pricingPage.faq.find(
+      (item) => item.q === 'Ce se întâmplă dacă trec de limită?'
+    )?.a;
+    expect(answer).toContain(
+      `${startPack.employees} pe Start, ${profesionalPack.employees} pe Profesional`
+    );
   });
 });
