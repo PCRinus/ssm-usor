@@ -1,6 +1,7 @@
 import { MutationCache, QueryClient } from '@tanstack/react-query';
 
-import { getGetMeQueryKey } from '@/api/generated/api';
+import { getGetMeQueryKey, getGetMySetupGuideQueryKey } from '@/api/generated/api';
+import { setupGuideMutationKeys } from '@/features/setup-guide/guide-mutation-keys';
 import { isReadOnlyError } from '@/features/subscription/read-only';
 
 export function createQueryClient() {
@@ -10,6 +11,11 @@ export function createQueryClient() {
       onError: (error) => {
         if (isReadOnlyError(error))
           void queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      },
+      // Any other change may tick a step while the setup guide is in view (ADR 031).
+      onSuccess: (_data, _variables, _context, mutation) => {
+        if (setupGuideMutationKeys.has(mutation.options.mutationKey?.[0])) return;
+        void queryClient.invalidateQueries({ queryKey: getGetMySetupGuideQueryKey() });
       },
     }),
     defaultOptions: {
