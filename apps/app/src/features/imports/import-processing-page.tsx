@@ -127,6 +127,15 @@ function title(detail: ImportDetail, stalled: boolean) {
   }
 }
 
+function progressAnnouncement(detail: ImportDetail, stalled: boolean) {
+  if (detail.status === 'ready') return 'Propunerea e gata de verificat.';
+  if (isRunning(detail.status)) {
+    const step = reachedStep(detail);
+    return `Pasul ${step + 1} din ${steps.length}: ${steps[step]!.label}.`;
+  }
+  return `${title(detail, stalled)}.`;
+}
+
 export function ProcessingView({ detail }: { detail: ImportDetail }) {
   const navigate = useNavigate();
   const [abandoning, setAbandoning] = useState(false);
@@ -143,9 +152,15 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
   const otherCompany = files.filter((file) => file.state === 'other_company');
   const unsorted = files.filter((file) => file.state === 'uploaded' || file.state === 'prepared');
   const summary = uploadSummary(files);
+  const announcement = progressAnnouncement(detail, stalled);
+  // The heading says where the import stands on arrival; only what changes after is announced.
+  const [arrivedAt] = useState(announcement);
 
   return (
     <div data-testid="import-processing" className="grid gap-6">
+      <p role="status" className="sr-only" data-testid="import-announcement">
+        {announcement === arrivedAt ? '' : announcement}
+      </p>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid gap-1">
           <h1 className="text-3xl font-semibold tracking-tight">{title(detail, stalled)}</h1>

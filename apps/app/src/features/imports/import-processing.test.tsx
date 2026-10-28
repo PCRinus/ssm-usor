@@ -299,9 +299,13 @@ describe('the processing page', () => {
       'Citirea pornește când ajung toate'
     );
     expect(screen.queryByTestId('import-upload-unfinished')).toBeNull();
+    expect(screen.getByTestId('import-announcement').textContent).toBe('');
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Citim documentele' }, { timeout: 5000 })
     ).toBeTruthy();
+    expect(screen.getByTestId('import-announcement').textContent).toBe(
+      'Pasul 1 din 4: Pregătim fișierele.'
+    );
   });
 
   it('says an upload that never finished will not start by itself', async () => {
