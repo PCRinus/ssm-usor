@@ -1,4 +1,3 @@
-import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -14,13 +13,11 @@ import {
   parsePdfInfo,
   splitPages,
 } from './files.ts';
+import { Abandoned, Busy, gate, type Refusal, Refused, run } from './processes.ts';
 
 const port = Number(process.env.PORT ?? 3302);
 const fileLimit = 20 * 1024 * 1024;
 const libreOfficeProfile = process.env.LIBREOFFICE_PROFILE ?? join(tmpdir(), 'libreoffice');
-
-type Refusal =
-  'too_large' | 'unsupported' | 'corrupt' | 'password_protected' | 'timeout' | 'page_out_of_range';
 
 const refusalStatus: Record<Refusal, number> = {
   too_large: 413,
@@ -30,49 +27,6 @@ const refusalStatus: Record<Refusal, number> = {
   timeout: 422,
   page_out_of_range: 400,
 };
-
-class Refused extends Error {
-  readonly reason: Refusal;
-  readonly detail: string;
-  constructor(reason: Refusal, detail = '') {
-    super(reason);
-    this.reason = reason;
-    this.detail = detail;
-  }
-}
-
-type Run = { code: number | null; stdout: Buffer; stderr: string };
-
-function run(command: string, args: string[], timeoutMs: number): Promise<Run> {
-  return new Promise((resolve, reject) => {
-    // Its own process group, so a timeout also stops what it started: soffice runs soffice.bin.
-    const child = spawn(command, args, { detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
-    const stdout: Buffer[] = [];
-    let stderr = '';
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      try {
-        process.kill(-child.pid!, 'SIGKILL');
-      } catch {
-        child.kill('SIGKILL');
-      }
-    }, timeoutMs);
-    child.stdout.on('data', (chunk: Buffer) => stdout.push(chunk));
-    child.stderr.on('data', (chunk: Buffer) => {
-      if (stderr.length < 4000) stderr += chunk.toString();
-    });
-    child.on('error', (error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
-    child.on('close', (code) => {
-      clearTimeout(timer);
-      if (timedOut) reject(new Refused('timeout', `${command} ran past ${timeoutMs} ms`));
-      else resolve({ code, stdout: Buffer.concat(stdout), stderr });
-    });
-  });
-}
 
 async function inTempDir<T>(work: (dir: string) => Promise<T>): Promise<T> {
   const dir = await mkdtemp(join(tmpdir(), 'extract-'));
@@ -85,12 +39,9 @@ async function inTempDir<T>(work: (dir: string) => Promise<T>): Promise<T> {
 
 // One LibreOffice at a time: two instances cannot share a profile, and a profile per request
 // would add its first-start cost to every conversion.
-let libreOfficeQueue: Promise<unknown> = Promise.resolve();
-function oneLibreOfficeAtATime<T>(work: () => Promise<T>): Promise<T> {
-  const result = libreOfficeQueue.then(work, work);
-  libreOfficeQueue = result.catch(() => undefined);
-  return result;
-}
+const libreOffice = gate(1, 2);
+// Half a CPU between them: more at once would only turn each into a timeout.
+const tools = gate(2, 6);
 
 const libreOfficeArgs = [
   `-env:UserInstallation=file://${libreOfficeProfile}`,
@@ -101,23 +52,21 @@ const libreOfficeArgs = [
   '--nolockcheck',
 ];
 
-async function docToDocx(doc: Uint8Array): Promise<Buffer> {
+async function docToDocx(doc: Uint8Array, signal: AbortSignal): Promise<Buffer> {
   if (!isWordLike(doc)) throw new Refused('unsupported', 'not a Word, RTF or HTML file');
   return inTempDir(async (dir) => {
     await writeFile(join(dir, 'document.doc'), doc);
-    const result = await oneLibreOfficeAtATime(() =>
-      run(
-        'soffice',
-        [
-          ...libreOfficeArgs,
-          '--convert-to',
-          'docx:MS Word 2007 XML',
-          '--outdir',
-          dir,
-          join(dir, 'document.doc'),
-        ],
-        120_000
-      )
+    const result = await run(
+      'soffice',
+      [
+        ...libreOfficeArgs,
+        '--convert-to',
+        'docx:MS Word 2007 XML',
+        '--outdir',
+        dir,
+        join(dir, 'document.doc'),
+      ],
+      { timeoutMs: 120_000, signal }
     );
     try {
       return await readFile(join(dir, 'document.docx'));
@@ -129,9 +78,9 @@ async function docToDocx(doc: Uint8Array): Promise<Buffer> {
   });
 }
 
-async function pdfInfo(path: string, page?: number) {
+async function pdfInfo(path: string, signal: AbortSignal, page?: number) {
   const range = page ? ['-f', String(page), '-l', String(page)] : [];
-  const result = await run('pdfinfo', [...range, path], 30_000);
+  const result = await run('pdfinfo', [...range, path], { timeoutMs: 30_000, signal });
   if (result.code !== 0) {
     if (/incorrect password/i.test(result.stderr)) throw new Refused('password_protected');
     throw new Refused('corrupt', result.stderr.trim().slice(0, 300));
@@ -139,31 +88,31 @@ async function pdfInfo(path: string, page?: number) {
   return parsePdfInfo(result.stdout.toString());
 }
 
-async function pdfText(pdf: Uint8Array) {
+async function pdfText(pdf: Uint8Array, signal: AbortSignal) {
   if (!isPdf(pdf)) throw new Refused('unsupported', 'not a PDF');
   return inTempDir(async (dir) => {
     const path = join(dir, 'document.pdf');
     await writeFile(path, pdf);
-    const { pageCount } = await pdfInfo(path);
+    const { pageCount } = await pdfInfo(path, signal);
     if (pageCount === 0) return { pageCount, pages: [] };
     const result = await run(
       'pdftotext',
       ['-layout', '-enc', 'UTF-8', '-f', '1', '-l', String(pageCount), path, '-'],
-      120_000
+      { timeoutMs: 120_000, signal }
     );
     if (result.code !== 0) throw new Refused('corrupt', result.stderr.trim().slice(0, 300));
     return { pageCount, pages: splitPages(result.stdout.toString('utf8'), pageCount) };
   });
 }
 
-async function pdfPageImage(pdf: Uint8Array, page: number): Promise<Buffer> {
+async function pdfPageImage(pdf: Uint8Array, page: number, signal: AbortSignal): Promise<Buffer> {
   if (!isPdf(pdf)) throw new Refused('unsupported', 'not a PDF');
   return inTempDir(async (dir) => {
     const path = join(dir, 'document.pdf');
     await writeFile(path, pdf);
-    const { pageCount } = await pdfInfo(path);
+    const { pageCount } = await pdfInfo(path, signal);
     if (page > pageCount) throw new Refused('page_out_of_range', `the PDF has ${pageCount} pages`);
-    const { pageSizes } = await pdfInfo(path, page);
+    const { pageSizes } = await pdfInfo(path, signal, page);
     const result = await run(
       'pdftoppm',
       [
@@ -180,14 +129,14 @@ async function pdfPageImage(pdf: Uint8Array, page: number): Promise<Buffer> {
         path,
         join(dir, 'page'),
       ],
-      60_000
+      { timeoutMs: 60_000, signal }
     );
     if (result.code !== 0) throw new Refused('corrupt', result.stderr.trim().slice(0, 300));
     return readFile(join(dir, 'page.jpg'));
   });
 }
 
-async function imageToJpeg(image: Uint8Array): Promise<Buffer> {
+async function imageToJpeg(image: Uint8Array, signal: AbortSignal): Promise<Buffer> {
   const kind = imageKind(image);
   if (!kind) throw new Refused('unsupported', 'not a HEIC, JPEG or PNG image');
   return inTempDir(async (dir) => {
@@ -212,7 +161,7 @@ async function imageToJpeg(image: Uint8Array): Promise<Buffer> {
         '85',
         `jpeg:${output}`,
       ],
-      60_000
+      { timeoutMs: 60_000, signal }
     );
     if (result.code !== 0) throw new Refused('corrupt', result.stderr.trim().slice(0, 300));
     const jpeg = await readFile(output);
@@ -251,7 +200,7 @@ function pageOf(url: URL): number {
   return page;
 }
 
-async function handle(request: IncomingMessage, response: ServerResponse) {
+async function handle(request: IncomingMessage, response: ServerResponse, signal: AbortSignal) {
   const url = new URL(request.url ?? '/', 'http://extractor');
   if (request.method === 'GET' && url.pathname === '/health') {
     return sendJson(response, 200, { status: 'ok' });
@@ -259,7 +208,8 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
   if (request.method !== 'POST') return sendJson(response, 404, { error: 'not_found' });
   switch (url.pathname) {
     case '/doc-to-docx': {
-      const docx = await docToDocx(await readBody(request));
+      const doc = await readBody(request);
+      const docx = await libreOffice(signal, () => docToDocx(doc, signal));
       return send(
         response,
         200,
@@ -267,14 +217,25 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
         docx
       );
     }
-    case '/pdf-text':
-      return sendJson(response, 200, await pdfText(await readBody(request)));
+    case '/pdf-text': {
+      const pdf = await readBody(request);
+      return sendJson(response, 200, await tools(signal, () => pdfText(pdf, signal)));
+    }
     case '/pdf-page-image': {
       const page = pageOf(url);
-      return send(response, 200, 'image/jpeg', await pdfPageImage(await readBody(request), page));
+      const pdf = await readBody(request);
+      const jpeg = await tools(signal, () => pdfPageImage(pdf, page, signal));
+      return send(response, 200, 'image/jpeg', jpeg);
     }
-    case '/heic-to-jpeg':
-      return send(response, 200, 'image/jpeg', await imageToJpeg(await readBody(request)));
+    case '/heic-to-jpeg': {
+      const image = await readBody(request);
+      return send(
+        response,
+        200,
+        'image/jpeg',
+        await tools(signal, () => imageToJpeg(image, signal))
+      );
+    }
     default:
       return sendJson(response, 404, { error: 'not_found' });
   }
@@ -282,12 +243,31 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
 
 const server = createServer((request, response) => {
   const started = Date.now();
-  handle(request, response).catch((error: unknown) => {
+  // The Worker gives up on a request after three minutes; what it no longer waits for stops here.
+  const abandoned = new AbortController();
+  response.on('close', () => {
+    if (!response.writableFinished) abandoned.abort();
+  });
+  handle(request, response, abandoned.signal).catch((error: unknown) => {
     const refused = error instanceof Refused;
-    const status = refused ? refusalStatus[error.reason] : 500;
+    const status = refused ? refusalStatus[error.reason] : error instanceof Busy ? 503 : 500;
+    if (error instanceof Abandoned || abandoned.signal.aborted) {
+      console.error(
+        JSON.stringify({
+          event: 'extractor_abandoned',
+          route: request.url,
+          ms: Date.now() - started,
+        })
+      );
+      return response.destroy();
+    }
     console.error(
       JSON.stringify({
-        event: refused ? 'extractor_refused' : 'extractor_failed',
+        event: refused
+          ? 'extractor_refused'
+          : status === 503
+            ? 'extractor_busy'
+            : 'extractor_failed',
         route: request.url,
         status,
         reason: refused ? error.reason : undefined,
@@ -301,7 +281,9 @@ const server = createServer((request, response) => {
     sendJson(
       response,
       status,
-      refused ? { error: error.reason, detail: error.detail } : { error: 'failed' }
+      refused
+        ? { error: error.reason, detail: error.detail }
+        : { error: status === 503 ? 'busy' : 'failed' }
     );
   });
 });

@@ -7,7 +7,8 @@ class TimedOut extends Error {}
 
 /**
  * Posts to the extractor container with the discipline of `postToSigner`: a container that did
- * not start, or answered 5xx, is tried once more after a pause. A refusal rejects with its reason
+ * not start, or answered 5xx (503 when it has too many files waiting), is tried once more after a
+ * pause. A refusal rejects with its reason
  * (`extraction_failed:password_protected`), which a service binding carries to the caller.
  */
 export function postToExtractor(
@@ -39,9 +40,14 @@ async function postOnce(
 ): Promise<ArrayBuffer> {
   let response: Response;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  // Aborted, so the container stops the work too rather than finish it for nobody.
+  const abandon = new AbortController();
   try {
     const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new TimedOut()), timeoutMs);
+      timer = setTimeout(() => {
+        abandon.abort();
+        reject(new TimedOut());
+      }, timeoutMs);
     });
     // The host is ignored: the request goes to the container's port.
     const url = new URL(`http://extractor${route}`);
@@ -50,6 +56,7 @@ async function postOnce(
       method: 'POST',
       headers: { 'content-type': 'application/octet-stream' },
       body: file,
+      signal: abandon.signal,
     });
     response = await Promise.race([fetcher(request), timeout]);
   } catch (cause) {

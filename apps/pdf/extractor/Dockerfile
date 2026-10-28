@@ -18,7 +18,7 @@ USER node
 RUN soffice -env:UserInstallation=file://$LIBREOFFICE_PROFILE --headless --terminate_after_init
 
 WORKDIR /app
-COPY files.ts server.ts ./
+COPY files.ts processes.ts server.ts ./
 EXPOSE 3302
 # Node as the first process would not reap what LibreOffice leaves behind.
 ENTRYPOINT ["/usr/bin/tini", "--"]

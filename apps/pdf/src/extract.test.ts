@@ -104,6 +104,32 @@ describe('the extractor forwarding', () => {
     expect(down).toHaveBeenCalledTimes(2);
   });
 
+  it('tries a busy container once more, and gives up without a refusal', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const busy = () => Response.json({ error: 'busy' }, { status: 503 });
+    const freed = vi
+      .fn<Fetcher>()
+      .mockResolvedValueOnce(busy())
+      .mockResolvedValueOnce(Response.json(pdfText));
+    expect(await extractor(freed).pdfText(pdf)).toEqual(pdfText);
+    expect(freed).toHaveBeenCalledTimes(2);
+
+    const full = vi.fn<Fetcher>(async () => busy());
+    const error = await extractor(full)
+      .pdfText(pdf)
+      .catch((caught: unknown) => caught);
+    expect((error as Error).message).toBe(extractionFailed);
+    expect(extractionRefusalOf(error)).toBeNull();
+    expect(full).toHaveBeenCalledTimes(2);
+  });
+
+  it('aborts the request it stops waiting for', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fetcher = vi.fn<Fetcher>(() => new Promise<Response>(() => {}));
+    await expect(extractor(fetcher, 5).docToDocx(doc)).rejects.toThrow(extractionFailed);
+    expect(fetcher.mock.calls[0]![0].signal.aborted).toBe(true);
+  });
+
   it('fails without a refusal for a 4xx that is not the service, an answer of the wrong kind, or a timeout', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const failing: [Fetcher, number?][] = [

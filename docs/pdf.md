@@ -433,11 +433,13 @@ back. A refusal is about the file, so trying again does not help:
 | `page_out_of_range`  | A page below 1 or past the PDF's last                                                                   |
 
 The forwarding is `convertDocx`'s: a container that did not start, or answered 5xx, is tried once
-more after two seconds, and a request unanswered after three minutes is not. The reason is logged
+more after two seconds, on either instance, and a request unanswered after three minutes is
+aborted and not tried again. The reason is logged
 as one JSON line (`extraction_refused`, `extraction_unreachable`, `extraction_timeout`), and the
-container logs its own (`extractor_refused`, `extractor_failed`), without the file's content.
-`src/extract.test.ts` covers the forwarding and `extractor/files.test.ts` the server's own checks,
-both without a container.
+container logs its own (`extractor_refused`, `extractor_busy`, `extractor_abandoned`,
+`extractor_failed`), without the file's content.
+`src/extract.test.ts` covers the forwarding, `extractor/files.test.ts` the server's own checks and
+`extractor/processes.test.ts` its limits on the tools, all without a container.
 
 ### Over HTTP
 
@@ -453,7 +455,8 @@ The file is the request's body, `application/octet-stream`; the result is the an
 
 A refusal is `{ "error": "<reason>", "detail" }`, with 413 for `too_large`, 415 for
 `unsupported`, 400 for `page_out_of_range` and 422 for the others; anything else that goes wrong
-is a 500.
+is a 500. A request that finds too many files waiting is turned away with 503 and
+`{ "error": "busy" }`, which the Worker tries once more like any 5xx.
 
 `pdf-text` runs `pdftotext -layout` once and splits its pages at the form feeds. `isScan` marks a
 page with fewer than 100 characters other than whitespace, since the layout pads lines with
@@ -474,8 +477,11 @@ the metadata of a photograph removes its location too.
 | Internet        | off                                      | It reads what it is handed                                                                  |
 
 The server is TypeScript run by Node's type stripping, with no dependencies and no build step.
-LibreOffice runs one conversion at a time, since two cannot share a profile, and the profile is
-made when the image is built, so a cold start does not wait for it. `tini` is the container's
+LibreOffice runs one conversion at a time, since two cannot share a profile, with two more
+waiting at most; poppler and ImageMagick run two at a time, with six waiting, since more on half
+a CPU would only turn each into a timeout. The profile is made when the image is built, so a cold
+start does not wait for it. When the Worker stops waiting for an answer, it aborts the request,
+and the server drops the file from the queue or kills the tool reading it. `tini` is the container's
 first process, so that what LibreOffice leaves behind is reaped.
 
 Measured on 28 October 2026 in Docker on half a CPU (Apple silicon): ready in about a second; a
