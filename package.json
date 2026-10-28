@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "turbo build",
-    "dev": "pnpm --silent dev:pdf || echo \"The PDF converter and signer did not start (is Docker running?). Documents and sheets have no PDF, and nothing can be signed, until pnpm dev:pdf succeeds.\"; turbo dev --concurrency=20",
+    "dev": "pnpm --silent dev:pdf || echo \"The PDF converter and signer did not start (is Docker running?). Documents and sheets have no PDF, and nothing can be signed, until pnpm dev:pdf succeeds.\"; pnpm --silent dev:stripe || echo \"The Stripe listener did not start. Payments made locally do not reach the API until pnpm dev:stripe succeeds.\"; turbo dev --concurrency=20",
     "dev:marketing": "pnpm --filter @ssm-usor/marketing dev",
     "stop:marketing": "pnpm --filter @ssm-usor/marketing stop",
     "dev:app": "pnpm --filter @ssm-usor/app dev",
@@ -19,6 +19,7 @@
     "dev:local": "node scripts/dev-local.mjs",
     "dev:emails": "pnpm --filter @ssm-usor/mail email:dev",
     "dev:pdf": "docker compose up --detach --wait gotenberg signer",
+    "dev:stripe": "pnpm --filter @ssm-usor/api dev:stripe",
     "stop:pdf": "docker compose down",
     "ui:add": "shadcn add --cwd apps/app",
     "preview:marketing": "pnpm --filter @ssm-usor/marketing preview:cloudflare",
