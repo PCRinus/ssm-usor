@@ -9,7 +9,6 @@ import {
   sensitiveGroupsEvaluation,
   workshopEvaluation,
 } from '../../../api/src/modules/documents/risk-evaluations.fixture';
-import { guides } from '../../src/features/guides/guides';
 
 // Fixtures are written with the local stack's secret key, the way the seed script does it.
 const admin = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!, {
@@ -63,28 +62,32 @@ export async function createAccount(name: string, fullName?: string) {
   });
   if (error) throw error;
   created.users.push(data.user.id);
-  // The welcome tour would cover the first page of every flow; guides.spec.ts forgets it.
-  const seen = await admin.from('user_guides').insert(
-    guides.map((guide) => ({
-      user_id: data.user.id,
-      guide: guide.id,
-      version: guide.version,
-      status: 'completed',
-    }))
-  );
-  if (seen.error) throw seen.error;
   if (fullName) {
-    const profile = await admin
-      .from('profiles')
-      .insert({ user_id: data.user.id, full_name: fullName });
+    // The setup guide would cover a corner of every flow's pages; setup-guide.spec.ts opens it.
+    const profile = await admin.from('profiles').insert({
+      user_id: data.user.id,
+      full_name: fullName,
+      setup_guide_closed_at: new Date().toISOString(),
+    });
     if (profile.error) throw profile.error;
   }
   return { id: data.user.id, email };
 }
 
-export async function forgetGuides(userId: string) {
-  const forgotten = await admin.from('user_guides').delete().eq('user_id', userId);
-  if (forgotten.error) throw forgotten.error;
+export async function openSetupGuide(userId: string) {
+  const opened = await admin
+    .from('profiles')
+    .update({ setup_guide_closed_at: null })
+    .eq('user_id', userId);
+  if (opened.error) throw opened.error;
+}
+
+export async function setProfessionalTitle(userId: string, title: string) {
+  const profile = await admin
+    .from('profiles')
+    .update({ professional_title: title })
+    .eq('user_id', userId);
+  if (profile.error) throw profile.error;
 }
 
 export async function createOrganization(name: string, ownerId: string) {

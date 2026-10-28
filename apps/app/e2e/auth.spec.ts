@@ -1,7 +1,4 @@
 import { expect, type Page, test } from '@playwright/test';
-import type { GuideState } from '@ssm-usor/contracts';
-
-import { guideProgress, welcomeGuide } from '../src/features/guides/guides';
 
 // Playwright writes an accessibility snapshot of a failed test's page into error-context.md, and
 // it records the password field's value. CI uploads that file as an artifact of a public repo.
@@ -41,25 +38,18 @@ test('sign in, load API identity, restore the session, and sign out', async ({ p
 
   const restoredIdentity = page.waitForResponse(meUrl);
   const restoredReleases = responseTo(page, apiUrl('/releases'));
-  const restoredGuides = responseTo(page, apiUrl('/me/guides'));
   await page.reload();
   expect((await restoredIdentity).status()).toBe(200);
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(greeting).toBeVisible();
 
-  // An unread release opens the update dialog, and the welcome tour waits for it, then covers the
-  // dashboard until this account has seen it: once per release, and once per environment.
+  // An unread release opens the update dialog over the dashboard: once per release, and once per
+  // environment.
   const releases = (await (await restoredReleases).json()) as { items: { unread: boolean }[] };
   if (releases.items.some((release) => release.unread)) {
     const acknowledged = responseTo(page, apiUrl('/releases/acknowledge'), 'POST');
     await page.getByTestId('update-dialog-acknowledge').click();
     expect((await acknowledged).status()).toBe(200);
-  }
-  const guides = (await (await restoredGuides).json()) as { items: GuideState[] };
-  if (guideProgress(welcomeGuide, guides.items) === 'not_started') {
-    const skipped = responseTo(page, apiUrl('/me/guides/welcome'), 'PUT');
-    await page.getByTestId('guide-tooltip').getByTestId('guide-skip').click();
-    expect((await skipped).status()).toBe(200);
   }
 
   await page.getByTestId('account-menu').click();
