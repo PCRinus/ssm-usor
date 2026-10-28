@@ -356,6 +356,30 @@ describe('POST /billing/stripe-webhook', () => {
       ]);
     });
 
+    it('issues the first invoice paid before the checkout saved the customer', async () => {
+      const fake = createFake();
+      fake.stripe['GET /v1/invoices/in_1Paid'] = () =>
+        paidInvoice({
+          billing_reason: 'subscription_create',
+          parent: {
+            type: 'subscription_details',
+            subscription_details: {
+              subscription: 'sub_1Test',
+              metadata: { organization_id: organizationId },
+            },
+          },
+        });
+
+      const response = await deliver(paidEvent);
+
+      expect(response.status).toBe(200);
+      expect(oblioWrites(fake, '/api/docs/invoice')).toHaveLength(1);
+      expect(fake.tables.billing_invoices![0]).toMatchObject({
+        organization_id: organizationId,
+        stripe_account: accountId,
+      });
+    });
+
     it("sends it to the organization's email for invoices when one is set", async () => {
       const fake = createFake();
       paying(fake);
@@ -527,6 +551,34 @@ describe('POST /billing/stripe-webhook', () => {
         fake.calls.filter((call) => call.url.pathname === '/api/docs/proforma/cancel')
       ).toHaveLength(1);
       expect(fake.tables.billing_invoices).toHaveLength(1);
+    });
+
+    it('fails, to be delivered again, when the invoice is not issued yet', async () => {
+      const fake = createFake();
+      refunding(fake, 'invoice');
+      Object.assign(fake.tables.billing_invoices![0]!, {
+        issued_at: null,
+        oblio_series: null,
+        oblio_number: null,
+      });
+
+      const response = await deliver(refundEvent);
+
+      expect(response.status).toBe(500);
+      expect(fake.calls.some((call) => call.url.host === 'www.oblio.eu')).toBe(false);
+      expect(fake.tables.stripe_events![0]).toMatchObject({ processed_at: null });
+    });
+
+    it('fails too when the paid invoice is not recorded yet', async () => {
+      const fake = createFake();
+      refunding(fake, 'invoice');
+      fake.tables.billing_invoices = [];
+      fake.stripe['GET /v1/invoices/in_1Paid'] = () => paidInvoice();
+
+      const response = await deliver(refundEvent);
+
+      expect(response.status).toBe(500);
+      expect(fake.calls.some((call) => call.url.host === 'www.oblio.eu')).toBe(false);
     });
 
     it('leaves a partial refund alone', async () => {

@@ -20,6 +20,7 @@ import {
   type InvoiceRow,
   loadCompany,
   loadInvoice,
+  loadSubscription,
   ownerEmail,
   updateInvoice,
 } from './store';
@@ -142,18 +143,24 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
   const invoice = await stripe.invoices.retrieve(invoiceId, { expand: ['payments'] });
   if (!shouldIssue(invoice)) return null;
   const customerId = idOf(invoice.customer);
-  const subscription = customerId ? await findSubscriptionByCustomer(deps.db, customerId) : null;
-  if (!subscription) {
+  const byCustomer = customerId ? await findSubscriptionByCustomer(deps.db, customerId) : null;
+  // The first invoice can be paid before the checkout's row has the customer; the subscription
+  // carries the organization from its creation.
+  const organizationId =
+    byCustomer?.organization_id ??
+    invoice.parent?.subscription_details?.metadata?.organization_id ??
+    null;
+  if (!organizationId) {
     throw new Error(`Paid Stripe invoice ${invoice.id} belongs to no organization's customer.`);
   }
-  const organizationId = subscription.organization_id;
+  const subscription = byCustomer ?? (await loadSubscription(deps.db, organizationId));
 
   let row =
     (await loadInvoice(deps.db, invoice.id)) ??
     (await insertInvoice(deps.db, {
       stripe_invoice_id: invoice.id,
       organization_id: organizationId,
-      stripe_account: subscription.stripe_account ?? deps.catalogue.accountId,
+      stripe_account: subscription?.stripe_account ?? deps.catalogue.accountId,
       kind: oblioDocuments(deps.env),
       amount_cents: invoice.total,
       currency: invoice.currency,
@@ -162,7 +169,7 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
   if (!row.issued_at) {
     const company = await loadCompany(deps.db, organizationId);
     const recipientEmail =
-      subscription.invoice_email ??
+      subscription?.invoice_email ??
       (await ownerEmail(deps.db, organizationId)) ??
       invoice.customer_email;
     if (!company.name || !company.cui || !recipientEmail) {
@@ -205,8 +212,17 @@ export async function handleChargeRefunded(deps: InvoiceDeps, charge: Stripe.Cha
   }
   const { stripe } = deps.access;
   const invoiceId = await invoiceOfCharge(stripe, charge);
-  const original = invoiceId ? await loadInvoice(deps.db, invoiceId) : null;
-  if (!original?.issued_at || !original.oblio_series || !original.oblio_number) return null;
+  if (!invoiceId) return null;
+  const original = await loadInvoice(deps.db, invoiceId);
+  // Refunded before its invoice was issued: the event fails, so Stripe delivers it again once
+  // invoice.paid has issued the invoice the storno reverses.
+  const awaitsIssue = original
+    ? !original.issued_at
+    : shouldIssue(await stripe.invoices.retrieve(invoiceId));
+  if (awaitsIssue) {
+    throw new Error(`Charge ${charge.id} is refunded before invoice ${invoiceId} was issued.`);
+  }
+  if (!original?.oblio_series || !original.oblio_number) return null;
 
   const oblio = oblioFor(deps);
   if (original.kind === 'proforma') {
