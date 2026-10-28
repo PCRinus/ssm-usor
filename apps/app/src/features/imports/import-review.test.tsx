@@ -429,6 +429,33 @@ describe('another value than the documents give', () => {
   });
 });
 
+describe('a post the documents give no staff category', () => {
+  it('asks for one in the dialog rather than taking execution', async () => {
+    const proposal = proposalFixture();
+    (proposal.jobPositions[0] as { staffCategory: string | null }).staffCategory = null;
+    mockReview(readyDetail({ proposal }));
+    mount('/job-positions');
+
+    const brutar = (await screen.findAllByTestId('review-item')).find((row) =>
+      row.textContent?.includes('Brutar')
+    )!;
+    await userEvent.click(within(brutar).getByTestId('review-edit'));
+    const dialog = await screen.findByTestId('job-position-dialog');
+    const category = within(dialog).getByTestId('job-position-category') as HTMLSelectElement;
+    expect(category.value).toBe('');
+    await userEvent.click(within(dialog).getByTestId('job-position-save'));
+    expect(await within(dialog).findByText('Alege categoria de personal.')).toBeTruthy();
+    expect(saves).toBe(0);
+
+    await userEvent.selectOptions(category, 'technical_administrative');
+    await userEvent.click(within(dialog).getByTestId('job-position-save'));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.items['position-1']).toEqual({
+      values: { staffCategory: 'technical_administrative' },
+    });
+  });
+});
+
 describe('a company name that ends in a period', () => {
   it('ends the sentence after it once', async () => {
     const proposal = proposalFixture();

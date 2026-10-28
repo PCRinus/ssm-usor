@@ -401,7 +401,7 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
         values: {
           ...emptyJobPositionForm,
           name: String(editing.values.name ?? ''),
-          staffCategory: (editing.values.staffCategory as StaffCategory | null) ?? 'execution',
+          staffCategory: (editing.values.staffCategory as StaffCategory | null) ?? '',
           workZone: String(editing.values.workZone ?? ''),
           activities: String(editing.values.activities ?? ''),
           trainingIntervalMonths:

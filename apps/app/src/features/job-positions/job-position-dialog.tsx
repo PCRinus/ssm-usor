@@ -32,6 +32,7 @@ import {
   emptyJobPositionForm,
   intervalOptionsFor,
   type JobPosition,
+  type JobPositionFormInput,
   jobPositionFormSchema,
   type JobPositionFormValues,
   staffCategoryLabels,
@@ -42,10 +43,8 @@ import {
 // `null` is closed, 'new' adds a position, and a position edits it.
 export type JobPositionEditing = JobPosition | 'new' | null;
 
-// A position not saved yet, as an import proposes it: the values come and go back through the
-// caller.
 export type JobPositionDraft = {
-  values: JobPositionFormValues;
+  values: JobPositionFormInput;
   onSave: (values: JobPositionFormValues) => void;
   aside?: ReactNode;
 };
@@ -117,7 +116,7 @@ function JobPositionForm({
   const savedToast = useSavedToast();
   const create = useCreateJobPosition({ request: apiRequest });
   const update = useUpdateJobPosition({ request: apiRequest });
-  const form = useForm<JobPositionFormValues>({
+  const form = useForm<JobPositionFormInput, unknown, JobPositionFormValues>({
     resolver: zodResolver(jobPositionFormSchema),
     defaultValues: draft
       ? draft.values
@@ -217,13 +216,17 @@ function JobPositionForm({
             id="job-position-category"
             label="Categorie de personal"
             mark="required"
+            error={errors.staffCategory}
             hint="Hotărăște la ce interval se face instruirea periodică, dacă postul nu are unul al lui."
           >
             <NativeSelect
               id="job-position-category"
               data-testid="job-position-category"
               disabled={busy}
-              aria-describedby="job-position-category-hint"
+              aria-invalid={Boolean(errors.staffCategory)}
+              aria-describedby={
+                errors.staffCategory ? 'job-position-category-error' : 'job-position-category-hint'
+              }
               className="w-full"
               {...form.register('staffCategory', {
                 // The select drops an option that is gone; the form state has to follow it.
@@ -236,6 +239,11 @@ function JobPositionForm({
                 },
               })}
             >
+              {staffCategory === '' && (
+                <NativeSelectOption value="" disabled>
+                  Alege categoria
+                </NativeSelectOption>
+              )}
               <NativeSelectOption value="execution">
                 {staffCategoryLabels.execution}
               </NativeSelectOption>
@@ -264,7 +272,7 @@ function JobPositionForm({
               {...form.register('trainingIntervalMonths')}
             >
               <NativeSelectOption value="">Cel al categoriei</NativeSelectOption>
-              {intervalOptionsFor(staffCategory).map(({ months, label }) => (
+              {(staffCategory ? intervalOptionsFor(staffCategory) : []).map(({ months, label }) => (
                 <NativeSelectOption key={months} value={months}>
                   {label}
                 </NativeSelectOption>

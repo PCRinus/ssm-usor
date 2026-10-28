@@ -37,7 +37,11 @@ export const jobPositionFormSchema = z
       .trim()
       .min(2, 'Introdu denumirea postului (cel puțin 2 caractere).')
       .max(160, 'Denumirea are cel mult 160 de caractere.'),
-    staffCategory: z.enum(staffCategories),
+    // Empty only for a position an import proposes without one, so the member picks it.
+    staffCategory: z
+      .enum(['', ...staffCategories])
+      .refine((value) => value !== '', 'Alege categoria de personal.')
+      .transform((value) => value as StaffCategory),
     workZone: z.string().trim().max(120, 'Zona de lucru are cel mult 120 de caractere.'),
     activities: z.string().trim().max(2000, 'Descrierea are cel mult 2000 de caractere.'),
     // Empty follows the interval the client sets for the category.
@@ -55,7 +59,8 @@ export const jobPositionFormSchema = z
     }
   );
 
-export type JobPositionFormValues = z.infer<typeof jobPositionFormSchema>;
+export type JobPositionFormInput = z.input<typeof jobPositionFormSchema>;
+export type JobPositionFormValues = z.output<typeof jobPositionFormSchema>;
 
 export const emptyJobPositionForm: JobPositionFormValues = {
   name: '',
