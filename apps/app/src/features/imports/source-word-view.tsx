@@ -1,26 +1,17 @@
 import '@docx-editor.dev/core/styles/editor.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
-import { DocxEditor, type Editor, useHighlights } from '@docx-editor.dev/react';
+import { DocxEditor, useHighlights } from '@docx-editor.dev/react';
 import { useEffect, useState } from 'react';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
 import { editorStrings } from '@/features/documents/editor-strings.ro';
 
-import { quoteLines } from './source-match';
+import { passageHits, quoteLines } from './source-match';
 
 const fonts = packagedFonts({ allow: ['Arial'] });
 
 type Range = { blockId: string; start: number; length: number };
-
-function findRanges(editor: Editor, lines: string[]): Range[] {
-  const ranges: Range[] = [];
-  for (const line of lines) {
-    const [first] = editor.findMatches(line);
-    if (first) ranges.push({ blockId: first.blockId, start: first.start, length: first.length });
-  }
-  return ranges;
-}
 
 function QuoteHighlights({ ranges }: { ranges: Range[] }) {
   useHighlights('import-quote', ranges, { priority: 20 });
@@ -86,10 +77,12 @@ export default function WordSourceView({
         i18n={editorStrings}
         fonts={fonts}
         onReady={(editor) => {
-          const found = findRanges(editor, quoteLines(source, quote));
-          setRanges(found);
-          if (found.length === 0) onNotFound();
-          else editor.scrollToBlock(found[0]!.blockId);
+          const { hits, anchor } = passageHits(quoteLines(source, quote), (line) =>
+            editor.findMatches(line)
+          );
+          setRanges(hits.map(({ blockId, start, length }) => ({ blockId, start, length })));
+          if (anchor) editor.scrollToBlock(anchor.blockId);
+          else onNotFound();
         }}
       >
         <QuoteHighlights ranges={ranges} />

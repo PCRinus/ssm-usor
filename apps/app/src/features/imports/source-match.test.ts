@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { markQuote, quoteLines, sourceKind } from './source-match';
+import { type LineHit, markQuote, passageHits, quoteLines, sourceKind } from './source-match';
 
 const span = (text: string) => {
   const element = document.createElement('span');
@@ -48,6 +48,40 @@ describe('finding a passage in the viewers', () => {
     expect(quoteLines(source({}), 'Reprezentant: Ioana Mureșan')).toEqual([
       'Reprezentant: Ioana Mureșan',
     ]);
+  });
+
+  it('takes each line of a Word passage next to the longest one, not its first hit anywhere', () => {
+    const paragraphs = [
+      'Date de identificare',
+      'Nume',
+      'Telefon',
+      'Antet tabel',
+      'Nume',
+      'Ioana Mureșan, administrator',
+      'CUI',
+      '31458207',
+      'CUI',
+    ];
+    const find = (line: string): LineHit[] =>
+      paragraphs.flatMap((text, paragraphIndex) =>
+        text.includes(line)
+          ? [
+              {
+                blockId: `p${paragraphIndex}`,
+                start: text.indexOf(line),
+                length: line.length,
+                paragraphIndex,
+              },
+            ]
+          : []
+      );
+    const { hits, anchor } = passageHits(
+      ['Nume', 'Ioana Mureșan, administrator', 'CUI', 'Lipsește', '31458207'],
+      find
+    );
+    expect(anchor?.blockId).toBe('p5');
+    expect(hits.map((hit) => hit.blockId)).toEqual(['p4', 'p5', 'p6', 'p7']);
+    expect(passageHits(['Lipsește'], find)).toEqual({ hits: [], anchor: null });
   });
 
   it('tells a scanned page from a photograph, a PDF and a Word file', () => {
