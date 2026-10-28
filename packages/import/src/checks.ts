@@ -21,8 +21,7 @@ import {
 } from './proposal';
 
 export interface CheckInput {
-  // Each file of the import by path, with its extracted text, or null for a file that has
-  // none to search, such as a photograph.
+  // Null for a file without text to search, such as a photograph.
   files: Record<string, string | null>;
   // Into an existing client, its identity is the app's and is never missing.
   clientExists?: boolean;

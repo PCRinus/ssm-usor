@@ -297,7 +297,6 @@ function uniqueFolded(values: string[]) {
   });
 }
 
-/** Several readings, such as the documents' and each scan's, give one proposal. */
 export function toProposal(...readings: Reading[]): Proposal {
   const facts = readings.flatMap((reading) => reading.facts);
   const groups = {

@@ -236,9 +236,8 @@ export const proposalSchema = z.object({
   fireInstallations: z.array(proposedFireInstallationSchema),
   protectiveEquipment: z.array(proposedProtectiveEquipmentSchema),
   employees: z.array(proposedEmployeeSchema),
-  // What the model wants a reviewer to know that fits no value.
   notes: z.array(z.string()),
-  // The checks' results; empty until they ran.
+  // Empty until the checks ran, as well as when they found nothing.
   flags: z.array(flagSchema),
 });
 

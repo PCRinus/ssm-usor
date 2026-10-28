@@ -52,7 +52,7 @@ export interface Sorting {
   // Null when no file names a company.
   company: Company | null;
   files: FileOutcome[];
-  // The companies the other files belong to, most files first, each a separate import to offer.
+  // Most files first.
   otherCompanies: { company: Company; paths: string[] }[];
 }
 
