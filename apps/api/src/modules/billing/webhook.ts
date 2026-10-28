@@ -64,19 +64,24 @@ async function paymentActionRequired(handling: Handling, invoice: Stripe.Invoice
 
 // Stripe's portal makes a new card the customer's default only, and the subscription's own
 // default, which the checkout set, would win over it: the subscription takes the new card too,
-// and an invoice left open by a failed renewal is paid with it at once (ADR 029).
-async function defaultCardChanged(handling: Handling, customer: Stripe.Customer) {
+// and an invoice left open by a failed renewal is paid with it at once (ADR 029). The card is
+// read from the customer as it is now, since an older event delivered late names a card that
+// has since been replaced.
+async function defaultCardChanged(handling: Handling, changed: Stripe.Customer) {
   const previous = (handling.event.data.previous_attributes ?? {}) as {
     invoice_settings?: { default_payment_method?: unknown };
   };
   if (!previous.invoice_settings || !('default_payment_method' in previous.invoice_settings)) {
     return;
   }
-  const paymentMethod = idOf(customer.invoice_settings.default_payment_method);
-  const row = await findSubscriptionByCustomer(handling.db, customer.id);
-  if (!paymentMethod || !row?.stripe_subscription_id || row.status === 'canceled') return;
-  const customerId = customer.id;
   const { stripe } = handling.access;
+  const row = await findSubscriptionByCustomer(handling.db, changed.id);
+  if (!row?.stripe_subscription_id || row.status === 'canceled') return;
+  const customer = await stripe.customers.retrieve(changed.id);
+  if (customer.deleted) return;
+  const paymentMethod = idOf(customer.invoice_settings.default_payment_method);
+  if (!paymentMethod) return;
+  const customerId = customer.id;
   await stripe.subscriptions.update(row.stripe_subscription_id, {
     default_payment_method: paymentMethod,
   });

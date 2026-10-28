@@ -556,11 +556,18 @@ describe('POST /billing/stripe-webhook', () => {
       },
     });
 
+    const currentCustomer = (paymentMethod: string) => ({
+      id: 'cus_1Test',
+      object: 'customer',
+      invoice_settings: { default_payment_method: paymentMethod },
+    });
+
     it('moves the subscription to the new card and pays the invoice a renewal left open', async () => {
       const fake = createFake();
       fake.tables.subscriptions!.push(
         paidRow(pro, { status: 'past_due', access_until: new Date().toISOString() })
       );
+      fake.stripe['GET /v1/customers/cus_1Test'] = () => currentCustomer('pm_new');
       fake.stripe['POST /v1/subscriptions/sub_1Test'] = () =>
         stripeSubscription({ status: 'past_due', choice: pro });
       fake.stripe['GET /v1/invoices'] = () =>
@@ -589,6 +596,19 @@ describe('POST /billing/stripe-webhook', () => {
       ]);
       expect(stripeWrites(fake, '/v1/invoices/in_1Open/pay')).toEqual([
         { payment_method: 'pm_new' },
+      ]);
+    });
+
+    it('uses the card the customer has now, not the one a late event names', async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow(pro));
+      fake.stripe['GET /v1/customers/cus_1Test'] = () => currentCustomer('pm_newest');
+      fake.stripe['POST /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: pro });
+
+      await deliver(cardEvent({ invoice_settings: { default_payment_method: 'pm_old' } }));
+
+      expect(stripeWrites(fake, '/v1/subscriptions/sub_1Test')).toEqual([
+        { default_payment_method: 'pm_newest' },
       ]);
     });
 
