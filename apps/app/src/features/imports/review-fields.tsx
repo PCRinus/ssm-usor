@@ -33,7 +33,7 @@ import {
   fieldGroups,
   fieldInfo,
   type FieldState,
-  flagNotes,
+  flagNote,
   flagsAt,
   formatFieldValue,
   integerPaths,
@@ -310,7 +310,7 @@ function FieldRow({
       )}
       {flags.map((flag) => (
         <RowNote key={`${flag.path}-${flag.code}`}>
-          {flag.detail ?? flagNotes[flag.code] ?? flag.code}
+          {flagNote(flag, context.proposal, context.changes)}
         </RowNote>
       ))}
     </SummaryRow>

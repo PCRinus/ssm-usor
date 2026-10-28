@@ -312,6 +312,47 @@ describe('a company name that ends in a period', () => {
   });
 });
 
+describe('what the checks found', () => {
+  it("says it in the specialist's words, by the names they see, never a path", async () => {
+    const proposal = proposalFixture();
+    proposal.workplaces.push({
+      ...proposal.workplaces[0]!,
+      id: 'workplace-2',
+      name: 'Sediu social',
+      isRegisteredOffice: false,
+    });
+    proposal.workplaces[0]!.name = 'Sediul și laboratorul';
+    proposal.flags = [
+      {
+        path: 'client.legalName.options.0.sources.0',
+        code: 'file_not_found',
+        detail: 'dosar-ssm.zip/Contract prestari SSM 2019.pdf (pagina 1) (image follows)',
+      },
+      { path: 'client.cui.options.0', code: 'invalid_cui' },
+      { path: 'client.caenCode.options.0.sources.0', code: 'quote_not_found' },
+      { path: 'workplaces.1', code: 'duplicate', detail: 'workplaces.0' },
+    ] as never;
+    mockReview(readyDetail({ proposal, blockers: [] }));
+    mount('/identity');
+
+    const section = await screen.findByTestId('import-review-section');
+    await waitFor(() => expect(section.textContent).toContain('Numărul nu trece verificarea CUI.'));
+    expect(section.textContent).toContain('Fișierul citat nu este printre cele încărcate.');
+    expect(section.textContent).toContain('Pasajul citat nu a fost găsit în fișier.');
+    expect(section.textContent).not.toContain('dosar-ssm.zip');
+    expect(section.textContent).not.toContain('image follows');
+
+    disposeRuntimes();
+    mockReview(readyDetail({ proposal, blockers: [] }));
+    mount('/workplaces');
+    const list = await screen.findByTestId('review-list-workplaces');
+    expect(list.textContent).toContain(
+      'Pare să fie același punct de lucru ca «Sediul și laboratorul».'
+    );
+    expect(list.textContent).not.toContain('workplaces.0');
+  });
+});
+
 describe('completing an existing client (E2)', () => {
   const existing = () =>
     readyDetail({

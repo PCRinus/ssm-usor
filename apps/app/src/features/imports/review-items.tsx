@@ -34,7 +34,7 @@ import {
   anchorOf,
   type Blocker,
   employeeRoleLabel,
-  flagNotes,
+  flagNote,
   flagsAt,
   itemFieldLabel,
   type ItemList,
@@ -151,7 +151,7 @@ function ItemRow({
         })}
         {flags.map((flag) => (
           <RowNote key={`${flag.path}-${flag.code}`}>
-            {flag.detail ?? flagNotes[flag.code] ?? flag.code}
+            {flagNote(flag, context.proposal, context.changes)}
           </RowNote>
         ))}
       </div>

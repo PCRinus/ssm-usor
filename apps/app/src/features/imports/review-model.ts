@@ -611,19 +611,83 @@ export function sectionStatus(
   return { kind: 'done' };
 }
 
-export const flagNotes: Record<string, string> = {
-  quote_not_found: 'Pasajul citat nu a fost găsit în fișier. Verifică sursa.',
-  file_not_found: 'Fișierul citat nu este printre cele încărcate.',
-  invalid_cui: 'CUI-ul nu trece verificarea cifrei de control.',
-  invalid_cnp: 'CNP-ul nu trece verificarea cifrei de control.',
-  cnp_birth_date_mismatch: 'CNP-ul nu se potrivește cu data nașterii.',
-  value_not_allowed: 'Valoarea nu este una dintre cele permise.',
-  duplicate: 'Apare de două ori în propunere.',
-  missing: 'Lipsește din documente.',
-  unknown_reference: 'Nu se potrivește cu niciun element din propunere.',
-  cui_not_registered: 'ANAF nu cunoaște acest CUI.',
-  legal_name_differs: 'Denumirea diferă de cea de la ANAF.',
+export type Flag = Proposal['flags'][number];
+
+const sameAs: Partial<Record<ItemList, string>> = {
+  workplaces: 'același punct de lucru ca',
+  jobPositions: 'același post ca',
+  responsiblePersons: 'aceeași persoană ca',
+  employees: 'același angajat ca',
 };
+
+const notAllowed: Record<string, string> = {
+  countyCode: 'Județul nu a fost recunoscut. Alege-l din listă.',
+  caenCode: 'Codul CAEN are patru cifre.',
+  contactEmail: 'Adresa de email nu pare corectă.',
+  trainingIntervalMonths: 'Periodicitatea depășește limita pentru categoria de personal.',
+  capacity: 'Capacitatea nu se potrivește cu acest mijloc de stingere.',
+  agent: 'Doar un stingător are agent de stingere.',
+  wheeled: 'Doar un stingător poate fi pe roți.',
+  count: 'Numărul de bucăți nu pare corect.',
+  quantity: 'Cantitatea nu pare corectă.',
+  durationMonths: 'Durata de utilizare nu pare corectă.',
+};
+
+const referenceNouns: Record<string, string> = {
+  workplace: 'punctul de lucru',
+  jobPosition: 'postul',
+};
+
+const isoDay = (iso: string) => iso.split('-').reverse().join('.');
+
+/** What a check found, said for the specialist: by the names they see, never a path or an id. */
+export function flagNote(flag: Flag, proposal: Proposal, changes: Changes): string {
+  const parts = flag.path.split('.');
+  const root = parts[0]!;
+  const single = root === 'client' || root === 'trainingSchedule' || root === 'fireSafety';
+  const field = single ? parts[1] : parts[2];
+  switch (flag.code) {
+    case 'file_not_found':
+      return 'Fișierul citat nu este printre cele încărcate. Verifică valoarea în documente.';
+    case 'quote_not_found':
+      return 'Pasajul citat nu a fost găsit în fișier.';
+    case 'invalid_cui':
+      return 'Numărul nu trece verificarea CUI.';
+    case 'invalid_cnp':
+      return 'CNP-ul nu trece verificarea cifrei de control.';
+    case 'cnp_birth_date_mismatch':
+      return flag.detail
+        ? `CNP-ul arată altă dată a nașterii: ${isoDay(flag.detail)}.`
+        : 'CNP-ul nu se potrivește cu data nașterii.';
+    case 'value_not_allowed':
+      return (
+        (field && notAllowed[field]) ??
+        (single ? 'Valoarea iese din limitele permise.' : 'Valoarea nu e una dintre cele permise.')
+      );
+    case 'duplicate': {
+      const [list, index] = (flag.detail ?? '').split('.') as [ItemList, string | undefined];
+      const other = itemsOf(proposal, list)?.[Number(index)];
+      const phrase = sameAs[list];
+      if (!other || !phrase) return 'Pare să apară de două ori în propunere.';
+      const values = { ...other, ...(changes.items[other.id]?.values ?? {}) };
+      return `Pare să fie ${phrase} «${itemName(list, values)}».`;
+    }
+    case 'missing':
+      return 'Lipsește din documente.';
+    case 'unknown_reference': {
+      const noun = referenceNouns[parts.at(-1) ?? ''] ?? 'elementul';
+      return flag.detail
+        ? `${noun[0]!.toUpperCase()}${noun.slice(1)} «${flag.detail}» nu se potrivește cu niciunul din propunere.`
+        : `Alege ${noun}.`;
+    }
+    case 'cui_not_registered':
+      return 'ANAF nu cunoaște acest CUI.';
+    case 'legal_name_differs':
+      return flag.detail
+        ? `La ANAF, CUI-ul aparține firmei ${flag.detail}, nu firmei din documente.`
+        : 'Denumirea diferă de cea de la ANAF.';
+  }
+}
 
 export function flagsAt(proposal: Proposal, prefix: string) {
   return proposal.flags.filter(
