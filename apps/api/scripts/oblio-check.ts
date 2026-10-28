@@ -7,11 +7,16 @@ import { proformaSeries, toOblioDocument } from '../src/modules/billing/oblio-do
 
 //   OBLIO_CLIENT_ID=... OBLIO_CLIENT_SECRET="$(pbpaste)" pnpm --filter @ssm-usor/api oblio:check
 //   --proforma   also issues one test proforma in series TEST, to the fixed test client
+//   --repeat     with --proforma, sends the same proforma again with the same idempotency key and
+//                prints Oblio's second answer: the webhook relies on it returning the first document
 // It never issues an invoice: an invoice is a fiscal document the moment Oblio numbers it.
 
 const { values } = parseArgs({
   args: process.argv.slice(2).filter((arg) => arg !== '--'),
-  options: { proforma: { type: 'boolean', default: false } },
+  options: {
+    proforma: { type: 'boolean', default: false },
+    repeat: { type: 'boolean', default: false },
+  },
 });
 
 try {
@@ -68,6 +73,21 @@ try {
     if (request.kind !== 'proforma') throw new Error('Refusing to issue anything but a proforma.');
     const proforma = await oblio.createProforma(request.payload);
     console.log(`Issued proforma ${proforma.seriesName} ${proforma.number}: ${proforma.link}`);
+    if (values.repeat) {
+      try {
+        const again = await oblio.createProforma(request.payload);
+        const same = again.seriesName === proforma.seriesName && again.number === proforma.number;
+        console.log(
+          `Sent again with the same key: ${again.seriesName} ${again.number}: ${again.link}, ${same ? 'the same document' : 'A SECOND DOCUMENT'}.`
+        );
+      } catch (error) {
+        console.log(
+          `Sent again with the same key: Oblio refused it: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+  } else if (values.repeat) {
+    throw new Error('--repeat needs --proforma.');
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
