@@ -9,7 +9,7 @@ import {
   TextLayer,
 } from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
 
@@ -40,6 +40,7 @@ export default function PdfSourceView({
   const page = useRef<HTMLDivElement>(null);
   const reported = useRef(false);
   const firstPage = useRef(pageNumber);
+  const reportNotFound = useEffectEvent(() => onNotFound());
 
   // Destroying the task rejects its promise, which is no failure: React's development mode
   // mounts twice, and a new link replaces the old one.
@@ -106,7 +107,7 @@ export default function PdfSourceView({
         if (marked.length > 0) marked[0]!.scrollIntoView({ block: 'center' });
         else if (!reported.current && pageNumber === firstPage.current) {
           reported.current = true;
-          onNotFound();
+          reportNotFound();
         }
       })
       .catch(() => {
@@ -117,7 +118,7 @@ export default function PdfSourceView({
       rendering?.cancel();
       text?.cancel();
     };
-  }, [pdf, url, pageNumber, zoom, quote, onNotFound]);
+  }, [pdf, url, pageNumber, zoom, quote]);
 
   if (failed) {
     return (
