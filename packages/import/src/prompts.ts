@@ -63,7 +63,7 @@ For each file say:
   - generic_text: legal extracts, manuals and generic training material.
   - other: anything else.
 - companyName and companyCui: the client company the file is about, as written, never the safety service's. "" when the file names none.
-- carriesClientData: whether the file holds facts about the client an importer needs: its identity, addresses and work points, named people and their roles, job positions and their activities, training intervals and durations, fire-safety means, protective equipment per position, employees. Generic text that only repeats the client's name in a header does not.
+- carriesClientData: whether the file holds facts about the client an importer needs: its identity, addresses and work points, named people and their roles, job positions and their activities, training intervals and durations, fire-safety means, protective equipment per position, employees. Generic text that only repeats the client's name in a header does not. A list or register of the client's fire-safety means, protective equipment, workplaces, staff or trainings always carries client data and is never blank_form, generic_text or cover, however short or form-like it looks.
 
 Give one entry per file, with its path exactly as given.`;
 

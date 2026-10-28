@@ -72,6 +72,7 @@ export {
   type FileOutcome,
   type FileTriage,
   fileTriageSchema,
+  setAsideKinds,
   sortFiles,
   type Sorting,
   type SortingAnswer,
