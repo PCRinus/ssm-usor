@@ -223,7 +223,7 @@ function uniquePath(path: string, taken: Set<string>) {
   }
 }
 
-export async function addToSelection(current: Selection, picked: PickedFile[]) {
+export async function openPicked(picked: PickedFile[]) {
   const added = nothingFound();
   for (const { path, blob } of picked) {
     const clean = cleanPath(path);
@@ -234,6 +234,10 @@ export async function addToSelection(current: Selection, picked: PickedFile[]) {
       added
     );
   }
+  return added;
+}
+
+export function mergeSelection(current: Selection, added: Selection): Selection {
   const taken = new Set(current.files.map((file) => file.path));
   const files = added.files.map((file) => {
     const path = uniquePath(file.path, taken);
@@ -248,8 +252,11 @@ export async function addToSelection(current: Selection, picked: PickedFile[]) {
     archives: [...new Set([...current.archives, ...added.archives])],
     brokenZips: [...new Set([...current.brokenZips, ...added.brokenZips])],
     largeZips: [...new Set([...current.largeZips, ...added.largeZips])],
-  } satisfies Selection;
+  };
 }
+
+export const addToSelection = async (current: Selection, picked: PickedFile[]) =>
+  mergeSelection(current, await openPicked(picked));
 
 export const removeGroup = (selection: Selection, group: string): Selection => ({
   ...selection,

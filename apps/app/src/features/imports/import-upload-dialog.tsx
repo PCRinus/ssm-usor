@@ -34,8 +34,9 @@ import { hasFiles, useRefuseStrayDrops } from '@/features/client-files/use-file-
 import { filesLabel, formatFileSize, photosLabel } from './import-format';
 import { pickedFromDrop, pickedFromInput } from './picked-files';
 import {
-  addToSelection,
   emptySelection,
+  mergeSelection,
+  openPicked,
   type PickedFile,
   removeFiles,
   removeGroup,
@@ -81,6 +82,7 @@ function UploadForm({
 }) {
   const [selection, setSelection] = useState<Selection>(emptySelection);
   const [opening, setOpening] = useState(false);
+  const [unreadable, setUnreadable] = useState(false);
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
   const depth = useRef(0);
@@ -99,9 +101,12 @@ function UploadForm({
 
   async function add(picked: Promise<PickedFile[]> | PickedFile[]) {
     setOpening(true);
+    setUnreadable(false);
     try {
-      const files = await picked;
-      setSelection(await addToSelection(selection, files));
+      const added = await openPicked(await picked);
+      setSelection((current) => mergeSelection(current, added));
+    } catch {
+      setUnreadable(true);
     } finally {
       setOpening(false);
     }
@@ -305,6 +310,12 @@ function UploadForm({
                 />
               </div>
             )}
+            {unreadable && (
+              <Notice variant="warning" data-testid="import-unreadable">
+                Nu am putut deschide fișierele alese. Încearcă din nou sau alege-le cu „Alege
+                fișiere” ori „Alege un folder”.
+              </Notice>
+            )}
             {zipNotices.map((notice) => (
               <Notice
                 key={`${notice.testId}:${notice.name}`}
@@ -336,8 +347,8 @@ function UploadForm({
               <ChosenList
                 selection={selection}
                 removable={choosing}
-                onRemoveGroup={(group) => setSelection(removeGroup(selection, group))}
-                onRemoveFiles={(keys) => setSelection(removeFiles(selection, keys))}
+                onRemoveGroup={(group) => setSelection((current) => removeGroup(current, group))}
+                onRemoveFiles={(keys) => setSelection((current) => removeFiles(current, keys))}
               />
             )}
             <SetAsideList setAside={selection.setAside} systemFiles={selection.systemFiles} />

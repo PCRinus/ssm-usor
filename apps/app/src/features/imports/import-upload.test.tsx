@@ -293,6 +293,57 @@ describe('starting an import from the client list', () => {
     expect(screen.queryByTestId('import-chosen')).toBeNull();
   });
 
+  it('keeps out a file removed while a zip opens', async () => {
+    mockImportApi();
+    mountApp(authFixture(makeSession()).client, '/clients');
+    await userEvent.click(await screen.findByTestId('clients-import'));
+    await screen.findByTestId('import-upload-dialog');
+    choose([new File(['%PDF'], 'Contract 2019.pdf')]);
+    await screen.findByTestId('import-chosen');
+
+    const slow = zip({ 'Decizie 1.docx': 'decizie' });
+    const bytes = await slow.arrayBuffer();
+    let open = () => {};
+    slow.arrayBuffer = () => new Promise((resolve) => (open = () => resolve(bytes)));
+    choose([slow]);
+    await screen.findByText('Deschidem fișierele…');
+    await userEvent.click(screen.getByRole('button', { name: 'Scoate Contract 2019.pdf' }));
+    open();
+
+    const chosen = await screen.findByTestId('import-chosen');
+    await waitFor(() => expect(chosen.textContent).toContain('Deschisă: un fișier'));
+    expect(chosen.textContent).not.toContain('Contract 2019.pdf');
+  });
+
+  it('says so when a dropped folder cannot be read', async () => {
+    mockImportApi();
+    mountApp(authFixture(makeSession()).client, '/clients');
+    await userEvent.click(await screen.findByTestId('clients-import'));
+    await screen.findByTestId('import-upload-dialog');
+
+    const folder = {
+      isFile: false,
+      isDirectory: true,
+      name: 'Acte PSI',
+      fullPath: '/Acte PSI',
+      createReader: () => ({
+        readEntries: (_: unknown, fail: (error: Error) => void) => fail(new Error('NotFoundError')),
+      }),
+    };
+    fireEvent.drop(screen.getByTestId('import-upload-drop'), {
+      dataTransfer: {
+        types: ['Files'],
+        files: [],
+        items: [{ kind: 'file', webkitGetAsEntry: () => folder }],
+      },
+    });
+
+    expect((await screen.findByTestId('import-unreadable')).textContent).toBe(
+      'Nu am putut deschide fișierele alese. Încearcă din nou sau alege-le cu „Alege fișiere” ori „Alege un folder”.'
+    );
+    expect((screen.getByTestId('import-choose-files') as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it('offers to try again, or to read without the files that would not upload', async () => {
     mockImportApi();
     vi.mocked(uploadImportObject).mockImplementation(async (path) => {
