@@ -1,7 +1,13 @@
 import './source-pdf-view.css';
 
 import { Button } from '@ssm-usor/ui/components/button';
-import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy, TextLayer } from 'pdfjs-dist';
+import {
+  getDocument,
+  GlobalWorkerOptions,
+  type PDFDocumentProxy,
+  type RenderTask,
+  TextLayer,
+} from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { useEffect, useRef, useState } from 'react';
 
@@ -21,8 +27,11 @@ export default function PdfSourceView({
   quote: string | null;
   onNotFound: () => void;
 }) {
-  const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
-  const [failed, setFailed] = useState(false);
+  const url = source.original.url;
+  const [loaded, setLoaded] = useState<{ url: string; pdf: PDFDocumentProxy } | null>(null);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const pdf = loaded?.url === url ? loaded.pdf : null;
+  const failed = failedUrl === url;
   const [pageNumber, setPageNumber] = useState(source.page ?? source.match?.page ?? 1);
   const [zoom, setZoom] = useState<number | 'fit'>('fit');
   const scroller = useRef<HTMLDivElement>(null);
@@ -32,61 +41,83 @@ export default function PdfSourceView({
   const reported = useRef(false);
   const firstPage = useRef(pageNumber);
 
+  // Destroying the task rejects its promise, which is no failure: React's development mode
+  // mounts twice, and a new link replaces the old one.
   useEffect(() => {
-    const task = getDocument({ url: source.original.url });
-    task.promise.then(setPdf, () => setFailed(true));
+    let cancelled = false;
+    const task = getDocument({ url });
+    task.promise.then(
+      (document) => {
+        if (!cancelled) setLoaded({ url, pdf: document });
+      },
+      () => {
+        if (!cancelled) setFailedUrl(url);
+      }
+    );
     return () => {
+      cancelled = true;
       void task.destroy();
     };
-  }, [source.original.url]);
+  }, [url]);
 
   useEffect(() => {
     if (!pdf || !canvas.current || !textLayer.current || !page.current || !scroller.current) {
       return;
     }
     let cancelled = false;
+    let rendering: RenderTask | null = null;
+    let text: TextLayer | null = null;
     const layer = textLayer.current;
     const target = page.current;
     const room = scroller.current.clientWidth - 32;
-    void pdf.getPage(pageNumber).then(async (pdfPage) => {
-      if (cancelled) return;
-      const natural = pdfPage.getViewport({ scale: 1 });
-      const scale = zoom === 'fit' ? Math.max(0.5, Math.min(2, room / natural.width)) : zoom;
-      const viewport = pdfPage.getViewport({ scale });
-      const ratio = window.devicePixelRatio || 1;
-      const element = canvas.current!;
-      element.width = Math.floor(viewport.width * ratio);
-      element.height = Math.floor(viewport.height * ratio);
-      element.style.width = `${viewport.width}px`;
-      element.style.height = `${viewport.height}px`;
-      target.style.width = `${viewport.width}px`;
-      target.style.height = `${viewport.height}px`;
-      target.style.setProperty('--total-scale-factor', String(scale));
-      await pdfPage.render({
-        canvas: element,
-        viewport,
-        transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
-      }).promise;
-      if (cancelled || !quote) return;
-      layer.replaceChildren();
-      const text = new TextLayer({
-        textContentSource: pdfPage.streamTextContent(),
-        container: layer,
-        viewport,
+    void pdf
+      .getPage(pageNumber)
+      .then(async (pdfPage) => {
+        if (cancelled) return;
+        const natural = pdfPage.getViewport({ scale: 1 });
+        const scale = zoom === 'fit' ? Math.max(0.5, Math.min(2, room / natural.width)) : zoom;
+        const viewport = pdfPage.getViewport({ scale });
+        const ratio = window.devicePixelRatio || 1;
+        const element = canvas.current!;
+        element.width = Math.floor(viewport.width * ratio);
+        element.height = Math.floor(viewport.height * ratio);
+        element.style.width = `${viewport.width}px`;
+        element.style.height = `${viewport.height}px`;
+        target.style.width = `${viewport.width}px`;
+        target.style.height = `${viewport.height}px`;
+        target.style.setProperty('--total-scale-factor', String(scale));
+        // A canvas takes one render at a time, so the one this effect replaces is cancelled first.
+        rendering = pdfPage.render({
+          canvas: element,
+          viewport,
+          transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
+        });
+        await rendering.promise;
+        if (cancelled || !quote) return;
+        layer.replaceChildren();
+        text = new TextLayer({
+          textContentSource: pdfPage.streamTextContent(),
+          container: layer,
+          viewport,
+        });
+        await text.render();
+        if (cancelled) return;
+        const marked = markQuote(text.textDivs, quote);
+        if (marked.length > 0) marked[0]!.scrollIntoView({ block: 'center' });
+        else if (!reported.current && pageNumber === firstPage.current) {
+          reported.current = true;
+          onNotFound();
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFailedUrl(url);
       });
-      await text.render();
-      if (cancelled) return;
-      const marked = markQuote(text.textDivs, quote);
-      if (marked.length > 0) marked[0]!.scrollIntoView({ block: 'center' });
-      else if (!reported.current && pageNumber === firstPage.current) {
-        reported.current = true;
-        onNotFound();
-      }
-    });
     return () => {
       cancelled = true;
+      rendering?.cancel();
+      text?.cancel();
     };
-  }, [pdf, pageNumber, zoom, quote, onNotFound]);
+  }, [pdf, url, pageNumber, zoom, quote, onNotFound]);
 
   if (failed) {
     return (
