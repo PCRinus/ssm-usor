@@ -56,6 +56,24 @@ export function sameName(a: string, b: string) {
   return foldName(a) === foldName(b) || similar(a, b) >= 0.8;
 }
 
+const addressWords = new Set(['str', 'strada', 'nr', 'numar', 'numarul']);
+
+export function streetKey(addressLine: string | null) {
+  if (addressLine === null) return '';
+  return foldText(addressLine)
+    .split(' ')
+    .filter((word) => word !== '' && !addressWords.has(word))
+    .join(' ');
+}
+
+export const sameAddress = (
+  a: { locality: string | null; addressLine: string | null },
+  b: { locality: string | null; addressLine: string | null }
+) =>
+  streetKey(a.addressLine) !== '' &&
+  streetKey(a.addressLine) === streetKey(b.addressLine) &&
+  (a.locality === null || b.locality === null || foldText(a.locality) === foldText(b.locality));
+
 interface FoldedText {
   folded: string;
   starts: number[];

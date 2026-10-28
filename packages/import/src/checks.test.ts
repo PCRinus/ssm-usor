@@ -166,6 +166,20 @@ describe('checkDuplicates', () => {
     ]);
   });
 
+  it('flags workplaces alike in name only when an address is missing', () => {
+    const value = proposal();
+    const office = value.workplaces[0]!;
+    value.workplaces = [
+      { ...office, name: 'Punct de lucru nr. 1', addressLine: 'str. Lungă nr. 1' },
+      { ...office, id: 'workplace-2', name: 'Punct de lucru nr. 2', addressLine: 'str. Scurtă 7' },
+      { ...office, id: 'workplace-3', name: 'Punct de lucru nr. 1', addressLine: null },
+    ];
+
+    expect(checkDuplicates(value)).toEqual([
+      { path: 'workplaces.2', code: 'duplicate', detail: 'workplaces.0' },
+    ]);
+  });
+
   it('does not flag two employees of one name whose CNPs differ', () => {
     const value = proposal();
     const employee = value.employees[0]!;

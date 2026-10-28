@@ -10,7 +10,7 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import { findQuote, foldName, foldText, similar } from './match';
+import { findQuote, foldName, foldText, sameAddress, similar, streetKey } from './match';
 import {
   type Field,
   type Flag,
@@ -267,9 +267,6 @@ function duplicates<T>(list: string, items: T[], same: (a: T, b: T) => boolean):
   });
 }
 
-const sameText = (a: string | null, b: string | null) =>
-  a !== null && b !== null && foldText(a) !== '' && foldText(a) === foldText(b);
-
 const samePerson = (a: string, b: string) => foldName(a) === foldName(b) || similar(a, b) >= 0.8;
 
 const employeeName = (employee: Proposal['employees'][number]) =>
@@ -281,9 +278,9 @@ export function checkDuplicates(proposal: Proposal): Flag[] {
       'workplaces',
       proposal.workplaces,
       (a, b) =>
-        samePerson(a.name, b.name) ||
-        (sameText(a.addressLine, b.addressLine) &&
-          (a.locality === null || sameText(a.locality, b.locality)))
+        sameAddress(a, b) ||
+        (samePerson(a.name, b.name) &&
+          (streetKey(a.addressLine) === '' || streetKey(b.addressLine) === ''))
     ),
     // `job_positions.name` is unique per client, compared in lower case and trimmed.
     ...duplicates(

@@ -10,7 +10,7 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import { contained, foldName, foldText, similar } from './match';
+import { contained, foldName, foldText, sameAddress, similar } from './match';
 import {
   clientFieldNames,
   type Field,
@@ -188,24 +188,6 @@ function joined<T extends Traced>(
   }
   return kept;
 }
-
-const addressWords = new Set(['str', 'strada', 'nr', 'numar', 'numarul']);
-
-function streetKey(addressLine: string | null) {
-  if (addressLine === null) return '';
-  return foldText(addressLine)
-    .split(' ')
-    .filter((word) => word !== '' && !addressWords.has(word))
-    .join(' ');
-}
-
-const sameAddress = (
-  a: { locality: string | null; addressLine: string | null },
-  b: { locality: string | null; addressLine: string | null }
-) =>
-  streetKey(a.addressLine) !== '' &&
-  streetKey(a.addressLine) === streetKey(b.addressLine) &&
-  (a.locality === null || b.locality === null || foldText(a.locality) === foldText(b.locality));
 
 const employeeName = (employee: { lastName: string | null; firstName: string | null }) =>
   foldName([employee.lastName, employee.firstName].filter(Boolean).join(' '));
