@@ -12,12 +12,21 @@ import {
 
 const blob = (text = 'x', type = '') => new Blob([text], { type });
 
-const zip = (entries: Record<string, string>) =>
+const zip = (entries: Record<string, string | Uint8Array>) =>
   new Blob([
     zipSync(
-      Object.fromEntries(Object.entries(entries).map(([name, text]) => [name, strToU8(text)]))
+      Object.fromEntries(
+        Object.entries(entries).map(([name, content]) => [
+          name,
+          typeof content === 'string' ? strToU8(content) : content,
+        ])
+      )
     ) as BlobPart,
   ]);
+
+const zipBytes = async (blob: Blob) => new Uint8Array(await blob.arrayBuffer());
+
+const megabytes = (count: number) => new Uint8Array(count * 1024 * 1024);
 
 describe('choosing the files of an import', () => {
   it('opens a zip in the browser and keeps its paths under the zip', async () => {
@@ -89,6 +98,50 @@ describe('choosing the files of an import', () => {
       ['mare.pdf', 'too_large'],
     ]);
     expect(second.files.map((file) => file.path)).toEqual(['Decizie.docx', 'Decizie (2).docx']);
+  });
+
+  it('stops opening a zip that holds more than one import takes', async () => {
+    const selection = await addToSelection(emptySelection, [
+      {
+        path: 'prea-multe.zip',
+        blob: zip(
+          Object.fromEntries(Array.from({ length: 151 }, (_, index) => [`f${index}.pdf`, 'x']))
+        ),
+      },
+      {
+        path: 'prea-grea.zip',
+        blob: zip(
+          Object.fromEntries(
+            Array.from({ length: 6 }, (_, index) => [`f${index}.pdf`, megabytes(18)])
+          )
+        ),
+      },
+      { path: 'Decizie.docx', blob: blob() },
+    ]);
+
+    expect(selection.largeZips).toEqual(['prea-multe.zip', 'prea-grea.zip']);
+    expect(selection.brokenZips).toEqual([]);
+    expect(selection.files.map((file) => file.path)).toEqual(['Decizie.docx']);
+  });
+
+  it('opens a zip inside a zip, but refuses one nested too deep and archives it cannot open', async () => {
+    const innerMost = await zipBytes(zip({ 'adanc.pdf': 'x' }));
+    const third = await zipBytes(zip({ 'nivel4.zip': innerMost, 'nivel3.pdf': 'x' }));
+    const second = await zipBytes(
+      zip({ 'nivel3.zip': third, 'mare.bin': megabytes(21), 'nivel2.pdf': 'x' })
+    );
+    const selection = await addToSelection(emptySelection, [
+      { path: 'dosar.zip', blob: zip({ 'nivel2.zip': second, 'acte vechi.rar': 'x' }) },
+    ]);
+
+    expect(selection.files.map((file) => [file.path, file.group])).toEqual([
+      ['dosar.zip/nivel2.zip/nivel2.pdf', 'dosar.zip'],
+      ['dosar.zip/nivel2.zip/nivel3.zip/nivel3.pdf', 'dosar.zip'],
+    ]);
+    expect(selection.archives).toEqual(['acte vechi.rar', 'nivel4.zip']);
+    expect(selection.setAside.map((file) => [file.name, file.reason])).toEqual([
+      ['mare.bin', 'unsupported'],
+    ]);
   });
 
   it('never lets a path climb out of the upload', () => {

@@ -164,8 +164,23 @@ function UploadForm({
     onClose();
   }
 
-  const archives = selection.archives.filter((name) => !dismissed.includes(name));
-  const brokenZips = selection.brokenZips.filter((name) => !dismissed.includes(name));
+  const zipNotices = [
+    ...selection.archives.map((name) => ({
+      name,
+      testId: 'import-archive-refused',
+      text: 'nu se poate deschide aici. Dezarhivează-l și trage folderul aici.',
+    })),
+    ...selection.brokenZips.map((name) => ({
+      name,
+      testId: 'import-zip-broken',
+      text: 'nu s-a putut deschide. Dezarhivează-l și trage folderul aici.',
+    })),
+    ...selection.largeZips.map((name) => ({
+      name,
+      testId: 'import-zip-large',
+      text: `e prea mare pentru un singur import, care ia cel mult ${importLimits.files} de fișiere și 100 MB. Dezarhivează-l și împarte documentele în mai multe importuri.`,
+    })),
+  ].filter((notice) => !dismissed.includes(notice.name));
 
   return (
     <Dialog open onOpenChange={(next) => !next && !busy && leave()}>
@@ -290,46 +305,24 @@ function UploadForm({
                 />
               </div>
             )}
-            {archives.map((name) => (
+            {zipNotices.map((notice) => (
               <Notice
-                key={name}
+                key={`${notice.testId}:${notice.name}`}
                 variant="warning"
-                data-testid="import-archive-refused"
+                data-testid={notice.testId}
                 action={
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon-sm"
                     aria-label="Închide mesajul"
-                    onClick={() => setDismissed((current) => [...current, name])}
+                    onClick={() => setDismissed((current) => [...current, notice.name])}
                   >
                     <X aria-hidden="true" />
                   </Button>
                 }
               >
-                <strong className="font-semibold">{name}</strong> nu se poate deschide aici.
-                Dezarhivează-l și trage folderul aici.
-              </Notice>
-            ))}
-            {brokenZips.map((name) => (
-              <Notice
-                key={name}
-                variant="warning"
-                data-testid="import-zip-broken"
-                action={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Închide mesajul"
-                    onClick={() => setDismissed((current) => [...current, name])}
-                  >
-                    <X aria-hidden="true" />
-                  </Button>
-                }
-              >
-                <strong className="font-semibold">{name}</strong> nu s-a putut deschide.
-                Dezarhivează-l și trage folderul aici.
+                <strong className="font-semibold">{notice.name}</strong> {notice.text}
               </Notice>
             ))}
             {over && (

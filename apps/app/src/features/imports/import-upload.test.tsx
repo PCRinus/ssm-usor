@@ -277,6 +277,22 @@ describe('starting an import from the client list', () => {
     expect((screen.getByTestId('import-upload-submit') as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('says a zip holding more than one import takes is too large', async () => {
+    mockImportApi();
+    mountApp(authFixture(makeSession()).client, '/clients');
+
+    await userEvent.click(await screen.findByTestId('clients-import'));
+    await screen.findByTestId('import-upload-dialog');
+    choose([
+      zip(Object.fromEntries(Array.from({ length: 151 }, (_, index) => [`f${index}.pdf`, 'x']))),
+    ]);
+
+    expect((await screen.findByTestId('import-zip-large')).textContent).toBe(
+      'dosar-ssm-spicul-auriu.zip e prea mare pentru un singur import, care ia cel mult 150 de fișiere și 100 MB. Dezarhivează-l și împarte documentele în mai multe importuri.'
+    );
+    expect(screen.queryByTestId('import-chosen')).toBeNull();
+  });
+
   it('offers to try again, or to read without the files that would not upload', async () => {
     mockImportApi();
     vi.mocked(uploadImportObject).mockImplementation(async (path) => {

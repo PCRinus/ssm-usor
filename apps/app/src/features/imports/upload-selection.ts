@@ -33,19 +33,26 @@ export type Selection = {
   // .7z, .rar and the like, which the browser cannot open.
   archives: string[];
   brokenZips: string[];
+  // Zips holding more than one import takes.
+  largeZips: string[];
 };
 
-export const emptySelection: Selection = {
+const nothingFound = (): Selection => ({
   files: [],
   setAside: [],
   systemFiles: [],
   archives: [],
   brokenZips: [],
-};
+  largeZips: [],
+});
+
+export const emptySelection = nothingFound();
 
 const unopenedArchives = new Set(['7z', 'rar', 'tar', 'gz', 'tgz', 'bz2', 'xz', 'zipx', 'cab']);
 
 const maxZipBytes = 4 * importLimits.totalBytes;
+
+const maxZipDepth = 3;
 
 const extensionOf = (name: string) => /\.([^./]+)$/.exec(name)?.[1]?.toLowerCase() ?? '';
 
@@ -86,9 +93,14 @@ function topGroup(path: string) {
   return slash === -1 ? path : path.slice(0, slash);
 }
 
-type Zip = { path: string; blob: Blob };
+// What a zip and the zips inside it have inflated so far.
+type Budget = { bytes: number; files: number };
 
-function sortOne(path: string, blob: Blob, group: string, into: Selection, zips: Zip[]) {
+type Zip = PickedFile & { depth: number; budget: Budget };
+
+class OverBudget extends Error {}
+
+function sortOne(path: string, blob: Blob, group: string, into: Selection, zips: PickedFile[]) {
   const name = path.split('/').at(-1)!;
   if (isSystemPath(path)) {
     into.systemFiles.push(path);
@@ -122,48 +134,77 @@ function sortOne(path: string, blob: Blob, group: string, into: Selection, zips:
 
 async function openZips(zips: Zip[], into: Selection) {
   while (zips.length > 0) {
-    const { path, blob } = zips.shift()!;
-    const name = path.split('/').at(-1)!;
-    if (blob.size > maxZipBytes) {
-      into.brokenZips.push(name);
-      continue;
-    }
-    let entries: Record<string, Uint8Array>;
-    const oversized: string[] = [];
+    const zip = zips.shift()!;
+    const name = zip.path.split('/').at(-1)!;
+    const group = topGroup(zip.path);
+    const { budget } = zip;
+    const spent = { ...budget };
+    const found = nothingFound();
+    const inner: PickedFile[] = [];
     try {
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      entries = unzipSync(bytes, {
-        // Entries past the per-file limit are never inflated: a declared size is all they cost.
+      if (zip.blob.size > maxZipBytes) throw new OverBudget();
+      const bytes = new Uint8Array(await zip.blob.arrayBuffer());
+      const entries = unzipSync(bytes, {
+        // fflate allocates each entry's declared size, so only what may be uploaded is inflated,
+        // and a zip stops as soon as it holds more than one import takes.
         filter: (entry) => {
-          if (entry.name.endsWith('/')) return false;
-          if (entry.originalSize > importLimits.fileBytes) {
-            oversized.push(entry.name);
-            return false;
+          const path = cleanPath(`${zip.path}/${entry.name}`);
+          if (!path || entry.name.endsWith('/')) return false;
+          const entryName = path.split('/').at(-1)!;
+          const extension = extensionOf(entryName);
+          if (isSystemPath(path)) found.systemFiles.push(path);
+          else if (
+            unopenedArchives.has(extension) ||
+            (extension === 'zip' && zip.depth + 1 >= maxZipDepth)
+          ) {
+            found.archives.push(entryName);
+          } else if (extension !== 'zip' && !importTypeOf(entryName)) {
+            found.setAside.push({
+              key: nextKey(),
+              path,
+              name: entryName,
+              reason: 'unsupported',
+              group,
+            });
+          } else if (extension !== 'zip' && entry.originalSize > importLimits.fileBytes) {
+            found.setAside.push({
+              key: nextKey(),
+              path,
+              name: entryName,
+              reason: 'too_large',
+              group,
+            });
+          } else {
+            budget.bytes += entry.originalSize;
+            if (extension !== 'zip') budget.files += 1;
+            if (budget.bytes > importLimits.totalBytes || budget.files > importLimits.files) {
+              throw new OverBudget();
+            }
+            return true;
           }
-          return true;
+          return false;
         },
       });
-    } catch {
-      into.brokenZips.push(name);
+      for (const [entry, content] of Object.entries(entries)) {
+        const path = cleanPath(`${zip.path}/${entry}`);
+        if (!path) continue;
+        const type = importTypeOf(path) ?? undefined;
+        sortOne(path, new Blob([content as BlobPart], { type }), group, found, inner);
+      }
+    } catch (cause) {
+      Object.assign(budget, spent);
+      if (cause instanceof OverBudget) into.largeZips.push(name);
+      else into.brokenZips.push(name);
       continue;
+    } finally {
+      // A zip inside another counted once as an entry; its own entries count from here on.
+      if (zip.depth > 0) budget.bytes -= zip.blob.size;
     }
-    for (const entry of oversized) {
-      const inner = cleanPath(`${path}/${entry}`);
-      if (!inner || isSystemPath(inner)) continue;
-      into.setAside.push({
-        key: nextKey(),
-        path: inner,
-        name: inner.split('/').at(-1)!,
-        reason: importTypeOf(inner) ? 'too_large' : 'unsupported',
-        group: topGroup(path),
-      });
-    }
-    for (const [entry, content] of Object.entries(entries)) {
-      const inner = cleanPath(`${path}/${entry}`);
-      if (!inner) continue;
-      const type = importTypeOf(inner) ?? undefined;
-      sortOne(inner, new Blob([content as BlobPart], { type }), topGroup(path), into, zips);
-    }
+    into.files.push(...found.files);
+    into.setAside.push(...found.setAside);
+    into.systemFiles.push(...found.systemFiles);
+    into.archives.push(...found.archives);
+    zips.push(...inner.map((each) => ({ ...each, depth: zip.depth + 1, budget })));
   }
 }
 
@@ -179,18 +220,15 @@ function uniquePath(path: string, taken: Set<string>) {
 }
 
 export async function addToSelection(current: Selection, picked: PickedFile[]) {
-  const added: Selection = {
-    files: [],
-    setAside: [],
-    systemFiles: [],
-    archives: [],
-    brokenZips: [],
-  };
-  const zips: Zip[] = [];
+  const added = nothingFound();
   for (const { path, blob } of picked) {
     const clean = cleanPath(path);
+    const zips: PickedFile[] = [];
     if (clean) sortOne(clean, blob, topGroup(clean), added, zips);
-    await openZips(zips, added);
+    await openZips(
+      zips.map((zip) => ({ ...zip, depth: 0, budget: { bytes: 0, files: 0 } })),
+      added
+    );
   }
   const taken = new Set(current.files.map((file) => file.path));
   const files = added.files.map((file) => {
@@ -204,6 +242,7 @@ export async function addToSelection(current: Selection, picked: PickedFile[]) {
     systemFiles: [...current.systemFiles, ...added.systemFiles],
     archives: [...new Set([...current.archives, ...added.archives])],
     brokenZips: [...new Set([...current.brokenZips, ...added.brokenZips])],
+    largeZips: [...new Set([...current.largeZips, ...added.largeZips])],
   } satisfies Selection;
 }
 
