@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Politica de confidențialitate"
   description="Cum prelucrează SSM Ușor datele personale ale vizitatorilor, ale furnizorilor și ale angajaților clienților lor."
-  updated="26 octombrie 2026"
+  updated="28 octombrie 2026"
 >
   {!legalEntity.filled && (
     <p class="note">
@@ -65,8 +65,18 @@ const M = legalEntity.filled ? 'span' : 'mark';
     <li>
       <strong>Datele din platformă.</strong> Datele firmelor client, ale punctelor de lucru, ale
       angajaților (nume, funcție, loc de muncă, date de instruire, rezultate la teste, semnături) și
-      documentele generate. Le prelucrăm ca persoană împuternicită, pentru ca serviciul extern să
-      își îndeplinească obligațiile legale de securitate și sănătate în muncă.
+      documentele generate. Singura dată privind sănătatea pe care platforma o ține în evidențe este
+      grupa sanguină cu Rh-ul, trecută pe fișa individuală de instruire. Prelucrăm aceste date ca
+      persoană împuternicită, pentru ca serviciul extern să își îndeplinească obligațiile legale de
+      securitate și sănătate în muncă.
+    </li>
+    <li>
+      <strong>Importul din documente.</strong> Când serviciul extern importă documentele existente
+      ale unei firme client sau fotografiile fișelor de instruire, textul și imaginile lor, cu
+      datele angajaților din ele (inclusiv CNP-ul și grupa sanguină), sunt citite de un model de
+      inteligență artificială al OpenAI, care propune datele firmei și ale angajaților. Specialistul
+      verifică propunerea și nimic nu se salvează până nu o confirmă. Prelucrăm aceste date tot ca
+      persoană împuternicită a serviciului extern.
     </li>
     <li>
       <strong>Date tehnice.</strong> Adresa IP, tipul browserului și jurnale de server, pentru
@@ -107,7 +117,8 @@ const M = legalEntity.filled ? 'span' : 'mark';
   </ul>
   <p>
     Nu folosim datele din platformă pentru publicitate și nu le folosim pentru antrenarea unor
-    modele de inteligență artificială.
+    modele de inteligență artificială. Nici OpenAI nu folosește pentru antrenare datele trimise la
+    import.
   </p>
 
   <h2>4. Cookie-uri</h2>
@@ -130,7 +141,10 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <h2>5. Cui transmitem datele</h2>
   <p>Folosim un număr restrâns de furnizori, cu care avem încheiate acorduri de prelucrare:</p>
   <ul>
-    <li>găzduire și livrare a site-ului și a platformei: Cloudflare, Inc.;</li>
+    <li>
+      găzduire și livrare a site-ului și a platformei, precum și transmiterea documentelor importate
+      către OpenAI, prin Cloudflare AI Gateway: Cloudflare, Inc.;
+    </li>
     <li>autentificare și bază de date: Supabase, Inc., cu stocare în Uniunea Europeană;</li>
     <li>
       email tranzacțional: <M>{legalEntity.emailProvider}</M>;
@@ -143,7 +157,12 @@ const M = legalEntity.filled ? 'span' : 'mark';
     <li>
       analiză a site-ului de prezentare, a platformei și a portalului, înregistrări de sesiune (doar
       în platformă și în portal), urmărirea erorilor și asistență: PostHog, cu proiect găzduit în
-      Uniunea Europeană.
+      Uniunea Europeană;
+    </li>
+    <li>
+      citirea documentelor importate de serviciul extern: OpenAI, în Statele Unite, care nu
+      folosește datele pentru antrenarea modelelor și le poate păstra cel mult 30 de zile, pentru
+      depistarea abuzurilor.
     </li>
   </ul>
   <p>
@@ -180,7 +199,13 @@ const M = legalEntity.filled ? 'span' : 'mark';
       arhivare a documentelor de securitate și sănătate în muncă; la încetarea contractului,
       serviciul extern le poate exporta, după care le ștergem;
     </li>
-    <li>jurnalele tehnice: 90 de zile.</li>
+    <li>jurnalele tehnice: 90 de zile;</li>
+    <li>
+      importul din documente: un import abandonat se șterge, cu fișierele lui, după 14 zile;
+      propunerea unui import confirmat se păstrează încă 30 de zile, pentru asistență; jurnalele
+      cererilor către model se păstrează 30 de zile; fișierele importate rămân printre fișierele
+      firmei client, ca datele din platformă;
+    </li>
     <li>înregistrările sesiunilor în PostHog: ținta noastră este 30 de zile;</li>
     <li>evenimentele de analiză și erorile în PostHog: ținta noastră este 12 luni;</li>
     <li>conversațiile de asistență rezolvate: ținta noastră este 12 luni de la încheiere.</li>
