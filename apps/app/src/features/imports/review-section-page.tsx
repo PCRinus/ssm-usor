@@ -50,7 +50,7 @@ export function ReviewSectionPage({
   };
   const position = sectionIds.indexOf(section);
   const next = sectionIds[position + 1];
-  const name = reviewName(detail, proposal, review);
+  const name = reviewName(detail, proposal, review.changes);
 
   return (
     <div data-testid="import-review-section" data-section={section} className="grid gap-6">

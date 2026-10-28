@@ -31,7 +31,6 @@ import {
   sectionOf,
   sectionStatus,
 } from './review-model';
-import type { ImportReview } from './use-import-review';
 
 export type ExistingValueAt = (path: string) => string | number | null | undefined;
 
@@ -313,10 +312,10 @@ export const sectionIcons: Record<SectionId, LucideIcon> = {
   equipment: HardHat,
 };
 
-export function reviewName(detail: ImportDetail, proposal: Proposal, review: ImportReview) {
+export function reviewName(detail: ImportDetail, proposal: Proposal, changes: Changes) {
   if (detail.client) return detail.client.legalName;
-  const legalName = review.changes.fields['client.legalName']?.value;
-  if (typeof legalName === 'string' && legalName) return legalName;
-  const options = proposal.client.legalName.options;
-  return String(options[0]?.value ?? detail.companyName ?? 'Client nou');
+  const { value } = fieldState(proposal, changes, 'client.legalName');
+  if (typeof value === 'string' && value) return value;
+  const own = proposal.client.legalName.options.find((option) => option.otherCompanyName === null);
+  return String(own?.value ?? detail.companyName ?? 'Client nou');
 }

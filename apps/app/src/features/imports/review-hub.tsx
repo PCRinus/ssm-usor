@@ -70,7 +70,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
   const links = blockerLinks(proposal, review.changes, blockers);
   const kept = keptPaths(states);
   const done = sectionIds.filter((section) => statuses[section].kind === 'done').length;
-  const name = reviewName(detail, proposal, review);
+  const name = reviewName(detail, proposal, review.changes);
   const read = detail.files.filter((file) => file.state === 'read').length;
   const summary = uploadSummary(detail.files);
   const intoExisting = detail.intoExistingClient;

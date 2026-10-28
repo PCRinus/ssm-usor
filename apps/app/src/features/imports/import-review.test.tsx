@@ -295,6 +295,44 @@ describe('a section of the review', () => {
   });
 });
 
+function legalNameChoice() {
+  const proposal = proposalFixture();
+  const option = (value: string, otherCompanyName: string | null) => ({
+    value,
+    sources: [{ file: 'dosar-ssm.zip/Decizie 1.docx', quote: value }],
+    otherCompanyName,
+  });
+  (proposal.client as Record<string, unknown>).legalName = {
+    options: [
+      option('Lactate Câmpia SRL', 'Lactate Câmpia SRL'),
+      option('Brutăria Spicul Auriu SRL', null),
+      option('Spicul Auriu Panificație SRL', null),
+    ],
+  };
+  return proposal;
+}
+
+const legalNameBlock = async () =>
+  (await screen.findAllByTestId('review-choice')).find((each) =>
+    each.textContent?.includes('Alege denumirea')
+  )!;
+
+describe('the name of a new client', () => {
+  it("is the one picked, and never another company's", async () => {
+    mockReview(readyDetail({ proposal: legalNameChoice(), blockers: [] }));
+    mount('/identity');
+
+    const section = await screen.findByTestId('import-review-section');
+    expect(section.textContent).toContain('Brutăria Spicul Auriu SRL. Valorile se preiau');
+    await userEvent.click(
+      within(await legalNameBlock()).getByRole('radio', { name: /Spicul Auriu Panificație SRL/ })
+    );
+    await waitFor(() =>
+      expect(section.textContent).toContain('Spicul Auriu Panificație SRL. Valorile se preiau')
+    );
+  });
+});
+
 describe('a company name that ends in a period', () => {
   it('ends the sentence after it once', async () => {
     const proposal = proposalFixture();
