@@ -8,8 +8,10 @@ export function leaveImportNotice(clientId: string, notice: ImportNotice) {
   notices.set(clientId, notice);
 }
 
-export function takeImportNotice(clientId: string) {
-  const notice = notices.get(clientId) ?? null;
+export function readImportNotice(clientId: string) {
+  return notices.get(clientId) ?? null;
+}
+
+export function forgetImportNotice(clientId: string) {
   notices.delete(clientId);
-  return notice;
 }

@@ -1,18 +1,21 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Link } from '@tanstack/react-router';
 import { ChevronRight, FileCheck, FileText } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Notice } from '@/components/notice';
 
 import { filesLabel } from './import-format';
-import { takeImportNotice } from './import-notice';
+import { forgetImportNotice, readImportNotice } from './import-notice';
 
 const join = (parts: string[]) =>
   parts.length > 1 ? `${parts.slice(0, -1).join(', ')} și ${parts.at(-1)}` : (parts[0] ?? '');
 
 export function ImportedNotice({ clientId }: { clientId: string }) {
-  const [notice] = useState(() => takeImportNotice(clientId));
+  // Read in the initializer and dropped in an effect: development mode calls an initializer
+  // twice, and a read that also deleted would leave the second call with nothing.
+  const [notice] = useState(() => readImportNotice(clientId));
+  useEffect(() => forgetImportNotice(clientId), [clientId]);
   if (!notice) return null;
   const files =
     notice.files === 0
