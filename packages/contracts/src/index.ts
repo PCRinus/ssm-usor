@@ -42,6 +42,7 @@ export * from './releases';
 export * from './risk-evaluations';
 export * from './risk-levels';
 export * from './service-contracts';
+export * from './setup';
 export * from './signatures';
 export * from './signed-sheet';
 export * from './signer';

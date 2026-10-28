@@ -325,6 +325,109 @@ export interface RecordGuideRequest {
   status: RecordGuideRequestStatus;
 }
 
+/**
+ * @nullable
+ */
+export type SetupGuideNext = (typeof SetupGuideNext)[keyof typeof SetupGuideNext] | null;
+
+export const SetupGuideNext = {
+  account: 'account',
+  company: 'company',
+  authorizations: 'authorizations',
+  'professional-title': 'professional-title',
+  client: 'client',
+  'workplaces-positions': 'workplaces-positions',
+  employees: 'employees',
+  'responsible-persons': 'responsible-persons',
+  'risk-evaluation': 'risk-evaluation',
+  'fire-safety-data': 'fire-safety-data',
+  'generate-sets': 'generate-sets',
+  'issue-document': 'issue-document',
+  'portal-invitation': 'portal-invitation',
+  training: 'training',
+  signature: 'signature',
+} as const;
+
+export type SetupStepId = (typeof SetupStepId)[keyof typeof SetupStepId];
+
+export const SetupStepId = {
+  account: 'account',
+  company: 'company',
+  authorizations: 'authorizations',
+  'professional-title': 'professional-title',
+  client: 'client',
+  'workplaces-positions': 'workplaces-positions',
+  employees: 'employees',
+  'responsible-persons': 'responsible-persons',
+  'risk-evaluation': 'risk-evaluation',
+  'fire-safety-data': 'fire-safety-data',
+  'generate-sets': 'generate-sets',
+  'issue-document': 'issue-document',
+  'portal-invitation': 'portal-invitation',
+  training: 'training',
+  signature: 'signature',
+} as const;
+
+export type SetupStepState = (typeof SetupStepState)[keyof typeof SetupStepState];
+
+export const SetupStepState = {
+  done: 'done',
+  skipped: 'skipped',
+  locked: 'locked',
+  open: 'open',
+} as const;
+
+export type SetupStepLock = (typeof SetupStepLock)[keyof typeof SetupStepLock];
+
+export const SetupStepLock = {
+  'needs-client': 'needs-client',
+  'needs-workplace-and-position': 'needs-workplace-and-position',
+  'needs-position': 'needs-position',
+  'needs-organization-data': 'needs-organization-data',
+  'needs-basic-data': 'needs-basic-data',
+  'needs-draft': 'needs-draft',
+  'needs-employee': 'needs-employee',
+  'needs-training-record': 'needs-training-record',
+} as const;
+
+export type SetupStepMissingItem = (typeof SetupStepMissingItem)[keyof typeof SetupStepMissingItem];
+
+export const SetupStepMissingItem = {
+  'legal-name': 'legal-name',
+  cui: 'cui',
+  address: 'address',
+  'representative-name': 'representative-name',
+  'representative-role': 'representative-role',
+  certificate: 'certificate',
+  'fire-safety-technician': 'fire-safety-technician',
+} as const;
+
+export interface SetupStep {
+  id: SetupStepId;
+  state: SetupStepState;
+  canDo: boolean;
+  lock?: SetupStepLock;
+  missing?: SetupStepMissingItem[];
+}
+
+export interface SetupGuide {
+  steps: SetupStep[];
+  /** @nullable */
+  next: SetupGuideNext;
+  /** @nullable */
+  clientId: string | null;
+  /** @nullable */
+  ownerName: string | null;
+  organizationHasClients: boolean;
+  closed: boolean;
+  finished: boolean;
+}
+
+export interface UpdateSetupGuideRequest {
+  closed?: boolean;
+  finished?: boolean;
+}
+
 export interface UpdateFeature {
   /**
    * @minLength 1
@@ -12639,6 +12742,473 @@ export const useRecordMyGuide = <TError = ErrorType<ApiErrorResponse>, TContext 
   TContext
 > => {
   return useMutation(getRecordMyGuideMutationOptions(options), queryClient);
+};
+
+export const getGetMySetupGuideUrl = () => {
+  return `/me/setup`;
+};
+
+/**
+ * The fifteen steps of the setup guide in order (ADR 031), each done, skipped, locked or open for the caller in their organization, with the next step, the client the steps on a client open, and whether the caller closed or finished the guide. During an impersonation it is the signed-in admin's own guide.
+ * @summary Get the caller's setup guide
+ */
+export const getMySetupGuide = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SetupGuide> => {
+  return apiFetch<SetupGuide>(getGetMySetupGuideUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetMySetupGuideQueryKey = () => {
+  return [`/me/setup`] as const;
+};
+
+export const getGetMySetupGuideQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMySetupGuide>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMySetupGuide>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMySetupGuideQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMySetupGuide>>> = ({ signal }) =>
+    getMySetupGuide({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMySetupGuide>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetMySetupGuideQueryResult = NonNullable<Awaited<ReturnType<typeof getMySetupGuide>>>;
+export type GetMySetupGuideQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetMySetupGuide<
+  TData = Awaited<ReturnType<typeof getMySetupGuide>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMySetupGuide>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMySetupGuide>>,
+          TError,
+          Awaited<ReturnType<typeof getMySetupGuide>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMySetupGuide<
+  TData = Awaited<ReturnType<typeof getMySetupGuide>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMySetupGuide>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMySetupGuide>>,
+          TError,
+          Awaited<ReturnType<typeof getMySetupGuide>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMySetupGuide<
+  TData = Awaited<ReturnType<typeof getMySetupGuide>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMySetupGuide>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the caller's setup guide
+ */
+
+export function useGetMySetupGuide<
+  TData = Awaited<ReturnType<typeof getMySetupGuide>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMySetupGuide>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetMySetupGuideQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getUpdateMySetupGuideUrl = () => {
+  return `/me/setup`;
+};
+
+/**
+ * `true` records the moment on the caller's profile, `false` clears it, and a missing key leaves it. Allowed while the organization is read-only. `409` with `reason: profile_missing` for an account without a profile.
+ * @summary Record that the caller closed, reopened or finished the setup guide
+ */
+export const updateMySetupGuide = async (
+  updateSetupGuideRequest: UpdateSetupGuideRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SetupGuide> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<SetupGuide>(getUpdateMySetupGuideUrl(), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateSetupGuideRequest),
+  });
+};
+
+export const getUpdateMySetupGuideMutationKey = () => ['updateMySetupGuide'] as const;
+
+export const getUpdateMySetupGuideMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMySetupGuide>>,
+    TError,
+    UpdateMySetupGuideMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateMySetupGuide>>,
+  TError,
+  UpdateMySetupGuideMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateMySetupGuideMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateMySetupGuide>>,
+    UpdateMySetupGuideMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateMySetupGuide(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateMySetupGuideMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateMySetupGuide>>
+>;
+export type UpdateMySetupGuideMutationBody = UpdateSetupGuideRequest;
+export type UpdateMySetupGuideMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateMySetupGuideMutationVariables = { data: UpdateSetupGuideRequest };
+
+/**
+ * @summary Record that the caller closed, reopened or finished the setup guide
+ */
+export const useUpdateMySetupGuide = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateMySetupGuide>>,
+      TError,
+      UpdateMySetupGuideMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateMySetupGuide>>,
+  TError,
+  UpdateMySetupGuideMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateMySetupGuideMutationOptions(options), queryClient);
+};
+
+export const getSkipMySetupStepUrl = (
+  step:
+    | 'client'
+    | 'workplaces-positions'
+    | 'employees'
+    | 'responsible-persons'
+    | 'risk-evaluation'
+    | 'fire-safety-data'
+    | 'generate-sets'
+    | 'issue-document'
+    | 'portal-invitation'
+    | 'training'
+    | 'signature'
+) => {
+  return `/me/setup/skips/${step}`;
+};
+
+/**
+ * Idempotent. Only the eleven member steps can be skipped. Allowed while the organization is read-only.
+ * @summary Mark a member step of the setup guide as known (Știu deja)
+ */
+export const skipMySetupStep = async (
+  step:
+    | 'client'
+    | 'workplaces-positions'
+    | 'employees'
+    | 'responsible-persons'
+    | 'risk-evaluation'
+    | 'fire-safety-data'
+    | 'generate-sets'
+    | 'issue-document'
+    | 'portal-invitation'
+    | 'training'
+    | 'signature',
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SetupGuide> => {
+  return apiFetch<SetupGuide>(getSkipMySetupStepUrl(step), {
+    ...options,
+    method: 'PUT',
+  });
+};
+
+export const getSkipMySetupStepMutationKey = () => ['skipMySetupStep'] as const;
+
+export const getSkipMySetupStepMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof skipMySetupStep>>,
+    TError,
+    SkipMySetupStepMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof skipMySetupStep>>,
+  TError,
+  SkipMySetupStepMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSkipMySetupStepMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof skipMySetupStep>>,
+    SkipMySetupStepMutationVariables
+  > = (props) => {
+    const { step } = props ?? {};
+
+    return skipMySetupStep(step, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SkipMySetupStepMutationResult = NonNullable<
+  Awaited<ReturnType<typeof skipMySetupStep>>
+>;
+
+export type SkipMySetupStepMutationError = ErrorType<ApiErrorResponse>;
+export type SkipMySetupStepMutationVariables = {
+  step:
+    | 'client'
+    | 'workplaces-positions'
+    | 'employees'
+    | 'responsible-persons'
+    | 'risk-evaluation'
+    | 'fire-safety-data'
+    | 'generate-sets'
+    | 'issue-document'
+    | 'portal-invitation'
+    | 'training'
+    | 'signature';
+};
+
+/**
+ * @summary Mark a member step of the setup guide as known (Știu deja)
+ */
+export const useSkipMySetupStep = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof skipMySetupStep>>,
+      TError,
+      SkipMySetupStepMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof skipMySetupStep>>,
+  TError,
+  SkipMySetupStepMutationVariables,
+  TContext
+> => {
+  return useMutation(getSkipMySetupStepMutationOptions(options), queryClient);
+};
+
+export const getUnskipMySetupStepUrl = (
+  step:
+    | 'client'
+    | 'workplaces-positions'
+    | 'employees'
+    | 'responsible-persons'
+    | 'risk-evaluation'
+    | 'fire-safety-data'
+    | 'generate-sets'
+    | 'issue-document'
+    | 'portal-invitation'
+    | 'training'
+    | 'signature'
+) => {
+  return `/me/setup/skips/${step}`;
+};
+
+/**
+ * Idempotent: a step that was not skipped stays as it is. Allowed while the organization is read-only.
+ * @summary Undo skipping a member step of the setup guide
+ */
+export const unskipMySetupStep = async (
+  step:
+    | 'client'
+    | 'workplaces-positions'
+    | 'employees'
+    | 'responsible-persons'
+    | 'risk-evaluation'
+    | 'fire-safety-data'
+    | 'generate-sets'
+    | 'issue-document'
+    | 'portal-invitation'
+    | 'training'
+    | 'signature',
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SetupGuide> => {
+  return apiFetch<SetupGuide>(getUnskipMySetupStepUrl(step), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getUnskipMySetupStepMutationKey = () => ['unskipMySetupStep'] as const;
+
+export const getUnskipMySetupStepMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unskipMySetupStep>>,
+    TError,
+    UnskipMySetupStepMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unskipMySetupStep>>,
+  TError,
+  UnskipMySetupStepMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUnskipMySetupStepMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unskipMySetupStep>>,
+    UnskipMySetupStepMutationVariables
+  > = (props) => {
+    const { step } = props ?? {};
+
+    return unskipMySetupStep(step, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnskipMySetupStepMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unskipMySetupStep>>
+>;
+
+export type UnskipMySetupStepMutationError = ErrorType<ApiErrorResponse>;
+export type UnskipMySetupStepMutationVariables = {
+  step:
+    | 'client'
+    | 'workplaces-positions'
+    | 'employees'
+    | 'responsible-persons'
+    | 'risk-evaluation'
+    | 'fire-safety-data'
+    | 'generate-sets'
+    | 'issue-document'
+    | 'portal-invitation'
+    | 'training'
+    | 'signature';
+};
+
+/**
+ * @summary Undo skipping a member step of the setup guide
+ */
+export const useUnskipMySetupStep = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof unskipMySetupStep>>,
+      TError,
+      UnskipMySetupStepMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof unskipMySetupStep>>,
+  TError,
+  UnskipMySetupStepMutationVariables,
+  TContext
+> => {
+  return useMutation(getUnskipMySetupStepMutationOptions(options), queryClient);
 };
 
 export const getListReleasesUrl = () => {

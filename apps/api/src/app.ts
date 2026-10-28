@@ -35,6 +35,7 @@ import { protectiveEquipmentRouter } from './modules/protective-equipment';
 import { releasesRouter } from './modules/releases';
 import { riskEvaluationsRouter } from './modules/risk-evaluations';
 import { serviceContractsRouter } from './modules/service-contracts';
+import { setupRouter } from './modules/setup';
 import { signingRouter } from './modules/signing';
 import { testsRouter } from './modules/tests';
 import { trainingsRouter } from './modules/trainings';
@@ -81,6 +82,7 @@ export function createApp() {
   app.route('/', healthRouter);
   app.route('/', meRouter);
   app.route('/', guidesRouter);
+  app.route('/', setupRouter);
   app.route('/', releasesRouter);
   app.route('/', dashboardRouter);
   app.route('/', clientsRouter);
