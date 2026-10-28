@@ -101,20 +101,34 @@ For a specialist, an organization step not yet done shows no button and reads _D
 
 ### Where each step leads
 
-The **next step** is the first step in order that is neither done, skipped nor locked, and that the caller can do. It is shown as a card with a sentence and its actions, and the guide's group holding it is open by default. Every other open step is a row that leads to the same place. A step leads to the real page, with the field in focus where the page has a focus target (`?focus=`, as the documents tabs' missing-data links do), never to a wizard of the guide's own. Stripe's modal wizards were rejected because they would be a second form for everything the app already has a form for.
+The **next step** is the first step in order that is neither done, skipped nor locked, and that the caller can do. It is shown as a card with a sentence and its actions, and the guide's group holding it is open by default. Every other open step is a row that leads to the same place. A step leads to the real page, never to a wizard of the guide's own. Stripe's modal wizards were rejected because they would be a second form for everything the app already has a form for.
+
+### Fields are highlighted, workflows are not
+
+A step that comes down to filling in fields points at the field, with the highlight the missing-data list already uses when it sends a member from a set that cannot be generated to what is missing: the link carries `?focus=<field>`, and the page scrolls to the card, opens its form and marks the field for a moment (`useFocusRequest`, `data-pointed`). These are `company`, `authorizations` and `professional-title`, whose focus keys exist (`organizationCompanyFocus`, `authorizationsFocus`, `profileFocus`). `account` has nothing to fill.
+
+Their card in the guide names each missing field as its own link, as the missing-data list does, and its button opens the first missing one, in the order of the page's form:
+
+- `company`: _Lipsesc: CUI, adresa_; the keys `legal-name`, `cui`, `address`, `representative-name`, `representative-role`.
+- `authorizations`: _Lipsesc: certificatul de abilitare, cadrul tehnic PSI_; the keys `certificate` and `fire-safety-technician`.
+- `professional-title`: the key `professional-title`, alone.
+
+For a specialist these steps have no links, as they have no button.
+
+Every other step is a workflow, adding a client, generating a set, recording a training, and opens its page without a highlight. A highlight there would point at a button and say nothing the step's own sentence does not, and a workflow has no single field to be missing. `fire-safety-data` is a workflow too: it ticks on the first save of a client's fire-safety card, so the guide knows no particular field to point at. The missing-data list keeps its own highlights on those pages.
 
 | Step                   | Actions                                                                                                                                                          |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `company`              | Organizație → Date firmă                                                                                                                                         |
-| `authorizations`       | Organizație → Abilitări                                                                                                                                          |
+| `company`              | Organizație → Date firmă, at the first missing field                                                                                                             |
+| `authorizations`       | Organizație → Abilitări, at the first missing field                                                                                                              |
 | `professional-title`   | Profilul meu, at the professional title                                                                                                                          |
 | `client`               | **Adaugă client** (`/clients/new`) and **Importă din documente** (the client list's import dialog, [ADR 030](adr-030-import-from-documents.md))                  |
-| `workplaces-positions` | the client's Detalii, at _Adaugă punct de lucru_, and its Posturi, at _Adaugă post_                                                                              |
+| `workplaces-positions` | the client's Detalii, for the workplaces, and its Posturi                                                                                                        |
 | `employees`            | **Adaugă angajat** (the client's new-employee form) and **Importă din fișe** (the employee import on the client's Angajați tab, once ADR 030's step 10 is built) |
-| `responsible-persons`  | the client's Detalii, at the first role no one holds                                                                                                             |
+| `responsible-persons`  | the client's Detalii, for the responsible persons                                                                                                                |
 | `risk-evaluation`      | the client's Posturi                                                                                                                                             |
-| `fire-safety-data`     | the client's Instruire tab, at the fire-safety card                                                                                                              |
-| `generate-sets`        | the client's Documente SSM, at _Generează_                                                                                                                       |
+| `fire-safety-data`     | the client's Instruire tab, for the fire-safety card                                                                                                             |
+| `generate-sets`        | the client's Documente SSM                                                                                                                                       |
 | `issue-document`       | the client's Documente SSM                                                                                                                                       |
 | `portal-invitation`    | the client's Portal tab                                                                                                                                          |
 | `training`             | the client's Instruiri                                                                                                                                           |
@@ -141,7 +155,7 @@ Setări → Ghiduri lists the guide with its progress and **Arată ghidul**, whi
 - A function, `setup_progress()`, read as the caller (security invoker): one row for the caller's organization, with whether each step is done by the caller, the organization-wide facts the locks need, the furthest client's id and the owners' names. Tenancy and the owners-only policies apply as they do on every list, as for `dashboard_summary`.
 - A table, `setup_step_skips`: `user_id`, `step`, `skipped_at`, keyed on the first two, read and written only by its user. `step` is checked against the eleven member steps.
 - Two columns on `profiles`: `setup_guide_closed_at`, set by ×, cleared by the pill and by Arată ghidul; and `setup_guide_finished_at`, set when _Gata_ has been shown, cleared by Arată ghidul. The first expanded opening is kept in the browser: showing it twice on a second device does no harm.
-- `GET /me/setup` returns the fifteen steps, each `{ id, state: done | skipped | open | locked, lock? }`, with the lock's code; the next step's id; the furthest client's id; the owner's name or null; `closed` and `finished`. `PUT /me/setup` takes `{ closed?, finished? }`. `PUT` and `DELETE /me/setup/skips/{step}` skip a step and undo the skip.
+- `GET /me/setup` returns the fifteen steps, each `{ id, state: done | skipped | open | locked, lock?, missing? }`, with the lock's code and, for `company` and `authorizations`, the focus keys of the fields still empty, in the form's order; the next step's id; the furthest client's id; the owner's name or null; `closed` and `finished`. `PUT /me/setup` takes `{ closed?, finished? }`. `PUT` and `DELETE /me/setup/skips/{step}` skip a step and undo the skip.
 - The SPA refetches `GET /me/setup` when a mutation that can tick a step settles (the existing query invalidations), so a step ticks while the guide is in view.
 
 ### The welcome tour goes
