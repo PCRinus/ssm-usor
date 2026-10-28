@@ -196,6 +196,23 @@ describe('POST /billing/stripe-webhook', () => {
       ]);
     });
 
+    it('ignores a subscription of an organization this database does not have', async () => {
+      const fake = createFake();
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({
+          choice: start,
+          metadata: { organization_id: '99999999-0000-4000-8000-000000000009' },
+        });
+
+      const response = await deliver(subscriptionEvent('customer.subscription.created'));
+
+      expect(response.status).toBe(200);
+      expect(fake.tables.subscriptions).toEqual([]);
+      expect(fake.tables.stripe_events).toEqual([
+        expect.objectContaining({ id: 'evt_1', processed_at: expect.any(String) }),
+      ]);
+    });
+
     it('logs nothing when the state is what the row already holds', async () => {
       const fake = createFake();
       fake.tables.subscriptions!.push(paidRow(pro, { current_period_end: null }));
@@ -378,6 +395,26 @@ describe('POST /billing/stripe-webhook', () => {
         organization_id: organizationId,
         stripe_account: accountId,
       });
+    });
+
+    it('ignores a paid invoice of an organization this database does not have', async () => {
+      const fake = createFake();
+      fake.stripe['GET /v1/invoices/in_1Paid'] = () =>
+        paidInvoice({
+          parent: {
+            type: 'subscription_details',
+            subscription_details: {
+              subscription: 'sub_1Test',
+              metadata: { organization_id: '99999999-0000-4000-8000-000000000009' },
+            },
+          },
+        });
+
+      const response = await deliver(paidEvent);
+
+      expect(response.status).toBe(200);
+      expect(fake.tables.billing_invoices).toEqual([]);
+      expect(fake.calls.some((call) => call.url.host === 'www.oblio.eu')).toBe(false);
     });
 
     it("sends it to the organization's email for invoices when one is set", async () => {
@@ -572,12 +609,25 @@ describe('POST /billing/stripe-webhook', () => {
     it('fails too when the paid invoice is not recorded yet', async () => {
       const fake = createFake();
       refunding(fake, 'invoice');
+      fake.tables.subscriptions!.push(paidRow(pro));
       fake.tables.billing_invoices = [];
       fake.stripe['GET /v1/invoices/in_1Paid'] = () => paidInvoice();
 
       const response = await deliver(refundEvent);
 
       expect(response.status).toBe(500);
+      expect(fake.calls.some((call) => call.url.host === 'www.oblio.eu')).toBe(false);
+    });
+
+    it('ignores a refund of an organization this database does not have', async () => {
+      const fake = createFake();
+      refunding(fake, 'invoice');
+      fake.tables.billing_invoices = [];
+      fake.stripe['GET /v1/invoices/in_1Paid'] = () => paidInvoice();
+
+      const response = await deliver(refundEvent);
+
+      expect(response.status).toBe(200);
       expect(fake.calls.some((call) => call.url.host === 'www.oblio.eu')).toBe(false);
     });
 

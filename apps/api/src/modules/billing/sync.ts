@@ -6,6 +6,7 @@ import {
   type ChangeRecord,
   findSubscriptionByCustomer,
   loadSubscription,
+  organizationExists,
   saveSubscription,
   type SubscriptionFields,
   type SubscriptionRow,
@@ -137,12 +138,14 @@ function follows(row: SubscriptionRow | null, subscription: Stripe.Subscription)
   return current === null || row?.status === 'canceled';
 }
 
+// The non-prod API and every local listener share one Stripe sandbox, so an event can name an
+// organization another database holds, or one since deleted; that one is not ours to act on.
 export async function organizationOf(
   db: AdminClient,
   subscription: Pick<Stripe.Subscription, 'metadata' | 'customer'>
 ) {
   const fromMetadata = subscription.metadata?.organization_id;
-  if (fromMetadata) return fromMetadata;
+  if (fromMetadata) return (await organizationExists(db, fromMetadata)) ? fromMetadata : null;
   const customerId = idOf(subscription.customer);
   if (!customerId) return null;
   return (await findSubscriptionByCustomer(db, customerId))?.organization_id ?? null;

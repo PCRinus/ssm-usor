@@ -30,6 +30,16 @@ export async function loadSubscription(db: AdminClient, organizationId: string) 
   return data;
 }
 
+export async function organizationExists(db: AdminClient, organizationId: string) {
+  const { data, error } = await db
+    .from('organizations')
+    .select('id')
+    .eq('id', organizationId)
+    .maybeSingle();
+  if (error) throw fromDatabaseError(error, 'billing organization');
+  return data !== null;
+}
+
 export async function findSubscriptionByCustomer(db: AdminClient, customerId: string) {
   const { data, error } = await db
     .from('subscriptions')
