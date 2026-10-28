@@ -85,6 +85,8 @@ const conflictReasons: Record<string, string> = {
     'Organizația are deja un client cu acest CUI. Completează-l pe acela din pagina lui, cu „Completează din documentație”.',
   [importErrorReasons.incomplete]:
     'Mai sunt decizii de luat. Reîncarcă pagina ca să vezi ce lipsește.',
+  [importErrorReasons.outdated]:
+    'Clientul s-a schimbat între timp: un punct de lucru sau un post ales nu mai există. Reîncarcă pagina și alege din nou.',
 };
 
 export function ConfirmImportDialog({

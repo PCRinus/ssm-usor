@@ -692,6 +692,8 @@ export function flagNote(flag: Flag, proposal: Proposal, changes: Changes): stri
       return 'Fișierul citat nu este printre cele încărcate. Verifică valoarea în documente.';
     case 'quote_not_found':
       return 'Pasajul citat nu a fost găsit în fișier.';
+    case 'value_not_in_quote':
+      return 'Pasajul citat nu cuprinde această valoare. Verifică valoarea în documente.';
     case 'invalid_cui':
       return 'Numărul nu trece verificarea CUI.';
     case 'invalid_cnp':

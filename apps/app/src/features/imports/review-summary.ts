@@ -148,13 +148,15 @@ export function sectionDescription(
     case 'equipment': {
       const items = included(proposal, changes, 'protectiveEquipment');
       const positions = new Set(
-        items.map((state) => {
-          const reference = state.values.jobPosition;
-          return typeof reference === 'string'
-            ? reference
-            : ((reference as { id: string | null; name: string } | undefined)?.id ??
-                (reference as { name: string } | undefined)?.name);
-        })
+        items
+          .map((state) => {
+            const reference = state.values.jobPosition;
+            return typeof reference === 'string'
+              ? reference
+              : ((reference as { id: string | null; name: string | null } | undefined)?.id ??
+                  (reference as { name: string | null } | undefined)?.name);
+          })
+          .filter((position) => position)
       ).size;
       return `${items.length === 1 ? 'Un articol' : `${items.length} articole`} pentru ${positions === 1 ? 'un post' : `${positions} posturi`}.${others(['protectiveEquipment'], 'articole')}`;
     }
