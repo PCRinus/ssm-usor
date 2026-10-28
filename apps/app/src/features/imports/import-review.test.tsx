@@ -351,6 +351,44 @@ describe('what the checks found', () => {
     );
     expect(list.textContent).not.toContain('workplaces.0');
   });
+
+  it("warns on both rows when ANAF knows the CUI as another firm's, and leaves it to check", async () => {
+    const proposal = proposalFixture();
+    proposal.client.legalName.options[0]!.value = 'S.C. BRUTĂRIA SPICUL AURIU S.R.L.';
+    const detail = readyDetail({
+      proposal,
+      blockers: [],
+      registeredCompany: {
+        cui: '31458207',
+        legalName: 'BARS COMPANY S.R.L.',
+        vatPayer: true,
+        inactive: false,
+      },
+    });
+    mockReview(detail);
+    mount('/identity');
+
+    const section = await screen.findByTestId('import-review-section');
+    const warnings = await screen.findAllByTestId('review-anaf-mismatch');
+    expect(warnings.map((warning) => warning.closest('[id]')?.id)).toEqual([
+      'review-client-legalName',
+      'review-client-cui',
+    ]);
+    expect(warnings[0]!.textContent).toBe(
+      'La ANAF, CUI-ul 31458207 aparține firmei BARS COMPANY S.R.L., nu firmei din documente.'
+    );
+    expect(section.textContent).not.toContain('Firmă activă la ANAF');
+    expect(section.textContent).not.toContain('Confirmat la ANAF');
+
+    disposeRuntimes();
+    mockReview(detail);
+    mount();
+    const identity = (await screen.findAllByTestId('import-section-link')).find(
+      (link) => link.dataset.section === 'identity'
+    )!;
+    expect(within(identity).getByTestId('section-status').textContent).toBe('De verificat');
+    expect(identity.textContent).toContain('La ANAF, CUI-ul aparține altei firme.');
+  });
 });
 
 describe('completing an existing client (E2)', () => {

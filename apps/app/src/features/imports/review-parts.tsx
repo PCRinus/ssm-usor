@@ -137,13 +137,24 @@ export function SummaryRow({
   );
 }
 
-export function RowNote({ children, tone }: { children: ReactNode; tone?: 'danger' }) {
+const noteTones = {
+  danger: 'text-destructive',
+  warning: 'font-medium text-warning-foreground',
+};
+
+export function RowNote({
+  children,
+  tone,
+  testId,
+}: {
+  children: ReactNode;
+  tone?: keyof typeof noteTones;
+  testId?: string;
+}) {
   return (
     <span
-      className={cn(
-        'text-[13px]',
-        tone === 'danger' ? 'text-destructive' : 'text-muted-foreground'
-      )}
+      className={cn('text-[13px]', tone ? noteTones[tone] : 'text-muted-foreground')}
+      data-testid={testId}
     >
       {children}
     </span>

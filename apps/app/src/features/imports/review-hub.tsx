@@ -60,7 +60,13 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
   const [confirming, setConfirming] = useState(false);
   const blockers = detail.blockers as Blocker[];
   const states = fieldStates(proposal, review.changes, existing.valueAt);
-  const statuses = sectionStatuses(proposal, review.changes, blockers, states);
+  const statuses = sectionStatuses(
+    proposal,
+    review.changes,
+    blockers,
+    states,
+    detail.registeredCompany
+  );
   const links = blockerLinks(proposal, review.changes, blockers);
   const kept = keptPaths(states);
   const done = sectionIds.filter((section) => statuses[section].kind === 'done').length;

@@ -28,6 +28,8 @@ import {
 
 import { endSentence } from './import-format';
 import {
+  anafMismatch,
+  anafMismatchNote,
   anchorOf,
   type Changes,
   fieldGroups,
@@ -38,6 +40,8 @@ import {
   formatFieldValue,
   integerPaths,
   type Proposal,
+  type RegisteredCompany,
+  sameCompanyName,
   sameValue,
   type SectionId,
   type Source,
@@ -68,7 +72,7 @@ export type FieldContext = {
   review: ImportReview;
   states: Record<string, FieldState>;
   vatPayer: boolean;
-  registered: { cui: string; legalName: string; inactive: boolean } | null;
+  registered: RegisteredCompany | null;
   existingClient: boolean;
   openSource: OpenSource;
 };
@@ -224,17 +228,21 @@ function FieldRow({
   context: FieldContext;
   onEdit?: () => void;
 }) {
-  const flags = flagsAt(context.proposal, state.path).filter((flag) => flag.code !== 'missing');
+  const flags = flagsAt(context.proposal, state.path).filter(
+    (flag) => flag.code !== 'missing' && flag.code !== 'legal_name_differs'
+  );
   const required = state.path === 'client.legalName' || state.path === 'client.cui';
   const registered = context.registered;
+  const mismatch = required ? anafMismatch(context.proposal, context.changes, registered) : null;
   const anafName =
     state.path === 'client.legalName' &&
     registered &&
     state.value !== null &&
-    sameValue(registered.legalName, state.value);
+    sameCompanyName(registered.legalName, String(state.value));
   const anafCui =
     state.path === 'client.cui' &&
     registered &&
+    !mismatch &&
     state.value !== null &&
     sameValue(registered.cui, String(state.value).replace(/^RO/i, ''));
   return (
@@ -307,6 +315,11 @@ function FieldRow({
         >
           Nu-l prelua
         </LinkButton>
+      )}
+      {mismatch && (
+        <RowNote tone="warning" testId="review-anaf-mismatch">
+          {anafMismatchNote(mismatch)}
+        </RowNote>
       )}
       {flags.map((flag) => (
         <RowNote key={`${flag.path}-${flag.code}`}>

@@ -13,6 +13,7 @@ import type { ImportDetail } from '@/api/generated/api';
 
 import { filesLabel } from './import-format';
 import {
+  anafMismatch,
   type Blocker,
   blockerLink,
   type Changes,
@@ -23,6 +24,7 @@ import {
   type ItemList,
   itemStates,
   type Proposal,
+  type RegisteredCompany,
   roleLabel,
   type SectionId,
   sectionIds,
@@ -83,11 +85,13 @@ export function sectionDescription(
   switch (section) {
     case 'identity': {
       const registered = detail.registeredCompany;
-      const anaf = registered
-        ? registered.inactive
-          ? 'Firmă inactivă la ANAF.'
-          : 'Denumire și CUI verificate la ANAF.'
-        : 'Denumire, CUI, adresă, reprezentant legal și persoană de contact.';
+      const anaf = !registered
+        ? 'Denumire, CUI, adresă, reprezentant legal și persoană de contact.'
+        : anafMismatch(proposal, changes, registered)
+          ? 'La ANAF, CUI-ul aparține altei firme.'
+          : registered.inactive
+            ? 'Firmă inactivă la ANAF.'
+            : 'Denumire și CUI verificate la ANAF.';
       return `${anaf}${choiceText}`;
     }
     case 'workplaces': {
@@ -162,13 +166,14 @@ export function sectionStatuses(
   proposal: Proposal,
   changes: Changes,
   blockers: Blocker[],
-  states: Record<string, FieldState>
+  states: Record<string, FieldState>,
+  registered: RegisteredCompany | null
 ) {
   const kept = keptPaths(states);
   return Object.fromEntries(
     sectionIds.map((section) => [
       section,
-      sectionStatus(section, proposal, changes, blockers, kept),
+      sectionStatus(section, proposal, changes, blockers, kept, registered),
     ])
   ) as Record<SectionId, ReturnType<typeof sectionStatus>>;
 }

@@ -564,20 +564,59 @@ export type SectionStatus =
   | { kind: 'check' }
   | { kind: 'done' };
 
+// `legal_name_differs` is left to `anafMismatch`, which follows the name the member settles on.
 const advisoryFlags = new Set([
   'quote_not_found',
   'file_not_found',
   'cui_not_registered',
-  'legal_name_differs',
   'duplicate',
 ]);
+
+export type RegisteredCompany = { cui: string; legalName: string; inactive: boolean };
+
+const legalForms = /\b(s ?c|s ?r ?l|s ?a|s ?n ?c|s ?c ?s|pfa|i ?i|i ?f)\b/g;
+
+const companyWords = (name: string) =>
+  new Set(foldText(name).replace(legalForms, ' ').split(' ').filter(Boolean));
+
+// As the API's check compares them: the legal form aside, most words shared.
+export function sameCompanyName(a: string, b: string) {
+  const x = companyWords(a);
+  const y = companyWords(b);
+  if (x.size === 0 || y.size === 0) return false;
+  const shared = [...x].filter((word) => y.has(word)).length;
+  return shared / Math.max(x.size, y.size) >= 0.8;
+}
+
+const bareCui = (value: unknown) =>
+  String(value ?? '')
+    .replace(/^RO/i, '')
+    .trim();
+
+/** ANAF's company when the CUI is another firm's than the name the review now holds. */
+export function anafMismatch(
+  proposal: Proposal,
+  changes: Changes,
+  registered: RegisteredCompany | null | undefined
+): RegisteredCompany | null {
+  if (!registered) return null;
+  const cui = fieldState(proposal, changes, 'client.cui').value;
+  if (cui !== null && bareCui(cui) !== registered.cui) return null;
+  const name = fieldState(proposal, changes, 'client.legalName').value;
+  if (name === null || sameCompanyName(String(name), registered.legalName)) return null;
+  return registered;
+}
+
+export const anafMismatchNote = (registered: RegisteredCompany) =>
+  `La ANAF, CUI-ul ${registered.cui} aparține firmei ${registered.legalName}, nu firmei din documente.`;
 
 export function sectionStatus(
   section: SectionId,
   proposal: Proposal,
   changes: Changes,
   blockers: Blocker[],
-  keptPaths: string[]
+  keptPaths: string[],
+  registered?: RegisteredCompany | null
 ): SectionStatus {
   const own = blockers.filter((blocker) => sectionOf(blocker.path) === section);
   if (own.some((blocker) => blocker.code === 'choice')) return { kind: 'choice' };
@@ -607,7 +646,8 @@ export function sectionStatus(
     (flag) => advisoryFlags.has(flag.code) && sectionOf(flag.path) === section
   );
   const kept = keptPaths.some((path) => sectionOf(path) === section);
-  if (otherCompanyItems || otherCompanyFields || flagged || kept) return { kind: 'check' };
+  const anaf = section === 'identity' && anafMismatch(proposal, changes, registered) !== null;
+  if (otherCompanyItems || otherCompanyFields || flagged || kept || anaf) return { kind: 'check' };
   return { kind: 'done' };
 }
 
@@ -682,10 +722,12 @@ export function flagNote(flag: Flag, proposal: Proposal, changes: Changes): stri
     }
     case 'cui_not_registered':
       return 'ANAF nu cunoaște acest CUI.';
-    case 'legal_name_differs':
-      return flag.detail
-        ? `La ANAF, CUI-ul aparține firmei ${flag.detail}, nu firmei din documente.`
+    case 'legal_name_differs': {
+      const cui = proposal.client.cui.options[0]?.value;
+      return flag.detail && cui !== undefined
+        ? anafMismatchNote({ cui: bareCui(cui), legalName: flag.detail, inactive: false })
         : 'Denumirea diferă de cea de la ANAF.';
+    }
   }
 }
 
