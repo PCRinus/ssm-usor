@@ -106,7 +106,7 @@ Din pagina **Abonament**:
 
 Ce se întâmplă depinde de schimbare:
 
-- **trecerea de la Start la Profesional, un pachet sau un utilizator în plus** se aplică pe loc. Pe un plan lunar, diferența pentru zilele rămase apare pe factura următoare; pe unul anual se plătește pe loc. Ce aveai înainte se scade pentru partea nefolosită;
+- **trecerea de la Start la Profesional, un pachet sau un utilizator în plus** se aplică pe loc. Pe un plan lunar, diferența pentru zilele rămase apare pe factura următoare; pe unul anual se plătește pe loc. Ce aveai înainte se scade pentru partea nefolosită, iar la trecerea pe Profesional pachetele și utilizatorii în plus pe care nu îi mai folosești se opresc odată cu ea;
 - **trecerea de la Profesional la Start, mai puține pachete sau utilizatori** se aplică de la următoarea reînnoire și nu costă nimic azi. Până atunci păstrezi ce ai plătit, iar banii nu se returnează. Trecerea la Start adaugă pachetele de care au nevoie angajații de azi, iar fereastra de confirmare ți le arată;
 - **de la lunar la anual** se aplică pe loc: plătești anul, din care se scade partea nefolosită din luna curentă;
 - **de la anual la lunar** se aplică la sfârșitul anului plătit.

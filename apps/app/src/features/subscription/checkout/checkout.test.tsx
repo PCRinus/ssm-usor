@@ -376,13 +376,13 @@ describe('choosing a plan', () => {
       plan: 'start',
       interval: 'month',
       employeePacks: 2,
-      extraMembers: 0,
+      extraMembers: 1,
     });
     mockApi({
       overview: overviewWith({
         subscription,
         owner: ownerPart(),
-        limits: { employees: 350, members: 1, sms: 50 },
+        limits: { employees: 350, members: 2, sms: 50 },
       }),
       routes: {
         'PATCH /billing/subscription': () => Response.json({ clientSecret: null, intent: null }),
@@ -402,6 +402,7 @@ describe('choosing a plan', () => {
       await within(dialog).findByRole('heading', { name: 'Treci la Profesional?' })
     ).toBeTruthy();
     expect(dialog.textContent).toContain('2 pachete de angajați nu mai sunt necesare');
+    expect(dialog.textContent).toContain('Un utilizator în plus nu mai este necesar');
     await userEvent.click(within(dialog).getByTestId('change-confirm'));
 
     await waitFor(() => expect(requests('/billing/subscription', 'PATCH')).toHaveLength(1));
@@ -414,6 +415,31 @@ describe('choosing a plan', () => {
     await waitFor(() =>
       expect(runtime.router.state.location.pathname).toBe('/organization/subscription')
     );
+  });
+
+  it('shows no amount due today next to a change it refuses', async () => {
+    const subscription = activeSubscription({
+      plan: 'profesional',
+      interval: 'year',
+      employeePacks: 0,
+      extraMembers: 2,
+    });
+    mockApi({
+      overview: overviewWith({ subscription, owner: ownerPart() }),
+      routes: {
+        'POST /billing/preview': (init) =>
+          Response.json(
+            previewFor(JSON.parse(String(init?.body)) as BillingChoice, {
+              dueToday: 18150,
+              problems: [{ reason: 'split_change' }],
+            })
+          ),
+      },
+    });
+    mount();
+
+    await screen.findByTestId('checkout-problem');
+    expect(screen.queryByTestId('checkout-when')).toBeNull();
   });
 
   it('shows the difference for the days left when a change adds now and removes at the renewal', async () => {

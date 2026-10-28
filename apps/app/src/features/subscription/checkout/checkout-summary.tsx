@@ -101,7 +101,9 @@ export function CheckoutSummary({
   children: ReactNode;
 }) {
   const amounts = choiceAmounts(choice);
-  const when = preview && !settling ? whenFor(mode, preview, { inTrial, readOnly }) : null;
+  const refused = (preview?.problems.length ?? 0) > 0;
+  const when =
+    preview && !settling && !refused ? whenFor(mode, preview, { inTrial, readOnly }) : null;
 
   return (
     <aside
@@ -146,7 +148,7 @@ export function CheckoutSummary({
           <strong className="text-sm font-semibold">{when.title}</strong>
           <p className="text-sm leading-relaxed">{when.text}</p>
         </div>
-      ) : (
+      ) : refused ? null : (
         <Skeleton className="h-20 w-full" />
       )}
       {children}

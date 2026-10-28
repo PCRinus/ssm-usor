@@ -158,9 +158,17 @@ function copyFor(
     case 'upgrade': {
       const terms = billingPlans[target.plan];
       const dropsPacks = current.employeePacks > 0 && target.employeePacks === 0;
+      const droppedMembers = Math.max(0, current.extraMembers - target.extraMembers);
+      const packsLine = dropsPacks
+        ? ` ${current.employeePacks === 1 ? 'Pachetul' : `Cele ${current.employeePacks} pachete`} de angajați nu mai ${current.employeePacks === 1 ? 'este necesar și se oprește' : 'sunt necesare și se opresc'}.`
+        : '';
+      const membersLine =
+        droppedMembers > 0
+          ? ` ${droppedMembers === 1 ? 'Un utilizator în plus nu mai este necesar și se oprește' : `${droppedMembers} utilizatori în plus nu mai sunt necesari și se opresc`}.`
+          : '';
       return {
         title: `Treci la ${targetName}?`,
-        lead: `${targetName} începe azi: ${formatCount(terms.includedEmployees)} de angajați, ${terms.includedMembers} utilizatori, ${terms.monthlySms} de SMS pe lună, fiecare coleg își vede clienții lui și documentele nu mai poartă marca SSM Ușor.${dropsPacks ? ` ${current.employeePacks === 1 ? 'Pachetul' : `Cele ${current.employeePacks} pachete`} de angajați nu mai ${current.employeePacks === 1 ? 'este necesar și se oprește' : 'sunt necesare și se opresc'}.` : ''}`,
+        lead: `${targetName} începe azi: ${formatCount(terms.includedEmployees)} de angajați, ${terms.includedMembers} utilizatori, ${terms.monthlySms} de SMS pe lună, fiecare coleg își vede clienții lui și documentele nu mai poartă marca SSM Ușor.${packsLine}${membersLine}`,
         rows: nowRows(),
         note: prorationNote,
         confirm: `Treci la ${targetName}`,

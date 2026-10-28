@@ -70,7 +70,7 @@ export function PlanPicker({
       ...choice,
       plan,
       employeePacks: next.minPacks,
-      extraMembers: Math.min(Math.max(choice.extraMembers, next.minMembers), next.maxMembers),
+      extraMembers: next.minMembers,
     });
   };
 
