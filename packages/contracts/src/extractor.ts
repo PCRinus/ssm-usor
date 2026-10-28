@@ -6,7 +6,8 @@ export const extractionFailed = 'extraction_failed';
 
 /**
  * Why the extractor refused a file. Trying the same file again does not help.
- * `timeout` is a file the tool did not finish within its limit; `page_out_of_range` a page
+ * `too_large` is a file over `extractorFileLimit`, or a PDF over 300 pages or whose text passes
+ * 8 MiB; `timeout` is a file the tool did not finish within its limit; `page_out_of_range` a page
  * number below 1 or past the PDF's last page.
  */
 export const extractionRefusals = [

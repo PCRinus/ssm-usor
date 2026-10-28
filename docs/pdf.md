@@ -423,14 +423,14 @@ A method rejects with `extraction_failed:<reason>` when the file is refused, and
 answer that is not what the route makes. `extractionRefusalOf` in the contracts reads the reason
 back. A refusal is about the file, so trying again does not help:
 
-| Reason               | When                                                                                                    |
-| -------------------- | ------------------------------------------------------------------------------------------------------- |
-| `too_large`          | Over 20 MiB, the limit of a client file; checked before the file is sent                                |
-| `unsupported`        | Not a type the route takes, by its first bytes                                                          |
-| `corrupt`            | The tool could not read it                                                                              |
-| `password_protected` | A PDF that opens only with a password, or a Word file encrypted with one                                |
-| `timeout`            | The tool did not finish within its limit: two minutes for LibreOffice and `pdftotext`, one for the rest |
-| `page_out_of_range`  | A page below 1 or past the PDF's last                                                                   |
+| Reason               | When                                                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `too_large`          | Over 20 MiB, the limit of a client file, checked before the file is sent; or a PDF over 300 pages, or whose text passes 8 MiB |
+| `unsupported`        | Not a type the route takes, by its first bytes                                                                                |
+| `corrupt`            | The tool could not read it                                                                                                    |
+| `password_protected` | A PDF that opens only with a password, or a Word file encrypted with one                                                      |
+| `timeout`            | The tool did not finish within its limit: two minutes for LibreOffice and `pdftotext`, one for the rest                       |
+| `page_out_of_range`  | A page below 1 or past the PDF's last                                                                                         |
 
 The forwarding is `convertDocx`'s: a container that did not start, or answered 5xx, is tried once
 more after two seconds, on either instance, and a request unanswered after three minutes is

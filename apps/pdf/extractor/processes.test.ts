@@ -28,6 +28,16 @@ describe('run', () => {
     expect((error as Refused).reason).toBe('timeout');
   });
 
+  it('kills a command that writes more than its limit as a refusal of the file', async () => {
+    const error = await run('sh', ['-c', 'while :; do printf 0123456789; done'], {
+      timeoutMs: 5000,
+      signal: never,
+      outputLimit: 1000,
+    }).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(Refused);
+    expect((error as Refused).reason).toBe('too_large');
+  });
+
   it('kills a command once its request is abandoned', async () => {
     const abandoned = new AbortController();
     const started = Date.now();

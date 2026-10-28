@@ -21,16 +21,22 @@ export type Run = { code: number | null; stdout: Buffer; stderr: string };
 export type RunOptions = {
   timeoutMs: number;
   signal: AbortSignal;
+  outputLimit?: number;
   env?: NodeJS.ProcessEnv;
 };
 
+// What `pdftotext` writes for the most pages a PDF may have, with room to spare, and still small
+// enough for the Worker's 128 MiB to hold a few copies of as it parses the answer.
+export const outputLimit = 8 * 1024 * 1024;
+
 export function run(command: string, args: string[], options: RunOptions): Promise<Run> {
-  const { timeoutMs, signal, env } = options;
+  const { timeoutMs, signal, env, outputLimit: limit = outputLimit } = options;
   return new Promise((resolve, reject) => {
     if (signal.aborted) return reject(new Abandoned());
     // Its own process group, so a kill also stops what it started: soffice runs soffice.bin.
     const child = spawn(command, args, { detached: true, env, stdio: ['ignore', 'pipe', 'pipe'] });
     const stdout: Buffer[] = [];
+    let stdoutSize = 0;
     let stderr = '';
     let stopped: Error | undefined;
     const stop = (reason: Error) => {
@@ -52,7 +58,12 @@ export function run(command: string, args: string[], options: RunOptions): Promi
       clearTimeout(timer);
       signal.removeEventListener('abort', abandon);
     };
-    child.stdout.on('data', (chunk: Buffer) => stdout.push(chunk));
+    child.stdout.on('data', (chunk: Buffer) => {
+      stdoutSize += chunk.length;
+      if (stdoutSize > limit)
+        stop(new Refused('too_large', `${command} wrote over ${limit} bytes`));
+      else stdout.push(chunk);
+    });
     child.stderr.on('data', (chunk: Buffer) => {
       if (stderr.length < 4000) stderr += chunk.toString();
     });

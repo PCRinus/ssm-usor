@@ -17,6 +17,9 @@ import { Abandoned, Busy, gate, type Refusal, Refused, run } from './processes.t
 
 const port = Number(process.env.PORT ?? 3302);
 const fileLimit = 20 * 1024 * 1024;
+// Twice what an import reads as scans, and past the text the model reads for a whole client; a
+// small file can hold thousands of pages that share one content stream.
+const pdfPageLimit = 300;
 const libreOfficeProfile = process.env.LIBREOFFICE_PROFILE ?? join(tmpdir(), 'libreoffice');
 
 const refusalStatus: Record<Refusal, number> = {
@@ -94,6 +97,7 @@ async function pdfText(pdf: Uint8Array, signal: AbortSignal) {
     const path = join(dir, 'document.pdf');
     await writeFile(path, pdf);
     const { pageCount } = await pdfInfo(path, signal);
+    if (pageCount > pdfPageLimit) throw new Refused('too_large', `the PDF has ${pageCount} pages`);
     if (pageCount === 0) return { pageCount, pages: [] };
     const result = await run(
       'pdftotext',
