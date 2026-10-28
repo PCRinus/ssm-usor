@@ -583,6 +583,18 @@ describe('POST /imports/{importId}/confirm', () => {
     expect(await response.json()).toMatchObject({ reason: 'import_client_exists' });
     expect(sent).toEqual([]);
   });
+
+  it('answers a row the client no longer has as a conflict, not an error', async () => {
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(ready());
+      if (url.pathname === '/rest/v1/rpc/apply_client_import') {
+        return Response.json({ code: '22023', message: 'no workplace' }, { status: 400 });
+      }
+    });
+    const response = await request(`/imports/${importId}/confirm`, 'POST', { version: 4 });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ reason: 'import_outdated' });
+  });
 });
 
 describe('POST /imports/{importId}/split', () => {

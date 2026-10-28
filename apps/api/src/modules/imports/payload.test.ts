@@ -502,4 +502,64 @@ describe('toClientPayload', () => {
     expect(payload.quality.employees.kept).toBe(1);
     expect(payload.quality.responsiblePersons.kept).toBe(1);
   });
+
+  it('blocks a row the member picked that the client no longer has, or never had', () => {
+    const existing: ExistingRecords = {
+      ...noExistingRecords,
+      client: { legal_name: 'BRUTĂRIA FICTIVĂ S.R.L.', cui: '12345674' },
+      workplaces: [
+        { id: '0b7a5a0e-3c51-4a3f-9d0e-5a1b2c3d4e5f', name: 'Sediu', address_line: null },
+      ],
+      jobPositions: [{ id: '1c8b6b1f-4d62-4b40-8e1f-6b2c3d4e5f60', name: 'Brutar' }],
+    };
+    const { payload, blockers } = toClientPayload({
+      proposal: proposalOf(reading()),
+      changes: {
+        fields: {},
+        items: {
+          'workplace-1': { existingId: '9e0d8c7b-6a59-4483-9271-605f4e3d2c1b' },
+          'position-1': { existingId: '8d9c7b6a-5948-4372-8160-5f4e3d2c1b0a' },
+        },
+      },
+      intoExistingClient: true,
+      existing,
+    });
+
+    expect(blockers).toEqual(
+      expect.arrayContaining([
+        { path: 'workplaces.0', code: 'unknown_reference' },
+        { path: 'jobPositions.0', code: 'unknown_reference' },
+      ])
+    );
+    expect(payload.workplaces[0]).not.toHaveProperty('id');
+    expect(payload.job_positions[0]).not.toHaveProperty('id');
+  });
+
+  it('blocks equipment whose table named no position, without failing', () => {
+    const { blockers } = toClientPayload({
+      proposal: proposalOf(
+        reading({
+          protectiveEquipment: [
+            {
+              jobPositions: [],
+              risk: 'Arsuri',
+              item: 'Mănuși termorezistente',
+              quantity: 1,
+              durationMonths: 6,
+              allocation: null,
+              ...quoted(),
+            },
+          ],
+        })
+      ),
+      changes: null,
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+
+    expect(blockers).toContainEqual({
+      path: 'protectiveEquipment.0.jobPosition',
+      code: 'unknown_reference',
+    });
+  });
 });

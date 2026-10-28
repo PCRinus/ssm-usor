@@ -530,8 +530,13 @@ function decisionError(error: { code?: string | null }, context: string) {
         importErrorReasons.clientExists
       );
     case '22023':
+      // A row the review named went since, or was never the client's; the payload's checks
+      // catch both, so this is a race with another member, or a payload bug the log shows.
       console.error(`The import payload broke its contract (${context}).`);
-      return new ApiError('internal_error');
+      return conflict(
+        'The client changed since the import was reviewed. Read it again.',
+        importErrorReasons.outdated
+      );
   }
   return fromDatabaseError(error, context);
 }

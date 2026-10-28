@@ -7870,6 +7870,7 @@ export type ImportDetailProposalFlagsItemCode =
 export const ImportDetailProposalFlagsItemCode = {
   file_not_found: 'file_not_found',
   quote_not_found: 'quote_not_found',
+  value_not_in_quote: 'value_not_in_quote',
   invalid_cui: 'invalid_cui',
   invalid_cnp: 'invalid_cnp',
   cnp_birth_date_mismatch: 'cnp_birth_date_mismatch',
@@ -8675,8 +8676,11 @@ export type ImportDetailProposalProtectiveEquipmentItemSourcesItem = {
 };
 
 export type ImportDetailProposalProtectiveEquipmentItemJobPosition = {
-  /** @minLength 1 */
-  name: string;
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  name: string | null;
   /** @nullable */
   id: string | null;
 };
@@ -31196,7 +31200,7 @@ export const getConfirmImportUrl = (importId: string) => {
 };
 
 /**
- * Writes the proposal with the member's changes into the client, its workplaces, positions, people and fire-safety data in one transaction, and the import folder into its files, on the `version` the caller read. `422` with `import_incomplete` lists in `issues` what still blocks (a choice, a missing or invalid value, an unknown reference). `409` with `import_changed`, `import_not_ready`, `import_other_company` (an existing client's CUI is not the documents') or `import_client_exists` (a new client's CUI is the organization's already). The files are copied into the client's files by the queue after the answer.
+ * Writes the proposal with the member's changes into the client, its workplaces, positions, people and fire-safety data in one transaction, and the import folder into its files, on the `version` the caller read. `422` with `import_incomplete` lists in `issues` what still blocks (a choice, a missing or invalid value, an unknown reference). `409` with `import_changed`, `import_not_ready`, `import_other_company` (an existing client's CUI is not the documents'), `import_client_exists` (a new client's CUI is the organization's already) or `import_outdated` (a workplace, position or employee the review named is no longer the client's). The files are copied into the client's files by the queue after the answer.
  * @summary Confirm the proposal
  */
 export const confirmImport = async (

@@ -235,7 +235,7 @@ export const confirmImportRoute = createRoute({
   operationId: 'confirmImport',
   summary: 'Confirm the proposal',
   description:
-    "Writes the proposal with the member's changes into the client, its workplaces, positions, people and fire-safety data in one transaction, and the import folder into its files, on the `version` the caller read. `422` with `import_incomplete` lists in `issues` what still blocks (a choice, a missing or invalid value, an unknown reference). `409` with `import_changed`, `import_not_ready`, `import_other_company` (an existing client's CUI is not the documents') or `import_client_exists` (a new client's CUI is the organization's already). The files are copied into the client's files by the queue after the answer.",
+    "Writes the proposal with the member's changes into the client, its workplaces, positions, people and fire-safety data in one transaction, and the import folder into its files, on the `version` the caller read. `422` with `import_incomplete` lists in `issues` what still blocks (a choice, a missing or invalid value, an unknown reference). `409` with `import_changed`, `import_not_ready`, `import_other_company` (an existing client's CUI is not the documents'), `import_client_exists` (a new client's CUI is the organization's already) or `import_outdated` (a workplace, position or employee the review named is no longer the client's). The files are copied into the client's files by the queue after the answer.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -256,7 +256,10 @@ export const confirmImportRoute = createRoute({
       content: errorContent,
     },
     404: noSuchImport,
-    409: { description: 'Not ready, saved since, or another company', content: errorContent },
+    409: {
+      description: 'Not ready, saved since, another company, or the client changed',
+      content: errorContent,
+    },
     422: { description: 'Decisions are still open', content: errorContent },
     ...membershipErrors,
   },

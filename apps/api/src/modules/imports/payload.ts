@@ -346,18 +346,32 @@ export function toClientPayload(input: {
   const reference = (written: unknown, proposedId: string | null) =>
     written === undefined ? proposedId : typeof written === 'string' ? written : null;
 
+  // The member picked the row on the review; it may have been archived since, or never be the
+  // client's, which the database would refuse as a broken payload.
+  const existingRow = (
+    rows: { id: string }[],
+    id: string | null | undefined,
+    path: string
+  ): string | null | undefined => {
+    if (id === undefined || id === null || !intoExistingClient) return id;
+    if (rows.some((row) => row.id === id)) return id;
+    block(path, 'unknown_reference');
+    return null;
+  };
+
   const workplaceKeys = new Set<string>();
-  const workplaces = included('workplaces').map(({ item, values }) => {
+  const workplaces = included('workplaces').map(({ item, index, values }) => {
     workplaceKeys.add(item.id);
     const change = changes.items[item.id];
     const row: Row = { key: item.id };
     for (const [field, column] of Object.entries(workplaceColumns)) {
       if (!empty(values[field])) row[column] = values[field];
     }
+    const chosen = existingRow(existing.workplaces, change?.existingId, `workplaces.${index}`);
     if (intoExistingClient) {
       const match =
-        change?.existingId !== undefined
-          ? change.existingId
+        chosen !== undefined
+          ? chosen
           : (existing.workplaces.find(
               (workplace) =>
                 sameName(workplace.name, String(values.name)) ||
@@ -396,15 +410,16 @@ export function toClientPayload(input: {
   };
 
   const positionKeys = new Set<string>();
-  const jobPositions = included('jobPositions').map(({ item, values }) => {
+  const jobPositions = included('jobPositions').map(({ item, index, values }) => {
     positionKeys.add(item.id);
     const change = changes.items[item.id];
     const row: Row = { key: item.id };
     for (const [field, column] of Object.entries(jobPositionColumns)) {
       if (!empty(values[field])) row[column] = values[field];
     }
-    if (intoExistingClient && change?.existingId) {
-      row.id = change.existingId;
+    const chosen = existingRow(existing.jobPositions, change?.existingId, `jobPositions.${index}`);
+    if (intoExistingClient && chosen && change) {
+      row.id = chosen;
       const replace = (change.replace ?? []).flatMap((field) =>
         jobPositionColumns[field] ? [jobPositionColumns[field]!] : []
       );

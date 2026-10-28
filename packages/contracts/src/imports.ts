@@ -76,6 +76,7 @@ export const importErrorReasons = {
   clientExists: 'import_client_exists',
   alreadySplit: 'import_already_split',
   notOtherCompany: 'import_not_other_company',
+  outdated: 'import_outdated',
 } as const;
 
 const uploadPath = z
