@@ -246,6 +246,53 @@ describe('the processing page', () => {
     expect(screen.getByTestId('import-abandon').textContent).toBe('Renunță la import');
   });
 
+  it('follows an import whose files are still uploading until its reading starts', async () => {
+    let status = 'uploading';
+    mockApi((init, url) => {
+      if (url.pathname === `/imports/${importId}`) {
+        const detail = importDetail({
+          status,
+          createdAt: new Date().toISOString(),
+          startedAt: null,
+        });
+        status = 'preparing';
+        return Response.json({ import: detail });
+      }
+      if (url.pathname === '/imports') return Response.json({ items: [] });
+      return undefined;
+    });
+    mount();
+
+    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe(
+      'Se încarcă fișierele'
+    );
+    expect(screen.getByTestId('import-upload-underway').textContent).toContain(
+      'Citirea pornește când ajung toate'
+    );
+    expect(screen.queryByTestId('import-upload-unfinished')).toBeNull();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Citim documentele' }, { timeout: 5000 })
+    ).toBeTruthy();
+  });
+
+  it('says an upload that never finished will not start by itself', async () => {
+    mockImport(
+      importDetail({
+        status: 'uploading',
+        createdAt: new Date(Date.now() - 20 * 60_000).toISOString(),
+        startedAt: null,
+      })
+    );
+    mount();
+
+    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe(
+      'Încărcarea nu s-a terminat'
+    );
+    expect(screen.getByTestId('import-upload-unfinished').textContent).toContain(
+      'Renunță la import'
+    );
+  });
+
   it('sends a file set aside back to be read once the proposal is ready, after a warning', async () => {
     mockImport(
       readingDetail({

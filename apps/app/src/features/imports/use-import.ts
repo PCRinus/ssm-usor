@@ -3,7 +3,7 @@ import { useRouteContext } from '@tanstack/react-router';
 import { getGetImportQueryKey, useGetImport } from '@/api/generated/api';
 import { useAuth } from '@/features/auth/auth-context';
 
-import { isRunning } from './import-format';
+import { isRunning, isUploadUnderway } from './import-format';
 
 const pollMs = 3000;
 
@@ -16,8 +16,8 @@ export function useImport(importId: string) {
       queryKey: [...getGetImportQueryKey(importId), session?.user.id],
       enabled: Boolean(session && apiRequest.baseUrl),
       refetchInterval: (query) => {
-        const status = query.state.data?.import.status;
-        return status && isRunning(status) ? pollMs : false;
+        const detail = query.state.data?.import;
+        return detail && (isRunning(detail.status) || isUploadUnderway(detail)) ? pollMs : false;
       },
     },
   });

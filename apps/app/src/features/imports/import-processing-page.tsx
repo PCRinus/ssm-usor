@@ -16,7 +16,7 @@ import {
   LoaderCircle,
   X,
 } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 import {
   getListImportsQueryKey,
@@ -33,8 +33,10 @@ import {
   filesLabel,
   importErrorMessage,
   isRunning,
+  isUploadStalled,
   pagesLabel,
   uploadedWhen,
+  uploadStallsAt,
   uploadSummary,
 } from './import-format';
 import { ImportThumbnail } from './import-thumbnail';
@@ -97,11 +99,22 @@ export function ImportProcessingPage({ importId }: { importId: string }) {
   return <ProcessingView detail={query.data.import} />;
 }
 
-function title(detail: ImportDetail) {
+function useUploadStalled(detail: ImportDetail) {
+  const [now, setNow] = useState(Date.now);
+  const stalled = isUploadStalled(detail, now);
+  useEffect(() => {
+    if (detail.status !== 'uploading' || stalled) return;
+    const timer = setTimeout(() => setNow(Date.now()), uploadStallsAt(detail) - Date.now());
+    return () => clearTimeout(timer);
+  }, [detail, stalled]);
+  return stalled;
+}
+
+function title(detail: ImportDetail, stalled: boolean) {
   if (isRunning(detail.status)) return 'Citim documentele';
   switch (detail.status) {
     case 'uploading':
-      return 'Încărcarea nu s-a terminat';
+      return stalled ? 'Încărcarea nu s-a terminat' : 'Se încarcă fișierele';
     case 'failed':
       return 'Importul s-a oprit';
     case 'abandoned':
@@ -116,6 +129,7 @@ function title(detail: ImportDetail) {
 export function ProcessingView({ detail }: { detail: ImportDetail }) {
   const navigate = useNavigate();
   const [abandoning, setAbandoning] = useState(false);
+  const stalled = useUploadStalled(detail);
   const running = isRunning(detail.status);
   const open = !['confirmed', 'abandoned'].includes(detail.status);
   const files = detail.files;
@@ -133,7 +147,7 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
     <div data-testid="import-processing" className="grid gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid gap-1">
-          <h1 className="text-3xl font-semibold tracking-tight">{title(detail)}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{title(detail, stalled)}</h1>
           {summary && (
             <p className="text-sm text-muted-foreground" data-testid="import-upload-summary">
               {summary}, încărcate {uploadedWhen(detail.startedAt ?? detail.createdAt)}
@@ -157,7 +171,13 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
           deschizi de acolo când propunerea e gata de verificat.
         </Notice>
       )}
-      {detail.status === 'uploading' && (
+      {detail.status === 'uploading' && !stalled && (
+        <Notice variant="info" data-testid="import-upload-underway">
+          Fișierele se încarcă din fereastra în care le-ai ales. Citirea pornește când ajung toate,
+          iar pagina se actualizează singură.
+        </Notice>
+      )}
+      {stalled && (
         <Notice variant="warning" data-testid="import-upload-unfinished">
           Fișierele nu au ajuns toate, așa că citirea n-a pornit. Renunță la import și încarcă
           documentele din nou.

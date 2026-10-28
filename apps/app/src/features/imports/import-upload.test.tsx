@@ -187,6 +187,65 @@ describe('starting an import from the client list', () => {
     expect(await screen.findByTestId('import-processing')).toBeTruthy();
   });
 
+  it('opens on the reading even when the list read the import while it uploaded', async () => {
+    let status = 'uploading';
+    const detail = () =>
+      importDetail({
+        status,
+        createdAt: new Date().toISOString(),
+        files: [importFile({ state: status === 'uploading' ? 'uploading' : 'uploaded' })],
+      });
+    mockApi((init, url) => {
+      const method = init?.method ?? 'GET';
+      if (url.pathname === '/clients') {
+        return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
+      }
+      if (url.pathname === '/imports' && method === 'GET') {
+        return Response.json({
+          items: requestsTo('/imports', 'POST').length ? [summaryOf(detail())] : [],
+        });
+      }
+      if (url.pathname === '/imports' && method === 'POST') {
+        return Response.json({ import: summaryOf(detail()) }, { status: 201 });
+      }
+      if (url.pathname === `/imports/${importId}/files`) {
+        return Response.json(
+          { files: [{ id: 'f1', uploadPath: 'a.pdf', bucket: 'imports', storagePath: 'org/1' }] },
+          { status: 201 }
+        );
+      }
+      if (url.pathname === `/imports/${importId}/start`) {
+        status = 'preparing';
+        return Response.json({ import: summaryOf(detail()) });
+      }
+      if (url.pathname === `/imports/${importId}`) return Response.json({ import: detail() });
+      return undefined;
+    });
+    let releaseUpload = () => {};
+    vi.mocked(uploadImportObject).mockImplementation(
+      () => new Promise<void>((resolve) => (releaseUpload = resolve))
+    );
+    const runtime = mountApp(authFixture(makeSession()).client, '/clients');
+
+    await userEvent.click(await screen.findByTestId('clients-import'));
+    await screen.findByTestId('import-upload-dialog');
+    choose([new File(['%PDF'], 'a.pdf', { type: 'application/pdf' })]);
+    await screen.findByTestId('import-chosen');
+    await userEvent.click(screen.getByTestId('import-upload-submit'));
+    const row = await screen.findByTestId('import-list-row');
+    await waitFor(() => expect(row.textContent).toContain('Fișierele se încarcă.'));
+    expect(requestsTo(`/imports/${importId}`)).not.toHaveLength(0);
+    releaseUpload();
+
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clients/import/${importId}`)
+    );
+    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe(
+      'Citim documentele'
+    );
+    expect(screen.queryByTestId('import-upload-unfinished')).toBeNull();
+  });
+
   it('asks for fewer files past 150', async () => {
     mockImportApi();
     mountApp(authFixture(makeSession()).client, '/clients');

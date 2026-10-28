@@ -16,7 +16,7 @@ import {
 } from '@/api/generated/api';
 import { useAuth } from '@/features/auth/auth-context';
 
-import { filesLabel, isRunning, uploadName } from './import-format';
+import { filesLabel, isRunning, isUploadUnderway, uploadName } from './import-format';
 import { useImport } from './use-import';
 
 type ImportItem = ImportListResponseItemsItem;
@@ -141,7 +141,9 @@ function ImportListRow({ item }: { item: ImportItem }) {
     icon = <Upload className="size-5" aria-hidden="true" />;
     body = (
       <span className="text-sm text-muted-foreground">
-        Încărcarea nu s-a terminat, așa că citirea n-a pornit.
+        {isUploadUnderway(detail ?? item)
+          ? 'Fișierele se încarcă.'
+          : 'Încărcarea nu s-a terminat, așa că citirea n-a pornit.'}
       </span>
     );
     action = link('Vezi importul');

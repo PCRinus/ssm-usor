@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import {
   abandonImport,
   createImport,
+  getGetImportQueryKey,
   getListImportsQueryKey,
   registerImportFiles,
   startImport,
@@ -69,7 +70,11 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
       });
       return;
     }
-    await queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() });
+    // The list behind the dialog may have read the import while it was still uploading.
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
+      queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(id) }),
+    ]);
     onStarted(id);
   }
 

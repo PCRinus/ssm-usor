@@ -61,6 +61,20 @@ export const importRunningStatuses = ['preparing', 'sorting', 'reading', 'checki
 export const isRunning = (status: string) =>
   (importRunningStatuses as readonly string[]).includes(status);
 
+// The files go up from the browser that chose them, so an import still uploading this long
+// after it was created has lost that browser and will not start by itself.
+export const uploadStallMs = 15 * 60_000;
+
+type Uploading = { status: string; createdAt: string };
+
+export const uploadStallsAt = (detail: Uploading) => Date.parse(detail.createdAt) + uploadStallMs;
+
+export const isUploadUnderway = (detail: Uploading, now = Date.now()) =>
+  detail.status === 'uploading' && now < uploadStallsAt(detail);
+
+export const isUploadStalled = (detail: Uploading, now = Date.now()) =>
+  detail.status === 'uploading' && now >= uploadStallsAt(detail);
+
 function joinRo(parts: string[]) {
   if (parts.length <= 1) return parts.join('');
   return `${parts.slice(0, -1).join(', ')} și ${parts.at(-1)}`;
