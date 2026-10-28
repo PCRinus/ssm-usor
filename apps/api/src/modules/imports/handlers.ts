@@ -703,18 +703,19 @@ export const splitImport: RouteHandler<typeof splitImportRoute, ApiEnv> = async 
     );
   }
   const admin = createAdminClient(c);
-  const earlier = await admin
-    .from('imports')
-    .select('id, import_files(upload_path)')
-    .eq('source_import_id', importId)
-    .neq('status', 'abandoned');
-  if (earlier.error) throw fromDatabaseError(earlier.error, 'find earlier splits');
-  const taken = new Set(
-    earlier.data.flatMap((split) => split.import_files.map((file) => file.upload_path))
-  );
-  if (files.some((file) => taken.has(file.upload_path))) {
-    throw conflict('These files were split off already.', importErrorReasons.alreadySplit);
-  }
+  const paths = new Set(files.map((file) => file.upload_path));
+  const splitsTaking = async (context: string) => {
+    const { data, error } = await admin
+      .from('imports')
+      .select('id, created_at, import_files(upload_path)')
+      .eq('source_import_id', importId)
+      .neq('status', 'abandoned');
+    if (error) throw fromDatabaseError(error, context);
+    return data.filter((split) => split.import_files.some((file) => paths.has(file.upload_path)));
+  };
+  const alreadySplit = () =>
+    conflict('These files were split off already.', importErrorReasons.alreadySplit);
+  if ((await splitsTaking('find earlier splits')).length > 0) throw alreadySplit();
 
   const organizationId = c.get('membership').organizationId;
   const created = await admin
@@ -726,10 +727,13 @@ export const splitImport: RouteHandler<typeof splitImportRoute, ApiEnv> = async 
       source_import_id: importId,
       created_by: c.get('user').id,
     })
-    .select('id')
+    .select('id, created_at')
     .single();
   if (created.error) throw fromDatabaseError(created.error, 'create split import');
   const splitId = created.data.id;
+  const ours = { id: splitId, created_at: created.data.created_at };
+  const before = (a: typeof ours, b: typeof ours) =>
+    a.created_at < b.created_at || (a.created_at === b.created_at && a.id < b.id);
   const objects = createAdminFileStore(c);
   const copied: string[] = [];
   try {
@@ -748,6 +752,12 @@ export const splitImport: RouteHandler<typeof splitImportRoute, ApiEnv> = async 
       )
       .select('id, upload_path, storage_path');
     if (rows.error) throw fromDatabaseError(rows.error, 'register split files');
+    // Two splits of the same files at once each pass the check above. Each looks again once its
+    // files are in: the later one sees the earlier and steps back, since nothing locks the source.
+    const rivals = (await splitsTaking('find concurrent splits')).filter(
+      (split) => split.id !== splitId && before(split, ours)
+    );
+    if (rivals.length > 0) throw alreadySplit();
     const source = new Map(files.map((file) => [file.upload_path, file.storage_path]));
     for (const file of rows.data) {
       copied.push(file.storage_path);

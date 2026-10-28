@@ -660,6 +660,67 @@ describe('POST /imports/{importId}/split', () => {
     expect(sent).toEqual([{ type: 'prepare', importId: splitId, fileId: fileId(9) }]);
   });
 
+  it('steps back when another split of the same files was made at the same time', async () => {
+    let lookups = 0;
+    mockUpstream(({ url, method, admin }) => {
+      if (url.pathname === '/rest/v1/imports' && method === 'POST') {
+        return Response.json(
+          { id: splitId, created_at: '2026-10-28T09:20:00.000002+00:00' },
+          { status: 201 }
+        );
+      }
+      if (url.pathname === '/rest/v1/imports' && method === 'DELETE') {
+        return new Response(null, { status: 204 });
+      }
+      if (url.pathname === '/rest/v1/imports' && admin) {
+        lookups++;
+        const taking = (id: string, at: string) => ({
+          id,
+          created_at: at,
+          import_files: [{ upload_path: 'Dosar/Fisier 2.docx' }],
+        });
+        return Response.json(
+          lookups === 1
+            ? []
+            : [
+                taking(splitId, '2026-10-28T09:20:00.000002+00:00'),
+                taking('9b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d', '2026-10-28T09:20:00.000001+00:00'),
+              ]
+        );
+      }
+      if (url.pathname === '/rest/v1/imports') {
+        return Response.json(importRow({ status: 'ready', ready_at: '2026-10-28T09:10:00+00:00' }));
+      }
+      if (url.pathname === '/rest/v1/import_files' && method === 'POST') {
+        return Response.json(
+          [
+            {
+              id: fileId(9),
+              upload_path: 'Dosar/Fisier 2.docx',
+              storage_path: storagePath(splitId, 9, 'docx'),
+            },
+          ],
+          { status: 201 }
+        );
+      }
+      if (url.pathname === '/rest/v1/import_files') {
+        return Response.json([fileRow(2, { state: 'other_company' })]);
+      }
+      if (url.pathname === '/storage/v1/object/imports' && method === 'DELETE') {
+        return Response.json([]);
+      }
+    });
+    const response = await request(`/imports/${importId}/split`, 'POST', { fileIds: [fileId(2)] });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ reason: 'import_already_split' });
+    expect(callsTo('/rest/v1/imports', 'DELETE')[0]!.url.searchParams.get('id')).toBe(
+      `eq.${splitId}`
+    );
+    expect(callsTo('/storage/v1/object/copy')).toEqual([]);
+    expect(sent).toEqual([]);
+  });
+
   it('refuses a file that is not about another company', async () => {
     mockUpstream(({ url }) => {
       if (url.pathname === '/rest/v1/imports') {
