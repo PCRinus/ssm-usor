@@ -70,7 +70,7 @@ export function checkQuotes(proposal: Proposal, files: CheckInput['files']): Fla
   return tracedValues(proposal).flatMap(({ path, sources }) =>
     sources.flatMap((source, index): Flag[] => {
       const sourcePath = `${path}.sources.${index}`;
-      if (!(source.file in files)) {
+      if (!Object.hasOwn(files, source.file)) {
         return [{ path: sourcePath, code: 'file_not_found', detail: source.file }];
       }
       const text = files[source.file];

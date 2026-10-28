@@ -42,6 +42,19 @@ describe('checkQuotes', () => {
     ]);
   });
 
+  it('flags a file named like an object’s own property as not found', () => {
+    const value = proposal();
+    value.client.caenCode.options[0]!.sources = [{ file: 'constructor', quote: 'cod CAEN 1071' }];
+
+    expect(checkQuotes(value, files)).toEqual([
+      {
+        path: 'client.caenCode.options.0.sources.0',
+        code: 'file_not_found',
+        detail: 'constructor',
+      },
+    ]);
+  });
+
   it('leaves a file without text unchecked', () => {
     expect(checkQuotes(proposal(), { ...files, 'Dosar/Decizia 1.docx': null })).toEqual([]);
   });
