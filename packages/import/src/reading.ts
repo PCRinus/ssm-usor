@@ -196,9 +196,9 @@ function countyCode(written: string) {
   const byCode = romanianCounties.find((county) => county.code === compact);
   if (byCode) return byCode.code;
   const folded = foldText(written)
-    .replace(/^(judetul|judet|jud|municipiul)\s+/, '')
+    .replace(/^(judetul|judet|jud|municipiul|mun)\s+/, '')
     .trim();
-  if (folded === 'bucuresti' || folded.startsWith('bucuresti ')) return 'B';
+  if (/^(bucuresti|sector(ul)? [1-6])( |$)/.test(folded)) return 'B';
   return romanianCounties.find((county) => foldText(county.name) === folded)?.code ?? written;
 }
 

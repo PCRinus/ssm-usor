@@ -44,6 +44,15 @@ describe('fromWire', () => {
     expect(proposal.client.contactName.options).toEqual([]);
   });
 
+  it('reads Bucharest’s county however it is written', () => {
+    const counties = ['Mun. București', 'Municipiul Bucuresti, Sector 3', 'Sector 3', 'sectorul 6'];
+    for (const county of counties) {
+      const answer = wireAnswer();
+      answer.workplaces[0]!.county = county;
+      expect(fromWire(answer).workplaces[0]!.countyCode, county).toBe('B');
+    }
+  });
+
   it('ties equipment to its workplace and gathers the workplace’s rooms', () => {
     const [office] = proposal.workplaces;
     expect(proposal.fireEquipment.map((equipment) => equipment.workplace)).toEqual([
