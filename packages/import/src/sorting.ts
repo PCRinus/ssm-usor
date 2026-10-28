@@ -1,7 +1,6 @@
-import { normalizeCui } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import { sameName } from './match';
+import { cuiDigits, sameName } from './match';
 import { answerFormat } from './wire';
 
 export const documentKinds = [
@@ -61,11 +60,6 @@ interface Group {
   cui: string | null;
   names: string[];
   paths: string[];
-}
-
-function cuiDigits(written: string | null) {
-  if (written === null) return null;
-  return normalizeCui(written)?.cui ?? null;
 }
 
 function groupName(group: Group) {

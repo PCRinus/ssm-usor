@@ -1,3 +1,5 @@
+import { normalizeCui } from '@ssm-usor/contracts';
+
 const marks = /\p{M}/gu;
 const wordCharacter = /[\p{L}\p{N}]/u;
 
@@ -54,6 +56,20 @@ export function contained(a: string, b: string) {
 // No prefix rule, which is for workplaces: "Protect SRL" is not "Protecție Construct SRL".
 export function sameName(a: string, b: string) {
   return foldName(a) === foldName(b) || similar(a, b) >= 0.8;
+}
+
+const cuiLabel =
+  /^(c\.?\s*u\.?\s*i\.?|c\.?\s*i\.?\s*f\.?|cod(ul)?\s+(fiscal|unic\s+de\s+inregistrare|de\s+identificare\s+fiscala))(\s*\/\s*(c\.?\s*i\.?\s*f|c\.?\s*u\.?\s*i)\.?)?(\s*nr\.?)?\s*:?\s*/;
+
+export function cuiDigits(written: string | null) {
+  if (written === null) return null;
+  const unlabelled = written
+    .trim()
+    .normalize('NFD')
+    .replace(marks, '')
+    .toLowerCase()
+    .replace(cuiLabel, '');
+  return normalizeCui(unlabelled)?.cui ?? null;
 }
 
 const addressWords = new Set(['str', 'strada', 'nr', 'numar', 'numarul']);

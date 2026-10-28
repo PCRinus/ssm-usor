@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { contained, findQuote, foldName, foldText, sameName, similar } from './match';
+import { contained, cuiDigits, findQuote, foldName, foldText, sameName, similar } from './match';
 
 describe('foldText', () => {
   it('drops diacritics of both the comma and the cedilla forms', () => {
@@ -33,6 +33,24 @@ describe('sameName', () => {
     expect(sameName('S.C. Brutăria Fictivă S.R.L.', 'BRUTARIA FICTIVA SRL')).toBe(true);
     expect(sameName('Protect SRL', 'Protecție Construct SRL')).toBe(false);
     expect(sameName('Alfa SRL', 'Alfa Construct SRL')).toBe(false);
+  });
+});
+
+describe('cuiDigits', () => {
+  it('reads a CUI past its label and separators', () => {
+    for (const written of [
+      '12345674',
+      'RO 12345674',
+      'C.U.I. RO12345674',
+      'CUI: 12.345.674',
+      'CIF 12345674',
+      'Cod fiscal: RO 12345674',
+      'Codul unic de înregistrare nr. 12345674',
+      'CUI/CIF: 12345674',
+    ]) {
+      expect(cuiDigits(written), written).toBe('12345674');
+    }
+    expect(cuiDigits('J35/123/2015')).toBeNull();
   });
 });
 

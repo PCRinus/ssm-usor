@@ -3,14 +3,13 @@ import {
   fireEquipmentKinds,
   fireExtinguishingAgents,
   fireInstallationKinds,
-  normalizeCui,
   responsiblePersonRoles,
   romanianCounties,
   staffCategories,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import { contained, foldName, foldText, sameAddress, similar } from './match';
+import { contained, cuiDigits, foldName, foldText, sameAddress, similar } from './match';
 import {
   clientFieldNames,
   type Field,
@@ -210,7 +209,7 @@ function factValue(field: string, value: string): string | number | null {
     const digits = trimmed.match(/\d+/)?.[0];
     return digits === undefined ? null : Number(digits);
   }
-  if (field === 'client.cui') return normalizeCui(trimmed)?.cui ?? trimmed;
+  if (field === 'client.cui') return cuiDigits(trimmed) ?? trimmed;
   if (field === 'client.countyCode') return countyCode(trimmed);
   return trimmed;
 }
