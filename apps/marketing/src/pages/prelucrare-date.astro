@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Acord de prelucrare a datelor"
   description="Condițiile în care SSM Ușor prelucrează date personale în numele serviciilor externe de prevenire și protecție, conform articolului 28 din GDPR."
-  updated="25 octombrie 2026"
+  updated="28 octombrie 2026"
 >
   <p>
     Acest acord face parte din <a href="/termeni/">Termenii și condițiile</a> Platformei SSM Ușor și
@@ -39,18 +39,31 @@ const M = legalEntity.filled ? 'span' : 'mark';
       persoanele de contact ale acestora, membrii echipei Furnizorului.
     </li>
     <li>
-      <strong>Categorii de date:</strong> date de identificare (nume, CNP, date din actul de
-      identitate atunci când Furnizorul le introduce), date despre locul de muncă (funcție, loc de
-      muncă, data angajării și a plecării), date de contact, evidența instruirilor, testărilor și
-      semnăturilor. Platforma nu este destinată datelor privind sănătatea; Furnizorul nu le încarcă.
+      <strong>Categorii de date:</strong> date de identificare (nume, CNP, data și locul nașterii,
+      domiciliul, date din actul de identitate atunci când Furnizorul le introduce), date despre
+      locul de muncă (funcție, loc de muncă, studii și calificare, autorizații, traseul de
+      deplasare, data angajării și a plecării), date de contact, evidența instruirilor, testărilor
+      și semnăturilor, precum și documentele și fotografiile de fișe pe care Furnizorul le importă.
+    </li>
+    <li>
+      <strong>Date privind sănătatea:</strong> singurele sunt grupa sanguină și Rh-ul angajatului,
+      trecute doar pe fișa individuală de instruire. Furnizorul le introduce sau le preia din
+      documentele pe care le importă. Platforma nu cere și nu preia în evidențe alte date privind
+      sănătatea; dacă un fișier încărcat sau importat de Furnizor le cuprinde, de exemplu rubrica de
+      control medical a unei fișe, ele rămân doar în acel fișier.
     </li>
     <li>
       <strong>Scop:</strong> furnizarea Platformei, adică stocarea, afișarea și generarea
-      documentelor și evidențelor de securitate și sănătate în muncă, la comanda Furnizorului.
+      documentelor și evidențelor de securitate și sănătate în muncă, la comanda Furnizorului. Când
+      un utilizator al Furnizorului importă documentele unui client, Platforma le citește cu un
+      model de inteligență artificială și propune datele firmei și ale angajaților; nimic nu se
+      salvează în evidențe până nu confirmă utilizatorul.
     </li>
     <li>
       <strong>Durată:</strong> cât timp Furnizorul are cont în Platformă, plus perioada de export și
-      ștergere de la punctul 9.
+      ștergere de la punctul 9. Un import abandonat se șterge, cu fișierele lui, după 14 zile.
+      Propunerea unui import confirmat se păstrează încă 30 de zile, pentru asistență, apoi se
+      șterge; fișierele importate rămân printre fișierele clientului.
     </li>
   </ul>
 
@@ -63,7 +76,9 @@ const M = legalEntity.filled ? 'span' : 'mark';
   </p>
   <p>
     Furnizorul răspunde de temeiul legal al prelucrării, de informarea persoanelor vizate și de
-    corectitudinea datelor pe care le încarcă.
+    corectitudinea datelor pe care le încarcă. Pentru grupa sanguină și Rh, care sunt date din
+    categoria specială de la articolul 9 din GDPR, răspunde și de condiția de la alineatul (2) al
+    acestuia care permite prelucrarea lor.
   </p>
 
   <h2>4. Confidențialitate</h2>
@@ -80,6 +95,10 @@ const M = legalEntity.filled ? 'span' : 'mark';
     <li>criptarea datelor în tranzit și în repaus;</li>
     <li>roluri și drepturi de acces în Platformă, cu autentificare pentru fiecare utilizator;</li>
     <li>afișarea mascată a CNP-ului, cu dezvăluire doar la cerere;</li>
+    <li>
+      trimiterea datelor către un model de inteligență artificială doar când un utilizator al
+      Furnizorului pornește un import, doar pentru acel import;
+    </li>
     <li>actualizări de securitate ale infrastructurii, asigurate de furnizorii de găzduire.</li>
   </ul>
 
@@ -89,7 +108,10 @@ const M = legalEntity.filled ? 'span' : 'mark';
     aceștia sunt:
   </p>
   <ul>
-    <li>Cloudflare, Inc.: găzduirea și livrarea Platformei;</li>
+    <li>
+      Cloudflare, Inc.: găzduirea și livrarea Platformei și, prin Cloudflare AI Gateway,
+      transmiterea documentelor importate către OpenAI, cu jurnalele cererilor păstrate 30 de zile;
+    </li>
     <li>Supabase, Inc.: autentificare și bază de date, cu stocare în Uniunea Europeană;</li>
     <li>
       <M>{legalEntity.emailProvider}</M>: email tranzacțional;
@@ -100,7 +122,13 @@ const M = legalEntity.filled ? 'span' : 'mark';
     </li>
     <li>
       PostHog: analiza utilizării Platformei și a portalului, înregistrări ale sesiunii, urmărirea
-      erorilor și asistență, cu proiect găzduit în Uniunea Europeană.
+      erorilor și asistență, cu proiect găzduit în Uniunea Europeană;
+    </li>
+    <li>
+      OpenAI, în Statele Unite, la care documentele ajung prin Cloudflare AI Gateway: citirea
+      documentelor și a fotografiilor de fișe pe care Furnizorul le importă, ca să propună datele
+      firmei client și ale angajaților. OpenAI nu folosește aceste date pentru antrenarea modelelor
+      și le poate păstra cel mult 30 de zile, pentru depistarea abuzurilor.
     </li>
   </ul>
   <p>
