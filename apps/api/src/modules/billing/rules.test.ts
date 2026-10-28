@@ -83,6 +83,21 @@ describe('when a change applies', () => {
     });
   });
 
+  it('drops what the higher plan includes in the same upgrade, rather than at the renewal', () => {
+    const annualStart = { ...start, interval: 'year', employeePacks: 2, extraMembers: 1 } as const;
+    const annualPro = { ...pro, interval: 'year', employeePacks: 0, extraMembers: 0 } as const;
+    expect(splitChange(annualStart, annualPro)).toEqual({
+      now: annualPro,
+      atRenewal: null,
+      chargeNow: true,
+    });
+    expect(splitChange({ ...start, extraMembers: 1 }, pro)).toEqual({
+      now: pro,
+      atRenewal: null,
+      chargeNow: false,
+    });
+  });
+
   it('moves monthly to annual at once, with everything chosen', () => {
     const target = { ...pro, interval: 'year', employeePacks: 0, extraMembers: 0 } as const;
     expect(splitChange({ ...pro, extraMembers: 1 }, target)).toEqual({
