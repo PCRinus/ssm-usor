@@ -1,6 +1,8 @@
 import { importFileExtensions, type ImportFileType, importLimits } from '@ssm-usor/contracts';
 import { unzipSync } from 'fflate';
 
+import { zipNameFixes } from './zip-names';
+
 export type PickedFile = {
   // Its folders inside the upload and its name, with / between them.
   path: string;
@@ -144,11 +146,13 @@ async function openZips(zips: Zip[], into: Selection) {
     try {
       if (zip.blob.size > maxZipBytes) throw new OverBudget();
       const bytes = new Uint8Array(await zip.blob.arrayBuffer());
+      const fixes = zipNameFixes(bytes);
+      const named = (entry: string) => fixes.get(entry) ?? entry;
       const entries = unzipSync(bytes, {
         // fflate allocates each entry's declared size, so only what may be uploaded is inflated,
         // and a zip stops as soon as it holds more than one import takes.
         filter: (entry) => {
-          const path = cleanPath(`${zip.path}/${entry.name}`);
+          const path = cleanPath(`${zip.path}/${named(entry.name)}`);
           if (!path || entry.name.endsWith('/')) return false;
           const entryName = path.split('/').at(-1)!;
           const extension = extensionOf(entryName);
@@ -186,7 +190,7 @@ async function openZips(zips: Zip[], into: Selection) {
         },
       });
       for (const [entry, content] of Object.entries(entries)) {
-        const path = cleanPath(`${zip.path}/${entry}`);
+        const path = cleanPath(`${zip.path}/${named(entry)}`);
         if (!path) continue;
         const type = importTypeOf(path) ?? undefined;
         sortOne(path, new Blob([content as BlobPart], { type }), group, found, inner);

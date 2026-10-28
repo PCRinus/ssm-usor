@@ -26,6 +26,16 @@ const zip = (entries: Record<string, string | Uint8Array>) =>
 
 const zipBytes = async (blob: Blob) => new Uint8Array(await blob.arrayBuffer());
 
+// Swaps a name for raw bytes of the same length, without the UTF-8 flag.
+function rename(zipped: Uint8Array, placeholder: string, name: string | number[]) {
+  const from = strToU8(placeholder);
+  const to = typeof name === 'string' ? strToU8(name) : [...name, ...from.slice(name.length)];
+  for (let at = 0; at <= zipped.length - from.length; at += 1) {
+    if (from.every((byte, index) => zipped[at + index] === byte)) zipped.set(to, at);
+  }
+  return zipped;
+}
+
 const megabytes = (count: number) => new Uint8Array(count * 1024 * 1024);
 
 describe('choosing the files of an import', () => {
@@ -141,6 +151,30 @@ describe('choosing the files of an import', () => {
     expect(selection.archives).toEqual(['acte vechi.rar', 'nivel4.zip']);
     expect(selection.setAside.map((file) => [file.name, file.reason])).toEqual([
       ['mare.bin', 'unsupported'],
+    ]);
+  });
+
+  it('reads Romanian names from zips made on macOS and on Windows', async () => {
+    const finder = await zipBytes(zip({ 'Fxxxxx.pdf': 'a', 'Bxxxxx/Decizie.pdf': 'b' }));
+    const windows = await zipBytes(zip({ 'Fyyy.pdf': 'c', 'îngrijitor.pdf': 'd' }));
+    const selection = await addToSelection(emptySelection, [
+      {
+        path: 'mac.zip',
+        blob: new Blob([
+          rename(rename(finder, 'Fxxxxx.pdf', 'Fișă.pdf'), 'Bxxxxx/', 'Brută/') as BlobPart,
+        ]),
+      },
+      {
+        path: 'windows.zip',
+        blob: new Blob([rename(windows, 'Fyyy.pdf', [0x46, 0x69, 0xad, 0xc7]) as BlobPart]),
+      },
+    ]);
+
+    expect(selection.files.map((file) => file.path)).toEqual([
+      'mac.zip/Fișă.pdf',
+      'mac.zip/Brută/Decizie.pdf',
+      'windows.zip/Fișă.pdf',
+      'windows.zip/îngrijitor.pdf',
     ]);
   });
 
