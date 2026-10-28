@@ -7,6 +7,7 @@ import {
   bodyOf,
   clientId,
   fetchMock,
+  importFile,
   importId,
   mockApi,
   proposalFixture,
@@ -145,6 +146,14 @@ describe('the review hub', () => {
     expect(confirm.getAttribute('aria-disabled')).toBe('true');
     await userEvent.click(confirm);
     expect(screen.queryByTestId('import-confirm-dialog')).toBeNull();
+  });
+
+  it('says the proposal comes from one file in the singular', async () => {
+    mockReview(readyDetail({ files: [importFile({ fileName: 'Decizie 1.docx' })] }));
+    mount();
+    expect((await screen.findByTestId('import-review-hub')).textContent).toContain(
+      'Propunere dintr-un fișier citit'
+    );
   });
 
   it('confirms a new client and opens its page with what was imported', async () => {

@@ -94,7 +94,8 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
           )}
           <h1 className="text-3xl font-semibold tracking-tight">{name}</h1>
           <p className="text-sm text-muted-foreground">
-            Propunere din {filesLabel(read)} citite{summary ? ` din ${summary}` : ''}.{' '}
+            Propunere {read === 1 ? 'dintr-un fișier citit' : `din ${filesLabel(read)} citite`}
+            {summary ? ` din ${summary}` : ''}.{' '}
             {intoExisting
               ? 'Nu schimbăm nimic la client până nu confirmi.'
               : 'Nu salvăm nimic până nu creezi clientul.'}
