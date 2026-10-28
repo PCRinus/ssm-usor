@@ -1256,14 +1256,23 @@ client under the caller's own policies. Nobody signed in inserts, updates or del
 table. The API creates imports and their files' rows with the secret key, after checking the
 member, and its queue consumer records the steps, the files' states, the proposal and the
 usage the same way, the usage through `record_import_usage(import, file, input, cached, output,
-cost)`, which adds to the import and, given a file, to that file. A member's decisions are three
+cost)`, which adds to the import and, given a file, to that file. A member's decisions are four
 functions that run as their owner and find the import as the select policy does, answering
 `P0002` for one the caller cannot see: `save_import_changes(import, expected version, changes)`
 stores the review and returns the next version, `abandon_import(import)` ends any import not
-yet confirmed or abandoned, keeping a failed import's `failed_at` as its `abandoned_at`, and
-`apply_client_import` confirms. Both of the first refuse an import
-that is not ready (`IMP01`) and a stale version (`IMP02`); abandoning refuses an ended import
-(`IMP01`).
+yet confirmed or abandoned, keeping a failed import's `failed_at` as its `abandoned_at`,
+`split_import` takes another company's files into a new import, and `apply_client_import`
+confirms. Both of the first refuse an import that is not ready (`IMP01`) and a stale version
+(`IMP02`); abandoning refuses an ended import (`IMP01`).
+
+**Splitting.** `split_import(import, file ids)` locks the import, so two splits of the same
+files at once take turns, and in one transaction creates an `uploading` import for a new client
+with `source_import_id` and `created_by` the caller, holding copies of the files' rows. It
+returns `{"import_id", "files": [{"source_path", "target_path"}]}`: the objects the API then
+copies within the bucket before it starts the new import. It refuses an import that is not
+reading, checking, ready, confirmed or failed (`IMP01`), a file that is not one of the import's
+`other_company` files (`IMP07`), and a file whose path is already in an import split from this
+one and not abandoned (`IMP08`).
 
 **The bucket.** `imports` is private, takes PDF, `.doc`, `.docx`, JPEG, PNG, HEIC, plain text
 and JSON, up to 20 MiB. As for client files, the row comes first: members upload only to the

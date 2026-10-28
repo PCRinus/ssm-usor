@@ -1,5 +1,5 @@
 begin;
-select plan(91);
+select plan(99);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -44,6 +44,8 @@ $$;
 
 create temp table applied (result jsonb);
 grant select, insert on applied to authenticated;
+create temp table split (result jsonb);
+grant select, insert on split to authenticated;
 
 set local role service_role;
 
@@ -283,6 +285,13 @@ select throws_ok(
   'nor confirms one'
 );
 
+select throws_ok(
+  $$ select public.split_import('10000000-0000-4000-8000-000000000001', array['f0000000-0000-4000-8000-000000000004']::uuid[]) $$,
+  'P0002',
+  null,
+  'nor splits one'
+);
+
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 
 select is(
@@ -311,6 +320,62 @@ select throws_ok(
   'IMP01',
   null,
   'and so is one before the import is ready'
+);
+
+select lives_ok(
+  $$ insert into split select public.split_import('10000000-0000-4000-8000-000000000001',
+       array['f0000000-0000-4000-8000-000000000004', 'f0000000-0000-4000-8000-000000000004']::uuid[]) $$,
+  'a member splits another company''s files off into a new import'
+);
+
+select results_eq(
+  $$ select i.organization_id, i.kind::text, i.status::text, i.client_id, i.into_existing_client, i.source_import_id, i.created_by
+     from public.imports i where i.id = (select (result ->> 'import_id')::uuid from split) $$,
+  $$ values ('11111111-0000-4000-8000-000000000001'::uuid, 'client', 'uploading', null::uuid, false,
+       '10000000-0000-4000-8000-000000000001'::uuid, 'bbbbbbbb-0000-4000-8000-000000000001'::uuid) $$,
+  'for a new client, uploading until the objects are copied, created by that member'
+);
+
+select results_eq(
+  $$ select f.upload_path, f.original_file_name, f.mime_type, f.size_bytes, f.state::text,
+       (select result -> 'files' from split)
+     from public.import_files f where f.import_id = (select (result ->> 'import_id')::uuid from split) $$,
+  $$ select 'Dosar SSM/Alta firma/Contract.pdf', 'Contract.pdf', 'application/pdf', 2048, 'uploading',
+       jsonb_build_array(jsonb_build_object('source_path', pg_temp.path_of('f0000000-0000-4000-8000-000000000004'),
+         'target_path', f.storage_path))
+     from public.import_files f where f.import_id = (select (result ->> 'import_id')::uuid from split) $$,
+  'which holds those files once each, and returns the objects to copy'
+);
+
+select throws_ok(
+  $$ select public.split_import('10000000-0000-4000-8000-000000000001', array['f0000000-0000-4000-8000-000000000004']::uuid[]) $$,
+  'IMP08',
+  null,
+  'files are split off once'
+);
+
+select throws_ok(
+  $$ select public.split_import('10000000-0000-4000-8000-000000000001',
+       array['f0000000-0000-4000-8000-000000000003']::uuid[]) $$,
+  'IMP07',
+  null,
+  'a file not about another company is not split off'
+);
+
+select throws_ok(
+  $$ select public.split_import('10000000-0000-4000-8000-000000000001',
+       array['f0000000-0000-4000-8000-000000000005']::uuid[]) $$,
+  'IMP07',
+  null,
+  'nor is a file of another import'
+);
+
+select throws_ok(
+  $$ select public.split_import('10000000-0000-4000-8000-000000000004',
+       array['f0000000-0000-4000-8000-000000000005']::uuid[]) $$,
+  'IMP01',
+  null,
+  'and an import is not split before its files are sorted'
 );
 
 select throws_ok(

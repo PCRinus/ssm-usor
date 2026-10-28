@@ -75,6 +75,76 @@ begin
 end;
 $$;
 
+-- The source's lock makes two splits of the same files at once take turns, so the second sees
+-- the first's files. The new import is uploading until the API has copied their objects.
+--   P0002  no such import for the caller
+--   IMP01  the import cannot be split now
+--   IMP07  a file named is not one of the import's files about another company
+--   IMP08  a file named was split off already, into an import not abandoned
+create function public.split_import(p_import_id uuid, p_file_ids uuid[])
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_import public.imports;
+  v_file_ids uuid[];
+  v_split_id uuid;
+begin
+  v_import := public.lock_visible_import(p_import_id);
+  if v_import.status not in ('reading', 'checking', 'ready', 'confirmed', 'failed') then
+    raise exception 'The import cannot be split now.' using errcode = 'IMP01';
+  end if;
+  select coalesce(array_agg(distinct n.id), '{}') into v_file_ids from unnest(p_file_ids) as n (id);
+  if cardinality(v_file_ids) = 0 or cardinality(v_file_ids) <> (
+    select count(*) from public.import_files f
+    where f.import_id = p_import_id and f.id = any (v_file_ids) and f.state = 'other_company'
+  ) then
+    raise exception 'Only the import''s files about another company are split off.' using errcode = 'IMP07';
+  end if;
+  if exists (
+    select 1
+    from public.import_files f
+    join public.import_files taken on taken.upload_path = f.upload_path
+    join public.imports s on s.id = taken.import_id
+    where f.import_id = p_import_id
+      and f.id = any (v_file_ids)
+      and s.source_import_id = p_import_id
+      and s.status <> 'abandoned'
+  ) then
+    raise exception 'These files were split off already.' using errcode = 'IMP08';
+  end if;
+
+  insert into public.imports (organization_id, kind, into_existing_client, source_import_id, created_by)
+  values (v_import.organization_id, 'client', false, p_import_id, auth.uid())
+  returning id into v_split_id;
+  insert into public.import_files (
+    import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256
+  )
+  select v_split_id, f.organization_id, f.upload_path, f.original_file_name, f.mime_type, f.size_bytes, f.sha256
+  from public.import_files f
+  where f.import_id = p_import_id and f.id = any (v_file_ids)
+  order by f.upload_path, f.id;
+
+  return jsonb_build_object(
+    'import_id', v_split_id,
+    'files', (
+      select jsonb_agg(
+        jsonb_build_object('source_path', f.storage_path, 'target_path', s.storage_path)
+        order by s.upload_path
+      )
+      from public.import_files s
+      join public.import_files f on f.import_id = p_import_id and f.upload_path = s.upload_path
+      where s.import_id = v_split_id
+    )
+  );
+end;
+$$;
+
+comment on function public.split_import(uuid, uuid[]) is
+  'Takes files of an import that are about another company into a new import for a new client, in one transaction (ADR 030), and returns {"import_id": uuid, "files": [{"source_path", "target_path"}]}: the objects the API then copies within the imports bucket before it starts the new import.';
+
 --   P0002  no such import, or no such file of it
 create function public.record_import_usage(
   p_import_id uuid,
@@ -831,8 +901,10 @@ revoke all on function public.save_import_changes(uuid, integer, jsonb) from pub
 revoke all on function public.abandon_import(uuid) from public, anon;
 revoke all on function public.apply_client_import(uuid, integer, jsonb) from public, anon;
 revoke all on function public.import_folder_copies(uuid) from public, anon;
+revoke all on function public.split_import(uuid, uuid[]) from public, anon;
 grant execute on function public.save_import_changes(uuid, integer, jsonb) to authenticated;
 grant execute on function public.abandon_import(uuid) to authenticated;
+grant execute on function public.split_import(uuid, uuid[]) to authenticated;
 grant execute on function public.apply_client_import(uuid, integer, jsonb) to authenticated;
 grant execute on function public.import_folder_copies(uuid) to authenticated, service_role;
 

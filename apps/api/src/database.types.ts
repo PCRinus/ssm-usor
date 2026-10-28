@@ -7240,6 +7240,10 @@ export type Database = {
         };
         Returns: boolean;
       };
+      split_import: {
+        Args: { p_file_ids: string[]; p_import_id: string };
+        Returns: Json;
+      };
       start_regeneration_job: {
         Args: {
           p_client_ids: string[];
