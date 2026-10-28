@@ -33,6 +33,7 @@ import {
 import {
   describe,
   loadPrepared,
+  maxScannedPages,
   type PreparedPages,
   sendAll,
   textPathOf,
@@ -787,14 +788,17 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
     );
   }
   const objects = createAdminFileStore(c);
-  const texts = await Promise.all(
+  const toRead = await Promise.all(
     files
       .filter((each) => each.state === 'read' || each === file)
       .map((each) => loadPrepared({ read: objects.readImportObject }, each))
   );
   if (
     tooMuchText(
-      texts.map((entry) => ({ name: entry.file.original_file_name, characters: entry.text.length }))
+      toRead.map((entry) => ({
+        name: entry.file.original_file_name,
+        characters: entry.text.length,
+      }))
     )
   ) {
     throw new ApiError(
@@ -802,6 +806,18 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
       'With this file the documents have more text than one import reads.',
       undefined,
       importErrorReasons.tooMuchText
+    );
+  }
+  const scannedPages = toRead.reduce(
+    (sum, entry) => sum + (entry.pages?.pages.filter((page) => page.isScan).length ?? 0),
+    0
+  );
+  if (scannedPages > maxScannedPages) {
+    throw new ApiError(
+      'unprocessable',
+      'With this file the documents have more scanned pages than one import reads.',
+      undefined,
+      importErrorReasons.tooManyScans
     );
   }
   const admin = createAdminClient(c);

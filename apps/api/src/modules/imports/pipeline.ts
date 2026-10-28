@@ -111,17 +111,16 @@ export const importReasons = {
   nothingPrepared: 'Niciun fișier nu a putut fi citit.',
   nothingToRead: 'Niciun document nu conține date despre client.',
   tooManyScans:
-    'Sunt prea multe pagini scanate pentru un singur import. Încearcă din nou cu mai puține fișiere.',
+    'Sunt prea multe pagini scanate pentru un singur import: cel mult 150. Scoate o parte dintre fișierele scanate.',
   scansUnfinished: 'Citirea fișierelor scanate nu s-a terminat.',
-  unavailable:
-    'Serviciul care citește documentele nu a răspuns. Renunță la import și încearcă din nou.',
+  unavailable: 'Serviciul care citește documentele nu a răspuns.',
   notConfigured: 'Importul din documente nu este disponibil acum.',
   modelRefused: 'Modelul a refuzat să citească documentele.',
-  modelFailed: 'Modelul nu a dat un răspuns pe care să-l putem folosi. Încearcă din nou.',
-  failed: 'Importul s-a oprit din cauza unei erori. Renunță la el și încearcă din nou.',
+  modelFailed: 'Modelul nu a dat un răspuns pe care să-l putem folosi.',
+  failed: 'Importul s-a oprit din cauza unei erori.',
   overLimits:
     'Fișierele depășesc limitele unui import: cel mult 150 de fișiere și 100 MiB, fiecare fișier de cel mult 20 MiB.',
-  stalled: 'Importul s-a oprit înainte să se termine. Renunță la el și încearcă din nou.',
+  stalled: 'Importul s-a oprit înainte să se termine.',
   left: 'Importul a rămas neterminat 14 zile.',
 } as const;
 

@@ -961,6 +961,44 @@ describe('POST /imports/{importId}/files/{fileId}/read', () => {
     expect(sent).toEqual([]);
   });
 
+  it('refuses a scan whose pages would pass the cap with the files already read', async () => {
+    const scanned = (pages: number) => ({
+      pageCount: pages,
+      pages: Array.from({ length: pages }, (_, index) => ({
+        number: index + 1,
+        text: '',
+        isScan: true,
+      })),
+    });
+    const pdf = (n: number, overrides: Record<string, unknown>) =>
+      fileRow(n, {
+        mime_type: 'application/pdf',
+        storage_path: storagePath(importId, n, 'pdf'),
+        is_scan: true,
+        ...overrides,
+      });
+    mockUpstream(({ url, method }) => {
+      if (url.pathname.startsWith('/storage/v1/object/sign/imports/') && method === 'POST') {
+        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+      }
+      if (url.pathname.endsWith(`${fileId(1)}.json`)) return Response.json(scanned(120));
+      if (url.pathname.endsWith(`${fileId(2)}.json`)) return Response.json(scanned(40));
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow(ready));
+      if (url.pathname === '/rest/v1/import_files') {
+        return Response.json([
+          pdf(1, { state: 'read' }),
+          pdf(2, { state: 'set_aside', document_kind: 'blank_form' }),
+        ]);
+      }
+    });
+    const response = await request(`/imports/${importId}/files/${fileId(2)}/read`, 'POST');
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({ reason: 'import_too_many_scans' });
+    expect(calls.filter((call) => call.method === 'PATCH')).toEqual([]);
+    expect(sent).toEqual([]);
+  });
+
   it('answers a conflict when someone saved since', async () => {
     const texts = storedText({ 2: 300 });
     mockUpstream((call) => {
