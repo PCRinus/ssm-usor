@@ -158,6 +158,13 @@ describe('planning the customer portal', () => {
     expect(planPortal([portal])).toEqual({ actions: [], warnings: [] });
   });
 
+  it('keeps the marked configuration, which the API hands out, over the default', () => {
+    const marked = { ...portal, id: 'bpc_2', isDefault: false, marked: true };
+    expect(
+      planPortal([portal, { ...marked, features: { ...cardOnly, invoiceHistory: true } }])
+    ).toEqual({ actions: [{ kind: 'update_portal', id: 'bpc_2' }], warnings: [] });
+  });
+
   it('creates one when there is no default, and says it cannot be made the default', () => {
     const { actions, warnings } = planPortal([]);
     expect(actions).toEqual([{ kind: 'create_portal' }]);
@@ -208,14 +215,22 @@ describe('planning the webhook endpoint', () => {
 
 type Stored = Record<string, unknown> & { id: string };
 
-function fakeStripe(options: { livemode?: boolean; webhooks?: Stored[]; prices?: Stored[] } = {}) {
+function fakeStripe(
+  options: {
+    livemode?: boolean;
+    webhooks?: Stored[];
+    prices?: Stored[];
+    products?: Stored[];
+    portals?: Stored[];
+  } = {}
+) {
   const livemode = options.livemode ?? false;
   const collections: Record<string, Stored[]> = {
-    '/v1/products': [],
+    '/v1/products': options.products ?? [],
     '/v1/prices': options.prices ?? [],
     '/v1/billing/meters': [],
     '/v1/tax_rates': [],
-    '/v1/billing_portal/configurations': [],
+    '/v1/billing_portal/configurations': options.portals ?? [],
     '/v1/payment_method_domains': [],
     '/v1/webhook_endpoints': options.webhooks ?? [],
   };
@@ -228,9 +243,8 @@ function fakeStripe(options: { livemode?: boolean; webhooks?: Stored[]; prices?:
     const json = (body: unknown) =>
       new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
     if (method === 'GET') {
-      // Like Stripe, prices list only active ones unless asked otherwise.
-      const active =
-        url.searchParams.get('active') ?? (url.pathname === '/v1/prices' ? 'true' : null);
+      const activeOnly = url.pathname === '/v1/prices' || url.pathname === '/v1/products';
+      const active = url.searchParams.get('active') ?? (activeOnly ? 'true' : null);
       const data = (collections[url.pathname] ?? []).filter(
         (item) =>
           active === null ||
@@ -333,6 +347,36 @@ describe('a run against Stripe', () => {
     const state = await readStripeState(stripe, 'non-prod');
 
     expect(state.prices.map((price) => price.id)).toEqual(['price_archived']);
+  });
+
+  it('reads archived products too, so one is reactivated rather than created again', async () => {
+    const archived = {
+      id: 'ssm_usor_start',
+      object: 'product',
+      livemode: false,
+      active: false,
+      name: 'Start',
+    };
+    const { stripe } = fakeStripe({ webhooks: [webhook], products: [archived] });
+    const state = await readStripeState(stripe, 'non-prod');
+
+    expect(state.products).toEqual([{ id: 'ssm_usor_start', name: 'Start', active: false }]);
+  });
+
+  it('leaves out an inactive portal configuration, which the API ignores', async () => {
+    const inactive = {
+      id: 'bpc_old',
+      object: 'billing_portal.configuration',
+      livemode: false,
+      active: false,
+      is_default: false,
+      metadata: { ssm_usor: 'portal' },
+      features: {},
+    };
+    const { stripe } = fakeStripe({ webhooks: [webhook], portals: [inactive] });
+    const state = await readStripeState(stripe, 'non-prod');
+
+    expect(state.portals).toEqual([]);
   });
 
   it('refuses live data on non-prod', async () => {

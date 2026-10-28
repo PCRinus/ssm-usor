@@ -49,11 +49,15 @@ try {
   assertKeyMatchesEnvironment(secretKey, environment satisfies StripeEnvironment);
 
   const stripe = createStripe(secretKey);
-  const account = await stripe.accounts.retrieveCurrent().catch(() => null);
+  // The API reads the account on every catalogue load to record where customers live, so a key that
+  // cannot read it would fail every billing route and webhook.
+  const account = await stripe.accounts.retrieveCurrent().catch((error: unknown) => {
+    throw new SetupError(
+      `This key cannot read the Stripe account, which the API needs: ${error instanceof Error ? error.message : String(error)}`
+    );
+  });
   console.log(
-    account
-      ? `Stripe account ${account.id} (${account.settings?.dashboard?.display_name ?? account.email ?? 'no name'}), ${environment}.`
-      : `Stripe account not readable with this key; going by the key's mode, ${environment}.`
+    `Stripe account ${account.id} (${account.settings?.dashboard?.display_name ?? account.email ?? 'no name'}), ${environment}.`
   );
 
   const state = await readStripeState(stripe, environment);

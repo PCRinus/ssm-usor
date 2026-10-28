@@ -240,12 +240,13 @@ function samePortalFeatures(features: PortalFeatures) {
   );
 }
 
-// The API cannot make a configuration the default; the dashboard makes one the first time its
-// portal settings are saved, and from then on this script keeps that one.
+// The API hands out the marked configuration and falls back to the default, so this keeps the same
+// one card-only. The API cannot make a configuration the default; the dashboard makes one the first
+// time its portal settings are saved.
 export function planPortal(portals: PortalState[]): { actions: Action[]; warnings: string[] } {
   const found =
-    portals.find((portal) => portal.isDefault) ?? portals.find((portal) => portal.marked);
-  const warnings = found?.isDefault
+    portals.find((portal) => portal.marked) ?? portals.find((portal) => portal.isDefault);
+  const warnings = portals.some((portal) => portal.isDefault)
     ? []
     : [
         'The account has no default customer portal configuration, so a portal session must name this one. Saving the portal settings once in the dashboard creates the default; run this again then.',
@@ -360,21 +361,35 @@ export async function readStripeState(
   environment: StripeEnvironment
 ): Promise<StripeState> {
   const limit = { limit: 10_000 };
-  const [products, activePrices, archivedPrices, meters, taxRates, portals, domains, webhooks] =
-    await Promise.all([
-      stripe.products.list({ limit: 100 }).autoPagingToArray(limit),
-      // Stripe lists only active prices unless asked; an archived one still holds its lookup key.
-      stripe.prices.list({ limit: 100, active: true }).autoPagingToArray(limit),
-      stripe.prices.list({ limit: 100, active: false }).autoPagingToArray(limit),
-      stripe.billing.meters.list({ limit: 100 }).autoPagingToArray(limit),
-      stripe.taxRates.list({ limit: 100 }).autoPagingToArray(limit),
-      stripe.billingPortal.configurations.list({ limit: 100 }).autoPagingToArray(limit),
-      stripe.paymentMethodDomains.list({ limit: 100 }).autoPagingToArray(limit),
-      stripe.webhookEndpoints.list({ limit: 100 }).autoPagingToArray(limit),
-    ]);
-  const prices = [
-    ...new Map([...activePrices, ...archivedPrices].map((price) => [price.id, price])).values(),
+  const [
+    activeProducts,
+    archivedProducts,
+    activePrices,
+    archivedPrices,
+    meters,
+    taxRates,
+    portals,
+    domains,
+    webhooks,
+  ] = await Promise.all([
+    // Listing without a filter is not documented to include archived products and prices, and an
+    // archived one still holds its id or lookup key.
+    stripe.products.list({ limit: 100, active: true }).autoPagingToArray(limit),
+    stripe.products.list({ limit: 100, active: false }).autoPagingToArray(limit),
+    stripe.prices.list({ limit: 100, active: true }).autoPagingToArray(limit),
+    stripe.prices.list({ limit: 100, active: false }).autoPagingToArray(limit),
+    stripe.billing.meters.list({ limit: 100 }).autoPagingToArray(limit),
+    stripe.taxRates.list({ limit: 100 }).autoPagingToArray(limit),
+    // The API ignores an inactive configuration, so this must too.
+    stripe.billingPortal.configurations.list({ limit: 100, active: true }).autoPagingToArray(limit),
+    stripe.paymentMethodDomains.list({ limit: 100 }).autoPagingToArray(limit),
+    stripe.webhookEndpoints.list({ limit: 100 }).autoPagingToArray(limit),
+  ]);
+  const byId = <T extends { id: string }>(items: T[]) => [
+    ...new Map(items.map((item) => [item.id, item])).values(),
   ];
+  const products = byId([...activeProducts, ...archivedProducts]);
+  const prices = byId([...activePrices, ...archivedPrices]);
   assertLivemode(
     [...products, ...prices, ...meters, ...taxRates, ...portals, ...domains, ...webhooks],
     environment
