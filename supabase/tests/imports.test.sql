@@ -1,5 +1,5 @@
 begin;
-select plan(74);
+select plan(91);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -87,6 +87,9 @@ where id in (
   '10000000-0000-4000-8000-000000000006', '10000000-0000-4000-8000-000000000007'
 );
 
+insert into storage.objects (bucket_id, name)
+select 'imports', text_path from public.import_files where id = 'f0000000-0000-4000-8000-000000000001';
+
 select has_table('public', 'imports', 'imports exist');
 select has_table('public', 'import_files', 'and their files');
 select has_column('public', 'client_files', 'import_id', 'a client file names the import it came from');
@@ -155,8 +158,8 @@ select throws_ok(
 select throws_ok(
   $$ insert into public.import_files (import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256)
      values ('10000000-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'Plan.dwg', 'Plan.dwg', 'application/acad', 10, repeat('f', 64)) $$,
-  '23502',
-  null,
+  '23514',
+  'new row for relation "import_files" violates check constraint "import_files_mime_type_allowed"',
   'a drawing is not uploaded'
 );
 
@@ -284,8 +287,8 @@ select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 
 select is(
   (select count(*)::int from storage.objects where bucket_id = 'imports'),
-  1,
-  'a member reads the objects of their organization''s imports'
+  2,
+  'a member reads the objects of their organization''s imports, their text too'
 );
 
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');
@@ -546,6 +549,24 @@ select throws_ok(
 );
 
 select throws_ok(
+  $$ insert into public.client_files (organization_id, client_id, name, original_file_name, mime_type, size_bytes, sha256, uploaded_by, import_id)
+     values ('11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001', 'Fals', 'Fals.pdf', 'application/pdf', 10,
+       repeat('a', 64), 'bbbbbbbb-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000004') $$,
+  '42501',
+  null,
+  'a member does not put a file into an import folder'
+);
+
+select throws_ok(
+  $$ insert into public.client_files (organization_id, client_id, name, original_file_name, mime_type, size_bytes, sha256, uploaded_by, import_path)
+     values ('11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001', 'Fals', 'Fals.pdf', 'application/pdf', 10,
+       repeat('a', 64), 'bbbbbbbb-0000-4000-8000-000000000001', 'Dosar SSM') $$,
+  '42501',
+  null,
+  'nor into a folder of one'
+);
+
+select throws_ok(
   $$ select public.record_import_usage('10000000-0000-4000-8000-000000000001', null, 1, 0, 1, 0.01) $$,
   '42501',
   null,
@@ -553,10 +574,17 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ select public.delete_abandoned_imports() $$,
+  $$ select public.delete_abandoned_imports(array['10000000-0000-4000-8000-000000000004']::uuid[]) $$,
   '42501',
   null,
   'nor clean up'
+);
+
+select throws_ok(
+  $$ select public.fail_stalled_imports('x', 'y') $$,
+  '42501',
+  null,
+  'nor fail imports'
 );
 
 select pg_temp.act_as_postgres();
@@ -594,39 +622,150 @@ select results_eq(
   'the import counts both, the photograph its own'
 );
 
-insert into public.imports (id, organization_id, kind, into_existing_client, status, failure_reason, failed_at) values
-  ('10000000-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'client', false, 'uploading', null, null),
-  ('10000000-0000-4000-8000-000000000009', '11111111-0000-4000-8000-000000000001', 'client', false, 'uploading', null, null),
-  ('10000000-0000-4000-8000-000000000010', '11111111-0000-4000-8000-000000000001', 'client', false, 'failed', 'Documentele nu au putut fi citite.', now() - interval '20 days');
+select throws_ok(
+  $$ insert into public.client_files (organization_id, client_id, name, original_file_name, mime_type, size_bytes, sha256, import_id)
+     values ('11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001', 'Fals', 'Fals.pdf', 'application/pdf', 10,
+       repeat('a', 64), '10000000-0000-4000-8000-000000000003') $$,
+  '23503',
+  null,
+  'a client file names only an import of its own organization'
+);
+
+insert into public.imports (id, organization_id, kind, into_existing_client) values
+  ('10000000-0000-4000-8000-000000000011', '11111111-0000-4000-8000-000000000001', 'client', false),
+  ('10000000-0000-4000-8000-000000000012', '11111111-0000-4000-8000-000000000001', 'client', false);
+
+select lives_ok(
+  $$ insert into public.import_files (import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256)
+     select '10000000-0000-4000-8000-000000000012', '11111111-0000-4000-8000-000000000001', 'Pagina ' || n || '.jpg', 'Pagina ' || n || '.jpg',
+       'image/jpeg', 1, repeat('f', 64)
+     from generate_series(1, 150) n $$,
+  'an import takes 150 files'
+);
+
+select throws_ok(
+  $$ insert into public.import_files (import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256)
+     values ('10000000-0000-4000-8000-000000000012', '11111111-0000-4000-8000-000000000001', 'Pagina 151.jpg', 'Pagina 151.jpg', 'image/jpeg', 1, repeat('f', 64)) $$,
+  'IMP05',
+  null,
+  'and not one more'
+);
+
+insert into public.import_files (id, import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256)
+select ('f1100000-0000-4000-8000-00000000000' || n)::uuid, '10000000-0000-4000-8000-000000000011', '11111111-0000-4000-8000-000000000001',
+  'Scan ' || n || '.pdf', 'Scan ' || n || '.pdf', 'application/pdf', case when n <= 4 then 20971520 when n = 5 then 10485760 else 1 end, repeat('f', 64)
+from generate_series(1, 6) n;
+update public.imports set status = 'preparing', started_at = now() where id = '10000000-0000-4000-8000-000000000011';
+
+select throws_ok(
+  $$ update public.import_files set size_bytes = 10485761 where id = 'f1100000-0000-4000-8000-000000000006' $$,
+  'IMP05',
+  null,
+  'a file declared smaller than it was stored counts at its real size, over 100 MiB refused'
+);
+
+select throws_ok(
+  $$ update public.import_files set size_bytes = 20971521 where id = 'f1100000-0000-4000-8000-000000000006' $$,
+  'IMP05',
+  null,
+  'and so is a real size over 20 MiB'
+);
+
+select lives_ok(
+  $$ update public.import_files set size_bytes = 10485760 where id = 'f1100000-0000-4000-8000-000000000006' $$,
+  'up to 100 MiB in all, it is written once the import has moved past uploading'
+);
+
+insert into public.imports (id, organization_id, kind, into_existing_client) values
+  ('10000000-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001', 'client', false),
+  ('10000000-0000-4000-8000-000000000009', '11111111-0000-4000-8000-000000000001', 'client', false),
+  ('10000000-0000-4000-8000-000000000010', '11111111-0000-4000-8000-000000000001', 'client', false),
+  ('10000000-0000-4000-8000-000000000013', '11111111-0000-4000-8000-000000000001', 'client', false),
+  ('10000000-0000-4000-8000-000000000014', '11111111-0000-4000-8000-000000000001', 'client', false);
 
 insert into public.import_files (id, import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256) values
   ('f0000000-0000-4000-8000-000000000008', '10000000-0000-4000-8000-000000000008', '11111111-0000-4000-8000-000000000001',
-    'Decizie.pdf', 'Decizie.pdf', 'application/pdf', 100, repeat('a', 64));
+    'Decizie.pdf', 'Decizie.pdf', 'application/pdf', 100, repeat('a', 64)),
+  ('f0000000-0000-4000-8000-000000000010', '10000000-0000-4000-8000-000000000010', '11111111-0000-4000-8000-000000000001',
+    'Decizie veche.doc', 'Decizie veche.doc', 'application/msword', 100, repeat('a', 64));
 update public.import_files set state = 'prepared', text_path = regexp_replace(storage_path, '\.pdf$', '.txt')
 where id = 'f0000000-0000-4000-8000-000000000008';
+update public.import_files set state = 'prepared', text_path = regexp_replace(storage_path, '\.doc$', '.txt'),
+  derived_path = regexp_replace(storage_path, '\.doc$', '.docx'), derived_size_bytes = 90, derived_sha256 = repeat('4', 64)
+where id = 'f0000000-0000-4000-8000-000000000010';
 
-update public.imports set status = 'abandoned', abandoned_at = now() - interval '15 days' where id = '10000000-0000-4000-8000-000000000008';
+update public.imports set status = 'abandoned', abandoned_at = now() - interval '15 days'
+where id in ('10000000-0000-4000-8000-000000000008', '10000000-0000-4000-8000-000000000013');
 update public.imports set status = 'abandoned', abandoned_at = now() - interval '2 days' where id = '10000000-0000-4000-8000-000000000009';
+update public.imports set status = 'failed', failure_reason = 'Documentele nu au putut fi citite.', failed_at = now() - interval '20 days'
+where id in ('10000000-0000-4000-8000-000000000010', '10000000-0000-4000-8000-000000000014');
+
+insert into public.client_files (organization_id, client_id, name, original_file_name, mime_type, size_bytes, sha256, import_id) values
+  ('11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001', 'Fals', 'Fals.pdf', 'application/pdf', 10,
+    repeat('a', 64), '10000000-0000-4000-8000-000000000013');
+
+select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');
+
+select lives_ok(
+  $$ select public.abandon_import('10000000-0000-4000-8000-000000000014') $$,
+  'a member abandons a failed import'
+);
+
+select pg_temp.act_as_postgres();
+set local role service_role;
+
+select is(
+  (select abandoned_at from public.imports where id = '10000000-0000-4000-8000-000000000014'),
+  now() - interval '20 days',
+  'which keeps the day it failed, so its 14 days do not start again'
+);
 
 select results_eq(
-  $$ select * from public.delete_abandoned_imports() order by 1 $$,
+  $$ select import_id, paths from public.list_abandoned_imports()
+     where import_id in ('10000000-0000-4000-8000-000000000008', '10000000-0000-4000-8000-000000000009',
+       '10000000-0000-4000-8000-000000000010', '10000000-0000-4000-8000-000000000013', '10000000-0000-4000-8000-000000000014')
+     order by import_id $$,
   $$ values
-       ('11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000008/f0000000-0000-4000-8000-000000000008.pdf'),
-       ('11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000008/f0000000-0000-4000-8000-000000000008.txt') $$,
-  'the clean-up returns the objects of an import abandoned more than 14 days ago'
+       ('10000000-0000-4000-8000-000000000008'::uuid, array[
+         '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000008/f0000000-0000-4000-8000-000000000008.pdf',
+         '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000008/f0000000-0000-4000-8000-000000000008.txt']),
+       ('10000000-0000-4000-8000-000000000010'::uuid, array[
+         '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000010/f0000000-0000-4000-8000-000000000010.doc',
+         '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000010/f0000000-0000-4000-8000-000000000010.docx',
+         '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000010/f0000000-0000-4000-8000-000000000010.txt']),
+       ('10000000-0000-4000-8000-000000000014'::uuid, '{}'::text[]) $$,
+  'the clean-up lists the objects of the imports abandoned or failed more than 14 days ago, not of one a client file names'
+);
+
+select is(
+  (select count(*)::int from public.imports where id in (
+     '10000000-0000-4000-8000-000000000008', '10000000-0000-4000-8000-000000000010', '10000000-0000-4000-8000-000000000014')),
+  3,
+  'and deletes nothing while the objects may still be there'
+);
+
+select results_eq(
+  $$ select * from public.delete_abandoned_imports(array[
+       '10000000-0000-4000-8000-000000000008', '10000000-0000-4000-8000-000000000009', '10000000-0000-4000-8000-000000000010',
+       '10000000-0000-4000-8000-000000000013', '10000000-0000-4000-8000-000000000014']::uuid[]) order by 1 $$,
+  $$ values ('10000000-0000-4000-8000-000000000008'::uuid), ('10000000-0000-4000-8000-000000000010'::uuid),
+            ('10000000-0000-4000-8000-000000000014'::uuid) $$,
+  'once the objects are removed, it deletes those imports, and of the ids it is given only those still due'
 );
 
 select results_eq(
   $$ select id from public.imports where id in (
-       '10000000-0000-4000-8000-000000000008', '10000000-0000-4000-8000-000000000009', '10000000-0000-4000-8000-000000000010') $$,
-  $$ values ('10000000-0000-4000-8000-000000000009'::uuid) $$,
-  'and deletes it and one failed as long ago, not one abandoned two days ago'
+       '10000000-0000-4000-8000-000000000008', '10000000-0000-4000-8000-000000000009', '10000000-0000-4000-8000-000000000010',
+       '10000000-0000-4000-8000-000000000013', '10000000-0000-4000-8000-000000000014') order by id $$,
+  $$ values ('10000000-0000-4000-8000-000000000009'::uuid), ('10000000-0000-4000-8000-000000000013'::uuid) $$,
+  'one abandoned two days ago stays, and one a client file names stays without stopping the others'
 );
 
 select is(
-  (select count(*)::int from public.import_files where import_id = '10000000-0000-4000-8000-000000000008'),
+  (select count(*)::int from public.import_files where import_id in (
+     '10000000-0000-4000-8000-000000000008', '10000000-0000-4000-8000-000000000010')),
   0,
-  'with its files'' rows'
+  'the deleted imports go with their files'' rows'
 );
 
 update public.imports set confirmed_at = now() - interval '31 days', files_copied_at = now()
@@ -635,17 +774,31 @@ update public.imports set confirmed_at = now() - interval '31 days'
 where id = '10000000-0000-4000-8000-000000000002';
 
 select is(
-  (select count(*)::int from public.drop_import_proposals()),
-  7,
-  'a month after confirming, every object of an import whose folder is copied goes'
+  public.drop_import_proposals(),
+  2,
+  'a month after confirming, the proposals go'
 );
 
 select results_eq(
-  $$ select id, proposal is null, changes is null, proposal_dropped_at is not null, objects_removed_at is not null
+  $$ select id, proposal is null, changes is null, proposal_dropped_at is not null, objects_removed_at is null
      from public.imports where id in ('10000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000002') order by id $$,
   $$ values ('10000000-0000-4000-8000-000000000001'::uuid, true, true, true, true),
-            ('10000000-0000-4000-8000-000000000002'::uuid, true, true, true, false) $$,
-  'every proposal goes, and the objects of a folder not yet copied stay'
+            ('10000000-0000-4000-8000-000000000002'::uuid, true, true, true, true) $$,
+  'with the changes, and no object is marked removed yet'
+);
+
+select results_eq(
+  $$ select import_id, cardinality(paths) from public.list_import_objects_to_remove()
+     where import_id in ('10000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000002') $$,
+  $$ values ('10000000-0000-4000-8000-000000000001'::uuid, 7) $$,
+  'every object of an import whose folder is copied is listed for removal, none of one not yet copied'
+);
+
+select results_eq(
+  $$ select * from public.mark_import_objects_removed(array[
+       '10000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000002']::uuid[]) $$,
+  $$ values ('10000000-0000-4000-8000-000000000001'::uuid) $$,
+  'once they are removed, only that import is marked'
 );
 
 select results_eq(
@@ -662,9 +815,38 @@ select results_eq(
 );
 
 select is(
-  (select count(*)::int from public.drop_import_proposals()),
+  (select count(*)::int from public.list_import_objects_to_remove()
+   where import_id in ('10000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000002')),
   0,
-  'the clean-up hands each object over once'
+  'the clean-up lists each object once it is marked removed'
+);
+
+insert into public.imports (id, organization_id, kind, into_existing_client, status, started_at, ready_at, updated_at) values
+  ('10000000-0000-4000-8000-000000000015', '11111111-0000-4000-8000-000000000001', 'client', false, 'reading', now() - interval '1 day', null, now() - interval '7 hours'),
+  ('10000000-0000-4000-8000-000000000016', '11111111-0000-4000-8000-000000000001', 'client', false, 'uploading', null, null, now() - interval '15 days'),
+  ('10000000-0000-4000-8000-000000000017', '11111111-0000-4000-8000-000000000001', 'client', false, 'checking', now() - interval '1 day', null, now() - interval '5 hours'),
+  ('10000000-0000-4000-8000-000000000018', '11111111-0000-4000-8000-000000000001', 'client', false, 'uploading', null, null, now() - interval '15 days'),
+  ('10000000-0000-4000-8000-000000000019', '11111111-0000-4000-8000-000000000001', 'client', false, 'ready', now() - interval '20 days', now() - interval '20 days', now() - interval '15 days'),
+  ('10000000-0000-4000-8000-000000000020', '11111111-0000-4000-8000-000000000001', 'client', false, 'ready', now() - interval '20 days', now() - interval '20 days', now() - interval '13 days');
+
+insert into public.import_files (import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256) values
+  ('10000000-0000-4000-8000-000000000016', '11111111-0000-4000-8000-000000000001', 'Decizie.pdf', 'Decizie.pdf', 'application/pdf', 100, repeat('a', 64));
+
+select results_eq(
+  $$ select * from public.fail_stalled_imports('Citirea documentelor s-a oprit.', 'Importul a rămas neterminat.') order by 1 $$,
+  $$ values ('10000000-0000-4000-8000-000000000015'::uuid), ('10000000-0000-4000-8000-000000000018'::uuid),
+            ('10000000-0000-4000-8000-000000000019'::uuid) $$,
+  'an import read for 6 hours without progress fails, and so does one left uploading or ready for 14 days, not one whose files still move'
+);
+
+select results_eq(
+  $$ select id, status::text, failure_reason, failed_at = now() from public.imports
+     where id in ('10000000-0000-4000-8000-000000000015', '10000000-0000-4000-8000-000000000018', '10000000-0000-4000-8000-000000000019')
+     order by id $$,
+  $$ values ('10000000-0000-4000-8000-000000000015'::uuid, 'failed', 'Citirea documentelor s-a oprit.', true),
+            ('10000000-0000-4000-8000-000000000018'::uuid, 'failed', 'Importul a rămas neterminat.', true),
+            ('10000000-0000-4000-8000-000000000019'::uuid, 'failed', 'Importul a rămas neterminat.', true) $$,
+  'with the reason for each, from today, so the clean-up deletes them 14 days on'
 );
 
 select * from finish();

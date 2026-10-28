@@ -53,6 +53,7 @@ begin
 end;
 $$;
 
+-- A failed import keeps the day it failed, so abandoning it does not restart its 14 days.
 --   IMP01  the import is already confirmed or abandoned
 create function public.abandon_import(p_import_id uuid)
 returns void
@@ -67,7 +68,10 @@ begin
   if v_import.status in ('confirmed', 'abandoned') then
     raise exception 'The import is already confirmed or abandoned.' using errcode = 'IMP01';
   end if;
-  update public.imports set status = 'abandoned', abandoned_at = now() where id = p_import_id;
+  update public.imports
+  set status = 'abandoned',
+      abandoned_at = case when v_import.status = 'failed' then v_import.failed_at else now() end
+  where id = p_import_id;
 end;
 $$;
 
@@ -680,44 +684,128 @@ representative is a responsible person whose employee is one of "employees". A r
 fire-safety means stand is their "location". "quality" is stored on the import as given.
 $comment$;
 
--- Failed imports go too, after the same 14 days: a failed import cannot be confirmed, and it
--- holds a client's documents and its people's data just the same.
-create function public.delete_abandoned_imports()
-returns setof text
+-- An import the queue stopped working on without recording a failure, or one left before
+-- its reading or its confirmation, fails so that the clean-up deletes it 14 days later. The
+-- reasons are the API's, in Romanian, for members.
+create function public.fail_stalled_imports(p_stalled_reason text, p_left_reason text)
+returns setof uuid
 language sql
 set search_path = ''
 as $$
-  with gone as (
-    delete from public.imports i
-    where (i.status = 'abandoned' and i.abandoned_at < now() - interval '14 days')
-       or (i.status = 'failed' and i.failed_at < now() - interval '14 days')
-    returning i.id
-  )
-  select p.path
-  from public.import_files f
-  join gone g on g.id = f.import_id
-  cross join lateral (values (f.storage_path), (f.text_path), (f.derived_path)) as p (path)
-  where p.path is not null;
+  update public.imports i
+  set status = 'failed',
+      failure_reason = case when i.status in ('uploading', 'ready') then p_left_reason else p_stalled_reason end,
+      failed_at = now()
+  where i.status in ('uploading', 'preparing', 'sorting', 'reading', 'checking', 'ready')
+    and i.updated_at < now() - case
+      when i.status in ('uploading', 'ready') then interval '14 days' else interval '6 hours'
+    end
+    and not exists (
+      select 1 from public.import_files f
+      where f.import_id = i.id
+        and f.updated_at >= now() - case
+          when i.status in ('uploading', 'ready') then interval '14 days' else interval '6 hours'
+        end
+    )
+  returning i.id;
 $$;
 
-comment on function public.delete_abandoned_imports() is
-  'Deletes the imports abandoned or failed more than 14 days ago with their files, and returns the paths of their objects in the imports bucket for the API to remove.';
+comment on function public.fail_stalled_imports(text, text) is
+  'Fails, with p_left_reason, the imports uploading or ready for review with no change to them or their files for 14 days, and, with p_stalled_reason, those preparing, sorting, reading or checking with none for 6 hours. Returns their ids.';
 
-create function public.drop_import_proposals()
-returns setof text
-language plpgsql
+-- Failed imports go too, after the same 14 days: a failed import cannot be confirmed, and it
+-- holds a client's documents and its people's data just the same. A client file naming the
+-- import would fail the delete on its foreign key and stop the clean-up of every other import.
+create function public.expired_import_ids()
+returns setof uuid
+language sql
+stable
 set search_path = ''
 as $$
-begin
-  update public.imports
-  set proposal = null, changes = null, proposal_dropped_at = now()
-  where status = 'confirmed' and proposal_dropped_at is null and confirmed_at < now() - interval '30 days';
+  select i.id
+  from public.imports i
+  where (
+      (i.status = 'abandoned' and i.abandoned_at < now() - interval '14 days')
+      or (i.status = 'failed' and i.failed_at < now() - interval '14 days')
+    )
+    and not exists (select 1 from public.client_files cf where cf.import_id = i.id);
+$$;
 
-  return query
+create function public.list_abandoned_imports()
+returns table (import_id uuid, paths text[])
+language sql
+stable
+set search_path = ''
+as $$
+  select e.id, coalesce(array_agg(p.path order by p.path) filter (where p.path is not null), '{}'::text[])
+  from public.expired_import_ids() as e (id)
+  left join public.import_files f on f.import_id = e.id
+  left join lateral (values (f.storage_path), (f.text_path), (f.derived_path)) as p (path) on true
+  group by e.id
+  order by e.id;
+$$;
+
+comment on function public.list_abandoned_imports() is
+  'The imports abandoned or failed more than 14 days ago, each with the paths of its objects in the imports bucket, for the API to remove before it calls delete_abandoned_imports. Changes nothing.';
+
+create function public.delete_abandoned_imports(p_import_ids uuid[])
+returns setof uuid
+language sql
+set search_path = ''
+as $$
+  delete from public.imports i
+  where i.id = any (p_import_ids) and i.id in (select public.expired_import_ids())
+  returning i.id;
+$$;
+
+comment on function public.delete_abandoned_imports(uuid[]) is
+  'Deletes, with their files'' rows, the imports named whose objects the API has removed, if list_abandoned_imports would still list them. Returns the ids deleted.';
+
+create function public.drop_import_proposals()
+returns integer
+language sql
+set search_path = ''
+as $$
+  with dropped as (
+    update public.imports
+    set proposal = null, changes = null, proposal_dropped_at = now()
+    where status = 'confirmed' and proposal_dropped_at is null and confirmed_at < now() - interval '30 days'
+    returning 1
+  )
+  select count(*)::integer from dropped;
+$$;
+
+comment on function public.drop_import_proposals() is
+  'Drops the proposal and the changes of imports confirmed more than 30 days ago, and returns how many. The import, its files'' rows, its counts and its cost stay.';
+
+create function public.list_import_objects_to_remove()
+returns table (import_id uuid, paths text[])
+language sql
+stable
+set search_path = ''
+as $$
+  select i.id, coalesce(array_agg(p.path order by p.path) filter (where p.path is not null), '{}'::text[])
+  from public.imports i
+  left join public.import_files f on f.import_id = i.id
+  left join lateral (values (f.storage_path), (f.text_path), (f.derived_path)) as p (path) on true
+  where i.proposal_dropped_at is not null and i.files_copied_at is not null and i.objects_removed_at is null
+  group by i.id
+  order by i.id;
+$$;
+
+comment on function public.list_import_objects_to_remove() is
+  'The imports whose proposal is dropped and whose folder is copied into client-files, each with the paths of its objects in the imports bucket, for the API to remove before it calls mark_import_objects_removed. Changes nothing.';
+
+create function public.mark_import_objects_removed(p_import_ids uuid[])
+returns setof uuid
+language sql
+set search_path = ''
+as $$
   with done as (
     update public.imports i
     set objects_removed_at = now()
-    where i.proposal_dropped_at is not null and i.files_copied_at is not null and i.objects_removed_at is null
+    where i.id = any (p_import_ids)
+      and i.proposal_dropped_at is not null and i.files_copied_at is not null and i.objects_removed_at is null
     returning i.id
   ),
   cleared as (
@@ -726,16 +814,11 @@ begin
     from done d
     where f.import_id = d.id
   )
-  select p.path
-  from public.import_files f
-  join done d on d.id = f.import_id
-  cross join lateral (values (f.storage_path), (f.text_path), (f.derived_path)) as p (path)
-  where p.path is not null;
-end;
+  select id from done;
 $$;
 
-comment on function public.drop_import_proposals() is
-  'Drops the proposal and the changes of imports confirmed more than 30 days ago, and returns the paths of the objects in the imports bucket of every such import whose folder is copied into client-files, for the API to remove. The import, its files'' rows, its counts and its cost stay.';
+comment on function public.mark_import_objects_removed(uuid[]) is
+  'Records that the API removed the objects of the imports named, if list_import_objects_to_remove would still list them, and forgets the paths of their text and converted files. Returns the ids marked.';
 
 revoke all on function public.lock_visible_import(uuid) from public, anon, authenticated;
 revoke all on function public.import_payload_keys(jsonb, text[], text) from public, anon, authenticated;
@@ -754,8 +837,18 @@ grant execute on function public.apply_client_import(uuid, integer, jsonb) to au
 grant execute on function public.import_folder_copies(uuid) to authenticated, service_role;
 
 revoke all on function public.record_import_usage(uuid, uuid, bigint, bigint, bigint, numeric) from public, anon, authenticated;
-revoke all on function public.delete_abandoned_imports() from public, anon, authenticated;
+revoke all on function public.fail_stalled_imports(text, text) from public, anon, authenticated;
+revoke all on function public.expired_import_ids() from public, anon, authenticated;
+revoke all on function public.list_abandoned_imports() from public, anon, authenticated;
+revoke all on function public.delete_abandoned_imports(uuid[]) from public, anon, authenticated;
 revoke all on function public.drop_import_proposals() from public, anon, authenticated;
+revoke all on function public.list_import_objects_to_remove() from public, anon, authenticated;
+revoke all on function public.mark_import_objects_removed(uuid[]) from public, anon, authenticated;
 grant execute on function public.record_import_usage(uuid, uuid, bigint, bigint, bigint, numeric) to service_role;
-grant execute on function public.delete_abandoned_imports() to service_role;
+grant execute on function public.fail_stalled_imports(text, text) to service_role;
+grant execute on function public.expired_import_ids() to service_role;
+grant execute on function public.list_abandoned_imports() to service_role;
+grant execute on function public.delete_abandoned_imports(uuid[]) to service_role;
 grant execute on function public.drop_import_proposals() to service_role;
+grant execute on function public.list_import_objects_to_remove() to service_role;
+grant execute on function public.mark_import_objects_removed(uuid[]) to service_role;

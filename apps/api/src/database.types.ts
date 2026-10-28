@@ -417,11 +417,11 @@ export type Database = {
             referencedColumns: ['id', 'client_id'];
           },
           {
-            foreignKeyName: 'client_files_import_id_fkey';
-            columns: ['import_id'];
+            foreignKeyName: 'client_files_import_in_organization';
+            columns: ['import_id', 'organization_id'];
             isOneToOne: false;
             referencedRelation: 'imports';
-            referencedColumns: ['id'];
+            referencedColumns: ['id', 'organization_id'];
           },
           {
             foreignKeyName: 'client_files_organization_id_fkey';
@@ -6672,8 +6672,8 @@ export type Database = {
           month: string;
         }[];
       };
-      delete_abandoned_imports: { Args: never; Returns: string[] };
-      drop_import_proposals: { Args: never; Returns: string[] };
+      delete_abandoned_imports: { Args: { p_import_ids: string[] }; Returns: string[] };
+      drop_import_proposals: { Args: never; Returns: number };
       effective_user_id: { Args: never; Returns: string };
       employee_client_search_name: {
         Args: { '': Database['public']['Tables']['employees']['Row'] };
@@ -6717,6 +6717,7 @@ export type Database = {
           workplace_trained_on: string;
         }[];
       };
+      expired_import_ids: { Args: never; Returns: string[] };
       extend_trial: {
         Args: {
           p_actor: string;
@@ -6731,6 +6732,10 @@ export type Database = {
           started: boolean;
           trial_ends_at: string;
         }[];
+      };
+      fail_stalled_imports: {
+        Args: { p_left_reason: string; p_stalled_reason: string };
+        Returns: string[];
       };
       finish_test_attempt: {
         Args: {
@@ -6827,6 +6832,20 @@ export type Database = {
           training_record_id: string;
         }[];
       };
+      list_abandoned_imports: {
+        Args: never;
+        Returns: {
+          import_id: string;
+          paths: string[];
+        }[];
+      };
+      list_import_objects_to_remove: {
+        Args: never;
+        Returns: {
+          import_id: string;
+          paths: string[];
+        }[];
+      };
       lock_members_as_owner: { Args: never; Returns: string };
       lock_visible_import: {
         Args: { p_import_id: string };
@@ -6869,6 +6888,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      mark_import_objects_removed: { Args: { p_import_ids: string[] }; Returns: string[] };
       mark_paper_signature: {
         Args: {
           p_record_id: string;

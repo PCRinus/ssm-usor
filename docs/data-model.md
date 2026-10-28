@@ -1197,8 +1197,10 @@ generated document they exist nowhere else.
 A client file can come from an import from documents ([ADR 030](architecture/adr-030-import-from-documents.md)):
 `import_id` names the import whose folder it belongs to, and `import_path` the folders it sat in
 inside the upload, with `/` between them, null at the top of the folder and for a file uploaded
-on its own. `client_files_import_idx` on `(import_id, import_path)` lists a folder. The import is
-kept as long as one of its files is (`on delete restrict`).
+on its own. `client_files_import_idx` on `(import_id, import_path)` lists a folder. `import_id`
+holds to the same organization by the composite key to `imports (id, organization_id)`, and the
+import is kept as long as one of its files is (`on delete restrict`). Only confirming an import
+fills these two columns: the column grants leave them out of a member's insert.
 
 ## Imports from documents
 
@@ -1222,7 +1224,7 @@ Created by `20261028100000_imports` and `20261028100100_import_functions`.
 | `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | Every model request of the import, the cost in US dollars as `numeric(12, 6)`.                                                                                           |
 | `created_by`, `created_at`, `started_at`, `ready_at`, `failed_at`  | Who started it, as the real user during an impersonation, and when each step was reached. Checks tie each stamp to its status.                                           |
 | `confirmed_at`, `confirmed_by`, `abandoned_at`                     | The end. A confirmed import has its client.                                                                                                                              |
-| `files_copied_at`, `proposal_dropped_at`, `objects_removed_at`     | The API copied the folder into `client-files`; the proposal was dropped; the clean-up handed over the import's objects, which needs the other two.                       |
+| `files_copied_at`, `proposal_dropped_at`, `objects_removed_at`     | The API copied the folder into `client-files`; the proposal was dropped; the API removed the import's objects, which needs the other two.                                |
 
 `import_files` has one row per uploaded file, with `import_id` and `organization_id` by the
 composite key to `imports (id, organization_id)`, deleted with the import:
@@ -1241,7 +1243,9 @@ composite key to `imports (id, organization_id)`, deleted with the import:
 | `client_file_id`                                                   | The client file it became in the import folder; set null if that file is deleted.                                                                            |
 
 `limit_import_files` locks the import and refuses a file once the import is past `uploading`
-(`IMP01`), or one that would take it beyond 150 files or 100 MiB (`IMP05`). `protect_import`
+(`IMP01`), or one that would take it beyond 150 files or 100 MiB, or is over 20 MiB itself
+(`IMP05`). It checks the size again when `size_bytes` grows, since the browser declares it and
+the API writes the stored object's real size over it. `protect_import`
 refuses an import into an archived client (`CLA01`) or a lead (`CLL01`), for the secret key too,
 since the API writes imports with it, and keeps a confirmed or abandoned import at its step
 (`IMP06`).
@@ -1256,7 +1260,8 @@ cost)`, which adds to the import and, given a file, to that file. A member's dec
 functions that run as their owner and find the import as the select policy does, answering
 `P0002` for one the caller cannot see: `save_import_changes(import, expected version, changes)`
 stores the review and returns the next version, `abandon_import(import)` ends any import not
-yet confirmed or abandoned, and `apply_client_import` confirms. Both of the first refuse an import
+yet confirmed or abandoned, keeping a failed import's `failed_at` as its `abandoned_at`, and
+`apply_client_import` confirms. Both of the first refuse an import
 that is not ready (`IMP01`) and a stale version (`IMP02`); abandoning refuses an ended import
 (`IMP01`).
 
@@ -1264,8 +1269,8 @@ that is not ready (`IMP01`) and a stale version (`IMP02`); abandoning refuses an
 and JSON, up to 20 MiB. As for client files, the row comes first: members upload only to the
 `storage_path` of a row of theirs that is still `uploading`, in an import still `uploading`,
 whose client, if any, is active (`is_uploadable_import_path`); they read any path a row of theirs
-names, the original, its text or its converted file (`is_readable_import_path`). Both run as the
-caller, so the policies of the rows decide. Text, converted files and every removal are the
+names, the original, its text or its converted file (`is_readable_import_path`, which finds the
+row by the file id in the path). Both run as the caller, so the policies of the rows decide. Text, converted files and every removal are the
 API's.
 
 **Confirming.** `apply_client_import(import, expected version, payload)` writes everything in one
@@ -1350,15 +1355,28 @@ treating an object already there as copied, and sets `files_copied_at` with the 
 `import_folder_copies(import)` lists the same copies again, under the caller's policies, for a
 copy that was interrupted.
 
-**Retention.** Two functions for the secret key, which a scheduled job of the API calls and
-which return the paths in `imports` for the API to remove. `delete_abandoned_imports()` deletes
-the imports abandoned, or failed, more than 14 days ago with their files' rows.
-`drop_import_proposals()` nulls `proposal` and `changes` 30 days after confirming and sets
-`proposal_dropped_at`; for every import whose proposal is dropped and whose folder is copied, it
-returns all of its objects once, the originals, the texts and the converted files, clears the
-files' `text_path` and `derived_path`, and sets `objects_removed_at`. The originals of a folder
-not yet copied stay, since they are its only copy. The import keeps its dates, its people, its
-counts and its cost, and its files' rows stay.
+**Retention.** Functions for the secret key, which a daily job of the API calls. Removing
+objects is in two calls, so that a failed removal leaves the rows to list them again the next
+day: a list, `(import_id, paths)` per import with every object path of its files, which changes
+nothing, then, with the ids whose objects the API removed, the change.
+
+- `fail_stalled_imports(stalled reason, left reason)` fails, from today, an import `preparing`,
+  `sorting`, `reading` or `checking` when neither it nor any of its files changed for 6 hours,
+  with the first reason, and one `uploading` or `ready` with no change for 14 days, with the
+  second, and returns their ids.
+- `list_abandoned_imports()` then `delete_abandoned_imports(ids)`: the imports abandoned, or
+  failed, more than 14 days ago, deleted with their files' rows. An import a client file names is
+  left out, so it cannot stop the others on its foreign key.
+- `drop_import_proposals()` nulls `proposal` and `changes` 30 days after confirming, sets
+  `proposal_dropped_at`, and returns how many.
+- `list_import_objects_to_remove()` then `mark_import_objects_removed(ids)`: every object of an
+  import whose proposal is dropped and whose folder is copied, the originals, the texts and the
+  converted files; marking clears the files' `text_path` and `derived_path` and sets
+  `objects_removed_at`. The originals of a folder not yet copied stay, since they are its only
+  copy. The import keeps its dates, its people, its counts and its cost, and its files' rows
+  stay.
+
+The change functions take only ids the list would still give, and return those they changed.
 
 ## Profiles
 

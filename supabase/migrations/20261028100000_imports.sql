@@ -81,6 +81,10 @@ create index imports_abandoned_idx on public.imports (abandoned_at) where status
 create index imports_failed_idx on public.imports (failed_at) where status = 'failed';
 create index imports_proposal_kept_idx on public.imports (confirmed_at)
   where status = 'confirmed' and proposal_dropped_at is null;
+create index imports_objects_kept_idx on public.imports (id)
+  where proposal_dropped_at is not null and files_copied_at is not null and objects_removed_at is null;
+create index imports_open_idx on public.imports (updated_at)
+  where status in ('uploading', 'preparing', 'sorting', 'reading', 'checking', 'ready');
 
 comment on table public.imports is
   'An import from documents (ADR 030): the files of one client, read into a proposal that a member confirms.';
@@ -100,7 +104,7 @@ comment on column public.imports.version is
 comment on column public.imports.quality is
   'Value-free counts per section of the proposal: how many proposed values were changed, unticked or kept.';
 comment on column public.imports.objects_removed_at is
-  'When the clean-up handed the API the import''s objects in the imports bucket to remove.';
+  'When the API reported the import''s objects in the imports bucket removed, after its folder was copied.';
 comment on column public.imports.cost_usd is
   'What every model request of the import cost, in US dollars, as the gateway reported it.';
 
@@ -170,6 +174,9 @@ create table public.import_files (
       when 'image/png' then 'png'
       when 'image/heic' then 'heic'
       when 'image/heif' then 'heic'
+      -- So that import_files_mime_type_allowed, which names the rule, refuses an unknown type,
+      -- not the path's not-null.
+      else 'bin'
     end
   ) stored not null,
   state public.import_file_state not null default 'uploading',
@@ -235,9 +242,11 @@ create trigger import_files_set_updated_at before update on public.import_files
   for each row execute function public.set_updated_at();
 
 -- ADR 030's cap protects the model's bill and the download of an import folder as one ZIP.
--- The import's row is locked so that files added at once are counted one after the other.
+-- The import's row is locked so that files added at once are counted one after the other. The
+-- size is checked again when the API writes the stored object's real size over the one the
+-- browser declared, since nothing ties the upload to the declared size.
 --   IMP01  files are added only while the import is uploading
---   IMP05  an import holds at most 150 files and 100 MiB
+--   IMP05  an import holds at most 150 files and 100 MiB, each file at most 20 MiB
 create function public.limit_import_files()
 returns trigger
 language plpgsql
@@ -247,15 +256,17 @@ declare
   v_status public.import_status;
 begin
   select i.status into v_status from public.imports i where i.id = new.import_id for update;
-  if v_status is distinct from 'uploading' then
+  if tg_op = 'INSERT' and v_status is distinct from 'uploading' then
     raise exception 'Files are added to an import only while it is uploading.' using errcode = 'IMP01';
   end if;
-  if (
-    select count(*) >= 150 or coalesce(sum(f.size_bytes), 0) + new.size_bytes > 104857600
+  if new.size_bytes > 20971520 or (
+    select (tg_op = 'INSERT' and count(*) >= 150)
+      or coalesce(sum(f.size_bytes) filter (where f.id <> new.id), 0) + new.size_bytes > 104857600
     from public.import_files f
     where f.import_id = new.import_id
   ) then
-    raise exception 'An import holds at most 150 files and 100 MiB.' using errcode = 'IMP05';
+    raise exception 'An import holds at most 150 files and 100 MiB, each file at most 20 MiB.'
+      using errcode = 'IMP05';
   end if;
   return new;
 end;
@@ -264,13 +275,26 @@ $$;
 create trigger import_files_limit before insert on public.import_files
   for each row execute function public.limit_import_files();
 
+create trigger import_files_limit_size before update of size_bytes on public.import_files
+  for each row when (new.size_bytes > old.size_bytes) execute function public.limit_import_files();
+
 alter table public.client_files
-  add column import_id uuid references public.imports (id) on delete restrict,
+  add column import_id uuid,
   add column import_path text,
+  add constraint client_files_import_in_organization
+    foreign key (import_id, organization_id) references public.imports (id, organization_id) on delete restrict,
   add constraint client_files_import_path_format check (
     char_length(import_path) between 1 and 1024 and import_path !~ '^/' and import_path !~ '/$'
   ),
   add constraint client_files_import_path_in_import check (import_path is null or import_id is not null);
+
+-- Only confirming an import fills the import folder. A member's row naming an import would
+-- forge files into its folder, and block that import's deletion on the foreign key.
+revoke insert on table public.client_files from authenticated;
+grant insert (
+  id, organization_id, client_id, employee_id, name, note, owners_only, original_file_name, mime_type,
+  size_bytes, sha256, uploaded_by
+) on table public.client_files to authenticated;
 
 create index client_files_import_idx on public.client_files (import_id, import_path) where import_id is not null;
 
@@ -320,7 +344,8 @@ values (
 );
 
 -- Security invoker, so the policies of import_files, imports and clients decide, as they do
--- for the rows. The row first: only a path a row names is accepted.
+-- for the rows. The row first: only a path a row names is accepted. Every object of a file is
+-- named after the file's id, which finds the row by its key rather than by a scan per object.
 create function public.is_readable_import_path(p_path text)
 returns boolean
 language sql
@@ -329,7 +354,10 @@ set search_path = ''
 as $$
   select exists (
     select 1 from public.import_files f
-    where p_path in (f.storage_path, f.text_path, f.derived_path)
+    where f.id = substring(
+        p_path from '^[^/]+/[^/]+/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.[a-z]+$'
+      )::uuid
+      and p_path in (f.storage_path, f.text_path, f.derived_path)
   );
 $$;
 
