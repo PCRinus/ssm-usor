@@ -679,6 +679,38 @@ describe('POST /imports/{importId}/split', () => {
     expect(sent).toEqual([{ type: 'prepare', importId: splitId, fileId: fileId(9) }]);
   });
 
+  it('abandons the new import when the objects copied cannot be removed', async () => {
+    mockUpstream(({ url, method, body }) => {
+      if (url.pathname === '/rest/v1/rpc/split_import') {
+        return Response.json({ import_id: splitId, files: [splitting(2), splitting(3)] });
+      }
+      if (url.pathname === '/rest/v1/rpc/abandon_import')
+        return new Response(null, { status: 204 });
+      if (url.pathname === '/storage/v1/object/copy') {
+        return (body as { sourceKey: string }).sourceKey === storagePath(importId, 2, 'docx')
+          ? Response.json({ Key: 'imports/x' })
+          : Response.json(
+              { statusCode: '500', error: 'internal', message: 'down' },
+              { status: 500 }
+            );
+      }
+      if (url.pathname === '/storage/v1/object/imports' && method === 'DELETE') {
+        return Response.json(
+          { statusCode: '500', error: 'internal', message: 'down' },
+          { status: 500 }
+        );
+      }
+    });
+    const response = await request(`/imports/${importId}/split`, 'POST', {
+      fileIds: [fileId(2), fileId(3)],
+    });
+
+    expect(response.status).toBe(503);
+    expect(callsTo('/rest/v1/imports', 'DELETE')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/abandon_import')[0]!.body).toEqual({ p_import_id: splitId });
+    expect(sent).toEqual([]);
+  });
+
   it('removes the new import and the objects copied when a copy fails', async () => {
     mockUpstream(({ url, method, body }) => {
       if (url.pathname === '/rest/v1/rpc/split_import') {

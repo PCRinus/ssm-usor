@@ -743,8 +743,15 @@ export const splitImport: RouteHandler<typeof splitImportRoute, ApiEnv> = async 
     }
     await beginReading(c, admin, queue, split.import_id, c.get('membership').organizationId);
   } catch (error) {
-    await objects.removeImportObjects(copied).catch(() => undefined);
-    await admin.from('imports').delete().eq('id', split.import_id);
+    // Abandoned instead of deleted when anything is left: its file rows are what the daily clean-up
+    // finds the objects by, and an abandoned split no longer holds its files.
+    const removed = await objects.removeImportObjects(copied).then(
+      () => true,
+      () => false
+    );
+    const deleted =
+      removed && !(await admin.from('imports').delete().eq('id', split.import_id)).error;
+    if (!deleted) await db.rpc('abandon_import', { p_import_id: split.import_id });
     throw error;
   }
   return c.json({ import: await summaryOf(db, split.import_id) }, 201);
