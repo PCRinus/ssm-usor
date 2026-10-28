@@ -52,8 +52,6 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership", "subscription" }`; null when absent                                                                                                                            |
 | `PATCH /me/profile`                                                    | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                                                                                                                            |
 | `GET /me/invitations`                                                  | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token                                                                                                               |
-| `GET /me/guides`                                                       | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, the guides the caller finished or skipped, each with its version                                                                                                             |
-| `PUT /me/guides/{guide}`                                               | Verified, non-anonymous Supabase user | The saved guide state after recording `{ version, status }` for the caller                                                                                                                         |
 | `GET /me/setup`                                                        | Verified user with a membership       | The caller's setup guide: the fifteen steps with their state, lock and missing fields, `next`, `clientId`, `ownerName`, `closed`, `finished`                                                       |
 | `PUT /me/setup`                                                        | Verified user with a membership       | The setup guide after recording `{ closed?, finished? }` on the caller's profile; allowed read-only                                                                                                |
 | `PUT /me/setup/skips/{step}`                                           | Verified user with a membership       | The setup guide after skipping a member step (_Știu deja_); idempotent, allowed read-only                                                                                                          |
@@ -928,20 +926,6 @@ without a profile gets `409` with `reason: profile_missing`: a profile needs a n
 this request does not carry, and such an account has nothing unread. The API exposes no write
 to the table itself; only the release workflow writes it.
 
-## Guides
-
-The in-app guides, such as the welcome tour, are defined by the SPA; the API keeps where each
-person stands with them, in `user_guides` ([data model](data-model.md#user-guides)). The
-routes need a signed-in account and no membership, and read and write with the caller's token,
-so they act on the real caller also during an impersonation.
-
-`GET /me/guides` lists one `{ guide, version, status, updatedAt }` per guide the caller has
-finished (`completed`) or skipped (`skipped`), not paginated. A guide missing from the list was
-never seen. `PUT /me/guides/{guide}` takes `{ version, status }` and replaces what was recorded
-for that guide, through `record_user_guide`; `400` for a guide id that is not a lowercase slug.
-Whether a guide shows again is the SPA's call: when it has no entry, or its version is lower
-than the guide's current one.
-
 ## Setup guide
 
 [ADR 031](architecture/adr-031-setup-guide.md). The routes need a membership and read and write
@@ -977,9 +961,9 @@ profile. `PUT /me/setup/skips/{step}` and `DELETE /me/setup/skips/{step}` skip a
 and undo the skip, both idempotent; `400` for any step but the eleven member steps. All three
 answer the guide as `GET` does. They are the caller's own state, so they stay open while the
 organization is read-only, and during an impersonation they act on the signed-in admin's own
-account, as the releases and the guides do. During an impersonation every route answers the
-admin's own done steps, skips, `closed` and `finished`, while `canDo` and `next` follow the
-impersonated member's role, and the locks their organization.
+account, as the releases do. During an impersonation every route answers the admin's own done
+steps, skips, `closed` and `finished`, while `canDo` and `next` follow the impersonated member's
+role, and the locks their organization.
 
 ## Dashboard
 
