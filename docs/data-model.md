@@ -1427,20 +1427,6 @@ later is recorded already, and returns the tag the profile keeps; it raises `REL
 unknown tag and `REL02` for an account without a profile. Deleting a release clears the
 pointers to it.
 
-## User guides
-
-`user_guides` keeps where a person stands with each in-app guide, such as the welcome tour:
-one row per `(user_id, guide)` with the guide's `version` it was recorded at, the `status`
-(`completed` or `skipped`) and `updated_at`. The SPA defines the guides and their versions; it
-shows a guide by itself when the person has no row for it or the row's version is lower than
-the guide's current one, so a skip counts as seen but stays a skip. `guide` is a lowercase
-slug. Rows go with the account.
-
-A signed-in user reads, inserts and updates only their own rows; column grants leave
-`version` and `status` as the only columns an update may change. `record_user_guide(guide,
-version, status)` (`security invoker`) inserts or replaces the caller's row and returns it,
-for `auth.uid()`, the real caller also during an impersonation.
-
 ## Setup guide
 
 The setup guide's fifteen steps ([ADR 031](architecture/adr-031-setup-guide.md)) are ticked
