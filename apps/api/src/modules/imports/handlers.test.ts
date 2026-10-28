@@ -629,42 +629,30 @@ describe('POST /imports/{importId}/confirm', () => {
 });
 
 describe('POST /imports/{importId}/split', () => {
+  const splitting = (n: number) => ({
+    source_path: storagePath(importId, n, 'docx'),
+    target_path: storagePath(splitId, n + 7, 'docx'),
+  });
+
   it("takes another company's files into a new import, copying their objects, and starts it", async () => {
     let splitStatus = 'uploading';
-    mockUpstream(({ url, method, admin }) => {
-      if (url.pathname === '/rest/v1/imports' && method === 'POST') {
-        return Response.json({ id: splitId }, { status: 201 });
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/rpc/split_import') {
+        return Response.json({ import_id: splitId, files: [splitting(2)] });
       }
       if (url.pathname === '/rest/v1/imports' && method === 'PATCH') {
         splitStatus = 'preparing';
         return Response.json([{ id: splitId }]);
       }
-      if (url.pathname === '/rest/v1/imports' && admin) return Response.json([]);
       if (url.pathname === '/rest/v1/imports') {
-        return url.searchParams.get('id') === `eq.${splitId}`
-          ? Response.json(
-              importRow({ id: splitId, status: splitStatus, source_import_id: importId })
-            )
-          : Response.json(importRow({ status: 'ready', ready_at: '2026-10-28T09:10:00+00:00' }));
-      }
-      if (url.pathname === '/rest/v1/import_files' && method === 'POST') {
         return Response.json(
-          [
-            {
-              id: fileId(9),
-              upload_path: 'Dosar/Fisier 2.docx',
-              storage_path: storagePath(splitId, 9, 'docx'),
-            },
-          ],
-          { status: 201 }
+          importRow({ id: splitId, status: splitStatus, source_import_id: importId })
         );
       }
       if (url.pathname === '/rest/v1/import_files' && method === 'GET') {
-        return url.searchParams.get('import_id') === `eq.${splitId}`
-          ? Response.json([
-              fileRow(9, { import_id: splitId, storage_path: storagePath(splitId, 9, 'docx') }),
-            ])
-          : Response.json([fileRow(1, { state: 'read' }), fileRow(2, { state: 'other_company' })]);
+        return Response.json([
+          fileRow(9, { import_id: splitId, storage_path: storagePath(splitId, 9, 'docx') }),
+        ]);
       }
       if (url.pathname === '/rest/v1/import_files') return Response.json([]);
       if (url.pathname === '/storage/v1/object/copy') return Response.json({ Key: 'imports/x' });
@@ -678,10 +666,10 @@ describe('POST /imports/{importId}/split', () => {
     expect(await response.json()).toMatchObject({
       import: { id: splitId, status: 'preparing', sourceImportId: importId },
     });
-    expect(callsTo('/rest/v1/imports', 'POST')[0]!.body).toMatchObject({
-      source_import_id: importId,
-      into_existing_client: false,
-    });
+    const rpc = callsTo('/rest/v1/rpc/split_import')[0]!;
+    expect(rpc.admin).toBe(false);
+    expect(rpc.body).toEqual({ p_import_id: importId, p_file_ids: [fileId(2)] });
+    expect(callsTo('/rest/v1/imports', 'POST')).toEqual([]);
     expect(callsTo('/storage/v1/object/copy')[0]!.body).toMatchObject({
       bucketId: 'imports',
       sourceKey: storagePath(importId, 2, 'docx'),
@@ -691,78 +679,66 @@ describe('POST /imports/{importId}/split', () => {
     expect(sent).toEqual([{ type: 'prepare', importId: splitId, fileId: fileId(9) }]);
   });
 
-  it('steps back when another split of the same files was made at the same time', async () => {
-    let lookups = 0;
-    mockUpstream(({ url, method, admin }) => {
-      if (url.pathname === '/rest/v1/imports' && method === 'POST') {
-        return Response.json(
-          { id: splitId, created_at: '2026-10-28T09:20:00.000002+00:00' },
-          { status: 201 }
-        );
+  it('removes the new import and the objects copied when a copy fails', async () => {
+    mockUpstream(({ url, method, body }) => {
+      if (url.pathname === '/rest/v1/rpc/split_import') {
+        return Response.json({ import_id: splitId, files: [splitting(2), splitting(3)] });
       }
       if (url.pathname === '/rest/v1/imports' && method === 'DELETE') {
         return new Response(null, { status: 204 });
       }
-      if (url.pathname === '/rest/v1/imports' && admin) {
-        lookups++;
-        const taking = (id: string, at: string) => ({
-          id,
-          created_at: at,
-          import_files: [{ upload_path: 'Dosar/Fisier 2.docx' }],
-        });
-        return Response.json(
-          lookups === 1
-            ? []
-            : [
-                taking(splitId, '2026-10-28T09:20:00.000002+00:00'),
-                taking('9b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d', '2026-10-28T09:20:00.000001+00:00'),
-              ]
-        );
-      }
-      if (url.pathname === '/rest/v1/imports') {
-        return Response.json(importRow({ status: 'ready', ready_at: '2026-10-28T09:10:00+00:00' }));
-      }
-      if (url.pathname === '/rest/v1/import_files' && method === 'POST') {
-        return Response.json(
-          [
-            {
-              id: fileId(9),
-              upload_path: 'Dosar/Fisier 2.docx',
-              storage_path: storagePath(splitId, 9, 'docx'),
-            },
-          ],
-          { status: 201 }
-        );
-      }
-      if (url.pathname === '/rest/v1/import_files') {
-        return Response.json([fileRow(2, { state: 'other_company' })]);
+      if (url.pathname === '/storage/v1/object/copy') {
+        return (body as { sourceKey: string }).sourceKey === storagePath(importId, 2, 'docx')
+          ? Response.json({ Key: 'imports/x' })
+          : Response.json(
+              { statusCode: '500', error: 'internal', message: 'down' },
+              { status: 500 }
+            );
       }
       if (url.pathname === '/storage/v1/object/imports' && method === 'DELETE') {
         return Response.json([]);
       }
     });
+    const response = await request(`/imports/${importId}/split`, 'POST', {
+      fileIds: [fileId(2), fileId(3)],
+    });
+
+    expect(response.status).toBe(503);
+    expect(callsTo('/storage/v1/object/imports', 'DELETE')[0]!.body).toEqual({
+      prefixes: [storagePath(splitId, 9, 'docx'), storagePath(splitId, 10, 'docx')],
+    });
+    const deleted = callsTo('/rest/v1/imports', 'DELETE')[0]!;
+    expect(deleted.admin).toBe(true);
+    expect(deleted.url.searchParams.get('id')).toBe(`eq.${splitId}`);
+    expect(sent).toEqual([]);
+  });
+
+  it.each([
+    ['IMP08', 409, 'import_already_split'],
+    ['IMP07', 422, 'import_not_other_company'],
+    ['IMP01', 409, 'import_ended'],
+  ])('answers the database refusing with %s as %i', async (code, status, reason) => {
+    mockUpstream(({ url }) =>
+      url.pathname === '/rest/v1/rpc/split_import'
+        ? Response.json({ code, message: 'refused' }, { status: 400 })
+        : undefined
+    );
     const response = await request(`/imports/${importId}/split`, 'POST', { fileIds: [fileId(2)] });
 
-    expect(response.status).toBe(409);
-    expect(await response.json()).toMatchObject({ reason: 'import_already_split' });
-    expect(callsTo('/rest/v1/imports', 'DELETE')[0]!.url.searchParams.get('id')).toBe(
-      `eq.${splitId}`
-    );
+    expect(response.status).toBe(status);
+    expect(await response.json()).toMatchObject({ reason });
     expect(callsTo('/storage/v1/object/copy')).toEqual([]);
     expect(sent).toEqual([]);
   });
 
-  it('refuses a file that is not about another company', async () => {
-    mockUpstream(({ url }) => {
-      if (url.pathname === '/rest/v1/imports') {
-        return Response.json(importRow({ status: 'ready', ready_at: '2026-10-28T09:10:00+00:00' }));
-      }
-      if (url.pathname === '/rest/v1/import_files')
-        return Response.json([fileRow(1, { state: 'read' })]);
-    });
-    const response = await request(`/imports/${importId}/split`, 'POST', { fileIds: [fileId(1)] });
-    expect(response.status).toBe(422);
-    expect(await response.json()).toMatchObject({ reason: 'import_not_other_company' });
+  it('answers an import the member cannot see as not found', async () => {
+    mockUpstream(({ url }) =>
+      url.pathname === '/rest/v1/rpc/split_import'
+        ? Response.json({ code: 'P0002', message: 'No such import.' }, { status: 404 })
+        : undefined
+    );
+    const response = await request(`/imports/${importId}/split`, 'POST', { fileIds: [fileId(2)] });
+    expect(response.status).toBe(404);
   });
 });
 

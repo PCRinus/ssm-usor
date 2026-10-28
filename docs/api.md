@@ -1822,8 +1822,8 @@ and `cleanup.ts` (the cron). The tables, the bucket and the functions are in the
 sorting, the checks and the gateway client are `packages/import`.
 
 Members read imports through their own policies. The API writes the rows with the secret key,
-after finding the import under the caller's token; saving, abandoning and confirming go
-through the database's own functions as the caller. Creating, starting and splitting an import
+after finding the import under the caller's token; saving, abandoning, splitting and
+confirming go through the database's own functions as the caller. Creating, starting and splitting an import
 answer `503` with the reason `import_unavailable` unless `AI_GATEWAY_URL`, `AI_GATEWAY_TOKEN`,
 the extractor (`EXTRACTOR` with `PDF_CONVERSION=service`, or `EXTRACTOR_URL`) and the
 `IMPORT_QUEUE` binding are all there ([deployment](deployment.md#the-same-gateway-for-imports-from-documents)).
@@ -1927,11 +1927,14 @@ the original and the converted file, a Word file's text, a PDF's pages, and wher
 (`findQuote`), on a page for a PDF.
 
 `POST /imports/{importId}/abandon` ends an import not yet confirmed (`abandon_import`).
-`POST /imports/{importId}/split` with `{ fileIds }`, all `other_company`, creates a new import for
-a new client with `source_import_id`, copies their objects within `imports`, and starts it; files
-split once already into an import not abandoned are `409` (`import_already_split`). Two splits of
-the same files at once each look again once their files are registered, and the later one is
-deleted with the same answer.
+`POST /imports/{importId}/split` with `{ fileIds }`, all `other_company` (else `422`,
+`import_not_other_company`), creates a new import for a new client with `source_import_id` in
+one transaction (`split_import`), then copies their objects within `imports` and starts it. Files
+split once already into an import not abandoned are `409` (`import_already_split`), and so is an
+import still sorting its files or abandoned (`import_ended`). The function locks the import, so
+of two splits of the same files at once the second waits for the first and gets the `409`. If a
+copy or the start fails, the API removes the objects it copied and deletes the new import, which
+frees the files for another split.
 
 ### The clean-up
 

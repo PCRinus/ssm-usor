@@ -702,95 +702,50 @@ export const abandonImport: RouteHandler<typeof abandonImportRoute, ApiEnv> = as
   return c.body(null, 204);
 };
 
-const splittable = new Set(['reading', 'checking', 'ready', 'confirmed', 'failed']);
+function splitError(error: { code?: string | null }) {
+  switch (error.code) {
+    case 'IMP01':
+      return conflict('This import cannot be split now.', importErrorReasons.ended);
+    case 'IMP07':
+      return new ApiError(
+        'unprocessable',
+        'Only files about another company are split off.',
+        undefined,
+        importErrorReasons.notOtherCompany
+      );
+    case 'IMP08':
+      return conflict('These files were split off already.', importErrorReasons.alreadySplit);
+  }
+  return decisionError(error, 'split import');
+}
 
 export const splitImport: RouteHandler<typeof splitImportRoute, ApiEnv> = async (c) => {
   const queue = requireImportService(c);
   const { importId } = c.req.valid('param');
   const { fileIds } = c.req.valid('json');
   const db = createDataClient(c);
-  const row = await findImport(db, importId);
-  if (!splittable.has(row.status)) {
-    throw conflict('This import cannot be split now.', importErrorReasons.ended);
-  }
-  const files = (await listFilesOf(db, importId)).filter((file) => fileIds.includes(file.id));
-  if (
-    files.length !== new Set(fileIds).size ||
-    files.some((file) => file.state !== 'other_company')
-  ) {
-    throw new ApiError(
-      'unprocessable',
-      'Only files about another company are split off.',
-      undefined,
-      importErrorReasons.notOtherCompany
-    );
-  }
-  const admin = createAdminClient(c);
-  const paths = new Set(files.map((file) => file.upload_path));
-  const splitsTaking = async (context: string) => {
-    const { data, error } = await admin
-      .from('imports')
-      .select('id, created_at, import_files(upload_path)')
-      .eq('source_import_id', importId)
-      .neq('status', 'abandoned');
-    if (error) throw fromDatabaseError(error, context);
-    return data.filter((split) => split.import_files.some((file) => paths.has(file.upload_path)));
+  const { data, error } = await db.rpc('split_import', {
+    p_import_id: importId,
+    p_file_ids: fileIds,
+  });
+  if (error) throw splitError(error);
+  const split = data as {
+    import_id: string;
+    files: { source_path: string; target_path: string }[];
   };
-  const alreadySplit = () =>
-    conflict('These files were split off already.', importErrorReasons.alreadySplit);
-  if ((await splitsTaking('find earlier splits')).length > 0) throw alreadySplit();
-
-  const organizationId = c.get('membership').organizationId;
-  const created = await admin
-    .from('imports')
-    .insert({
-      organization_id: organizationId,
-      kind: 'client',
-      into_existing_client: false,
-      source_import_id: importId,
-      created_by: c.get('user').id,
-    })
-    .select('id, created_at')
-    .single();
-  if (created.error) throw fromDatabaseError(created.error, 'create split import');
-  const splitId = created.data.id;
-  const ours = { id: splitId, created_at: created.data.created_at };
-  const before = (a: typeof ours, b: typeof ours) =>
-    a.created_at < b.created_at || (a.created_at === b.created_at && a.id < b.id);
+  const admin = createAdminClient(c);
   const objects = createAdminFileStore(c);
   const copied: string[] = [];
   try {
-    const rows = await admin
-      .from('import_files')
-      .insert(
-        files.map((file) => ({
-          import_id: splitId,
-          organization_id: organizationId,
-          upload_path: file.upload_path,
-          original_file_name: file.original_file_name,
-          mime_type: file.mime_type,
-          size_bytes: file.size_bytes,
-          sha256: file.sha256,
-        }))
-      )
-      .select('id, upload_path, storage_path');
-    if (rows.error) throw fromDatabaseError(rows.error, 'register split files');
-    // Two splits of the same files at once each pass the check above. Each looks again once its
-    // files are in: the later one sees the earlier and steps back, since nothing locks the source.
-    const rivals = (await splitsTaking('find concurrent splits')).filter(
-      (split) => split.id !== splitId && before(split, ours)
-    );
-    if (rivals.length > 0) throw alreadySplit();
-    const source = new Map(files.map((file) => [file.upload_path, file.storage_path]));
-    for (const file of rows.data) {
-      copied.push(file.storage_path);
-      await objects.copyImportObject(source.get(file.upload_path)!, file.storage_path, 'imports');
+    for (const file of split.files) {
+      copied.push(file.target_path);
+      await objects.copyImportObject(file.source_path, file.target_path, 'imports');
     }
-    await beginReading(c, admin, queue, splitId, organizationId);
+    await beginReading(c, admin, queue, split.import_id, c.get('membership').organizationId);
   } catch (error) {
     await objects.removeImportObjects(copied).catch(() => undefined);
-    await admin.from('imports').delete().eq('id', splitId);
+    await admin.from('imports').delete().eq('id', split.import_id);
     throw error;
   }
-  return c.json({ import: await summaryOf(db, splitId) }, 201);
+  return c.json({ import: await summaryOf(db, split.import_id) }, 201);
 };
