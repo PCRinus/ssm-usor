@@ -48,7 +48,10 @@ const client = {
 
 const started = importDetail({ status: 'preparing', files: [importFile({ state: 'uploaded' })] });
 
-function mockImportApi(listed: unknown[] = []) {
+function mockImportApi(
+  listed: unknown[] = [],
+  start: () => Response = () => Response.json({ import: summaryOf(started) })
+) {
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
     if (url.pathname === '/clients' && method === 'GET') {
@@ -76,13 +79,27 @@ function mockImportApi(listed: unknown[] = []) {
         { status: 201 }
       );
     }
-    if (url.pathname === `/imports/${importId}/start`) {
-      return Response.json({ import: summaryOf(started) });
+    if (url.pathname === `/imports/${importId}/start`) return start();
+    if (url.pathname === `/imports/${importId}/abandon`) {
+      return Response.json({ import: summaryOf(importDetail({ status: 'abandoned' })) });
     }
     if (url.pathname === `/imports/${importId}`) return Response.json({ import: started });
     if (url.pathname.startsWith(`/clients/${clientId}/`)) return Response.json({}, { status: 404 });
     return undefined;
   });
+}
+
+const refusedStart = (reason: string) => () =>
+  Response.json({ error: 'conflict', message: reason, reason }, { status: 409 });
+
+async function uploadFrom(path: string, files: File[]) {
+  const runtime = mountApp(authFixture(makeSession()).client, path);
+  await userEvent.click(await screen.findByTestId('clients-import'));
+  await screen.findByTestId('import-upload-dialog');
+  choose(files);
+  await screen.findByTestId('import-chosen');
+  await userEvent.click(screen.getByTestId('import-upload-submit'));
+  return runtime;
 }
 
 const zip = (entries: Record<string, string>) =>
@@ -280,6 +297,47 @@ describe('starting an import from the client list', () => {
 
     await userEvent.click(within(stalled).getByRole('button', { name: 'Citește fără ele' }));
     await waitFor(() => expect(requestsTo(`/imports/${importId}/start`, 'POST')).toHaveLength(1));
+  });
+});
+
+describe('an upload that does not go through', () => {
+  it('lets go of an import none of whose files went up', async () => {
+    mockImportApi();
+    vi.mocked(uploadImportObject).mockRejectedValue(new Error('Network down'));
+    await uploadFrom('/clients', [new File(['%PDF'], 'a.pdf'), new File(['%PDF'], 'b.pdf')]);
+
+    const stalled = await screen.findByTestId('import-upload-stalled');
+    expect(stalled.textContent).toContain('Niciun fișier nu s-a încărcat.');
+    expect(within(stalled).queryByRole('button', { name: 'Citește fără ele' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Renunță' }));
+
+    await waitFor(() => expect(screen.queryByTestId('import-upload-dialog')).toBeNull());
+    expect(requestsTo(`/imports/${importId}/abandon`, 'POST')).toHaveLength(1);
+    expect(requestsTo(`/imports/${importId}/start`, 'POST')).toHaveLength(0);
+  });
+
+  it('opens the import when its reading started though the answer was lost', async () => {
+    mockImportApi([], refusedStart('import_not_uploading'));
+    const runtime = await uploadFrom('/clients', [new File(['%PDF'], 'a.pdf')]);
+
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clients/import/${importId}`)
+    );
+    expect(requestsTo(`/imports/${importId}/start`, 'POST')).toHaveLength(1);
+  });
+
+  it('says nothing arrived when the import has no file to read, and abandons it on leaving', async () => {
+    mockImportApi([], refusedStart('import_empty'));
+    await uploadFrom('/clients', [new File(['%PDF'], 'a.pdf')]);
+
+    expect((await screen.findByTestId('import-upload-empty')).textContent).toContain(
+      'Niciun fișier nu a ajuns la noi'
+    );
+    expect(screen.queryByRole('button', { name: 'Încearcă din nou' })).toBeNull();
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByTestId('import-upload-dialog')).toBeNull());
+    expect(requestsTo(`/imports/${importId}/abandon`, 'POST')).toHaveLength(1);
   });
 });
 

@@ -45,9 +45,14 @@ const reasonMessages: Record<string, string> = {
   [importErrorReasons.alreadySplit]: 'Aceste fișiere au fost deja trimise într-un import separat.',
 };
 
+export const importErrorReason = (cause: unknown) =>
+  cause instanceof ApiHttpError
+    ? (cause.body as Partial<ApiErrorResponse> | undefined)?.reason
+    : undefined;
+
 export function importErrorMessage(cause: unknown, fallback: string) {
   if (!(cause instanceof ApiHttpError)) return fallback;
-  const reason = (cause.body as Partial<ApiErrorResponse> | undefined)?.reason;
+  const reason = importErrorReason(cause);
   if (reason && Object.hasOwn(reasonMessages, reason)) return reasonMessages[reason]!;
   if (cause.status === 401) {
     return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';

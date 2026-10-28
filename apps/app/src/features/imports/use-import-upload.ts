@@ -1,3 +1,4 @@
+import { importErrorReasons } from '@ssm-usor/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
@@ -11,7 +12,7 @@ import {
   startImport,
 } from '@/api/generated/api';
 
-import { importErrorMessage } from './import-format';
+import { importErrorMessage, importErrorReason } from './import-format';
 import { sha256Of, uploadImportObject } from './import-storage';
 import type { SelectedFile } from './upload-selection';
 
@@ -20,7 +21,9 @@ export type UploadPhase =
   | { step: 'hashing'; done: number; total: number }
   | { step: 'uploading'; sentBytes: number; totalBytes: number }
   | { step: 'starting' }
-  | { step: 'stalled'; failed: number; error?: string }
+  | { step: 'stalled'; failed: number; uploaded: number }
+  | { step: 'unstarted'; error: string }
+  | { step: 'empty' }
   | { step: 'failed'; error: string };
 
 const registerBatch = 50;
@@ -56,26 +59,38 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
   const queryClient = useQueryClient();
   const [phase, setPhase] = useState<UploadPhase>({ step: 'choosing' });
   const importId = useRef<string | null>(null);
+  const fileCount = useRef(0);
   const pending = useRef<{ file: SelectedFile; storagePath: string }[]>([]);
+  const abandoned = useRef(false);
+
+  async function opened(id: string) {
+    // The list behind the dialog may have read the import while it was still uploading.
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
+      queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(id) }),
+    ]);
+    if (!abandoned.current) onStarted(id);
+  }
 
   async function start(id: string) {
     setPhase({ step: 'starting' });
     try {
       await startImport(id, apiRequest);
     } catch (cause) {
-      setPhase({
-        step: 'stalled',
-        failed: 0,
-        error: importErrorMessage(cause, 'Citirea nu a putut porni. Încearcă din nou.'),
-      });
+      if (abandoned.current) return;
+      const reason = importErrorReason(cause);
+      // An earlier start reached the server and only its answer was lost.
+      if (reason === importErrorReasons.notUploading) await opened(id);
+      else if (reason === importErrorReasons.empty) setPhase({ step: 'empty' });
+      else {
+        setPhase({
+          step: 'unstarted',
+          error: importErrorMessage(cause, 'Citirea nu a putut porni. Încearcă din nou.'),
+        });
+      }
       return;
     }
-    // The list behind the dialog may have read the import while it was still uploading.
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
-      queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(id) }),
-    ]);
-    onStarted(id);
+    await opened(id);
   }
 
   async function send(id: string, jobs: { file: SelectedFile; storagePath: string }[]) {
@@ -84,6 +99,7 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
     const failed: typeof jobs = [];
     setPhase({ step: 'uploading', sentBytes, totalBytes });
     await inParallel(jobs, maxConcurrent, async (job) => {
+      if (abandoned.current) return;
       try {
         await withRetry(() =>
           uploadImportObject(job.storagePath, job.file.blob, job.file.mimeType)
@@ -98,9 +114,14 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
         } else failed.push(job);
       }
     });
+    if (abandoned.current) return;
     pending.current = failed;
     if (failed.length > 0) {
-      setPhase({ step: 'stalled', failed: failed.length });
+      setPhase({
+        step: 'stalled',
+        failed: failed.length,
+        uploaded: fileCount.current - failed.length,
+      });
       return;
     }
     await start(id);
@@ -108,6 +129,8 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
 
   async function upload(files: SelectedFile[]) {
     if (phase.step !== 'choosing' && phase.step !== 'failed') return;
+    abandoned.current = false;
+    fileCount.current = files.length;
     try {
       setPhase({ step: 'hashing', done: 0, total: files.length });
       const hashes = new Map<string, string>();
@@ -117,8 +140,13 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
         hashed += 1;
         setPhase({ step: 'hashing', done: hashed, total: files.length });
       });
+      if (abandoned.current) return;
       const id = (await createImport(clientId ? { clientId } : {}, apiRequest)).import.id;
       importId.current = id;
+      if (abandoned.current) {
+        abandon();
+        return;
+      }
       const jobs: { file: SelectedFile; storagePath: string }[] = [];
       for (let first = 0; first < files.length; first += registerBatch) {
         const batch = files.slice(first, first + registerBatch);
@@ -140,6 +168,7 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
       void queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() });
       await send(id, jobs);
     } catch (cause) {
+      if (abandoned.current) return;
       // Its files are half registered, so trying again starts a new import.
       if (importId.current) void abandonImport(importId.current, apiRequest).catch(() => undefined);
       importId.current = null;
@@ -153,9 +182,23 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
     }
   }
 
-  const retry = () => importId.current && void send(importId.current, pending.current);
+  function retry() {
+    const id = importId.current;
+    if (!id) return;
+    void (pending.current.length > 0 ? send(id, pending.current) : start(id));
+  }
 
   const continueWithout = () => importId.current && void start(importId.current);
 
-  return { phase, upload, retry, continueWithout } as const;
+  function abandon() {
+    abandoned.current = true;
+    const id = importId.current;
+    importId.current = null;
+    if (!id) return;
+    void abandonImport(id, apiRequest)
+      .catch(() => undefined)
+      .then(() => queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }));
+  }
+
+  return { phase, upload, retry, continueWithout, abandon } as const;
 }
