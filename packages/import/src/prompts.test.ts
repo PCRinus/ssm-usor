@@ -39,6 +39,7 @@ describe('readingMessages', () => {
       'admis la lucru',
       'give one fact for each value',
       'Signing documents, being named administrator or legal representative',
+      'place each post by its name and by what the documents say it does',
     ]) {
       expect(system!.content).toContain(rule);
     }
