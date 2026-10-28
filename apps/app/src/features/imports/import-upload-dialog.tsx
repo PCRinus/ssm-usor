@@ -28,7 +28,7 @@ import {
 import { type DragEvent, type FormEvent, type ReactNode, useRef, useState } from 'react';
 
 import { Notice } from '@/components/notice';
-import { hasFiles } from '@/features/client-files/use-file-drop';
+import { hasFiles, useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
 
 import { filesLabel, formatFileSize, photosLabel } from './import-format';
 import { pickedFromDrop, pickedFromInput } from './picked-files';
@@ -90,6 +90,7 @@ function UploadForm({
   const choosing = phase.step === 'choosing' || phase.step === 'failed';
   const totals = selectionTotals(selection);
   const over = totals.overFiles || totals.overBytes;
+  useRefuseStrayDrops();
 
   async function add(picked: Promise<PickedFile[]> | PickedFile[]) {
     setOpening(true);

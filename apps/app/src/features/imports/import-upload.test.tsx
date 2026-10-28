@@ -341,6 +341,20 @@ describe('an upload that does not go through', () => {
   });
 });
 
+describe('while the files go up', () => {
+  it('keeps a file dropped on the dialog from replacing the app', async () => {
+    mockImportApi();
+    vi.mocked(uploadImportObject).mockImplementation(() => new Promise(() => undefined));
+    await uploadFrom('/clients', [new File(['%PDF'], 'a.pdf')]);
+    await screen.findByTestId('import-upload-progress');
+
+    const dropped = fireEvent.drop(screen.getByTestId('import-upload-dialog'), {
+      dataTransfer: { types: ['Files'], files: [] },
+    });
+    expect(dropped).toBe(false);
+  });
+});
+
 describe('completing a client from its documentation', () => {
   it("starts from the client's page and names the client and its CUI", async () => {
     mockImportApi();

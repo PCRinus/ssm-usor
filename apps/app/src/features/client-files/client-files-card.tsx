@@ -20,7 +20,7 @@ import {
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { Download, FileUp, Lock, MoreHorizontal, Pencil, Trash2, Upload } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import {
   type ClientFileListResponse,
@@ -46,7 +46,7 @@ import {
   opensInTab,
 } from './client-file-format';
 import { UploadClientFilesDialog } from './client-file-upload-dialog';
-import { hasFiles, useFileDrop } from './use-file-drop';
+import { useFileDrop, useRefuseStrayDrops } from './use-file-drop';
 
 // `readOnly` is an archived company.
 export function ClientFilesCard({
@@ -78,20 +78,7 @@ export function ClientFilesCard({
     if (dropped.length > 0) setUploading(dropped);
   });
 
-  // Without this, a file dropped beside the card replaces the app with the file.
-  useEffect(() => {
-    const refuse = (event: globalThis.DragEvent) => {
-      if (event.defaultPrevented || !hasFiles(event)) return;
-      event.preventDefault();
-      if (event.type === 'dragover') event.dataTransfer!.dropEffect = 'none';
-    };
-    window.addEventListener('dragover', refuse);
-    window.addEventListener('drop', refuse);
-    return () => {
-      window.removeEventListener('dragover', refuse);
-      window.removeEventListener('drop', refuse);
-    };
-  }, []);
+  useRefuseStrayDrops();
 
   // A tab opened after the link arrives would be taken for a popup and blocked, so it opens
   // on the click and is pointed at the file once the link is there.
