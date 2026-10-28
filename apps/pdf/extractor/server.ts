@@ -10,6 +10,7 @@ import {
   isPasswordProtectedWord,
   isPdf,
   isWordLike,
+  longestEdgePixels,
   parsePdfInfo,
   splitPages,
 } from './files.ts';
@@ -140,6 +141,20 @@ async function pdfPageImage(pdf: Uint8Array, page: number, signal: AbortSignal):
   });
 }
 
+// Below Debian's policy.xml (a gigabyte of memory, 32,000 pixels a side), and set here so a later
+// base image cannot raise them. A 48-megapixel photograph fits.
+const imageLimits = [
+  ['memory', '512MiB'],
+  ['map', '1GiB'],
+  ['area', '128MP'],
+  ['disk', '1GiB'],
+  ['width', '20KP'],
+  ['height', '20KP'],
+  ['time', '50'],
+  // On half a CPU, OpenMP's threads only wait on each other: a resize took 3 to 13 s, one thread 2.6.
+  ['thread', '1'],
+].flatMap(([resource, value]) => ['-limit', resource!, value!]);
+
 async function imageToJpeg(image: Uint8Array, signal: AbortSignal): Promise<Buffer> {
   const kind = imageKind(image);
   if (!kind) throw new Refused('unsupported', 'not a HEIC, JPEG or PNG image');
@@ -152,8 +167,11 @@ async function imageToJpeg(image: Uint8Array, signal: AbortSignal): Promise<Buff
     const result = await run(
       'magick',
       [
+        ...imageLimits,
         `${kind}:${input}[0]`,
         '-auto-orient',
+        '-resize',
+        `${longestEdgePixels}x${longestEdgePixels}>`,
         '-background',
         'white',
         '-alpha',
@@ -167,7 +185,13 @@ async function imageToJpeg(image: Uint8Array, signal: AbortSignal): Promise<Buff
       ],
       { timeoutMs: 60_000, signal }
     );
-    if (result.code !== 0) throw new Refused('corrupt', result.stderr.trim().slice(0, 300));
+    const detail = result.stderr.trim().slice(0, 300);
+    // Past its time limit ImageMagick still exits 0, with what it had drawn by then.
+    if (/time limit exceeded/i.test(result.stderr)) throw new Refused('timeout', detail);
+    if (/exceeds user limit|resources exhausted/i.test(result.stderr)) {
+      throw new Refused('too_large', detail);
+    }
+    if (result.code !== 0) throw new Refused('corrupt', detail);
     const jpeg = await readFile(output);
     if (!isJpeg(jpeg)) throw new Error('ImageMagick wrote something other than a JPEG');
     return jpeg;

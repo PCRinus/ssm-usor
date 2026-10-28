@@ -135,7 +135,7 @@ export function splitPages(text: string, pageCount: number): PdfPage[] {
 }
 
 export const pageImageDpi = 150;
-const longestEdgePixels = 2500;
+export const longestEdgePixels = 2500;
 
 export function dpiFor(size: [number, number] | undefined): number {
   if (!size) return pageImageDpi;

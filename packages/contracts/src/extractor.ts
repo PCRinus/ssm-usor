@@ -53,6 +53,9 @@ export interface ExtractorService {
   pdfText(pdf: ArrayBuffer): Promise<PdfText>;
   /** One page of a PDF as a JPEG at about 150 dpi, for a model to read a scanned page. */
   pdfPageImage(pdf: ArrayBuffer, page: number): Promise<ArrayBuffer>;
-  /** A HEIC, JPEG or PNG photograph as a JPEG turned upright, its metadata removed. */
+  /**
+   * A HEIC, JPEG or PNG photograph as a JPEG turned upright, at most 2500 pixels a side, its
+   * metadata removed.
+   */
   heicToJpeg(image: ArrayBuffer): Promise<ArrayBuffer>;
 }

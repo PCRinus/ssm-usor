@@ -445,13 +445,13 @@ container logs its own (`extractor_refused`, `extractor_busy`, `extractor_abando
 
 The file is the request's body, `application/octet-stream`; the result is the answer's body. Port 3302.
 
-| Route                         | Takes                                                         | Answers                                                                      |
-| ----------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `POST /doc-to-docx`           | Word 97–2003, or RTF, HTML or Office Open XML saved as `.doc` | The `.docx`, from LibreOffice                                                |
-| `POST /pdf-text`              | A PDF                                                         | `{ "pageCount", "pages": [{ "number", "text", "isScan" }] }`, as JSON        |
-| `POST /pdf-page-image?page=N` | A PDF                                                         | Page N as a JPEG at 150 dpi, less for a page larger than 2,500 pixels a side |
-| `POST /heic-to-jpeg`          | A HEIC, JPEG or PNG                                           | A JPEG turned upright by its orientation, transparency on white, no metadata |
-| `GET /health`                 |                                                               | `{ "status": "ok" }`                                                         |
+| Route                         | Takes                                                         | Answers                                                                                |
+| ----------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `POST /doc-to-docx`           | Word 97–2003, or RTF, HTML or Office Open XML saved as `.doc` | The `.docx`, from LibreOffice                                                          |
+| `POST /pdf-text`              | A PDF                                                         | `{ "pageCount", "pages": [{ "number", "text", "isScan" }] }`, as JSON                  |
+| `POST /pdf-page-image?page=N` | A PDF                                                         | Page N as a JPEG at 150 dpi, less for a page larger than 2,500 pixels a side           |
+| `POST /heic-to-jpeg`          | A HEIC, JPEG or PNG                                           | A JPEG turned upright, at most 2,500 pixels a side, transparency on white, no metadata |
+| `GET /health`                 |                                                               | `{ "status": "ok" }`                                                                   |
 
 A refusal is `{ "error": "<reason>", "detail" }`, with 413 for `too_large`, 415 for
 `unsupported`, 400 for `page_out_of_range` and 422 for the others; anything else that goes wrong
@@ -461,8 +461,10 @@ is a 500. A request that finds too many files waiting is turned away with 503 an
 `pdf-text` runs `pdftotext -layout` once and splits its pages at the form feeds. `isScan` marks a
 page with fewer than 100 characters other than whitespace, since the layout pads lines with
 spaces. A PDF with only an owner password, which forbids copying, is read: poppler does not
-enforce the permission. LibreOffice reports a Word file that needs a password as one it cannot
-load, so the server tells the two apart from the compound file itself: an encrypted `.docx`
+enforce the permission. ImageMagick runs with its own limits on memory, disk, time and size
+(20,000 pixels a side), below Debian's policy and set by the server, so an image that unpacks to
+more is refused as `too_large` whatever a later base image allows. LibreOffice reports a Word
+file that needs a password as one it cannot load, so the server tells the two apart from the compound file itself: an encrypted `.docx`
 package, or a `.doc` whose File Information Block says it is encrypted or obfuscated. Stripping
 the metadata of a photograph removes its location too.
 
