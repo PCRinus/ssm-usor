@@ -394,6 +394,37 @@ describe('POST /imports/{importId}/start', () => {
     ]);
   });
 
+  it('drops a file whose object is not the size declared, and removes the object', async () => {
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/imports' && method === 'PATCH') {
+        return Response.json([{ id: importId }]);
+      }
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
+      if (url.pathname === '/rest/v1/import_files' && method === 'GET') {
+        return Response.json([fileRow(1), fileRow(2)]);
+      }
+      if (url.pathname === '/rest/v1/import_files') return new Response(null, { status: 204 });
+      if (url.pathname === '/storage/v1/object/list/imports') {
+        return Response.json([
+          { name: `${fileId(1)}.docx`, metadata: { size: 1000 } },
+          { name: `${fileId(2)}.docx`, metadata: { size: 20 * 1024 * 1024 } },
+        ]);
+      }
+      if (url.pathname === '/storage/v1/object/imports' && method === 'DELETE') {
+        return Response.json([]);
+      }
+    });
+    const response = await request(`/imports/${importId}/start`, 'POST');
+
+    expect(response.status).toBe(200);
+    expect(callsTo('/storage/v1/object/imports', 'DELETE')[0]!.body).toEqual({
+      prefixes: [storagePath(importId, 2, 'docx')],
+    });
+    const deleted = callsTo('/rest/v1/import_files', 'DELETE')[0]!;
+    expect(deleted.url.searchParams.get('id')).toBe(`in.(${fileId(2)})`);
+    expect(sent).toEqual([{ type: 'prepare', importId, fileId: fileId(1) }]);
+  });
+
   it('answers that nothing arrived', async () => {
     mockUpstream(({ url, method }) => {
       if (url.pathname === '/rest/v1/imports') return Response.json(importRow());

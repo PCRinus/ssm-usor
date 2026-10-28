@@ -443,13 +443,32 @@ async function beginReading(
   organizationId: string
 ) {
   const files = await listFilesOf(admin, importId);
-  const stored = new Set(
-    (await createAdminFileStore(c).listImportFolder(`${organizationId}/${importId}`)).map(
-      (object) => object.name
-    )
+  const objects = createAdminFileStore(c);
+  const stored = new Map(
+    (await objects.listImportFolder(`${organizationId}/${importId}`)).map((object) => [
+      object.name,
+      object.size,
+    ])
   );
-  const arrived = files.filter((file) => stored.has(file.storage_path.split('/').at(-1)!));
+  const sizeOf = (file: ImportFileRow) => stored.get(file.storage_path.split('/').at(-1)!);
+  // The caps counted the sizes the browser declared, and the bucket's policy checks only the
+  // path: an object of another size is dropped with its row, as one that never arrived.
+  const misdeclared = files.filter((file) => {
+    const size = sizeOf(file);
+    return typeof size === 'number' && size !== file.size_bytes;
+  });
+  const arrived = files.filter((file) => sizeOf(file) !== undefined && !misdeclared.includes(file));
   const missing = files.filter((file) => !arrived.includes(file));
+  if (misdeclared.length > 0) {
+    console.error(
+      `Import ${importId}: ${misdeclared.length} objects differ from their declared size.`
+    );
+    await objects
+      .removeImportObjects(misdeclared.map((file) => file.storage_path))
+      .catch((error: unknown) =>
+        console.error(`Objects of import ${importId} were left in Storage: ${describe(error)}`)
+      );
+  }
   if (missing.length > 0) {
     const { error } = await admin
       .from('import_files')
@@ -491,7 +510,11 @@ async function beginReading(
     );
   } catch (error) {
     console.error(`Import ${importId} could not be queued: ${describe(error)}`);
-    await admin.from('imports').update({ status: 'uploading' }).eq('id', importId);
+    await admin
+      .from('imports')
+      .update({ status: 'uploading' })
+      .eq('id', importId)
+      .eq('status', 'preparing');
     throw unavailable();
   }
 }
