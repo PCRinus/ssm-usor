@@ -86,6 +86,31 @@ describe('docxToText', () => {
     expect(docxToText(docx({ 'word/document.xml': document }))).toBe('Brutăria & Cofetăria');
   });
 
+  it('reads a pretty-printed document without the indentation between runs', () => {
+    const document = `<w:document ${namespaces}>
+  <w:body>
+    <w:p>
+      <w:r>
+        <w:t>Ion</w:t>
+      </w:r>
+      <w:r>
+        <w:t>escu Maria</w:t>
+      </w:r>
+    </w:p>
+  </w:body>
+</w:document>`;
+
+    expect(docxToText(docx({ 'word/document.xml': document }))).toBe('Ionescu Maria');
+  });
+
+  it('decodes numeric character references', () => {
+    const document = `<w:document ${namespaces}><w:body>${paragraph(
+      text('&#x218;tefan &#537;i Ro&#x219;u &#38;lt;')
+    )}</w:body></w:document>`;
+
+    expect(docxToText(docx({ 'word/document.xml': document }))).toBe('Ștefan și Roșu &lt;');
+  });
+
   it('refuses a document whose text would inflate past the cap, before inflating it', () => {
     const bytes = docx({ 'word/document.xml': `<w:document ${namespaces}/>` });
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);

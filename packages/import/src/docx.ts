@@ -8,6 +8,8 @@ const parser = new XMLParser({
   // Otherwise text such as a CAEN code or a phone number is read as a number and loses its
   // leading zeros.
   parseTagValue: false,
+  // Despite its name, needed for XML too: without it numeric references (&#x219;) stay as written.
+  htmlEntities: true,
 });
 
 type XmlNode = Record<string, unknown>;
@@ -22,8 +24,13 @@ const childrenOf = (node: XmlNode) => {
 function textOf(node: XmlNode): string {
   const tag = tagOf(node);
   switch (tag) {
+    // Only a run's text is the document's: whitespace between tags is the file's indentation.
+    case 'w:t':
+      return childrenOf(node)
+        .map((child) => String(child['#text'] ?? ''))
+        .join('');
     case '#text':
-      return String(node['#text']);
+      return '';
     case 'w:tab':
     case 'w:br':
     case 'w:cr':
