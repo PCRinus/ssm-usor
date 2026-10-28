@@ -1,4 +1,4 @@
-import { Container, getContainer } from '@cloudflare/containers';
+import { Container, getContainer, getRandom } from '@cloudflare/containers';
 import {
   type BeginSignatureOptions,
   type BeginSignatureResult,
@@ -47,6 +47,9 @@ export class Signer extends Container {
   // Nothing is fetched while signing or validating: no revocation lists, no timestamps.
   enableInternet = false;
 }
+
+// The Extractor's `max_instances` in wrangler.jsonc: a name past it gets no container.
+const extractorInstances = 2;
 
 // Beside Gotenberg rather than inside it: Gotenberg's pinned LibreOffice decides where the app's
 // own documents break pages, and its routes only make PDFs.
@@ -121,8 +124,13 @@ export class Pdf
   }
 
   private extractor(): ExtractorService {
-    const container = getContainer(this.env.EXTRACTOR);
-    return extractorOverHttp(postToExtractor((request) => container.fetch(request)));
+    // An instance per request, a retry included, so a retry can reach the one a slow file is not
+    // holding.
+    return extractorOverHttp(
+      postToExtractor(async (request) =>
+        (await getRandom(this.env.EXTRACTOR, extractorInstances)).fetch(request)
+      )
+    );
   }
 
   async docToDocx(doc: ArrayBuffer): Promise<ArrayBuffer> {

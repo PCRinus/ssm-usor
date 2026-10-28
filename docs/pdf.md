@@ -469,7 +469,7 @@ the metadata of a photograph removes its location too.
 | --------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------- |
 | Image           | `node:24.22.1-trixie-slim`, about 900 MB | `apps/pdf/extractor/Dockerfile`, the base pinned by digest; LibreOffice is most of the size |
 | Instance type   | `standard-1`                             | LibreOffice, as for Gotenberg                                                               |
-| `max_instances` | 2                                        | One import's files need not wait behind another's                                           |
+| `max_instances` | 2                                        | Each request goes to one at random, so a slow file holds up half the files read at once     |
 | `sleepAfter`    | 5 minutes                                | An import's files arrive in a burst, one queue message each                                 |
 | Internet        | off                                      | It reads what it is handed                                                                  |
 

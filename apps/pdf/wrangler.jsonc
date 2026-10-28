@@ -26,7 +26,8 @@
       "max_instances": 1,
     },
     // LibreOffice, poppler and ImageMagick for the imports (ADR 030), LibreOffice sized as for
-    // Gotenberg. Two instances, so one import's files do not wait behind another's.
+    // Gotenberg. Two instances, as `extractorInstances` in src/index.ts, each request sent to one
+    // at random, so a slow file holds up half of the files read at once rather than all of them.
     {
       "class_name": "Extractor",
       "image": "./extractor/Dockerfile",
