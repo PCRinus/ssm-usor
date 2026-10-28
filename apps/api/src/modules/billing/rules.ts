@@ -125,15 +125,17 @@ export type ChangeSplit = {
 };
 
 // ADR 029: an upgrade and an addition apply at once, monthly to annual too; a downgrade, a
-// removal and annual to monthly wait for the renewal. A downgrade takes the rest of the choice
-// with it, since moving to annual at once would push the cheaper plan a year away.
+// removal and annual to monthly wait for the renewal. A downgrade and annual to monthly take the
+// rest of the choice with them: what the target needs belongs to the cheaper plan's period, and
+// raising it today would charge the current plan for it.
 export function splitChange(current: BillingChoice, target: BillingChoice): ChangeSplit {
   if (sameChoice(current, target)) return { now: null, atRenewal: null, chargeNow: false };
 
   const downgrade = planRank[target.plan] < planRank[current.plan];
+  const toMonthly = current.interval === 'year' && target.interval === 'month';
   let now: BillingChoice;
-  if (downgrade) {
-    now = { ...current, extraMembers: Math.max(current.extraMembers, target.extraMembers) };
+  if (downgrade || toMonthly) {
+    now = current;
   } else if (current.interval === 'month' && target.interval === 'year') {
     now = target;
   } else {
@@ -148,10 +150,11 @@ export function splitChange(current: BillingChoice, target: BillingChoice): Chan
     };
   }
 
+  const changesNow = !sameChoice(now, current);
   return {
-    now: sameChoice(now, current) ? null : now,
+    now: changesNow ? now : null,
     atRenewal: sameChoice(now, target) ? null : target,
-    chargeNow: now.interval === 'year',
+    chargeNow: changesNow && now.interval === 'year',
   };
 }
 

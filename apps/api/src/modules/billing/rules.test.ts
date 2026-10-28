@@ -107,6 +107,31 @@ describe('when a change applies', () => {
     expect(splitChange(annual, pro)).toMatchObject({ now: null, atRenewal: pro });
   });
 
+  it('charges nothing today for what a downgrade needs', () => {
+    const annualPro = { ...pro, interval: 'year' } as const;
+    const annualStart = { ...start, interval: 'year', employeePacks: 1, extraMembers: 1 } as const;
+    expect(splitChange(annualPro, annualStart)).toEqual({
+      now: null,
+      atRenewal: annualStart,
+      chargeNow: false,
+    });
+    expect(splitChange({ ...pro, employeePacks: 1 }, { ...start, extraMembers: 1 })).toEqual({
+      now: null,
+      atRenewal: { ...start, extraMembers: 1 },
+      chargeNow: false,
+    });
+  });
+
+  it('leaves what annual to monthly adds for the renewal too', () => {
+    const annual = { ...pro, interval: 'year', extraMembers: 1 } as const;
+    const target = { ...pro, employeePacks: 1, extraMembers: 2 } as const;
+    expect(splitChange(annual, target)).toEqual({
+      now: null,
+      atRenewal: target,
+      chargeNow: false,
+    });
+  });
+
   it('splits an addition from a removal', () => {
     expect(
       splitChange(
