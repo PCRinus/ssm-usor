@@ -54,7 +54,9 @@ Un cont nou începe cu 30 de zile de probă, fără card. În acest timp ai tot 
 
 Insigna din capul paginii arată câte zile mai ai. În ultima săptămână apare și o bandă deasupra paginii, pe care o poți închide până a doua zi; în ultima zi nu se mai închide.
 
-Poți alege un plan oricând în perioada de probă, fără să pierzi zilele rămase: cardul se salvează atunci, dar prima plată se face abia în ziua în care s-ar fi încheiat proba. Până atunci lucrezi exact ca înainte, cu limitele probei, iar SMS-urile pornesc din ziua în care ai ales planul. Din acel moment insigna arată numele planului ales, iar banda nu mai apare.
+Poți alege un plan oricând în perioada de probă, fără să pierzi zilele rămase: cardul se salvează atunci, dar prima plată se face abia în ziua în care s-ar fi încheiat proba. Până atunci lucrezi exact ca înainte, cu limitele probei, iar SMS-urile pornesc din ziua în care ai ales planul. Din acel moment insigna arată numele planului ales, iar banda nu mai apare. Dacă alegi în ultima oră a probei, prima plată se face pe loc.
+
+Dacă banca nu a confirmat cardul, pagina **Abonament** îți spune că nu e salvat: fără card, prima plată nu reușește. **Adaugă cardul** deschide din nou formularul cardului, cu planul ales.
 
 Dacă proba se încheie fără un plan, contul rămâne 30 de zile doar pentru citire (vezi [Contul doar pentru citire](#contul-doar-pentru-citire)).
 
@@ -70,6 +72,8 @@ Apasă **Alege un plan**. Pe pagina care se deschide:
 În dreapta, **Rezumat** arată prețul pe lună sau pe an, TVA-ul și totalul, iar dedesubt ce se întâmplă azi: în perioada de probă, „Azi nu plătești nimic” și data primei plăți; altfel, suma pe care o plătești azi.
 
 Banca îți poate cere să confirmi plata în aplicația ei sau printr-un cod. Fereastra băncii apare peste pagină; după confirmare, te întorci la pagina **Abonament**. Dacă banca refuză cardul, mesajul apare deasupra butonului și poți încerca alt card.
+
+Uneori plata are nevoie de un minut până apare abonamentul. Atunci pagina îți spune că plata se procesează; nu alege din nou un plan. Dacă o faci totuși, nu plătești a doua oară: aplicația găsește abonamentul deja plătit și te duce la el.
 
 Factura are nevoie de denumirea și de CUI-ul organizației. Dacă lipsesc, completează-le în **Organizație**, la **Date firmă**, apoi revino.
 
@@ -103,9 +107,11 @@ Din pagina **Abonament**:
 Ce se întâmplă depinde de schimbare:
 
 - **trecerea de la Start la Profesional, un pachet sau un utilizator în plus** se aplică pe loc. Pe un plan lunar, diferența pentru zilele rămase apare pe factura următoare; pe unul anual se plătește pe loc. Ce aveai înainte se scade pentru partea nefolosită;
-- **trecerea de la Profesional la Start, mai puține pachete sau utilizatori** se aplică de la următoarea reînnoire. Până atunci păstrezi ce ai plătit, iar banii nu se returnează. Trecerea la Start adaugă pachetele de care au nevoie angajații de azi, iar fereastra de confirmare ți le arată;
+- **trecerea de la Profesional la Start, mai puține pachete sau utilizatori** se aplică de la următoarea reînnoire și nu costă nimic azi. Până atunci păstrezi ce ai plătit, iar banii nu se returnează. Trecerea la Start adaugă pachetele de care au nevoie angajații de azi, iar fereastra de confirmare ți le arată;
 - **de la lunar la anual** se aplică pe loc: plătești anul, din care se scade partea nefolosită din luna curentă;
 - **de la anual la lunar** se aplică la sfârșitul anului plătit.
+
+Dacă într-o singură schimbare adaugi ceva și scoți altceva, de exemplu un pachet în plus și un utilizator în minus, pe un plan lunar ce adaugi se aplică pe loc, cu diferența pe factura următoare, iar ce scoți de la reînnoire; fereastra de confirmare le arată pe amândouă. Pe un plan anual le faci pe rând: întâi adaugi și plătești, apoi scoți ce nu mai îți trebuie.
 
 O schimbare programată pentru reînnoire apare pe pagină, cu data ei. O poți retrage cu **Renunță la schimbare**.
 
@@ -134,6 +140,10 @@ Cel mai repede rezolvi cu **Schimbă cardul**: când salvezi un card nou, plata 
 3. după aceea, datele organizației se șterg definitiv.
 
 Poți spune, dacă vrei, de ce pleci. Ce ai plătit nu se returnează, nici pe un plan lunar, nici pe unul anual. Până la sfârșitul perioadei plătite te poți răzgândi cu **Reactivează**, iar abonamentul se reînnoiește din nou ca înainte.
+
+O schimbare programată pentru reînnoire se anulează odată cu abonamentul, iar fereastra de anulare îți spune asta. Dacă reactivezi, o alegi din nou.
+
+Dacă anulezi cât timp o plată e restantă, accesul complet se încheie la data până la care se reîncearcă plata, iar pagina arată abonamentul ca anulat, cu **Reactivează**.
 
 Dacă ai ales un plan în perioada de probă și renunți la el înainte de prima plată, nu plătești nimic și rămâi în perioada de probă până la data ei de sfârșit.
 
