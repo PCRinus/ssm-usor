@@ -369,6 +369,7 @@ describe('POST /billing/preview', () => {
 
 describe('POST /billing/subscription', () => {
   function creating(fake: Fake, subscription: Record<string, unknown>) {
+    fake.stripe['GET /v1/customers'] ??= () => stripeList([]);
     fake.stripe['POST /v1/customers'] = () => ({ id: 'cus_1Test', object: 'customer' });
     fake.stripe['GET /v1/subscriptions'] = () => stripeList([]);
     fake.stripe['POST /v1/subscriptions'] = () => subscription;
@@ -520,6 +521,77 @@ describe('POST /billing/subscription', () => {
       )
     ).toBe(true);
     expect(row(fake)).toMatchObject({ plan: 'profesional', stripe_subscription_id: 'sub_1Test' });
+  });
+
+  it('takes up a subscription an earlier checkout paid for, instead of making a second', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(subscriptionRow({ stripe_customer_id: 'cus_1Test' }));
+    fake.stripe['POST /v1/customers/cus_1Test'] = () => ({ id: 'cus_1Test', object: 'customer' });
+    creating(fake, stripeSubscription({ choice: pro }));
+    fake.stripe['GET /v1/subscriptions'] = () =>
+      stripeList([stripeSubscription({ id: 'sub_1Paid', status: 'active', choice: pro })]);
+
+    const response = await request('POST', '/billing/subscription', pro);
+
+    expect(response.status).toBe(409);
+    expect(await reasonOf(response)).toBe('already_subscribed');
+    expect(stripeWrites(fake, '/v1/subscriptions')).toEqual([]);
+    expect(row(fake)).toMatchObject({
+      plan: 'profesional',
+      status: 'active',
+      stripe_subscription_id: 'sub_1Paid',
+    });
+  });
+
+  it('replaces an earlier checkout that was left before paying or confirming the card', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(subscriptionRow({ stripe_customer_id: 'cus_1Test' }));
+    fake.stripe['POST /v1/customers/cus_1Test'] = () => ({ id: 'cus_1Test', object: 'customer' });
+    creating(fake, stripeSubscription({ status: 'trialing', choice: pro }));
+    fake.stripe['GET /v1/subscriptions'] = () =>
+      stripeList([
+        stripeSubscription({ id: 'sub_1Left', status: 'incomplete', choice: pro }),
+        stripeSubscription({ id: 'sub_1Unconfirmed', status: 'trialing', choice: start }),
+      ]);
+    fake.stripe['DELETE /v1/subscriptions/sub_1(Left|Unconfirmed)'] = () =>
+      stripeSubscription({ status: 'canceled', choice: pro });
+
+    const response = await request('POST', '/billing/subscription', pro);
+
+    expect(response.status).toBe(201);
+    expect(
+      fake.calls.filter((call) => call.method === 'DELETE').map((call) => call.url.pathname)
+    ).toEqual(['/v1/subscriptions/sub_1Left', '/v1/subscriptions/sub_1Unconfirmed']);
+    expect(stripeWrites(fake, '/v1/subscriptions')).toHaveLength(1);
+  });
+
+  it('finds the customer a retried checkout already made, though the company details changed', async () => {
+    const fake = createFake();
+    fake.stripe['GET /v1/customers'] = () =>
+      stripeList([
+        { id: 'cus_1Other', object: 'customer', metadata: { organization_id: 'someone-else' } },
+        { id: 'cus_1Made', object: 'customer', metadata: { organization_id: organizationId } },
+      ]);
+    fake.stripe['POST /v1/customers/cus_1Made'] = () => ({ id: 'cus_1Made', object: 'customer' });
+    creating(fake, {
+      ...stripeSubscription({ status: 'incomplete', choice: pro }),
+      latest_invoice: {
+        id: 'in_1First',
+        object: 'invoice',
+        status: 'open',
+        amount_remaining: 18029,
+        confirmation_secret: { client_secret: 'pi_1_secret', type: 'payment_intent' },
+      },
+    });
+
+    const response = await request('POST', '/billing/subscription', pro);
+
+    expect(response.status).toBe(201);
+    expect(stripeWrites(fake, '/v1/customers')).toEqual([]);
+    expect(stripeWrites(fake, '/v1/customers/cus_1Made')[0]).toMatchObject({
+      name: 'Prevenție Activă SRL',
+    });
+    expect(stripeWrites(fake, '/v1/subscriptions')[0]).toMatchObject({ customer: 'cus_1Made' });
   });
 
   it('refuses a second subscription', async () => {

@@ -340,27 +340,66 @@ async function ensureCustomer(billing: StripeBilling, row: SubscriptionRow | nul
     preferred_locales: ['ro'],
     metadata: { organization_id: billing.organizationId },
   };
-  if (row?.stripe_customer_id) {
-    await stripe.customers.update(row.stripe_customer_id, details);
-    return row.stripe_customer_id;
+  const existingId =
+    row?.stripe_customer_id ?? (email ? await customerOfOrganization(billing, email) : null);
+  if (existingId) {
+    await stripe.customers.update(existingId, details);
+    return existingId;
   }
-  // The same key for a day, so a retried checkout finds the customer the first one made.
+  // An organization without a subscriptions row keeps no customer id until its subscription
+  // exists, and a key reused with other details is an error at Stripe: the key covers them.
   const customer = await stripe.customers.create(details as Stripe.CustomerCreateParams, {
-    idempotencyKey: `customer-${billing.organizationId}`,
+    idempotencyKey: `customer-${billing.organizationId}-${await digest(details)}`,
   });
   return customer.id;
 }
 
-// A checkout left before paying leaves an incomplete subscription that would otherwise sit there
-// for a day; the new attempt replaces it.
-async function cancelAbandoned(billing: StripeBilling, customerId: string) {
+// Listing by email, unlike Stripe's search, sees a customer created a moment ago.
+async function customerOfOrganization(billing: StripeBilling, email: string) {
+  const customers = await billing.access.stripe.customers.list({ email, limit: 100 });
+  return (
+    customers.data.find((customer) => customer.metadata?.organization_id === billing.organizationId)
+      ?.id ?? null
+  );
+}
+
+async function digest(value: unknown) {
+  const bytes = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(JSON.stringify(value))
+  );
+  return Array.from(new Uint8Array(bytes).slice(0, 12), (byte) =>
+    byte.toString(16).padStart(2, '0')
+  ).join('');
+}
+
+const paidFor = new Set(['active', 'past_due', 'unpaid', 'paused']);
+
+// A checkout left before paying, or a card form in the trial never confirmed, leaves a
+// subscription that would otherwise sit there; the new attempt replaces it. One that is paid
+// for, or holds a confirmed card, means an earlier checkout went through and its webhook has
+// not arrived yet: the row takes it, and no second subscription is made.
+async function settleEarlierCheckouts(
+  billing: StripeBilling,
+  row: SubscriptionRow | null,
+  customerId: string
+) {
   const { stripe } = billing.access;
-  const abandoned = await stripe.subscriptions.list({
-    customer: customerId,
-    status: 'incomplete',
-    limit: 10,
-  });
-  for (const subscription of abandoned.data) await stripe.subscriptions.cancel(subscription.id);
+  const earlier = await stripe.subscriptions.list({ customer: customerId, limit: 20 });
+  const live = earlier.data.find(
+    (subscription) =>
+      paidFor.has(subscription.status) ||
+      (subscription.status === 'trialing' && subscription.default_payment_method)
+  );
+  if (live) {
+    await sync(billing, row, live, 'subscription_adopted');
+    throw conflict('already_subscribed', 'An earlier checkout already made the subscription.');
+  }
+  for (const subscription of earlier.data) {
+    if (subscription.status === 'incomplete' || subscription.status === 'trialing') {
+      await stripe.subscriptions.cancel(subscription.id);
+    }
+  }
 }
 
 function secretOf(subscription: Stripe.Subscription) {
@@ -441,7 +480,7 @@ export async function createSubscription(
       { source: 'owner', change: 'stripe_customer', details: { actor: billing.userId } }
     );
   }
-  await cancelAbandoned(billing, customerId);
+  await settleEarlierCheckouts(billing, row, customerId);
 
   const trialEndsAt = firstChargeAtTrialEnd(row, billing.now);
   const trialEnd = trialEndsAt ? seconds(trialEndsAt) : undefined;
