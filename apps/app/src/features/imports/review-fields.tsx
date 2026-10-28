@@ -4,6 +4,7 @@ import {
   countyNames,
   fireSmokingPolicies,
   fireSmokingPolicyLabels,
+  normalizeCui,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
@@ -81,20 +82,26 @@ function shown(state: FieldState, vatPayer: boolean) {
   return formatFieldValue(state.path, state.value, vatPayer);
 }
 
+function fieldValue(path: string, raw: string): string | number | null {
+  const text = raw.trim();
+  if (text === '') return null;
+  if (integerPaths.has(path)) return Number(text);
+  if (path === 'client.cui') return normalizeCui(text)?.cui ?? text;
+  return text;
+}
+
+function fieldProblem(path: string, raw: string) {
+  if (raw.trim() === '') return `${fieldInfo[path]?.write ?? 'Scrie o valoare'}.`;
+  const checked = formSchema([path]).safeParse({ [fieldKey(path)]: raw });
+  return checked.success ? null : (checked.error.issues[0]?.message ?? 'Valoare greșită.');
+}
+
 // A value equal to what the documents propose is not stored as the member's.
 function saveValues(context: FieldContext, values: Record<string, string>) {
   for (const [path, raw] of Object.entries(values)) {
     const state = context.states[path];
     if (!state) continue;
-    const text = raw.trim();
-    const value: string | number | null =
-      text === ''
-        ? null
-        : integerPaths.has(path)
-          ? Number(text)
-          : path === 'client.cui'
-            ? text.replace(/^RO\s*/i, '').replace(/\s+/g, '')
-            : text;
+    const value = fieldValue(path, raw);
     if (state.value !== null && value !== null && sameValue(state.value, value)) continue;
     if (state.value === null && value === null) continue;
     const current = context.changes.fields[path] ?? {};
@@ -116,6 +123,7 @@ export function ChoiceBlock({ state, context }: { state: FieldState; context: Fi
   const isOther = change?.value !== undefined;
   const [other, setOther] = useState(isOther ? String(change?.value ?? '') : '');
   const [otherOpen, setOtherOpen] = useState(isOther);
+  const [otherError, setOtherError] = useState<string | null>(null);
   const decided = change?.option !== undefined || isOther;
   const info = fieldInfo[state.path];
   const person =
@@ -192,24 +200,36 @@ export function ChoiceBlock({ state, context }: { state: FieldState; context: Fi
             <span className="text-sm font-medium">{person ? 'Altă persoană' : 'Altă valoare'}</span>
             {otherOpen && (
               <form
-                className="flex flex-wrap gap-2"
+                className="grid gap-1.5"
+                noValidate
                 onSubmit={(event) => {
                   event.preventDefault();
-                  if (other.trim() === '') return;
-                  context.review.setField(state.path, {
-                    value: integerPaths.has(state.path) ? Number(other) : other.trim(),
-                  });
+                  const problem = fieldProblem(state.path, other);
+                  setOtherError(problem);
+                  if (problem) return;
+                  context.review.setField(state.path, { value: fieldValue(state.path, other) });
                 }}
               >
-                <Input
-                  aria-label={state.label}
-                  className="h-9 max-w-xs"
-                  value={other}
-                  onChange={(event) => setOther(event.target.value)}
-                />
-                <Button type="submit" size="sm" variant="outline">
-                  Folosește
-                </Button>
+                <span className="flex flex-wrap gap-2">
+                  <Input
+                    aria-label={state.label}
+                    data-testid="review-other-value"
+                    className="h-9 max-w-xs"
+                    inputMode={integerPaths.has(state.path) ? 'numeric' : undefined}
+                    aria-invalid={Boolean(otherError)}
+                    aria-describedby={otherError ? `${name}-other-error` : undefined}
+                    value={other}
+                    onChange={(event) => setOther(event.target.value)}
+                  />
+                  <Button type="submit" size="sm" variant="outline">
+                    Folosește
+                  </Button>
+                </span>
+                {otherError && (
+                  <span id={`${name}-other-error`} className="text-[13px] text-destructive">
+                    {otherError}
+                  </span>
+                )}
               </form>
             )}
           </span>

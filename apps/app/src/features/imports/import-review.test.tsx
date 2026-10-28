@@ -400,6 +400,35 @@ describe('one review across its pages', () => {
   });
 });
 
+describe('another value than the documents give', () => {
+  it('is checked like the form checks it, and a CUI loses its RO and spaces', async () => {
+    const proposal = proposalFixture();
+    proposal.client.cui.options.push({
+      value: '31458215',
+      sources: [{ file: 'Contract prestari SSM 2019.pdf', quote: '31458215' }],
+      otherCompanyName: null,
+    });
+    mockReview(readyDetail({ proposal }));
+    mount('/identity');
+
+    const choice = (await screen.findAllByTestId('review-choice')).find((each) =>
+      each.textContent?.includes('Alege CUI-ul')
+    )!;
+    await userEvent.click(within(choice).getByRole('radio', { name: /Altă valoare/ }));
+    const input = within(choice).getByTestId('review-other-value');
+    await userEvent.type(input, '12');
+    await userEvent.click(within(choice).getByRole('button', { name: 'Folosește' }));
+    expect(choice.textContent).toContain('CUI invalid. Verifică cifrele și cifra de control.');
+    expect(saves).toBe(0);
+
+    await userEvent.clear(input);
+    await userEvent.type(input, 'ro 3145 8203');
+    await userEvent.click(within(choice).getByRole('button', { name: 'Folosește' }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({ 'client.cui': { value: '31458203' } });
+  });
+});
+
 describe('a company name that ends in a period', () => {
   it('ends the sentence after it once', async () => {
     const proposal = proposalFixture();
