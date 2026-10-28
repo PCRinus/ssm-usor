@@ -70,7 +70,8 @@ async function docToDocx(doc: Uint8Array, signal: AbortSignal): Promise<Buffer> 
         dir,
         join(dir, 'document.doc'),
       ],
-      { timeoutMs: 120_000, signal }
+      // Killed, soffice leaves its lu*.tmp folders behind; here they go with the request's folder.
+      { timeoutMs: 120_000, signal, env: { ...process.env, TMPDIR: dir } }
     );
     try {
       return await readFile(join(dir, 'document.docx'));
