@@ -386,6 +386,58 @@ describe('toClientPayload', () => {
     expect(resolved.blockers).toEqual([]);
   });
 
+  it('leaves the legal representative out as an employee until ticked, and only then asks for the hire date', () => {
+    const base = reading();
+    const proposal = proposalOf(
+      reading({
+        employees: [
+          ...base.employees,
+          {
+            role: 'legal_representative',
+            lastName: 'Vasilescu',
+            firstName: 'Andrei',
+            cnp: null,
+            birthDate: null,
+            jobTitle: 'Administrator',
+            hiredAt: null,
+            ...quoted(),
+          },
+        ],
+      })
+    );
+    const unticked = toClientPayload({
+      proposal,
+      changes: null,
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+
+    expect(unticked.payload.employees.map((row) => row.key)).toEqual(['employee-1']);
+    expect(unticked.blockers).toEqual([]);
+
+    const ticked = toClientPayload({
+      proposal,
+      changes: { fields: {}, items: { 'employee-2': { included: true } } },
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+    expect(ticked.payload.employees.map((row) => row.key)).toEqual(['employee-1', 'employee-2']);
+    expect(ticked.blockers).toEqual([{ path: 'employees.1.hiredAt', code: 'missing' }]);
+    expect(ticked.payload.quality.employees).toEqual({ changed: 1, unticked: 0, kept: 0 });
+  });
+
+  it("still asks for the workers' representative's hire date", () => {
+    const base = reading();
+    const { blockers } = toClientPayload({
+      proposal: proposalOf(reading({ employees: [{ ...base.employees[0]!, hiredAt: null }] })),
+      changes: null,
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+
+    expect(blockers).toEqual([{ path: 'employees.0.hiredAt', code: 'missing' }]);
+  });
+
   it("fills an existing client's empty values, keeps its own, and replaces only what the member took", () => {
     const existing: ExistingRecords = {
       client: {

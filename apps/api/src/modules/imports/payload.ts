@@ -7,6 +7,7 @@ import {
   proposedEmployeeSchema,
   proposedFireEquipmentSchema,
   proposedFireInstallationSchema,
+  proposedIncluded,
   proposedJobPositionSchema,
   proposedProtectiveEquipmentSchema,
   proposedResponsiblePersonSchema,
@@ -313,7 +314,7 @@ export function toClientPayload(input: {
     const items = proposal[list] as Proposal[L][number][];
     return items.flatMap((item, index) => {
       const change: ItemChange | undefined = changes.items[item.id];
-      const proposed = item.otherCompanyName === null;
+      const proposed = proposedIncluded(item);
       const take = change?.included ?? proposed;
       const edited = Object.keys(change?.values ?? {}).length > 0;
       if (proposed && change?.included === false) quality[list].unticked++;
