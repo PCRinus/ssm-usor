@@ -134,6 +134,7 @@ describe('the Abonament tab', () => {
     mockApi({
       overview: overviewWith({
         subscription,
+        limits: { employees: 1500, members: 3, sms: 300 },
         owner: ownerPart({
           card: { brand: 'visa', last4: '4242', expMonth: 8, expYear: 2028 },
           nextPayment: {
@@ -157,6 +158,7 @@ describe('the Abonament tab', () => {
     expect(within(card).getByTestId('plan-amount').textContent).toContain('83,49 €');
     expect(card.textContent).toContain('2 pachete de câte 50 de angajați');
     expect(screen.getByTestId('meter-employees').textContent).toContain('312 din 350');
+    expect(screen.getByTestId('meter-sms').textContent).toContain('50 incluse');
     expect(screen.getByTestId('payment-card-number').textContent).toBe('Visa •••• 4242');
 
     const user = userEvent.setup();

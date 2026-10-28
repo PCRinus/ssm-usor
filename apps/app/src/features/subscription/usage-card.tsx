@@ -132,7 +132,9 @@ export function UsageCard({
         : `${base} Start are cel mult 2 utilizatori.`;
   }
 
-  const smsLimit = overview.usage.smsThisMonth.limit;
+  const smsLimit = planLimits
+    ? billingPlans[choice.plan].monthlySms
+    : overview.usage.smsThisMonth.limit;
   const smsUsed = overview.usage.smsThisMonth.used;
   let smsHint: string;
   if (view === 'readOnly') {
