@@ -238,7 +238,8 @@ export async function addToSelection(current: Selection, picked: PickedFile[]) {
   const files = added.files.map((file) => {
     const path = uniquePath(file.path, taken);
     taken.add(path);
-    return path === file.path ? file : { ...file, path };
+    if (path === file.path) return file;
+    return { ...file, path, group: file.group === file.path ? path : file.group };
   });
   return {
     files: [...current.files, ...files],

@@ -108,6 +108,13 @@ describe('choosing the files of an import', () => {
       ['mare.pdf', 'too_large'],
     ]);
     expect(second.files.map((file) => file.path)).toEqual(['Decizie.docx', 'Decizie (2).docx']);
+    expect(selectionRows(second.files)).toMatchObject([
+      { kind: 'file', group: 'Decizie.docx' },
+      { kind: 'file', group: 'Decizie (2).docx' },
+    ]);
+    expect(removeGroup(second, 'Decizie (2).docx').files.map((file) => file.path)).toEqual([
+      'Decizie.docx',
+    ]);
   });
 
   it('stops opening a zip that holds more than one import takes', async () => {
