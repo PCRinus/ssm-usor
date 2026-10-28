@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { previewBilling } from '@/api/generated/api';
 import { useAuth } from '@/features/auth/auth-context';
 
+import { billingPreviewKey } from './use-billing';
+
 const settleMs = 250;
 
 // Waits for the steppers to settle, so five quick clicks ask for one preview, not five.
@@ -24,7 +26,7 @@ export function useBillingPreview(choice: BillingChoice | null) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const settled = useSettled(choice);
   const query = useQuery({
-    queryKey: ['billing-preview', session?.user.id, settled],
+    queryKey: [...billingPreviewKey, session?.user.id, settled],
     queryFn: () => previewBilling(settled!, apiRequest),
     enabled: settled !== null,
     placeholderData: keepPreviousData,

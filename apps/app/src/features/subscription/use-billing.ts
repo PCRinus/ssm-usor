@@ -10,20 +10,24 @@ export type BillingOwner = NonNullable<BillingOverview['owner']>;
 
 export const billingQueryKey = (userId: string | undefined) => [...getGetBillingQueryKey(), userId];
 
-export function useBilling() {
+export function useBilling({ refetchOnWindowFocus = true } = {}) {
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });
   return useGetBilling({
     request: apiRequest,
-    query: { queryKey: billingQueryKey(session?.user.id) },
+    query: { queryKey: billingQueryKey(session?.user.id), refetchOnWindowFocus },
   });
 }
 
-// The plan badge and the bars read the subscription from the account, so both refresh.
+export const billingPreviewKey = ['billing-preview'] as const;
+
+// The plan badge and the bars read the subscription from the account, so both refresh; a
+// preview priced against the subscription before the change is stale too.
 export function refreshBilling(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: getGetBillingQueryKey() }),
     queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() }),
+    queryClient.invalidateQueries({ queryKey: billingPreviewKey }),
   ]);
 }
 
@@ -38,7 +42,7 @@ export function viewOf(subscription: BillingSubscription | null): SubscriptionVi
     case 'trialing':
       return subscription.planChosen ? 'trialChosen' : 'trial';
     case 'past_due':
-      return 'pastDue';
+      return subscription.cancelsAt ? 'canceling' : 'pastDue';
     case 'active':
       return subscription.cancelsAt ? 'canceling' : 'active';
     case 'canceled':

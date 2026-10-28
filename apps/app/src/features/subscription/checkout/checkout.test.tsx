@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { type ReactNode, useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getGetBillingQueryKey } from '@/api/generated/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import {
   activeSubscription,
@@ -210,6 +211,87 @@ describe('choosing a plan', () => {
     expect(runtime.router.state.location.pathname).toBe('/organization/subscription/choose');
   });
 
+  it('offers the card form again for a plan chosen in the trial whose card never confirmed, and keeps it while the bank confirms', async () => {
+    const card = { brand: 'visa', last4: '4242', expMonth: 8, expYear: 2028 };
+    mockApi({
+      overview: overviewWith({ subscription: chosenTrial(), owner: ownerPart() }),
+      after: overviewWith({ subscription: chosenTrial(), owner: ownerPart({ card }) }),
+      routes: {
+        'POST /billing/subscription': () =>
+          Response.json({ clientSecret: 'seti_secret_2', intent: 'setup' }, { status: 201 }),
+      },
+    });
+    const runtime = mount();
+    const seenDuringConfirmation: (string | null)[] = [];
+    stripe.confirmSetup.mockImplementationOnce(async () => {
+      await runtime.queryClient.refetchQueries({ queryKey: getGetBillingQueryKey() });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      seenDuringConfirmation.push(
+        screen.getByRole('heading', { level: 1 }).textContent,
+        screen.queryByTestId('payment-element') ? 'card form' : null
+      );
+      return { error: undefined };
+    });
+
+    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('Alege planul');
+    await screen.findByTestId('payment-element');
+    const submit = await screen.findByRole('button', { name: 'Salvează cardul și alege Start' });
+    await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
+    await userEvent.click(submit);
+
+    await waitFor(() => expect(seenDuringConfirmation).toHaveLength(2));
+    expect(requests('/billing/subscription', 'POST')).toHaveLength(1);
+    expect(seenDuringConfirmation).toEqual(['Alege planul', 'card form']);
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/organization/subscription')
+    );
+  });
+
+  it('confirms nothing when the server asks for a payment the card form was not made for', async () => {
+    mockApi({
+      overview: overviewWith({ subscription: trialSubscription(12), owner: ownerPart() }),
+      routes: {
+        'POST /billing/subscription': () =>
+          Response.json({ clientSecret: 'pi_secret_3', intent: 'payment' }, { status: 201 }),
+      },
+    });
+    mount();
+
+    const submit = await screen.findByRole('button', { name: 'Salvează cardul și alege Start' });
+    await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
+    await userEvent.click(submit);
+
+    expect((await screen.findByTestId('checkout-error')).textContent).toContain(
+      'Între timp s-a schimbat ce plătești azi.'
+    );
+    expect(stripe.confirmPayment).not.toHaveBeenCalled();
+    expect(stripe.confirmSetup).not.toHaveBeenCalled();
+  });
+
+  it('goes back to the tab when an earlier checkout already made the subscription', async () => {
+    mockApi({
+      overview: overviewWith({ subscription: trialSubscription(12), owner: ownerPart() }),
+      routes: {
+        'POST /billing/subscription': () =>
+          Response.json(
+            { error: 'conflict', message: 'Already.', reason: 'already_subscribed' },
+            { status: 409 }
+          ),
+      },
+    });
+    const runtime = mount();
+
+    const submit = await screen.findByRole('button', { name: 'Salvează cardul și alege Start' });
+    await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
+    await userEvent.click(submit);
+
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/organization/subscription')
+    );
+    expect(await screen.findByText(/Planul ales mai devreme e deja plătit și activ/)).toBeTruthy();
+    expect(stripe.confirmSetup).not.toHaveBeenCalled();
+  });
+
   it('keeps Start out of reach past its ceiling, and never below the packs needed', async () => {
     mockApi({
       overview: overviewWith({
@@ -290,6 +372,38 @@ describe('choosing a plan', () => {
     await waitFor(() =>
       expect(runtime.router.state.location.pathname).toBe('/organization/subscription')
     );
+  });
+
+  it('shows the difference for the days left when a change adds now and removes at the renewal', async () => {
+    const subscription = activeSubscription({
+      interval: 'month',
+      employeePacks: 0,
+      extraMembers: 1,
+    });
+    mockApi({
+      overview: overviewWith({ subscription, owner: ownerPart() }),
+      routes: {
+        'POST /billing/preview': (init) =>
+          Response.json(
+            previewFor(JSON.parse(String(init?.body)) as BillingChoice, {
+              appliesAt: subscription.currentPeriodEnd!,
+              proration: { subtotalCents: 2250, chargedNow: false },
+            })
+          ),
+      },
+    });
+    mount();
+
+    await userEvent.click(await screen.findByTestId('packs-more'));
+    await userEvent.click(screen.getByTestId('members-less'));
+    const submit = screen.getByTestId('checkout-submit');
+    await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
+    await userEvent.click(submit);
+
+    const dialog = await screen.findByTestId('change-dialog');
+    await within(dialog).findByText(/Ce adaugi se aplică azi/);
+    expect(dialog.textContent).toContain('Diferența pentru zilele rămase');
+    expect(dialog.textContent).toContain('22,50 € + TVA');
   });
 
   it('starts from a link that adds one pack', async () => {

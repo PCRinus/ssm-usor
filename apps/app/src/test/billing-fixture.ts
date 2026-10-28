@@ -190,12 +190,16 @@ export function previewFor(
     firstChargeAt = inDays(12),
     problems = [],
     unchanged = false,
+    proration = null,
+    prorationDate = null,
   }: {
     dueToday?: number;
     appliesAt?: string;
     firstChargeAt?: string;
     problems?: BillingPreview['problems'];
     unchanged?: boolean;
+    proration?: BillingPreview['proration'];
+    prorationDate?: string | null;
   } = {}
 ): BillingPreview {
   const subtotal = cents(choice);
@@ -215,7 +219,7 @@ export function previewFor(
     },
     appliesAt,
     dueToday: { subtotalCents: dueToday, vatCents: dueVat, totalCents: dueToday + dueVat },
-    proration: null,
+    proration,
     nextRenewal: {
       at: firstChargeAt,
       subtotalCents: subtotal,
@@ -223,5 +227,6 @@ export function previewFor(
       totalCents: subtotal + vat,
     },
     firstChargeAt,
+    prorationDate,
   };
 }

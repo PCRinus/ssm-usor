@@ -25,25 +25,33 @@ import { useCancelSubscription } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 
 import { billingErrorMessage } from './billing-errors';
-import { addDays, cancellationReasons, shortPlanNames } from './billing-format';
+import { addDays, cancellationReasons, choiceSummary, shortPlanNames } from './billing-format';
 import { roDate } from './subscription-copy';
-import { type BillingSubscription, refreshBilling } from './use-billing';
+import { type BillingOwner, type BillingSubscription, refreshBilling } from './use-billing';
 
 const noteLimit = 500;
 
 export function CancelDialog({
   subscription,
+  scheduledChange,
   open,
   onClose,
 }: {
   subscription: BillingSubscription;
+  scheduledChange: BillingOwner['scheduledChange'];
   open: boolean;
   onClose: () => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent data-testid="cancel-dialog" className="sm:max-w-[560px]">
-        {open && <CancelForm subscription={subscription} onClose={onClose} />}
+        {open && (
+          <CancelForm
+            subscription={subscription}
+            scheduledChange={scheduledChange}
+            onClose={onClose}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -51,9 +59,11 @@ export function CancelDialog({
 
 function CancelForm({
   subscription,
+  scheduledChange,
   onClose,
 }: {
   subscription: BillingSubscription;
+  scheduledChange: BillingOwner['scheduledChange'];
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -64,7 +74,11 @@ function CancelForm({
   const plan =
     subscription.plan === 'enterprise' ? 'Enterprise' : shortPlanNames[subscription.plan];
   const inTrial = subscription.status === 'trialing';
-  const end = subscription.currentPeriodEnd ?? subscription.accessUntil;
+  // A failed renewal has already moved the period on; access ends with the retries instead.
+  const end =
+    subscription.status === 'past_due'
+      ? (subscription.accessUntil ?? subscription.currentPeriodEnd)
+      : (subscription.currentPeriodEnd ?? subscription.accessUntil);
   const deletes = end ? addDays(end, readOnlyDays) : null;
 
   async function confirm() {
@@ -171,6 +185,13 @@ function CancelForm({
             onChange={(event) => setNote(event.target.value)}
           />
         </div>
+        {scheduledChange && (
+          <Notice variant="info" data-testid="cancel-drops-scheduled">
+            Schimbarea programată pentru {roDate(scheduledChange.at)}, la{' '}
+            {choiceSummary(scheduledChange)}, se anulează și ea. Dacă reactivezi abonamentul, o
+            alegi din nou.
+          </Notice>
+        )}
         {!inTrial && (
           <p className="text-[13px] leading-relaxed text-muted-foreground">
             Până atunci poți descărca documentele emise de la fiecare client.

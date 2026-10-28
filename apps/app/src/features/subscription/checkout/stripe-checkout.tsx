@@ -6,23 +6,24 @@ import { useRouteContext } from '@tanstack/react-router';
 import { type ReactNode, useState } from 'react';
 
 import { createSubscription, getBilling } from '@/api/generated/api';
-import type { ApiRequestOptions } from '@/api/http';
+import { ApiHttpError, type ApiRequestOptions } from '@/api/http';
 import { Notice } from '@/components/notice';
 
 import { billingErrorMessage } from '../billing-errors';
 import { choiceAmounts, shortPlanNames } from '../billing-format';
 import { BillingCard } from '../billing-ui';
 import { roDate } from '../subscription-copy';
-import { hasLiveSubscription, refreshBilling } from '../use-billing';
+import { billingPreviewKey, hasLiveSubscription, refreshBilling } from '../use-billing';
 import { ctaLabel } from './checkout-choice';
 import { CheckoutFrame, type CheckoutState } from './checkout-frame';
 import { CheckoutSummary } from './checkout-summary';
 import { appearance, fonts, getStripe, returnUrl } from './stripe';
 
 const pollMs = 1500;
-const pollTries = 8;
+const pollTries = 40;
 
-// A paid first invoice reaches us through Stripe's webhook, a moment after the browser knows.
+// A paid first invoice reaches us through Stripe's webhook, a moment after the browser knows,
+// and now and then a minute after.
 async function waitForSubscription(request: ApiRequestOptions) {
   for (let attempt = 0; attempt < pollTries; attempt += 1) {
     const overview = await getBilling(request);
@@ -105,6 +106,7 @@ export default function StripeCheckout({
   return (
     <Elements stripe={getStripe()} options={options}>
       <CheckoutForm
+        elementsIntent={dueNow > 0 ? 'payment' : 'setup'}
         state={state}
         heading={heading}
         picker={picker}
@@ -115,13 +117,18 @@ export default function StripeCheckout({
   );
 }
 
+const reasonOf = (cause: unknown) =>
+  cause instanceof ApiHttpError ? (cause.body as { reason?: unknown } | null)?.reason : undefined;
+
 function CheckoutForm({
+  elementsIntent,
   state,
   heading,
   picker,
   onBusy,
   onDone,
 }: {
+  elementsIntent: 'payment' | 'setup';
   state: CheckoutState;
   heading: ReactNode;
   picker: ReactNode;
@@ -132,7 +139,7 @@ function CheckoutForm({
   const elements = useElements();
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const [ready, setReady] = useState(false);
-  const [phase, setPhase] = useState<'idle' | 'paying' | 'confirming'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'paying' | 'confirming' | 'processing'>('idle');
   const [error, setError] = useState<string | null>(null);
   const { choice, preview } = state;
   const name = shortPlanNames[choice.plan];
@@ -150,6 +157,7 @@ function CheckoutForm({
     setError(null);
     setPhase('paying');
     onBusy(true);
+    let next: typeof phase = 'idle';
     try {
       const { error: invalid } = await elements.submit();
       if (invalid) {
@@ -157,6 +165,16 @@ function CheckoutForm({
         return;
       }
       const { clientSecret, intent } = await createSubscription(choice, apiRequest);
+      // The form was set up for what the preview said; a payment cannot be confirmed through a
+      // card form made for saving a card, nor the other way round. The next attempt replaces
+      // what this one made.
+      if (clientSecret && intent !== elementsIntent) {
+        setError(
+          'Între timp s-a schimbat ce plătești azi. Verifică rezumatul și încearcă din nou.'
+        );
+        await queryClient.invalidateQueries({ queryKey: billingPreviewKey });
+        return;
+      }
       if (clientSecret) {
         const confirmation = {
           elements,
@@ -179,19 +197,27 @@ function CheckoutForm({
       setPhase('confirming');
       const settled = await waitForSubscription(apiRequest);
       await refreshBilling(queryClient);
+      if (!settled) {
+        next = 'processing';
+        return;
+      }
       toast.success(
-        !settled
-          ? 'Plata a fost trimisă. Abonamentul apare pe pagină în câteva momente.'
-          : preview.dueToday.totalCents === 0
-            ? `Ai ales ${name}. Azi nu ai plătit nimic; prima plată e pe ${roDate(preview.firstChargeAt)}.`
-            : `Plata a reușit. Abonamentul ${name} e activ.`
+        preview.dueToday.totalCents === 0
+          ? `Ai ales ${name}. Azi nu ai plătit nimic; prima plată e pe ${roDate(preview.firstChargeAt)}.`
+          : `Plata a reușit. Abonamentul ${name} e activ.`
       );
       onDone();
     } catch (cause) {
+      if (reasonOf(cause) === 'already_subscribed') {
+        await refreshBilling(queryClient);
+        toast.info(billingErrorMessage(cause));
+        onDone();
+        return;
+      }
       setError(billingErrorMessage(cause));
     } finally {
-      setPhase('idle');
-      onBusy(false);
+      setPhase(next);
+      onBusy(next === 'processing');
     }
   }
 
@@ -228,6 +254,21 @@ function CheckoutForm({
               {error}
             </Notice>
           )}
+          {phase === 'processing' && (
+            <Notice
+              variant="info"
+              data-testid="checkout-processing"
+              title="Plata se procesează."
+              action={
+                <Button variant="outline" onClick={onDone}>
+                  Înapoi la abonament
+                </Button>
+              }
+            >
+              Banca a confirmat plata, iar abonamentul apare pe pagina lui în câteva minute. Nu
+              alege din nou un plan: plata nu se face de două ori.
+            </Notice>
+          )}
           <Button
             className="h-12 rounded-xl text-[15px] font-semibold"
             data-testid="checkout-submit"
@@ -236,7 +277,7 @@ function CheckoutForm({
           >
             {phase === 'paying'
               ? 'Se confirmă cu banca…'
-              : phase === 'confirming'
+              : phase === 'confirming' || phase === 'processing'
                 ? 'Se activează abonamentul…'
                 : ctaLabel('new', choice, preview)}
           </Button>

@@ -243,13 +243,18 @@ export function PlanCard({
     }
     case 'canceling': {
       const end = subscription!.cancelsAt ?? subscription!.accessUntil ?? now.toISOString();
+      const overdue = subscription!.status === 'past_due';
       chip = { label: 'Anulat', tone: 'warning' };
-      status = `Nu se mai reînnoiește. Ai acces complet până pe ${roDate(end)}.`;
+      status = overdue
+        ? `Nu se mai reînnoiește, iar ultima plată nu a reușit. Ai acces complet până pe ${roDate(end)}.`
+        : `Nu se mai reînnoiește. Ai acces complet până pe ${roDate(end)}.`;
       if (owner) {
         amount = {
           label: 'Următoarea plată',
           value: 'Niciuna',
-          note: `ai plătit până pe ${roDate(end)}`,
+          note: overdue
+            ? `acces complet până pe ${roDate(end)}`
+            : `ai plătit până pe ${roDate(end)}`,
         };
         rows =
           amounts?.lines.map((line) => ({
@@ -268,6 +273,7 @@ export function PlanCard({
           Reactivează
         </Button>
       );
+      if (overdue) buttons.push(cardButton);
       break;
     }
     case 'pastDue': {

@@ -201,6 +201,7 @@ function SubscriptionContent({
       {subscription && (
         <CancelDialog
           subscription={subscription}
+          scheduledChange={owner?.scheduledChange ?? null}
           open={cancelling}
           onClose={() => setCancelling(false)}
         />
@@ -254,6 +255,20 @@ function noticeFor(
       if (!choice || !subscription.trialEndsAt) return null;
       const first = owner.nextPayment;
       const amount = first ? `, de ${formatEuro(first.totalCents)} cu TVA,` : '';
+      if (!owner.card) {
+        return (
+          <Notice
+            variant="warning"
+            data-testid="subscription-notice"
+            title="Cardul nu a fost confirmat."
+            action={chooseLink('Adaugă cardul')}
+          >
+            Ai ales {choice.plan === 'start' ? 'Start' : 'Profesional'}, dar banca nu a confirmat
+            cardul, așa că nu e salvat. Fără card, prima plată{amount} din{' '}
+            {roDate(subscription.trialEndsAt)} nu reușește. Azi nu plătești nimic.
+          </Notice>
+        );
+      }
       return (
         <Notice
           variant="info"
@@ -288,15 +303,21 @@ function noticeFor(
     case 'canceling': {
       const end = subscription.cancelsAt ?? subscription.accessUntil;
       if (!end) return null;
+      const overdue = subscription.status === 'past_due';
       return (
         <Notice
-          variant="info"
+          variant={overdue ? 'warning' : 'info'}
           data-testid="subscription-notice"
-          title={`Abonamentul se încheie pe ${roDate(end)}.`}
+          title={
+            overdue
+              ? `Abonamentul e anulat și se încheie pe ${roDate(end)}.`
+              : `Abonamentul se încheie pe ${roDate(end)}.`
+          }
           action={actionButton('Reactivează', () => void actions.resume(), 'notice-resume')}
         >
-          Până atunci lucrezi ca acum. Apoi contul rămâne {readOnlyDays} de zile doar pentru citire,
-          până pe {roDate(addDays(end, readOnlyDays))}, iar după aceea datele se șterg.
+          {overdue ? 'Ultima plată nu a reușit. ' : ''}Până atunci lucrezi ca acum. Apoi contul
+          rămâne {readOnlyDays} de zile doar pentru citire, până pe{' '}
+          {roDate(addDays(end, readOnlyDays))}, iar după aceea datele se șterg.
         </Notice>
       );
     }

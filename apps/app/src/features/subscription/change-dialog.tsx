@@ -124,6 +124,27 @@ function copyFor(
     preview.proration?.chargedNow || preview.dueToday.totalCents > 0
       ? 'Diferența se plătește azi cu cardul salvat; partea nefolosită din ce ai acum se scade din ea.'
       : `Diferența apare pe factura din ${renewal}, alături de perioada următoare.`;
+  const chargedBeforeRenewal =
+    preview.dueToday.totalCents > 0 ||
+    (preview.proration !== null && preview.proration.subtotalCents !== 0);
+  const todayRows = (): AmountRow[] => {
+    if (!chargedBeforeRenewal) return [];
+    const rows: AmountRow[] = [];
+    if (preview.dueToday.totalCents > 0) {
+      rows.push({ label: 'Azi plătești, cu TVA', value: formatEuro(preview.dueToday.totalCents) });
+    }
+    if (preview.proration && !preview.proration.chargedNow) {
+      rows.push({
+        label: `Diferența pentru zilele rămase, pe factura din ${renewal}`,
+        value: `${formatEuro(preview.proration.subtotalCents)} + TVA`,
+      });
+    }
+    return rows;
+  };
+  const atRenewal = (from: string) => ({
+    rows: [...todayRows(), ...recurringRows(preview, from)],
+    note: chargedBeforeRenewal ? prorationNote : undefined,
+  });
 
   switch (kind) {
     case 'trial':
@@ -154,7 +175,7 @@ function copyFor(
       return {
         title: `Treci la ${targetName} de pe ${applies}?`,
         lead: `Până pe ${applies} rămâi pe ${currentName}, iar perioada plătită nu se returnează.${needs.length ? ` Pentru cei ${formatCount(usage.employees)} angajați și cei ${usage.members} utilizatori de azi, ${targetName} are nevoie de ${needs.join(' și de ')}.` : ''}`,
-        rows: recurringRows(preview, applies),
+        ...atRenewal(applies),
         losses: current.plan === 'profesional' ? proLosses : undefined,
         confirm: `Treci la ${targetName} pe ${applies}`,
         keep: `Rămân pe ${currentName}`,
@@ -182,7 +203,7 @@ function copyFor(
       return {
         title: `Treci la plata lunară de pe ${applies}?`,
         lead: `Anul plătit rămâne până pe ${applies}, iar banii nu se returnează. Apoi plătești în fiecare lună.`,
-        rows: recurringRows(preview, applies),
+        ...atRenewal(applies),
         confirm: 'Treci la plata lunară',
         keep: 'Rămân pe anual',
       };
@@ -198,8 +219,10 @@ function copyFor(
     case 'remove':
       return {
         title: `Schimbi abonamentul de pe ${applies}?`,
-        lead: `Până pe ${applies} păstrezi ce ai acum, iar perioada plătită nu se returnează. Apoi rămâi cu ${choiceSummary(target)}.`,
-        rows: recurringRows(preview, applies),
+        lead: chargedBeforeRenewal
+          ? `Ce adaugi se aplică azi. Ce scoți rămâne până pe ${applies}, iar perioada plătită nu se returnează; apoi rămâi cu ${choiceSummary(target)}.`
+          : `Până pe ${applies} păstrezi ce ai acum, iar perioada plătită nu se returnează. Apoi rămâi cu ${choiceSummary(target)}.`,
+        ...atRenewal(applies),
         confirm: `Schimbă de pe ${applies}`,
         keep: 'Renunță',
       };
@@ -268,7 +291,10 @@ function ChangeForm({
     setError(null);
     setPending(true);
     try {
-      const result = await changeSubscription(target, apiRequest);
+      const result = await changeSubscription(
+        data?.prorationDate ? { ...target, prorationDate: data.prorationDate } : target,
+        apiRequest
+      );
       if (result.clientSecret && result.intent === 'payment') {
         const { confirmSavedCardPayment } = await import('./checkout/stripe');
         const outcome = await confirmSavedCardPayment(result.clientSecret);

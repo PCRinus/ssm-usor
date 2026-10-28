@@ -18,11 +18,15 @@ export function problemMessage(problem: BillingChoiceProblem) {
       return `Planul permite cel mult ${problem.maximum ?? 0} pachete.`;
     case 'extra_members_above_plan':
       return `Planul permite cel mult ${problem.maximum ?? 0} ${problem.maximum === 1 ? 'utilizator' : 'utilizatori'} în plus.`;
+    case 'split_change':
+      return 'Pe planul anual, ce adaugi se plătește azi, iar ce scoți se schimbă abia la reînnoire, așa că le faci pe rând: întâi adaugi și plătești, apoi scoți ce nu mai îți trebuie.';
   }
 }
 
 const reasonMessages: Record<string, string> = {
   subscription_exists: 'Organizația are deja un abonament. Reîncarcă pagina ca să-l vezi.',
+  already_subscribed:
+    'Planul ales mai devreme e deja plătit și activ, așa că nu am mai făcut încă unul. Îl vezi pe pagina abonamentului.',
   no_subscription: 'Organizația nu mai are un abonament activ. Reîncarcă pagina.',
   enterprise_plan: `Abonamentul Enterprise se schimbă prin email, la ${contactEmail}.`,
   company_details_missing:

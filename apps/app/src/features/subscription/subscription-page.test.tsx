@@ -1,4 +1,4 @@
-import type { BillingOverview } from '@ssm-usor/contracts';
+import type { BillingChoice, BillingOverview } from '@ssm-usor/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -177,6 +177,20 @@ describe('the Abonament tab', () => {
     ).toBeTruthy();
   });
 
+  it('says when a plan chosen in the trial has no confirmed card, and leads to the card form', async () => {
+    mockApi({
+      overview: overviewWith({ subscription: trialChosenSubscription(), owner: ownerPart() }),
+    });
+    mount();
+
+    const notice = await screen.findByTestId('subscription-notice');
+    expect(notice.textContent).toContain('Cardul nu a fost confirmat.');
+    expect(notice.textContent).not.toContain('Cardul e salvat');
+    expect(within(notice).getByRole('link', { name: 'Adaugă cardul' }).getAttribute('href')).toBe(
+      '/organization/subscription/choose'
+    );
+  });
+
   it('shows an annual Profesional with its renewal, extra SMS and invoices', async () => {
     const subscription = activeSubscription();
     mockApi({
@@ -313,11 +327,69 @@ describe('the Abonament tab', () => {
         .textContent
     ).toBeTruthy();
     expect(dialog.textContent).toContain('246,84 €');
+    const previewsBefore = requests('/billing/preview', 'POST').length;
     await user.click(within(dialog).getByTestId('change-confirm'));
 
     await waitFor(() => expect(requests('/billing/subscription', 'PATCH')).toHaveLength(1));
     expect(bodyOf('/billing/subscription', 'PATCH')).toEqual(target);
     expect(await screen.findByText(/De pe .* treci la Profesional, lunar/)).toBeTruthy();
+    await waitFor(() => expect(screen.queryByTestId('change-dialog')).toBeNull());
+
+    await user.click(screen.getByTestId('subscription-switch-interval'));
+    await waitFor(() =>
+      expect(requests('/billing/preview', 'POST').length).toBeGreaterThan(previewsBefore)
+    );
+  });
+
+  it('shows what a change charges before the renewal, and sends the moment it was priced at', async () => {
+    const subscription = activeSubscription({ interval: 'month' });
+    const shownAt = new Date(Date.now() - 60_000).toISOString();
+    mockApi({
+      overview: overviewWith({ subscription, owner: ownerPart() }),
+      routes: {
+        'POST /billing/preview': (init) =>
+          Response.json(
+            previewFor(JSON.parse(String(init?.body)) as BillingChoice, {
+              appliesAt: subscription.currentPeriodEnd!,
+              proration: { subtotalCents: 2250, chargedNow: false },
+              prorationDate: shownAt,
+            })
+          ),
+        'PATCH /billing/subscription': () => Response.json({ clientSecret: null, intent: null }),
+      },
+    });
+    mount();
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('subscription-switch-interval'));
+    const dialog = await screen.findByTestId('change-dialog');
+    await within(dialog).findByRole('heading', { name: 'Treci la plata anuală?' });
+    await user.click(within(dialog).getByTestId('change-confirm'));
+
+    await waitFor(() => expect(requests('/billing/subscription', 'PATCH')).toHaveLength(1));
+    expect(bodyOf('/billing/subscription', 'PATCH')).toMatchObject({ prorationDate: shownAt });
+  });
+
+  it('refuses an annual change that adds now and removes at the renewal, and says why', async () => {
+    const subscription = activeSubscription();
+    mockApi({
+      overview: overviewWith({ subscription, owner: ownerPart() }),
+      routes: {
+        'POST /billing/preview': (init) =>
+          Response.json(
+            previewFor(JSON.parse(String(init?.body)) as BillingChoice, {
+              problems: [{ reason: 'split_change' }],
+            })
+          ),
+      },
+    });
+    mount();
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('subscription-switch-interval'));
+    const dialog = await screen.findByTestId('change-dialog');
+    expect(await within(dialog).findByText(/le faci pe rând/)).toBeTruthy();
+    expect((within(dialog).getByTestId('change-confirm') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('asks for a new card after a failed payment, through the card portal', async () => {
@@ -373,6 +445,76 @@ describe('the Abonament tab', () => {
     await userEvent.click(within(notice).getByTestId('notice-resume'));
     await waitFor(() => expect(requests('/billing/subscription/resume', 'POST')).toHaveLength(1));
     expect(await screen.findByText('Abonamentul se reînnoiește din nou.')).toBeTruthy();
+  });
+
+  it('dates a cancellation while a payment is overdue by the end of the retries', async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: activeSubscription({
+          status: 'past_due',
+          interval: 'month',
+          accessUntil: inDays(9),
+          currentPeriodEnd: inDays(30),
+        }),
+        owner: ownerPart(),
+      }),
+    });
+    mount();
+
+    await userEvent.click(
+      within(await screen.findByTestId('plan-card')).getByTestId('subscription-cancel')
+    );
+    const timeline = await screen.findByTestId('cancel-timeline');
+    expect(timeline.textContent).toContain(`Până pe ${roDate(inDays(9))}`);
+    expect(timeline.textContent).not.toContain(roDate(inDays(30)));
+  });
+
+  it('shows a plan cancelled while a payment is overdue as cancelled, with the way back', async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: activeSubscription({
+          status: 'past_due',
+          interval: 'month',
+          accessUntil: inDays(9),
+          cancelsAt: inDays(9),
+        }),
+        owner: ownerPart(),
+      }),
+    });
+    mount();
+
+    const notice = await screen.findByTestId('subscription-notice');
+    expect(notice.textContent).toContain(
+      `Abonamentul e anulat și se încheie pe ${roDate(inDays(9))}.`
+    );
+    expect(within(notice).getByTestId('notice-resume')).toBeTruthy();
+    expect(within(screen.getByTestId('plan-card')).getByTestId('subscription-resume')).toBeTruthy();
+  });
+
+  it('says cancelling drops a change set for the renewal', async () => {
+    const subscription = activeSubscription();
+    mockApi({
+      overview: overviewWith({
+        subscription,
+        owner: ownerPart({
+          scheduledChange: {
+            plan: 'start',
+            interval: 'year',
+            employeePacks: 1,
+            extraMembers: 0,
+            at: subscription.currentPeriodEnd!,
+          },
+        }),
+      }),
+    });
+    mount();
+
+    await userEvent.click(
+      within(await screen.findByTestId('plan-card')).getByTestId('subscription-cancel')
+    );
+    expect((await screen.findByTestId('cancel-drops-scheduled')).textContent).toContain(
+      `Schimbarea programată pentru ${roDate(subscription.currentPeriodEnd!)}`
+    );
   });
 
   it('keeps the tab working while read-only, with the way back', async () => {

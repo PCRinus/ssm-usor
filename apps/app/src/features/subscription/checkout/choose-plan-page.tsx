@@ -7,7 +7,7 @@ import { lazy, Suspense, useState } from 'react';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 
-import { billingErrorMessage } from '../billing-errors';
+import { billingErrorMessage, problemMessage } from '../billing-errors';
 import { formatCount } from '../billing-format';
 import { ChangeDialog } from '../change-dialog';
 import { contactEmail } from '../subscription-copy';
@@ -31,7 +31,9 @@ const StripeCheckout = lazy(() => import('./stripe-checkout'));
 
 export function ChoosePlanPage({ search }: { search: ChoosePlanSearch }) {
   const me = useMe();
-  const billing = useBilling();
+  // Coming back from the bank's app focuses the window mid-confirmation; a refetch then must
+  // not reshape the page under the card form.
+  const billing = useBilling({ refetchOnWindowFocus: false });
 
   if (billing.isPending || !me.data) {
     return (
@@ -135,7 +137,11 @@ function ChoosePlanForm({
   const [busy, setBusy] = useState(false);
   const employees = overview.usage.employees.used ?? 0;
   const members = overview.usage.members.used ?? 0;
-  const mode = live && current ? 'change' : 'new';
+  // A plan chosen in the trial whose card never confirmed is chosen again with the card form;
+  // the mode stays as it opened, so the card form never disappears while the bank confirms.
+  const [mode] = useState(() =>
+    live && current && !(view === 'trialChosen' && owner.card === null) ? 'change' : 'new'
+  );
 
   const state: CheckoutState = {
     choice,
@@ -209,6 +215,12 @@ function ChoosePlanForm({
             readOnly={state.readOnly}
           >
             {state.previewError && <Notice variant="destructive">{state.previewError}</Notice>}
+            {!settling &&
+              preview.data?.problems.map((problem) => (
+                <Notice key={problem.reason} variant="warning" data-testid="checkout-problem">
+                  {problemMessage(problem)}
+                </Notice>
+              ))}
             <Button
               className="h-12 rounded-xl text-[15px] font-semibold"
               data-testid="checkout-submit"
