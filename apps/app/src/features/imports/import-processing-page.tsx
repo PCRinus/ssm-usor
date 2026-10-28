@@ -30,6 +30,7 @@ import { AbandonImportDialog } from './abandon-import-dialog';
 import {
   documentKindLabels,
   documentsLabel,
+  endSentence,
   filesLabel,
   importErrorMessage,
   isRunning,
@@ -201,7 +202,7 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
             </Button>
           }
         >
-          Datele au fost preluate în {detail.client.legalName}.
+          Datele au fost preluate în {endSentence(detail.client.legalName)}
         </Notice>
       )}
       {detail.status === 'ready' && (
@@ -393,7 +394,7 @@ function OtherCompanyNotice({
       );
       setState('done');
       await queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() });
-      toast.success(`Am pornit un import separat pentru ${other}.`, {
+      toast.success(`Am pornit un import separat pentru ${endSentence(other)}`, {
         action: {
           label: 'Vezi importul',
           onClick: () =>
@@ -436,7 +437,7 @@ function OtherCompanyNotice({
       </strong>{' '}
       {detail.intoExistingClient
         ? `${count === 1 ? 'Un fișier este' : `${filesLabel(count)} sunt`} ale firmei ${other}, nu ale clientului, așa că nu le citim.`
-        : `${own ? `${capitalized(filesLabel(ownCount))} ${ownCount === 1 ? 'este al' : 'sunt ale'} firmei ${own} și ` : ''}${count === 1 ? 'unul al' : `${count} ale`} firmei ${other}. Un import creează un singur client, așa că acum le citim doar pe ${own ? 'primele' : 'ale firmei principale'}.`}
+        : `${own ? `${capitalized(filesLabel(ownCount))} ${ownCount === 1 ? 'este al' : 'sunt ale'} firmei ${own} și ` : ''}${count === 1 ? 'unul al' : `${count} ale`} firmei ${endSentence(other)} Un import creează un singur client, așa că acum le citim doar pe ${own ? 'primele' : 'ale firmei principale'}.`}
     </Notice>
   );
 }

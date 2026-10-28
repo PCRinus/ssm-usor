@@ -211,6 +211,35 @@ describe('the processing page', () => {
     ).toBeTruthy();
   });
 
+  it('ends a sentence once after a company name that ends in a period', async () => {
+    mockImport(
+      readingDetail({
+        status: 'confirmed',
+        confirmedAt: '2026-10-28T09:30:00+00:00',
+        client: {
+          id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+          legalName: 'S.C. SPICUL AURIU S.R.L.',
+        },
+        otherCompanies: [
+          {
+            name: 'PATISERIA FLOARE DE COLȚ S.R.L.',
+            cui: '40118562',
+            fileIds: otherFiles.map((file) => file.id),
+          },
+        ],
+      })
+    );
+    mount();
+
+    expect((await screen.findByTestId('import-confirmed')).textContent).toContain(
+      'Datele au fost preluate în S.C. SPICUL AURIU S.R.L.'
+    );
+    expect(screen.getByTestId('import-other-company').textContent).toContain(
+      'firmei PATISERIA FLOARE DE COLȚ S.R.L. Un import'
+    );
+    expect(document.body.textContent).not.toContain('S.R.L..');
+  });
+
   it('stops the import after asking, and goes back to the client list', async () => {
     mockImport(readingDetail());
     const runtime = mount();

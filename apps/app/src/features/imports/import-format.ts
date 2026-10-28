@@ -75,6 +75,9 @@ export const isUploadUnderway = (detail: Uploading, now = Date.now()) =>
 export const isUploadStalled = (detail: Uploading, now = Date.now()) =>
   detail.status === 'uploading' && now >= uploadStallsAt(detail);
 
+// Company names often end in "S.R.L.", whose period closes the sentence too.
+export const endSentence = (text: string) => (/[.!?…]$/.test(text) ? text : `${text}.`);
+
 function joinRo(parts: string[]) {
   if (parts.length <= 1) return parts.join('');
   return `${parts.slice(0, -1).join(', ')} și ${parts.at(-1)}`;
