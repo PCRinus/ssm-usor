@@ -101,8 +101,7 @@ export function createModelClient(options: GatewayOptions) {
   async function post(
     body: unknown,
     metadata: CompletionRequest<unknown>['metadata'],
-    spent: Usage,
-    model: ModelId
+    spent: { usage: Usage; cost: number }
   ) {
     for (let retry = 0; ; retry++) {
       let response: Response;
@@ -132,8 +131,8 @@ export function createModelClient(options: GatewayOptions) {
             ? 'The gateway did not answer in time.'
             : `The gateway could not be reached: ${reason.slice(0, 300)}`,
           null,
-          spent,
-          costOf(model, spent)
+          spent.usage,
+          spent.cost
         );
       }
       if (response.ok) return (await response.json()) as ChatCompletion;
@@ -145,8 +144,8 @@ export function createModelClient(options: GatewayOptions) {
       throw new GatewayError(
         `The gateway answered ${response.status}: ${text.slice(0, 300)}`,
         response.status,
-        spent,
-        costOf(model, spent)
+        spent.usage,
+        spent.cost
       );
     }
   }
@@ -170,13 +169,17 @@ export function createModelClient(options: GatewayOptions) {
           : {}),
       };
       let usage = noUsage;
+      // Each attempt is priced on its own: a price tier depends on one request's prompt size.
+      let cost = 0;
       let problem = '';
       for (let attempt = 1; attempt <= answerAttempts; attempt++) {
-        const completion = await post(body, request.metadata, usage, request.model);
-        usage = addUsage(usage, usageOf(completion));
+        const completion = await post(body, request.metadata, { usage, cost });
+        const attemptUsage = usageOf(completion);
+        usage = addUsage(usage, attemptUsage);
+        cost += costOf(request.model, attemptUsage);
         const choice = completion.choices?.[0];
         const fail = (reason: ModelAnswerError['reason'], message: string) =>
-          new ModelAnswerError(message, reason, usage, costOf(request.model, usage));
+          new ModelAnswerError(message, reason, usage, cost);
         if (choice?.message?.refusal)
           throw fail('refused', `The model refused: ${choice.message.refusal}`);
         if (choice?.finish_reason !== 'stop') {
@@ -187,7 +190,7 @@ export function createModelClient(options: GatewayOptions) {
         }
         try {
           const value = request.answer.parse(JSON.parse(choice.message?.content ?? ''));
-          return { value, usage, cost: costOf(request.model, usage), attempts: attempt };
+          return { value, usage, cost, attempts: attempt };
         } catch (error) {
           problem = error instanceof Error ? error.message.slice(0, 500) : String(error);
         }
@@ -196,7 +199,7 @@ export function createModelClient(options: GatewayOptions) {
         `The answer was outside the schema twice: ${problem}`,
         'outside_schema',
         usage,
-        costOf(request.model, usage)
+        cost
       );
     },
   };

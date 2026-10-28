@@ -183,6 +183,20 @@ describe('createModelClient', () => {
     expect(result.usage).toEqual({ input: 2000, cachedInput: 400, output: 600 });
   });
 
+  it('prices each attempt at its own prompt’s tier', async () => {
+    const outside = { files: [{ ...answer.files[0], kind: 'invoice' }] };
+    const large = { prompt: 150_000, cached: 0, completion: 1000 };
+    const { client } = fakeGateway(
+      () => completion(outside, large),
+      () => completion(answer, large)
+    );
+
+    const result = await client.complete(request);
+
+    expect(result.usage.input).toBe(300_000);
+    expect(result.cost).toBeCloseTo((2 * (150_000 * 0.1 + 1000 * 0.5)) / 1e6, 12);
+  });
+
   it('fails with a named error after a second answer outside the schema', async () => {
     const { client } = fakeGateway(
       () => completion('{"files": ['),
