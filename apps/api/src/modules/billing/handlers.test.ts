@@ -192,6 +192,23 @@ describe('GET /billing', () => {
       ],
     });
   });
+
+  it('shows the owner a cancellation set while a payment is overdue, ending with the retries at the latest', async () => {
+    const fake = createFake();
+    const retriesEnd = new Date(Date.now() + 9 * day * 1000).toISOString();
+    fake.tables.subscriptions!.push(paidRow(pro, { status: 'past_due', access_until: retriesEnd }));
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+      stripeSubscription({ status: 'past_due', choice: pro, cancelAt: now() + 28 * day });
+    fake.stripe['GET /v1/customers/cus_1Test'] = () => ({
+      id: 'cus_1Test',
+      object: 'customer',
+      invoice_settings: { default_payment_method: null },
+    });
+
+    const body = billingOverviewSchema.parse(await (await request('GET', '/billing')).json());
+
+    expect(body.subscription).toMatchObject({ status: 'past_due', cancelsAt: retriesEnd });
+  });
 });
 
 describe('POST /billing/preview', () => {

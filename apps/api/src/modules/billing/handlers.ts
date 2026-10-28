@@ -109,9 +109,19 @@ const catalogue: BillingCatalogue = {
   smsOverageCents: smsOverage.price.unitAmount,
 };
 
+// A row past due keeps the retry grace as its end, so a cancellation set meanwhile is known
+// only from Stripe, which the owner's view reads; access ends at whichever comes first.
+function cancelsAtOf(row: SubscriptionRow, stripeCancelAt: string | null) {
+  if (row.status === 'active') return iso(row.access_until);
+  if (row.status !== 'past_due' || !stripeCancelAt) return null;
+  if (!row.access_until) return stripeCancelAt;
+  return new Date(Math.min(Date.parse(stripeCancelAt), Date.parse(row.access_until))).toISOString();
+}
+
 function subscriptionView(
   row: SubscriptionRow,
-  access: AccessLevel
+  access: AccessLevel,
+  stripeCancelAt: string | null
 ): NonNullable<BillingOverview['subscription']> {
   const deletesAt =
     access === 'read_only' && row.access_until
@@ -129,7 +139,7 @@ function subscriptionView(
     accessUntil: iso(row.access_until),
     access,
     deletesAt,
-    cancelsAt: row.status === 'active' ? iso(row.access_until) : null,
+    cancelsAt: cancelsAtOf(row, stripeCancelAt),
   };
 }
 
@@ -190,6 +200,7 @@ async function stripeDetails(c: Context<ApiEnv>, billing: Billing, row: Subscrip
   const scheduled = await scheduledChoice(stripeBilling, subscription);
   return {
     card,
+    cancelAt: subscription.cancel_at ? fromSeconds(subscription.cancel_at) : null,
     nextPayment,
     smsOverageCents,
     scheduledChange: scheduled ? { ...scheduled.choice, at: scheduled.at.toISOString() } : null,
@@ -206,12 +217,14 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
   const limits = usageLimits(row, billing.now);
 
   let owner: BillingOverview['owner'] = null;
+  let stripeCancelAt: string | null = null;
   if (isOwnerInPerson(membership, billing.userId)) {
     const [invoices, email, details] = await Promise.all([
       listInvoices(billing.db, billing.organizationId),
       ownerEmail(billing.db, billing.organizationId),
       hasLiveSubscription(row) ? stripeDetails(c, billing, row) : null,
     ]);
+    stripeCancelAt = details?.cancelAt ?? null;
     const choiceLimits = (plan: 'start' | 'profesional') => {
       const minimums = minimumsFor(plan, usage);
       return {
@@ -233,7 +246,7 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
 
   return c.json(
     {
-      subscription: row ? subscriptionView(row, membership.access) : null,
+      subscription: row ? subscriptionView(row, membership.access, stripeCancelAt) : null,
       usage: {
         employees: { used: usage.employees, limit: limits.employees },
         members: { used: usage.members, limit: limits.members },

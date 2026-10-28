@@ -379,6 +379,7 @@ export const billingOverviewSchema = z.object({
       access: accessLevelSchema,
       deletesAt: timestamp.nullable(),
       // Set while a cancellation waits for the end of the paid period; resuming clears it.
+      // While a payment is overdue it is set in the owner's view only, read from Stripe.
       cancelsAt: timestamp.nullable(),
     })
     .nullable(),
