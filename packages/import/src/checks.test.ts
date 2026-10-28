@@ -223,11 +223,13 @@ describe('checkReferences', () => {
   it('flags a reference to a workplace or position the proposal lacks', () => {
     const value = proposal();
     value.protectiveEquipment[0]!.jobPosition = { name: 'Patiser', id: null };
+    value.protectiveEquipment[1]!.jobPosition = { name: null, id: null };
     value.responsiblePersons[0]!.workplace = { name: 'Depozit', id: null };
 
     expect(checkReferences(value)).toEqual([
       { path: 'responsiblePersons.0.workplace', code: 'unknown_reference', detail: 'Depozit' },
       { path: 'protectiveEquipment.0.jobPosition', code: 'unknown_reference', detail: 'Patiser' },
+      { path: 'protectiveEquipment.1.jobPosition', code: 'unknown_reference' },
     ]);
   });
 });

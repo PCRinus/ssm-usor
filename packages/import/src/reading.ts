@@ -445,8 +445,9 @@ export function toProposal(...readings: Reading[]): Proposal {
     // A table naming several positions applies to each of them.
     protectiveEquipment: list((reading) => reading.protectiveEquipment)
       .filter((entry) => named(entry.item))
-      .flatMap((entry) =>
-        uniqueFolded(entry.jobPositions).map((name) => ({
+      .flatMap((entry) => {
+        const names = uniqueFolded(entry.jobPositions);
+        return (names.length > 0 ? names : [null]).map((name) => ({
           id: `equipment-entry-${++ppeCount}`,
           ...traced(entry),
           jobPosition: { name, id: resolve(name, jobPositions) },
@@ -455,8 +456,8 @@ export function toProposal(...readings: Reading[]): Proposal {
           quantity: entry.quantity,
           durationMonths: entry.durationMonths,
           allocation: entry.allocation,
-        }))
-      ),
+        }));
+      }),
     employees: joined(
       list((reading) => reading.employees).map((employee) => ({
         ...traced(employee),

@@ -162,7 +162,8 @@ export type ProposedFireInstallation = z.infer<typeof proposedFireInstallationSc
 
 export const proposedProtectiveEquipmentSchema = z.object({
   ...item,
-  jobPosition: z.object(reference(z.string().min(1))),
+  // Without a name when the document names no post for the entry, for the member to choose.
+  jobPosition: z.object(reference(z.string().min(1).nullable())),
   risk: z.string().nullable(),
   item: z.string().min(1),
   quantity: z.int().nullable(),

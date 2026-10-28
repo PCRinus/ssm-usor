@@ -65,6 +65,18 @@ describe('fromWire', () => {
     );
   });
 
+  it('keeps an equipment entry that names no post, with its post unresolved', () => {
+    const answer = wireAnswer();
+    answer.protectiveEquipment[0]!.jobPositions = [];
+
+    expect(fromWire(answer).protectiveEquipment).toEqual([
+      expect.objectContaining({
+        item: 'Mănuși termorezistente',
+        jobPosition: { name: null, id: null },
+      }),
+    ]);
+  });
+
   it('reads a Romanian date, a role once, and drops blank notes', () => {
     expect(proposal.employees[0]).toMatchObject({ hiredAt: '2020-03-01', cnp: null });
     expect(proposal.responsiblePersons[0]!.roles).toEqual(['workplace_manager', 'first_aid']);
