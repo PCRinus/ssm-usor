@@ -37,26 +37,26 @@ deployed (or, without one, everything). A run started by hand skips the comparis
 everything (see below). The workflow itself is not path-filtered, so **Validate repository** remains
 available as a required PR check, including on documentation-only changes.
 
-| Changed files                                                                                                                             | Build/deployment targets                             |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `apps/marketing/**`                                                                                                                       | Marketing                                            |
-| `apps/help/**`                                                                                                                            | Help site                                            |
-| `apps/app/**`, `packages/help-topics/**`                                                                                                  | SPA                                                  |
-| `apps/portal/**`                                                                                                                          | Portal                                               |
-| `packages/api-http/**`                                                                                                                    | SPA and portal                                       |
-| `apps/api/**` (except the shared contract below)                                                                                          | API                                                  |
-| `apps/mail/**`                                                                                                                            | Mail Worker                                          |
-| `apps/sms/**`                                                                                                                             | SMS Worker ([guide](sms.md))                         |
-| `apps/pdf/**`, `packages/contracts/src/pdf.ts`                                                                                            | PDF Worker and its container image ([guide](pdf.md)) |
-| `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                   |
-| `packages/ui/**`                                                                                                                          | SPA, portal and marketing                            |
-| `packages/design-tokens/**`                                                                                                               | SPA, portal, marketing and help site                 |
-| `packages/contracts/**`                                                                                                                   | API, SPA, portal, mail and SMS Workers               |
-| `apps/api/openapi.json`                                                                                                                   | API and SPA                                          |
-| `orval.config.ts`                                                                                                                         | SPA                                                  |
-| `supabase/config.toml`, `supabase/migrations/**`, workflow/action/filter files                                                            | Database (hosted migrations and configuration)       |
-| Root package/lockfile/workspace configuration, Node version, shared TypeScript/Turbo configuration, patches, workflow/action/filter files | All of them                                          |
-| Root documentation, lint/format configuration, other files not matched by the filters                                                     | No deployment; validation still runs                 |
+| Changed files                                                                                                                             | Build/deployment targets                              |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `apps/marketing/**`                                                                                                                       | Marketing                                             |
+| `apps/help/**`                                                                                                                            | Help site                                             |
+| `apps/app/**`, `packages/help-topics/**`                                                                                                  | SPA                                                   |
+| `apps/portal/**`                                                                                                                          | Portal                                                |
+| `packages/api-http/**`                                                                                                                    | SPA and portal                                        |
+| `apps/api/**` (except the shared contract below)                                                                                          | API                                                   |
+| `apps/mail/**`                                                                                                                            | Mail Worker                                           |
+| `apps/sms/**`                                                                                                                             | SMS Worker ([guide](sms.md))                          |
+| `apps/pdf/**`, `packages/contracts/src/pdf.ts`, `signer*.ts` and `extractor*.ts` in the same folder                                       | PDF Worker and its container images ([guide](pdf.md)) |
+| `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                    |
+| `packages/ui/**`                                                                                                                          | SPA, portal and marketing                             |
+| `packages/design-tokens/**`                                                                                                               | SPA, portal, marketing and help site                  |
+| `packages/contracts/**`                                                                                                                   | API, SPA, portal, mail and SMS Workers                |
+| `apps/api/openapi.json`                                                                                                                   | API and SPA                                           |
+| `orval.config.ts`                                                                                                                         | SPA                                                   |
+| `supabase/config.toml`, `supabase/migrations/**`, workflow/action/filter files                                                            | Database (hosted migrations and configuration)        |
+| Root package/lockfile/workspace configuration, Node version, shared TypeScript/Turbo configuration, patches, workflow/action/filter files | All of them                                           |
+| Root documentation, lint/format configuration, other files not matched by the filters                                                     | No deployment; validation still runs                  |
 
 Rules are intentionally conservative: an application-local test or configuration change also
 selects that application. A lockfile change selects all of them; we do not maintain custom
@@ -125,12 +125,15 @@ Workers when they are selected, because its service bindings need those Workers 
 deployment uploads the `TWILIO_ACCOUNT_SID` and `SMS_FROM` variables and the `TWILIO_AUTH_TOKEN` secret when all three are
 there and warns when they are not. SPA-only changes skip API deployment. If API and
 SPA both change, API deployment and its HTTP smoke tests must succeed before SPA deployment.
-Before uploading, the API job looks up the `ssm-usor-regeneration` queue (`ssm-usor-regeneration-non-prod`
-in non-prod) the Worker sends to
-and consumes, and creates it when it is missing, because `wrangler deploy` refuses a binding to
+Before uploading, the API job looks up the `ssm-usor-regeneration`, `ssm-usor-import` and
+`ssm-usor-import-dead-letter` queues
+(with `-non-prod` after them in non-prod) the Worker sends to
+and consumes, and creates the missing ones, because `wrangler deploy` refuses a binding to
 a queue that does not exist; the deployment token needs **Queues → Edit** for that
 ([deployment guide](deployment.md#create-the-cloudflare-api-token)). The step can be repeated:
-an existing queue is left as it is.
+an existing queue is left as it is. The API job also uploads the repository's `AI_GATEWAY_URL`
+variable and `AI_GATEWAY_TOKEN` secret to the Worker, as secrets, when they are set, for imports
+from documents ([deployment guide](deployment.md#the-same-gateway-for-imports-from-documents)).
 The legislation Worker deploys after the migrations, since its cron writes to a table they
 create, with the environment's `VITE_SUPABASE_URL` as its `SUPABASE_URL` and `SUPABASE_SECRET_KEY`
 as a secret, beside `LEGISLATION_RELAY_CLIENT_ID` and `LEGISLATION_RELAY_CLIENT_SECRET`, the Access

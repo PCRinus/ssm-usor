@@ -177,9 +177,9 @@ jobs:
         if: steps.chromium-cache.outputs.cache-hit == 'true'
         run: pnpm --filter @ssm-usor/app exec playwright install-deps chromium
 
-      # The API's e2e server imports both packages from their build output.
-      - name: Build the contracts and the document engine
-        run: pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
+      # The API's e2e server imports these packages from their build output.
+      - name: Build the contracts, the document engine and the import package
+        run: pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine --filter @ssm-usor/import build
 
       - name: Wait for the local Supabase stack
         shell: bash

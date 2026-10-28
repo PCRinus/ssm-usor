@@ -1,4 +1,4 @@
-import { type DragEvent, useRef, useState } from 'react';
+import { type DragEvent, useEffect, useRef, useState } from 'react';
 
 export const hasFiles = (event: { dataTransfer: DataTransfer | null }) =>
   Boolean(event.dataTransfer?.types.includes('Files'));
@@ -34,4 +34,21 @@ export function useFileDrop(onDrop: (files: File[]) => void) {
   };
 
   return { dragging, handlers };
+}
+
+// Without this, a file dropped outside a drop zone replaces the app with the file.
+export function useRefuseStrayDrops() {
+  useEffect(() => {
+    const refuse = (event: globalThis.DragEvent) => {
+      if (event.defaultPrevented || !hasFiles(event)) return;
+      event.preventDefault();
+      if (event.type === 'dragover') event.dataTransfer!.dropEffect = 'none';
+    };
+    window.addEventListener('dragover', refuse);
+    window.addEventListener('drop', refuse);
+    return () => {
+      window.removeEventListener('dragover', refuse);
+      window.removeEventListener('drop', refuse);
+    };
+  }, []);
 }

@@ -48,6 +48,13 @@ export const clientFileSchema = z.object({
   uploadedBy: z.object({ id: z.uuid(), fullName: z.string().nullable() }).nullable(),
   // Whether the caller may rename, annotate and delete it: its uploader, or an owner.
   canChange: z.boolean(),
+  // The import whose folder the file came with (ADR 030), and the folders it sat in there;
+  // both null for a file uploaded on its own, the path null at the top of the folder.
+  importId: z.uuid().nullable(),
+  importPath: z.string().nullable(),
+  // Whether the import read the file; with the reason when it did not. Null outside an import.
+  importRead: z.boolean().nullable(),
+  importReason: z.string().nullable(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
 });

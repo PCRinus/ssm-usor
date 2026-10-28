@@ -183,6 +183,10 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clients.tsx`                                                        | pathless                                                    | Clients section layout carrying the breadcrumb title.                                                                                                                                                       |
 | `routes/_authenticated/clients/index.tsx`                                                  | `/clients`                                                  | Protected, paginated and sortable list of the organization's active clients.                                                                                                                                |
 | `routes/_authenticated/clients/new.tsx`                                                    | `/clients/new`                                              | Protected form that creates a client, with ANAF prefill by CUI.                                                                                                                                             |
+| `routes/_authenticated/clients/import/$importId.tsx`                                       | `/clients/import/:importId`                                 | Layout of an import from documents (ADR 030) carrying the breadcrumb title "Import din documente".                                                                                                          |
+| `routes/_authenticated/clients/import/$importId/index.tsx`                                 | `/clients/import/:importId`                                 | The import: its steps and files while it runs, the review hub once the proposal is ready.                                                                                                                   |
+| `routes/_authenticated/clients/import/$importId/files.tsx`                                 | `/clients/import/:importId/files`                           | "Fișierele importului": the files by what the reading made of them, from the review.                                                                                                                        |
+| `routes/_authenticated/clients/import/$importId/$section.tsx`                              | `/clients/import/:importId/:section`                        | One section of the review; the loader names the breadcrumb after it.                                                                                                                                        |
 | `routes/_authenticated/clients/$clientId/edit.tsx`                                         | `/clients/:id/edit`                                         | Redirects to the details, for addresses from before the client had them. So do `contact.tsx` (`/clients/:id/contact`), `document-data.tsx` to training, and `other-documents/contract.tsx` to the contract. |
 | `routes/_authenticated/clients/$clientId.tsx`                                              | `/clients/:id`                                              | Client layout: loads the client through `GET /clients/{clientId}`, shows its summary card and section tabs, returns the breadcrumb label from its loader.                                                   |
 | `routes/_authenticated/clients/$clientId/index.tsx`                                        | `/clients/:id`                                              | Redirects to the details.                                                                                                                                                                                   |
@@ -928,6 +932,56 @@ their tab bars read.
   warns, without stopping, when the contract in force has no signed copy; it is told through
   `signed`, left out while the contract is still loading so the warning never flashes for a
   signed one.
+- Imports from documents ([ADR 030](architecture/adr-030-import-from-documents.md)), in
+  `src/features/imports/`. "Importă din documente" on `/clients`, beside "Adaugă client", and
+  the empty list's second card open the upload dialog for a new client; "Completează din
+  documentație" in a client's header opens it for that client, naming it and its CUI. The
+  dialog takes files, a folder (`webkitdirectory`, or a dropped folder read through
+  `webkitGetAsEntry`) or a ZIP, which `fflate` opens in the browser: entries past 20 MiB are
+  never inflated, paths that climb out are dropped, and `.7z`/`.rar` are refused with
+  "Dezarhivează-l și trage folderul aici". Before anything is sent it lists what will be read,
+  a zip or folder as one row with its files under it and loose photographs as one row with
+  thumbnails, and what is set aside (types not read, empty or oversized files, system files
+  counted). Past 150 files or 100 MiB it asks for fewer. "Încarcă și citește" hashes each file
+  (SHA-256, Web Crypto), creates the import, registers the files in batches of 50, uploads each
+  straight to the `imports` bucket with the member's Supabase session (`import-storage.ts`,
+  three at a time, one retry), and starts the reading; files that would not go up are offered
+  again or left out. The import's page, `/clients/import/:importId`, polls `GET
+/imports/{id}` every 3 s while it runs and shows the four steps, the documents read together
+  ("În lucru") and the scans one by one, then the files grouped as failed, documents, scans,
+  sheets kept for the employee import (thumbnails through `GET …/source`; a HEIC only once its
+  JPEG exists), set aside (with "Citește-l totuși" once the proposal is ready) and another
+  company's, with "Importă-le separat" calling the split. On `/clients`, "Importuri din
+  documente" lists the open imports above the table, each row reading its own import for the
+  step, the files and what waits for the member, and a toast says when one becomes ready.
+- The review of a ready import (`review-*.tsx`). The hub lists the API's `blockers` as links to
+  their rows (`blockerLink` words each), an existing client's kept values under "De verificat",
+  and the seven sections with a status each ("Alegere necesară", "N date lipsă", "De verificat",
+  "Gata"), then the button that creates or completes the client, inert while anything blocks.
+  A section page, `/clients/import/:importId/:section`, puts its choices first as radio groups,
+  then its values: for a new client by group, each group turning into its form in place on
+  "Schimbă" (the client card's own fields and checks for the company and contact data); for an
+  existing client (variant E2) as "Se adaugă", "Diferă de aplicație" (the app's value kept, with
+  "Folosește valoarea din documente") and "Rămân la fel", against `GET /clients/{id}`, its
+  document details and its fire-safety data. A workplace or a position opens the app's own dialog
+  in its draft mode (`draft` on `WorkplaceDialog` and `JobPositionDialog`, which hands the
+  values back instead of saving a row); the other items open `ItemEditDialog`. Items and values
+  only another company's passages give are listed unticked. Every decision goes to `PUT
+/imports/{id}/changes` at once, one save after another on the version the previous answered;
+  a `409` `import_changed` stops saving and offers to reload. The values a member wrote carry
+  "Modificat de tine". Confirming shows what is created, added, changed and kept, posts
+  `/confirm` with the version, and opens the client's "Detalii" with a notice held in memory for
+  that one visit (`import-notice.ts`).
+- "Sursa" opens `SourceDialog`, near full screen, stepping through every passage that quotes the
+  value. A Word file (the `.docx` the import made of a `.doc`) opens in the editor in view mode,
+  the passage found line by line with `findMatches` and marked with `useHighlights`; a PDF is
+  drawn by `pdfjs-dist` with a text layer, the quote marked on its runs; a page read as an image,
+  or a photograph, is shown with zoom and no mark. When the passage is not found the page says
+  so. Both viewers load lazily. "Descarcă originalul" asks Storage for the file under its name.
+- In "Alte documente", the files of an import (`importId`) sit under one collapsed row, "Dosar
+  importat pe … · N fișiere", with their folders beneath it and "Necitit" on the files the
+  import did not read. "Descarcă tot dosarul (ZIP)" fetches them one by one and stores them in a
+  ZIP built in the browser with `fflate`, uncompressed.
 - The editor is one view for both kinds of document. `DocumentEditorView` takes a
   `DocumentSource` (the document, the state of its query, how to refetch and invalidate, and
   the way back); `DocumentEditorPage` builds one from the client's list of documents, and

@@ -38,7 +38,7 @@ ignores hosted environment settings, and refuses non-loopback Supabase URLs.
 Build the packages the API imports once:
 
 ```bash
-pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
+pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine --filter @ssm-usor/import build
 ```
 
 ### With `pnpm dev:local`

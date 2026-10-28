@@ -1,0 +1,565 @@
+import { type Proposal, type Reading, toProposal, withChecks } from '@ssm-usor/import';
+import { describe, expect, it } from 'vitest';
+
+import { type ExistingRecords, noExistingRecords, resolveField, toClientPayload } from './payload';
+
+const decision = 'Dosar/Decizia 1.docx';
+const fire = 'Dosar/PSI/Lista mijloace.doc';
+const quoted = (file = decision, otherCompany: string | null = null) => ({
+  file,
+  quote: 'citat',
+  otherCompany,
+});
+const fact = (
+  field: string,
+  value: string,
+  file = decision,
+  otherCompany: string | null = null
+) => ({
+  field,
+  value,
+  ...quoted(file, otherCompany),
+});
+
+function reading(overrides: Partial<Reading> = {}): Reading {
+  return {
+    facts: [
+      fact('client.legalName', 'BRUTĂRIA FICTIVĂ S.R.L.'),
+      fact('client.cui', '12345674'),
+      fact('client.countyCode', 'TM'),
+      fact('client.locality', 'Timișoara'),
+      fact('client.legalRepresentativeName', 'Vasilescu Andrei'),
+      fact('client.legalRepresentativeName', 'Petrescu Ion', fire, 'ATELIERUL INVENTAT S.R.L.'),
+      fact('trainingSchedule.workerTrainingIntervalMonths', '6'),
+      fact('fireSafety.smokingPolicy', 'forbidden_everywhere', fire),
+    ],
+    workplaces: [
+      {
+        name: 'Sediu',
+        county: 'TM',
+        locality: 'Timișoara',
+        addressLine: 'str. Exemplului nr. 5',
+        isRegisteredOffice: true,
+        activity: null,
+        rooms: ['laborator'],
+        ...quoted(),
+      },
+      {
+        name: 'Magazin',
+        county: null,
+        locality: 'Timișoara',
+        addressLine: 'str. Piața Mică nr. 2',
+        isRegisteredOffice: false,
+        activity: 'Comerț',
+        rooms: [],
+        ...quoted(),
+      },
+    ],
+    jobPositions: [
+      {
+        name: 'Brutar',
+        staffCategory: 'execution',
+        trainingIntervalMonths: null,
+        workZone: 'Laborator',
+        activities: null,
+        ...quoted(),
+      },
+      {
+        name: 'Vânzător',
+        staffCategory: null,
+        trainingIntervalMonths: null,
+        workZone: null,
+        activities: null,
+        ...quoted(),
+      },
+    ],
+    responsiblePersons: [
+      {
+        fullName: 'Ionescu Maria',
+        jobTitle: 'brutar',
+        roles: ['workplace_manager', 'first_aid'],
+        workplace: null,
+        ...quoted(),
+      },
+      {
+        fullName: 'Georgescu Dan',
+        jobTitle: 'vânzător',
+        roles: ['workers_representative'],
+        workplace: null,
+        ...quoted(),
+      },
+    ],
+    fireEquipment: [
+      {
+        workplace: 'Sediu',
+        room: 'laborator',
+        kind: 'extinguisher',
+        agent: 'powder',
+        capacity: 6,
+        wheeled: false,
+        count: 2,
+        ...quoted(fire),
+      },
+    ],
+    fireInstallations: [
+      {
+        workplace: 'Magazin',
+        kind: 'emergency_lighting',
+        description: null,
+        ...quoted(fire),
+      },
+    ],
+    protectiveEquipment: [
+      {
+        jobPositions: ['Brutar', 'Vânzător'],
+        risk: 'Arsuri',
+        item: 'Mănuși termorezistente',
+        quantity: 1,
+        durationMonths: 6,
+        allocation: null,
+        ...quoted(),
+      },
+    ],
+    employees: [
+      {
+        role: 'workers_representative',
+        lastName: 'Georgescu',
+        firstName: 'Dan',
+        cnp: null,
+        birthDate: null,
+        jobTitle: 'Vânzător',
+        hiredAt: '01.03.2020',
+        ...quoted(),
+      },
+    ],
+    notes: [],
+    ...overrides,
+  };
+}
+
+const proposalOf = (...readings: Reading[]): Proposal => toProposal(...readings);
+
+describe('resolveField', () => {
+  const field = (values: [string, string | null][]) => ({
+    options: values.map(([value, otherCompanyName]) => ({
+      value,
+      sources: [{ file: decision, quote: value }],
+      otherCompanyName,
+    })),
+  });
+
+  it("takes the only value of the client's own documents and leaves another company's out", () => {
+    expect(
+      resolveField(
+        field([
+          ['A', null],
+          ['B', 'ATELIER'],
+        ]),
+        undefined
+      )
+    ).toMatchObject({
+      value: 'A',
+      option: 0,
+      choice: false,
+    });
+    expect(resolveField(field([['B', 'ATELIER']]), undefined).value).toBeNull();
+    expect(resolveField(field([['B', 'ATELIER']]), { included: true })).toMatchObject({
+      value: 'B',
+      changed: true,
+    });
+  });
+
+  it('asks for a choice between two own values until one is chosen or written', () => {
+    const two = field([
+      ['J35/1/2015', null],
+      ['J35/2/2015', null],
+    ]);
+    expect(resolveField(two, undefined).choice).toBe(true);
+    expect(resolveField(two, { option: 1 })).toMatchObject({ value: 'J35/2/2015', choice: false });
+    expect(resolveField(two, { value: 'J35/3/2015' })).toMatchObject({
+      value: 'J35/3/2015',
+      option: null,
+    });
+    expect(resolveField(field([['A', null]]), { included: false })).toMatchObject({
+      value: null,
+      unticked: true,
+    });
+  });
+});
+
+describe('toClientPayload', () => {
+  it("shapes a new client's proposal like the tables, with keys between the lists", () => {
+    const { payload, blockers } = toClientPayload({
+      proposal: proposalOf(reading()),
+      changes: null,
+      intoExistingClient: false,
+      existing: noExistingRecords,
+      registeredCompany: {
+        cui: '12345674',
+        legalName: 'BRUTĂRIA FICTIVĂ S.R.L.',
+        vatPayer: true,
+        inactive: false,
+      },
+    });
+
+    expect(blockers).toEqual([]);
+    expect(payload.client).toEqual({
+      legal_name: 'BRUTĂRIA FICTIVĂ S.R.L.',
+      cui: '12345674',
+      county_code: 'TM',
+      locality: 'Timișoara',
+      legal_representative_name: 'Vasilescu Andrei',
+      worker_training_interval_months: 6,
+      vat_payer: true,
+    });
+    expect(payload.fire_safety).toEqual({ smoking_policy: 'forbidden_everywhere' });
+    expect(payload.workplaces).toEqual([
+      {
+        key: 'workplace-1',
+        name: 'Sediu',
+        is_registered_office: true,
+        county_code: 'TM',
+        locality: 'Timișoara',
+        address_line: 'str. Exemplului nr. 5',
+      },
+      {
+        key: 'workplace-2',
+        name: 'Magazin',
+        is_registered_office: false,
+        locality: 'Timișoara',
+        address_line: 'str. Piața Mică nr. 2',
+        activity: 'Comerț',
+      },
+    ]);
+    expect(payload.job_positions).toEqual([
+      { key: 'position-1', name: 'Brutar', staff_category: 'execution', work_zone: 'Laborator' },
+      { key: 'position-2', name: 'Vânzător' },
+    ]);
+    expect(payload.equipment).toEqual([
+      {
+        job_position_key: 'position-1',
+        risk: 'Arsuri',
+        item: 'Mănuși termorezistente',
+        quantity: 1,
+        duration_months: 6,
+      },
+      {
+        job_position_key: 'position-2',
+        risk: 'Arsuri',
+        item: 'Mănuși termorezistente',
+        quantity: 1,
+        duration_months: 6,
+      },
+    ]);
+    expect(payload.employees).toEqual([
+      {
+        key: 'employee-1',
+        last_name: 'Georgescu',
+        first_name: 'Dan',
+        job_title: 'Vânzător',
+        hired_at: '2020-03-01',
+      },
+    ]);
+    expect(payload.responsible_persons).toEqual([
+      {
+        full_name: 'Ionescu Maria',
+        job_title: 'brutar',
+        roles: ['workplace_manager', 'first_aid'],
+      },
+      {
+        employee_key: 'employee-1',
+        full_name: 'Georgescu Dan',
+        job_title: 'vânzător',
+        roles: ['workers_representative'],
+      },
+    ]);
+    expect(payload.fire_equipment).toEqual([
+      {
+        workplace_key: 'workplace-1',
+        kind: 'extinguisher',
+        agent: 'powder',
+        capacity: 6,
+        wheeled: false,
+        location: 'laborator',
+      },
+      {
+        workplace_key: 'workplace-1',
+        kind: 'extinguisher',
+        agent: 'powder',
+        capacity: 6,
+        wheeled: false,
+        location: 'laborator',
+      },
+    ]);
+    expect(payload.fire_installations).toEqual([
+      { workplace_key: 'workplace-2', kind: 'emergency_lighting' },
+    ]);
+    expect(payload.quality.client).toEqual({ changed: 0, unticked: 0, kept: 0 });
+  });
+
+  it('applies what the member chose, wrote, ticked and unticked, and counts it without values', () => {
+    const proposal = proposalOf(reading());
+    const { payload, blockers } = toClientPayload({
+      proposal,
+      changes: {
+        fields: {
+          'client.legalRepresentativeName': { option: 1 },
+          'client.locality': { value: 'Timisoara Nord' },
+          'trainingSchedule.workerTrainingIntervalMonths': { included: false },
+        },
+        items: {
+          'workplace-2': { included: false },
+          'equipment-entry-2': { values: { quantity: 2 } },
+        },
+      },
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+
+    expect(payload.client).toMatchObject({
+      legal_representative_name: 'Petrescu Ion',
+      locality: 'Timisoara Nord',
+    });
+    expect(payload.client).not.toHaveProperty('worker_training_interval_months');
+    expect(payload.workplaces.map((row) => row.key)).toEqual(['workplace-1']);
+    expect(payload.equipment[1]).toMatchObject({ quantity: 2 });
+    // The emergency lighting stood at the workplace the member left out.
+    expect(blockers).toEqual([
+      { path: 'fireInstallations.0.workplace', code: 'unknown_reference' },
+    ]);
+    expect(payload.quality.client).toEqual({ changed: 2, unticked: 0, kept: 0 });
+    expect(payload.quality.trainingSchedule).toEqual({ changed: 0, unticked: 1, kept: 0 });
+    expect(payload.quality.workplaces).toEqual({ changed: 0, unticked: 1, kept: 0 });
+    expect(payload.quality.protectiveEquipment).toEqual({ changed: 1, unticked: 0, kept: 0 });
+  });
+
+  it('blocks on a choice, a missing identity, an invalid value and a representative without an employee', () => {
+    const base = reading();
+    const proposal = withChecks(
+      proposalOf(
+        reading({
+          facts: [
+            fact('client.legalName', 'BRUTĂRIA FICTIVĂ S.R.L.'),
+            fact('client.legalName', 'BRUTĂRIA FICTIVĂ SRL NOU', fire),
+            fact('client.countyCode', 'Atlantida'),
+          ],
+          employees: [],
+          protectiveEquipment: [{ ...base.protectiveEquipment[0]!, risk: null }],
+        })
+      ),
+      { files: { [decision]: null, [fire]: null } }
+    );
+    const { blockers } = toClientPayload({
+      proposal,
+      changes: null,
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+
+    expect(blockers).toEqual(
+      expect.arrayContaining([
+        { path: 'client.legalName', code: 'choice' },
+        { path: 'client.cui', code: 'missing' },
+        { path: 'client.countyCode', code: 'invalid' },
+        { path: 'protectiveEquipment.0.risk', code: 'missing' },
+        { path: 'responsiblePersons.1.employee', code: 'missing' },
+      ])
+    );
+
+    const resolved = toClientPayload({
+      proposal,
+      changes: {
+        fields: {
+          'client.legalName': { option: 0 },
+          'client.cui': { value: '12345674' },
+          'client.countyCode': { value: 'TM' },
+        },
+        items: {
+          'equipment-entry-1': { values: { risk: 'Arsuri' } },
+          'equipment-entry-2': { values: { risk: 'Arsuri' } },
+          'person-2': { included: false },
+        },
+      },
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+    expect(resolved.blockers).toEqual([]);
+  });
+
+  it('leaves the legal representative out as an employee until ticked, and only then asks for the hire date', () => {
+    const base = reading();
+    const proposal = proposalOf(
+      reading({
+        employees: [
+          ...base.employees,
+          {
+            role: 'legal_representative',
+            lastName: 'Vasilescu',
+            firstName: 'Andrei',
+            cnp: null,
+            birthDate: null,
+            jobTitle: 'Administrator',
+            hiredAt: null,
+            ...quoted(),
+          },
+        ],
+      })
+    );
+    const unticked = toClientPayload({
+      proposal,
+      changes: null,
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+
+    expect(unticked.payload.employees.map((row) => row.key)).toEqual(['employee-1']);
+    expect(unticked.blockers).toEqual([]);
+
+    const ticked = toClientPayload({
+      proposal,
+      changes: { fields: {}, items: { 'employee-2': { included: true } } },
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+    expect(ticked.payload.employees.map((row) => row.key)).toEqual(['employee-1', 'employee-2']);
+    expect(ticked.blockers).toEqual([{ path: 'employees.1.hiredAt', code: 'missing' }]);
+    expect(ticked.payload.quality.employees).toEqual({ changed: 1, unticked: 0, kept: 0 });
+  });
+
+  it("still asks for the workers' representative's hire date", () => {
+    const base = reading();
+    const { blockers } = toClientPayload({
+      proposal: proposalOf(reading({ employees: [{ ...base.employees[0]!, hiredAt: null }] })),
+      changes: null,
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+
+    expect(blockers).toEqual([{ path: 'employees.0.hiredAt', code: 'missing' }]);
+  });
+
+  it("fills an existing client's empty values, keeps its own, and replaces only what the member took", () => {
+    const existing: ExistingRecords = {
+      client: {
+        legal_name: 'BRUTĂRIA FICTIVĂ S.R.L.',
+        cui: '12345674',
+        county_code: 'TM',
+        locality: 'Lugoj',
+        legal_representative_name: 'Vasilescu Andrei',
+        worker_training_interval_months: 3,
+      },
+      fireSafety: null,
+      workplaces: [
+        {
+          id: '0b7a5a0e-3c51-4a3f-9d0e-5a1b2c3d4e5f',
+          name: 'Sediul social',
+          address_line: 'str. Exemplului nr. 5',
+        },
+      ],
+      jobPositions: [{ id: '1c8b6b1f-4d62-4b40-8e1f-6b2c3d4e5f60', name: 'Brutar' }],
+      employees: [
+        {
+          id: '2d9c7c2a-5e73-4c51-9f2a-7c3d4e5f6071',
+          last_name: 'Georgescu',
+          first_name: 'Dan',
+          cnp: null,
+        },
+      ],
+      responsiblePersons: [{ full_name: 'Ionescu Maria' }],
+    };
+    const { payload, blockers } = toClientPayload({
+      proposal: proposalOf(reading()),
+      changes: {
+        fields: { 'trainingSchedule.workerTrainingIntervalMonths': { replace: true } },
+        items: { 'workplace-1': { replace: ['addressLine'] } },
+      },
+      intoExistingClient: true,
+      existing,
+    });
+
+    expect(blockers).toEqual([]);
+    expect(payload.client).not.toHaveProperty('cui');
+    expect(payload.client).toMatchObject({
+      worker_training_interval_months: 6,
+      replace: ['worker_training_interval_months'],
+    });
+    expect(payload.workplaces[0]).toMatchObject({
+      key: 'workplace-1',
+      id: '0b7a5a0e-3c51-4a3f-9d0e-5a1b2c3d4e5f',
+      replace: ['address_line'],
+    });
+    expect(payload.workplaces[1]).not.toHaveProperty('id');
+    expect(payload.employees).toEqual([]);
+    expect(payload.responsible_persons).toEqual([
+      {
+        employee_id: '2d9c7c2a-5e73-4c51-9f2a-7c3d4e5f6071',
+        full_name: 'Georgescu Dan',
+        job_title: 'vânzător',
+        roles: ['workers_representative'],
+      },
+    ]);
+    expect(payload.quality.client.kept).toBe(1);
+    expect(payload.quality.employees.kept).toBe(1);
+    expect(payload.quality.responsiblePersons.kept).toBe(1);
+  });
+
+  it('blocks a row the member picked that the client no longer has, or never had', () => {
+    const existing: ExistingRecords = {
+      ...noExistingRecords,
+      client: { legal_name: 'BRUTĂRIA FICTIVĂ S.R.L.', cui: '12345674' },
+      workplaces: [
+        { id: '0b7a5a0e-3c51-4a3f-9d0e-5a1b2c3d4e5f', name: 'Sediu', address_line: null },
+      ],
+      jobPositions: [{ id: '1c8b6b1f-4d62-4b40-8e1f-6b2c3d4e5f60', name: 'Brutar' }],
+    };
+    const { payload, blockers } = toClientPayload({
+      proposal: proposalOf(reading()),
+      changes: {
+        fields: {},
+        items: {
+          'workplace-1': { existingId: '9e0d8c7b-6a59-4483-9271-605f4e3d2c1b' },
+          'position-1': { existingId: '8d9c7b6a-5948-4372-8160-5f4e3d2c1b0a' },
+        },
+      },
+      intoExistingClient: true,
+      existing,
+    });
+
+    expect(blockers).toEqual(
+      expect.arrayContaining([
+        { path: 'workplaces.0', code: 'unknown_reference' },
+        { path: 'jobPositions.0', code: 'unknown_reference' },
+      ])
+    );
+    expect(payload.workplaces[0]).not.toHaveProperty('id');
+    expect(payload.job_positions[0]).not.toHaveProperty('id');
+  });
+
+  it('blocks equipment whose table named no position, without failing', () => {
+    const { blockers } = toClientPayload({
+      proposal: proposalOf(
+        reading({
+          protectiveEquipment: [
+            {
+              jobPositions: [],
+              risk: 'Arsuri',
+              item: 'Mănuși termorezistente',
+              quantity: 1,
+              durationMonths: 6,
+              allocation: null,
+              ...quoted(),
+            },
+          ],
+        })
+      ),
+      changes: null,
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+
+    expect(blockers).toContainEqual({
+      path: 'protectiveEquipment.0.jobPosition',
+      code: 'unknown_reference',
+    });
+  });
+});

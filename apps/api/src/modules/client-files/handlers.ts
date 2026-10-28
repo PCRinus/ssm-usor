@@ -43,12 +43,17 @@ type FileRow = Pick<
   | 'sha256'
   | 'storage_path'
   | 'uploaded_by'
+  | 'import_id'
+  | 'import_path'
   | 'created_at'
   | 'updated_at'
-> & { employees: { id: string; last_name: string; first_name: string } | null };
+> & {
+  employees: { id: string; last_name: string; first_name: string } | null;
+  import_files: { state: string; reason: string | null }[];
+};
 
 const fileColumns =
-  'id, name, note, owners_only, original_file_name, mime_type, size_bytes, sha256, storage_path, uploaded_by, created_at, updated_at, employees(id, last_name, first_name)';
+  'id, name, note, owners_only, original_file_name, mime_type, size_bytes, sha256, storage_path, uploaded_by, import_id, import_path, created_at, updated_at, employees(id, last_name, first_name), import_files!import_files_client_file_id_fkey(state, reason)';
 
 const isOwner = (c: Context<ApiEnv>) => c.get('membership').role === 'owner';
 
@@ -84,6 +89,13 @@ function toClientFile(c: Context<ApiEnv>, row: FileRow, names: Map<string, strin
       ? { id: row.uploaded_by, fullName: names.get(row.uploaded_by) ?? null }
       : null,
     canChange: canChange(c, row),
+    importId: row.import_id,
+    importPath: row.import_path,
+    importRead: row.import_id ? (row.import_files[0]?.state ?? 'read') === 'read' : null,
+    importReason:
+      row.import_id && row.import_files[0]?.state !== 'read'
+        ? (row.import_files[0]?.reason ?? null)
+        : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

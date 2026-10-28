@@ -13,7 +13,7 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { useRouteContext } from '@tanstack/react-router';
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import {
@@ -32,6 +32,7 @@ import {
   emptyJobPositionForm,
   intervalOptionsFor,
   type JobPosition,
+  type JobPositionFormInput,
   jobPositionFormSchema,
   type JobPositionFormValues,
   staffCategoryLabels,
@@ -42,9 +43,16 @@ import {
 // `null` is closed, 'new' adds a position, and a position edits it.
 export type JobPositionEditing = JobPosition | 'new' | null;
 
+export type JobPositionDraft = {
+  values: JobPositionFormInput;
+  onSave: (values: JobPositionFormValues) => void;
+  aside?: ReactNode;
+};
+
 export function JobPositionDialog({
   clientId,
   editing,
+  draft,
   onClose,
   initialName,
   onSaved,
@@ -52,6 +60,7 @@ export function JobPositionDialog({
 }: {
   clientId: string;
   editing: JobPositionEditing;
+  draft?: JobPositionDraft | null;
   onClose: () => void;
   /** What a new position's name starts as: what was typed where the dialog was opened from. */
   initialName?: string;
@@ -61,8 +70,17 @@ export function JobPositionDialog({
   onCloseAutoFocus?: (event: Event) => void;
 }) {
   return (
-    <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
-      {editing && (
+    <Dialog open={editing !== null || Boolean(draft)} onOpenChange={(open) => !open && onClose()}>
+      {draft && (
+        <JobPositionForm
+          clientId={clientId}
+          position={null}
+          draft={draft}
+          onCloseAutoFocus={onCloseAutoFocus}
+          onClose={onClose}
+        />
+      )}
+      {!draft && editing && (
         <JobPositionForm
           key={editing === 'new' ? 'new' : editing.id}
           clientId={clientId}
@@ -80,6 +98,7 @@ export function JobPositionDialog({
 function JobPositionForm({
   clientId,
   position,
+  draft,
   initialName = '',
   onSaved,
   onCloseAutoFocus,
@@ -87,6 +106,7 @@ function JobPositionForm({
 }: {
   clientId: string;
   position: JobPosition | null;
+  draft?: JobPositionDraft;
   initialName?: string;
   onSaved?: (position: JobPosition) => void;
   onCloseAutoFocus?: (event: Event) => void;
@@ -96,11 +116,13 @@ function JobPositionForm({
   const savedToast = useSavedToast();
   const create = useCreateJobPosition({ request: apiRequest });
   const update = useUpdateJobPosition({ request: apiRequest });
-  const form = useForm<JobPositionFormValues>({
+  const form = useForm<JobPositionFormInput, unknown, JobPositionFormValues>({
     resolver: zodResolver(jobPositionFormSchema),
-    defaultValues: position
-      ? toJobPositionForm(position)
-      : { ...emptyJobPositionForm, name: initialName },
+    defaultValues: draft
+      ? draft.values
+      : position
+        ? toJobPositionForm(position)
+        : { ...emptyJobPositionForm, name: initialName },
   });
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
@@ -108,6 +130,11 @@ function JobPositionForm({
   const staffCategory = useWatch({ control: form.control, name: 'staffCategory' });
 
   const onSubmit = form.handleSubmit(async (values) => {
+    if (draft) {
+      draft.onSave(values);
+      onClose();
+      return;
+    }
     const data = toJobPositionRequest(values);
     try {
       const saved = position
@@ -164,12 +191,12 @@ function JobPositionForm({
       >
         <DialogHeader>
           <DialogTitle>
-            {position ? 'Modifică postul de lucru' : 'Adaugă un post de lucru'}
+            {position || draft ? 'Modifică postul de lucru' : 'Adaugă un post de lucru'}
           </DialogTitle>
           <DialogDescription>
             Riscurile, echipamentul și instruirea sunt legate de post. Funcția din contract se
             păstrează separat pentru fiecare angajat
-            {position ? ', chiar dacă redenumești postul.' : '.'}
+            {position || draft ? ', chiar dacă redenumești postul.' : '.'}
           </DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid gap-5">
@@ -189,13 +216,17 @@ function JobPositionForm({
             id="job-position-category"
             label="Categorie de personal"
             mark="required"
+            error={errors.staffCategory}
             hint="Hotărăște la ce interval se face instruirea periodică, dacă postul nu are unul al lui."
           >
             <NativeSelect
               id="job-position-category"
               data-testid="job-position-category"
               disabled={busy}
-              aria-describedby="job-position-category-hint"
+              aria-invalid={Boolean(errors.staffCategory)}
+              aria-describedby={
+                errors.staffCategory ? 'job-position-category-error' : 'job-position-category-hint'
+              }
               className="w-full"
               {...form.register('staffCategory', {
                 // The select drops an option that is gone; the form state has to follow it.
@@ -208,6 +239,11 @@ function JobPositionForm({
                 },
               })}
             >
+              {staffCategory === '' && (
+                <NativeSelectOption value="" disabled>
+                  Alege categoria
+                </NativeSelectOption>
+              )}
               <NativeSelectOption value="execution">
                 {staffCategoryLabels.execution}
               </NativeSelectOption>
@@ -236,7 +272,7 @@ function JobPositionForm({
               {...form.register('trainingIntervalMonths')}
             >
               <NativeSelectOption value="">Cel al categoriei</NativeSelectOption>
-              {intervalOptionsFor(staffCategory).map(({ months, label }) => (
+              {(staffCategory ? intervalOptionsFor(staffCategory) : []).map(({ months, label }) => (
                 <NativeSelectOption key={months} value={months}>
                   {label}
                 </NativeSelectOption>
@@ -281,6 +317,7 @@ function JobPositionForm({
               {...form.register('activities')}
             />
           </Field>
+          {draft?.aside}
         </div>
         {errors.root?.server && (
           <Notice variant="destructive" data-testid="job-position-error" className="mt-4">
@@ -292,7 +329,7 @@ function JobPositionForm({
             Renunță
           </Button>
           <Button type="submit" data-testid="job-position-save" disabled={busy}>
-            {busy ? 'Se salvează…' : position ? 'Salvează' : 'Adaugă'}
+            {busy ? 'Se salvează…' : position || draft ? 'Salvează' : 'Adaugă'}
           </Button>
         </DialogFooter>
       </form>

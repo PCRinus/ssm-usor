@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsc --noEmit && tsc --noEmit -p extractor",
     "start": "wrangler dev --port 8791 --inspector-port 9240",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p extractor",
     "test": "vitest run",
     "setup:signer": "python3 -m venv signer/.venv && signer/.venv/bin/pip install --require-hashes --requirement signer/requirements-dev.txt",
     "test:signer": "cd signer && .venv/bin/python -m pytest",
@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261023.1",
+    "@types/node": "^24.19.2",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5",
     "wrangler": "^4.152.0"

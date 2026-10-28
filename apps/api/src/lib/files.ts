@@ -16,6 +16,7 @@ const documentsBucket = 'documents';
 const modulesBucket = 'instruction-modules';
 const clientFilesBucket = 'client-files';
 const billingInvoicesBucket = 'billing-invoices';
+const importsBucket = 'imports';
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 export function createFileStore(c: Context<ApiEnv>) {
@@ -156,10 +157,77 @@ function fileStore(
       if (error || !data) throw fileError('sign billing invoice link', error);
       return data.signedUrl;
     },
+
+    readImportObject: (path: string) => read(importsBucket, path, 'read import object'),
+
+    /** The import's text and converted files, which only the secret key writes. */
+    async writeImportObject(path: string, bytes: Uint8Array, contentType: string) {
+      const { error } = await storage
+        .from(importsBucket)
+        .upload(path, bytes, { contentType, upsert: true });
+      if (error) throw fileError('write import object', error);
+    },
+
+    async createImportObject(path: string, bytes: Uint8Array, contentType: string) {
+      const { error } = await storage
+        .from(importsBucket)
+        .upload(path, bytes, { contentType, upsert: false });
+      if (error && alreadyExists(error)) return false;
+      if (error) throw fileError('create import object', error);
+      return true;
+    },
+
+    async importObjectLink(path: string, expiresInSeconds = 60) {
+      const { data, error } = await storage
+        .from(importsBucket)
+        .createSignedUrl(path, expiresInSeconds);
+      if (error || !data) throw fileError('sign import object link', error);
+      return data.signedUrl;
+    },
+
+    async listImportFolder(folder: string) {
+      const objects: { name: string; size: number | null }[] = [];
+      for (let offset = 0; ; offset += 1000) {
+        const { data, error } = await storage
+          .from(importsBucket)
+          .list(folder, { limit: 1000, offset });
+        if (error || !data) throw fileError('list import folder', error);
+        for (const object of data) {
+          const size = (object.metadata as { size?: unknown } | null)?.size;
+          objects.push({ name: object.name, size: typeof size === 'number' ? size : null });
+        }
+        if (data.length < 1000) return objects;
+      }
+    },
+
+    /** An object already at the target counts as copied, so an interrupted copy can resume. */
+    async copyImportObject(from: string, to: string, bucket: 'imports' | 'client-files') {
+      const { error } = await storage
+        .from(importsBucket)
+        .copy(from, to, { destinationBucket: bucket });
+      if (error && !alreadyExists(error)) throw fileError('copy import object', error);
+    },
+
+    async removeImportObjects(paths: string[]) {
+      for (let start = 0; start < paths.length; start += 100) {
+        const { error } = await storage.from(importsBucket).remove(paths.slice(start, start + 100));
+        if (error) throw fileError('remove import objects', error);
+      }
+    },
   };
 }
 
 export type FileStore = ReturnType<typeof createFileStore>;
+
+// Storage answers a duplicate with HTTP 400 and the status 409 in its body.
+function alreadyExists(error: { message?: string; status?: unknown; statusCode?: unknown }) {
+  return (
+    error.status === 409 ||
+    error.statusCode === '409' ||
+    error.statusCode === 409 ||
+    /already exists/i.test(error.message ?? '')
+  );
+}
 
 function fileError(context: string, error: { message?: string } | null) {
   console.error(`Storage request failed (${context}): ${error?.message ?? 'no data'}`);

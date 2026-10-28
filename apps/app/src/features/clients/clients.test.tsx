@@ -384,7 +384,7 @@ describe('clients list', () => {
     const runtime = mountApp(authFixture(makeSession()).client, '/clients');
     await screen.findByTestId('clients-empty');
     expect(screen.getByTestId('clients-count').textContent).toBe('0 clienți');
-    await userEvent.setup().click(screen.getByRole('link', { name: 'Adaugă primul client' }));
+    await userEvent.setup().click(screen.getByRole('link', { name: /^Adaugă primul client/ }));
     await screen.findByTestId('new-client-page');
     await waitFor(() => expect(document.title).toBe('Client nou — Clienți — SSM Ușor'));
     expect(runtime.router.state.location.pathname).toBe('/clients/new');

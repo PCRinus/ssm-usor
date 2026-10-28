@@ -23,11 +23,19 @@
     { "binding": "PDF", "service": "ssm-usor-pdf", "entrypoint": "Pdf" },
     // The same entrypoint for its signing methods (ADR 023).
     { "binding": "SIGNER", "service": "ssm-usor-pdf", "entrypoint": "Pdf" },
+    // And for reading an import's files (ADR 030).
+    { "binding": "EXTRACTOR", "service": "ssm-usor-pdf", "entrypoint": "Pdf" },
   ],
   // Bulk regeneration (ADR 017): this Worker sends one message per client and consumes them.
   // `wrangler deploy` fails while the queue does not exist; the deploy workflow creates it.
+  // Imports from documents (ADR 030): one message per file and per step, sent and consumed here
+  // too, and the messages whose every delivery died unrecorded, consumed from the dead-letter
+  // queue. src/index.ts tells the consumers apart by the queue's name.
   "queues": {
-    "producers": [{ "binding": "REGENERATION_QUEUE", "queue": "ssm-usor-regeneration" }],
+    "producers": [
+      { "binding": "REGENERATION_QUEUE", "queue": "ssm-usor-regeneration" },
+      { "binding": "IMPORT_QUEUE", "queue": "ssm-usor-import" },
+    ],
     "consumers": [
       {
         "queue": "ssm-usor-regeneration",
@@ -41,7 +49,31 @@
         "max_retries": 3,
         "retry_delay": 30,
       },
+      {
+        "queue": "ssm-usor-import",
+        // A message waits on the extractor or a model for minutes, mostly without CPU; one per
+        // invocation keeps a slow model request from holding up the files behind it.
+        "max_batch_size": 1,
+        "max_batch_timeout": 1,
+        "max_concurrency": 10,
+        // modules/imports/queue.ts marks the file or the import failed on the last delivery:
+        // lastDelivery there is this plus one.
+        "max_retries": 3,
+        "retry_delay": 30,
+        "dead_letter_queue": "ssm-usor-import-dead-letter",
+      },
+      {
+        "queue": "ssm-usor-import-dead-letter",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "retry_delay": 30,
+      },
     ],
+  },
+  // The daily clean-up of imports (ADR 030). 02:41 UTC, away from the legislation check.
+  "triggers": {
+    "crons": ["41 2 * * *"],
   },
   "observability": {
     "enabled": true,
@@ -63,10 +95,12 @@
         { "binding": "SMS", "service": "ssm-usor-sms-non-prod", "entrypoint": "Sms" },
         { "binding": "PDF", "service": "ssm-usor-pdf-non-prod", "entrypoint": "Pdf" },
         { "binding": "SIGNER", "service": "ssm-usor-pdf-non-prod", "entrypoint": "Pdf" },
+        { "binding": "EXTRACTOR", "service": "ssm-usor-pdf-non-prod", "entrypoint": "Pdf" },
       ],
       "queues": {
         "producers": [
           { "binding": "REGENERATION_QUEUE", "queue": "ssm-usor-regeneration-non-prod" },
+          { "binding": "IMPORT_QUEUE", "queue": "ssm-usor-import-non-prod" },
         ],
         "consumers": [
           {
@@ -78,7 +112,27 @@
             "max_retries": 3,
             "retry_delay": 30,
           },
+          {
+            "queue": "ssm-usor-import-non-prod",
+            "max_batch_size": 1,
+            "max_batch_timeout": 1,
+            "max_concurrency": 10,
+            // As in production: lastDelivery in imports/queue.ts is this plus one.
+            "max_retries": 3,
+            "retry_delay": 30,
+            "dead_letter_queue": "ssm-usor-import-dead-letter-non-prod",
+          },
+          {
+            "queue": "ssm-usor-import-dead-letter-non-prod",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+            "retry_delay": 30,
+          },
         ],
+      },
+      "triggers": {
+        "crons": ["11 3 * * *"],
       },
     },
   },

@@ -1,0 +1,204 @@
+import { Button } from '@ssm-usor/ui/components/button';
+import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
+import { cn } from '@ssm-usor/ui/lib/utils';
+import { useRouteContext } from '@tanstack/react-router';
+import { ChevronDown, ChevronRight, Download, FileArchive, Folder } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
+
+import { getClientFileDownload } from '@/api/generated/api';
+import { filesLabel } from '@/features/imports/import-format';
+import { saveFile } from '@/lib/save-file';
+
+import { type ClientFile, formatFileSize, formatUploadDate } from './client-file-format';
+import { zipFiles } from './zip-files';
+
+type Folder = { path: string; files: ClientFile[] };
+
+function foldersOf(files: ClientFile[]) {
+  const folders = new Map<string, ClientFile[]>();
+  for (const file of files) {
+    const path = file.importPath ?? '';
+    folders.set(path, [...(folders.get(path) ?? []), file]);
+  }
+  return [...folders.entries()]
+    .map(([path, list]): Folder => ({ path, files: list }))
+    .sort((a, b) => a.path.localeCompare(b.path, 'ro'));
+}
+
+const bytesOf = (files: ClientFile[]) => files.reduce((total, file) => total + file.sizeBytes, 0);
+
+const shownPerFolder = 5;
+
+export function ImportFolderRows({
+  clientId,
+  files,
+  renderFile,
+}: {
+  clientId: string;
+  files: ClientFile[];
+  renderFile: (file: ClientFile, depth: number) => ReactNode;
+}) {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const [open, setOpen] = useState(false);
+  const [openFolders, setOpenFolders] = useState<string[]>([]);
+  const [showAll, setShowAll] = useState<string[]>([]);
+  const [zipping, setZipping] = useState<{ done: number; total: number } | null>(null);
+  const [failed, setFailed] = useState(false);
+  const first = files.reduce((earliest, file) =>
+    file.createdAt < earliest.createdAt ? file : earliest
+  );
+  const date = formatUploadDate(first.createdAt);
+  const uploader = first.uploadedBy?.fullName ?? null;
+  const folders = foldersOf(files);
+
+  async function downloadAll() {
+    setFailed(false);
+    setZipping({ done: 0, total: files.length });
+    try {
+      const blob = await zipFiles(
+        files.map((file) => ({
+          path: [file.importPath, file.originalFileName].filter(Boolean).join('/'),
+          load: async () => {
+            const link = await getClientFileDownload(clientId, file.id, apiRequest);
+            const response = await fetch(link.url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return new Uint8Array(await response.arrayBuffer());
+          },
+        })),
+        (done) => setZipping({ done, total: files.length })
+      );
+      saveFile(blob, `Dosar importat ${date}.zip`);
+    } catch {
+      setFailed(true);
+    } finally {
+      setZipping(null);
+    }
+  }
+
+  const toggle = (list: string[], value: string) =>
+    list.includes(value) ? list.filter((each) => each !== value) : [...list, value];
+
+  return (
+    <>
+      <TableRow data-testid="client-import-folder" className="bg-muted/40 hover:bg-muted/60">
+        <TableCell className="whitespace-normal">
+          <div className="flex min-w-0 items-start gap-2">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="-my-1 size-7"
+              aria-expanded={open}
+              aria-label={open ? 'Restrânge dosarul importat' : 'Deschide dosarul importat'}
+              data-testid="client-import-folder-toggle"
+              onClick={() => setOpen(!open)}
+            >
+              {open ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
+            </Button>
+            <FileArchive
+              className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <div className="grid min-w-0 gap-0.5">
+              <span className="font-medium">
+                Dosar importat pe {date} · {filesLabel(files.length)}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Fișierele din care a fost creat clientul, în folderele în care au fost încărcate
+              </span>
+              {failed && (
+                <span role="alert" className="text-xs text-destructive">
+                  Arhiva nu a putut fi făcută. Încearcă din nou.
+                </span>
+              )}
+            </div>
+          </div>
+        </TableCell>
+        <TableCell className="text-right align-top tabular-nums max-sm:hidden">
+          {formatFileSize(bytesOf(files))}
+        </TableCell>
+        <TableCell className="align-top max-sm:hidden">
+          <span className="tabular-nums">{date}</span>
+          {uploader && (
+            <span className="mt-0.5 block max-w-48 truncate text-xs text-muted-foreground">
+              {uploader}
+            </span>
+          )}
+        </TableCell>
+        <TableCell className="align-top">
+          <Button
+            variant="outline"
+            size="sm"
+            data-testid="client-import-folder-zip"
+            disabled={zipping !== null}
+            onClick={() => void downloadAll()}
+          >
+            <Download aria-hidden="true" />
+            {zipping
+              ? `Se pregătește: ${zipping.done} din ${zipping.total}`
+              : 'Descarcă tot dosarul (ZIP)'}
+          </Button>
+        </TableCell>
+      </TableRow>
+      {open &&
+        folders.map((folder) => {
+          const isOpen = folder.path === '' || openFolders.includes(folder.path);
+          const all = showAll.includes(folder.path);
+          const shown = all ? folder.files : folder.files.slice(0, shownPerFolder);
+          const depth = folder.path === '' ? 1 : 2;
+          return [
+            folder.path !== '' && (
+              <TableRow key={`folder-${folder.path}`} data-testid="client-import-subfolder">
+                <TableCell className="whitespace-normal" colSpan={1}>
+                  <div className="flex items-center gap-2 pl-6">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="-my-1 size-7"
+                      aria-expanded={isOpen}
+                      aria-label={
+                        isOpen
+                          ? `Restrânge folderul ${folder.path}`
+                          : `Deschide folderul ${folder.path}`
+                      }
+                      onClick={() => setOpenFolders(toggle(openFolders, folder.path))}
+                    >
+                      {isOpen ? (
+                        <ChevronDown aria-hidden="true" />
+                      ) : (
+                        <ChevronRight aria-hidden="true" />
+                      )}
+                    </Button>
+                    <Folder className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <span className="font-medium wrap-anywhere">{folder.path}</span>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {filesLabel(folder.files.length)}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground tabular-nums max-sm:hidden">
+                  {formatFileSize(bytesOf(folder.files))}
+                </TableCell>
+                <TableCell className="max-sm:hidden" />
+                <TableCell />
+              </TableRow>
+            ),
+            ...(isOpen ? shown.map((file) => renderFile(file, depth)) : []),
+            isOpen && folder.files.length > shownPerFolder && (
+              <TableRow key={`more-${folder.path}`}>
+                <TableCell colSpan={4} className={cn(depth === 2 ? 'pl-14' : 'pl-8')}>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => setShowAll(toggle(showAll, folder.path))}
+                  >
+                    {all ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
+                    {all ? 'Arată mai puține' : `Arată toate cele ${folder.files.length}`}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ),
+          ];
+        })}
+    </>
+  );
+}

@@ -1,5 +1,6 @@
 import type {
   CurrentUser,
+  ExtractorService,
   MailService,
   PdfService,
   SignerService,
@@ -16,6 +17,29 @@ export type RegenerationMessage = { jobId: string; clientId: string };
 // Not the Workers `Queue` type: the Node scripts that import this file do not know it.
 export type RegenerationQueue = {
   sendBatch(messages: Iterable<{ body: RegenerationMessage }>): Promise<unknown>;
+};
+
+// `deferred` counts the times a message was sent again while the extractor was unavailable;
+// `owner`, the message that claimed a scan before it was deferred. A scan without `pages` sorts
+// the file and sends its pages.
+export type ImportMessage =
+  | { type: 'prepare'; importId: string; fileId: string; deferred?: number }
+  | { type: 'sort'; importId: string }
+  | {
+      type: 'scan';
+      importId: string;
+      fileId: string;
+      pages?: number[];
+      owner?: string;
+      deferred?: number;
+    }
+  | { type: 'read'; importId: string; waits: number; progress?: number }
+  | { type: 'check'; importId: string }
+  | { type: 'copy'; importId: string };
+
+export type ImportQueue = {
+  send(body: ImportMessage, options?: { delaySeconds?: number }): Promise<unknown>;
+  sendBatch(messages: Iterable<{ body: ImportMessage }>): Promise<unknown>;
 };
 
 export type ApiEnv = {
@@ -50,6 +74,10 @@ export type ApiEnv = {
     SIGNER?: SignerService;
     // A signer container reached by URL instead, for local development.
     SIGNER_URL?: string;
+    // apps/pdf again, typed for reading an import's files (ADR 030); the same switch.
+    EXTRACTOR?: ExtractorService;
+    // An extractor container reached by URL instead, for local development.
+    EXTRACTOR_URL?: string;
     // The app's certificate authority (ADR 023): its P-256 key as PKCS#8 PEM, its certificate
     // as PEM, and the AES-256 key, base64, under which signers' private keys are stored.
     // `pnpm --filter @ssm-usor/api signing:ca` makes all three.
@@ -67,6 +95,12 @@ export type ApiEnv = {
     OBLIO_CLIENT_SECRET?: string;
     // Anything but "invoice" issues proformas, since Oblio has no test mode (ADR 029).
     OBLIO_DOCUMENTS?: string;
+    // Imports from documents (ADR 030), consumed by this same Worker.
+    IMPORT_QUEUE?: ImportQueue;
+    // Cloudflare AI Gateway, through which an import's files reach the models (ADR 030):
+    // https://gateway.ai.cloudflare.com/v1/<account>/<gateway>, and a token with AI Gateway Run.
+    AI_GATEWAY_URL?: string;
+    AI_GATEWAY_TOKEN?: string;
   };
   Variables: {
     user: CurrentUser;

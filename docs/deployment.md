@@ -58,27 +58,37 @@ can use these permissions:
 - **Zone → Workers Routes → Edit** for `ssmusor.ro`, required when Wrangler creates the custom
   Worker hostname;
 - **Account → Queues → Edit** for that account, required by the API deployment, which creates
-  the `ssm-usor-regeneration` queue when it is missing (see below).
+  the `ssm-usor-regeneration`, `ssm-usor-import` and `ssm-usor-import-dead-letter` queues when
+  they are missing (see below).
 
 The official template also grants **User Details → Read** and **Memberships → Read**, which improve
 Wrangler's account discovery and diagnostics. Because this workflow passes an explicit account ID,
 start without those user scopes and add them only if Wrangler reports an account-discovery error.
 
 The marketing site does not currently need Workers KV, R2, D1, DNS Edit, or Zone Settings Edit.
-The API needs one Cloudflare Queue, `ssm-usor-regeneration`, which it both sends to and consumes
-for bulk regeneration ([ADR 017](architecture/adr-017-legislation-monitoring.md)). `wrangler
-deploy` refuses a Worker bound to a queue that does not exist, so the API deployment job looks
-the queue up and creates it first when it is missing; on a new account the first API deployment
-creates it. To create it by hand instead:
+The API needs three Cloudflare Queues, which it consumes: `ssm-usor-regeneration` for bulk
+regeneration ([ADR 017](architecture/adr-017-legislation-monitoring.md)), `ssm-usor-import` for
+imports from documents ([ADR 030](architecture/adr-030-import-from-documents.md)), both of which
+it also sends to, and `ssm-usor-import-dead-letter`, where the import queue puts a message whose
+every delivery died before recording a failure. Each has `-non-prod` after it in non-prod.
+`wrangler deploy` refuses a Worker bound to a queue that does not exist, so the API deployment
+job looks them up and creates the missing ones first; on a new account the first API deployment
+creates them. To create them by hand instead:
 
 ```bash
 pnpm --filter @ssm-usor/api exec wrangler queues create ssm-usor-regeneration
+pnpm --filter @ssm-usor/api exec wrangler queues create ssm-usor-import
+pnpm --filter @ssm-usor/api exec wrangler queues create ssm-usor-import-dead-letter
 ```
 
-The consumer takes up to 4 messages per batch, runs at most 3 batches at once, and retries a
-failed message 3 times, 30 seconds apart; there is no dead-letter queue, since the last
-delivery records the client as failed itself. `wrangler dev` runs the queue locally, so
-`pnpm dev` and `pnpm dev:local` need nothing more.
+The regeneration consumer takes up to 4 messages per batch, runs at most 3 batches at once, and
+retries a failed message 3 times, 30 seconds apart. The import consumer takes one message per
+batch, since a message can wait minutes on a model, runs at most 10 at once, and retries the same
+way. The last delivery records the client, the file or the import as failed itself. An import
+message whose invocation ran out of memory or time cannot, so after its last delivery it goes to
+the dead-letter queue, whose consumer records the failure. `wrangler dev` runs the queues locally, so `pnpm dev` and
+`pnpm dev:local` need nothing more. The API Worker also has a daily cron, the clean-up of
+imports (02:41 UTC in production, 03:11 in non-prod).
 Start with the official template if the custom-token UI or the first deployment rejects the minimal
 set, then tighten the token after deployment is working.
 
@@ -115,6 +125,30 @@ release still goes out, with the first item as its headline. To set it up once:
    `https://gateway.ai.cloudflare.com/v1/<account id>/ssm-usor` and the secret `AI_GATEWAY_TOKEN`
    with the token's value. Both are repository-level, not environment-level: the job that drafts
    the update runs before any environment is chosen.
+
+### The same gateway for imports from documents
+
+Imports from documents ([ADR 030](architecture/adr-030-import-from-documents.md)) reach OpenAI's
+models through the same gateway, from the API Worker. The deploy workflow uploads the repository
+variable `AI_GATEWAY_URL` and the secret `AI_GATEWAY_TOKEN` to the API Worker of both
+environments when they are set; without them, creating or starting an import answers `503` with
+the reason `import_unavailable`, and everything else works. Once, by hand:
+
+1. Keep the variable `AI_GATEWAY_URL` above; the API appends `/openai/chat/completions` to it.
+2. The token above only runs the gateway, which is all the API needs, so the same secret
+   `AI_GATEWAY_TOKEN` serves both. A token of its own for the API, say `ssm-usor-api-import`, is
+   the alternative when the two should be rotated apart: then the secret moves to the
+   `non-prod` and `production` GitHub environments under the same name, which take precedence
+   over the repository's.
+3. On the gateway's **Settings**, keep log collection on and set log retention to 30 days, as
+   ADR 030 promises in the data processing agreement.
+4. OpenAI is paid from the same credits (Unified Billing): no OpenAI account or key is needed.
+   A client costs about $0.13; watch the gateway's analytics, filtered by the request metadata
+   `organizationId`, for the cost per organization.
+5. Run **Deploy production** or merge to `main`, which uploads both to the API Worker.
+
+The API's import also needs the extractor in `apps/pdf` (the `EXTRACTOR` binding), which the PDF
+Worker's deployment provides.
 
 The request goes to the gateway's Anthropic endpoint unchanged, so the model, the effort and the
 structured output are set in `packages/release-notes/scripts/draft.ts` and `claude.ts`, and the

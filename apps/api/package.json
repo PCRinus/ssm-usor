@@ -33,6 +33,7 @@
     "@scalar/hono-api-reference": "^0.12.14",
     "@ssm-usor/contracts": "workspace:*",
     "@ssm-usor/document-engine": "workspace:*",
+    "@ssm-usor/import": "workspace:*",
     "@ssm-usor/legislation-check": "workspace:*",
     "@supabase/supabase-js": "^2.118.0",
     "fflate": "^0.8.3",

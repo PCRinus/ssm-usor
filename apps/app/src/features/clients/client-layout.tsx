@@ -6,6 +6,7 @@ import {
   Link,
   Outlet,
   useMatches,
+  useNavigate,
   useRouter,
 } from '@tanstack/react-router';
 import {
@@ -21,6 +22,7 @@ import {
   Flame,
   FolderOpen,
   IdCard,
+  ScanText,
   Smartphone,
   UsersRound,
 } from 'lucide-react';
@@ -30,6 +32,7 @@ import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 import { SectionNav } from '@/components/section-nav';
 import { useMe } from '@/features/account/use-me';
+import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { useEndWayBackOutside } from '@/features/missing-data/way-back';
 
 import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-dialog';
@@ -98,6 +101,8 @@ export function ClientLayout() {
   const isOwner = me.data?.membership?.role === 'owner';
   useEndWayBackOutside(client.id, me.data?.user.id);
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
+  const [importing, setImporting] = useState(false);
+  const navigate = useNavigate();
   if (fullPage) return <Outlet />;
   return (
     <div data-testid="client-page" className="space-y-5">
@@ -116,18 +121,31 @@ export function ClientLayout() {
             </HeaderFact>
           </>
         }
+        actionsWidth="wide"
         actions={
-          !client.archivedAt &&
-          isOwner && (
-            <Button
-              variant="outline"
-              size="sm"
-              data-testid="client-archive"
-              onClick={() => setArchiveChange({ client, action: 'archive' })}
-            >
-              <Archive aria-hidden="true" />
-              Arhivează…
-            </Button>
+          !client.archivedAt && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="client-import"
+                onClick={() => setImporting(true)}
+              >
+                <ScanText aria-hidden="true" />
+                Completează din documentație
+              </Button>
+              {isOwner && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-testid="client-archive"
+                  onClick={() => setArchiveChange({ client, action: 'archive' })}
+                >
+                  <Archive aria-hidden="true" />
+                  Arhivează…
+                </Button>
+              )}
+            </>
           )
         }
       />
@@ -176,6 +194,14 @@ export function ClientLayout() {
       </SectionNav>
       <Outlet />
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
+      <ImportUploadDialog
+        open={importing}
+        client={client}
+        onClose={() => setImporting(false)}
+        onStarted={(importId) =>
+          void navigate({ to: '/clients/import/$importId', params: { importId } })
+        }
+      />
     </div>
   );
 }

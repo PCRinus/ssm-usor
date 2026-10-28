@@ -24,7 +24,7 @@ need to copy the example. Wrangler reads `.dev.vars` from the API workspace; res
 changing these values. Do not put the API configuration in the repository root `.env`.
 
 ```bash
-pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
+pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine --filter @ssm-usor/import build
 pnpm dev:api
 ```
 
@@ -98,6 +98,17 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /clients/{clientId}/files/{fileId}/owners-only`                   | Owner                                 | `{ "file": { … } }` after keeping it for owners or opening it to the team                                                                                                                          |
 | `GET /clients/{clientId}/files/{fileId}/download`                      | Verified user with a membership       | `{ "url", "fileName", "disposition", "expiresInSeconds" }`, a link valid for a minute                                                                                                              |
 | `DELETE /clients/{clientId}/files/{fileId}`                            | Uploader or owner                     | `204` after deleting the stored file and the row                                                                                                                                                   |
+| `POST /imports`                                                        | Verified user with a membership       | `201 { "import": { … } }`, an import from documents `uploading`, for a new client or `{ clientId }`                                                                                                |
+| `GET /imports`                                                         | Verified user with a membership       | `{ "items": [ … ] }`, the open imports, failed ones included, newest first; `?clientId=` for one client's                                                                                          |
+| `GET /imports/{importId}`                                              | Verified user with a membership       | `{ "import": { … } }` with its files, progress, other companies, and from `ready` its proposal, changes and blockers                                                                               |
+| `POST /imports/{importId}/files`                                       | Verified user with a membership       | `201 { "files": [ … ] }`, the bucket and path each file is uploaded to, after registering `{ files }`                                                                                              |
+| `POST /imports/{importId}/start`                                       | Verified user with a membership       | `{ "import": { … } }`, `preparing`, after dropping files never uploaded and queueing the rest                                                                                                      |
+| `PUT /imports/{importId}/changes`                                      | Verified user with a membership       | `{ "version" }` after saving `{ version, changes }`; `409` on a stale version                                                                                                                      |
+| `GET /imports/{importId}/source`                                       | Verified user with a membership       | Signed links to a source file and its converted file, its text, and where `?quote=` is in it; `?file=` as the proposal names it                                                                    |
+| `POST /imports/{importId}/confirm`                                     | Verified user with a membership       | `{ "clientId", "fileCount" }` after writing the proposal and the changes in one transaction; `422` lists what blocks                                                                               |
+| `POST /imports/{importId}/abandon`                                     | Verified user with a membership       | `204`                                                                                                                                                                                              |
+| `POST /imports/{importId}/split`                                       | Verified user with a membership       | `201 { "import": { … } }`, another company's files `{ fileIds }` in a new import, already reading                                                                                                  |
+| `POST /imports/{importId}/files/{fileId}/read`                         | Verified user with a membership       | `200 { "import": { … } }`, a set-aside file of a ready import read again with the rest                                                                                                             |
 | `GET /files/download`                                                  | Public, by signed Storage link        | The file behind `?source=`, named `?name=`; `?disposition=inline` shows a PDF, a JPEG or a PNG                                                                                                     |
 | `GET /organization/company-details`                                    | Verified user with a membership       | `{ "companyDetails": { … } }`: what documents print about the provider as a company                                                                                                                |
 | `PUT /organization/company-details`                                    | Owner                                 | The company details after replacing them                                                                                                                                                           |
@@ -648,8 +659,12 @@ routes. `GET /clients/{clientId}/files` lists the client's own files the caller 
 those of no employee: a specialist is not told that files for owners only exist. Each
 carries `name`, `note`, `ownersOnly`, `employee` (`{ id, lastName, firstName }` for a file that belongs to one of the client's
 employees, otherwise null), `originalFileName`, `mimeType`, `sizeBytes`, `sha256`,
-`uploadedBy` (`{ id, fullName }`, null once the account is gone) and `canChange`, true for its
-uploader and for an owner. `?employeeId=` lists that employee's files instead ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)); a
+`uploadedBy` (`{ id, fullName }`, null once the account is gone), `canChange`, true for its
+uploader and for an owner, and for a file of an import folder ([ADR 030](architecture/adr-030-import-from-documents.md))
+`importId`, `importPath` (the folders it sat in inside the upload, null at the top) and
+`importRead` with `importReason`, from the import's file row (`import_files.client_file_id`):
+whether the import read it and, if not, why. The four are null for a file uploaded on its own.
+`?employeeId=` lists that employee's files instead ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)); a
 value that is not an id answers `400`, and the id of an employee the client does not have gives
 an empty list.
 
@@ -1800,6 +1815,152 @@ it, client by client. Missing data or a refused document fails the item at once;
 database or Storage is retried, 30 seconds apart, and fails the item on the last delivery.
 Without the secret key there is nothing to read with, and the queue retries.
 
+## Imports from documents
+
+An **import** ([ADR 030](architecture/adr-030-import-from-documents.md)) turns a client's files
+into a **proposal** a member reviews and confirms; nothing under a client is written before.
+Only the client import is built; the employee import comes later. The module is
+`modules/imports`: the routes, `payload.ts` (the proposal and the changes as
+`apply_client_import` takes them), `pipeline.ts` (the queue's steps), `queue.ts` (the consumer)
+and `cleanup.ts` (the cron). The tables, the bucket and the functions are in the
+[data model](data-model.md#imports-from-documents); the proposal's schema, the prompts, the
+sorting, the checks and the gateway client are `packages/import`.
+
+Members read imports through their own policies. The API writes the rows with the secret key,
+after finding the import under the caller's token; saving, abandoning, splitting and
+confirming go through the database's own functions as the caller. Creating, starting and splitting an import
+answer `503` with the reason `import_unavailable` unless `AI_GATEWAY_URL`, `AI_GATEWAY_TOKEN`,
+the extractor (`EXTRACTOR` with `PDF_CONVERSION=service`, or `EXTRACTOR_URL`) and the
+`IMPORT_QUEUE` binding are all there ([deployment](deployment.md#the-same-gateway-for-imports-from-documents)).
+
+### Uploading and starting
+
+`POST /imports` creates the import, for a new client or for `clientId`, an active client that is
+not a lead (`409` with `client_archived` or `client_is_lead`). `POST /imports/{importId}/files`
+registers `{ files: [{ uploadPath, mimeType, sizeBytes, sha256 }] }`: the path inside the upload
+with its folders, whose last part is the name. A path climbing out (`..`) or an extension that is
+not the type's is `400` (`import_type_mismatch`), a path twice `409` (`import_duplicate_path`),
+more than 150 files or 100 MiB `422` (`import_too_large`). The answer gives each file's `id`, the
+bucket `imports` and the `storagePath`: the browser uploads the bytes there itself, with its own
+Supabase session, which the bucket's policy accepts for that path while the file and the import
+are `uploading`. The bytes never pass through the Worker. Registering can be repeated in
+batches.
+
+`POST /imports/{importId}/start` lists the import's folder in Storage, drops the rows whose
+object never arrived or is not the size the browser declared (removing that object, since the
+caps counted the declared sizes), marks the others `uploaded`, moves the import to `preparing` and sends one
+`prepare` message per file. Nothing arrived is `422` (`import_empty`); a started import `409`
+(`import_not_uploading`). When the messages cannot be sent the import goes back to `uploading`
+and the answer is `503`.
+
+### The queue
+
+`ssm-usor-import` (`-non-prod` in non-prod) is sent to and consumed by the API Worker, which
+tells it from the regeneration queue by its name. The consumer takes one message per invocation,
+at most ten at once. Every step reads the import first and does nothing unless the import is at
+that step and the file is in the state the step expects, so a message delivered twice does no
+harm. A step that moves the import on and sends the next message takes the move back when the
+send fails, so the retried delivery moves on again.
+
+| Message          | Step                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prepare` (file) | Reads the original; one whose size is not the declared one fails, its real size recorded, and a real size past the caps (`IMP05`) fails the import. A `.docx` is rendered to text (`docxToText`); a `.doc` is converted by the extractor and its `.docx` kept as the derived file; a PDF's pages are taken with `pdfText`, scans marked; a HEIC photograph is converted to the JPEG kept as the derived file, while JPEG and PNG stay as uploaded. The text goes to `<id>.txt`, the pages to `<id>.json` (a photograph is one scanned page). The stored bytes' hash replaces what the browser declared. When no file is left `uploaded`, the import moves to `sorting`. |
+| `sort` (import)  | One GPT-6 Luna request with the first 3,000 characters of every file that has text, then `sortFiles` with the organization as the provider and, for an existing client, the client. Each file gets its kind and company: read, set aside with a reason, kept for the employee import, or another company's. The company most files name is recorded on the import. Fails the import past 600,000 characters to read or 150 scanned pages. Moves to `reading`, sending one `scan` per file with scanned pages and one `read`.                                                                                                                                            |
+| `scan` (file)    | A photograph or a PDF with no text is first sorted from its first page as an image (Luna); a training sheet is kept for the employee import, a cover or blank form set aside. Then one `scan` message per batch of five scanned pages, each a GPT-6.1 Terra request per page (`pdfPageImage`) or photograph, each reading kept in `<id>.page-<n>.json` as it comes, so a retry pays only for what is left. The batch that finds every page read gathers the readings into the file's `.json` and the file becomes `read`. Each step and batch first claims `<id>.scan.json` or `<id>.scan-<first page>.json`, created only when absent, so one sent twice is read once. |
+| `read` (import)  | Comes back every 10 seconds while a scan is unfinished, and gives up after half an hour in which no scanned page was read. Then one Terra request with the text of every file read, and `toProposal` joins it with the scans' readings. Moves to `checking` with that proposal.                                                                                                                                                                                                                                                                                                                                                                                         |
+| `check` (import) | `withChecks` against every file's text, and the proposal's CUIs confirmed with ANAF (`companies/anaf.ts`); what ANAF answered is kept beside the proposal as `registeredCompany`. Moves to `ready`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `copy` (import)  | After confirming: copies each file of the import folder from `imports` to `client-files` (`import_folder_copies`), an object already there counting as copied, then sets `files_copied_at`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+
+Every model request carries `{ organizationId, importId }` as the gateway's metadata, and its
+tokens and cost go to `record_import_usage`, on the file for a file's own request; a request
+that failed is recorded with what it used. The provider the prompts name is the organization's
+legal name and CUI, and its members', legal representative's, risk evaluator's and PSI
+technician's names; an existing client's name and CUI are passed as well.
+
+Failures follow the regeneration queue: an unreachable database, Storage or gateway (a dropped
+connection, `429` or `5xx`) is retried after 30, 60 and 120 seconds, and the last of four
+deliveries records the failure. An extractor that answered nothing usable (busy with other files,
+unreachable or too slow, after apps/pdf tried once more) is not retried but sent again as a new
+message, up to six times from one to fifteen minutes later, before its deliveries count down. A
+message whose every delivery died unrecorded goes to `ssm-usor-import-dead-letter`, whose
+consumer fails the file or the import. A refusal by the extractor, an unreadable Word file or a model
+answer outside the schema twice fails at once. A file's failure marks the file `failed` with a
+reason in Romanian and the import goes on without it; the failure of `sort`, `read` or `check`
+marks the import `failed` with a reason. The copy is not failed: the clean-up copies again.
+
+### Reviewing and confirming
+
+`GET /imports/{importId}` returns the summary, the `files` with `state`, `documentKind`,
+`reason`, the company and the page count, `progress` (`files`, `prepared`, `scans`,
+`scansRead`), `otherCompanies` (by CUI or name, with their `fileIds`), and from `ready` on the
+`proposal`, `registeredCompany`, the member's `changes`, the `version` and the `blockers`. The
+proposal is null before `ready` and once dropped.
+
+`changes` holds what the member decided, by the proposal's paths. `fields` is keyed
+`client.<name>`, `trainingSchedule.<name>` or `fireSafety.<name>`: `option` picks one of the
+documents' values, `value` writes another (null leaves the field empty), `included` takes or
+leaves a value only another company's passages give, and `replace`, into an existing client,
+takes the documents' value over the app's. `items` is keyed by a list item's id (`workplace-2`):
+`included`, `values` by the item's own field names, with `workplace`, `jobPosition` and
+`employee` naming an item of the proposal or an existing row of the client, `existingId` for the
+row a workplace or a position completes, and `replace`. `PUT /imports/{importId}/changes` saves
+them on the version read (`save_import_changes`).
+
+Without a change a value is the proposal's: a field with one value of the client's own documents
+takes it, two or more of them are a **choice** that blocks, and a value only another company
+gives is left out. A list item is taken unless only another company gives it. Into an existing
+client, a workplace is matched to one of the client's by its name or its street, a position by
+its name, an employee by the CNP or the name (and then not created again), and a responsible
+person the client has already is left as it is; the client's filled values are kept unless
+replaced. A responsible person is linked to the employee of the same name, the workers'
+representative must be. The `blockers` are a choice not made, the new client's name or CUI
+missing, a value the checks flagged that would be written unchanged (`invalid`), an employee
+without a name, job title or hire date, equipment without a risk, a person without a job title,
+and a fire-safety unit, an installation or equipment whose workplace or position is unknown
+(`unknown_reference`).
+
+`POST /imports/{importId}/confirm` with `{ version }` maps the proposal and the changes onto
+the payload, answers `422` with `import_incomplete` and the blockers as `issues` while any is
+left, then calls `apply_client_import` as the member: `409` with `import_changed`,
+`import_not_ready`, `import_other_company`, `import_client_exists` or `import_outdated` (a
+workplace or position the review named is no longer the client's). A new client's VAT
+registration is ANAF's. The payload's `quality` counts per section, without values, how many
+values the member changed, unticked or kept. The answer is `{ clientId, fileCount }`, and a `copy`
+message copies the folder afterwards. `GET /imports/{importId}/source?file=&quote=` resolves a
+source's `file`, an upload path or `<upload path> (pagina N)`, and answers five-minute links to
+the original and the converted file, a Word file's text, a PDF's pages, and where the quote is
+(`findQuote`), on a page for a PDF.
+
+`POST /imports/{importId}/abandon` ends an import not yet confirmed (`abandon_import`).
+`POST /imports/{importId}/split` with `{ fileIds }`, all `other_company` (else `422`,
+`import_not_other_company`), creates a new import for a new client with `source_import_id` in
+one transaction (`split_import`), then copies their objects within `imports` and starts it. Files
+split once already into an import not abandoned are `409` (`import_already_split`), and so is an
+import still sorting its files or abandoned (`import_ended`). The function locks the import, so
+of two splits of the same files at once the second waits for the first and gets the `409`. If a
+copy or the start fails, the API removes the objects it copied and deletes the new import, which
+frees the files for another split; when the objects cannot be removed, it abandons the new import
+instead, so the clean-up finds them by its file rows.
+`POST /imports/{importId}/files/{fileId}/read` sends a `set_aside` file of a `ready` import back
+to be read: the file becomes `read` (`prepared` with a scan message when it has scanned pages),
+the import returns to `reading` with its proposal and changes dropped and its version moved on,
+and a `read` message reads every file again, since the documents are read in one request. Item
+ids may change with the new reading, so changes kept would point at the wrong items. `409`
+with `import_not_ready` or `import_changed`, `422` with `import_file_not_set_aside`.
+
+### The clean-up
+
+The API Worker's `scheduled` handler runs daily (`41 2 * * *` in production, `11 3 * * *` in
+non-prod). It copies again the folders of imports confirmed more than an hour ago whose copy did
+not finish, then fails, with a reason for members, the imports idle six hours in a step of the
+queue or 14 days uploading or ready (`fail_stalled_imports`). Objects go before the rows that
+name them: for each import `list_abandoned_imports()` lists (abandoned or failed 14 days ago) it
+removes the paths and the rest of the import's folder (a scan's page readings and claims), then
+`delete_abandoned_imports` deletes only the imports whose objects went. Likewise
+`drop_import_proposals()` (confirmed 30 days ago), `list_import_objects_to_remove()` (proposal
+dropped, folder copied) and `mark_import_objects_removed`. An import whose removal failed is
+listed again the next day.
+
 ## Supabase Auth emails
 
 Supabase Auth does not send email itself: its Send Email hook posts every email it would send
@@ -1876,7 +2037,7 @@ and applied to the hosted project by CI; see [CI/CD](ci-cd.md).
 
 ```text
 src/
-  index.ts             the Worker: the app's fetch, and the queue consumer for bulk regeneration
+  index.ts             the Worker: the app's fetch, the consumers of the regeneration and import queues, and the cron
   app.ts               cross-cutting: headers, CORS, module mounting, OpenAPI document, errors
   router.ts            createRouter(): an OpenAPIHono with the shared validation error hook
   lib/                 auth, db, admin-db, tokens, turnstile, env, errors, membership, participant, shared OpenAPI pieces

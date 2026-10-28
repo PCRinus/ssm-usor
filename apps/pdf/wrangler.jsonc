@@ -25,16 +25,27 @@
       "instance_type": "basic",
       "max_instances": 1,
     },
+    // LibreOffice, poppler and ImageMagick for the imports (ADR 030), LibreOffice sized as for
+    // Gotenberg. Two instances, as `extractorInstances` in src/index.ts, each request sent to one
+    // at random, so a slow file holds up half of the files read at once rather than all of them.
+    {
+      "class_name": "Extractor",
+      "image": "./extractor/Dockerfile",
+      "instance_type": "standard-1",
+      "max_instances": 2,
+    },
   ],
   "durable_objects": {
     "bindings": [
       { "name": "GOTENBERG", "class_name": "Gotenberg" },
       { "name": "SIGNER", "class_name": "Signer" },
+      { "name": "EXTRACTOR", "class_name": "Extractor" },
     ],
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["Gotenberg"] },
     { "tag": "v2", "new_sqlite_classes": ["Signer"] },
+    { "tag": "v3", "new_sqlite_classes": ["Extractor"] },
   ],
   "observability": {
     "enabled": true,
@@ -56,11 +67,18 @@
           "instance_type": "basic",
           "max_instances": 1,
         },
+        {
+          "class_name": "Extractor",
+          "image": "./extractor/Dockerfile",
+          "instance_type": "standard-1",
+          "max_instances": 2,
+        },
       ],
       "durable_objects": {
         "bindings": [
           { "name": "GOTENBERG", "class_name": "Gotenberg" },
           { "name": "SIGNER", "class_name": "Signer" },
+          { "name": "EXTRACTOR", "class_name": "Extractor" },
         ],
       },
     },
