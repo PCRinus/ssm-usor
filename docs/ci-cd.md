@@ -125,7 +125,8 @@ Workers when they are selected, because its service bindings need those Workers 
 deployment uploads the `TWILIO_ACCOUNT_SID` and `SMS_FROM` variables and the `TWILIO_AUTH_TOKEN` secret when all three are
 there and warns when they are not. SPA-only changes skip API deployment. If API and
 SPA both change, API deployment and its HTTP smoke tests must succeed before SPA deployment.
-Before uploading, the API job looks up the `ssm-usor-regeneration` and `ssm-usor-import` queues
+Before uploading, the API job looks up the `ssm-usor-regeneration`, `ssm-usor-import` and
+`ssm-usor-import-dead-letter` queues
 (with `-non-prod` after them in non-prod) the Worker sends to
 and consumes, and creates the missing ones, because `wrangler deploy` refuses a binding to
 a queue that does not exist; the deployment token needs **Queues → Edit** for that

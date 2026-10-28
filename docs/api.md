@@ -1842,7 +1842,8 @@ are `uploading`. The bytes never pass through the Worker. Registering can be rep
 batches.
 
 `POST /imports/{importId}/start` lists the import's folder in Storage, drops the rows whose
-object never arrived, marks the others `uploaded`, moves the import to `preparing` and sends one
+object never arrived or is not the size the browser declared (removing that object, since the
+caps counted the declared sizes), marks the others `uploaded`, moves the import to `preparing` and sends one
 `prepare` message per file. Nothing arrived is `422` (`import_empty`); a started import `409`
 (`import_not_uploading`). When the messages cannot be sent the import goes back to `uploading`
 and the answer is `503`.
@@ -1856,14 +1857,14 @@ that step and the file is in the state the step expects, so a message delivered 
 harm. A step that moves the import on and sends the next message takes the move back when the
 send fails, so the retried delivery moves on again.
 
-| Message          | Step                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `prepare` (file) | Reads the original. A `.docx` is rendered to text (`docxToText`); a `.doc` is converted by the extractor and its `.docx` kept as the derived file; a PDF's pages are taken with `pdfText`, scans marked; a HEIC photograph is converted to the JPEG kept as the derived file, while JPEG and PNG stay as uploaded. The text goes to `<id>.txt`, the pages to `<id>.json` (a photograph is one scanned page). The stored bytes' size and hash replace what the browser declared. When no file is left `uploaded`, the import moves to `sorting`. |
-| `sort` (import)  | One GPT-6 Luna request with the first 3,000 characters of every file that has text, then `sortFiles` with the organization as the provider and, for an existing client, the client. Each file gets its kind and company: read, set aside with a reason, kept for the employee import, or another company's. The company most files name is recorded on the import. Fails the import past 600,000 characters to read or 150 scanned pages. Moves to `reading`, sending one `scan` per file with scanned pages and one `read`.                    |
-| `scan` (file)    | A photograph or a PDF with no text is first sorted from its first page as an image (Luna); a training sheet is kept for the employee import, a cover or blank form set aside. Then one GPT-6.1 Terra request per scanned page (`pdfPageImage`) or photograph, each reading kept in the file's `.json` as it comes, so a retry pays only for what is left. The file becomes `read`.                                                                                                                                                              |
-| `read` (import)  | Comes back every 10 seconds while a scan is unfinished (half an hour at most). Then one Terra request with the text of every file read, and `toProposal` joins it with the scans' readings. Moves to `checking` with that proposal.                                                                                                                                                                                                                                                                                                             |
-| `check` (import) | `withChecks` against every file's text, and the proposal's CUIs confirmed with ANAF (`companies/anaf.ts`); what ANAF answered is kept beside the proposal as `registeredCompany`. Moves to `ready`.                                                                                                                                                                                                                                                                                                                                             |
-| `copy` (import)  | After confirming: copies each file of the import folder from `imports` to `client-files` (`import_folder_copies`), an object already there counting as copied, then sets `files_copied_at`.                                                                                                                                                                                                                                                                                                                                                     |
+| Message          | Step                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prepare` (file) | Reads the original; one whose size is not the declared one fails, its real size recorded, and a real size past the caps (`IMP05`) fails the import. A `.docx` is rendered to text (`docxToText`); a `.doc` is converted by the extractor and its `.docx` kept as the derived file; a PDF's pages are taken with `pdfText`, scans marked; a HEIC photograph is converted to the JPEG kept as the derived file, while JPEG and PNG stay as uploaded. The text goes to `<id>.txt`, the pages to `<id>.json` (a photograph is one scanned page). The stored bytes' hash replaces what the browser declared. When no file is left `uploaded`, the import moves to `sorting`. |
+| `sort` (import)  | One GPT-6 Luna request with the first 3,000 characters of every file that has text, then `sortFiles` with the organization as the provider and, for an existing client, the client. Each file gets its kind and company: read, set aside with a reason, kept for the employee import, or another company's. The company most files name is recorded on the import. Fails the import past 600,000 characters to read or 150 scanned pages. Moves to `reading`, sending one `scan` per file with scanned pages and one `read`.                                                                                                                                            |
+| `scan` (file)    | A photograph or a PDF with no text is first sorted from its first page as an image (Luna); a training sheet is kept for the employee import, a cover or blank form set aside. Then one `scan` message per batch of five scanned pages, each a GPT-6.1 Terra request per page (`pdfPageImage`) or photograph, each reading kept in `<id>.page-<n>.json` as it comes, so a retry pays only for what is left. The batch that finds every page read gathers the readings into the file's `.json` and the file becomes `read`. Each step and batch first claims `<id>.scan.json` or `<id>.scan-<first page>.json`, created only when absent, so one sent twice is read once. |
+| `read` (import)  | Comes back every 10 seconds while a scan is unfinished, and gives up after half an hour in which no scanned page was read. Then one Terra request with the text of every file read, and `toProposal` joins it with the scans' readings. Moves to `checking` with that proposal.                                                                                                                                                                                                                                                                                                                                                                                         |
+| `check` (import) | `withChecks` against every file's text, and the proposal's CUIs confirmed with ANAF (`companies/anaf.ts`); what ANAF answered is kept beside the proposal as `registeredCompany`. Moves to `ready`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `copy` (import)  | After confirming: copies each file of the import folder from `imports` to `client-files` (`import_folder_copies`), an object already there counting as copied, then sets `files_copied_at`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 Every model request carries `{ organizationId, importId }` as the gateway's metadata, and its
 tokens and cost go to `record_import_usage`, on the file for a file's own request; a request
@@ -1871,9 +1872,13 @@ that failed is recorded with what it used. The provider the prompts name is the 
 legal name and CUI, and its members', legal representative's, risk evaluator's and PSI
 technician's names; an existing client's name and CUI are passed as well.
 
-Failures follow the regeneration queue: an unreachable database, Storage, extractor or gateway
-(a dropped connection, `429` or `5xx`) is retried 30 seconds apart, and the last of four
-deliveries records the failure. A refusal by the extractor, an unreadable Word file or a model
+Failures follow the regeneration queue: an unreachable database, Storage or gateway (a dropped
+connection, `429` or `5xx`) is retried after 30, 60 and 120 seconds, and the last of four
+deliveries records the failure. An extractor that answered nothing usable (busy with other files,
+unreachable or too slow, after apps/pdf tried once more) is not retried but sent again as a new
+message, up to six times from one to fifteen minutes later, before its deliveries count down. A
+message whose every delivery died unrecorded goes to `ssm-usor-import-dead-letter`, whose
+consumer fails the file or the import. A refusal by the extractor, an unreadable Word file or a model
 answer outside the schema twice fails at once. A file's failure marks the file `failed` with a
 reason in Romanian and the import goes on without it; the failure of `sort`, `read` or `check`
 marks the import `failed` with a reason. The copy is not failed: the clean-up copies again.
@@ -1912,7 +1917,8 @@ and a fire-safety unit, an installation or equipment whose workplace or position
 `POST /imports/{importId}/confirm` with `{ version }` maps the proposal and the changes onto
 the payload, answers `422` with `import_incomplete` and the blockers as `issues` while any is
 left, then calls `apply_client_import` as the member: `409` with `import_changed`,
-`import_not_ready`, `import_other_company` or `import_client_exists`. A new client's VAT
+`import_not_ready`, `import_other_company`, `import_client_exists` or `import_outdated` (a
+workplace or position the review named is no longer the client's). A new client's VAT
 registration is ANAF's. The payload's `quality` counts per section, without values, how many
 values the member changed, unticked or kept. The answer is `{ clientId, fileCount }`, and a `copy`
 message copies the folder afterwards. `GET /imports/{importId}/source?file=&quote=` resolves a
@@ -1923,15 +1929,22 @@ the original and the converted file, a Word file's text, a PDF's pages, and wher
 `POST /imports/{importId}/abandon` ends an import not yet confirmed (`abandon_import`).
 `POST /imports/{importId}/split` with `{ fileIds }`, all `other_company`, creates a new import for
 a new client with `source_import_id`, copies their objects within `imports`, and starts it; files
-split once already into an import not abandoned are `409` (`import_already_split`).
+split once already into an import not abandoned are `409` (`import_already_split`). Two splits of
+the same files at once each look again once their files are registered, and the later one is
+deleted with the same answer.
 
 ### The clean-up
 
 The API Worker's `scheduled` handler runs daily (`41 2 * * *` in production, `11 3 * * *` in
 non-prod). It copies again the folders of imports confirmed more than an hour ago whose copy did
-not finish, then calls `delete_abandoned_imports()` (abandoned or failed 14 days ago) and
-`drop_import_proposals()` (confirmed 30 days ago, folder copied), and removes every path they
-return from the `imports` bucket.
+not finish, then fails, with a reason for members, the imports idle six hours in a step of the
+queue or 14 days uploading or ready (`fail_stalled_imports`). Objects go before the rows that
+name them: for each import `list_abandoned_imports()` lists (abandoned or failed 14 days ago) it
+removes the paths and the rest of the import's folder (a scan's page readings and claims), then
+`delete_abandoned_imports` deletes only the imports whose objects went. Likewise
+`drop_import_proposals()` (confirmed 30 days ago), `list_import_objects_to_remove()` (proposal
+dropped, folder copied) and `mark_import_objects_removed`. An import whose removal failed is
+listed again the next day.
 
 ## Supabase Auth emails
 

@@ -58,31 +58,35 @@ can use these permissions:
 - **Zone → Workers Routes → Edit** for `ssmusor.ro`, required when Wrangler creates the custom
   Worker hostname;
 - **Account → Queues → Edit** for that account, required by the API deployment, which creates
-  the `ssm-usor-regeneration` and `ssm-usor-import` queues when they are missing (see below).
+  the `ssm-usor-regeneration`, `ssm-usor-import` and `ssm-usor-import-dead-letter` queues when
+  they are missing (see below).
 
 The official template also grants **User Details → Read** and **Memberships → Read**, which improve
 Wrangler's account discovery and diagnostics. Because this workflow passes an explicit account ID,
 start without those user scopes and add them only if Wrangler reports an account-discovery error.
 
 The marketing site does not currently need Workers KV, R2, D1, DNS Edit, or Zone Settings Edit.
-The API needs two Cloudflare Queues, which it both sends to and consumes:
-`ssm-usor-regeneration` for bulk regeneration
-([ADR 017](architecture/adr-017-legislation-monitoring.md)) and `ssm-usor-import` for imports
-from documents ([ADR 030](architecture/adr-030-import-from-documents.md)), each with
-`-non-prod` after it in non-prod. `wrangler deploy` refuses a Worker bound to a queue that does
-not exist, so the API deployment job looks both up and creates the missing ones first; on a new
-account the first API deployment creates them. To create them by hand instead:
+The API needs three Cloudflare Queues, which it consumes: `ssm-usor-regeneration` for bulk
+regeneration ([ADR 017](architecture/adr-017-legislation-monitoring.md)), `ssm-usor-import` for
+imports from documents ([ADR 030](architecture/adr-030-import-from-documents.md)), both of which
+it also sends to, and `ssm-usor-import-dead-letter`, where the import queue puts a message whose
+every delivery died before recording a failure. Each has `-non-prod` after it in non-prod.
+`wrangler deploy` refuses a Worker bound to a queue that does not exist, so the API deployment
+job looks them up and creates the missing ones first; on a new account the first API deployment
+creates them. To create them by hand instead:
 
 ```bash
 pnpm --filter @ssm-usor/api exec wrangler queues create ssm-usor-regeneration
 pnpm --filter @ssm-usor/api exec wrangler queues create ssm-usor-import
+pnpm --filter @ssm-usor/api exec wrangler queues create ssm-usor-import-dead-letter
 ```
 
 The regeneration consumer takes up to 4 messages per batch, runs at most 3 batches at once, and
 retries a failed message 3 times, 30 seconds apart. The import consumer takes one message per
 batch, since a message can wait minutes on a model, runs at most 10 at once, and retries the same
-way. Neither has a dead-letter queue: the last delivery records the client, the file or the
-import as failed itself. `wrangler dev` runs the queues locally, so `pnpm dev` and
+way. The last delivery records the client, the file or the import as failed itself. An import
+message whose invocation ran out of memory or time cannot, so after its last delivery it goes to
+the dead-letter queue, whose consumer records the failure. `wrangler dev` runs the queues locally, so `pnpm dev` and
 `pnpm dev:local` need nothing more. The API Worker also has a daily cron, the clean-up of
 imports (02:41 UTC in production, 03:11 in non-prod).
 Start with the official template if the custom-token UI or the first deployment rejects the minimal
