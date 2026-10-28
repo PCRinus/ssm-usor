@@ -7,6 +7,7 @@ import {
   daysUntil,
   endedSentence,
   inDaysLabel,
+  ownerActionFor,
   sealFor,
 } from './subscription-copy';
 
@@ -15,6 +16,7 @@ const at = (days: number) => new Date(2026, 9, 26 + days, 22, 0).toISOString();
 
 const trial = (days: number): SubscriptionSummary => ({
   plan: 'profesional',
+  planChosen: false,
   status: 'trialing',
   trialEndsAt: at(days),
   accessUntil: at(days),
@@ -78,6 +80,14 @@ describe('the seal', () => {
     });
   });
 
+  it('names the plan chosen during a trial instead of counting down', () => {
+    expect(sealFor({ ...trial(12), plan: 'start', planChosen: true }, now)).toEqual({
+      kind: 'start',
+      label: 'Start',
+      attention: false,
+    });
+  });
+
   it('says read-only above everything else', () => {
     expect(sealFor({ ...trial(-1), access: 'read_only' }, now).kind).toBe('readOnly');
   });
@@ -87,6 +97,10 @@ describe('the bar', () => {
   it('stays away until the last 7 days of a trial', () => {
     expect(barFor(trial(8), now)).toBeNull();
     expect(barFor(trial(7), now)).toMatchObject({ kind: 'trial', closable: true });
+  });
+
+  it('stays away once a plan is chosen during the trial', () => {
+    expect(barFor({ ...trial(3), plan: 'start', planChosen: true }, now)).toBeNull();
   });
 
   it('cannot be closed on the last day', () => {
@@ -107,5 +121,18 @@ describe('the bar', () => {
       kind: 'readOnly',
       closable: false,
     });
+  });
+});
+
+describe("the owner's next step", () => {
+  it('leads to a plan, a card or the subscription itself', () => {
+    const paid = { ...trial(0), status: 'active', planChosen: true, trialEndsAt: null } as const;
+    expect(ownerActionFor(trial(5))).toEqual({ label: 'Alege un plan', urgent: true });
+    expect(ownerActionFor({ ...trial(-1), access: 'read_only' }).label).toBe('Alege un plan');
+    expect(ownerActionFor({ ...paid, status: 'past_due' }).label).toBe('Actualizează cardul');
+    expect(ownerActionFor({ ...paid, status: 'canceled', access: 'read_only' }).label).toBe(
+      'Reactivează abonamentul'
+    );
+    expect(ownerActionFor(paid)).toEqual({ label: 'Gestionează abonamentul', urgent: false });
   });
 });

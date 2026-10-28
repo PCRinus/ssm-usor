@@ -7,6 +7,8 @@ import { allowedOrigins, marketingOrigin } from './lib/env';
 import { ApiError, errorStatus, fromEngineError } from './lib/errors';
 import { openApiConfig } from './lib/openapi';
 import { authHooksRouter } from './modules/auth-hooks';
+import { billingRouter } from './modules/billing';
+import { fromStripeError } from './modules/billing/stripe';
 import { clientFilesRouter } from './modules/client-files';
 import { clientsRouter } from './modules/clients';
 import { companiesRouter } from './modules/companies';
@@ -98,6 +100,7 @@ export function createApp() {
   app.route('/', serviceContractsRouter);
   app.route('/', contractReturnsRouter);
   app.route('/', organizationRouter);
+  app.route('/', billingRouter);
   app.route('/', legislationRouter);
   app.route('/', invitationsRouter);
   app.route('/', participantsRouter);
@@ -125,7 +128,7 @@ export function createApp() {
   );
 
   app.onError((thrown, c) => {
-    const error = fromEngineError(thrown);
+    const error = fromStripeError(fromEngineError(thrown));
     if (error instanceof ApiError) {
       if (error.code === 'unauthorized') c.header('WWW-Authenticate', 'Bearer');
       return c.json(

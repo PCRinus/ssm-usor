@@ -9,6 +9,8 @@ export const trialBarDays = 7;
 
 export const contactEmail = 'contact@ssmusor.ro';
 export const pricingUrl = 'https://ssmusor.ro/preturi/';
+// The API sends the Stripe portal back here, so the path is fixed.
+export const subscriptionPath = '/organization/subscription';
 
 export const planNames: Record<SubscriptionPlan, string> = {
   start: 'Start',
@@ -59,7 +61,7 @@ export function sealFor(subscription: SubscriptionSummary, now = new Date()): Se
   if (subscription.access === 'read_only') {
     return { kind: 'readOnly', label: 'Doar citire', attention: false };
   }
-  if (subscription.status === 'trialing' && subscription.trialEndsAt) {
+  if (subscription.status === 'trialing' && subscription.trialEndsAt && !subscription.planChosen) {
     const days = daysUntil(subscription.trialEndsAt, now);
     return { kind: 'trial', label: `Probă · ${daysLeftLabel(days)}`, attention: false };
   }
@@ -120,7 +122,7 @@ export function barFor(subscription: SubscriptionSummary, now = new Date()): Bar
       closable: false,
     };
   }
-  if (subscription.status === 'trialing' && subscription.trialEndsAt) {
+  if (subscription.status === 'trialing' && subscription.trialEndsAt && !subscription.planChosen) {
     const days = daysUntil(subscription.trialEndsAt, now);
     if (days > trialBarDays) return null;
     return {
@@ -132,4 +134,19 @@ export function barFor(subscription: SubscriptionSummary, now = new Date()): Bar
     };
   }
   return null;
+}
+
+export interface OwnerAction {
+  label: string;
+  urgent: boolean;
+}
+
+export function ownerActionFor(subscription: SubscriptionSummary): OwnerAction {
+  const ended = subscription.access === 'read_only';
+  if (subscription.status === 'past_due') return { label: 'Actualizează cardul', urgent: true };
+  if (subscription.status === 'trialing' && !subscription.planChosen) {
+    return { label: 'Alege un plan', urgent: true };
+  }
+  if (ended) return { label: 'Reactivează abonamentul', urgent: true };
+  return { label: 'Gestionează abonamentul', urgent: false };
 }

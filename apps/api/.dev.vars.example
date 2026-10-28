@@ -34,3 +34,11 @@ CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,h
 # SIGNING_CA_KEY="-----BEGIN PRIVATE KEY-----\n…\n-----END PRIVATE KEY-----"
 # SIGNING_CA_CERT="-----BEGIN CERTIFICATE-----\n…\n-----END CERTIFICATE-----"
 # SIGNING_KEY_ENCRYPTION_KEY=base64-of-32-random-bytes
+
+# Billing (ADR 029). Only ever the Stripe sandbox's key here, never the live one.
+# STRIPE_SECRET_KEY=sk_test_replace_me
+# STRIPE_WEBHOOK_SECRET=whsec_replace_me
+# OBLIO_CLIENT_ID=account-email@example.com
+# OBLIO_CLIENT_SECRET=replace_me
+# Oblio has no test mode: keep proformas outside production.
+# OBLIO_DOCUMENTS=proforma

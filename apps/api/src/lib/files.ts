@@ -15,6 +15,7 @@ const templatesBucket = 'document-templates';
 const documentsBucket = 'documents';
 const modulesBucket = 'instruction-modules';
 const clientFilesBucket = 'client-files';
+const billingInvoicesBucket = 'billing-invoices';
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 export function createFileStore(c: Context<ApiEnv>) {
@@ -137,6 +138,22 @@ function fileStore(
         .from(clientFilesBucket)
         .createSignedUrl(path, expiresInSeconds);
       if (error || !data) throw fileError('sign client file link', error);
+      return data.signedUrl;
+    },
+
+    /** The bucket has no policies: only the secret key's store reaches it. */
+    async writeBillingInvoice(path: string, bytes: Uint8Array) {
+      const { error } = await storage
+        .from(billingInvoicesBucket)
+        .upload(path, bytes, { contentType: 'application/pdf', upsert: true });
+      if (error) throw fileError('write billing invoice', error);
+    },
+
+    async billingInvoiceLink(path: string, fileName: string, expiresInSeconds = 60) {
+      const { data, error } = await storage
+        .from(billingInvoicesBucket)
+        .createSignedUrl(path, expiresInSeconds, { download: fileName });
+      if (error || !data) throw fileError('sign billing invoice link', error);
       return data.signedUrl;
     },
   };

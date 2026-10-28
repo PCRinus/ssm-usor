@@ -51,6 +51,7 @@ import { Route as AuthenticatedLegislatieModificariRouteImport } from './routes/
 import { Route as AuthenticatedOrganizationIndexRouteImport } from './routes/_authenticated/organization/index';
 import { Route as AuthenticatedOrganizationAuthorizationsRouteImport } from './routes/_authenticated/organization/authorizations';
 import { Route as AuthenticatedOrganizationCompanyRouteImport } from './routes/_authenticated/organization/company';
+import { Route as AuthenticatedOrganizationSubscriptionRouteImport } from './routes/_authenticated/organization/subscription';
 import { Route as AuthenticatedOrganizationTeamRouteImport } from './routes/_authenticated/organization/team';
 import { Route as AuthenticatedRisksIndexRouteImport } from './routes/_authenticated/risks/index';
 import { Route as AuthenticatedRisksProfileIdRouteImport } from './routes/_authenticated/risks/$profileId';
@@ -76,6 +77,8 @@ import { Route as AuthenticatedInstructionsLibrarySsmRouteImport } from './route
 import { Route as AuthenticatedLeadsLeadIdIndexRouteImport } from './routes/_authenticated/leads/$leadId/index';
 import { Route as AuthenticatedLeadsLeadIdContractRouteImport } from './routes/_authenticated/leads/$leadId/contract';
 import { Route as AuthenticatedLeadsLeadIdEditRouteImport } from './routes/_authenticated/leads/$leadId/edit';
+import { Route as AuthenticatedOrganizationSubscriptionIndexRouteImport } from './routes/_authenticated/organization/subscription/index';
+import { Route as AuthenticatedOrganizationSubscriptionChooseRouteImport } from './routes/_authenticated/organization/subscription/choose';
 import { Route as AuthenticatedTestsBankPsiRouteImport } from './routes/_authenticated/tests/_bank/psi';
 import { Route as AuthenticatedTestsBankSsmRouteImport } from './routes/_authenticated/tests/_bank/ssm';
 import { Route as AuthenticatedClientsClientIdContractIndexRouteImport } from './routes/_authenticated/clients/$clientId/contract/index';
@@ -327,6 +330,12 @@ const AuthenticatedOrganizationCompanyRoute =
     path: '/company',
     getParentRoute: () => AuthenticatedOrganizationRoute,
   } as any);
+const AuthenticatedOrganizationSubscriptionRoute =
+  AuthenticatedOrganizationSubscriptionRouteImport.update({
+    id: '/subscription',
+    path: '/subscription',
+    getParentRoute: () => AuthenticatedOrganizationRoute,
+  } as any);
 const AuthenticatedOrganizationTeamRoute =
   AuthenticatedOrganizationTeamRouteImport.update({
     id: '/team',
@@ -472,6 +481,18 @@ const AuthenticatedLeadsLeadIdEditRoute =
     id: '/edit',
     path: '/edit',
     getParentRoute: () => AuthenticatedLeadsLeadIdRoute,
+  } as any);
+const AuthenticatedOrganizationSubscriptionIndexRoute =
+  AuthenticatedOrganizationSubscriptionIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedOrganizationSubscriptionRoute,
+  } as any);
+const AuthenticatedOrganizationSubscriptionChooseRoute =
+  AuthenticatedOrganizationSubscriptionChooseRouteImport.update({
+    id: '/choose',
+    path: '/choose',
+    getParentRoute: () => AuthenticatedOrganizationSubscriptionRoute,
   } as any);
 const AuthenticatedTestsBankPsiRoute =
   AuthenticatedTestsBankPsiRouteImport.update({
@@ -655,6 +676,7 @@ export interface FileRoutesByFullPath {
   '/legislatie/modificari': typeof AuthenticatedLegislatieModificariRoute;
   '/organization/authorizations': typeof AuthenticatedOrganizationAuthorizationsRoute;
   '/organization/company': typeof AuthenticatedOrganizationCompanyRoute;
+  '/organization/subscription': typeof AuthenticatedOrganizationSubscriptionRouteWithChildren;
   '/organization/team': typeof AuthenticatedOrganizationTeamRoute;
   '/risks/$profileId': typeof AuthenticatedRisksProfileIdRoute;
   '/actualizari/': typeof AuthenticatedActualizariIndexRoute;
@@ -684,10 +706,12 @@ export interface FileRoutesByFullPath {
   '/instructions/ssm': typeof AuthenticatedInstructionsLibrarySsmRoute;
   '/leads/$leadId/contract': typeof AuthenticatedLeadsLeadIdContractRoute;
   '/leads/$leadId/edit': typeof AuthenticatedLeadsLeadIdEditRoute;
+  '/organization/subscription/choose': typeof AuthenticatedOrganizationSubscriptionChooseRoute;
   '/tests/psi': typeof AuthenticatedTestsBankPsiRoute;
   '/tests/ssm': typeof AuthenticatedTestsBankSsmRoute;
   '/clients/$clientId/': typeof AuthenticatedClientsClientIdIndexRoute;
   '/leads/$leadId/': typeof AuthenticatedLeadsLeadIdIndexRoute;
+  '/organization/subscription/': typeof AuthenticatedOrganizationSubscriptionIndexRoute;
   '/clients/$clientId/contract/edit': typeof AuthenticatedClientsClientIdContractEditRoute;
   '/clients/$clientId/documents/$documentId': typeof AuthenticatedClientsClientIdDocumentsDocumentIdRoute;
   '/clients/$clientId/employees/$employeeId': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRouteWithChildren;
@@ -757,10 +781,12 @@ export interface FileRoutesByTo {
   '/instructions/ssm': typeof AuthenticatedInstructionsLibrarySsmRoute;
   '/leads/$leadId/contract': typeof AuthenticatedLeadsLeadIdContractRoute;
   '/leads/$leadId/edit': typeof AuthenticatedLeadsLeadIdEditRoute;
+  '/organization/subscription/choose': typeof AuthenticatedOrganizationSubscriptionChooseRoute;
   '/tests/psi': typeof AuthenticatedTestsBankPsiRoute;
   '/tests/ssm': typeof AuthenticatedTestsBankSsmRoute;
   '/clients/$clientId': typeof AuthenticatedClientsClientIdIndexRoute;
   '/leads/$leadId': typeof AuthenticatedLeadsLeadIdIndexRoute;
+  '/organization/subscription': typeof AuthenticatedOrganizationSubscriptionIndexRoute;
   '/clients/$clientId/contract/edit': typeof AuthenticatedClientsClientIdContractEditRoute;
   '/clients/$clientId/documents/$documentId': typeof AuthenticatedClientsClientIdDocumentsDocumentIdRoute;
   '/clients/$clientId/employees/new': typeof AuthenticatedClientsClientIdEmployeesNewRoute;
@@ -818,6 +844,7 @@ export interface FileRoutesById {
   '/_authenticated/legislatie/modificari': typeof AuthenticatedLegislatieModificariRoute;
   '/_authenticated/organization/authorizations': typeof AuthenticatedOrganizationAuthorizationsRoute;
   '/_authenticated/organization/company': typeof AuthenticatedOrganizationCompanyRoute;
+  '/_authenticated/organization/subscription': typeof AuthenticatedOrganizationSubscriptionRouteWithChildren;
   '/_authenticated/organization/team': typeof AuthenticatedOrganizationTeamRoute;
   '/_authenticated/risks/$profileId': typeof AuthenticatedRisksProfileIdRoute;
   '/_authenticated/tests/_bank': typeof AuthenticatedTestsBankRouteWithChildren;
@@ -848,10 +875,12 @@ export interface FileRoutesById {
   '/_authenticated/instructions/_library/ssm': typeof AuthenticatedInstructionsLibrarySsmRoute;
   '/_authenticated/leads/$leadId/contract': typeof AuthenticatedLeadsLeadIdContractRoute;
   '/_authenticated/leads/$leadId/edit': typeof AuthenticatedLeadsLeadIdEditRoute;
+  '/_authenticated/organization/subscription/choose': typeof AuthenticatedOrganizationSubscriptionChooseRoute;
   '/_authenticated/tests/_bank/psi': typeof AuthenticatedTestsBankPsiRoute;
   '/_authenticated/tests/_bank/ssm': typeof AuthenticatedTestsBankSsmRoute;
   '/_authenticated/clients/$clientId/': typeof AuthenticatedClientsClientIdIndexRoute;
   '/_authenticated/leads/$leadId/': typeof AuthenticatedLeadsLeadIdIndexRoute;
+  '/_authenticated/organization/subscription/': typeof AuthenticatedOrganizationSubscriptionIndexRoute;
   '/_authenticated/clients/$clientId/contract/edit': typeof AuthenticatedClientsClientIdContractEditRoute;
   '/_authenticated/clients/$clientId/documents/$documentId': typeof AuthenticatedClientsClientIdDocumentsDocumentIdRoute;
   '/_authenticated/clients/$clientId/employees/$employeeId': typeof AuthenticatedClientsClientIdEmployeesEmployeeIdRouteWithChildren;
@@ -910,6 +939,7 @@ export interface FileRouteTypes {
     | '/legislatie/modificari'
     | '/organization/authorizations'
     | '/organization/company'
+    | '/organization/subscription'
     | '/organization/team'
     | '/risks/$profileId'
     | '/actualizari/'
@@ -939,10 +969,12 @@ export interface FileRouteTypes {
     | '/instructions/ssm'
     | '/leads/$leadId/contract'
     | '/leads/$leadId/edit'
+    | '/organization/subscription/choose'
     | '/tests/psi'
     | '/tests/ssm'
     | '/clients/$clientId/'
     | '/leads/$leadId/'
+    | '/organization/subscription/'
     | '/clients/$clientId/contract/edit'
     | '/clients/$clientId/documents/$documentId'
     | '/clients/$clientId/employees/$employeeId'
@@ -1012,10 +1044,12 @@ export interface FileRouteTypes {
     | '/instructions/ssm'
     | '/leads/$leadId/contract'
     | '/leads/$leadId/edit'
+    | '/organization/subscription/choose'
     | '/tests/psi'
     | '/tests/ssm'
     | '/clients/$clientId'
     | '/leads/$leadId'
+    | '/organization/subscription'
     | '/clients/$clientId/contract/edit'
     | '/clients/$clientId/documents/$documentId'
     | '/clients/$clientId/employees/new'
@@ -1072,6 +1106,7 @@ export interface FileRouteTypes {
     | '/_authenticated/legislatie/modificari'
     | '/_authenticated/organization/authorizations'
     | '/_authenticated/organization/company'
+    | '/_authenticated/organization/subscription'
     | '/_authenticated/organization/team'
     | '/_authenticated/risks/$profileId'
     | '/_authenticated/tests/_bank'
@@ -1102,10 +1137,12 @@ export interface FileRouteTypes {
     | '/_authenticated/instructions/_library/ssm'
     | '/_authenticated/leads/$leadId/contract'
     | '/_authenticated/leads/$leadId/edit'
+    | '/_authenticated/organization/subscription/choose'
     | '/_authenticated/tests/_bank/psi'
     | '/_authenticated/tests/_bank/ssm'
     | '/_authenticated/clients/$clientId/'
     | '/_authenticated/leads/$leadId/'
+    | '/_authenticated/organization/subscription/'
     | '/_authenticated/clients/$clientId/contract/edit'
     | '/_authenticated/clients/$clientId/documents/$documentId'
     | '/_authenticated/clients/$clientId/employees/$employeeId'
@@ -1439,6 +1476,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOrganizationCompanyRouteImport;
       parentRoute: typeof AuthenticatedOrganizationRoute;
     };
+    '/_authenticated/organization/subscription': {
+      id: '/_authenticated/organization/subscription';
+      path: '/subscription';
+      fullPath: '/organization/subscription';
+      preLoaderRoute: typeof AuthenticatedOrganizationSubscriptionRouteImport;
+      parentRoute: typeof AuthenticatedOrganizationRoute;
+    };
     '/_authenticated/organization/team': {
       id: '/_authenticated/organization/team';
       path: '/team';
@@ -1613,6 +1657,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/leads/$leadId/edit';
       preLoaderRoute: typeof AuthenticatedLeadsLeadIdEditRouteImport;
       parentRoute: typeof AuthenticatedLeadsLeadIdRoute;
+    };
+    '/_authenticated/organization/subscription/': {
+      id: '/_authenticated/organization/subscription/';
+      path: '/';
+      fullPath: '/organization/subscription/';
+      preLoaderRoute: typeof AuthenticatedOrganizationSubscriptionIndexRouteImport;
+      parentRoute: typeof AuthenticatedOrganizationSubscriptionRoute;
+    };
+    '/_authenticated/organization/subscription/choose': {
+      id: '/_authenticated/organization/subscription/choose';
+      path: '/choose';
+      fullPath: '/organization/subscription/choose';
+      preLoaderRoute: typeof AuthenticatedOrganizationSubscriptionChooseRouteImport;
+      parentRoute: typeof AuthenticatedOrganizationSubscriptionRoute;
     };
     '/_authenticated/tests/_bank/psi': {
       id: '/_authenticated/tests/_bank/psi';
@@ -2120,9 +2178,28 @@ const AuthenticatedLegislatieRouteWithChildren =
     AuthenticatedLegislatieRouteChildren,
   );
 
+interface AuthenticatedOrganizationSubscriptionRouteChildren {
+  AuthenticatedOrganizationSubscriptionChooseRoute: typeof AuthenticatedOrganizationSubscriptionChooseRoute;
+  AuthenticatedOrganizationSubscriptionIndexRoute: typeof AuthenticatedOrganizationSubscriptionIndexRoute;
+}
+
+const AuthenticatedOrganizationSubscriptionRouteChildren: AuthenticatedOrganizationSubscriptionRouteChildren =
+  {
+    AuthenticatedOrganizationSubscriptionChooseRoute:
+      AuthenticatedOrganizationSubscriptionChooseRoute,
+    AuthenticatedOrganizationSubscriptionIndexRoute:
+      AuthenticatedOrganizationSubscriptionIndexRoute,
+  };
+
+const AuthenticatedOrganizationSubscriptionRouteWithChildren =
+  AuthenticatedOrganizationSubscriptionRoute._addFileChildren(
+    AuthenticatedOrganizationSubscriptionRouteChildren,
+  );
+
 interface AuthenticatedOrganizationRouteChildren {
   AuthenticatedOrganizationAuthorizationsRoute: typeof AuthenticatedOrganizationAuthorizationsRoute;
   AuthenticatedOrganizationCompanyRoute: typeof AuthenticatedOrganizationCompanyRoute;
+  AuthenticatedOrganizationSubscriptionRoute: typeof AuthenticatedOrganizationSubscriptionRouteWithChildren;
   AuthenticatedOrganizationTeamRoute: typeof AuthenticatedOrganizationTeamRoute;
   AuthenticatedOrganizationIndexRoute: typeof AuthenticatedOrganizationIndexRoute;
 }
@@ -2133,6 +2210,8 @@ const AuthenticatedOrganizationRouteChildren: AuthenticatedOrganizationRouteChil
       AuthenticatedOrganizationAuthorizationsRoute,
     AuthenticatedOrganizationCompanyRoute:
       AuthenticatedOrganizationCompanyRoute,
+    AuthenticatedOrganizationSubscriptionRoute:
+      AuthenticatedOrganizationSubscriptionRouteWithChildren,
     AuthenticatedOrganizationTeamRoute: AuthenticatedOrganizationTeamRoute,
     AuthenticatedOrganizationIndexRoute: AuthenticatedOrganizationIndexRoute,
   };

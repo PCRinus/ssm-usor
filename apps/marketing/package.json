@@ -11,7 +11,8 @@
     "preview:cloudflare": "pnpm build && wrangler dev --port 8788 --local-protocol https",
     "typecheck": "astro check",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/deploy",
-    "deploy": "pnpm build && wrangler deploy"
+    "deploy": "pnpm build && wrangler deploy",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.12",
@@ -21,8 +22,10 @@
     "posthog-js": "1.433.0"
   },
   "devDependencies": {
+    "@ssm-usor/contracts": "workspace:*",
     "@types/node": "^24.19.2",
     "typescript": "^6.0.3",
+    "vitest": "^5.0.5",
     "wrangler": "^4.152.0"
   }
 }

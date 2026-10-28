@@ -56,3 +56,15 @@ export const requireOwner = createMiddleware<ApiEnv>(async (c, next) => {
   }
   await next();
 });
+
+export const isOwnerInPerson = (membership: Membership, userId: string) =>
+  membership.role === 'owner' && membership.userId === userId;
+
+// Paying, changing the plan and reading the invoices are the owner's own acts (ADR 029): an
+// admin impersonating an owner is refused too.
+export const requireOwnerInPerson = createMiddleware<ApiEnv>(async (c, next) => {
+  if (!isOwnerInPerson(c.get('membership'), c.get('user').id)) {
+    throw new ApiError('forbidden', 'Only the owner of the organization, in person, can do this.');
+  }
+  await next();
+});

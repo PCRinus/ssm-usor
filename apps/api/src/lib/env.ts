@@ -58,6 +58,15 @@ export type ApiEnv = {
     SIGNING_KEY_ENCRYPTION_KEY?: string;
     // Bulk regeneration (ADR 017), consumed by this same Worker.
     REGENERATION_QUEUE?: RegenerationQueue;
+    // Billing (ADR 029): a Stripe sandbox key on non-prod, a live restricted key in production.
+    STRIPE_SECRET_KEY?: string;
+    // "whsec_…", shown by Stripe only when the webhook endpoint is created.
+    STRIPE_WEBHOOK_SECRET?: string;
+    // Oblio's API login: the account's email, and the API secret that changes with its password.
+    OBLIO_CLIENT_ID?: string;
+    OBLIO_CLIENT_SECRET?: string;
+    // Anything but "invoice" issues proformas, since Oblio has no test mode (ADR 029).
+    OBLIO_DOCUMENTS?: string;
   };
   Variables: {
     user: CurrentUser;

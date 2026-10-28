@@ -314,6 +314,29 @@ export const helpTopics = {
     path: '/clienti/detalii/puncte-de-lucru/',
     anchor: 'suprafața-utilă',
   },
+  'organizatie.abonament': { path: '/organizatie/abonament/', anchor: 'pagina-abonament' },
+  'organizatie.alegerea-planului': { path: '/organizatie/abonament/', anchor: 'alegerea-planului' },
+  'organizatie.anulare': { path: '/organizatie/abonament/', anchor: 'anularea-abonamentului' },
+  'organizatie.colegii': { path: '/organizatie/abonament/', anchor: 'ce-văd-colegii' },
+  'organizatie.consum': { path: '/organizatie/abonament/', anchor: 'cât-folosești' },
+  'organizatie.doar-citire': {
+    path: '/organizatie/abonament/',
+    anchor: 'contul-doar-pentru-citire',
+  },
+  'organizatie.pachete': {
+    path: '/organizatie/abonament/',
+    anchor: 'pachetele-de-angajați-și-utilizatorii-în-plus',
+  },
+  'organizatie.perioada-de-proba': { path: '/organizatie/abonament/', anchor: 'perioada-de-probă' },
+  'organizatie.plata-nereusita': {
+    path: '/organizatie/abonament/',
+    anchor: 'când-plata-nu-reușește',
+  },
+  'organizatie.plata-si-facturi': { path: '/organizatie/abonament/', anchor: 'plata-și-facturile' },
+  'organizatie.schimbarea-planului': {
+    path: '/organizatie/abonament/',
+    anchor: 'schimbarea-planului',
+  },
   'primii-pasi.deschide-ajutorul': {
     path: '/primii-pasi/',
     anchor: 'deschide-ajutorul-din-aplicație',

@@ -215,6 +215,41 @@ The browser flows that sign, `apps/app/e2e/flows/signatures.spec.ts` and
 environment and not `.dev.vars`; without them the app's flow is skipped and the portal's stops
 before asking for a code ([app](app.md), [portal](portal.md#browser-flows)).
 
+## Payments locally
+
+Billing ([ADR 029](architecture/adr-029-billing-plans-and-trials.md)) runs locally against the
+Stripe sandbox, never the live account. Put the sandbox's keys in the two local files:
+
+```
+# apps/api/.dev.vars
+STRIPE_SECRET_KEY=sk_test_…
+OBLIO_CLIENT_ID=…
+OBLIO_CLIENT_SECRET=…
+OBLIO_DOCUMENTS=proforma
+
+# apps/app/.env.local
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_…
+```
+
+Stripe cannot reach `localhost`, so its events (a payment, a new card, a refund) need a listener
+that holds a connection open to Stripe and passes each one to the local API:
+
+```bash
+pnpm dev:stripe            # the Stripe CLI from Stripe's Docker image, in the background
+pnpm dev:stripe --stop
+```
+
+It needs only Docker and the key above: no Stripe CLI install and no `stripe login`. It refuses a
+key that is not a sandbox key, writes the listener's signing secret to `STRIPE_WEBHOOK_SECRET` in
+`apps/api/.dev.vars` the first time (restart the API then), and forwards the events the deployed
+endpoints get. `pnpm dev` runs it first, says nothing without a key, and only warns when it cannot
+start. `docker logs -f ssm-usor-stripe` shows each event and the API's answer.
+
+The listener gets every event of the sandbox, the non-prod API's too; the API leaves alone those
+for an organization its database does not have. Pay with Stripe's
+[test cards](https://docs.stripe.com/testing), such as `4242 4242 4242 4242`, or
+`4000 0027 6000 3184` for one that asks for 3D Secure.
+
 ## Legislation check
 
 The daily check of the watched acts ([deployment](deployment.md#legislation-worker)) runs

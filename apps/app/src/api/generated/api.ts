@@ -192,6 +192,7 @@ export const MeResponseSubscriptionAccess = {
  */
 export type MeResponseSubscription = {
   plan: MeResponseSubscriptionPlan;
+  planChosen: boolean;
   status: MeResponseSubscriptionStatus;
   /** @nullable */
   trialEndsAt: string | null;
@@ -8001,6 +8002,620 @@ export interface ChangeMemberRoleRequest {
   role: ChangeMemberRoleRequestRole;
 }
 
+export type BillingOverviewSubscriptionPlan =
+  (typeof BillingOverviewSubscriptionPlan)[keyof typeof BillingOverviewSubscriptionPlan];
+
+export const BillingOverviewSubscriptionPlan = {
+  start: 'start',
+  profesional: 'profesional',
+  enterprise: 'enterprise',
+} as const;
+
+export type BillingOverviewSubscriptionStatus =
+  (typeof BillingOverviewSubscriptionStatus)[keyof typeof BillingOverviewSubscriptionStatus];
+
+export const BillingOverviewSubscriptionStatus = {
+  trialing: 'trialing',
+  active: 'active',
+  past_due: 'past_due',
+  canceled: 'canceled',
+} as const;
+
+/**
+ * @nullable
+ */
+export type BillingOverviewSubscriptionInterval =
+  | (typeof BillingOverviewSubscriptionInterval)[keyof typeof BillingOverviewSubscriptionInterval]
+  | null;
+
+export const BillingOverviewSubscriptionInterval = {
+  month: 'month',
+  year: 'year',
+} as const;
+
+export type BillingOverviewSubscriptionAccess =
+  (typeof BillingOverviewSubscriptionAccess)[keyof typeof BillingOverviewSubscriptionAccess];
+
+export const BillingOverviewSubscriptionAccess = {
+  full: 'full',
+  read_only: 'read_only',
+} as const;
+
+/**
+ * @nullable
+ */
+export type BillingOverviewSubscription = {
+  plan: BillingOverviewSubscriptionPlan;
+  planChosen: boolean;
+  status: BillingOverviewSubscriptionStatus;
+  /** @nullable */
+  interval: BillingOverviewSubscriptionInterval;
+  /** @minimum 0 */
+  employeePacks: number;
+  /** @minimum 0 */
+  extraMembers: number;
+  /** @nullable */
+  trialEndsAt: string | null;
+  /** @nullable */
+  currentPeriodEnd: string | null;
+  /** @nullable */
+  accessUntil: string | null;
+  access: BillingOverviewSubscriptionAccess;
+  /** @nullable */
+  deletesAt: string | null;
+  /** @nullable */
+  cancelsAt: string | null;
+} | null;
+
+export type BillingOverviewUsageEmployees = {
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  used: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  limit: number | null;
+};
+
+export type BillingOverviewUsageMembers = {
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  used: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  limit: number | null;
+};
+
+export type BillingOverviewUsageSmsThisMonth = {
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  used: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  limit: number | null;
+};
+
+export type BillingOverviewUsage = {
+  employees: BillingOverviewUsageEmployees;
+  members: BillingOverviewUsageMembers;
+  smsThisMonth: BillingOverviewUsageSmsThisMonth;
+};
+
+export type BillingOverviewCataloguePlansItemKey =
+  (typeof BillingOverviewCataloguePlansItemKey)[keyof typeof BillingOverviewCataloguePlansItemKey];
+
+export const BillingOverviewCataloguePlansItemKey = {
+  start: 'start',
+  profesional: 'profesional',
+} as const;
+
+export type BillingOverviewCataloguePlansItemPrices = {
+  month: number;
+  year: number;
+};
+
+export type BillingOverviewCataloguePlansItemEmployeePack =
+  (typeof BillingOverviewCataloguePlansItemEmployeePack)[keyof typeof BillingOverviewCataloguePlansItemEmployeePack];
+
+export const BillingOverviewCataloguePlansItemEmployeePack = {
+  start: 'start',
+  profesional: 'profesional',
+  employees50: 'employees50',
+  employees500: 'employees500',
+  member: 'member',
+  sms_overage: 'sms_overage',
+} as const;
+
+export type BillingOverviewCataloguePlansItem = {
+  key: BillingOverviewCataloguePlansItemKey;
+  name: string;
+  prices: BillingOverviewCataloguePlansItemPrices;
+  includedEmployees: number;
+  includedMembers: number;
+  /** @nullable */
+  maxMembers: number | null;
+  monthlySms: number;
+  employeePack: BillingOverviewCataloguePlansItemEmployeePack;
+  /** @nullable */
+  maxEmployeePacks: number | null;
+};
+
+export type BillingOverviewCatalogueEmployeePacksItemKey =
+  (typeof BillingOverviewCatalogueEmployeePacksItemKey)[keyof typeof BillingOverviewCatalogueEmployeePacksItemKey];
+
+export const BillingOverviewCatalogueEmployeePacksItemKey = {
+  start: 'start',
+  profesional: 'profesional',
+  employees50: 'employees50',
+  employees500: 'employees500',
+  member: 'member',
+  sms_overage: 'sms_overage',
+} as const;
+
+export type BillingOverviewCatalogueEmployeePacksItemPrices = {
+  month: number;
+  year: number;
+};
+
+export type BillingOverviewCatalogueEmployeePacksItem = {
+  key: BillingOverviewCatalogueEmployeePacksItemKey;
+  name: string;
+  employees: number;
+  prices: BillingOverviewCatalogueEmployeePacksItemPrices;
+};
+
+export type BillingOverviewCatalogueExtraMemberPrices = {
+  month: number;
+  year: number;
+};
+
+export type BillingOverviewCatalogueExtraMember = {
+  name: string;
+  prices: BillingOverviewCatalogueExtraMemberPrices;
+};
+
+export type BillingOverviewCatalogue = {
+  currency: string;
+  vatPercent: number;
+  plans: BillingOverviewCataloguePlansItem[];
+  employeePacks: BillingOverviewCatalogueEmployeePacksItem[];
+  extraMember: BillingOverviewCatalogueExtraMember;
+  smsOverageCents: number;
+};
+
+/**
+ * @nullable
+ */
+export type BillingOverviewOwnerNextPayment = {
+  subtotalCents: number;
+  vatCents: number;
+  totalCents: number;
+  at: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type BillingOverviewOwnerCard = {
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+} | null;
+
+export type BillingOverviewOwnerScheduledChangePlan =
+  (typeof BillingOverviewOwnerScheduledChangePlan)[keyof typeof BillingOverviewOwnerScheduledChangePlan];
+
+export const BillingOverviewOwnerScheduledChangePlan = {
+  start: 'start',
+  profesional: 'profesional',
+} as const;
+
+export type BillingOverviewOwnerScheduledChangeInterval =
+  (typeof BillingOverviewOwnerScheduledChangeInterval)[keyof typeof BillingOverviewOwnerScheduledChangeInterval];
+
+export const BillingOverviewOwnerScheduledChangeInterval = {
+  month: 'month',
+  year: 'year',
+} as const;
+
+/**
+ * @nullable
+ */
+export type BillingOverviewOwnerScheduledChange = {
+  plan: BillingOverviewOwnerScheduledChangePlan;
+  interval: BillingOverviewOwnerScheduledChangeInterval;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  employeePacks: number;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  extraMembers: number;
+  at: string;
+} | null;
+
+export type BillingOverviewOwnerChoicesStartMinimums = {
+  employeePacks: number;
+  extraMembers: number;
+};
+
+export type BillingOverviewOwnerChoicesStartProblemsItemReason =
+  (typeof BillingOverviewOwnerChoicesStartProblemsItemReason)[keyof typeof BillingOverviewOwnerChoicesStartProblemsItemReason];
+
+export const BillingOverviewOwnerChoicesStartProblemsItemReason = {
+  start_employee_ceiling: 'start_employee_ceiling',
+  start_member_ceiling: 'start_member_ceiling',
+  employee_packs_below_need: 'employee_packs_below_need',
+  extra_members_below_need: 'extra_members_below_need',
+  employee_packs_above_plan: 'employee_packs_above_plan',
+  extra_members_above_plan: 'extra_members_above_plan',
+  split_change: 'split_change',
+} as const;
+
+export type BillingOverviewOwnerChoicesStartProblemsItem = {
+  reason: BillingOverviewOwnerChoicesStartProblemsItemReason;
+  /** @minimum 0 */
+  minimum?: number;
+  /** @minimum 0 */
+  maximum?: number;
+};
+
+export type BillingOverviewOwnerChoicesStart = {
+  minimums: BillingOverviewOwnerChoicesStartMinimums;
+  problems: BillingOverviewOwnerChoicesStartProblemsItem[];
+};
+
+export type BillingOverviewOwnerChoicesProfesionalMinimums = {
+  employeePacks: number;
+  extraMembers: number;
+};
+
+export type BillingOverviewOwnerChoicesProfesionalProblemsItemReason =
+  (typeof BillingOverviewOwnerChoicesProfesionalProblemsItemReason)[keyof typeof BillingOverviewOwnerChoicesProfesionalProblemsItemReason];
+
+export const BillingOverviewOwnerChoicesProfesionalProblemsItemReason = {
+  start_employee_ceiling: 'start_employee_ceiling',
+  start_member_ceiling: 'start_member_ceiling',
+  employee_packs_below_need: 'employee_packs_below_need',
+  extra_members_below_need: 'extra_members_below_need',
+  employee_packs_above_plan: 'employee_packs_above_plan',
+  extra_members_above_plan: 'extra_members_above_plan',
+  split_change: 'split_change',
+} as const;
+
+export type BillingOverviewOwnerChoicesProfesionalProblemsItem = {
+  reason: BillingOverviewOwnerChoicesProfesionalProblemsItemReason;
+  /** @minimum 0 */
+  minimum?: number;
+  /** @minimum 0 */
+  maximum?: number;
+};
+
+export type BillingOverviewOwnerChoicesProfesional = {
+  minimums: BillingOverviewOwnerChoicesProfesionalMinimums;
+  problems: BillingOverviewOwnerChoicesProfesionalProblemsItem[];
+};
+
+export type BillingOverviewOwnerChoices = {
+  start: BillingOverviewOwnerChoicesStart;
+  profesional: BillingOverviewOwnerChoicesProfesional;
+};
+
+export type BillingOverviewOwnerInvoicesItemKind =
+  (typeof BillingOverviewOwnerInvoicesItemKind)[keyof typeof BillingOverviewOwnerInvoicesItemKind];
+
+export const BillingOverviewOwnerInvoicesItemKind = {
+  invoice: 'invoice',
+  proforma: 'proforma',
+} as const;
+
+export type BillingOverviewOwnerInvoicesItem = {
+  stripeInvoiceId: string;
+  kind: BillingOverviewOwnerInvoicesItemKind;
+  /** @nullable */
+  number: string | null;
+  /** @nullable */
+  issuedAt: string | null;
+  amountCents: number;
+  currency: string;
+  /** @nullable */
+  stornoOf: string | null;
+  hasPdf: boolean;
+};
+
+/**
+ * @nullable
+ */
+export type BillingOverviewOwner = {
+  /** @nullable */
+  nextPayment: BillingOverviewOwnerNextPayment;
+  /** @nullable */
+  smsOverageCents: number | null;
+  /** @nullable */
+  card: BillingOverviewOwnerCard;
+  /** @nullable */
+  invoiceEmail: string | null;
+  /** @nullable */
+  ownerEmail: string | null;
+  /** @nullable */
+  scheduledChange: BillingOverviewOwnerScheduledChange;
+  choices: BillingOverviewOwnerChoices;
+  invoices: BillingOverviewOwnerInvoicesItem[];
+} | null;
+
+export interface BillingOverview {
+  /** @nullable */
+  subscription: BillingOverviewSubscription;
+  usage: BillingOverviewUsage;
+  catalogue: BillingOverviewCatalogue;
+  /** @nullable */
+  owner: BillingOverviewOwner;
+}
+
+export type BillingPreviewChoicePlan =
+  (typeof BillingPreviewChoicePlan)[keyof typeof BillingPreviewChoicePlan];
+
+export const BillingPreviewChoicePlan = {
+  start: 'start',
+  profesional: 'profesional',
+} as const;
+
+export type BillingPreviewChoiceInterval =
+  (typeof BillingPreviewChoiceInterval)[keyof typeof BillingPreviewChoiceInterval];
+
+export const BillingPreviewChoiceInterval = {
+  month: 'month',
+  year: 'year',
+} as const;
+
+export type BillingPreviewChoice = {
+  plan: BillingPreviewChoicePlan;
+  interval: BillingPreviewChoiceInterval;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  employeePacks: number;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  extraMembers: number;
+};
+
+export type BillingPreviewProblemsItemReason =
+  (typeof BillingPreviewProblemsItemReason)[keyof typeof BillingPreviewProblemsItemReason];
+
+export const BillingPreviewProblemsItemReason = {
+  start_employee_ceiling: 'start_employee_ceiling',
+  start_member_ceiling: 'start_member_ceiling',
+  employee_packs_below_need: 'employee_packs_below_need',
+  extra_members_below_need: 'extra_members_below_need',
+  employee_packs_above_plan: 'employee_packs_above_plan',
+  extra_members_above_plan: 'extra_members_above_plan',
+  split_change: 'split_change',
+} as const;
+
+export type BillingPreviewProblemsItem = {
+  reason: BillingPreviewProblemsItemReason;
+  /** @minimum 0 */
+  minimum?: number;
+  /** @minimum 0 */
+  maximum?: number;
+};
+
+export type BillingPreviewMinimums = {
+  /** @minimum 0 */
+  employeePacks: number;
+  /** @minimum 0 */
+  extraMembers: number;
+};
+
+export type BillingPreviewRecurringInterval =
+  (typeof BillingPreviewRecurringInterval)[keyof typeof BillingPreviewRecurringInterval];
+
+export const BillingPreviewRecurringInterval = {
+  month: 'month',
+  year: 'year',
+} as const;
+
+export type BillingPreviewRecurringLinesItemProduct =
+  (typeof BillingPreviewRecurringLinesItemProduct)[keyof typeof BillingPreviewRecurringLinesItemProduct];
+
+export const BillingPreviewRecurringLinesItemProduct = {
+  start: 'start',
+  profesional: 'profesional',
+  employees50: 'employees50',
+  employees500: 'employees500',
+  member: 'member',
+  sms_overage: 'sms_overage',
+} as const;
+
+export type BillingPreviewRecurringLinesItem = {
+  product: BillingPreviewRecurringLinesItemProduct;
+  /** @minimum 1 */
+  quantity: number;
+  amountCents: number;
+};
+
+export type BillingPreviewRecurring = {
+  subtotalCents: number;
+  vatCents: number;
+  totalCents: number;
+  interval: BillingPreviewRecurringInterval;
+  lines: BillingPreviewRecurringLinesItem[];
+};
+
+export type BillingPreviewDueToday = {
+  subtotalCents: number;
+  vatCents: number;
+  totalCents: number;
+};
+
+/**
+ * @nullable
+ */
+export type BillingPreviewProration = {
+  subtotalCents: number;
+  chargedNow: boolean;
+} | null;
+
+export type BillingPreviewNextRenewal = {
+  subtotalCents: number;
+  vatCents: number;
+  totalCents: number;
+  at: string;
+};
+
+export interface BillingPreview {
+  choice: BillingPreviewChoice;
+  problems: BillingPreviewProblemsItem[];
+  minimums: BillingPreviewMinimums;
+  unchanged: boolean;
+  recurring: BillingPreviewRecurring;
+  appliesAt: string;
+  dueToday: BillingPreviewDueToday;
+  /** @nullable */
+  proration: BillingPreviewProration;
+  nextRenewal: BillingPreviewNextRenewal;
+  firstChargeAt: string;
+  /** @nullable */
+  prorationDate: string | null;
+}
+
+export type BillingChoicePlan = (typeof BillingChoicePlan)[keyof typeof BillingChoicePlan];
+
+export const BillingChoicePlan = {
+  start: 'start',
+  profesional: 'profesional',
+} as const;
+
+export type BillingChoiceInterval =
+  (typeof BillingChoiceInterval)[keyof typeof BillingChoiceInterval];
+
+export const BillingChoiceInterval = {
+  month: 'month',
+  year: 'year',
+} as const;
+
+export interface BillingChoice {
+  plan: BillingChoicePlan;
+  interval: BillingChoiceInterval;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  employeePacks: number;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  extraMembers: number;
+}
+
+/**
+ * @nullable
+ */
+export type BillingCheckoutResponseIntent =
+  (typeof BillingCheckoutResponseIntent)[keyof typeof BillingCheckoutResponseIntent] | null;
+
+export const BillingCheckoutResponseIntent = {
+  payment: 'payment',
+  setup: 'setup',
+} as const;
+
+export interface BillingCheckoutResponse {
+  /** @nullable */
+  clientSecret: string | null;
+  /** @nullable */
+  intent: BillingCheckoutResponseIntent;
+}
+
+export type ChangeSubscriptionRequestPlan =
+  (typeof ChangeSubscriptionRequestPlan)[keyof typeof ChangeSubscriptionRequestPlan];
+
+export const ChangeSubscriptionRequestPlan = {
+  start: 'start',
+  profesional: 'profesional',
+} as const;
+
+export type ChangeSubscriptionRequestInterval =
+  (typeof ChangeSubscriptionRequestInterval)[keyof typeof ChangeSubscriptionRequestInterval];
+
+export const ChangeSubscriptionRequestInterval = {
+  month: 'month',
+  year: 'year',
+} as const;
+
+export interface ChangeSubscriptionRequest {
+  plan: ChangeSubscriptionRequestPlan;
+  interval: ChangeSubscriptionRequestInterval;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  employeePacks: number;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  extraMembers: number;
+  prorationDate?: string;
+}
+
+export type CancelSubscriptionRequestReason =
+  (typeof CancelSubscriptionRequestReason)[keyof typeof CancelSubscriptionRequestReason];
+
+export const CancelSubscriptionRequestReason = {
+  too_expensive: 'too_expensive',
+  missing_features: 'missing_features',
+  switched_service: 'switched_service',
+  unused: 'unused',
+  too_complex: 'too_complex',
+  low_quality: 'low_quality',
+  customer_service: 'customer_service',
+  other: 'other',
+} as const;
+
+export interface CancelSubscriptionRequest {
+  reason?: CancelSubscriptionRequestReason;
+  /** @maxLength 500 */
+  note?: string;
+}
+
+export interface BillingPortalSession {
+  url: string;
+}
+
+export interface InvoiceEmail {
+  /**
+   * @maxLength 254
+   * @nullable
+   */
+  email: string | null;
+}
+
+export interface BillingInvoiceLink {
+  url: string;
+  fileName: string;
+  expiresAt: string;
+}
+
 /**
  * @nullable
  */
@@ -9747,6 +10362,14 @@ export const DownloadFileDisposition = {
   attachment: 'attachment',
   inline: 'inline',
 } as const;
+
+export type UpdateInvoiceEmail200 = {
+  /**
+   * @maxLength 254
+   * @nullable
+   */
+  email: string | null;
+};
 
 export type ListClientSignatureRequestsParams = {
   state?: ListClientSignatureRequestsState;
@@ -29500,6 +30123,943 @@ export const useRemoveMember = <TError = ErrorType<ApiErrorResponse>, TContext =
 > => {
   return useMutation(getRemoveMemberMutationOptions(options), queryClient);
 };
+
+export const getGetBillingUrl = () => {
+  return `/billing`;
+};
+
+/**
+ * Every member reads the plan, its status, the usage against the limits and the list prices. `owner` carries the next payment, the card, the email for invoices, a change waiting for the renewal and the invoices, for the owner in person only.
+ * @summary The organization's subscription, usage and, for the owner, its payments
+ */
+export const getBilling = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<BillingOverview> => {
+  return apiFetch<BillingOverview>(getGetBillingUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetBillingQueryKey = () => {
+  return [`/billing`] as const;
+};
+
+export const getGetBillingQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBilling>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getBilling>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetBillingQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getBilling>>> = ({ signal }) =>
+    getBilling({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBilling>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetBillingQueryResult = NonNullable<Awaited<ReturnType<typeof getBilling>>>;
+export type GetBillingQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetBilling<
+  TData = Awaited<ReturnType<typeof getBilling>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getBilling>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getBilling>>,
+          TError,
+          Awaited<ReturnType<typeof getBilling>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetBilling<
+  TData = Awaited<ReturnType<typeof getBilling>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getBilling>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getBilling>>,
+          TError,
+          Awaited<ReturnType<typeof getBilling>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetBilling<
+  TData = Awaited<ReturnType<typeof getBilling>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getBilling>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The organization's subscription, usage and, for the owner, its payments
+ */
+
+export function useGetBilling<
+  TData = Awaited<ReturnType<typeof getBilling>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getBilling>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetBillingQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getPreviewBillingUrl = () => {
+  return `/billing/preview`;
+};
+
+/**
+ * Changes nothing. Prices a new subscription from the catalogue and a change of the current one with Stripe's prorations, and lists what keeps the choice out.
+ * @summary What a plan choice costs today and at the renewal
+ */
+export const previewBilling = async (
+  billingChoice: BillingChoice,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<BillingPreview> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<BillingPreview>(getPreviewBillingUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(billingChoice),
+  });
+};
+
+export const getPreviewBillingMutationKey = () => ['previewBilling'] as const;
+
+export const getPreviewBillingMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof previewBilling>>,
+    TError,
+    PreviewBillingMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof previewBilling>>,
+  TError,
+  PreviewBillingMutationVariables,
+  TContext
+> => {
+  const mutationKey = getPreviewBillingMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof previewBilling>>,
+    PreviewBillingMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return previewBilling(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PreviewBillingMutationResult = NonNullable<Awaited<ReturnType<typeof previewBilling>>>;
+export type PreviewBillingMutationBody = BillingChoice;
+export type PreviewBillingMutationError = ErrorType<ApiErrorResponse>;
+export type PreviewBillingMutationVariables = { data: BillingChoice };
+
+/**
+ * @summary What a plan choice costs today and at the renewal
+ */
+export const usePreviewBilling = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof previewBilling>>,
+      TError,
+      PreviewBillingMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof previewBilling>>,
+  TError,
+  PreviewBillingMutationVariables,
+  TContext
+> => {
+  return useMutation(getPreviewBillingMutationOptions(options), queryClient);
+};
+
+export const getCreateSubscriptionUrl = () => {
+  return `/billing/subscription`;
+};
+
+/**
+ * Creates the Stripe customer and subscription. During a trial the first charge falls on the trial's end and the answer carries a setup secret; otherwise it is charged now, with a payment secret. Also how a read-only organization subscribes again.
+ * @summary Choose a plan
+ */
+export const createSubscription = async (
+  billingChoice: BillingChoice,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<BillingCheckoutResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<BillingCheckoutResponse>(getCreateSubscriptionUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(billingChoice),
+  });
+};
+
+export const getCreateSubscriptionMutationKey = () => ['createSubscription'] as const;
+
+export const getCreateSubscriptionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSubscription>>,
+    TError,
+    CreateSubscriptionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSubscription>>,
+  TError,
+  CreateSubscriptionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateSubscriptionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSubscription>>,
+    CreateSubscriptionMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createSubscription(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSubscriptionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSubscription>>
+>;
+export type CreateSubscriptionMutationBody = BillingChoice;
+export type CreateSubscriptionMutationError = ErrorType<ApiErrorResponse>;
+export type CreateSubscriptionMutationVariables = { data: BillingChoice };
+
+/**
+ * @summary Choose a plan
+ */
+export const useCreateSubscription = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createSubscription>>,
+      TError,
+      CreateSubscriptionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createSubscription>>,
+  TError,
+  CreateSubscriptionMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateSubscriptionMutationOptions(options), queryClient);
+};
+
+export const getChangeSubscriptionUrl = () => {
+  return `/billing/subscription`;
+};
+
+/**
+ * Upgrades and additions apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. Downgrades, removals and annual to monthly wait for the renewal. During a trial everything applies at once. An annual change that adds now and removes at the renewal is refused with `split_change`. `prorationDate`, from the preview, makes Stripe prorate as it showed.
+ * @summary Change the plan, the interval, the packs or the members
+ */
+export const changeSubscription = async (
+  changeSubscriptionRequest: ChangeSubscriptionRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<BillingCheckoutResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<BillingCheckoutResponse>(getChangeSubscriptionUrl(), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changeSubscriptionRequest),
+  });
+};
+
+export const getChangeSubscriptionMutationKey = () => ['changeSubscription'] as const;
+
+export const getChangeSubscriptionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof changeSubscription>>,
+    TError,
+    ChangeSubscriptionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof changeSubscription>>,
+  TError,
+  ChangeSubscriptionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getChangeSubscriptionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof changeSubscription>>,
+    ChangeSubscriptionMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return changeSubscription(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ChangeSubscriptionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof changeSubscription>>
+>;
+export type ChangeSubscriptionMutationBody = ChangeSubscriptionRequest;
+export type ChangeSubscriptionMutationError = ErrorType<ApiErrorResponse>;
+export type ChangeSubscriptionMutationVariables = { data: ChangeSubscriptionRequest };
+
+/**
+ * @summary Change the plan, the interval, the packs or the members
+ */
+export const useChangeSubscription = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof changeSubscription>>,
+      TError,
+      ChangeSubscriptionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof changeSubscription>>,
+  TError,
+  ChangeSubscriptionMutationVariables,
+  TContext
+> => {
+  return useMutation(getChangeSubscriptionMutationOptions(options), queryClient);
+};
+
+export const getCancelSubscriptionUrl = () => {
+  return `/billing/subscription/cancel`;
+};
+
+/**
+ * The plan runs to the end of the period paid, then the organization is read-only for 30 days. Before the first charge of a trial the plan goes at once and the trial carries on.
+ * @summary Cancel the subscription
+ */
+export const cancelSubscription = async (
+  cancelSubscriptionRequest: CancelSubscriptionRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<void>(getCancelSubscriptionUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(cancelSubscriptionRequest),
+  });
+};
+
+export const getCancelSubscriptionMutationKey = () => ['cancelSubscription'] as const;
+
+export const getCancelSubscriptionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelSubscription>>,
+    TError,
+    CancelSubscriptionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof cancelSubscription>>,
+  TError,
+  CancelSubscriptionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCancelSubscriptionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof cancelSubscription>>,
+    CancelSubscriptionMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return cancelSubscription(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CancelSubscriptionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof cancelSubscription>>
+>;
+export type CancelSubscriptionMutationBody = CancelSubscriptionRequest;
+export type CancelSubscriptionMutationError = ErrorType<ApiErrorResponse>;
+export type CancelSubscriptionMutationVariables = { data: CancelSubscriptionRequest };
+
+/**
+ * @summary Cancel the subscription
+ */
+export const useCancelSubscription = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof cancelSubscription>>,
+      TError,
+      CancelSubscriptionMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof cancelSubscription>>,
+  TError,
+  CancelSubscriptionMutationVariables,
+  TContext
+> => {
+  return useMutation(getCancelSubscriptionMutationOptions(options), queryClient);
+};
+
+export const getResumeSubscriptionUrl = () => {
+  return `/billing/subscription/resume`;
+};
+
+/**
+ * @summary Withdraw a cancellation that waits for the end of the period
+ */
+export const resumeSubscription = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getResumeSubscriptionUrl(), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getResumeSubscriptionMutationKey = () => ['resumeSubscription'] as const;
+
+export const getResumeSubscriptionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resumeSubscription>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<Awaited<ReturnType<typeof resumeSubscription>>, TError, void, TContext> => {
+  const mutationKey = getResumeSubscriptionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof resumeSubscription>>, void> = () => {
+    return resumeSubscription(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResumeSubscriptionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resumeSubscription>>
+>;
+
+export type ResumeSubscriptionMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary Withdraw a cancellation that waits for the end of the period
+ */
+export const useResumeSubscription = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof resumeSubscription>>,
+      TError,
+      void,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof resumeSubscription>>, TError, void, TContext> => {
+  return useMutation(getResumeSubscriptionMutationOptions(options), queryClient);
+};
+
+export const getCreateBillingPortalSessionUrl = () => {
+  return `/billing/portal-session`;
+};
+
+/**
+ * The page offers the card alone and returns to the subscription tab. A card saved there pays an invoice left open by a failed renewal.
+ * @summary A link to Stripe's page for changing the card
+ */
+export const createBillingPortalSession = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<BillingPortalSession> => {
+  return apiFetch<BillingPortalSession>(getCreateBillingPortalSessionUrl(), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getCreateBillingPortalSessionMutationKey = () =>
+  ['createBillingPortalSession'] as const;
+
+export const getCreateBillingPortalSessionMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBillingPortalSession>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createBillingPortalSession>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = getCreateBillingPortalSessionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createBillingPortalSession>>,
+    void
+  > = () => {
+    return createBillingPortalSession(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateBillingPortalSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createBillingPortalSession>>
+>;
+
+export type CreateBillingPortalSessionMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary A link to Stripe's page for changing the card
+ */
+export const useCreateBillingPortalSession = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createBillingPortalSession>>,
+      TError,
+      void,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof createBillingPortalSession>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getCreateBillingPortalSessionMutationOptions(options), queryClient);
+};
+
+export const getUpdateInvoiceEmailUrl = () => {
+  return `/billing/invoice-email`;
+};
+
+/**
+ * Null sends them to the owner's email.
+ * @summary Where the invoices are emailed
+ */
+export const updateInvoiceEmail = async (
+  invoiceEmail: InvoiceEmail,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<UpdateInvoiceEmail200> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<UpdateInvoiceEmail200>(getUpdateInvoiceEmailUrl(), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(invoiceEmail),
+  });
+};
+
+export const getUpdateInvoiceEmailMutationKey = () => ['updateInvoiceEmail'] as const;
+
+export const getUpdateInvoiceEmailMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateInvoiceEmail>>,
+    TError,
+    UpdateInvoiceEmailMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateInvoiceEmail>>,
+  TError,
+  UpdateInvoiceEmailMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateInvoiceEmailMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateInvoiceEmail>>,
+    UpdateInvoiceEmailMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateInvoiceEmail(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateInvoiceEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateInvoiceEmail>>
+>;
+export type UpdateInvoiceEmailMutationBody = InvoiceEmail;
+export type UpdateInvoiceEmailMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateInvoiceEmailMutationVariables = { data: InvoiceEmail };
+
+/**
+ * @summary Where the invoices are emailed
+ */
+export const useUpdateInvoiceEmail = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateInvoiceEmail>>,
+      TError,
+      UpdateInvoiceEmailMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateInvoiceEmail>>,
+  TError,
+  UpdateInvoiceEmailMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateInvoiceEmailMutationOptions(options), queryClient);
+};
+
+export const getGetBillingInvoicePdfUrl = (stripeInvoiceId: string) => {
+  return `/billing/invoices/${stripeInvoiceId}/pdf`;
+};
+
+/**
+ * @summary A short-lived link to our copy of an invoice's PDF
+ */
+export const getBillingInvoicePdf = async (
+  stripeInvoiceId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<BillingInvoiceLink> => {
+  return apiFetch<BillingInvoiceLink>(getGetBillingInvoicePdfUrl(stripeInvoiceId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetBillingInvoicePdfQueryKey = (stripeInvoiceId: string) => {
+  return [`/billing/invoices/${stripeInvoiceId}/pdf`] as const;
+};
+
+export const getGetBillingInvoicePdfQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBillingInvoicePdf>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  stripeInvoiceId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getBillingInvoicePdf>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetBillingInvoicePdfQueryKey(stripeInvoiceId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getBillingInvoicePdf>>> = ({ signal }) =>
+    getBillingInvoicePdf(stripeInvoiceId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: stripeInvoiceId !== null && stripeInvoiceId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getBillingInvoicePdf>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetBillingInvoicePdfQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBillingInvoicePdf>>
+>;
+export type GetBillingInvoicePdfQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetBillingInvoicePdf<
+  TData = Awaited<ReturnType<typeof getBillingInvoicePdf>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  stripeInvoiceId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getBillingInvoicePdf>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getBillingInvoicePdf>>,
+          TError,
+          Awaited<ReturnType<typeof getBillingInvoicePdf>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetBillingInvoicePdf<
+  TData = Awaited<ReturnType<typeof getBillingInvoicePdf>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  stripeInvoiceId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getBillingInvoicePdf>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getBillingInvoicePdf>>,
+          TError,
+          Awaited<ReturnType<typeof getBillingInvoicePdf>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetBillingInvoicePdf<
+  TData = Awaited<ReturnType<typeof getBillingInvoicePdf>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  stripeInvoiceId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getBillingInvoicePdf>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary A short-lived link to our copy of an invoice's PDF
+ */
+
+export function useGetBillingInvoicePdf<
+  TData = Awaited<ReturnType<typeof getBillingInvoicePdf>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  stripeInvoiceId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getBillingInvoicePdf>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetBillingInvoicePdfQueryOptions(stripeInvoiceId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getListLegalActsUrl = () => {
   return `/legislation/acts`;

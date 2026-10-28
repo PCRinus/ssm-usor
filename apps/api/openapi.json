@@ -206,6 +206,9 @@
                 "type": "string",
                 "enum": ["start", "profesional", "enterprise"]
               },
+              "planChosen": {
+                "type": "boolean"
+              },
               "status": {
                 "type": "string",
                 "enum": ["trialing", "active", "past_due", "canceled"]
@@ -230,7 +233,15 @@
                 "format": "date-time"
               }
             },
-            "required": ["plan", "status", "trialEndsAt", "accessUntil", "access", "deletesAt"]
+            "required": [
+              "plan",
+              "planChosen",
+              "status",
+              "trialEndsAt",
+              "accessUntil",
+              "access",
+              "deletesAt"
+            ]
           }
         },
         "required": ["user", "profile", "membership"]
@@ -11317,6 +11328,853 @@
           }
         },
         "required": ["role"]
+      },
+      "BillingOverview": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "plan": {
+                "type": "string",
+                "enum": ["start", "profesional", "enterprise"]
+              },
+              "planChosen": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["trialing", "active", "past_due", "canceled"]
+              },
+              "interval": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["month", "year", null]
+              },
+              "employeePacks": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "extraMembers": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "trialEndsAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "currentPeriodEnd": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "accessUntil": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "access": {
+                "type": "string",
+                "enum": ["full", "read_only"]
+              },
+              "deletesAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "cancelsAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "plan",
+              "planChosen",
+              "status",
+              "interval",
+              "employeePacks",
+              "extraMembers",
+              "trialEndsAt",
+              "currentPeriodEnd",
+              "accessUntil",
+              "access",
+              "deletesAt",
+              "cancelsAt"
+            ]
+          },
+          "usage": {
+            "type": "object",
+            "properties": {
+              "employees": {
+                "type": "object",
+                "properties": {
+                  "used": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  }
+                },
+                "required": ["used", "limit"]
+              },
+              "members": {
+                "type": "object",
+                "properties": {
+                  "used": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  }
+                },
+                "required": ["used", "limit"]
+              },
+              "smsThisMonth": {
+                "type": "object",
+                "properties": {
+                  "used": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  }
+                },
+                "required": ["used", "limit"]
+              }
+            },
+            "required": ["employees", "members", "smsThisMonth"]
+          },
+          "catalogue": {
+            "type": "object",
+            "properties": {
+              "currency": {
+                "type": "string"
+              },
+              "vatPercent": {
+                "type": "number"
+              },
+              "plans": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "enum": ["start", "profesional"]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "prices": {
+                      "type": "object",
+                      "properties": {
+                        "month": {
+                          "type": "integer"
+                        },
+                        "year": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": ["month", "year"]
+                    },
+                    "includedEmployees": {
+                      "type": "integer"
+                    },
+                    "includedMembers": {
+                      "type": "integer"
+                    },
+                    "maxMembers": {
+                      "type": "integer",
+                      "nullable": true
+                    },
+                    "monthlySms": {
+                      "type": "integer"
+                    },
+                    "employeePack": {
+                      "type": "string",
+                      "enum": [
+                        "start",
+                        "profesional",
+                        "employees50",
+                        "employees500",
+                        "member",
+                        "sms_overage"
+                      ]
+                    },
+                    "maxEmployeePacks": {
+                      "type": "integer",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "name",
+                    "prices",
+                    "includedEmployees",
+                    "includedMembers",
+                    "maxMembers",
+                    "monthlySms",
+                    "employeePack",
+                    "maxEmployeePacks"
+                  ]
+                }
+              },
+              "employeePacks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "enum": [
+                        "start",
+                        "profesional",
+                        "employees50",
+                        "employees500",
+                        "member",
+                        "sms_overage"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "employees": {
+                      "type": "integer"
+                    },
+                    "prices": {
+                      "type": "object",
+                      "properties": {
+                        "month": {
+                          "type": "integer"
+                        },
+                        "year": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": ["month", "year"]
+                    }
+                  },
+                  "required": ["key", "name", "employees", "prices"]
+                }
+              },
+              "extraMember": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "prices": {
+                    "type": "object",
+                    "properties": {
+                      "month": {
+                        "type": "integer"
+                      },
+                      "year": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": ["month", "year"]
+                  }
+                },
+                "required": ["name", "prices"]
+              },
+              "smsOverageCents": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "currency",
+              "vatPercent",
+              "plans",
+              "employeePacks",
+              "extraMember",
+              "smsOverageCents"
+            ]
+          },
+          "owner": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "nextPayment": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "subtotalCents": {
+                    "type": "integer"
+                  },
+                  "vatCents": {
+                    "type": "integer"
+                  },
+                  "totalCents": {
+                    "type": "integer"
+                  },
+                  "at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": ["subtotalCents", "vatCents", "totalCents", "at"]
+              },
+              "smsOverageCents": {
+                "type": "integer",
+                "nullable": true
+              },
+              "card": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "brand": {
+                    "type": "string"
+                  },
+                  "last4": {
+                    "type": "string"
+                  },
+                  "expMonth": {
+                    "type": "integer"
+                  },
+                  "expYear": {
+                    "type": "integer"
+                  }
+                },
+                "required": ["brand", "last4", "expMonth", "expYear"]
+              },
+              "invoiceEmail": {
+                "type": "string",
+                "nullable": true,
+                "format": "email"
+              },
+              "ownerEmail": {
+                "type": "string",
+                "nullable": true,
+                "format": "email"
+              },
+              "scheduledChange": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "plan": {
+                    "type": "string",
+                    "enum": ["start", "profesional"]
+                  },
+                  "interval": {
+                    "type": "string",
+                    "enum": ["month", "year"]
+                  },
+                  "employeePacks": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "extraMembers": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": ["plan", "interval", "employeePacks", "extraMembers", "at"]
+              },
+              "choices": {
+                "type": "object",
+                "properties": {
+                  "start": {
+                    "type": "object",
+                    "properties": {
+                      "minimums": {
+                        "type": "object",
+                        "properties": {
+                          "employeePacks": {
+                            "type": "integer"
+                          },
+                          "extraMembers": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": ["employeePacks", "extraMembers"]
+                      },
+                      "problems": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "reason": {
+                              "type": "string",
+                              "enum": [
+                                "start_employee_ceiling",
+                                "start_member_ceiling",
+                                "employee_packs_below_need",
+                                "extra_members_below_need",
+                                "employee_packs_above_plan",
+                                "extra_members_above_plan",
+                                "split_change"
+                              ]
+                            },
+                            "minimum": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "maximum": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          },
+                          "required": ["reason"]
+                        }
+                      }
+                    },
+                    "required": ["minimums", "problems"]
+                  },
+                  "profesional": {
+                    "type": "object",
+                    "properties": {
+                      "minimums": {
+                        "type": "object",
+                        "properties": {
+                          "employeePacks": {
+                            "type": "integer"
+                          },
+                          "extraMembers": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": ["employeePacks", "extraMembers"]
+                      },
+                      "problems": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "reason": {
+                              "type": "string",
+                              "enum": [
+                                "start_employee_ceiling",
+                                "start_member_ceiling",
+                                "employee_packs_below_need",
+                                "extra_members_below_need",
+                                "employee_packs_above_plan",
+                                "extra_members_above_plan",
+                                "split_change"
+                              ]
+                            },
+                            "minimum": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "maximum": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          },
+                          "required": ["reason"]
+                        }
+                      }
+                    },
+                    "required": ["minimums", "problems"]
+                  }
+                },
+                "required": ["start", "profesional"]
+              },
+              "invoices": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "stripeInvoiceId": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": ["invoice", "proforma"]
+                    },
+                    "number": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "issuedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "amountCents": {
+                      "type": "integer"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "stornoOf": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "hasPdf": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "stripeInvoiceId",
+                    "kind",
+                    "number",
+                    "issuedAt",
+                    "amountCents",
+                    "currency",
+                    "stornoOf",
+                    "hasPdf"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "nextPayment",
+              "smsOverageCents",
+              "card",
+              "invoiceEmail",
+              "ownerEmail",
+              "scheduledChange",
+              "choices",
+              "invoices"
+            ]
+          }
+        },
+        "required": ["subscription", "usage", "catalogue", "owner"]
+      },
+      "BillingPreview": {
+        "type": "object",
+        "properties": {
+          "choice": {
+            "type": "object",
+            "properties": {
+              "plan": {
+                "type": "string",
+                "enum": ["start", "profesional"]
+              },
+              "interval": {
+                "type": "string",
+                "enum": ["month", "year"]
+              },
+              "employeePacks": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "extraMembers": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              }
+            },
+            "required": ["plan", "interval", "employeePacks", "extraMembers"]
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "start_employee_ceiling",
+                    "start_member_ceiling",
+                    "employee_packs_below_need",
+                    "extra_members_below_need",
+                    "employee_packs_above_plan",
+                    "extra_members_above_plan",
+                    "split_change"
+                  ]
+                },
+                "minimum": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "maximum": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": ["reason"]
+            }
+          },
+          "minimums": {
+            "type": "object",
+            "properties": {
+              "employeePacks": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "extraMembers": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": ["employeePacks", "extraMembers"]
+          },
+          "unchanged": {
+            "type": "boolean"
+          },
+          "recurring": {
+            "type": "object",
+            "properties": {
+              "subtotalCents": {
+                "type": "integer"
+              },
+              "vatCents": {
+                "type": "integer"
+              },
+              "totalCents": {
+                "type": "integer"
+              },
+              "interval": {
+                "type": "string",
+                "enum": ["month", "year"]
+              },
+              "lines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "product": {
+                      "type": "string",
+                      "enum": [
+                        "start",
+                        "profesional",
+                        "employees50",
+                        "employees500",
+                        "member",
+                        "sms_overage"
+                      ]
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "amountCents": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": ["product", "quantity", "amountCents"]
+                }
+              }
+            },
+            "required": ["subtotalCents", "vatCents", "totalCents", "interval", "lines"]
+          },
+          "appliesAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueToday": {
+            "type": "object",
+            "properties": {
+              "subtotalCents": {
+                "type": "integer"
+              },
+              "vatCents": {
+                "type": "integer"
+              },
+              "totalCents": {
+                "type": "integer"
+              }
+            },
+            "required": ["subtotalCents", "vatCents", "totalCents"]
+          },
+          "proration": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "subtotalCents": {
+                "type": "integer"
+              },
+              "chargedNow": {
+                "type": "boolean"
+              }
+            },
+            "required": ["subtotalCents", "chargedNow"]
+          },
+          "nextRenewal": {
+            "type": "object",
+            "properties": {
+              "subtotalCents": {
+                "type": "integer"
+              },
+              "vatCents": {
+                "type": "integer"
+              },
+              "totalCents": {
+                "type": "integer"
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": ["subtotalCents", "vatCents", "totalCents", "at"]
+          },
+          "firstChargeAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "prorationDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "choice",
+          "problems",
+          "minimums",
+          "unchanged",
+          "recurring",
+          "appliesAt",
+          "dueToday",
+          "proration",
+          "nextRenewal",
+          "firstChargeAt",
+          "prorationDate"
+        ]
+      },
+      "BillingChoice": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": ["start", "profesional"]
+          },
+          "interval": {
+            "type": "string",
+            "enum": ["month", "year"]
+          },
+          "employeePacks": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "extraMembers": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          }
+        },
+        "required": ["plan", "interval", "employeePacks", "extraMembers"]
+      },
+      "BillingCheckoutResponse": {
+        "type": "object",
+        "properties": {
+          "clientSecret": {
+            "type": "string",
+            "nullable": true
+          },
+          "intent": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["payment", "setup", null]
+          }
+        },
+        "required": ["clientSecret", "intent"]
+      },
+      "ChangeSubscriptionRequest": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": ["start", "profesional"]
+          },
+          "interval": {
+            "type": "string",
+            "enum": ["month", "year"]
+          },
+          "employeePacks": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "extraMembers": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "prorationDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["plan", "interval", "employeePacks", "extraMembers"]
+      },
+      "CancelSubscriptionRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "enum": [
+              "too_expensive",
+              "missing_features",
+              "switched_service",
+              "unused",
+              "too_complex",
+              "low_quality",
+              "customer_service",
+              "other"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "BillingPortalSession": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": ["url"]
+      },
+      "InvoiceEmail": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 254,
+            "format": "email"
+          }
+        },
+        "required": ["email"]
+      },
+      "BillingInvoiceLink": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["url", "fileName", "expiresAt"]
       },
       "LegalActListResponse": {
         "type": "object",
@@ -32095,6 +32953,784 @@
           },
           "409": {
             "description": "The caller's own membership; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing": {
+      "get": {
+        "operationId": "getBilling",
+        "summary": "The organization's subscription, usage and, for the owner, its payments",
+        "description": "Every member reads the plan, its status, the usage against the limits and the list prices. `owner` carries the next payment, the card, the email for invoices, a change waiting for the renewal and the invoices, for the owner in person only.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The subscription tab",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingOverview"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/preview": {
+      "post": {
+        "operationId": "previewBilling",
+        "summary": "What a plan choice costs today and at the renewal",
+        "description": "Changes nothing. Prices a new subscription from the catalogue and a change of the current one with Stripe's prorations, and lists what keeps the choice out.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingChoice"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The price of the choice",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller is not the owner, or is an admin impersonating one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An Enterprise subscription; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/subscription": {
+      "post": {
+        "operationId": "createSubscription",
+        "summary": "Choose a plan",
+        "description": "Creates the Stripe customer and subscription. During a trial the first charge falls on the trial's end and the answer carries a setup secret; otherwise it is charged now, with a payment secret. Also how a read-only organization subscribes again.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingChoice"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "What the Payment Element needs, if anything",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingCheckoutResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller is not the owner, or is an admin impersonating one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "changeSubscription",
+        "summary": "Change the plan, the interval, the packs or the members",
+        "description": "Upgrades and additions apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. Downgrades, removals and annual to monthly wait for the renewal. During a trial everything applies at once. An annual change that adds now and removes at the renewal is refused with `split_change`. `prorationDate`, from the preview, makes Stripe prorate as it showed.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What the Payment Element needs, if anything",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingCheckoutResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller is not the owner, or is an admin impersonating one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/subscription/cancel": {
+      "post": {
+        "operationId": "cancelSubscription",
+        "summary": "Cancel the subscription",
+        "description": "The plan runs to the end of the period paid, then the organization is read-only for 30 days. Before the first charge of a trial the plan goes at once and the trial carries on.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Cancelled"
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller is not the owner, or is an admin impersonating one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/subscription/resume": {
+      "post": {
+        "operationId": "resumeSubscription",
+        "summary": "Withdraw a cancellation that waits for the end of the period",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The subscription renews again"
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller is not the owner, or is an admin impersonating one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/portal-session": {
+      "post": {
+        "operationId": "createBillingPortalSession",
+        "summary": "A link to Stripe's page for changing the card",
+        "description": "The page offers the card alone and returns to the subscription tab. A card saved there pays an invoice left open by a failed renewal.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The link, valid for a few minutes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPortalSession"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller is not the owner, or is an admin impersonating one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/invoice-email": {
+      "put": {
+        "operationId": "updateInvoiceEmail",
+        "summary": "Where the invoices are emailed",
+        "description": "Null sends them to the owner's email.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceEmail"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "nullable": true,
+                      "maxLength": 254,
+                      "format": "email"
+                    }
+                  },
+                  "required": ["email"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller is not the owner, or is an admin impersonating one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/invoices/{stripeInvoiceId}/pdf": {
+      "get": {
+        "operationId": "getBillingInvoicePdf",
+        "summary": "A short-lived link to our copy of an invoice's PDF",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z]+_[A-Za-z0-9]+$"
+            },
+            "required": true,
+            "name": "stripeInvoiceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The link, valid for a minute",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingInvoiceLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller is not the owner, or is an admin impersonating one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such invoice in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The PDF is not stored yet; see `reason`",
             "content": {
               "application/json": {
                 "schema": {

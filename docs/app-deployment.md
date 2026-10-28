@@ -60,6 +60,10 @@ and protection rules of the environment it deploys. Add these values to both:
 | `TWILIO_ACCOUNT_SID`                                            | Variable | The Twilio account the SMS Worker sends through; see the [SMS Worker guide](sms.md).                                                                                                                                                                                                                                                          |
 | `TWILIO_AUTH_TOKEN`                                             | Secret   | The auth token of that Twilio account, the one value of the three that is a secret.                                                                                                                                                                                                                                                           |
 | `SMS_FROM`                                                      | Variable | The SMS sender: `SSMUsor`, a Twilio number, or a Messaging Service SID. Without all three Twilio values the SMS Worker only logs.                                                                                                                                                                                                             |
+| `STRIPE_SECRET_KEY`                                             | Secret   | The Stripe sandbox's secret key in `non-prod`; in `production` a live restricted key with full access except sensitive operations (ADR 029). Read by the API and by the "Configurează Stripe" workflow.                                                                                                                                       |
+| `STRIPE_WEBHOOK_SECRET`                                         | Secret   | The `whsec_…` signing secret of the webhook endpoint `<API_URL>/billing/stripe-webhook`, created by hand in the account's dashboard, which shows it only then.                                                                                                                                                                                |
+| `VITE_STRIPE_PUBLISHABLE_KEY`                                   | Variable | The same account's `pk_…` key, built into the SPA for the card form.                                                                                                                                                                                                                                                                          |
+| `OBLIO_CLIENT_ID`, `OBLIO_CLIENT_SECRET`                        | Secret   | The Oblio account's login email and API secret, the same account in both environments. Oblio makes a new secret whenever the account's password is reset. Production issues invoices and every other environment proformas; the deploy workflow sets `OBLIO_DOCUMENTS` from the environment.                                                  |
 | `SEED_ALLOW_FAKE`                                               | Variable | `true` to let the seed workflow add fake clients and employees: in `non-prod` only, never in `production`.                                                                                                                                                                                                                                    |
 | `SEED_ADMIN_PASSWORD`                                           | Secret   | The administrator's password. The seed workflow refuses to run without it, because the seed script's default is printed in this repository.                                                                                                                                                                                                   |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`, `SEED_ORGANIZATION_NAME` | Variable | Optional overrides for the seeded account, its profile name, and the organization name.                                                                                                                                                                                                                                                       |
@@ -183,6 +187,31 @@ reissued identities; losing the authority's key means rolling the authority, bel
 
 Locally, a new `pnpm --filter @ssm-usor/api signing:ca` in `apps/api/.dev.vars` does the same to
 the local stack's identities.
+
+## Configure Stripe
+
+The **Configurează Stripe** workflow (`.github/workflows/stripe-setup.yml`) makes an
+environment's Stripe account match the plan catalogue in `packages/contracts` (ADR 029): a
+product per plan and add-on, their monthly and annual prices under versioned lookup keys, the
+`sms_overage` billing meter and its monthly metered price, the 21 % VAT rate added to the price,
+the customer portal limited to updating the card, the app's payment method domain, and the
+events of the webhook endpoint. Without `apply` it only lists what it would change. It creates
+what is missing and never deletes; a price whose amount differs from the catalogue stops it,
+since a changed price is a new version. Production runs only from `main`, with a live key, and
+non-prod only with a sandbox key.
+
+Create the webhook endpoint by hand first, in each account's dashboard, at
+`<API_URL>/billing/stripe-webhook` with the API version the script names, and store its signing
+secret right away with `gh secret set STRIPE_WEBHOOK_SECRET --env <environment>`: Stripe shows it
+only at creation. Until it exists, the run fails and says so.
+
+Locally, with the key on the clipboard and never shown:
+
+```sh
+STRIPE_SECRET_KEY="$(pbpaste)" pnpm --filter @ssm-usor/api stripe:setup -- \
+  --environment non-prod --api-url https://api.non-prod.ssmusor.ro \
+  --app-url https://app.non-prod.ssmusor.ro
+```
 
 ## Seed the hosted project
 
