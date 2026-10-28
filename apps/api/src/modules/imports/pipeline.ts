@@ -1,5 +1,6 @@
 import {
   type CompanyLookup,
+  extractionFailed,
   extractionRefusalOf,
   type ExtractorService,
   type PdfPageText,
@@ -39,6 +40,7 @@ import {
   asJson,
   type ImportFileRow,
   type ImportFileUpdate,
+  ImportLimitError,
   type ImportRow,
   type ImportStatus,
   type ImportStore,
@@ -48,6 +50,9 @@ import {
 export interface ImportObjects {
   read(path: string): Promise<Uint8Array>;
   write(path: string, bytes: Uint8Array, contentType: string): Promise<void>;
+  // False when an object is at the path already.
+  create(path: string, bytes: Uint8Array, contentType: string): Promise<boolean>;
+  list(folder: string): Promise<string[]>;
   copy(from: string, to: string, bucket: 'imports' | 'client-files'): Promise<void>;
   remove(paths: string[]): Promise<void>;
 }
@@ -66,8 +71,10 @@ export interface PipelineDeps {
 // about 3.5 characters a token.
 export const maxReadingCharacters = 600_000;
 export const maxScannedPages = 150;
+// About a hundred seconds of reading, well inside a consumer's 15 minutes of wall time.
+export const scanBatchPages = 5;
 export const readPollSeconds = 10;
-// Half an hour of waiting for the scans, past which one of them is taken as lost.
+// Half an hour without a scanned page read, past which the scans are taken as lost.
 export const maxReadWaits = 180;
 
 /** A failure that another delivery would meet again, with its reason for members. */
@@ -83,6 +90,8 @@ export const fileReasons = {
   unsupported: 'Fișierul nu este într-un format pe care îl putem citi.',
   corrupt: 'Fișierul pare deteriorat și nu se poate deschide.',
   password_protected: 'Fișierul este protejat cu parolă.',
+  sizeMismatch: 'Fișierul primit nu are mărimea anunțată la încărcare.',
+  stopped: 'Citirea fișierului s-a oprit din cauza unei erori.',
   timeout: 'Citirea fișierului a durat prea mult.',
   page_out_of_range: 'O pagină a fișierului nu se poate citi.',
   unavailable: 'Fișierul nu a putut fi citit: serviciul de citire nu a răspuns.',
@@ -109,6 +118,10 @@ export const importReasons = {
   modelRefused: 'Modelul a refuzat să citească documentele.',
   modelFailed: 'Modelul nu a dat un răspuns pe care să-l putem folosi. Încearcă din nou.',
   failed: 'Importul s-a oprit din cauza unei erori. Renunță la el și încearcă din nou.',
+  overLimits:
+    'Fișierele depășesc limitele unui import: cel mult 150 de fișiere și 100 MiB, fiecare fișier de cel mult 20 MiB.',
+  stalled: 'Importul s-a oprit înainte să se termine. Renunță la el și încearcă din nou.',
+  left: 'Importul a rămas neterminat 14 zile.',
 } as const;
 
 const setAsideKinds: DocumentKind[] = ['cover', 'blank_form', 'generic_text'];
@@ -122,6 +135,21 @@ const isImage = (file: Pick<ImportFileRow, 'mime_type'>) => file.mime_type.start
 
 export const textPathOf = (file: Pick<ImportFileRow, 'storage_path' | 'mime_type'>) =>
   file.storage_path.replace(/\.[a-z]+$/, isWord(file) ? '.txt' : '.json');
+
+const basePathOf = (file: Pick<ImportFileRow, 'storage_path'>) =>
+  file.storage_path.replace(/\.[a-z]+$/, '');
+
+const folderOf = (row: Pick<ImportRow, 'organization_id' | 'id'>) =>
+  `${row.organization_id}/${row.id}`;
+
+const pageReadingPathOf = (file: Pick<ImportFileRow, 'storage_path'>, page: number) =>
+  `${basePathOf(file)}.page-${page}.json`;
+
+const pageReadingName = /^[0-9a-f-]{36}\.page-\d+\.json$/;
+
+// Null for the step that sorts a scan and sends its pages; a batch's first page otherwise.
+const scanClaimPathOf = (file: Pick<ImportFileRow, 'storage_path'>, firstPage: number | null) =>
+  `${basePathOf(file)}.${firstPage === null ? 'scan' : `scan-${firstPage}`}.json`;
 
 const derivedPathOf = (file: Pick<ImportFileRow, 'storage_path' | 'mime_type'>) =>
   file.storage_path.replace(
@@ -137,7 +165,7 @@ export const pageLabel = (file: Pick<ImportFileRow, 'upload_path' | 'mime_type'>
 export interface PreparedPages {
   pageCount: number;
   pages: PdfPageText[];
-  // By page label, what the model read on each scanned page.
+  // By page label, what the model read on each scanned page, once every one of them is read.
   readings?: Record<string, Reading>;
 }
 
@@ -277,10 +305,18 @@ export async function prepareFile(deps: PipelineDeps, importId: string, fileId: 
   const file = (await deps.store.listFiles(importId)).find((each) => each.id === fileId);
   if (file?.state === 'uploaded') {
     try {
-      await deps.store.updateFile(file.id, await prepare(deps, file));
+      await deps.store.updateFile(file.id, await prepare(deps, file), 'uploaded');
     } catch (error) {
+      if (error instanceof ImportLimitError) {
+        await deps.store.advance(importId, 'preparing', failedPatch(importReasons.overLimits));
+        return;
+      }
       if (!permanentFileFailure(error)) throw error;
-      await deps.store.updateFile(file.id, { state: 'failed', reason: fileFailureReason(error) });
+      await deps.store.updateFile(
+        file.id,
+        { state: 'failed', reason: fileFailureReason(error) },
+        'uploaded'
+      );
     }
   }
   await afterPreparing(deps, importId);
@@ -296,14 +332,20 @@ export async function afterPreparing(deps: PipelineDeps, importId: string) {
 
 async function prepare(deps: PipelineDeps, file: ImportFileRow): Promise<ImportFileUpdate> {
   const bytes = await deps.objects.read(file.storage_path);
+  const digest = await sha256(bytes);
+  // The browser declared the size the caps counted; the stored bytes are what the import folder
+  // will hold. Their real size is written even on a failed file, so the caps see it (IMP05).
+  if (bytes.length !== file.size_bytes) {
+    return {
+      state: 'failed',
+      reason: fileReasons.sizeMismatch,
+      size_bytes: bytes.length,
+      sha256: digest,
+    };
+  }
   const textPath = textPathOf(file);
   const patch: ImportFileUpdate = { state: 'prepared', reason: null, text_path: textPath };
-  const digest = await sha256(bytes);
-  // The browser described the file; the stored bytes are what the import folder will hold.
-  if (digest !== file.sha256 || bytes.length !== file.size_bytes) {
-    patch.sha256 = digest;
-    patch.size_bytes = bytes.length;
-  }
+  if (digest !== file.sha256) patch.sha256 = digest;
   const keepDerived = async (derived: Uint8Array, type: string) => {
     const path = derivedPathOf(file);
     await deps.objects.write(path, derived, type);
@@ -449,32 +491,35 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
   );
 }
 
-export async function scanFile(deps: PipelineDeps, importId: string, fileId: string) {
-  const row = await deps.store.getImport(importId);
-  if (!row || row.status !== 'reading') return;
-  const file = (await deps.store.listFiles(importId)).find((each) => each.id === fileId);
-  if (!file || file.state !== 'prepared') return;
-  try {
-    await deps.store.updateFile(file.id, await scan(deps, row, file));
-  } catch (error) {
-    if (!permanentFileFailure(error)) throw error;
-    await deps.store.updateFile(file.id, { state: 'failed', reason: fileFailureReason(error) });
-  }
+// A claim is an object created only when absent, so a scan's step or a batch of its pages sent
+// twice (a step retried after sending part of its messages) is paid for once. The owner is the
+// queue message: its own redelivery takes the work up again, which the claim lets through.
+async function claimed(deps: PipelineDeps, path: string, owner: string) {
+  const claim = JSON.stringify({ owner });
+  if (await deps.objects.create(path, encoder.encode(claim), 'application/json')) return true;
+  return decoder.decode(await deps.objects.read(path)) === claim;
 }
 
-async function scan(
-  deps: PipelineDeps,
-  row: ImportRow,
-  file: ImportFileRow
-): Promise<ImportFileUpdate> {
-  const loaded = await loadPrepared(deps.objects, file);
-  const prepared = loaded.pages!;
-  const readings = { ...prepared.readings };
-  const scanned = prepared.pages.filter((page) => page.isScan);
-  const { provider, client } = await identityOf(deps, row);
+async function scanning(deps: PipelineDeps, importId: string, fileId: string) {
+  const row = await deps.store.getImport(importId);
+  if (!row || row.status !== 'reading') return null;
+  const file = (await deps.store.listFiles(importId)).find((each) => each.id === fileId);
+  if (!file || file.state !== 'prepared') return null;
+  return { row, file };
+}
 
+async function failScan(deps: PipelineDeps, file: ImportFileRow, error: unknown) {
+  if (!permanentFileFailure(error)) throw error;
+  await deps.store.updateFile(
+    file.id,
+    { state: 'failed', reason: fileFailureReason(error) },
+    'prepared'
+  );
+}
+
+async function pageImage(deps: PipelineDeps, file: ImportFileRow) {
   let original: Uint8Array | null = null;
-  const image = async (page: number) => {
+  return async (page: number) => {
     if (heicTypes.has(file.mime_type)) {
       return { bytes: await deps.objects.read(file.derived_path!), type: 'image/jpeg' };
     }
@@ -483,78 +528,189 @@ async function scan(
     const jpeg = await requireExtractor(deps).pdfPageImage(arrayBuffer(original), page);
     return { bytes: new Uint8Array(jpeg), type: 'image/jpeg' };
   };
-
-  let kind = file.document_kind as DocumentKind | null;
-  if (kind === null && scanned.length === prepared.pages.length && scanned[0]) {
-    const first = await image(scanned[0].number);
-    const messages: ChatMessage[] = [
-      { role: 'system', content: sortingSystemPrompt(provider) },
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: `=== FILE: ${file.upload_path} (image follows) ===` },
-          { type: 'image_url', image_url: { url: dataUrl(first.bytes, first.type) } },
-        ],
-      },
-    ];
-    const triage = (
-      await ask(deps, row, file.id, {
-        model: sortingModel,
-        messages,
-        answer: sortingAnswer,
-        reasoningEffort: 'low',
-      })
-    ).files[0];
-    if (triage) {
-      kind = triage.kind;
-      if (triage.kind === 'training_sheet') {
-        return { state: 'for_employees', document_kind: kind, reason: fileReasons.trainingSheet };
-      }
-      if (setAsideKinds.includes(triage.kind) || !triage.carriesClientData) {
-        return {
-          state: 'set_aside',
-          document_kind: kind,
-          reason: setAsideKinds.includes(triage.kind)
-            ? setAsideReason(triage.kind)
-            : fileReasons.noClientData,
-        };
-      }
-    }
-  }
-
-  for (const page of scanned) {
-    const label = pageLabel(file, page.number);
-    if (readings[label]) continue;
-    const picture = await image(page.number);
-    readings[label] = await ask(deps, row, file.id, {
-      model: readingModel,
-      messages: readingMessages({
-        provider,
-        client,
-        files: [{ path: label, imageUrl: dataUrl(picture.bytes, picture.type) }],
-      }),
-      answer: readingAnswer,
-      reasoningEffort: 'medium',
-    });
-    // Kept page by page, so a delivery that is retried pays only for the pages left.
-    await deps.objects.write(
-      file.text_path!,
-      encoder.encode(JSON.stringify({ ...prepared, readings })),
-      'application/json'
-    );
-  }
-  return { state: 'read', document_kind: kind, reason: null };
 }
 
-export async function readImport(deps: PipelineDeps, importId: string, waits: number) {
+/**
+ * Sorts a photograph or a PDF with no text from its first page, then sends its scanned pages to
+ * be read in batches, each in a message of its own.
+ */
+export async function scanFile(
+  deps: PipelineDeps,
+  importId: string,
+  fileId: string,
+  owner: string
+) {
+  const found = await scanning(deps, importId, fileId);
+  if (!found) return;
+  const { row, file } = found;
+  if (!(await claimed(deps, scanClaimPathOf(file, null), owner))) return;
+  try {
+    const prepared = (await loadPrepared(deps.objects, file)).pages!;
+    const scanned = prepared.pages.filter((page) => page.isScan).map((page) => page.number);
+    if (file.document_kind === null && scanned.length === prepared.pages.length && scanned[0]) {
+      const settled = await triageScan(deps, row, file, scanned[0]);
+      if (settled) {
+        await deps.store.updateFile(file.id, settled, 'prepared');
+        return;
+      }
+    }
+    if (scanned.length === 0) {
+      await finishScan(deps, row, file);
+      return;
+    }
+    const batches: ImportMessage[] = [];
+    for (let start = 0; start < scanned.length; start += scanBatchPages) {
+      batches.push({
+        type: 'scan',
+        importId,
+        fileId,
+        pages: scanned.slice(start, start + scanBatchPages),
+      });
+    }
+    await sendAll(requireQueue(deps), batches);
+  } catch (error) {
+    await failScan(deps, file, error);
+  }
+}
+
+async function triageScan(
+  deps: PipelineDeps,
+  row: ImportRow,
+  file: ImportFileRow,
+  firstPage: number
+): Promise<ImportFileUpdate | null> {
+  const { provider } = await identityOf(deps, row);
+  const first = await (await pageImage(deps, file))(firstPage);
+  const messages: ChatMessage[] = [
+    { role: 'system', content: sortingSystemPrompt(provider) },
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: `=== FILE: ${file.upload_path} (image follows) ===` },
+        { type: 'image_url', image_url: { url: dataUrl(first.bytes, first.type) } },
+      ],
+    },
+  ];
+  const triage = (
+    await ask(deps, row, file.id, {
+      model: sortingModel,
+      messages,
+      answer: sortingAnswer,
+      reasoningEffort: 'low',
+    })
+  ).files[0];
+  if (!triage) return null;
+  const kind = triage.kind;
+  if (kind === 'training_sheet') {
+    return { state: 'for_employees', document_kind: kind, reason: fileReasons.trainingSheet };
+  }
+  if (setAsideKinds.includes(kind) || !triage.carriesClientData) {
+    return {
+      state: 'set_aside',
+      document_kind: kind,
+      reason: setAsideKinds.includes(kind) ? setAsideReason(kind) : fileReasons.noClientData,
+    };
+  }
+  // Kept now, so a redelivery of this step does not ask again.
+  await deps.store.updateFile(file.id, { document_kind: kind }, 'prepared');
+  return null;
+}
+
+/** Reads a batch of a scan's pages, each kept as it comes, so a retry pays only for the rest. */
+export async function scanPages(
+  deps: PipelineDeps,
+  importId: string,
+  fileId: string,
+  pages: number[],
+  owner: string
+) {
+  const found = await scanning(deps, importId, fileId);
+  if (!found) return;
+  const { row, file } = found;
+  if (!(await claimed(deps, scanClaimPathOf(file, pages[0]!), owner))) return;
+  try {
+    const read = await readPageNumbers(deps, row, file);
+    const { provider, client } = await identityOf(deps, row);
+    const image = await pageImage(deps, file);
+    for (const page of pages) {
+      if (read.has(page)) continue;
+      const label = pageLabel(file, page);
+      const picture = await image(page);
+      const reading = await ask(deps, row, file.id, {
+        model: readingModel,
+        messages: readingMessages({
+          provider,
+          client,
+          files: [{ path: label, imageUrl: dataUrl(picture.bytes, picture.type) }],
+        }),
+        answer: readingAnswer,
+        reasoningEffort: 'medium',
+      });
+      await deps.objects.write(
+        pageReadingPathOf(file, page),
+        encoder.encode(JSON.stringify(reading)),
+        'application/json'
+      );
+    }
+    await finishScan(deps, row, file);
+  } catch (error) {
+    await failScan(deps, file, error);
+  }
+}
+
+async function readPageNumbers(deps: PipelineDeps, row: ImportRow, file: ImportFileRow) {
+  const prefix = `${file.id}.page-`;
+  return new Set(
+    (await deps.objects.list(folderOf(row)))
+      .filter((name) => name.startsWith(prefix) && pageReadingName.test(name))
+      .map((name) => Number(name.slice(prefix.length, -'.json'.length)))
+  );
+}
+
+// Every batch tries once its own pages are kept; whichever sees the last page read gathers the
+// readings into the file's pages, which two batches finishing at once write alike.
+async function finishScan(deps: PipelineDeps, row: ImportRow, file: ImportFileRow) {
+  const read = await readPageNumbers(deps, row, file);
+  const prepared = (await loadPrepared(deps.objects, file)).pages!;
+  const scanned = prepared.pages.filter((page) => page.isScan).map((page) => page.number);
+  if (!scanned.every((page) => read.has(page))) return;
+  const readings: Record<string, Reading> = {};
+  for (const page of scanned) {
+    const bytes = await deps.objects.read(pageReadingPathOf(file, page));
+    readings[pageLabel(file, page)] = JSON.parse(decoder.decode(bytes)) as Reading;
+  }
+  await deps.objects.write(
+    file.text_path ?? textPathOf(file),
+    encoder.encode(
+      JSON.stringify({ pageCount: prepared.pageCount, pages: prepared.pages, readings })
+    ),
+    'application/json'
+  );
+  await deps.store.updateFile(file.id, { state: 'read', reason: null }, 'prepared');
+}
+
+/**
+ * `waits` counts the polls since the scans last moved on, `progress` how far they had come: the
+ * files no longer waiting on a scan and the scanned pages read.
+ */
+export async function readImport(
+  deps: PipelineDeps,
+  importId: string,
+  waits: number,
+  progress?: number
+) {
   const row = await deps.store.getImport(importId);
   if (!row || row.status !== 'reading') return;
   const files = await deps.store.listFiles(importId);
   // The scans are read by messages of their own; this one comes back until they are done.
   if (files.some((file) => file.state === 'prepared')) {
-    if (waits >= maxReadWaits) throw new ImportFailure(importReasons.scansUnfinished);
+    const now =
+      files.filter((file) => file.state !== 'prepared').length +
+      (await deps.objects.list(folderOf(row))).filter((name) => pageReadingName.test(name)).length;
+    const still = now === progress ? waits + 1 : 0;
+    if (still >= maxReadWaits) throw new ImportFailure(importReasons.scansUnfinished);
     await requireQueue(deps).send(
-      { type: 'read', importId, waits: waits + 1 },
+      { type: 'read', importId, waits: still, progress: now },
       { delaySeconds: readPollSeconds }
     );
     return;
@@ -639,8 +795,16 @@ export async function copyFolder(deps: PipelineDeps, importId: string) {
 
 const permanentFileFailure = (error: unknown) => !isTransient(error);
 
+/**
+ * The extractor answered nothing usable: it was busy with other files, unreachable or slow, which
+ * apps/pdf has already tried once more. A refusal names its reason and is not this.
+ */
+export const isExtractorUnavailable = (error: unknown) =>
+  error instanceof Error && error.message === extractionFailed;
+
 export function isTransient(error: unknown) {
   if (error instanceof ImportFailure || error instanceof ModelAnswerError) return false;
+  if (error instanceof ImportLimitError) return false;
   if (error instanceof DocxReadError || extractionRefusalOf(error) !== null) return false;
   if (error instanceof GatewayError) {
     return error.status === null || error.status === 429 || error.status >= 500;

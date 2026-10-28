@@ -7,6 +7,7 @@ import { fromDatabaseError } from '../../lib/db';
 type Tables = Database['public']['Tables'];
 
 export type ImportStatus = Database['public']['Enums']['import_status'];
+export type ImportFileState = Database['public']['Enums']['import_file_state'];
 
 export type ImportRow = Pick<
   Tables['imports']['Row'],
@@ -55,7 +56,8 @@ export const importFileColumns =
 export interface ImportStore {
   getImport(importId: string): Promise<ImportRow | null>;
   listFiles(importId: string): Promise<ImportFileRow[]>;
-  updateFile(fileId: string, patch: ImportFileUpdate): Promise<void>;
+  // With `from`, only a file still in that state is changed; false when it was not.
+  updateFile(fileId: string, patch: ImportFileUpdate, from?: ImportFileState): Promise<boolean>;
   // False when the import was no longer at `from`, which another delivery moved on.
   advance(importId: string, from: ImportStatus, patch: ImportUpdate): Promise<boolean>;
   recordUsage(importId: string, fileId: string | null, usage: Usage, cost: number): Promise<void>;
@@ -64,8 +66,26 @@ export interface ImportStore {
   folderCopies(importId: string): Promise<{ source_path: string; target_path: string }[]>;
   markCopied(importId: string): Promise<void>;
   uncopiedImports(confirmedBefore: string): Promise<string[]>;
-  deleteAbandoned(): Promise<string[]>;
-  dropProposals(): Promise<string[]>;
+  failStalled(reasons: { stalled: string; left: string }): Promise<string[]>;
+  listAbandoned(): Promise<ImportObjectList[]>;
+  // Only the imports whose objects are gone: another list leaves them for the next day.
+  deleteAbandoned(importIds: string[]): Promise<string[]>;
+  dropProposals(): Promise<number>;
+  listObjectsToRemove(): Promise<ImportObjectList[]>;
+  markObjectsRemoved(importIds: string[]): Promise<string[]>;
+}
+
+export interface ImportObjectList {
+  importId: string;
+  paths: string[];
+}
+
+/** IMP05: the real size of a file breaks the import's caps. */
+export class ImportLimitError extends Error {
+  constructor() {
+    super('The import holds at most 150 files and 100 MiB, each file at most 20 MiB.');
+    this.name = 'ImportLimitError';
+  }
 }
 
 export function importStore(admin: AdminClient): ImportStore {
@@ -91,9 +111,12 @@ export function importStore(admin: AdminClient): ImportStore {
       return data;
     },
 
-    async updateFile(fileId, patch) {
-      const { error } = await admin.from('import_files').update(patch).eq('id', fileId);
+    async updateFile(fileId, patch, from) {
+      const query = admin.from('import_files').update(patch).eq('id', fileId);
+      const { data, error } = await (from ? query.eq('state', from) : query).select('id');
+      if (error?.code === 'IMP05') throw new ImportLimitError();
       if (error) throw fromDatabaseError(error, 'update import file');
+      return data.length > 0;
     },
 
     async advance(importId, from, patch) {
@@ -189,8 +212,26 @@ export function importStore(admin: AdminClient): ImportStore {
       return data.map((row) => row.id);
     },
 
-    async deleteAbandoned() {
-      const { data, error } = await admin.rpc('delete_abandoned_imports');
+    async failStalled(reasons) {
+      const { data, error } = await admin.rpc('fail_stalled_imports', {
+        p_stalled_reason: reasons.stalled,
+        p_left_reason: reasons.left,
+      });
+      if (error) throw fromDatabaseError(error, 'fail stalled imports');
+      return data;
+    },
+
+    async listAbandoned() {
+      const { data, error } = await admin.rpc('list_abandoned_imports');
+      if (error) throw fromDatabaseError(error, 'list abandoned imports');
+      return data.map((row) => ({ importId: row.import_id, paths: row.paths }));
+    },
+
+    async deleteAbandoned(importIds) {
+      if (importIds.length === 0) return [];
+      const { data, error } = await admin.rpc('delete_abandoned_imports', {
+        p_import_ids: importIds,
+      });
       if (error) throw fromDatabaseError(error, 'delete abandoned imports');
       return data;
     },
@@ -198,6 +239,21 @@ export function importStore(admin: AdminClient): ImportStore {
     async dropProposals() {
       const { data, error } = await admin.rpc('drop_import_proposals');
       if (error) throw fromDatabaseError(error, 'drop import proposals');
+      return data;
+    },
+
+    async listObjectsToRemove() {
+      const { data, error } = await admin.rpc('list_import_objects_to_remove');
+      if (error) throw fromDatabaseError(error, 'list import objects to remove');
+      return data.map((row) => ({ importId: row.import_id, paths: row.paths }));
+    },
+
+    async markObjectsRemoved(importIds) {
+      if (importIds.length === 0) return [];
+      const { data, error } = await admin.rpc('mark_import_objects_removed', {
+        p_import_ids: importIds,
+      });
+      if (error) throw fromDatabaseError(error, 'mark import objects removed');
       return data;
     },
   };

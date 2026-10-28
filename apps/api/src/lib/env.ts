@@ -19,11 +19,21 @@ export type RegenerationQueue = {
   sendBatch(messages: Iterable<{ body: RegenerationMessage }>): Promise<unknown>;
 };
 
+// `deferred` counts the times a message was sent again while the extractor was unavailable;
+// `owner`, the message that claimed a scan before it was deferred. A scan without `pages` sorts
+// the file and sends its pages.
 export type ImportMessage =
-  | { type: 'prepare'; importId: string; fileId: string }
+  | { type: 'prepare'; importId: string; fileId: string; deferred?: number }
   | { type: 'sort'; importId: string }
-  | { type: 'scan'; importId: string; fileId: string }
-  | { type: 'read'; importId: string; waits: number }
+  | {
+      type: 'scan';
+      importId: string;
+      fileId: string;
+      pages?: number[];
+      owner?: string;
+      deferred?: number;
+    }
+  | { type: 'read'; importId: string; waits: number; progress?: number }
   | { type: 'check'; importId: string }
   | { type: 'copy'; importId: string };
 

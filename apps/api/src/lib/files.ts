@@ -168,6 +168,15 @@ function fileStore(
       if (error) throw fileError('write import object', error);
     },
 
+    async createImportObject(path: string, bytes: Uint8Array, contentType: string) {
+      const { error } = await storage
+        .from(importsBucket)
+        .upload(path, bytes, { contentType, upsert: false });
+      if (error && alreadyExists(error)) return false;
+      if (error) throw fileError('create import object', error);
+      return true;
+    },
+
     async importObjectLink(path: string, expiresInSeconds = 60) {
       const { data, error } = await storage
         .from(importsBucket)
@@ -176,7 +185,6 @@ function fileStore(
       return data.signedUrl;
     },
 
-    /** The objects directly in a folder, by name, with their size. */
     async listImportFolder(folder: string) {
       const objects: { name: string; size: number | null }[] = [];
       for (let offset = 0; ; offset += 1000) {
