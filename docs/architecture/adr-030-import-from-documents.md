@@ -49,9 +49,12 @@ The rules the model is given, from the decisions of 2026-10-26:
 - Values that appear only in passages copied from another company are proposed unticked, as **possibly from another client**, with the other company's name shown (#621).
 - A one-person company: that person holds every responsible role.
 - The legal representative is also an employee when the documents show them on the staff (a one-person company, a post they hold, a place among the exposed staff), never for signing or appointing; that employee is proposed unticked, for the member to confirm. The contact person defaults to the legal representative.
+- A post that is only the running of the firm (administrator, director, asociat, manager, with at most driving for the firm, office work or representing it) is proposed unticked, under "Doar dacă lucrează în firmă cu contract de muncă", unless a document shows someone holding it under an employment contract or names someone on it among the exposed staff; its equipment entries stay out with it unless the member moves them to another post. A post that adds a trade ("Administrator – vânzător") is proposed ticked, as the documents name it. The import never merges a post into another or splits one out (2026-10-29).
 - An equipment table naming several positions applies to each of them.
 - The hire date comes from "admis la lucru".
 - Where documents disagree, both values are proposed as a choice; mandatory values that are missing are flagged.
+
+Why the management post is unticked (2026-10-29). Legea 319/2006 protects the worker, a person employed by the employer (art. 5 lit. a). An SRL's administrator usually works under a mandate (contract de administrare): they act as the employer, are not one of its workers, and need no post, evaluation or training sheet. A pack still often evaluates "Administrator – conducerea firmei", and a ticked post with nobody on it then shows as missing equipment, instructions and evaluation. An administrator may also be an employee (Legea 31/1990 art. 196^1 (3)), and then their post is evaluated, so the member can tick it. When the administrator also does a trade, they fill one post that says so ([ADR 006](adr-006-job-positions.md)): a separate "Administrator – <post>" when their work and risks differ from the existing post's (driving, office work, cash and bank), or the existing post when they do exactly that job. Which of the two is the evaluator's call; the import follows what the documents evaluated, and matching people to posts belongs to the employee import.
 
 ### The steps run in a queue
 
