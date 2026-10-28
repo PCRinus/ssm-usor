@@ -1,11 +1,12 @@
 begin;
-select plan(27);
+select plan(30);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
   ('aaaaaaaa-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'owner@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
   ('aaaaaaaa-0000-4000-8000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'specialist@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
-  ('bbbbbbbb-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'other@test', 'x', now(), '{"provider":"email"}', '{}', now(), now());
+  ('bbbbbbbb-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'other@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
+  ('cccccccc-0000-4000-8000-000000000003', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'admin@test', 'x', now(), '{"provider":"email","role":"admin"}', '{}', now(), now());
 
 insert into public.organizations (id, name) values
   ('11111111-0000-4000-8000-000000000001', 'Paying Org'),
@@ -16,10 +17,10 @@ insert into public.organization_members (user_id, organization_id, role) values
   ('aaaaaaaa-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'specialist'),
   ('bbbbbbbb-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000001', 'owner');
 
-create or replace function pg_temp.act_as(user_id text)
+create or replace function pg_temp.act_as(user_id text, app_metadata jsonb default '{"provider":"email"}')
 returns void language sql as $$
   select set_config('role', 'authenticated', true),
-         set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated', 'app_metadata', '{"provider":"email"}'::jsonb)::text, true);
+         set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated', 'app_metadata', app_metadata)::text, true);
 $$;
 
 set local role service_role;
@@ -145,6 +146,16 @@ select results_eq(
 );
 
 reset role;
+insert into public.impersonations (admin_user_id, target_user_id, reason)
+values ('cccccccc-0000-4000-8000-000000000003', 'aaaaaaaa-0000-4000-8000-000000000001', 'support');
+select pg_temp.act_as('cccccccc-0000-4000-8000-000000000003', '{"provider":"email","role":"admin"}');
+
+select is_empty(
+  $$ select 1 from public.billing_invoices $$,
+  'an admin impersonating the owner reads no invoices: only the owner in person does'
+);
+
+reset role;
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000002');
 
 select is_empty(
@@ -153,9 +164,21 @@ select is_empty(
 );
 
 select results_eq(
-  $$ select billing_interval::text, employee_packs, invoice_email from public.subscriptions $$,
-  $$ values ('year', 2, 'contabilitate@firma.ro') $$,
-  'a member reads its subscription''s billing fields'
+  $$ select billing_interval::text, employee_packs, extra_members from public.subscriptions $$,
+  $$ values ('year', 2, 1) $$,
+  'a member reads its subscription''s plan and quantities'
+);
+
+select throws_ok(
+  $$ select invoice_email from public.subscriptions $$,
+  '42501', null,
+  'a member does not read where invoices go: that is the owner''s'
+);
+
+select throws_ok(
+  $$ select stripe_customer_id from public.subscriptions $$,
+  '42501', null,
+  'nor the Stripe customer'
 );
 
 select throws_ok(

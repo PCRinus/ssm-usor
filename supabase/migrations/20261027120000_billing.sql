@@ -117,6 +117,15 @@ create index billing_invoices_storno_idx on public.billing_invoices (storno_of)
 alter table public.stripe_events enable row level security;
 alter table public.billing_invoices enable row level security;
 
+-- The email for invoices and the Stripe customer are the owner's (ADR 029); the API hands them to
+-- the owner, so members read every column but those.
+revoke select on table public.subscriptions from authenticated;
+grant select (
+  organization_id, plan, status, trial_ends_at, access_until, trial_sms, created_at, updated_at,
+  stripe_subscription_id, billing_interval, price_version, employee_packs, extra_members,
+  current_period_end
+) on table public.subscriptions to authenticated;
+
 revoke all on table public.stripe_events from anon, authenticated;
 revoke all on table public.billing_invoices from anon;
 revoke insert, update, delete, truncate on table public.billing_invoices from authenticated;
@@ -126,6 +135,8 @@ create policy "owners read their organization's invoices"
   using (
     organization_id = (select public.current_organization_id())
     and (select public.is_organization_owner())
+    -- An admin impersonating the owner is not the owner in person, whom the API requires too.
+    and (select auth.uid()) = (select public.effective_user_id())
   );
 
 -- No policies on purpose: members never read the bucket directly; the API checks the member and

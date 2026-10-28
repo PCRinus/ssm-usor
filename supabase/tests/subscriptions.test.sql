@@ -95,7 +95,7 @@ select throws_ok(
 
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 select is_empty(
-  $$ select * from public.subscriptions $$,
+  $$ select organization_id from public.subscriptions $$,
   'a member of another organization sees no subscription'
 );
 
