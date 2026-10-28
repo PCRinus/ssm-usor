@@ -8590,6 +8590,7 @@ export type ImportDetailProposalJobPositionsItem = {
   workZone: string | null;
   /** @nullable */
   activities: string | null;
+  managementOnly?: boolean;
 };
 
 export type ImportDetailProposalResponsiblePersonsItemSourcesItem = {

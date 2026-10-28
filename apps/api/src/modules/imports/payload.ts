@@ -310,11 +310,14 @@ export function toClientPayload(input: {
   if (fireReplace.length) fireSafety.replace = fireReplace;
 
   type Included<T> = { item: T; index: number; values: Record<string, unknown> };
-  const included = <L extends ItemList>(list: L): Included<Proposal[L][number]>[] => {
+  const included = <L extends ItemList>(
+    list: L,
+    proposedOf: (item: Proposal[L][number]) => boolean = proposedIncluded
+  ): Included<Proposal[L][number]>[] => {
     const items = proposal[list] as Proposal[L][number][];
     return items.flatMap((item, index) => {
       const change: ItemChange | undefined = changes.items[item.id];
-      const proposed = proposedIncluded(item);
+      const proposed = proposedOf(item);
       const take = change?.included ?? proposed;
       const edited = Object.keys(change?.values ?? {}).length > 0;
       if (proposed && change?.included === false) quality[list].unticked++;
@@ -440,24 +443,35 @@ export function toClientPayload(input: {
     return null;
   };
 
-  const equipment = included('protectiveEquipment').flatMap(({ item, index, values }) => {
-    const position = positionReference(
-      reference(values.jobPosition, item.jobPosition.id),
-      `protectiveEquipment.${index}.jobPosition`
-    );
-    if (empty(values.risk)) block(`protectiveEquipment.${index}.risk`, 'missing');
-    if (!position) return [];
-    return [
-      dropEmpty({
-        ...position,
-        risk: values.risk,
-        item: values.item,
-        quantity: values.quantity,
-        duration_months: values.durationMonths,
-        allocation: values.allocation,
-      }),
-    ];
-  });
+  // An entry goes with the post the documents gave it, unless the member moved it to another.
+  const leftOutPositions = new Set(
+    proposal.jobPositions.filter((item) => !positionKeys.has(item.id)).map((item) => item.id)
+  );
+  const withItsPosition = (item: Proposal['protectiveEquipment'][number]) =>
+    proposedIncluded(item) &&
+    (changes.items[item.id]?.values?.jobPosition !== undefined ||
+      item.jobPosition.id === null ||
+      !leftOutPositions.has(item.jobPosition.id));
+  const equipment = included('protectiveEquipment', withItsPosition).flatMap(
+    ({ item, index, values }) => {
+      const position = positionReference(
+        reference(values.jobPosition, item.jobPosition.id),
+        `protectiveEquipment.${index}.jobPosition`
+      );
+      if (empty(values.risk)) block(`protectiveEquipment.${index}.risk`, 'missing');
+      if (!position) return [];
+      return [
+        dropEmpty({
+          ...position,
+          risk: values.risk,
+          item: values.item,
+          quantity: values.quantity,
+          duration_months: values.durationMonths,
+          allocation: values.allocation,
+        }),
+      ];
+    }
+  );
 
   const employeeKeys = new Map<string, string>();
   const existingEmployeeOf = (values: Record<string, unknown>) =>

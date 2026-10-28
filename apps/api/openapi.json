@@ -12452,6 +12452,10 @@
                     "activities": {
                       "type": "string",
                       "nullable": true
+                    },
+                    "managementOnly": {
+                      "type": "boolean",
+                      "default": false
                     }
                   },
                   "required": [
