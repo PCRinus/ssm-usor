@@ -316,6 +316,20 @@ describe('POST /billing/preview', () => {
     expect(Date.parse(body.firstChargeAt)).toBeLessThanOrEqual(Date.now());
   });
 
+  it("charges now in the trial's last hour for a plan whose card never confirmed", async () => {
+    const fake = createFake();
+    const trialEnd = new Date(Date.now() + 30 * 60_000).toISOString();
+    fake.tables.subscriptions!.push(
+      paidRow(start, { status: 'trialing', trial_ends_at: trialEnd, access_until: trialEnd })
+    );
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+      stripeSubscription({ status: 'trialing', choice: start });
+
+    const body = await previewOf(await request('POST', '/billing/preview', pro));
+
+    expect(body.dueToday.totalCents).toBe(18029);
+  });
+
   it('returns the moment it prorated from', async () => {
     const fake = createFake();
     fake.tables.subscriptions!.push(paidRow(start));

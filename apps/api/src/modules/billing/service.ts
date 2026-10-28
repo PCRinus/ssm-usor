@@ -186,7 +186,7 @@ export async function preview(
     totalCents: recurring.totalCents,
   };
 
-  if (!hasLiveSubscription(row)) {
+  const purchase = (): BillingPreview => {
     const trialEndsAt = firstChargeAtTrialEnd(row, now);
     if (trialEndsAt) {
       const trialEnd = trialEndsAt.toISOString();
@@ -211,13 +211,23 @@ export async function preview(
       firstChargeAt: now.toISOString(),
       prorationDate: null,
     };
-  }
+  };
+  if (!hasLiveSubscription(row)) return purchase();
 
   const current = currentChoice(row);
   if (!current)
     throw conflict('enterprise_plan', 'An Enterprise subscription is changed by email.');
 
   if (row.status === 'trialing' && row.trial_ends_at) {
+    // The checkout replaces a plan whose card never confirmed, and charges now within the
+    // trial's last hour.
+    if (!firstChargeAtTrialEnd(row, now)) {
+      const subscription = await retrieveSubscription(
+        await billing.stripe!(),
+        row.stripe_subscription_id
+      );
+      if (!subscription.default_payment_method) return purchase();
+    }
     const trialEnd = new Date(row.trial_ends_at).toISOString();
     return {
       ...base,
