@@ -11,7 +11,7 @@ import {
   type StaffCategory,
 } from '@ssm-usor/contracts';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
-import { Copy, UserRound } from 'lucide-react';
+import { Copy, HardHat, UserRound } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import { WorkplaceDialog, type WorkplaceDraft } from '@/features/clients/workplace-dialog';
@@ -268,6 +268,10 @@ function OptionalBox({
   );
 }
 
+// Ticked, an entry kept apart from its post joins the list, whose row is where its post is chosen.
+const listed = (state: ItemState) =>
+  state.included && (state.proposed || state.untickedReason === 'position_left_out');
+
 function ListCard({
   title,
   list,
@@ -275,6 +279,7 @@ function ListCard({
   noun,
   render,
   empty,
+  untickedBox,
 }: {
   title: (count: number) => string;
   list: ItemList;
@@ -282,10 +287,11 @@ function ListCard({
   noun: (state: ItemState) => string;
   render: (state: ItemState) => ReactNode;
   empty: string;
+  untickedBox?: (states: ItemState[]) => ReactNode;
 }) {
   const states = itemStates(context.proposal, context.changes, list);
-  const kept = states.filter((state) => state.proposed && state.included);
-  const others = states.filter((state) => !state.proposed);
+  const kept = states.filter(listed);
+  const aside = states.filter((state) => !listed(state));
   return (
     <ReviewCard title={title(kept.length)} testId={`review-list-${list}`}>
       {kept.length === 0 ? (
@@ -293,8 +299,13 @@ function ListCard({
       ) : (
         <ul className="divide-y">{kept.map(render)}</ul>
       )}
+      {untickedBox?.(
+        aside.filter((state) => !state.proposed && state.untickedReason !== 'other_company')
+      )}
       <OtherCompanyBox
-        states={others.concat(states.filter((state) => state.proposed && !state.included))}
+        states={aside
+          .filter((state) => state.untickedReason === 'other_company')
+          .concat(aside.filter((state) => state.proposed))}
         context={context}
         noun={noun}
       />
@@ -436,6 +447,18 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
         context={context}
         noun={() => 'postul'}
         empty="Documentele nu numesc niciun post de lucru."
+        untickedBox={(states) => (
+          <OptionalBox
+            states={states}
+            context={context}
+            noun={() => 'postul'}
+            title="Doar dacă lucrează în firmă cu contract de muncă"
+            description="Doar conducerea firmei, fără altă meserie. Un administrator numit prin mandat nu e lucrător și nu are nevoie de post, evaluare sau instruire. Bifează postul dacă cine îl ocupă are contract de muncă."
+            icon={<UserRound className="mt-0.5 size-4" aria-hidden="true" />}
+            testId="review-management-only"
+            detail={(state) => text(state.values.activities) ?? ''}
+          />
+        )}
         render={(state) => (
           <ItemRow
             key={state.item.id}
@@ -530,7 +553,7 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
   ];
   const employees = itemStates(context.proposal, context.changes, 'employees');
   const isLegalRepresentative = (state: ItemState) =>
-    state.values.role === 'legal_representative' && state.item.otherCompanyName === null;
+    state.untickedReason === 'legal_representative';
   const employeeRow = (state: ItemState) => (
     <ItemRow
       key={state.item.id}
@@ -762,6 +785,20 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
         context={context}
         noun={() => 'articolul'}
         empty="Documentele nu numesc echipament de protecție."
+        untickedBox={(states) => (
+          <OptionalBox
+            states={states}
+            context={context}
+            noun={() => 'articolul'}
+            title="Pentru posturi pe care nu le preiei"
+            description="Se preiau odată cu postul lor. Bifează un articol doar ca să-l muți pe alt post."
+            icon={<HardHat className="mt-0.5 size-4" aria-hidden="true" />}
+            testId="review-position-left-out"
+            detail={(state) =>
+              `Postul ${referenceName(context, 'jobPositions', state.values.jobPosition) ?? ''}`
+            }
+          />
+        )}
         render={(state) => (
           <ItemRow
             key={state.item.id}
@@ -778,6 +815,19 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
               ]
                 .filter(Boolean)
                 .join(' · '),
+              !state.proposed && (
+                <LinkButton
+                  className="w-fit text-[13px]"
+                  onClick={() =>
+                    context.review.setItem(state.item.id, (current) => ({
+                      ...current,
+                      included: false,
+                    }))
+                  }
+                >
+                  Lasă-l cu postul
+                </LinkButton>
+              ),
             ]}
             onEdit={() => open(state, fields)}
           />

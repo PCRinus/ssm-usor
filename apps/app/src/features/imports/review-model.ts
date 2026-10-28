@@ -422,29 +422,56 @@ type AnyItem = {
 export const itemsOf = (proposal: Proposal, list: ItemList) =>
   proposal[list] as unknown as AnyItem[];
 
+export type UntickedReason =
+  'other_company' | 'legal_representative' | 'management_only' | 'position_left_out';
+
 export type ItemState = {
   list: ItemList;
   index: number;
   item: AnyItem;
   values: Record<string, unknown>;
   included: boolean;
-  // Ticked unless the member unticks it; as the API's `proposedIncluded` decides.
+  // Ticked unless the member unticks it; as the API's `proposedIncluded` and payload decide.
   proposed: boolean;
+  untickedReason: UntickedReason | null;
   edited: boolean;
 };
 
+function untickedReason(
+  item: AnyItem,
+  written: Record<string, unknown>,
+  leftOutPositions: Set<string>
+): UntickedReason | null {
+  if (item.otherCompanyName !== null) return 'other_company';
+  if (item.role === 'legal_representative') return 'legal_representative';
+  if (item.managementOnly === true) return 'management_only';
+  const position = (item.jobPosition as { id: string | null } | undefined)?.id;
+  if (written.jobPosition === undefined && position && leftOutPositions.has(position)) {
+    return 'position_left_out';
+  }
+  return null;
+}
+
 export function itemStates(proposal: Proposal, changes: Changes, list: ItemList): ItemState[] {
+  const leftOutPositions = new Set(
+    list === 'protectiveEquipment'
+      ? itemStates(proposal, changes, 'jobPositions')
+          .filter((state) => !state.included)
+          .map((state) => state.item.id)
+      : []
+  );
   return itemsOf(proposal, list).map((item, index) => {
     const change = changes.items[item.id];
-    const proposed = item.otherCompanyName === null && item.role !== 'legal_representative';
     const written = change?.values ?? {};
+    const reason = untickedReason(item, written, leftOutPositions);
     return {
       list,
       index,
       item,
       values: { ...item, ...written },
-      included: change?.included ?? proposed,
-      proposed,
+      included: change?.included ?? reason === null,
+      proposed: reason === null,
+      untickedReason: reason,
       edited: Object.keys(written).length > 0,
     };
   });

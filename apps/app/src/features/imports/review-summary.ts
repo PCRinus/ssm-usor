@@ -30,6 +30,7 @@ import {
   sectionIds,
   sectionOf,
   sectionStatus,
+  type UntickedReason,
 } from './review-model';
 
 export type ExistingValueAt = (path: string) => string | number | null | undefined;
@@ -64,10 +65,12 @@ export function sectionDescription(
   changes: Changes,
   states: Record<string, FieldState>
 ): string {
+  const leftOut = (list: ItemList, reason: UntickedReason) =>
+    itemStates(proposal, changes, list).filter(
+      (state) => state.untickedReason === reason && !state.included
+    );
   const others = (lists: ItemList[], noun: string) => {
-    const left = lists.flatMap((list) =>
-      itemStates(proposal, changes, list).filter((state) => !state.proposed && !state.included)
-    ).length;
+    const left = lists.flatMap((list) => leftOut(list, 'other_company')).length;
     return left === 0
       ? ''
       : ` Alte ${left} ${noun} apar doar în pasaje copiate de la altă firmă și sunt lăsate deoparte.`;
@@ -103,7 +106,14 @@ export function sectionDescription(
     }
     case 'job-positions': {
       const kept = included(proposal, changes, 'jobPositions');
-      return `${count(kept.length, 'post', 'posturi')}.${others(['jobPositions'], 'posturi')}`;
+      const management = leftOut('jobPositions', 'management_only');
+      const managementText =
+        management.length === 0
+          ? ''
+          : management.length === 1
+            ? ` Postul «${String(management[0]!.values.name)}» se preia doar dacă e ocupat cu contract de muncă.`
+            : ` ${management.length} posturi de conducere se preiau doar dacă sunt ocupate cu contract de muncă.`;
+      return `${count(kept.length, 'post', 'posturi')}.${managementText}${others(['jobPositions'], 'posturi')}`;
     }
     case 'responsible': {
       const people = included(proposal, changes, 'responsiblePersons');
@@ -158,7 +168,14 @@ export function sectionDescription(
           })
           .filter((position) => position)
       ).size;
-      return `${items.length === 1 ? 'Un articol' : `${items.length} articole`} pentru ${positions === 1 ? 'un post' : `${positions} posturi`}.${others(['protectiveEquipment'], 'articole')}`;
+      const withPosition = leftOut('protectiveEquipment', 'position_left_out').length;
+      const withPositionText =
+        withPosition === 0
+          ? ''
+          : withPosition === 1
+            ? ' Un articol rămâne deoparte cu postul lui.'
+            : ` Alte ${withPosition} articole rămân deoparte cu posturile lor.`;
+      return `${items.length === 1 ? 'Un articol' : `${items.length} articole`} pentru ${positions === 1 ? 'un post' : `${positions} posturi`}.${withPositionText}${others(['protectiveEquipment'], 'articole')}`;
     }
   }
 }
@@ -285,7 +302,9 @@ export function confirmLines(proposal: Proposal, changes: Changes) {
       'protectiveEquipment',
     ] as ItemList[]
   ).flatMap((list) =>
-    itemStates(proposal, changes, list).filter((state) => !state.proposed && !state.included)
+    itemStates(proposal, changes, list).filter(
+      (state) => state.untickedReason === 'other_company' && !state.included
+    )
   ).length;
   return { lines, left };
 }
