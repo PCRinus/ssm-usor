@@ -48,35 +48,111 @@ const listNames = [
   'employees',
 ] as const;
 
-function tracedValues(proposal: Proposal): { path: string; sources: Source[] }[] {
+type Holds = (quote: string) => boolean;
+
+const digitRuns = (text: string): string[] => text.match(/\d+/g) ?? [];
+
+const holdsDigits =
+  (value: string): Holds =>
+  (quote) => {
+    const digits = value.replace(/\D/g, '');
+    return digits === '' || digitRuns(quote).includes(digits);
+  };
+
+// A number may be written out ("anual", "luna martie"), so only a quote holding other numbers
+// contradicts it.
+const holdsNumber =
+  (...accepted: number[]): Holds =>
+  (quote) => {
+    const numbers = digitRuns(quote).map(Number);
+    return numbers.length === 0 || numbers.some((number) => accepted.includes(number));
+  };
+
+const nameWords = (value: string) => foldName(value).split(' ').filter(Boolean);
+
+const holdsName =
+  (name: string): Holds =>
+  (quote) => {
+    const words = new Set(nameWords(quote));
+    return nameWords(name).every((word) => words.has(word));
+  };
+
+const digitFacts = new Set(['client.cui', 'client.caenCode']);
+const nameFacts = new Set([
+  'client.legalName',
+  'client.legalRepresentativeName',
+  'client.contactName',
+]);
+
+function factHolds(field: string, value: string | number): Holds | undefined {
+  if (typeof value === 'number') {
+    // Durations are often written in hours.
+    return field === 'trainingSchedule.periodicTrainingMinutes' && value % 60 === 0
+      ? holdsNumber(value, value / 60)
+      : holdsNumber(value);
+  }
+  if (digitFacts.has(field)) return holdsDigits(value);
+  if (nameFacts.has(field)) return holdsName(value);
+  return undefined;
+}
+
+function employeeHolds(employee: Proposal['employees'][number]): Holds | undefined {
+  const name = employeeName(employee);
+  const byCnp = employee.cnp === null ? null : holdsDigits(employee.cnp);
+  const byName = name === '' ? null : holdsName(name);
+  if (!byCnp && !byName) return undefined;
+  return (quote) => Boolean(byCnp?.(quote) || byName?.(quote));
+}
+
+function itemHolds(
+  proposal: Proposal,
+  list: (typeof listNames)[number],
+  index: number
+): Holds | undefined {
+  if (list === 'responsiblePersons') return holdsName(proposal.responsiblePersons[index]!.fullName);
+  if (list === 'employees') return employeeHolds(proposal.employees[index]!);
+  return undefined;
+}
+
+interface Traced {
+  path: string;
+  sources: Source[];
+  holds?: Holds;
+}
+
+function tracedValues(proposal: Proposal): Traced[] {
   const options = Object.entries(fieldGroups(proposal)).flatMap(([group, fields]) =>
     Object.entries(fields).flatMap(([name, field]) =>
-      field.options.map((option, index) => ({
+      field.options.map((option, index): Traced => ({
         path: `${group}.${name}.options.${index}`,
         sources: option.sources,
+        holds: factHolds(`${group}.${name}`, option.value),
       }))
     )
   );
   const items = listNames.flatMap((list) =>
-    (proposal[list] as { sources: Source[] }[]).map((item, index) => ({
+    (proposal[list] as { sources: Source[] }[]).map((item, index): Traced => ({
       path: `${list}.${index}`,
       sources: item.sources,
+      holds: itemHolds(proposal, list, index),
     }))
   );
   return [...options, ...items];
 }
 
 export function checkQuotes(proposal: Proposal, files: CheckInput['files']): Flag[] {
-  return tracedValues(proposal).flatMap(({ path, sources }) =>
+  return tracedValues(proposal).flatMap(({ path, sources, holds }) =>
     sources.flatMap((source, index): Flag[] => {
       const sourcePath = `${path}.sources.${index}`;
       if (!Object.hasOwn(files, source.file)) {
         return [{ path: sourcePath, code: 'file_not_found', detail: source.file }];
       }
       const text = files[source.file];
-      if (text === null || text === undefined) return [];
-      return findQuote(text, source.quote) === null
-        ? [{ path: sourcePath, code: 'quote_not_found' }]
+      if (text !== null && text !== undefined && findQuote(text, source.quote) === null) {
+        return [{ path: sourcePath, code: 'quote_not_found' }];
+      }
+      return holds && !holds(source.quote)
+        ? [{ path: sourcePath, code: 'value_not_in_quote' }]
         : [];
     })
   );

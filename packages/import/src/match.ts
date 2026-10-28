@@ -95,19 +95,43 @@ export interface QuoteMatch {
   end: number;
 }
 
-// Models mark words they leave out of a quote with an ellipsis, so its parts are found in order.
+function wordIndex(
+  haystack: string,
+  needle: string,
+  from: number,
+  bounded: { start: boolean; end: boolean }
+) {
+  for (
+    let index = haystack.indexOf(needle, from);
+    index !== -1;
+    index = haystack.indexOf(needle, index + 1)
+  ) {
+    const after = index + needle.length;
+    if (
+      (!bounded.start || index === 0 || haystack[index - 1] === ' ') &&
+      (!bounded.end || after === haystack.length || haystack[after] === ' ')
+    ) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+// Models mark words they leave out of a quote with an ellipsis, so its parts are found in order,
+// and only beside an ellipsis may a part start or end inside a word.
 export function findQuote(text: string, quote: string): QuoteMatch | null {
-  const parts = quote
-    .split(/…|\.{3,}/)
-    .map(foldText)
-    .filter(Boolean);
-  if (parts.length === 0) return null;
+  const segments = quote.split(/…|\.{3,}/).map(foldText);
+  if (segments.every((segment) => segment === '')) return null;
   const haystack = foldWithOffsets(text);
   let from = 0;
   let start = -1;
   let end = -1;
-  for (const part of parts) {
-    const index = haystack.folded.indexOf(part, from);
+  for (const [position, part] of segments.entries()) {
+    if (part === '') continue;
+    const index = wordIndex(haystack.folded, part, from, {
+      start: position === 0,
+      end: position === segments.length - 1,
+    });
     if (index === -1) return null;
     if (start === -1) start = index;
     end = index + part.length - 1;

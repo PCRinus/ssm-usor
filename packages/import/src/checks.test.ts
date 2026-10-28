@@ -42,6 +42,43 @@ describe('checkQuotes', () => {
     ]);
   });
 
+  it('flags a quote that is found but does not hold its value', () => {
+    const value = proposal();
+    const decision = 'Dosar/Decizia 1.docx';
+    value.client.cui.options[0]!.value = '12345675';
+    value.client.legalRepresentativeName.options[0]!.value = 'Vasilescu Mihai';
+    value.trainingSchedule.workerTrainingIntervalMonths.options[0]!.value = 1;
+    value.trainingSchedule.periodicTrainingMinutes.options[0]!.sources = [
+      { file: decision, quote: 'cu durata de 60 de minute' },
+    ];
+    value.responsiblePersons[0]!.sources = [
+      { file: decision, quote: 'conducător al locului de muncă' },
+    ];
+    value.employees[0]!.cnp = '1850315350011';
+    value.employees[0]!.sources.push({ file: 'Dosar/Fișa.jpg', quote: 'CNP 1850315350011' });
+
+    expect(codes(checkQuotes(value, { ...files, 'Dosar/Fișa.jpg': null }))).toEqual([
+      'client.cui.options.0.sources.0 value_not_in_quote',
+      'client.legalRepresentativeName.options.0.sources.0 value_not_in_quote',
+      'trainingSchedule.workerTrainingIntervalMonths.options.0.sources.0 value_not_in_quote',
+      'responsiblePersons.0.sources.0 value_not_in_quote',
+    ]);
+  });
+
+  it('takes a number written out, and a duration in hours for its minutes', () => {
+    const value = proposal();
+    value.trainingSchedule.workerTrainingIntervalMonths.options[0]!.value = 12;
+    value.trainingSchedule.workerTrainingIntervalMonths.options[0]!.sources = [
+      { file: 'Dosar/Fișa.jpg', quote: 'instruirea periodică se face anual' },
+    ];
+    value.trainingSchedule.periodicTrainingMinutes.options[0]!.value = 120;
+    value.trainingSchedule.periodicTrainingMinutes.options[0]!.sources = [
+      { file: 'Dosar/Fișa.jpg', quote: 'cu durata de 2 ore' },
+    ];
+
+    expect(checkQuotes(value, { ...files, 'Dosar/Fișa.jpg': null })).toEqual([]);
+  });
+
   it('flags a file named like an object’s own property as not found', () => {
     const value = proposal();
     value.client.caenCode.options[0]!.sources = [{ file: 'constructor', quote: 'cod CAEN 1071' }];

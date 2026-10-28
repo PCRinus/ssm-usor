@@ -201,6 +201,7 @@ export function proposedIncluded(item: { otherCompanyName: string | null; role?:
 export const flagCodes = [
   'file_not_found',
   'quote_not_found',
+  'value_not_in_quote',
   'invalid_cui',
   'invalid_cnp',
   'cnp_birth_date_mismatch',

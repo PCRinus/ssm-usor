@@ -61,6 +61,14 @@ describe('findQuote', () => {
     expect(findQuote(text, 'conducător al locului ... Se numește')).toBeNull();
   });
 
+  it('finds whole words only, except beside an ellipsis', () => {
+    expect(findQuote('Instruirea se face la 16 luni.', 'la 1')).toBeNull();
+    expect(findQuote('Instruirea se face la 16 luni.', 'face la 16')).not.toBeNull();
+    expect(findQuote(text, 'numește dl. Vasilescu An')).toBeNull();
+    expect(findQuote(text, 'numește dl. Vasilescu An…')).not.toBeNull();
+    expect(findQuote(text, '…ește dl. Vasilescu')).not.toBeNull();
+  });
+
   it('does not find words that are not there', () => {
     expect(findQuote(text, 'Se numește dl. Georgescu Mihai')).toBeNull();
     expect(findQuote(text, '   ')).toBeNull();
