@@ -88,8 +88,7 @@ const sheetTexts = [
 // `null` is closed, 'new' adds a workplace, and a workplace edits it.
 export type WorkplaceEditing = Workplace | 'new' | null;
 
-// A workplace not saved yet, as an import proposes it: the values come and go back through the
-// caller, and the fire-safety fields, which no import reads, stay out.
+// The fire-safety fields stay out: no import reads them.
 export type WorkplaceDraft = {
   values: WorkplaceFormValues;
   onSave: (values: WorkplaceFormValues) => void;
