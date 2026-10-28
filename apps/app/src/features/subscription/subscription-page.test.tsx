@@ -491,6 +491,32 @@ describe('the Abonament tab', () => {
     expect(within(screen.getByTestId('plan-card')).getByTestId('subscription-resume')).toBeTruthy();
   });
 
+  it('shows an annual renewal at the choice a change set for it', async () => {
+    const subscription = activeSubscription({
+      plan: 'profesional',
+      interval: 'year',
+      employeePacks: 0,
+      extraMembers: 1,
+    });
+    mockApi({
+      overview: overviewWith({
+        subscription,
+        owner: ownerPart({
+          scheduledChange: {
+            plan: 'start',
+            interval: 'year',
+            employeePacks: 0,
+            extraMembers: 1,
+            at: subscription.currentPeriodEnd!,
+          },
+        }),
+      }),
+    });
+    mount();
+
+    expect((await screen.findByTestId('plan-amount')).textContent).toContain('653,40 €');
+  });
+
   it('says cancelling drops a change set for the renewal', async () => {
     const subscription = activeSubscription();
     mockApi({

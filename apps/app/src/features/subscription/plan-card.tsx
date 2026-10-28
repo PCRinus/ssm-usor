@@ -173,12 +173,14 @@ export function PlanCard({
             ? `Activ. Se reînnoiește pe ${roDate(renews)}.`
             : 'Activ.';
       if (owner && amounts && choice) {
-        // On an annual plan the next invoice is the month's extra SMS, so the renewal is shown.
+        // On an annual plan the next invoice is the month's extra SMS, so the renewal is shown,
+        // at the choice a change set for it.
+        const renewal = owner.scheduledChange ?? choice;
         amount =
           choice.interval === 'year'
             ? {
-                label: 'Următoarea plată anuală',
-                value: formatEuro(amounts.totalCents),
+                label: renewal.interval === 'year' ? 'Următoarea plată anuală' : 'Următoarea plată',
+                value: formatEuro(choiceAmounts(renewal).totalCents),
                 note: renews ? `pe ${roDate(renews)}, cu TVA` : 'cu TVA',
               }
             : {
