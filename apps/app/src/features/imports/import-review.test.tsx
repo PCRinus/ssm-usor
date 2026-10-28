@@ -11,6 +11,7 @@ import {
   mockApi,
   proposalFixture,
   readyDetail,
+  requestsTo,
 } from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -330,6 +331,72 @@ describe('the name of a new client', () => {
     await waitFor(() =>
       expect(section.textContent).toContain('Spicul Auriu Panificație SRL. Valorile se preiau')
     );
+  });
+});
+
+describe('one review across its pages', () => {
+  it('follows a save still under way, and confirms only after it, on its version', async () => {
+    const proposal = legalNameChoice();
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    mockReview(readyDetail({ proposal, blockers: [] }), {
+      save: (body) =>
+        held.then(() =>
+          Response.json({ version: (body as { version: number }).version + 1 })
+        ) as unknown as Response,
+    });
+    const runtime = mount('/identity');
+
+    await userEvent.click(
+      within(await legalNameBlock()).getByRole('radio', { name: /Spicul Auriu Panificație SRL/ })
+    );
+    await userEvent.click(screen.getByRole('link', { name: /Înapoi la listă/ }));
+
+    await screen.findByTestId('import-review-hub');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
+      'Spicul Auriu Panificație SRL'
+    );
+    await userEvent.click(screen.getByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    expect(within(dialog).getByRole('heading').textContent).toBe(
+      'Creezi clientul Spicul Auriu Panificație SRL?'
+    );
+    await userEvent.click(within(dialog).getByTestId('import-confirm-submit'));
+    expect(requestsTo(`/imports/${importId}/confirm`, 'POST')).toHaveLength(0);
+
+    release();
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`)
+    );
+    expect(savedChanges(0).changes.fields).toEqual({ 'client.legalName': { option: 2 } });
+    expect(bodyOf(`/imports/${importId}/confirm`, 'POST')).toEqual({ version: 4 });
+  });
+
+  it('keeps a change that did not save on screen, and saves it again on request', async () => {
+    let failing = true;
+    mockReview(readyDetail(), {
+      save: () =>
+        failing
+          ? Response.json({ error: 'internal', message: 'Failed.' }, { status: 500 })
+          : undefined!,
+    });
+    mount('/identity');
+
+    const choice = await screen.findByTestId('review-choice');
+    await userEvent.click(within(choice).getByRole('radio', { name: /Dorin Mureșan/ }));
+    const error = await screen.findByTestId('import-review-error');
+    expect(error.textContent).toContain('Nu am putut salva ultima schimbare.');
+
+    failing = false;
+    await userEvent.click(within(error).getByRole('button', { name: 'Salvează din nou' }));
+    await waitFor(() => expect(saves).toBe(2));
+    expect(savedChanges(1)).toEqual({
+      version: 3,
+      changes: { fields: { 'client.legalRepresentativeName': { option: 1 } }, items: {} },
+    });
+    await waitFor(() => expect(screen.queryByTestId('import-review-error')).toBeNull());
   });
 });
 

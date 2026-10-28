@@ -1,7 +1,7 @@
 import { importErrorReasons } from '@ssm-usor/contracts';
-import { useQueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
-import { useRef, useState } from 'react';
+import { createContext, use, useSyncExternalStore } from 'react';
 
 import {
   type ApiErrorResponse,
@@ -16,7 +16,7 @@ import {
   useGetClientDocumentDetails,
   useGetClientFireSafety,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { ApiHttpError, type ApiRequestOptions } from '@/api/http';
 
 import { importErrorMessage } from './import-format';
 import { type Changes, changesOf, type FieldChange, type ItemChange } from './review-model';
@@ -41,54 +41,149 @@ const isConflict = (cause: unknown) =>
   cause instanceof ApiHttpError &&
   (cause.body as Partial<ApiErrorResponse> | undefined)?.reason === importErrorReasons.changed;
 
+const saveFailed = 'Nu am putut salva ultima schimbare. Salvează din nou ca să nu se piardă.';
+const savedByOthers =
+  'Altcineva a modificat propunerea între timp, așa că schimbarea ta nu a fost salvată. Reîncarcă propunerea și fă-o din nou.';
+
+type ReviewSnapshot = {
+  changes: Changes;
+  conflict: boolean;
+  error: string | null;
+  pending: number;
+};
+
 // Saves go one after the other, each on the version the previous one answered: two saves sent
 // together would both carry the same version and the second would be refused.
-export function useImportReview(detail: ImportDetail) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const queryClient = useQueryClient();
-  const [changes, setChanges] = useState<Changes>(() => changesOf(detail.changes));
-  const [conflict, setConflict] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(0);
-  const latest = useRef<Changes>(changesOf(detail.changes));
-  const version = useRef(detail.version);
-  const queue = useRef<Promise<void>>(Promise.resolve());
-  const stopped = useRef(false);
+export class ReviewStore {
+  private snapshot: ReviewSnapshot;
+  private version: number;
+  private sent: Changes;
+  private queue: Promise<void> = Promise.resolve();
+  private listeners = new Set<() => void>();
 
-  function update(mutate: (current: Changes) => Changes) {
-    if (stopped.current) return;
-    const next = withoutEmpty(mutate(latest.current));
-    latest.current = next;
-    setChanges(next);
-    setError(null);
-    setPending((count) => count + 1);
-    queue.current = queue.current.then(async () => {
+  constructor(
+    private readonly importId: string,
+    detail: ImportDetail,
+    private readonly apiRequest: ApiRequestOptions,
+    private readonly queryClient: QueryClient
+  ) {
+    const changes = changesOf(detail.changes);
+    this.snapshot = { changes, conflict: false, error: null, pending: 0 };
+    this.version = detail.version;
+    this.sent = changes;
+  }
+
+  subscribe = (listener: () => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+
+  getSnapshot = () => this.snapshot;
+
+  private set(next: Partial<ReviewSnapshot>) {
+    this.snapshot = { ...this.snapshot, ...next };
+    for (const listener of this.listeners) listener();
+  }
+
+  update = (mutate: (current: Changes) => Changes) => {
+    if (this.snapshot.conflict) return;
+    const next = withoutEmpty(mutate(this.snapshot.changes));
+    this.set({ changes: next, error: null });
+    this.save(next);
+  };
+
+  retry = () => {
+    if (this.snapshot.conflict) return;
+    this.set({ error: null });
+    this.save(this.snapshot.changes);
+  };
+
+  private save(changes: Changes) {
+    this.set({ pending: this.snapshot.pending + 1 });
+    this.queue = this.queue.then(async () => {
       try {
-        if (stopped.current) return;
+        if (this.snapshot.conflict) return;
         const saved = await saveImportChanges(
-          detail.id,
-          { version: version.current, changes: next },
-          apiRequest
+          this.importId,
+          { version: this.version, changes },
+          this.apiRequest
         );
-        version.current = saved.version;
-        queryClient.setQueriesData<ImportDetailResponse>(
-          { queryKey: getGetImportQueryKey(detail.id) },
-          (old) =>
-            old ? { import: { ...old.import, version: saved.version, changes: next } } : old
+        this.version = saved.version;
+        this.sent = changes;
+        if (changes === this.snapshot.changes) this.set({ error: null });
+        this.queryClient.setQueriesData<ImportDetailResponse>(
+          { queryKey: getGetImportQueryKey(this.importId) },
+          (old) => (old ? { import: { ...old.import, version: saved.version, changes } } : old)
         );
-        await queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(detail.id) });
+        await this.queryClient.invalidateQueries({
+          queryKey: getGetImportQueryKey(this.importId),
+        });
       } catch (cause) {
-        if (isConflict(cause)) {
-          stopped.current = true;
-          setConflict(true);
-        } else {
-          setError(importErrorMessage(cause, 'Nu am putut salva schimbarea. Încearcă din nou.'));
-        }
+        if (isConflict(cause)) this.set({ conflict: true });
+        else this.set({ error: importErrorMessage(cause, saveFailed) });
       } finally {
-        setPending((count) => count - 1);
+        this.set({ pending: this.snapshot.pending - 1 });
       }
     });
   }
+
+  private get unsaved() {
+    return this.sent !== this.snapshot.changes;
+  }
+
+  flush = async (): Promise<{ version: number } | { error: string }> => {
+    await this.queue;
+    if (this.unsaved && !this.snapshot.conflict) {
+      this.retry();
+      await this.queue;
+    }
+    if (this.snapshot.conflict) return { error: savedByOthers };
+    if (this.unsaved) return { error: this.snapshot.error ?? saveFailed };
+    return { version: this.version };
+  };
+
+  reload = async () => {
+    await this.queryClient.refetchQueries({ queryKey: getGetImportQueryKey(this.importId) });
+    const fresh = this.queryClient
+      .getQueriesData<ImportDetailResponse>({ queryKey: getGetImportQueryKey(this.importId) })
+      .find(([, data]) => data)?.[1];
+    if (!fresh) return;
+    const reloaded = changesOf(fresh.import.changes);
+    this.version = fresh.import.version;
+    this.sent = reloaded;
+    this.set({ changes: reloaded, conflict: false, error: null });
+  };
+}
+
+export class ReviewStores {
+  private stores = new Map<string, ReviewStore>();
+
+  constructor(
+    private readonly apiRequest: ApiRequestOptions,
+    private readonly queryClient: QueryClient
+  ) {}
+
+  storeFor(detail: ImportDetail) {
+    let store = this.stores.get(detail.id);
+    if (!store) {
+      store = new ReviewStore(detail.id, detail, this.apiRequest, this.queryClient);
+      this.stores.set(detail.id, store);
+    }
+    return store;
+  }
+}
+
+export const ReviewStoresContext = createContext<ReviewStores | null>(null);
+
+export function useImportReview(detail: ImportDetail) {
+  const stores = use(ReviewStoresContext);
+  if (!stores) throw new Error('useImportReview needs ImportReviewScope around it');
+  const store = stores.storeFor(detail);
+  const { changes, conflict, error, pending } = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot
+  );
+  const { update } = store;
 
   const setField = (path: string, change: FieldChange | null) =>
     update((current) => {
@@ -104,20 +199,6 @@ export function useImportReview(detail: ImportDetail) {
       items: { ...current.items, [id]: change(current.items[id] ?? {}) },
     }));
 
-  async function reload() {
-    await queryClient.refetchQueries({ queryKey: getGetImportQueryKey(detail.id) });
-    const fresh = queryClient
-      .getQueriesData<ImportDetailResponse>({ queryKey: getGetImportQueryKey(detail.id) })
-      .find(([, data]) => data)?.[1];
-    if (!fresh) return;
-    const reloaded = changesOf(fresh.import.changes);
-    latest.current = reloaded;
-    version.current = fresh.import.version;
-    stopped.current = false;
-    setChanges(reloaded);
-    setConflict(false);
-  }
-
   return {
     changes,
     setField,
@@ -125,8 +206,9 @@ export function useImportReview(detail: ImportDetail) {
     saving: pending > 0,
     conflict,
     error,
-    reload,
-    settled: () => queue.current,
+    retry: store.retry,
+    reload: store.reload,
+    flush: store.flush,
   };
 }
 

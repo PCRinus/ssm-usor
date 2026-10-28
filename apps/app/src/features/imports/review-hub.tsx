@@ -43,7 +43,15 @@ export function ConflictNotice({ review }: { review: ImportReview }) {
   }
   if (review.error) {
     return (
-      <Notice variant="destructive" data-testid="import-review-error">
+      <Notice
+        variant="destructive"
+        data-testid="import-review-error"
+        action={
+          <Button variant="outline" size="sm" onClick={review.retry}>
+            Salvează din nou
+          </Button>
+        }
+      >
         {review.error}
       </Notice>
     );

@@ -27,7 +27,6 @@ import { type ReactNode, useState } from 'react';
 import {
   type ApiErrorResponse,
   confirmImport,
-  getGetImportQueryKey,
   getListClientsQueryKey,
   getListImportsQueryKey,
   type ImportDetail,
@@ -121,9 +120,13 @@ export function ConfirmImportDialog({
     setSending(true);
     setError(null);
     try {
-      await review.settled();
-      const version = await currentVersion();
-      const result = await confirmImport(detail.id, { version }, apiRequest);
+      const saved = await review.flush();
+      if ('error' in saved) {
+        setError(saved.error);
+        setSending(false);
+        return;
+      }
+      const result = await confirmImport(detail.id, { version: saved.version }, apiRequest);
       leaveImportNotice(result.clientId, {
         existing,
         files: result.fileCount,
@@ -157,13 +160,6 @@ export function ConfirmImportDialog({
       );
       setSending(false);
     }
-  }
-
-  async function currentVersion() {
-    const data = queryClient
-      .getQueriesData<{ import: ImportDetail }>({ queryKey: getGetImportQueryKey(detail.id) })
-      .find(([, value]) => value)?.[1];
-    return data?.import.version ?? detail.version;
   }
 
   return (
