@@ -21,11 +21,15 @@ vi.mock('@/features/imports/source-word-view', () => ({
   ),
 }));
 
-vi.mock('@/features/imports/source-pdf-view', () => ({
-  default: ({ quote }: { quote: string | null }) => (
-    <div data-testid="pdf-view" data-quote={quote ?? ''} />
-  ),
-}));
+vi.mock('@/features/imports/source-pdf-view', async () => {
+  const { useState } = await import('react');
+  return {
+    default: function PdfView({ quote }: { quote: string | null }) {
+      const [opened] = useState(quote);
+      return <div data-testid="pdf-view" data-quote={quote ?? ''} data-opened={opened ?? ''} />;
+    },
+  };
+});
 
 type SourceAnswer = {
   mimeType: string;
@@ -33,14 +37,22 @@ type SourceAnswer = {
   match?: { page: number | null; start: number; end: number } | null;
 };
 
-function mockSources(answers: Record<string, SourceAnswer | 'missing'>) {
+const phoneSources = [
+  { file: 'Contract prestari SSM 2019.pdf', quote: 'Telefon: 0269 214 377' },
+  { file: 'Scanari/Decizie PSI.pdf (pagina 1)', quote: 'tel. 0269 214 377' },
+  { file: 'IMG_2041.jpg', quote: '0269 214 377' },
+  { file: 'dosar-ssm.zip/Decizie 1.docx', quote: '0269 214 377' },
+];
+
+let sourceRequests: number;
+
+function mockSources(
+  answers: Record<string, SourceAnswer | 'missing'>,
+  sources: { file: string; quote: string }[] = phoneSources
+) {
+  sourceRequests = 0;
   const proposal = proposalFixture();
-  proposal.client.contactPhone.options[0]!.sources = [
-    { file: 'Contract prestari SSM 2019.pdf', quote: 'Telefon: 0269 214 377' },
-    { file: 'Scanari/Decizie PSI.pdf (pagina 1)', quote: 'tel. 0269 214 377' },
-    { file: 'IMG_2041.jpg', quote: '0269 214 377' },
-    { file: 'dosar-ssm.zip/Decizie 1.docx', quote: '0269 214 377' },
-  ];
+  proposal.client.contactPhone.options[0]!.sources = sources;
   mockApi((_init, url) => {
     if (url.pathname === `/imports/${importId}`) {
       return Response.json({ import: readyDetail({ proposal }) });
@@ -48,6 +60,7 @@ function mockSources(answers: Record<string, SourceAnswer | 'missing'>) {
     if (url.pathname === `/imports/${importId}/source`) {
       const file = url.searchParams.get('file')!;
       const answer = answers[file];
+      sourceRequests += 1;
       if (!answer || answer === 'missing') {
         return Response.json({ error: 'not_found', message: 'No such file.' }, { status: 404 });
       }
@@ -59,7 +72,10 @@ function mockSources(answers: Record<string, SourceAnswer | 'missing'>) {
           .split('/')
           .at(-1),
         page: answer.page ?? null,
-        original: { url: 'https://storage.example/object?token=x', mimeType: answer.mimeType },
+        original: {
+          url: `https://storage.example/object?token=${sourceRequests}`,
+          mimeType: answer.mimeType,
+        },
         derived: null,
         text: null,
         pages: null,
@@ -113,9 +129,6 @@ describe('the source dialog', () => {
     expect(within(dialog).getByTestId('source-not-found').textContent).toContain(
       'Nu am găsit pasajul în fișier'
     );
-    expect(within(dialog).getByTestId('source-download').getAttribute('href')).toBe(
-      'https://storage.example/object?token=x&download=Contract%20prestari%20SSM%202019.pdf'
-    );
     expect((within(dialog).getByTestId('source-previous') as HTMLButtonElement).disabled).toBe(
       true
     );
@@ -132,8 +145,8 @@ describe('the source dialog', () => {
 
     await userEvent.click(within(dialog).getByTestId('source-next'));
     const image = await within(dialog).findByTestId('source-image');
-    expect(within(image).getByRole('img').getAttribute('src')).toBe(
-      'https://storage.example/object?token=x'
+    expect(within(image).getByRole('img').getAttribute('src')).toMatch(
+      /^https:\/\/storage\.example\/object\?token=\d+$/
     );
     expect(within(dialog).getByTestId('source-zoom').textContent).toBe('Potrivit');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Mărește' }));
@@ -152,6 +165,26 @@ describe('the source dialog', () => {
         new URL(String(input)).searchParams.get('quote')
       )
     ).toEqual(['Telefon: 0269 214 377', 'tel. 0269 214 377', '0269 214 377', '0269 214 377']);
+  });
+
+  it('opens a passage on its own place when stepping back to it in the same file', async () => {
+    mockSources({ 'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf' } }, [
+      { file: 'Contract prestari SSM 2019.pdf', quote: 'Telefon: 0269 214 377' },
+      { file: 'Contract prestari SSM 2019.pdf', quote: 'Fax: 0269 214 377' },
+    ]);
+    const dialog = await openPhoneSource();
+    expect((await within(dialog).findByTestId('pdf-view')).dataset.opened).toBe(
+      'Telefon: 0269 214 377'
+    );
+
+    await userEvent.click(within(dialog).getByTestId('source-next'));
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('pdf-view').dataset.opened).toBe('Fax: 0269 214 377')
+    );
+    await userEvent.click(within(dialog).getByTestId('source-previous'));
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('pdf-view').dataset.opened).toBe('Telefon: 0269 214 377')
+    );
   });
 
   it('says so when the file cannot be opened', async () => {

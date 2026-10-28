@@ -177,7 +177,7 @@ function SourceContent({
           >
             {kind === 'word' && (
               <WordSourceView
-                key={source.fileId}
+                key={index}
                 source={source}
                 quote={current.quote}
                 onNotFound={() =>
@@ -187,13 +187,13 @@ function SourceContent({
             )}
             {(kind === 'pdf' || kind === 'scan') && (
               <PdfSourceView
-                key={`${source.fileId}-${source.page ?? ''}`}
+                key={index}
                 source={source}
                 quote={kind === 'pdf' ? current.quote : null}
                 onNotFound={() => setNotFound('Nu am găsit pasajul pe pagină, așa că nu e marcat.')}
               />
             )}
-            {kind === 'image' && <ImageSourceView key={source.fileId} source={source} />}
+            {kind === 'image' && <ImageSourceView key={index} source={source} />}
           </Suspense>
         )}
       </div>
