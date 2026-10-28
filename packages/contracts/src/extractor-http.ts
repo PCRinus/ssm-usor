@@ -14,10 +14,7 @@ import {
 
 export type ExtractorRoute = '/doc-to-docx' | '/pdf-text' | '/pdf-page-image' | '/heic-to-jpeg';
 
-/**
- * Posts a file to a route and resolves with the body of a 2xx; rejects otherwise, with
- * `extractorAnswerError` for an answer that is not a 2xx.
- */
+/** Rejects an answer that is not a 2xx with `extractorAnswerError`, so a refusal keeps its reason. */
 export type ExtractorPost = (
   route: ExtractorRoute,
   file: ArrayBuffer,
