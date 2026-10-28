@@ -391,6 +391,46 @@ describe('what the checks found', () => {
   });
 });
 
+describe('the employees an import creates', () => {
+  it('proposes the legal representative unticked, as an employee only if ticked', async () => {
+    const proposal = proposalFixture();
+    proposal.employees.push({
+      ...proposal.employees[0]!,
+      id: 'employee-2',
+      role: 'legal_representative',
+      lastName: 'Mureșan',
+      firstName: 'Ioana',
+      jobTitle: 'Administrator',
+    });
+    mockReview(readyDetail({ proposal, blockers: [] }));
+    mount('/responsible');
+
+    const employees = await screen.findByTestId('review-list-employees');
+    expect(
+      within(employees)
+        .getAllByTestId('review-item')
+        .map((row) => row.textContent)
+    ).toEqual([expect.stringContaining('Lazăr Radu')]);
+    const optional = within(employees).getByTestId('review-legal-representative');
+    expect(optional.textContent).toContain('Mureșan Ioana');
+    expect(optional.textContent).toContain('reprezentantul legal · Administrator');
+    const tick = within(optional).getByRole('checkbox', {
+      name: 'Preia ca angajat pe Mureșan Ioana',
+    });
+    expect(tick.getAttribute('aria-checked')).toBe('false');
+
+    await userEvent.click(tick);
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.items).toEqual({ 'employee-2': { included: true } });
+    const ticked = within(employees)
+      .getAllByTestId('review-item')
+      .find((row) => row.textContent?.includes('Mureșan Ioana'))!;
+    await userEvent.click(within(ticked).getByRole('button', { name: 'Nu-l face angajat' }));
+    await waitFor(() => expect(saves).toBe(2));
+    expect(savedChanges(1).changes.items).toEqual({ 'employee-2': { included: false } });
+  });
+});
+
 describe('completing an existing client (E2)', () => {
   const existing = () =>
     readyDetail({

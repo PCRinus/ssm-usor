@@ -11,7 +11,7 @@ import {
   type StaffCategory,
 } from '@ssm-usor/contracts';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
-import { Copy } from 'lucide-react';
+import { Copy, UserRound } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import { WorkplaceDialog, type WorkplaceDraft } from '@/features/clients/workplace-dialog';
@@ -45,7 +45,14 @@ import {
   sameValue,
   type Source,
 } from './review-model';
-import { EditButton, EditedTag, ReviewCard, RowNote, SourceButton } from './review-parts';
+import {
+  EditButton,
+  EditedTag,
+  LinkButton,
+  ReviewCard,
+  RowNote,
+  SourceButton,
+} from './review-parts';
 
 type ItemsContext = FieldContext & { blockers: Blocker[] };
 
@@ -166,29 +173,53 @@ function ItemRow({
   );
 }
 
-function OtherCompanyBox({
+function OtherCompanyBox(props: {
+  states: ItemState[];
+  context: ItemsContext;
+  noun: (state: ItemState) => string;
+}) {
+  return (
+    <OptionalBox
+      {...props}
+      title="Posibil de la alt client"
+      description="Apar doar în pasaje copiate din documentele altei firme. Le preluăm numai dacă le bifezi."
+      icon={<Copy className="mt-0.5 size-4" aria-hidden="true" />}
+      testId="review-other-company"
+    />
+  );
+}
+
+function OptionalBox({
   states,
   context,
   noun,
+  title,
+  description,
+  icon,
+  testId,
+  detail,
 }: {
   states: ItemState[];
   context: ItemsContext;
   noun: (state: ItemState) => string;
+  title: string;
+  description: string;
+  icon: ReactNode;
+  testId: string;
+  detail?: (state: ItemState) => string;
 }) {
   if (states.length === 0) return null;
   return (
     <div
       role="group"
-      aria-label="Posibil de la alt client"
-      data-testid="review-other-company"
+      aria-label={title}
+      data-testid={testId}
       className="mt-2 grid gap-2 rounded-lg border border-dashed bg-muted/30 px-4 py-3"
     >
       <div className="grid grid-cols-[1rem_minmax(0,1fr)] gap-x-2.5 gap-y-0.5">
-        <Copy className="mt-0.5 size-4" aria-hidden="true" />
-        <span className="text-sm font-medium">Posibil de la alt client</span>
-        <span className="col-start-2 text-[13px] text-muted-foreground">
-          Apar doar în pasaje copiate din documentele altei firme. Le preluăm numai dacă le bifezi.
-        </span>
+        {icon}
+        <span className="text-sm font-medium">{title}</span>
+        <span className="col-start-2 text-[13px] text-muted-foreground">{description}</span>
       </div>
       <ul className="grid gap-1">
         {states.map((state) => {
@@ -213,10 +244,14 @@ function OtherCompanyBox({
               />
               <span className="grid text-sm">
                 <span className="font-medium">{name}</span>
-                {state.item.otherCompanyName && (
+                {state.item.otherCompanyName ? (
                   <span className="text-[13px] text-muted-foreground">
                     De la {state.item.otherCompanyName}
                   </span>
+                ) : (
+                  detail?.(state) && (
+                    <span className="text-[13px] text-muted-foreground">{detail(state)}</span>
+                  )
                 )}
               </span>
               <SourceButton
@@ -494,6 +529,39 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
     { name: 'birthDate', label: 'Data nașterii', kind: 'date' },
   ];
   const employees = itemStates(context.proposal, context.changes, 'employees');
+  const isLegalRepresentative = (state: ItemState) =>
+    state.values.role === 'legal_representative' && state.item.otherCompanyName === null;
+  const employeeRow = (state: ItemState) => (
+    <ItemRow
+      key={state.item.id}
+      state={state}
+      context={context}
+      title={itemName('employees', state.values)}
+      details={[
+        [employeeRoleLabel(state.values.role), text(state.values.jobTitle)]
+          .filter(Boolean)
+          .join(' · '),
+        state.values.hiredAt
+          ? `Angajat din ${String(state.values.hiredAt).split('-').reverse().join('.')}`
+          : null,
+        !state.proposed && (
+          <LinkButton
+            className="w-fit text-[13px]"
+            onClick={() =>
+              context.review.setItem(state.item.id, (current) => ({
+                ...current,
+                included: false,
+              }))
+            }
+          >
+            Nu-l face angajat
+          </LinkButton>
+        ),
+      ]}
+      onEdit={() => open(state, employeeFields)}
+    />
+  );
+  const left = employees.filter((state) => !state.included);
   return (
     <>
       <ListCard
@@ -527,27 +595,30 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
           description="Doar cei pe care un rol îi cere angajați. Ceilalți angajați îi imporți după, din fișele de instruire."
           testId="review-list-employees"
         >
-          <ul className="divide-y">
-            {employees
-              .filter((state) => state.included)
-              .map((state) => (
-                <ItemRow
-                  key={state.item.id}
-                  state={state}
-                  context={context}
-                  title={itemName('employees', state.values)}
-                  details={[
-                    [employeeRoleLabel(state.values.role), text(state.values.jobTitle)]
-                      .filter(Boolean)
-                      .join(' · '),
-                    state.values.hiredAt
-                      ? `Angajat din ${String(state.values.hiredAt).split('-').reverse().join('.')}`
-                      : null,
-                  ]}
-                  onEdit={() => open(state, employeeFields)}
-                />
-              ))}
-          </ul>
+          {employees.some((state) => state.included) && (
+            <ul className="divide-y">
+              {employees.filter((state) => state.included).map(employeeRow)}
+            </ul>
+          )}
+          <OptionalBox
+            states={left.filter(isLegalRepresentative)}
+            context={context}
+            noun={() => 'ca angajat pe'}
+            title="Doar dacă lucrează în firmă"
+            description="Reprezentantul legal devine angajat numai dacă face parte din personalul firmei. Bifează-l dacă e așa; îi vei scrie apoi data angajării."
+            icon={<UserRound className="mt-0.5 size-4" aria-hidden="true" />}
+            testId="review-legal-representative"
+            detail={(state) =>
+              [employeeRoleLabel(state.values.role), text(state.values.jobTitle)]
+                .filter(Boolean)
+                .join(' · ')
+            }
+          />
+          <OtherCompanyBox
+            states={left.filter((state) => !isLegalRepresentative(state))}
+            context={context}
+            noun={() => 'ca angajat pe'}
+          />
         </ReviewCard>
       )}
       {dialog}

@@ -428,6 +428,7 @@ export type ItemState = {
   item: AnyItem;
   values: Record<string, unknown>;
   included: boolean;
+  // Ticked unless the member unticks it; as the API's `proposedIncluded` decides.
   proposed: boolean;
   edited: boolean;
 };
@@ -435,7 +436,7 @@ export type ItemState = {
 export function itemStates(proposal: Proposal, changes: Changes, list: ItemList): ItemState[] {
   return itemsOf(proposal, list).map((item, index) => {
     const change = changes.items[item.id];
-    const proposed = item.otherCompanyName === null;
+    const proposed = item.otherCompanyName === null && item.role !== 'legal_representative';
     const written = change?.values ?? {};
     return {
       list,
