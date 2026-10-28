@@ -79,12 +79,27 @@ export class DocxReadError extends Error {
   }
 }
 
+// fflate inflates a part into a buffer of its declared size, so capping that bounds the memory a
+// deflate bomb can take in a 128 MiB Worker.
+const maxTextBytes = 16 * 1024 * 1024;
+
 export function docxToText(bytes: Uint8Array): string {
   let files: Record<string, Uint8Array>;
+  let textBytes = 0;
   try {
     // Only the text parts are inflated; images would cost a Worker's memory for nothing.
-    files = unzipSync(bytes, { filter: (file) => textPart.test(file.name) });
+    files = unzipSync(bytes, {
+      filter: (file) => {
+        if (!textPart.test(file.name)) return false;
+        textBytes += file.originalSize;
+        if (textBytes > maxTextBytes) {
+          throw new DocxReadError('The Word document is too large to read.');
+        }
+        return true;
+      },
+    });
   } catch (error) {
+    if (error instanceof DocxReadError) throw error;
     throw new DocxReadError('The file is not a Word document.', { cause: error });
   }
   const parts = Object.keys(files)

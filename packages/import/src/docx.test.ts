@@ -86,6 +86,22 @@ describe('docxToText', () => {
     expect(docxToText(docx({ 'word/document.xml': document }))).toBe('Brutăria & Cofetăria');
   });
 
+  it('refuses a document whose text would inflate past the cap, before inflating it', () => {
+    const bytes = docx({ 'word/document.xml': `<w:document ${namespaces}/>` });
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const name = strToU8('word/document.xml');
+    for (let offset = 0; offset < bytes.length - 46; offset++) {
+      if (view.getUint32(offset, true) !== 0x02014b50) continue;
+      const nameLength = view.getUint16(offset + 28, true);
+      const entry = bytes.subarray(offset + 46, offset + 46 + nameLength);
+      if (entry.every((byte, index) => byte === name[index]) && nameLength === name.length) {
+        view.setUint32(offset + 24, 0xfffffff0, true);
+      }
+    }
+
+    expect(() => docxToText(bytes)).toThrow('The Word document is too large to read.');
+  });
+
   it('refuses a file that is not a Word document', () => {
     expect(() => docxToText(new Uint8Array([1, 2, 3]))).toThrow(DocxReadError);
     expect(() => docxToText(zipSync({ 'other.txt': strToU8('x') }))).toThrow(DocxReadError);
