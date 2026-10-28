@@ -51,8 +51,9 @@ export function contained(a: string, b: string) {
   return shared / shorter.size;
 }
 
+// No prefix rule, which is for workplaces: "Protect SRL" is not "Protecție Construct SRL".
 export function sameName(a: string, b: string) {
-  return foldName(a) === foldName(b) || similar(a, b) >= 0.8 || contained(a, b) >= 0.75;
+  return foldName(a) === foldName(b) || similar(a, b) >= 0.8;
 }
 
 interface FoldedText {

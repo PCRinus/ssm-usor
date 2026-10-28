@@ -75,6 +75,18 @@ describe('sortFiles', () => {
     ]);
   });
 
+  it('does not take a client whose name starts like the provider’s for the provider', () => {
+    const sorting = sortFiles(
+      [
+        triage('Decizia 1.docx', 'decision', 'PROTECȚIE CONSTRUCT S.R.L.', null),
+        triage('Contract.docx', 'contract', 'Protect SRL', null),
+      ],
+      { provider: { name: 'PROTECT S.R.L.', cui: '76543210' } }
+    );
+
+    expect(sorting.company).toEqual({ name: 'PROTECȚIE CONSTRUCT S.R.L.', cui: null });
+  });
+
   it('names no company when no file names one', () => {
     const sorting = sortFiles([triage('Decizia.docx', 'decision', null, null)]);
 

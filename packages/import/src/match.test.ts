@@ -24,8 +24,15 @@ describe('similar and contained', () => {
 
   it('counts a prefix as found', () => {
     expect(contained('Sediu social', 'Sediul social al societății')).toBe(1);
-    expect(sameName('Sediu social', 'Sediul social al societății')).toBe(true);
-    expect(sameName('Sediu social', 'Punct de lucru Depozit')).toBe(false);
+    expect(contained('Sediu social', 'Punct de lucru Depozit')).toBe(0);
+  });
+});
+
+describe('sameName', () => {
+  it('knows a company despite its form, never by a name that only starts like it', () => {
+    expect(sameName('S.C. Brutăria Fictivă S.R.L.', 'BRUTARIA FICTIVA SRL')).toBe(true);
+    expect(sameName('Protect SRL', 'Protecție Construct SRL')).toBe(false);
+    expect(sameName('Alfa SRL', 'Alfa Construct SRL')).toBe(false);
   });
 });
 
