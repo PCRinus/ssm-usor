@@ -6672,7 +6672,10 @@ export type Database = {
           month: string;
         }[];
       };
-      delete_abandoned_imports: { Args: { p_import_ids: string[] }; Returns: string[] };
+      delete_abandoned_imports: {
+        Args: { p_import_ids: string[] };
+        Returns: string[];
+      };
       drop_import_proposals: { Args: never; Returns: number };
       effective_user_id: { Args: never; Returns: string };
       employee_client_search_name: {
@@ -6888,7 +6891,10 @@ export type Database = {
           isSetofReturn: false;
         };
       };
-      mark_import_objects_removed: { Args: { p_import_ids: string[] }; Returns: string[] };
+      mark_import_objects_removed: {
+        Args: { p_import_ids: string[] };
+        Returns: string[];
+      };
       mark_paper_signature: {
         Args: {
           p_record_id: string;
