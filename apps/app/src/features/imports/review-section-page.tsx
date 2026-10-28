@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { ImportDetail } from '@/api/generated/api';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
 
+import { endSentence } from './import-format';
 import { type FieldContext, FieldsSection } from './review-fields';
 import { ConflictNotice } from './review-hub';
 import {
@@ -58,8 +59,8 @@ export function ReviewSectionPage({
           <h1 className="text-3xl font-semibold tracking-tight">{sectionLabels[section]}</h1>
           <p className="text-sm text-muted-foreground">
             {detail.intoExistingClient
-              ? `Completezi clientul existent ${name}. Ce are deja în aplicație nu se schimbă fără alegerea ta.`
-              : `${name}. Valorile se preiau așa cum sunt, dacă nu le schimbi.`}
+              ? `Completezi clientul existent ${endSentence(name)} Ce are deja în aplicație nu se schimbă fără alegerea ta.`
+              : `${endSentence(name)} Valorile se preiau așa cum sunt, dacă nu le schimbi.`}
           </p>
         </div>
         <div className="grid justify-items-end gap-1">

@@ -3,7 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { bodyOf, clientId, fetchMock, importId, mockApi, readyDetail } from '@/test/import-fixture';
+import {
+  bodyOf,
+  clientId,
+  fetchMock,
+  importId,
+  mockApi,
+  proposalFixture,
+  readyDetail,
+} from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
 type Detail = ReturnType<typeof readyDetail>;
@@ -284,6 +292,23 @@ describe('a section of the review', () => {
     expect(savedChanges(0).changes.items).toEqual({
       'employee-1': { values: { hiredAt: '2024-03-01' } },
     });
+  });
+});
+
+describe('a company name that ends in a period', () => {
+  it('ends the sentence after it once', async () => {
+    const proposal = proposalFixture();
+    proposal.client.legalName.options[0]!.value = 'S.C. BRUTĂRIA SPICUL AURIU S.R.L.';
+    proposal.client.contactEmail.options[0]!.otherCompanyName = 'LACTATE CÂMPIA S.R.L.';
+    mockReview(readyDetail({ proposal, blockers: [] }));
+    mount('/identity');
+
+    const section = await screen.findByTestId('import-review-section');
+    expect(section.textContent).toContain(
+      'S.C. BRUTĂRIA SPICUL AURIU S.R.L. Valorile se preiau așa cum sunt'
+    );
+    expect(section.textContent).toContain('copiate de la LACTATE CÂMPIA S.R.L. Îl preluăm');
+    expect(section.textContent).not.toContain('S.R.L..');
   });
 });
 

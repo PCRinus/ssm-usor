@@ -18,7 +18,7 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 
-import { filesLabel, importErrorMessage } from './import-format';
+import { endSentence, filesLabel, importErrorMessage } from './import-format';
 import type { Source } from './review-model';
 import { type SourceKind, sourceKind } from './source-match';
 import { ZoomBar } from './zoom-bar';
@@ -120,8 +120,8 @@ function SourceContent({
             data-testid="source-other-company"
           >
             Pasajul numește altă firmă,{' '}
-            <strong className="font-semibold">{request.otherCompanyName}</strong>. Pare copiat din
-            dosarul ei, așa că valoarea nu e bifată.
+            <strong className="font-semibold">{endSentence(request.otherCompanyName)}</strong> Pare
+            copiat din dosarul ei, așa că valoarea nu e bifată.
           </Notice>
         )}
         {(kind === 'scan' || kind === 'image') && current.quote && (

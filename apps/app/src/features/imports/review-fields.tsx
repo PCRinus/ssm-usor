@@ -26,6 +26,7 @@ import {
   emptyClientForm,
 } from '@/features/clients/client-form-schema';
 
+import { endSentence } from './import-format';
 import {
   anchorOf,
   type Changes,
@@ -271,8 +272,10 @@ function FieldRow({
           <RowNote>
             <Copy className="mr-1 inline size-3.5" aria-hidden="true" />
             Posibil de la alt client: apare doar în pasaje copiate de la{' '}
-            {state.otherCompanyName ?? state.options[0]?.otherCompanyName ?? 'altă firmă'}. Îl
-            preluăm numai dacă îl bifezi.
+            {endSentence(
+              state.otherCompanyName ?? state.options[0]?.otherCompanyName ?? 'altă firmă'
+            )}{' '}
+            Îl preluăm numai dacă îl bifezi.
           </RowNote>
         </>
       ) : state.status === 'choice' ? (
