@@ -353,6 +353,31 @@ describe('while the files go up', () => {
     });
     expect(dropped).toBe(false);
   });
+
+  it('asks before leaving, and abandons the import when the member leaves', async () => {
+    mockImportApi();
+    vi.mocked(uploadImportObject).mockImplementation(() => new Promise(() => undefined));
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const runtime = await uploadFrom('/clients', [new File(['%PDF'], 'a.pdf')]);
+    await screen.findByTestId('import-upload-progress');
+
+    void runtime.router.navigate({ to: '/clients/$clientId/details', params: { clientId } });
+    await waitFor(() =>
+      expect(confirm).toHaveBeenCalledWith(
+        'Fișierele încă se încarcă. Dacă pleci acum, renunți la import. Pleci?'
+      )
+    );
+    expect(runtime.router.state.location.pathname).toBe('/clients');
+    expect(requestsTo(`/imports/${importId}/abandon`, 'POST')).toHaveLength(0);
+
+    confirm.mockReturnValue(true);
+    void runtime.router.navigate({ to: '/clients/$clientId/details', params: { clientId } });
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clients/${clientId}/details`)
+    );
+    expect(requestsTo(`/imports/${importId}/abandon`, 'POST')).toHaveLength(1);
+    confirm.mockRestore();
+  });
 });
 
 describe('completing a client from its documentation', () => {

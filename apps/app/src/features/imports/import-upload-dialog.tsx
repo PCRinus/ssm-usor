@@ -11,6 +11,7 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { cn } from '@ssm-usor/ui/lib/utils';
+import { useBlocker } from '@tanstack/react-router';
 import {
   ChevronDown,
   ChevronUp,
@@ -85,7 +86,11 @@ function UploadForm({
   const depth = useRef(0);
   const filesInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
-  const { phase, upload, retry, continueWithout, abandon } = useImportUpload(client?.id, onStarted);
+  const openingImport = useRef(false);
+  const { phase, upload, retry, continueWithout, abandon } = useImportUpload(client?.id, (id) => {
+    openingImport.current = true;
+    onStarted(id);
+  });
   const busy = busySteps.has(phase.step);
   const choosing = phase.step === 'choosing' || phase.step === 'failed';
   const totals = selectionTotals(selection);
@@ -138,9 +143,24 @@ function UploadForm({
     if (busy) event.preventDefault();
   };
 
-  // Elsewhere an import whose upload stopped can only be abandoned, so leaving it here ends it.
+  useBlocker({
+    shouldBlockFn: () => {
+      if (openingImport.current || (!busy && !heldSteps.has(phase.step))) return false;
+      if (
+        busy &&
+        !window.confirm('Fișierele încă se încarcă. Dacă pleci acum, renunți la import. Pleci?')
+      ) {
+        return true;
+      }
+      leave();
+      return false;
+    },
+    enableBeforeUnload: () => busy,
+  });
+
+  // Elsewhere an import still uploading can only be abandoned, so leaving it here ends it.
   function leave() {
-    if (heldSteps.has(phase.step)) abandon();
+    if (busy || heldSteps.has(phase.step)) abandon();
     onClose();
   }
 
