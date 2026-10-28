@@ -1,6 +1,6 @@
 # ADR 031: A setup guide of fifteen steps, ticked from what each member has done
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-28
 
 ## Context
