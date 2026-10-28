@@ -218,7 +218,7 @@ function PhoneSheet({ guide }: { guide: SetupGuide }) {
       <DrawerContent
         data-testid="setup-guide"
         data-view="expanded"
-        className="h-auto max-h-[85dvh]"
+        className="h-auto max-h-[85dvh] bg-card"
       >
         <DrawerHeader className="flex-col items-stretch gap-2.5 border-b border-muted pt-2.5 pr-3 pb-3 pl-[18px]">
           <div className="flex items-center gap-1.5">
@@ -257,7 +257,7 @@ function Ring({ doneCount, size }: { doneCount: number; size: 'pill' | 'ring' })
         r={radius}
         fill="none"
         strokeWidth={stroke}
-        className="stroke-muted"
+        className="stroke-border"
       />
       <circle
         cx={box / 2}
