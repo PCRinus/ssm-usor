@@ -107,11 +107,9 @@ describe('toProposal', () => {
       'J35/123/2015',
       'J35/456/2015',
     ]);
-    expect(proposal.jobPositions.map((position) => position.id)).toEqual([
-      'position-1',
-      'position-2',
-      'position-3',
-      'position-4',
+    expect(proposal.jobPositions.map((position) => [position.id, position.name])).toEqual([
+      ['position-1', 'Brutar'],
+      ['position-2', 'Vânzător'],
     ]);
   });
 
@@ -129,6 +127,144 @@ describe('toProposal', () => {
       ...overrides,
     });
   const scanFile = 'Dosar/Contract 2019.pdf (pagina 1)';
+  const quoted = { file: scanFile, quote: 'str. Exemplului nr. 5', otherCompany: null };
+
+  it('joins a workplace a scan names otherwise at the same address, and its references', () => {
+    const documents = readingAnswer.parse(wireAnswer());
+    const scan = scanOf({
+      workplaces: [
+        {
+          name: 'Sediu social',
+          county: 'TM',
+          locality: 'Timișoara',
+          addressLine: 'Str. Exemplului, nr. 5',
+          isRegisteredOffice: true,
+          activity: 'Producție',
+          rooms: ['vestiar'],
+          ...quoted,
+        },
+      ],
+      fireInstallations: [
+        { workplace: 'Sediu social', kind: 'detection_alarm', description: null, ...quoted },
+      ],
+    });
+
+    const proposal = toProposal(documents, scan);
+
+    expect(proposal.workplaces).toHaveLength(2);
+    const [office] = proposal.workplaces;
+    expect(office).toMatchObject({
+      id: 'workplace-1',
+      name: 'Sediu',
+      isRegisteredOffice: true,
+      activity: 'Producție',
+      rooms: ['laborator', 'vestiar', 'birou'],
+    });
+    expect(office!.sources.map((source) => source.file)).toEqual([
+      'Dosar/Decizia 1.docx',
+      scanFile,
+    ]);
+    expect(proposal.fireInstallations[0]!.workplace).toEqual({
+      name: 'Sediu social',
+      id: 'workplace-1',
+    });
+  });
+
+  it('keeps workplaces at different addresses or with no address apart', () => {
+    const documents = readingAnswer.parse(wireAnswer());
+    const scan = scanOf({
+      workplaces: [
+        {
+          name: 'Depozit',
+          county: 'TM',
+          locality: 'Lugoj',
+          addressLine: 'str. Exemplului nr. 5',
+          isRegisteredOffice: false,
+          activity: null,
+          rooms: [],
+          ...quoted,
+        },
+        {
+          name: 'Chioșc',
+          county: null,
+          locality: null,
+          addressLine: null,
+          isRegisteredOffice: false,
+          activity: null,
+          rooms: [],
+          ...quoted,
+        },
+      ],
+    });
+
+    expect(toProposal(documents, scan).workplaces.map((workplace) => workplace.name)).toEqual([
+      'Sediu',
+      'Magazin',
+      'Depozit',
+      'Chioșc',
+    ]);
+  });
+
+  it('joins the same position, person and employee read twice, filling what one lacks', () => {
+    const documents = readingAnswer.parse(wireAnswer());
+    const scan = scanOf({
+      jobPositions: [
+        {
+          name: 'vânzător',
+          staffCategory: 'execution',
+          trainingIntervalMonths: null,
+          workZone: 'Magazin',
+          activities: null,
+          ...quoted,
+        },
+      ],
+      responsiblePersons: [
+        {
+          fullName: 'IONESCU MARIA',
+          jobTitle: null,
+          roles: ['fire_safety_coordinator'],
+          workplace: null,
+          ...quoted,
+        },
+      ],
+      employees: [
+        {
+          role: 'workers_representative',
+          lastName: 'Georgescu',
+          firstName: 'Dan',
+          cnp: '1850315350011',
+          birthDate: null,
+          jobTitle: null,
+          hiredAt: null,
+          ...quoted,
+        },
+      ],
+    });
+
+    const proposal = toProposal(documents, scan);
+
+    expect(proposal.jobPositions[1]).toMatchObject({
+      id: 'position-2',
+      name: 'Vânzător',
+      staffCategory: 'execution',
+      workZone: 'Magazin',
+    });
+    expect(proposal.responsiblePersons).toHaveLength(1);
+    expect(proposal.responsiblePersons[0]!.roles).toEqual([
+      'workplace_manager',
+      'first_aid',
+      'fire_safety_coordinator',
+    ]);
+    expect(proposal.employees).toEqual([
+      expect.objectContaining({
+        id: 'employee-1',
+        cnp: '1850315350011',
+        jobTitle: 'vânzător',
+        hiredAt: '2020-03-01',
+      }),
+    ]);
+    expect(proposal.employees[0]!.sources).toHaveLength(2);
+  });
 
   it('takes the marker of an image label off a source’s file, keeping its page', () => {
     const proposal = toProposal(

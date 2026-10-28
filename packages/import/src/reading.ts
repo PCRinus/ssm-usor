@@ -154,6 +154,62 @@ const traced = (entry: Quoted) => ({
   otherCompanyName: entry.otherCompany,
 });
 
+interface Traced {
+  sources: Source[];
+  otherCompanyName: string | null;
+}
+
+function mergeTraced(into: Traced, from: Traced) {
+  mergeSources(into.sources, from.sources);
+  if (from.otherCompanyName === null) into.otherCompanyName = null;
+}
+
+function fillGaps<T extends object>(into: T, from: T) {
+  for (const key of Object.keys(from) as (keyof T)[]) {
+    if (into[key] === null) into[key] = from[key];
+  }
+}
+
+// Readings give the same thing once each; the first reading, the documents', keeps its words.
+function joined<T extends Traced>(
+  items: T[],
+  same: (a: T, b: T) => boolean,
+  merge: (into: T, from: T) => void
+) {
+  const kept: T[] = [];
+  for (const item of items) {
+    const known = kept.find((each) => same(each, item));
+    if (!known) {
+      kept.push(item);
+      continue;
+    }
+    mergeTraced(known, item);
+    merge(known, item);
+  }
+  return kept;
+}
+
+const addressWords = new Set(['str', 'strada', 'nr', 'numar', 'numarul']);
+
+function streetKey(addressLine: string | null) {
+  if (addressLine === null) return '';
+  return foldText(addressLine)
+    .split(' ')
+    .filter((word) => word !== '' && !addressWords.has(word))
+    .join(' ');
+}
+
+const sameAddress = (
+  a: { locality: string | null; addressLine: string | null },
+  b: { locality: string | null; addressLine: string | null }
+) =>
+  streetKey(a.addressLine) !== '' &&
+  streetKey(a.addressLine) === streetKey(b.addressLine) &&
+  (a.locality === null || b.locality === null || foldText(a.locality) === foldText(b.locality));
+
+const employeeName = (employee: { lastName: string | null; firstName: string | null }) =>
+  foldName([employee.lastName, employee.firstName].filter(Boolean).join(' '));
+
 function countyCode(written: string) {
   const compact = written.trim().toUpperCase();
   const byCode = romanianCounties.find((county) => county.code === compact);
@@ -231,17 +287,21 @@ interface Named {
   name: string;
 }
 
+const onlyId = (items: Named[]) => {
+  const ids = new Set(items.map((item) => item.id));
+  return ids.size === 1 ? [...ids][0]! : null;
+};
+
 // A workplace is also found by a prefix ("Sediul" for "Sediu"); a position only by its name,
-// since "Ospătar" must not land on "Ospătar șef".
+// since "Ospătar" must not land on "Ospătar șef". An item may be listed under several names.
 function resolve(name: string | null, items: Named[], byPrefix = false): string | null {
   if (name === null) return null;
   const exact = items.find((item) => foldName(item.name) === foldName(name));
   if (exact) return exact.id;
   const close = items.filter((item) => similar(item.name, name) >= 0.8);
-  if (close.length === 1) return close[0]!.id;
-  if (!byPrefix || close.length > 1) return null;
-  const prefixed = items.filter((item) => contained(item.name, name) >= 0.75);
-  return prefixed.length === 1 ? prefixed[0]!.id : null;
+  if (close.length > 0) return onlyId(close);
+  if (!byPrefix) return null;
+  return onlyId(items.filter((item) => contained(item.name, name) >= 0.75));
 }
 
 const named = (value: string | null) => value !== null && value.trim() !== '';
@@ -273,36 +333,61 @@ export function toProposal(...readings: Reading[]): Proposal {
 
   const list = <T>(pick: (reading: Reading) => T[]) => readings.flatMap(pick);
 
-  const workplaces = list((reading) => reading.workplaces)
-    .filter((workplace) => named(workplace.name))
-    .map((workplace, index) => ({
-      id: `workplace-${index + 1}`,
-      ...traced(workplace),
-      name: workplace.name,
-      countyCode: workplace.county === null ? null : countyCode(workplace.county),
-      locality: workplace.locality,
-      addressLine: workplace.addressLine,
-      isRegisteredOffice: workplace.isRegisteredOffice,
-      activity: workplace.activity,
-      rooms: workplace.rooms,
-    }));
+  // A workplace is an address, so the same address read from a scan joins the documents' one,
+  // and the scan's name for it still finds it.
+  const aliases = new Map<object, string[]>();
+  const joinedWorkplaces = joined(
+    list((reading) => reading.workplaces)
+      .filter((workplace) => named(workplace.name))
+      .map((workplace) => ({
+        ...traced(workplace),
+        name: workplace.name,
+        countyCode: workplace.county === null ? null : countyCode(workplace.county),
+        locality: workplace.locality,
+        addressLine: workplace.addressLine,
+        isRegisteredOffice: workplace.isRegisteredOffice,
+        activity: workplace.activity,
+        rooms: workplace.rooms,
+      })),
+    sameAddress,
+    (into, from) => {
+      fillGaps(into, from);
+      aliases.set(into, [...(aliases.get(into) ?? []), from.name]);
+      into.isRegisteredOffice ||= from.isRegisteredOffice;
+      into.rooms = uniqueFolded([...into.rooms, ...from.rooms]);
+    }
+  );
+  const workplaces = joinedWorkplaces.map((workplace, index) => ({
+    id: `workplace-${index + 1}`,
+    ...workplace,
+  }));
+  const workplaceNames = joinedWorkplaces.flatMap((workplace, index) =>
+    [workplace.name, ...(aliases.get(workplace) ?? [])].map((name) => ({
+      id: workplaces[index]!.id,
+      name,
+    }))
+  );
   const onlyWorkplace = workplaces.length === 1 ? workplaces[0]!.id : null;
   const workplaceReference = (name: string | null, defaultToOnly: boolean) => ({
     name,
-    id: name === null ? (defaultToOnly ? onlyWorkplace : null) : resolve(name, workplaces, true),
+    id:
+      name === null ? (defaultToOnly ? onlyWorkplace : null) : resolve(name, workplaceNames, true),
   });
 
-  const jobPositions = list((reading) => reading.jobPositions)
-    .filter((position) => named(position.name))
-    .map((position, index) => ({
-      id: `position-${index + 1}`,
-      ...traced(position),
-      name: position.name,
-      staffCategory: position.staffCategory,
-      trainingIntervalMonths: position.trainingIntervalMonths,
-      workZone: position.workZone,
-      activities: position.activities,
-    }));
+  const jobPositions = joined(
+    list((reading) => reading.jobPositions)
+      .filter((position) => named(position.name))
+      .map((position) => ({
+        ...traced(position),
+        name: position.name,
+        staffCategory: position.staffCategory,
+        trainingIntervalMonths: position.trainingIntervalMonths,
+        workZone: position.workZone,
+        activities: position.activities,
+      })),
+    (a, b) => foldText(a.name) === foldText(b.name),
+    fillGaps
+  ).map((position, index) => ({ id: `position-${index + 1}`, ...position }));
 
   const fireEquipment = list((reading) => reading.fireEquipment).map((equipment, index) => ({
     id: `equipment-${index + 1}`,
@@ -329,16 +414,26 @@ export function toProposal(...readings: Reading[]): Proposal {
     fireSafety: groups.fireSafety as Proposal['fireSafety'],
     workplaces,
     jobPositions,
-    responsiblePersons: list((reading) => reading.responsiblePersons)
-      .filter((person) => named(person.fullName) && person.roles.length > 0)
-      .map((person, index) => ({
-        id: `person-${index + 1}`,
-        ...traced(person),
-        fullName: person.fullName,
-        jobTitle: person.jobTitle,
-        roles: [...new Set(person.roles)],
-        workplace: workplaceReference(person.workplace, false),
-      })),
+    responsiblePersons: joined(
+      list((reading) => reading.responsiblePersons)
+        .filter((person) => named(person.fullName) && person.roles.length > 0)
+        .map((person) => ({
+          ...traced(person),
+          fullName: person.fullName,
+          jobTitle: person.jobTitle,
+          roles: [...new Set(person.roles)],
+          workplace: person.workplace,
+        })),
+      (a, b) => foldName(a.fullName) === foldName(b.fullName),
+      (into, from) => {
+        fillGaps(into, from);
+        into.roles = [...new Set([...into.roles, ...from.roles])];
+      }
+    ).map((person, index) => ({
+      id: `person-${index + 1}`,
+      ...person,
+      workplace: workplaceReference(person.workplace, false),
+    })),
     fireEquipment,
     fireInstallations: list((reading) => reading.fireInstallations).map((installation, index) => ({
       id: `installation-${index + 1}`,
@@ -362,17 +457,23 @@ export function toProposal(...readings: Reading[]): Proposal {
           allocation: entry.allocation,
         }))
       ),
-    employees: list((reading) => reading.employees).map((employee, index) => ({
-      id: `employee-${index + 1}`,
-      ...traced(employee),
-      role: employee.role,
-      lastName: employee.lastName,
-      firstName: employee.firstName,
-      cnp: employee.cnp === null ? null : employee.cnp.replace(/[\s.-]/g, ''),
-      birthDate: isoDate(employee.birthDate),
-      jobTitle: employee.jobTitle,
-      hiredAt: isoDate(employee.hiredAt),
-    })),
+    employees: joined(
+      list((reading) => reading.employees).map((employee) => ({
+        ...traced(employee),
+        role: employee.role,
+        lastName: employee.lastName,
+        firstName: employee.firstName,
+        cnp: employee.cnp === null ? null : employee.cnp.replace(/[\s.-]/g, ''),
+        birthDate: isoDate(employee.birthDate),
+        jobTitle: employee.jobTitle,
+        hiredAt: isoDate(employee.hiredAt),
+      })),
+      (a, b) =>
+        a.role === b.role &&
+        ((a.cnp !== null && a.cnp === b.cnp) ||
+          (employeeName(a) !== '' && employeeName(a) === employeeName(b))),
+      fillGaps
+    ).map((employee, index) => ({ id: `employee-${index + 1}`, ...employee })),
     notes: list((reading) => reading.notes).filter((note) => note.trim() !== ''),
     flags: [],
   };
