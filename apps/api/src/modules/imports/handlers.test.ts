@@ -126,7 +126,7 @@ function importRow(overrides: Record<string, unknown> = {}) {
 }
 
 type Call = { method: string; url: URL; body: unknown; admin: boolean };
-type Handler = (call: Call) => Response | undefined;
+type Handler = (call: Call) => Response | Promise<Response> | undefined;
 
 const fetchMock = vi.fn<typeof fetch>();
 let calls: Call[] = [];
@@ -945,10 +945,66 @@ describe('GET /imports/{importId}/source', () => {
       storagePath(importId, 1, 'pdf')
     );
 
+    calls = [];
     const scanned = await request(
       `/imports/${importId}/source?file=${encodeURIComponent('Dosar/Decizie.pdf (pagina 3)')}`
     );
-    expect(await scanned.json()).toMatchObject({ page: 3, match: null });
+    expect(await scanned.json()).toMatchObject({ page: 3, text: null, pages: null, match: null });
+    expect(calls.some((call) => call.url.pathname.endsWith('.json'))).toBe(false);
+  });
+
+  it('looks up the file, reads its text and signs its links at the same time', async () => {
+    const word = fileRow(1, {
+      upload_path: 'Dosar/Fișa.doc',
+      original_file_name: 'Fișa.doc',
+      mime_type: 'application/msword',
+      storage_path: storagePath(importId, 1, 'doc'),
+      derived_path: storagePath(importId, 1, 'docx'),
+      text_path: storagePath(importId, 1, 'txt'),
+      state: 'read',
+    });
+    const waiting = new Map<string, () => void>();
+    const held = (name: string, respond: () => Response) =>
+      new Promise<Response>((resolve) => waiting.set(name, () => resolve(respond())));
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/imports') {
+        return held('import', () => Response.json({ id: importId }));
+      }
+      if (url.pathname === '/rest/v1/import_files') {
+        return held('files', () => Response.json([word]));
+      }
+      if (url.pathname.startsWith('/storage/v1/object/sign/imports/') && method === 'POST') {
+        return held(`sign ${url.pathname.split('.').at(-1)}`, () =>
+          Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` })
+        );
+      }
+      if (url.pathname.endsWith('.txt')) return held('text', () => new Response('Fișa postului'));
+    });
+    const answer = request(
+      `/imports/${importId}/source?file=${encodeURIComponent('Dosar/Fișa.doc')}&quote=${encodeURIComponent('Fișa postului')}`
+    );
+    const pending = async (count: number) => {
+      await vi.waitFor(() => expect(waiting.size).toBe(count));
+      const names = [...waiting.keys()].sort();
+      for (const release of waiting.values()) release();
+      waiting.clear();
+      return names;
+    };
+
+    expect(await pending(2)).toEqual(['files', 'import']);
+    expect(await pending(3)).toEqual(['sign doc', 'sign docx', 'sign txt']);
+    expect(await pending(1)).toEqual(['text']);
+    const body = (await (await answer).json()) as Record<string, unknown>;
+    expect(body).toMatchObject({
+      text: 'Fișa postului',
+      match: { page: null, start: 0, end: 13 },
+      derived: {
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      },
+    });
+    expect(calls.find((call) => call.url.pathname === '/rest/v1/imports')?.url.search).toContain(
+      'select=id'
+    );
   });
 
   it('places a row repeated under several posts under the post the value is for', async () => {
