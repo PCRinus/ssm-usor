@@ -109,6 +109,7 @@ function SourceContent({
       setDownloading(false);
     }
   }
+  const unplaced = 'Pasajul e în acest fișier, dar nu l-am putut marca pe pagină.';
   const matchMissing =
     source && (kind === 'word' || kind === 'pdf') && source.match === null && current.quote;
 
@@ -218,7 +219,9 @@ function SourceContent({
                 source={source}
                 quote={current.quote}
                 onNotFound={() =>
-                  setNotFound('Nu am găsit pasajul în document, așa că nu e marcat.')
+                  setNotFound(
+                    source.match ? unplaced : 'Nu am găsit pasajul în document, așa că nu e marcat.'
+                  )
                 }
               />
             )}
@@ -227,7 +230,11 @@ function SourceContent({
                 key={index}
                 source={source}
                 quote={kind === 'pdf' ? current.quote : null}
-                onNotFound={() => setNotFound('Nu am găsit pasajul pe pagină, așa că nu e marcat.')}
+                onNotFound={() =>
+                  setNotFound(
+                    source.match ? unplaced : 'Nu am găsit pasajul pe pagină, așa că nu e marcat.'
+                  )
+                }
               />
             )}
             {kind === 'image' && <ImageSourceView key={index} source={source} />}
