@@ -14,6 +14,7 @@ import type { ImportDetail } from '@/api/generated/api';
 import { filesLabel } from './import-format';
 import {
   anafMismatch,
+  appliesAt,
   type Blocker,
   blockerLink,
   type Changes,
@@ -31,6 +32,7 @@ import {
   sectionOf,
   sectionStatus,
   type UntickedReason,
+  valueInForce,
 } from './review-model';
 
 export type ExistingValueAt = (path: string) => string | number | null | undefined;
@@ -55,6 +57,16 @@ export const keptPaths = (states: Record<string, FieldState>) =>
 const included = (proposal: Proposal, changes: Changes, list: ItemList) =>
   itemStates(proposal, changes, list).filter((state) => state.included);
 
+export function smokingRule(states: Record<string, FieldState>) {
+  const policy = valueInForce(states['fireSafety.smokingPolicy']);
+  if (policy === 'forbidden_everywhere') return 'Fumatul interzis peste tot';
+  if (policy !== 'designated_places') return null;
+  const place = String(valueInForce(states['fireSafety.smokingPlace']) ?? '')
+    .trim()
+    .replace(/^[ÎI]n\s+/u, 'în ');
+  return place ? `Fumat doar în locurile amenajate: ${place}` : 'Fumat doar în locurile amenajate';
+}
+
 const count = (value: number, one: string, many: string) =>
   value === 1 ? `un ${one}` : `${value} ${many}`;
 
@@ -76,7 +88,10 @@ export function sectionDescription(
       : ` Alte ${left} ${noun} apar doar în pasaje copiate de la altă firmă și sunt lăsate deoparte.`;
   };
   const choices = Object.values(states).filter(
-    (state) => sectionOf(state.path) === section && state.status === 'choice'
+    (state) =>
+      sectionOf(state.path) === section &&
+      state.status === 'choice' &&
+      appliesAt(states, state.path)
   );
   const choiceText = choices
     .map(
@@ -152,8 +167,8 @@ export function sectionDescription(
         (total, state) => total + Math.max(1, Number(state.values.count ?? 1)),
         0
       );
-      const smoking = states['fireSafety.smokingPlace']?.value;
-      return `${smoking ? `Fumat doar în ${String(smoking)}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : `${equipment} mijloace de stingere`}.${choiceText}${others(['fireEquipment', 'fireInstallations'], 'mijloace')}`;
+      const smoking = smokingRule(states);
+      return `${smoking ? `${smoking}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : `${equipment} mijloace de stingere`}.${choiceText}${others(['fireEquipment', 'fireInstallations'], 'mijloace')}`;
     }
     case 'equipment': {
       const items = included(proposal, changes, 'protectiveEquipment');

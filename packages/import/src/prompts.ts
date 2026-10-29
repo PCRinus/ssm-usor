@@ -90,7 +90,7 @@ ${providerParagraph(provider)}${existingClientParagraph(client)}
 Sources:
 - ${dataNotInstructions}
 - Each file starts with "=== FILE: <path> ===", followed by its text or by its image. "file" is that path exactly, "(pagina N)" included; "quote" is a short verbatim passage of that file, at most 200 characters, that contains the value. Tables are written as rows of "| cell | cell |": quote the words of the cells. Every value needs its file and quote; a value you cannot quote is left out.
-- Copy values as written; do not translate or normalise names. Placeholders such as "-", "……", "____" and empty table cells are not values. Never invent counts, dates or names.
+- Copy values as written and do not translate them; names of people and companies stay exactly as written, but the names of posts, workplaces, rooms, protective equipment and its risks, activities, work zones, waste kinds and collectors, the smoking place and the fire-safety sheet's texts are written with Romanian diacritics (ă, â, î, ș, ț) even where the document leaves them out, while their quote stays verbatim. Placeholders such as "-", "……", "____" and empty table cells are not values. Never invent counts, dates or names.
 - An empty string means unknown. Numbers are written as digits, dates as YYYY-MM-DD.
 
 Rules:

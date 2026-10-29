@@ -32,9 +32,11 @@ import {
   anafMismatch,
   anafMismatchNote,
   anchorOf,
+  appliesAt,
   type Changes,
   fieldGroups,
   fieldInfo,
+  fieldSpelling,
   type FieldState,
   flagNote,
   flagsAt,
@@ -48,6 +50,7 @@ import {
   sameValue,
   type SectionId,
   sourceFilesCount,
+  valueInForce,
   yesNoLabels,
 } from './review-model';
 import {
@@ -58,6 +61,7 @@ import {
   ReviewCard,
   RowNote,
   SourceButton,
+  SpellingPair,
   SummaryRow,
   Tag,
 } from './review-parts';
@@ -96,6 +100,14 @@ function fieldProblem(path: string, raw: string) {
   if (raw.trim() === '') return `${fieldInfo[path]?.write ?? 'Scrie o valoare'}.`;
   const checked = formSchema([path]).safeParse({ [fieldKey(path)]: raw });
   return checked.success ? null : (checked.error.issues[0]?.message ?? 'Valoare greșită.');
+}
+
+function keepWritten(context: FieldContext, path: string, written: string) {
+  const current = context.changes.fields[path] ?? {};
+  const rest = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== 'value' && key !== 'option')
+  );
+  context.review.setField(path, { ...rest, value: written });
 }
 
 // A value equal to what the documents propose is not stored as the member's.
@@ -261,6 +273,7 @@ function FieldRow({
     registered &&
     state.value !== null &&
     sameCompanyName(registered.legalName, String(state.value));
+  const spelling = fieldSpelling(state);
   const anafCui =
     state.path === 'client.cui' &&
     registered &&
@@ -324,6 +337,13 @@ function FieldRow({
           {state.otherCompanyName && <Tag tone="info">De la {state.otherCompanyName}</Tag>}
         </span>
       )}
+      {spelling !== null && (
+        <SpellingPair
+          value={String(state.value)}
+          written={spelling}
+          onKeep={() => keepWritten(context, state.path, spelling)}
+        />
+      )}
       {state.edited && state.proposedValue !== null && (
         <RowNote>
           Propus din documente:{' '}
@@ -355,6 +375,35 @@ function FieldRow({
           {flagNote(flag, context.proposal, context.changes)}
         </RowNote>
       ))}
+    </SummaryRow>
+  );
+}
+
+function NotApplicableRow({ state, context }: { state: FieldState; context: FieldContext }) {
+  const proposed = state.value ?? state.own.map((index) => state.options[index]?.value).join('; ');
+  const forbidden =
+    valueInForce(context.states['fireSafety.smokingPolicy']) === 'forbidden_everywhere';
+  return (
+    <SummaryRow
+      id={anchorOf(state.path)}
+      label={state.label}
+      actions={
+        <SourceButton
+          sources={state.sources}
+          onOpen={() => context.openSource(state.label, state.sources, state.otherCompanyName)}
+        />
+      }
+    >
+      {proposed !== '' && (
+        <span className="text-muted-foreground wrap-anywhere">
+          {formatFieldValue(state.path, proposed)}
+        </span>
+      )}
+      <RowNote testId="review-not-applicable">
+        {forbidden
+          ? 'Nu se aplică: fumatul e interzis peste tot, așa că locul nu se preia.'
+          : 'Se preia doar dacă fumatul e permis în locurile amenajate.'}
+      </RowNote>
     </SummaryRow>
   );
 }
@@ -548,16 +597,20 @@ export function FieldGroupCard({
         <GroupForm paths={paths} context={context} onDone={() => setEditing(false)} />
       ) : (
         <dl className="divide-y">
-          {paths.map((path) => (
-            <FieldRow
-              key={path}
-              state={context.states[path]!}
-              context={context}
-              onEdit={
-                context.states[path]!.status === 'unticked' ? undefined : () => setEditing(true)
-              }
-            />
-          ))}
+          {paths.map((path) =>
+            appliesAt(context.states, path) ? (
+              <FieldRow
+                key={path}
+                state={context.states[path]!}
+                context={context}
+                onEdit={
+                  context.states[path]!.status === 'unticked' ? undefined : () => setEditing(true)
+                }
+              />
+            ) : (
+              <NotApplicableRow key={path} state={context.states[path]!} context={context} />
+            )
+          )}
         </dl>
       )}
     </ReviewCard>
@@ -572,7 +625,9 @@ export function ExistingFieldGroups({
   context: FieldContext;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
-  const states = paths.map((path) => context.states[path]!);
+  const all = paths.map((path) => context.states[path]!);
+  const states = all.filter((state) => appliesAt(context.states, state.path));
+  const notApplicable = all.filter((state) => !appliesAt(context.states, state.path));
   const added = states.filter(
     (state) =>
       state.comparison === 'added' ||
@@ -629,25 +684,30 @@ export function ExistingFieldGroups({
         'review-same',
         'Rămân la fel',
         'Aceleași în aplicație și în documente, sau doar în aplicație. Nu le schimbăm.',
-        same,
-        (state) => (
-          <SummaryRow
-            key={state.path}
-            id={anchorOf(state.path)}
-            label={state.label}
-            actions={
-              <SourceButton
-                sources={state.sources}
-                onOpen={() => context.openSource(state.label, state.sources)}
-              />
-            }
-          >
-            <span className="font-medium">
-              {formatFieldValue(state.path, state.existing, context.vatPayer)}
-            </span>
-            <RowNote>{state.value === null ? 'Doar în aplicație' : 'La fel în documente'}</RowNote>
-          </SummaryRow>
-        )
+        [...same, ...notApplicable],
+        (state) =>
+          !appliesAt(context.states, state.path) ? (
+            <NotApplicableRow key={state.path} state={state} context={context} />
+          ) : (
+            <SummaryRow
+              key={state.path}
+              id={anchorOf(state.path)}
+              label={state.label}
+              actions={
+                <SourceButton
+                  sources={state.sources}
+                  onOpen={() => context.openSource(state.label, state.sources)}
+                />
+              }
+            >
+              <span className="font-medium">
+                {formatFieldValue(state.path, state.existing, context.vatPayer)}
+              </span>
+              <RowNote>
+                {state.value === null ? 'Doar în aplicație' : 'La fel în documente'}
+              </RowNote>
+            </SummaryRow>
+          )
       )}
     </>
   );
@@ -719,7 +779,9 @@ function DifferRow({ state, context }: { state: FieldState; context: FieldContex
 export function FieldsSection({ section, context }: { section: SectionId; context: FieldContext }) {
   const groups = fieldGroups.filter((group) => group.section === section);
   const paths = groups.flatMap((group) => group.paths);
-  const choices = paths.filter((path) => (context.states[path]?.own.length ?? 0) > 1);
+  const choices = paths.filter(
+    (path) => (context.states[path]?.own.length ?? 0) > 1 && appliesAt(context.states, path)
+  );
   return (
     <>
       {choices.map((path) => (

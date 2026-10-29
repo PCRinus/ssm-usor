@@ -1957,6 +1957,18 @@ A post's `staffCategory` and `activities` also carry their own sources in the po
 code, the person's `sources` giving the name; a role whose quote is not found is flagged on
 `responsiblePersons.<i>.roles.<role>.sources.<n>`. A proposal stored before them reads them as
 `{}`, and the review then shows the item's own passages.
+A text value is proposed with its spelling corrected: sentence case for one written in capitals
+(by code) and Romanian diacritics (by the reading model), for a workplace's `name`, `activity` and
+fire-safety texts and its `rooms`, a post's `name`, `workZone` and `activities`, an equipment
+entry's `item` and `risk`, a unit's `room`, `fireSafety.smokingPlace`, `wasteKinds` (a kind at a
+time) and `wasteCollectors`, and `client.legalRepresentativeRole` (sentence case only); names of
+people and companies, identifiers and addresses stay as written. Where the document writes the
+value otherwise only in its capitals or diacritics, the document's spelling is kept beside it: in
+the item's `spelling`, by field (`{ "name": "INGRIJITOR HOTEL" }`; never for a room of the
+workplace, which confirming does not write), and in an option's `spelling`. It comes from the
+quote, or is the value before its capitals were corrected when the quote does not hold it. The
+member keeps it by writing it as their value. A proposal stored before it reads `spelling` as `{}`
+on an item and without it on an option.
 `fireSafety.wasteKinds` is one text, the kinds separated by semicolons, written as the list
 `waste_kinds`; the yes-or-no fields `fireSafety.hasThirdParties` and
 `trainingSchedule.administrativeTrainingNotApplicable` / `workerTrainingNotApplicable` are
@@ -1987,7 +1999,9 @@ workplace or position the review named is no longer the client's), and `422` wit
 missed): one issue whose `path` is the proposal's list or group for that table (or the table)
 and whose `message` is the constraint's name, never the refused values. A new client's VAT
 registration is ANAF's. A post's decision that it needs no protective equipment goes into the
-payload only while none of its entries is written. The payload's `quality` counts per section, without values, how many
+payload only while none of its entries is written, and a smoking place only beside designated
+places, the policy the member chose or the client keeps, since `client_fire_safety` refuses a
+place under another policy or none; a place left out never blocks. The payload's `quality` counts per section, without values, how many
 values the member changed, unticked or kept. The answer is `{ clientId, fileCount }`, and a `copy`
 message copies the folder afterwards. `GET /imports/{importId}/source?file=&quote=` resolves a
 source's `file`, an upload path or `<upload path> (pagina N)`, and answers five-minute links to

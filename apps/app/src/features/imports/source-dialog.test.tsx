@@ -123,6 +123,19 @@ afterEach(() => {
 });
 
 describe('the source dialog', () => {
+  it('counts passages from one file in the singular', async () => {
+    mockSources({ 'dosar-ssm.zip/Decizie 1.docx': word }, [
+      { file: 'dosar-ssm.zip/Decizie 1.docx', quote: 'Telefon: 0269 214 377' },
+      { file: 'dosar-ssm.zip/Decizie 1.docx', quote: 'tel. 0269 214 377' },
+      { file: 'dosar-ssm.zip/Decizie 1.docx', quote: '0269 214 377' },
+    ]);
+    const dialog = await openPhoneSource();
+
+    expect(within(dialog).getByTestId('source-position').textContent).toBe(
+      '1 din 3, într-un fișier'
+    );
+  });
+
   it('steps through every passage, and says when a PDF passage was not found', async () => {
     mockSources({
       'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf', match: null },
@@ -170,8 +183,8 @@ describe('the source dialog', () => {
 
     await userEvent.click(within(dialog).getByTestId('source-next'));
     await userEvent.click(await within(dialog).findByTestId('word-view'));
-    expect(within(dialog).getByTestId('source-not-found').textContent).toContain(
-      'Nu am găsit pasajul în document'
+    expect(within(dialog).getByTestId('source-not-found').textContent).toBe(
+      'Pasajul e în acest fișier, dar nu l-am putut marca pe pagină. Am citit: 0269 214 377'
     );
     expect((within(dialog).getByTestId('source-next') as HTMLButtonElement).disabled).toBe(true);
     expect(
@@ -179,6 +192,21 @@ describe('the source dialog', () => {
         new URL(String(input)).searchParams.get('quote')
       )
     ).toEqual(['Telefon: 0269 214 377', 'tel. 0269 214 377', '0269 214 377', '0269 214 377']);
+  });
+
+  it('says a Word passage the API did not find either is not in the document', async () => {
+    mockSources({ 'dosar-ssm.zip/Decizie 1.docx': { ...word, match: null } }, [
+      { file: 'dosar-ssm.zip/Decizie 1.docx', quote: '0269 214 377' },
+    ]);
+    const dialog = await openPhoneSource();
+    expect((await within(dialog).findByTestId('source-not-found')).textContent).toBe(
+      'Nu am găsit pasajul în fișier, așa că nu e marcat. Am citit: 0269 214 377'
+    );
+
+    await userEvent.click(within(dialog).getByTestId('word-view'));
+    expect(within(dialog).getByTestId('source-not-found').textContent).toBe(
+      'Nu am găsit pasajul în document, așa că nu e marcat. Am citit: 0269 214 377'
+    );
   });
 
   it('opens a passage on its own place when stepping back to it in the same file', async () => {

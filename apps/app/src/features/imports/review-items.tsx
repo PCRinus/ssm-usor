@@ -47,6 +47,7 @@ import {
   type ItemList,
   itemName,
   itemSources,
+  itemSpellings,
   type ItemState,
   itemStates,
   type LabelledSource,
@@ -62,6 +63,7 @@ import {
   ReviewCard,
   RowNote,
   SourceButton,
+  SpellingPair,
 } from './review-parts';
 
 type ItemsContext = FieldContext & { blockers: Blocker[] };
@@ -104,6 +106,7 @@ const blank = (value: unknown) => (value === '' || value === undefined ? null : 
 
 function changedValues(state: ItemState, next: Record<string, unknown>) {
   const original = state.item as Record<string, unknown>;
+  const spelling = (state.item.spelling ?? {}) as Record<string, string>;
   const values: Record<string, unknown> = {};
   for (const [key, raw] of Object.entries(next)) {
     const value = blank(raw);
@@ -113,10 +116,26 @@ function changedValues(state: ItemState, next: Record<string, unknown>) {
     const same = Array.isArray(value)
       ? JSON.stringify(value) === JSON.stringify(before)
       : value === before || (value !== null && before !== null && sameValue(value, before));
-    if (!same) values[key] = value;
+    // sameValue ignores capitals and diacritics, all that sets the document's spelling apart.
+    if (!same || (value !== before && value === spelling[key])) values[key] = value;
   }
   return values;
 }
+
+const spellingLabels: Record<string, string> = {
+  name: 'Denumire',
+  activity: 'Activitate',
+  workZone: 'Zona de lucru',
+  activities: 'Activități',
+  item: 'Articol',
+  risk: 'Risc',
+  room: 'Încăpere',
+  assemblyPoint: 'Punctul de adunare',
+  combustibleMaterials: 'Materiale combustibile',
+  ignitionSources: 'Surse de aprindere',
+  fireRiskEquipment: 'Echipamente și mijloace de lucru',
+  specificMeasures: 'Măsuri specifice',
+};
 
 function ItemRow({
   state,
@@ -160,6 +179,20 @@ function ItemRow({
           <span key={index} className="text-[13px] text-muted-foreground wrap-anywhere">
             {detail}
           </span>
+        ))}
+        {itemSpellings(state, context.changes).map(({ field, value, written }) => (
+          <SpellingPair
+            key={field}
+            label={spellingLabels[field] ?? itemFieldLabel(field)}
+            value={value}
+            written={written}
+            onKeep={() =>
+              context.review.setItem(state.item.id, (current) => ({
+                ...current,
+                values: { ...current.values, [field]: written },
+              }))
+            }
+          />
         ))}
         {blockers.map((blocker) => {
           const field = blocker.path.split('.')[2];

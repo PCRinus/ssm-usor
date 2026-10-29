@@ -22,11 +22,20 @@ const traced = {
   otherCompanyName: z.string().min(1).nullable(),
 };
 
+// How the document writes a value proposed with its capitals or diacritics corrected; absent
+// when the value is as written.
+const spelling = z.string().min(1).optional();
+
 export function optionSchema<T extends z.ZodType>(value: T) {
-  return z.object({ value, ...traced });
+  return z.object({ value, ...traced, spelling });
 }
 
-export type Option<T> = { value: T; sources: Source[]; otherCompanyName: string | null };
+export type Option<T> = {
+  value: T;
+  sources: Source[];
+  otherCompanyName: string | null;
+  spelling?: string;
+};
 
 // No option is a missing value, one is proposed, several are a choice between documents that disagree.
 export function fieldSchema<T extends z.ZodType>(value: T) {
@@ -134,6 +143,10 @@ export const proposedFireSafetySchema = fields(fireSafetyIntegerFieldNames, inte
 
 const item = { id: z.string().min(1), ...traced };
 
+// The document's spelling of each value proposed with its capitals or diacritics corrected, by
+// field. Defaulted for a proposal stored before spelling was corrected.
+const spellings = z.record(z.string(), z.string().min(1)).default({});
+
 // What the workplace's fire-safety sheet and the list of means say of it (OMAI 163/2007), each
 // value from its own passage.
 export const workplaceFireFieldNames = [
@@ -174,6 +187,7 @@ export const proposedWorkplaceSchema = z.object({
   specificMeasures: laterValue(z.string().min(1)),
   // The sources of the fire-safety values by their field, apart from the workplace's own.
   fieldSources: z.record(z.string(), z.array(sourceSchema)).default({}),
+  spelling: spellings,
 });
 
 export type ProposedWorkplace = z.infer<typeof proposedWorkplaceSchema>;
@@ -198,6 +212,7 @@ export const proposedJobPositionSchema = z.object({
   needsProtectiveEquipment: laterValue(z.boolean()),
   // The sources of the category and the activities by their field, apart from the post's own.
   fieldSources: z.record(z.string(), z.array(sourceSchema)).default({}),
+  spelling: spellings,
 });
 
 export type ProposedJobPosition = z.infer<typeof proposedJobPositionSchema>;
@@ -230,6 +245,7 @@ export const proposedFireEquipmentSchema = z.object({
   wheeled: z.boolean(),
   // Units alike; confirming writes one `fire_equipment` row for each.
   count: z.int().nullable(),
+  spelling: spellings,
 });
 
 export type ProposedFireEquipment = z.infer<typeof proposedFireEquipmentSchema>;
@@ -252,6 +268,7 @@ export const proposedProtectiveEquipmentSchema = z.object({
   quantity: z.int().nullable(),
   durationMonths: z.int().nullable(),
   allocation: z.enum(equipmentAllocations).nullable(),
+  spelling: spellings,
 });
 
 export type ProposedProtectiveEquipment = z.infer<typeof proposedProtectiveEquipmentSchema>;

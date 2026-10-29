@@ -109,6 +109,7 @@ function SourceContent({
       setDownloading(false);
     }
   }
+  const unplaced = 'Pasajul e în acest fișier, dar nu l-am putut marca pe pagină.';
   const matchMissing =
     source && (kind === 'word' || kind === 'pdf') && source.match === null && current.quote;
 
@@ -218,7 +219,9 @@ function SourceContent({
                 source={source}
                 quote={current.quote}
                 onNotFound={() =>
-                  setNotFound('Nu am găsit pasajul în document, așa că nu e marcat.')
+                  setNotFound(
+                    source.match ? unplaced : 'Nu am găsit pasajul în document, așa că nu e marcat.'
+                  )
                 }
               />
             )}
@@ -227,7 +230,11 @@ function SourceContent({
                 key={index}
                 source={source}
                 quote={kind === 'pdf' ? current.quote : null}
-                onNotFound={() => setNotFound('Nu am găsit pasajul pe pagină, așa că nu e marcat.')}
+                onNotFound={() =>
+                  setNotFound(
+                    source.match ? unplaced : 'Nu am găsit pasajul pe pagină, așa că nu e marcat.'
+                  )
+                }
               />
             )}
             {kind === 'image' && <ImageSourceView key={index} source={source} />}
@@ -247,7 +254,8 @@ function SourceContent({
         </Button>
         <span className="text-sm text-muted-foreground tabular-nums" data-testid="source-position">
           {index + 1} din {request.sources.length}
-          {request.sources.length > 1 && `, în ${filesLabel(fileCount)}`}
+          {request.sources.length > 1 &&
+            (fileCount === 1 ? ', într-un fișier' : `, în ${filesLabel(fileCount)}`)}
         </span>
         <Button
           variant="outline"

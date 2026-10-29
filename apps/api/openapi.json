@@ -11432,6 +11432,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11471,6 +11475,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -11512,6 +11520,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11551,6 +11563,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -11592,6 +11608,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11631,6 +11651,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -11672,6 +11696,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11711,6 +11739,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -11752,6 +11784,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11791,6 +11827,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -11832,6 +11872,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11871,6 +11915,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -11930,6 +11978,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11968,6 +12020,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -12008,6 +12064,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12046,6 +12106,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -12086,6 +12150,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12124,6 +12192,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -12164,6 +12236,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -12207,6 +12283,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -12263,6 +12343,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12302,6 +12386,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12340,6 +12428,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -12381,6 +12473,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12420,6 +12516,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -12461,6 +12561,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12500,6 +12604,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -12544,6 +12652,10 @@
                               "type": "string",
                               "nullable": true,
                               "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12586,6 +12698,10 @@
                             "otherCompanyName": {
                               "type": "string",
                               "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
                               "minLength": 1
                             }
                           },
@@ -12733,6 +12849,14 @@
                         }
                       },
                       "default": {}
+                    },
+                    "spelling": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "default": {}
                     }
                   },
                   "required": [
@@ -12825,6 +12949,14 @@
                           },
                           "required": ["file", "quote"]
                         }
+                      },
+                      "default": {}
+                    },
+                    "spelling": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string",
+                        "minLength": 1
                       },
                       "default": {}
                     }
@@ -13007,6 +13139,14 @@
                     "count": {
                       "type": "integer",
                       "nullable": true
+                    },
+                    "spelling": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "default": {}
                     }
                   },
                   "required": [
@@ -13161,6 +13301,14 @@
                       "type": "string",
                       "nullable": true,
                       "enum": ["personal_inventory", "section_inventory", "consumable", null]
+                    },
+                    "spelling": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "default": {}
                     }
                   },
                   "required": [
