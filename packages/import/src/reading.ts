@@ -19,10 +19,13 @@ import {
   fireSafetyTextFieldNames,
   fireSafetyYesNoFieldNames,
   importedEmployeeRoles,
+  type JobPositionFactFieldName,
+  jobPositionFactFieldNames,
   type Option,
   type Proposal,
   proposalSchema,
-  type ProposedWorkplace,
+  type ProposedJobPosition,
+  type ProposedResponsiblePerson,
   type Source,
   trainingScheduleFieldNames,
   trainingScheduleYesNoFieldNames,
@@ -86,21 +89,33 @@ export const readingSchema = z.object({
   jobPositions: z.array(
     z.object({
       name: z.string(),
-      staffCategory: z.enum(staffCategories).nullable(),
       trainingIntervalMonths: z.int().nullable(),
       workZone: z.string().nullable(),
-      activities: z.string().nullable(),
       managementOnly: z.boolean(),
       // An enum, since a boolean on the wire cannot be unknown.
       needsProtectiveEquipment: z.enum(yesNoValues).nullable(),
       ...quoted,
     })
   ),
+  // A post's category and activities come from other decisions than its name (the training
+  // decision, the risk assessment), so each has its own passage.
+  jobPositionFacts: z.array(
+    z.object({
+      jobPosition: z.string(),
+      field: z.enum(jobPositionFactFieldNames),
+      value: z.string(),
+      ...quoted,
+    })
+  ),
+  // A person's roles come from several decisions, so each role has its own passage, and the
+  // person's own passage gives the name and the post.
   responsiblePersons: z.array(
     z.object({
       fullName: z.string(),
       jobTitle: z.string().nullable(),
-      roles: z.array(z.enum(responsiblePersonRoles)),
+      roles: z.array(
+        z.object({ role: z.enum(responsiblePersonRoles), file: z.string(), quote: z.string() })
+      ),
       workplace: z.string().nullable(),
       ...quoted,
     })
@@ -176,8 +191,10 @@ function cleanFile(file: string) {
     .trim();
 }
 
+const sourceOf = (entry: Source): Source => ({ file: cleanFile(entry.file), quote: entry.quote });
+
 const traced = (entry: Quoted) => ({
-  sources: [{ file: cleanFile(entry.file), quote: entry.quote }],
+  sources: [sourceOf(entry)],
   otherCompanyName: entry.otherCompany,
 });
 
@@ -281,6 +298,20 @@ function workplaceFactValue(field: WorkplaceFireFieldName, value: string): strin
   return trimmed;
 }
 
+function staffCategory(written: string) {
+  if ((staffCategories as readonly string[]).includes(written)) return written;
+  const folded = foldText(written);
+  if (folded.includes('executie') || folded.includes('execution')) return 'execution';
+  if (folded.includes('tehnic') || folded.includes('technical')) return 'technical_administrative';
+  return null;
+}
+
+function jobPositionFactValue(field: JobPositionFactFieldName, value: string) {
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  return field === 'staffCategory' ? staffCategory(trimmed) : trimmed;
+}
+
 function sameValue(a: string | number, b: string | number) {
   return typeof a === 'number' || typeof b === 'number' ? a === b : foldText(a) === foldText(b);
 }
@@ -372,34 +403,90 @@ const noFireValues = () => ({
   fieldSources: {} as Record<string, Source[]>,
 });
 
-type FireValues = Pick<ProposedWorkplace, WorkplaceFireFieldName | 'id' | 'fieldSources'>;
+interface Valued {
+  id: string;
+  otherCompanyName: string | null;
+  fieldSources: Record<string, Source[]>;
+}
 
-// A value only another company's passages give is left for the member to write, since a
-// workplace's values have no tick of their own.
-function fillFireValues(
-  workplaces: FireValues[],
-  facts: Reading['workplaceFacts'],
-  workplaceOf: (name: string) => string | null
+interface ValueFact extends Quoted {
+  name: string;
+  field: string;
+  value: string | number | null;
+}
+
+// A value only another company's passages give is left for the member to write, since an
+// item's values have no tick of their own, unless the item is that company's as a whole.
+function fillValues(
+  items: Valued[],
+  facts: ValueFact[],
+  itemOf: (name: string) => string | null
 ): string[] {
   const unplaced: string[] = [];
   for (const fact of facts) {
-    if (fact.otherCompany !== null) continue;
-    const value = workplaceFactValue(fact.field, fact.value);
-    if (value === null) continue;
-    const workplace = workplaces.find((each) => each.id === workplaceOf(fact.workplace));
-    if (!workplace) {
-      if (!unplaced.some((name) => foldText(name) === foldText(fact.workplace))) {
-        unplaced.push(fact.workplace.trim() || 'fără nume');
+    if (fact.value === null) continue;
+    const item = items.find((each) => each.id === itemOf(fact.name));
+    if (fact.otherCompany !== null && (item?.otherCompanyName ?? null) === null) continue;
+    if (!item) {
+      if (!unplaced.some((name) => foldText(name) === foldText(fact.name))) {
+        unplaced.push(fact.name.trim() || 'fără nume');
       }
       continue;
     }
-    const known = workplace[fact.field];
-    if (known !== null && !sameValue(known, value)) continue;
-    if (known === null) (workplace as Record<string, unknown>)[fact.field] = value;
-    workplace.fieldSources[fact.field] ??= [];
-    mergeSources(workplace.fieldSources[fact.field]!, traced(fact).sources);
+    const values = item as unknown as Record<string, string | number | null>;
+    const known = values[fact.field] ?? null;
+    if (known !== null && !sameValue(known, fact.value)) continue;
+    if (known === null) values[fact.field] = fact.value;
+    item.fieldSources[fact.field] ??= [];
+    mergeSources(item.fieldSources[fact.field]!, traced(fact).sources);
   }
   return unplaced;
+}
+
+type ReadPosition = Reading['jobPositions'][number] & {
+  staffCategory?: string | null;
+  activities?: string | null;
+};
+
+// A scan's page read before a post's category and activities had passages of their own gives
+// them on the post, from its passage.
+const inlinePositionFacts = (reading: Reading): Reading['jobPositionFacts'] =>
+  (reading.jobPositions as ReadPosition[]).flatMap((position) =>
+    jobPositionFactFieldNames.flatMap((field) => {
+      const value = position[field];
+      return typeof value === 'string'
+        ? [
+            {
+              jobPosition: position.name,
+              field,
+              value,
+              file: position.file,
+              quote: position.quote,
+              otherCompany: position.otherCompany,
+            },
+          ]
+        : [];
+    })
+  );
+
+type ReadRole = Reading['responsiblePersons'][number]['roles'][number];
+
+// A scan's page read before roles had passages of their own lists bare roles, which stand on
+// the person's passage.
+const roleOf = (
+  person: Reading['responsiblePersons'][number],
+  entry: ReadRole | ReadRole['role']
+): ReadRole =>
+  typeof entry === 'string' ? { role: entry, file: person.file, quote: person.quote } : entry;
+
+type Roles = Pick<ProposedResponsiblePerson, 'roles' | 'roleSources'>;
+
+function addRoles(into: Roles, from: Roles) {
+  into.roles = [...new Set([...into.roles, ...from.roles])];
+  for (const [role, sources] of Object.entries(from.roleSources)) {
+    into.roleSources[role] ??= [];
+    mergeSources(into.roleSources[role]!, sources);
+  }
 }
 
 export function toProposal(...readings: Reading[]): Proposal {
@@ -461,10 +548,14 @@ export function toProposal(...readings: Reading[]): Proposal {
     }))
   );
   const onlyWorkplace = workplaces.length === 1 ? workplaces[0]!.id : null;
-  const unplaced = fillFireValues(
+  const unplaced = fillValues(
     workplaces,
     // A scan's page read before the field existed has none.
-    list((reading) => reading.workplaceFacts ?? []),
+    list((reading) => reading.workplaceFacts ?? []).map((fact) => ({
+      ...fact,
+      name: fact.workplace,
+      value: workplaceFactValue(fact.field, fact.value),
+    })),
     (name) => (named(name) ? (resolve(name, workplaceNames, true) ?? onlyWorkplace) : onlyWorkplace)
   );
   const workplaceReference = (name: string | null, defaultToOnly: boolean) => ({
@@ -479,10 +570,10 @@ export function toProposal(...readings: Reading[]): Proposal {
       .map((position) => ({
         ...traced(position),
         name: position.name,
-        staffCategory: position.staffCategory,
+        staffCategory: null as ProposedJobPosition['staffCategory'],
         trainingIntervalMonths: position.trainingIntervalMonths,
         workZone: position.workZone,
-        activities: position.activities,
+        activities: null as string | null,
         // A scan's page read before the field existed has none.
         managementOnly: position.managementOnly === true,
         needsProtectiveEquipment:
@@ -491,6 +582,7 @@ export function toProposal(...readings: Reading[]): Proposal {
             : position.needsProtectiveEquipment === 'false'
               ? false
               : null,
+        fieldSources: {} as Record<string, Source[]>,
       })),
     (a, b) => foldText(a.name) === foldText(b.name),
     (into, from) => {
@@ -498,6 +590,17 @@ export function toProposal(...readings: Reading[]): Proposal {
       into.managementOnly &&= from.managementOnly;
     }
   ).map((position, index) => ({ id: `position-${index + 1}`, ...position }));
+  const unplacedPositions = fillValues(
+    jobPositions,
+    readings
+      .flatMap((reading) => [...inlinePositionFacts(reading), ...(reading.jobPositionFacts ?? [])])
+      .map((fact) => ({
+        ...fact,
+        name: fact.jobPosition,
+        value: jobPositionFactValue(fact.field, fact.value),
+      })),
+    (name) => resolve(name, jobPositions)
+  );
 
   const fireEquipment = list((reading) => reading.fireEquipment).map((equipment, index) => ({
     id: `equipment-${index + 1}`,
@@ -550,17 +653,24 @@ export function toProposal(...readings: Reading[]): Proposal {
     responsiblePersons: joined(
       list((reading) => reading.responsiblePersons)
         .filter((person) => named(person.fullName) && person.roles.length > 0)
-        .map((person) => ({
-          ...traced(person),
-          fullName: person.fullName,
-          jobTitle: person.jobTitle,
-          roles: [...new Set(person.roles)],
-          workplace: person.workplace,
-        })),
+        .map((person) => {
+          const roles: Roles = { roles: [], roleSources: {} };
+          for (const entry of person.roles) {
+            const { role, ...source } = roleOf(person, entry);
+            addRoles(roles, { roles: [role], roleSources: { [role]: [sourceOf(source)] } });
+          }
+          return {
+            ...traced(person),
+            fullName: person.fullName,
+            jobTitle: person.jobTitle,
+            ...roles,
+            workplace: person.workplace,
+          };
+        }),
       (a, b) => foldName(a.fullName) === foldName(b.fullName),
       (into, from) => {
         fillGaps(into, from);
-        into.roles = [...new Set([...into.roles, ...from.roles])];
+        addRoles(into, from);
       }
     ).map((person, index) => ({
       id: `person-${index + 1}`,
@@ -599,6 +709,10 @@ export function toProposal(...readings: Reading[]): Proposal {
       ...unplaced.map(
         (name) =>
           `Datele PSI ale locului de muncă «${name}» nu se potrivesc cu niciun punct de lucru și nu au fost preluate.`
+      ),
+      ...unplacedPositions.map(
+        (name) =>
+          `Categoria și activitățile postului «${name}» nu se potrivesc cu niciun post și nu au fost preluate.`
       ),
     ],
     flags: [],
