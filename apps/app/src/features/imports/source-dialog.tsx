@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { cn } from '@ssm-usor/ui/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { ChevronLeft, ChevronRight, Copy, Download, FileText, ScanText } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
@@ -76,18 +77,21 @@ function SourceContent({
     quote: current.quote.slice(0, 2000),
     ...(current.near && { near: current.near.slice(0, 200) }),
   };
+  const queryKey = getGetImportSourceQueryKey(importId, params);
+  const queryClient = useQueryClient();
   const query = useGetImportSource(importId, params, {
     request: apiRequest,
     query: {
-      queryKey: getGetImportSourceQueryKey(importId, params),
-      staleTime: 4 * 60_000,
-      gcTime: 4 * 60_000,
+      queryKey,
+      staleTime: (cached) => linkLife(cached.state.data),
+      // The cache keeps the longest time it was given, so the fallback stays the floor.
+      gcTime: linkLife(queryClient.getQueryData<ImportSourceResponse>(queryKey)),
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
     },
   });
-  // The answer outlives its links: kept four minutes after the dialog closes, it can come back
-  // with links Storage now refuses, so a reopened dialog waits for the new ones.
+  // The answer can outlive its links: kept after the dialog closes, it can come back with links
+  // Storage now refuses, so a reopened dialog waits for the new ones.
   const source = query.isStale && (query.isFetching || query.isError) ? undefined : query.data;
   const kind = source ? sourceKind(source) : null;
   const fileCount = new Set(request.sources.map((each) => each.file)).size;
@@ -294,6 +298,10 @@ function SourceContent({
     </DialogContent>
   );
 }
+
+// A minute short of the links' expiry leaves the viewer time to open a link it was handed.
+const linkLife = (answer: ImportSourceResponse | undefined) =>
+  answer ? Math.max(0, (answer.expiresInSeconds - 60) * 1000) : 4 * 60_000;
 
 // A Storage link names the file to save through `download`; the attribute of an anchor is
 // ignored for another origin.

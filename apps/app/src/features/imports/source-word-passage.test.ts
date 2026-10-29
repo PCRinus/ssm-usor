@@ -81,10 +81,6 @@ describe('holding the passage in view in the Word viewer', () => {
     clock.run(32);
     expect(viewport.scrollTop).toBe(5010 - 300);
 
-    viewport.scrollTop = 5100;
-    clock.run(32);
-    expect(viewport.scrollTop).toBe(4710);
-
     passage.place.top = 5400;
     clock.run(32);
     expect(viewport.scrollTop).toBe(5110);
@@ -132,6 +128,44 @@ describe('holding the passage in view in the Word viewer', () => {
     expect(viewport.scrollTop).toBe(0);
   });
 
+  it('keeps holding while the fonts load past the cap, and follows the passage when they land', () => {
+    const { viewport, mark } = editorViewport();
+    const clock = manualClock();
+    let fontsPending = true;
+    const passage = mark({ top: 8400, left: 100, width: 80, height: 20 });
+    holdPassage(viewport, { clock, fontsPending: () => fontsPending });
+    clock.run(16_000);
+    expect(viewport.scrollTop).toBe(8110);
+
+    passage.place.top = 8010;
+    fontsPending = false;
+    clock.run(32);
+    expect(viewport.scrollTop).toBe(7720);
+
+    clock.run(1200);
+    viewport.scrollTop = 0;
+    clock.run(100);
+    expect(viewport.scrollTop).toBe(0);
+  });
+
+  it('lets go when the reader drags the scrollbar, which fires no wheel, touch or key', () => {
+    const { viewport, mark } = editorViewport();
+    const clock = manualClock();
+    const passage = mark({ top: 5000, left: 100, width: 80, height: 20 });
+    holdPassage(viewport, { clock, fontsPending: () => true });
+    clock.run(32);
+    expect(viewport.scrollTop).toBe(4710);
+
+    viewport.scrollTop = 6000;
+    clock.run(32);
+    expect(viewport.scrollTop).toBe(6000);
+
+    passage.place.top = 5400;
+    clock.run(32);
+    expect(viewport.scrollTop).toBe(6000);
+    expect(clock.waiting).toBe(0);
+  });
+
   it('waits for the editor to paint the passage before it scrolls', () => {
     const { viewport, mark } = editorViewport();
     const clock = manualClock();
@@ -165,6 +199,28 @@ describe('holding the passage in view in the Word viewer', () => {
     clock.run(16);
     expect(repainted.classList.contains(passageRowClass)).toBe(true);
     stop();
+  });
+
+  it('centres the highlight, not the row, when the row is taller than the screen', () => {
+    const { viewport, mark, row } = editorViewport();
+    const clock = manualClock();
+    row({ top: 4000, left: 50, width: 700, height: 900 });
+    mark({ top: 4800, left: 100, width: 80, height: 20 });
+    holdPassage(viewport, { clock });
+    clock.run(32);
+    expect(viewport.scrollTop).toBe(4810 - 300);
+  });
+
+  it('scrolls across to the highlight, not the row’s edge, when the row is wider than a phone', () => {
+    const { viewport, mark, row } = editorViewport();
+    Object.assign(viewport, { clientWidth: 360, scrollWidth: 1000 });
+    const clock = manualClock();
+    row({ top: 1000, left: 40, width: 640, height: 40 });
+    mark({ top: 1010, left: 560, width: 80, height: 20 });
+    holdPassage(viewport, { clock });
+    clock.run(32);
+    expect(viewport.scrollLeft).toBe(640 + 24 - 360);
+    expect(viewport.scrollTop).toBe(1020 - 300);
   });
 
   it('shows the end of a passage taller than the screen when asked, as a row under its heading', () => {

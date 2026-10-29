@@ -118,7 +118,13 @@ export type LineHit = {
   length: number;
   paragraphIndex: number;
   scope?: unknown;
+  contextAfter?: string;
 };
+
+type Find = (
+  queries: readonly string[],
+  options?: { wholeWord?: boolean }
+) => readonly (readonly LineHit[])[];
 
 // The lines of a passage sit in consecutive paragraphs or table cells, so a later line is only
 // looked for a few paragraphs on: a short cell such as "CUI" also appears elsewhere.
@@ -136,21 +142,21 @@ const comesAfter = (hit: LineHit, previous: LineHit) =>
 
 // The text the API matched in collapses runs of spaces that the document keeps, as in a cell
 // "Substante de curatat  (maini)", so a line the editor cannot find whole is found word by word,
-// each word a space or two after the previous one in the same paragraph.
-const wordGap = 4;
-
-export function findLine(line: string, find: (query: string) => readonly LineHit[]): LineHit[] {
-  const whole = find(line);
+// each word after nothing but spaces from the previous one in the same paragraph. The words are
+// looked for in one pass, since a word such as "de" is in most paragraphs of a long document.
+export function findLine(line: string, find: Find): LineHit[] {
+  const whole = find([line])[0] ?? [];
   const words = line.split(/\s+/);
   if (whole.length > 0 || words.length < 2) return [...whole];
-  const [first, ...rest] = words.map(find);
-  return first!.flatMap((start) => {
+  const [first = [], ...rest] = find(words, { wholeWord: true });
+  if (first.length === 0 || rest.some((hits) => hits.length === 0)) return [];
+  const at = rest.map((hits) => new Map(hits.map((hit) => [`${hit.blockId}:${hit.start}`, hit])));
+  return first.flatMap((start) => {
     let last = start;
-    for (const hits of rest) {
-      const end = last.start + last.length;
-      const next = hits.find(
-        (hit) => hit.blockId === last.blockId && hit.start > end && hit.start - end <= wordGap
-      );
+    for (const hits of at) {
+      const spaces = /^\s+/.exec(last.contextAfter ?? '')?.[0].length ?? 0;
+      const next =
+        spaces > 0 ? hits.get(`${last.blockId}:${last.start + last.length + spaces}`) : undefined;
       if (!next) return [];
       last = next;
     }

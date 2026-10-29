@@ -51,6 +51,7 @@ type SourceAnswer = {
     end: number;
     parts: { start: number; end: number }[];
   } | null;
+  expiresInSeconds?: number;
 };
 
 const phoneSources = [
@@ -99,15 +100,17 @@ function mockSources(
         text: null,
         pages: null,
         match: answer.match ?? null,
-        expiresInSeconds: 300,
+        expiresInSeconds: answer.expiresInSeconds ?? 300,
       });
     }
     return undefined;
   });
 }
 
+let mounted: ReturnType<typeof mountApp>;
+
 async function openPhoneSource() {
-  mountApp(authFixture(makeSession()).client, `/clients/import/${importId}/identity`);
+  mounted = mountApp(authFixture(makeSession()).client, `/clients/import/${importId}/identity`);
   const groups = await screen.findAllByTestId('review-group');
   const contact = groups.find((group) => group.textContent?.includes('Persoană de contact'))!;
   const row = within(contact)
@@ -272,9 +275,9 @@ describe('the source dialog', () => {
     expect(within(dialog).getByTestId('pdf-view').dataset.quote).toBe('Telefon: 0269 214 377');
   });
 
-  it('waits for new links when reopened after the old ones expired', async () => {
+  async function reopenWordSourceAfter(expiresInSeconds: number, minutes: number) {
     vi.useFakeTimers({ toFake: ['Date'] });
-    mockSources({ 'dosar-ssm.zip/Decizie 1.docx': word }, [
+    mockSources({ 'dosar-ssm.zip/Decizie 1.docx': { ...word, expiresInSeconds } }, [
       { file: 'dosar-ssm.zip/Decizie 1.docx', quote: '0269 214 377' },
     ]);
     const dialog = await openPhoneSource();
@@ -282,8 +285,12 @@ describe('the source dialog', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Închide' }));
     await waitFor(() => expect(screen.queryByTestId('import-source-dialog')).toBeNull());
     wordLinks.length = 0;
+    const kept = mounted.queryClient
+      .getQueryCache()
+      .getAll()
+      .find((each) => String(each.queryKey[0]).endsWith('/source'))!.gcTime;
 
-    vi.setSystemTime(Date.now() + 6 * 60_000);
+    vi.setSystemTime(Date.now() + minutes * 60_000);
     const contact = screen
       .getAllByTestId('review-group')
       .find((group) => group.textContent?.includes('Persoană de contact'))!;
@@ -292,8 +299,27 @@ describe('the source dialog', () => {
       .find((each) => each.textContent?.includes('Telefon'))!;
     await userEvent.click(within(row).getByTestId('review-source'));
     const reopened = await screen.findByTestId('import-source-dialog');
-
     await within(reopened).findByTestId('word-view');
+    return kept;
+  }
+
+  it('waits for new links when reopened after the old ones expired', async () => {
+    await reopenWordSourceAfter(300, 6);
+
+    expect(sourceRequests).toBe(2);
+    expect(new Set(wordLinks)).toEqual(new Set(['https://storage.example/object?token=2']));
+  });
+
+  it('keeps the links as long as the server says they last, less a minute', async () => {
+    expect(await reopenWordSourceAfter(600, 8)).toBe(9 * 60_000);
+
+    expect(sourceRequests).toBe(1);
+    expect(new Set(wordLinks)).toEqual(new Set(['https://storage.example/object?token=1']));
+  });
+
+  it('asks for new links sooner when the server says they last less', async () => {
+    await reopenWordSourceAfter(120, 1.5);
+
     expect(sourceRequests).toBe(2);
     expect(new Set(wordLinks)).toEqual(new Set(['https://storage.example/object?token=2']));
   });

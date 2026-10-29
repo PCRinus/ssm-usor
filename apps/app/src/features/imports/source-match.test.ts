@@ -43,6 +43,34 @@ const matched = (start: number, end: number, page: number | null = null) => ({
   parts: [{ start, end }],
 });
 
+function searchIn(paragraphs: string[]) {
+  const calls: string[][] = [];
+  const find = (queries: readonly string[], options: { wholeWord?: boolean } = {}) => {
+    calls.push([...queries]);
+    return queries.map((query) =>
+      paragraphs.flatMap((paragraph, paragraphIndex) => {
+        const hits: LineHit[] = [];
+        for (let at = paragraph.indexOf(query); at !== -1; at = paragraph.indexOf(query, at + 1)) {
+          const end = at + query.length;
+          const edges = [paragraph[at - 1], paragraph[end]];
+          if (options.wholeWord && edges.some((each) => each && /[\p{L}\p{N}_]/u.test(each))) {
+            continue;
+          }
+          hits.push({
+            blockId: `p${paragraphIndex}`,
+            start: at,
+            length: query.length,
+            paragraphIndex,
+            contextAfter: paragraph.slice(end, end + 48),
+          });
+        }
+        return hits;
+      })
+    );
+  };
+  return { find, calls };
+}
+
 describe('finding a passage in the viewers', () => {
   it('marks the runs of the text layer a quote spans, ignoring case, diacritics and spacing', () => {
     const spans = ['Denumirea postului: ', 'OPERATOR', ' linie', ' ambalare.', ' Atribuții'].map(
@@ -162,21 +190,41 @@ describe('finding a passage in the viewers', () => {
   });
 
   it('finds a cell whose words the document spaces wider than the text the API read', () => {
-    const paragraphs = ['Arsuri (maini)', 'Substante de curatat  (maini)', 'Manusi'];
-    const find = (query: string) =>
-      paragraphs.flatMap((paragraph, paragraphIndex) => {
-        const start = paragraph.indexOf(query);
-        return start === -1
-          ? []
-          : [{ blockId: `p${paragraphIndex}`, start, length: query.length, paragraphIndex }];
-      });
-    expect(findLine('Substante de curatat (maini)', find)).toEqual([
+    const { find } = searchIn(['Arsuri (maini)', 'Substante de curatat  (maini)', 'Manusi']);
+    expect(findLine('Substante de curatat (maini)', find)).toMatchObject([
       { blockId: 'p1', start: 0, length: 29, paragraphIndex: 1 },
     ]);
-    expect(findLine('Arsuri (maini)', find)).toEqual([
+    expect(findLine('Arsuri (maini)', find)).toMatchObject([
       { blockId: 'p0', start: 0, length: 14, paragraphIndex: 0 },
     ]);
     expect(findLine('Substante (maini)', find)).toEqual([]);
+  });
+
+  it('does not take a word the line lacks between two of its words', () => {
+    const { find } = searchIn(['Se iau masuri de protectie', 'masuri  protectie colectiva']);
+    expect(findLine('masuri protectie', find)).toMatchObject([
+      { blockId: 'p1', start: 0, length: 17 },
+    ]);
+    expect(findLine('iau masuri protectie', find)).toEqual([]);
+  });
+
+  it('looks for the words of a line in one search, however common they are', () => {
+    const paragraphs = [
+      ...Array.from({ length: 2000 }, (_, index) => `de a la poarta ${index}`),
+      'de a la  sediul firmei',
+    ];
+    const present = searchIn(paragraphs);
+    expect(findLine('de a la sediul firmei', present.find)).toMatchObject([
+      { blockId: 'p2000', start: 0, length: 22 },
+    ]);
+    expect(present.calls).toEqual([
+      ['de a la sediul firmei'],
+      ['de', 'a', 'la', 'sediul', 'firmei'],
+    ]);
+
+    const absent = searchIn(paragraphs);
+    expect(findLine('de a la birou', absent.find)).toEqual([]);
+    expect(absent.calls).toHaveLength(2);
   });
 
   describe('a table row repeated under several posts', () => {

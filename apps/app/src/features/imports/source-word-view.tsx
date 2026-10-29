@@ -104,7 +104,7 @@ export default function WordSourceView({
         onReady={(editor) => {
           const parts = passageParts(source, quote);
           const { hits, anchor } = passageHits(parts, (line) =>
-            findLine(line, (query) => editor.findMatches(query))
+            findLine(line, (queries, options) => editor.findMatches(queries, options))
           );
           setPassage({
             ranges: hits.map(({ blockId, start, length }) => ({ blockId, start, length })),
