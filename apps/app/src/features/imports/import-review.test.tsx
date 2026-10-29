@@ -1107,6 +1107,9 @@ describe('a smoking rule the decisions disagree on', () => {
 });
 
 describe('a value proposed with its spelling corrected', () => {
+  const markedWords = (pair: HTMLElement) =>
+    Array.from(pair.querySelectorAll('mark'), (mark) => mark.textContent);
+
   const spellingDetail = () => {
     const proposal = proposalFixture();
     Object.assign(proposal.jobPositions[0]!, {
@@ -1132,6 +1135,7 @@ describe('a value proposed with its spelling corrected', () => {
     expect(name!.textContent).toBe(
       'Denumire:Propus: Îngrijitor hotelÎn document: INGRIJITOR HOTELScrierea corectată: majuscule și diacriticePăstrează ca în document'
     );
+    expect(markedWords(name!)).toEqual(['Îngrijitor', 'hotel', 'INGRIJITOR', 'HOTEL']);
     expect(zone!.textContent).toContain('Scrierea corectată: majuscule');
     expect(zone!.textContent).not.toContain('diacritice');
 
@@ -1165,6 +1169,7 @@ describe('a value proposed with its spelling corrected', () => {
     expect(within(row).getByTestId('review-spelling').textContent).toContain(
       'Scrierea corectată: diacritice'
     );
+    expect(markedWords(within(row).getByTestId('review-spelling'))).toEqual(['În', 'In']);
 
     await userEvent.click(within(row).getByRole('button', { name: 'Păstrează ca în document' }));
     await waitFor(() => expect(saves).toBe(1));
