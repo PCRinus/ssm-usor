@@ -36,7 +36,12 @@ import { Notice } from '@/components/notice';
 
 import { importErrorMessage } from './import-format';
 import { leaveImportNotice } from './import-notice';
-import { type FieldState, formatFieldValue, type Proposal } from './review-model';
+import {
+  type FieldState,
+  formatFieldValue,
+  type Proposal,
+  refusedValueMessage,
+} from './review-model';
 import { confirmLines, folderSentence, importFolderCount } from './review-summary';
 import type { ImportReview } from './use-import-review';
 
@@ -151,14 +156,17 @@ export function ConfirmImportDialog({
       ]);
       await navigate({ to: '/clients/$clientId/details', params: { clientId: result.clientId } });
     } catch (cause) {
-      const reason =
+      const body =
         cause instanceof ApiHttpError
-          ? (cause.body as Partial<ApiErrorResponse> | undefined)?.reason
+          ? (cause.body as Partial<ApiErrorResponse> | undefined)
           : undefined;
+      const reason = body?.reason;
       setError(
-        reason && Object.hasOwn(conflictReasons, reason)
-          ? conflictReasons[reason]!
-          : importErrorMessage(cause, 'Nu am putut confirma importul. Încearcă din nou.')
+        reason === importErrorReasons.refused
+          ? refusedValueMessage(body?.issues?.[0])
+          : reason && Object.hasOwn(conflictReasons, reason)
+            ? conflictReasons[reason]!
+            : importErrorMessage(cause, 'Nu am putut confirma importul. Încearcă din nou.')
       );
       setSending(false);
     }
