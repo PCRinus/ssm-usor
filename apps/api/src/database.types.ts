@@ -2674,11 +2674,13 @@ export type Database = {
           proposal: Json | null;
           proposal_dropped_at: string | null;
           quality: Json | null;
+          read_characters: number | null;
           ready_at: string | null;
           source_import_id: string | null;
           started_at: string | null;
           status: Database['public']['Enums']['import_status'];
           updated_at: string;
+          usage_by_step: Json;
           version: number;
         };
         Insert: {
@@ -2706,11 +2708,13 @@ export type Database = {
           proposal?: Json | null;
           proposal_dropped_at?: string | null;
           quality?: Json | null;
+          read_characters?: number | null;
           ready_at?: string | null;
           source_import_id?: string | null;
           started_at?: string | null;
           status?: Database['public']['Enums']['import_status'];
           updated_at?: string;
+          usage_by_step?: Json;
           version?: number;
         };
         Update: {
@@ -2738,11 +2742,13 @@ export type Database = {
           proposal?: Json | null;
           proposal_dropped_at?: string | null;
           quality?: Json | null;
+          read_characters?: number | null;
           ready_at?: string | null;
           source_import_id?: string | null;
           started_at?: string | null;
           status?: Database['public']['Enums']['import_status'];
           updated_at?: string;
+          usage_by_step?: Json;
           version?: number;
         };
         Relationships: [
@@ -6877,11 +6883,13 @@ export type Database = {
           proposal: Json | null;
           proposal_dropped_at: string | null;
           quality: Json | null;
+          read_characters: number | null;
           ready_at: string | null;
           source_import_id: string | null;
           started_at: string | null;
           status: Database['public']['Enums']['import_status'];
           updated_at: string;
+          usage_by_step: Json;
           version: number;
         };
         SetofOptions: {
@@ -7057,6 +7065,7 @@ export type Database = {
           p_import_id: string;
           p_input_tokens: number;
           p_output_tokens: number;
+          p_step: string;
         };
         Returns: undefined;
       };

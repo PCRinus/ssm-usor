@@ -102,7 +102,7 @@ class World {
   files = new Map<string, ImportFileRow & Record<string, unknown>>();
   objects = new Map<string, Uint8Array>();
   clientFiles = new Map<string, Uint8Array>();
-  usage: { fileId: string | null; input: number; cost: number }[] = [];
+  usage: { fileId: string | null; step: string; input: number; cost: number }[] = [];
   sent: { id: string; body: ImportMessage; attempts: number; delaySeconds?: number }[] = [];
   failCopyAfter: number | null = null;
   sizeLimit: number | null = null;
@@ -184,8 +184,8 @@ class World {
         Object.assign(row, patch);
         return true;
       },
-      recordUsage: async (_importId, fileId, usage, cost) => {
-        this.usage.push({ fileId, input: usage.input, cost });
+      recordUsage: async (_importId, fileId, step, usage, cost) => {
+        this.usage.push({ fileId, step, input: usage.input, cost });
       },
       provider: async () => ({
         name: 'SERVICIUL EXTERN EXEMPLU S.R.L.',
@@ -668,6 +668,25 @@ describe('the import queue', () => {
     expect(photo).toBeDefined();
     expect(world.usage).toHaveLength(6);
     expect(world.usage.filter((usage) => usage.fileId === null)).toHaveLength(2);
+    expect(world.usage.map((usage) => usage.step).sort()).toEqual([
+      'reading',
+      'scanning',
+      'scanning',
+      'sorting',
+      'sorting',
+      'sorting',
+    ]);
+    const kept = [
+      'Dosar/Decizia 1.docx',
+      'Dosar/PSI/Lista mijloace.doc',
+      'Dosar/Scanate/Decizie semnata.pdf',
+    ];
+    const keptText = kept.reduce((sum, path) => {
+      const file = world.fileAt(path);
+      const stored = new TextDecoder().decode(world.objects.get(file.text_path!)!);
+      return sum + (path.endsWith('.pdf') ? scannedFirstPage.length : stored.length);
+    }, 0);
+    expect(row.read_characters).toBe(keptText);
   });
 
   it('fails a file the model cannot read and still reads the others', async () => {
@@ -745,6 +764,7 @@ describe('the import queue', () => {
 
     expect(world.imports.get(importId)).toMatchObject({
       status: 'failed',
+      read_characters: 720_000,
       failure_reason:
         'Documentele au cu 20% mai mult text decât încape într-un import. Cele mai lungi: „Evaluare riscuri.docx” (42% din text), „Decizia 1.docx” (33%) și „Tematica.docx” (17%). Scoate-le pe cele care nu trebuie citite.',
     });
