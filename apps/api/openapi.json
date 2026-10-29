@@ -329,75 +329,138 @@
         },
         "required": ["items"]
       },
-      "GuideStateListResponse": {
+      "SetupGuide": {
         "type": "object",
         "properties": {
-          "items": {
+          "steps": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "guide": {
-                  "type": "string",
-                  "maxLength": 60,
-                  "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
-                },
-                "version": {
-                  "type": "integer",
-                  "minimum": 1
-                },
-                "status": {
-                  "type": "string",
-                  "enum": ["completed", "skipped"]
-                },
-                "updatedAt": {
-                  "type": "string",
-                  "format": "date-time"
-                }
-              },
-              "required": ["guide", "version", "status", "updatedAt"]
+              "$ref": "#/components/schemas/SetupStep"
+            }
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "account",
+              "company",
+              "authorizations",
+              "professional-title",
+              "client",
+              "workplaces-positions",
+              "employees",
+              "responsible-persons",
+              "risk-evaluation",
+              "fire-safety-data",
+              "generate-sets",
+              "issue-document",
+              "portal-invitation",
+              "training",
+              "signature",
+              null
+            ]
+          },
+          "clientId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "ownerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "organizationHasClients": {
+            "type": "boolean"
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "finished": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "steps",
+          "next",
+          "clientId",
+          "ownerName",
+          "organizationHasClients",
+          "closed",
+          "finished"
+        ]
+      },
+      "SetupStep": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "account",
+              "company",
+              "authorizations",
+              "professional-title",
+              "client",
+              "workplaces-positions",
+              "employees",
+              "responsible-persons",
+              "risk-evaluation",
+              "fire-safety-data",
+              "generate-sets",
+              "issue-document",
+              "portal-invitation",
+              "training",
+              "signature"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": ["done", "skipped", "locked", "open"]
+          },
+          "canDo": {
+            "type": "boolean"
+          },
+          "lock": {
+            "type": "string",
+            "enum": [
+              "needs-client",
+              "needs-workplace-and-position",
+              "needs-position",
+              "needs-organization-data",
+              "needs-professional-title",
+              "needs-basic-data",
+              "needs-draft",
+              "needs-employee",
+              "needs-training-record"
+            ]
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "cui",
+                "legal-name",
+                "address",
+                "representative-name",
+                "representative-role",
+                "certificate",
+                "fire-safety-technician"
+              ]
             }
           }
         },
-        "required": ["items"]
+        "required": ["id", "state", "canDo"]
       },
-      "GuideState": {
+      "UpdateSetupGuideRequest": {
         "type": "object",
         "properties": {
-          "guide": {
-            "type": "string",
-            "maxLength": 60,
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          "closed": {
+            "type": "boolean"
           },
-          "version": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "status": {
-            "type": "string",
-            "enum": ["completed", "skipped"]
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
+          "finished": {
+            "type": "boolean"
           }
-        },
-        "required": ["guide", "version", "status", "updatedAt"]
-      },
-      "RecordGuideRequest": {
-        "type": "object",
-        "properties": {
-          "version": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 10000
-          },
-          "status": {
-            "type": "string",
-            "enum": ["completed", "skipped"]
-          }
-        },
-        "required": ["version", "status"]
+        }
       },
       "ReleaseListResponse": {
         "type": "object",
@@ -18371,11 +18434,11 @@
         }
       }
     },
-    "/me/guides": {
+    "/me/setup": {
       "get": {
-        "operationId": "listMyGuides",
-        "summary": "List the guides the caller finished or skipped",
-        "description": "One entry per guide the caller has a state for, with the guide's version it was recorded at. A guide missing here was never seen. Not organization data: an account without a membership may call it too.",
+        "operationId": "getMySetupGuide",
+        "summary": "Get the caller's setup guide",
+        "description": "The fifteen steps of the setup guide in order (ADR 031), each done, skipped, locked or open for the caller in their organization, with the next step, the client the steps on a client open, and whether the caller closed or finished the guide. During an impersonation the done steps, skips, `closed` and `finished` are the signed-in admin's own, while `canDo` and `next` follow the impersonated member's role, and the locks their organization.",
         "security": [
           {
             "bearerAuth": []
@@ -18383,17 +18446,119 @@
         ],
         "responses": {
           "200": {
-            "description": "The caller's guide states",
+            "description": "The caller's setup guide",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GuideStateListResponse"
+                  "$ref": "#/components/schemas/SetupGuide"
                 }
               }
             }
           },
           "401": {
             "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateMySetupGuide",
+        "summary": "Record that the caller closed, reopened or finished the setup guide",
+        "description": "`true` records the moment on the caller's profile, `false` clears it, and a missing key leaves it. Allowed while the organization is read-only. `409` with `reason: profile_missing` for an account without a profile.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSetupGuideRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The caller's setup guide",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupGuide"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The account has no profile",
             "content": {
               "application/json": {
                 "schema": {
@@ -18425,11 +18590,11 @@
         }
       }
     },
-    "/me/guides/{guide}": {
+    "/me/setup/skips/{step}": {
       "put": {
-        "operationId": "recordMyGuide",
-        "summary": "Record that the caller finished or skipped a guide",
-        "description": "Replaces what was recorded for this guide before, the version included.",
+        "operationId": "skipMySetupStep",
+        "summary": "Mark a member step of the setup guide as known (Știu deja)",
+        "description": "Idempotent. Only the eleven member steps can be skipped. Allowed while the organization is read-only.",
         "security": [
           {
             "bearerAuth": []
@@ -18439,37 +18604,38 @@
           {
             "schema": {
               "type": "string",
-              "maxLength": 60,
-              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              "enum": [
+                "client",
+                "workplaces-positions",
+                "employees",
+                "responsible-persons",
+                "risk-evaluation",
+                "fire-safety-data",
+                "generate-sets",
+                "issue-document",
+                "portal-invitation",
+                "training",
+                "signature"
+              ]
             },
             "required": true,
-            "name": "guide",
+            "name": "step",
             "in": "path"
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RecordGuideRequest"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "The saved guide state",
+            "description": "The caller's setup guide",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GuideState"
+                  "$ref": "#/components/schemas/SetupGuide"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid guide id or request body",
+            "description": "Not a member step",
             "content": {
               "application/json": {
                 "schema": {
@@ -18480,6 +18646,111 @@
           },
           "401": {
             "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "unskipMySetupStep",
+        "summary": "Undo skipping a member step of the setup guide",
+        "description": "Idempotent: a step that was not skipped stays as it is. Allowed while the organization is read-only.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "workplaces-positions",
+                "employees",
+                "responsible-persons",
+                "risk-evaluation",
+                "fire-safety-data",
+                "generate-sets",
+                "issue-document",
+                "portal-invitation",
+                "training",
+                "signature"
+              ]
+            },
+            "required": true,
+            "name": "step",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller's setup guide",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupGuide"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a member step",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
             "content": {
               "application/json": {
                 "schema": {

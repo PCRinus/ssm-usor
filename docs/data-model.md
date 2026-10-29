@@ -1427,19 +1427,56 @@ later is recorded already, and returns the tag the profile keeps; it raises `REL
 unknown tag and `REL02` for an account without a profile. Deleting a release clears the
 pointers to it.
 
-## User guides
+## Setup guide
 
-`user_guides` keeps where a person stands with each in-app guide, such as the welcome tour:
-one row per `(user_id, guide)` with the guide's `version` it was recorded at, the `status`
-(`completed` or `skipped`) and `updated_at`. The SPA defines the guides and their versions; it
-shows a guide by itself when the person has no row for it or the row's version is lower than
-the guide's current one, so a skip counts as seen but stays a skip. `guide` is a lowercase
-slug. Rows go with the account.
+The setup guide's fifteen steps ([ADR 031](architecture/adr-031-setup-guide.md)) are ticked
+from rows the app already stores; only the skips and two moments on the profile are kept for
+it.
 
-A signed-in user reads, inserts and updates only their own rows; column grants leave
-`version` and `status` as the only columns an update may change. `record_user_guide(guide,
-version, status)` (`security invoker`) inserts or replaces the caller's row and returns it,
-for `auth.uid()`, the real caller also during an impersonation.
+`setup_progress()` (`security invoker`) returns one row for the caller's organization, none
+for an account without one, read with the caller's policies, so a specialist's checks never
+see an owners-only document:
+
+- The organization steps, the same for every member: `company_done` when `legal_name_filled`,
+  `cui_filled`, `address_filled` (county, locality and line), `representative_name_filled` and
+  `representative_role_filled` all hold; `authorizations_done` when `certificate_filled` (the
+  certificate's number, date and issuer) and `fire_safety_technician_filled` (the technician's
+  name and certificate) do. The field groups name the focus keys of the organization's pages.
+- `professional_title_done`, from the caller's own profile.
+- One `<step>_done` per member step, true when **the caller**, `auth.uid()`, wrote the row in
+  this organization, by a form or a confirmed import alike: `client_done` (a client, never a
+  lead, by `created_by`); `workplaces_positions_done` (a workplace and a job position, of any
+  clients); `employees_done`; `responsible_persons_done`; `risk_evaluation_done`;
+  `fire_safety_data_done` (the client's fire-safety row, whose `created_by` is whoever first
+  saved it, while it holds a fact of the card: the substances declaration alone also creates
+  the row); `generate_sets_done` (a generation of each group); `issue_document_done` (a
+  revision of the two sets, by `issued_by`; the service contract does not count);
+  `portal_invitation_done` (an invitation of kind `employee`, by `invited_by`);
+  `training_done` (a training of source `app`); and `signature_done` (a request in state
+  `signed` with a signer account, by `issued_by`; a slot marked on paper has none).
+- The facts the locks need, about the organization's active clients (stage `client`, not
+  archived) whoever did the work: `has_client`; `has_client_with_workplace_and_position` and
+  `has_client_with_position`, current ones; `has_client_with_basic_data`, a client absent
+  from `clients_missing_basic_data`; `has_draft_revision`, a draft of the two sets;
+  `has_client_with_employee`, a current, active employee; and `has_training_record`.
+- `furthest_client_id`, the active client with the most of steps 6 to 15 done by anyone, the
+  newest first on a tie, by the same tests as the steps; null when the organization has no
+  active client.
+- `owner_count`, from the memberships, and `owner_names`, the full names in order of the owners
+  who have a profile, so the names alone can undercount.
+
+Each check is an `exists` over an index on `organization_id`, `client_id` or the author
+column (`created_by`, `issued_by`, `invited_by`).
+
+`setup_step_skips` holds the member steps a person marked _Știu deja_: one row per
+`(user_id, step)` with `skipped_at`. `step` is one of the eleven member steps' ids; the
+organization steps, `account` and `professional-title` cannot be skipped. A signed-in user
+reads, inserts and deletes only their own rows, and an insert sets only `user_id` and `step`.
+Rows go with the account.
+
+`profiles.setup_guide_closed_at` is set when the person closes the guide to the header pill and
+cleared when they bring it back; `setup_guide_finished_at` is set once the guide has shown
+_Gata_ and cleared by Arată ghidul. The person writes both on their own row.
 
 ## Organization invitations
 

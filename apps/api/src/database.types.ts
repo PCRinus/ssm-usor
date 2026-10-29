@@ -3746,6 +3746,8 @@ export type Database = {
           full_name: string;
           professional_title: string | null;
           releases_acknowledged_through: string | null;
+          setup_guide_closed_at: string | null;
+          setup_guide_finished_at: string | null;
           terms_accepted_at: string | null;
           terms_version: string | null;
           updated_at: string;
@@ -3756,6 +3758,8 @@ export type Database = {
           full_name: string;
           professional_title?: string | null;
           releases_acknowledged_through?: string | null;
+          setup_guide_closed_at?: string | null;
+          setup_guide_finished_at?: string | null;
           terms_accepted_at?: string | null;
           terms_version?: string | null;
           updated_at?: string;
@@ -3766,6 +3770,8 @@ export type Database = {
           full_name?: string;
           professional_title?: string | null;
           releases_acknowledged_through?: string | null;
+          setup_guide_closed_at?: string | null;
+          setup_guide_finished_at?: string | null;
           terms_accepted_at?: string | null;
           terms_version?: string | null;
           updated_at?: string;
@@ -4332,6 +4338,24 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      setup_step_skips: {
+        Row: {
+          skipped_at: string;
+          step: string;
+          user_id: string;
+        };
+        Insert: {
+          skipped_at?: string;
+          step: string;
+          user_id: string;
+        };
+        Update: {
+          skipped_at?: string;
+          step?: string;
+          user_id?: string;
+        };
+        Relationships: [];
       };
       signature_requests: {
         Row: {
@@ -6070,30 +6094,6 @@ export type Database = {
           },
         ];
       };
-      user_guides: {
-        Row: {
-          guide: string;
-          status: string;
-          updated_at: string;
-          user_id: string;
-          version: number;
-        };
-        Insert: {
-          guide: string;
-          status: string;
-          updated_at?: string;
-          user_id: string;
-          version: number;
-        };
-        Update: {
-          guide?: string;
-          status?: string;
-          updated_at?: string;
-          user_id?: string;
-          version?: number;
-        };
-        Relationships: [];
-      };
       waitlist_subscribers: {
         Row: {
           confirmation_sent_at: string | null;
@@ -7074,22 +7074,6 @@ export type Database = {
         };
         Returns: boolean;
       };
-      record_user_guide: {
-        Args: { guide: string; status: string; version: number };
-        Returns: {
-          guide: string;
-          status: string;
-          updated_at: string;
-          user_id: string;
-          version: number;
-        };
-        SetofOptions: {
-          from: '*';
-          to: 'user_guides';
-          isOneToOne: true;
-          isSetofReturn: false;
-        };
-      };
       refuse_archived_client: {
         Args: { p_client_id: string };
         Returns: undefined;
@@ -7229,6 +7213,43 @@ export type Database = {
       set_participant_language: {
         Args: { p_language: string; p_participant_id: string };
         Returns: boolean;
+      };
+      setup_progress: {
+        Args: never;
+        Returns: {
+          address_filled: boolean;
+          authorizations_done: boolean;
+          certificate_filled: boolean;
+          client_done: boolean;
+          company_done: boolean;
+          cui_filled: boolean;
+          employees_done: boolean;
+          fire_safety_data_done: boolean;
+          fire_safety_technician_filled: boolean;
+          furthest_client_id: string;
+          generate_sets_done: boolean;
+          has_client: boolean;
+          has_client_with_basic_data: boolean;
+          has_client_with_employee: boolean;
+          has_client_with_position: boolean;
+          has_client_with_workplace_and_position: boolean;
+          has_draft_revision: boolean;
+          has_training_record: boolean;
+          issue_document_done: boolean;
+          legal_name_filled: boolean;
+          organization_id: string;
+          owner_count: number;
+          owner_names: string[];
+          portal_invitation_done: boolean;
+          professional_title_done: boolean;
+          representative_name_filled: boolean;
+          representative_role_filled: boolean;
+          responsible_persons_done: boolean;
+          risk_evaluation_done: boolean;
+          signature_done: boolean;
+          training_done: boolean;
+          workplaces_positions_done: boolean;
+        }[];
       };
       signer_has_standing: {
         Args: {

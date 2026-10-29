@@ -5,12 +5,14 @@ import { RouterProvider } from '@tanstack/react-router';
 import { useEffect, useSyncExternalStore } from 'react';
 
 import { AuthContext } from '@/features/auth/auth-context';
+import { useToasterOffset } from '@/features/setup-guide/toast-offset';
 
 import type { AppRuntime } from './app-runtime';
 
 export default function App({ runtime }: { runtime: AppRuntime }) {
   const { auth, queryClient, router } = runtime;
   const { status } = useSyncExternalStore(auth.subscribe, auth.getSnapshot);
+  const toasterOffset = useToasterOffset();
 
   useEffect(() => {
     if (status === 'unconfigured' || status === 'error') {
@@ -44,7 +46,7 @@ export default function App({ runtime }: { runtime: AppRuntime }) {
       <AuthContext.Provider value={auth}>
         <RouterProvider router={router} />
         {/* Confirms actions that leave the user on the same page; errors stay inline. */}
-        <Toaster position="bottom-right" closeButton />
+        <Toaster position="bottom-right" closeButton {...toasterOffset} />
       </AuthContext.Provider>
     </QueryClientProvider>
   );

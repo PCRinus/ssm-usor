@@ -52,8 +52,10 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership", "subscription" }`; null when absent                                                                                                                            |
 | `PATCH /me/profile`                                                    | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                                                                                                                            |
 | `GET /me/invitations`                                                  | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token                                                                                                               |
-| `GET /me/guides`                                                       | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, the guides the caller finished or skipped, each with its version                                                                                                             |
-| `PUT /me/guides/{guide}`                                               | Verified, non-anonymous Supabase user | The saved guide state after recording `{ version, status }` for the caller                                                                                                                         |
+| `GET /me/setup`                                                        | Verified user with a membership       | The caller's setup guide: the fifteen steps with their state, lock and missing fields, `next`, `clientId`, `ownerName`, `closed`, `finished`                                                       |
+| `PUT /me/setup`                                                        | Verified user with a membership       | The setup guide after recording `{ closed?, finished? }` on the caller's profile; allowed read-only                                                                                                |
+| `PUT /me/setup/skips/{step}`                                           | Verified user with a membership       | The setup guide after skipping a member step (_Știu deja_); idempotent, allowed read-only                                                                                                          |
+| `DELETE /me/setup/skips/{step}`                                        | Verified user with a membership       | The setup guide after undoing a skip; idempotent, allowed read-only                                                                                                                                |
 | `GET /releases`                                                        | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, every release with its update, newest first, each with `unread` for the caller; not paginated                                                                                |
 | `GET /releases/{tag}`                                                  | Verified, non-anonymous Supabase user | One release with its update and `unread`; `404` for an unknown tag                                                                                                                                 |
 | `POST /releases/acknowledge`                                           | Verified, non-anonymous Supabase user | `{ "acknowledgedThrough" }` after acknowledging every release up to `{ tag }`                                                                                                                      |
@@ -809,10 +811,11 @@ While the organization is read-only, every member request that changes something
 `PUT`, `PATCH`, `DELETE`) answers `403` with `reason: read_only` from the membership middleware,
 before the handler runs. A participant's change through `/portal/participants/{participantId}/…`
 answers the same. Exempt, through `allowWhileReadOnly` placed before those middlewares:
-printing a document's unsaved edits, the portal's notice and language, and what only takes
-access away: removing a member, revoking a member's invitation, revoking a participant or a
-participant's invitation. Reads are never affected. Accepting an invitation and a client's
-upload through the contract return link stay open (ADR 029).
+printing a document's unsaved edits, the portal's notice and language, the caller's setup
+guide (closing it and skipping its steps), and what only takes access away: removing a member,
+revoking a member's invitation, revoking a participant or a participant's invitation. Reads are
+never affected. Accepting an invitation and a client's upload through the contract return link
+stay open (ADR 029).
 
 ## Billing
 
@@ -923,19 +926,44 @@ without a profile gets `409` with `reason: profile_missing`: a profile needs a n
 this request does not carry, and such an account has nothing unread. The API exposes no write
 to the table itself; only the release workflow writes it.
 
-## Guides
+## Setup guide
 
-The in-app guides, such as the welcome tour, are defined by the SPA; the API keeps where each
-person stands with them, in `user_guides` ([data model](data-model.md#user-guides)). The
-routes need a signed-in account and no membership, and read and write with the caller's token,
-so they act on the real caller also during an impersonation.
+[ADR 031](architecture/adr-031-setup-guide.md). The routes need a membership and read and write
+with the caller's token. `GET /me/setup` reads `setup_progress()`, the caller's
+`setup_step_skips` and the two moments on their profile
+([data model](data-model.md#setup-guide)), and answers:
 
-`GET /me/guides` lists one `{ guide, version, status, updatedAt }` per guide the caller has
-finished (`completed`) or skipped (`skipped`), not paginated. A guide missing from the list was
-never seen. `PUT /me/guides/{guide}` takes `{ version, status }` and replaces what was recorded
-for that guide, through `record_user_guide`; `400` for a guide id that is not a lowercase slug.
-Whether a guide shows again is the SPA's call: when it has no entry, or its version is lower
-than the guide's current one.
+- `steps`: the fifteen steps in the ADR's order, each `{ id, state, canDo, lock?, missing? }`.
+  `state` is the first that holds of `done`, `skipped`, `locked` and `open`; `account` is
+  always done. `canDo` is false for `company` and `authorizations` when the caller is not an
+  owner. `lock` is present only on a locked step: `needs-client` (`workplaces-positions`,
+  `responsible-persons`, `fire-safety-data`), `needs-workplace-and-position` (`employees`),
+  `needs-position` (`risk-evaluation`), `needs-organization-data`, then
+  `needs-professional-title`, then `needs-basic-data` (`generate-sets`), `needs-draft`
+  (`issue-document`), `needs-employee` (`portal-invitation`, `training`) and
+  `needs-training-record` (`signature`). `needs-organization-data` asks only what the sets print:
+  the legal name, the representative's name and role, and the fire-safety technician; the CUI,
+  the address and the certificate serve the service contract. `missing`, on `company` and
+  `authorizations` while not done, lists the focus keys of the empty fields in the form's order:
+  `cui`, `legal-name`, `address`, `representative-name`, `representative-role`; `certificate`,
+  `fire-safety-technician`.
+- `next`: the first open step the caller can do, or null.
+- `clientId`: the active client furthest along, or null.
+- `ownerName`: the owner's name when the organization has exactly one owner, otherwise null.
+- `organizationHasClients`: whether the organization has an active client, whoever added it,
+  which words the member steps without «primul».
+- `closed` and `finished`: whether the profile has `setup_guide_closed_at` and
+  `setup_guide_finished_at`.
+
+`PUT /me/setup` takes `{ closed?, finished? }`: `true` sets the moment to now, `false` clears it
+and a missing key leaves it; `409` with `reason: profile_missing` for an account without a
+profile. `PUT /me/setup/skips/{step}` and `DELETE /me/setup/skips/{step}` skip a member step
+and undo the skip, both idempotent; `400` for any step but the eleven member steps. All three
+answer the guide as `GET` does. They are the caller's own state, so they stay open while the
+organization is read-only, and during an impersonation they act on the signed-in admin's own
+account, as the releases do. During an impersonation every route answers the admin's own done
+steps, skips, `closed` and `finished`, while `canDo` and `next` follow the impersonated member's
+role, and the locks their organization.
 
 ## Dashboard
 

@@ -212,6 +212,14 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Behind** (_în urmă_): a document whose newest revision was generated from an older template version of a kind that prompts regeneration, or, for the own instructions and the training themes of either set, built from instruction module versions the library has since replaced or citing another set of modules than the client's positions apply (ADR 014, amendment of 2026-10-22). Decided by the versions and the applied modules alone, never by the document's edits; an issued revision counts as much as a draft. Avoid: outdated, stale (kept for a draft whose data changed).
 
+## Getting started
+
+**Setup guide** (_ghid de configurare_): the list of steps that takes a member from their account to their first electronic signature, shown expanded, collapsed or closed to a pill in the header until every step they can do is done or skipped. Each member follows their own progress, the owner included. ADR 031. Avoid: onboarding (creating the organization after registration, ADR 004), tour, checklist, wizard.
+
+**Organization step** (_pas al firmei_): a step of the setup guide about the organization's own data, the company details or the authorizations, done by an owner and ticked for every member. ADR 031.
+
+**Member step**: a step of the setup guide from the first client on, ticked when the member has done it themselves, through a form or a confirmed import, or **skipped** with _Știu deja_, which marks it "Știi deja". ADR 031. Avoid: task, to-do.
+
 ## Product feedback
 
 **Problem report** (_raportare a unei probleme_): a member's account of app UI or behavior that failed or behaved unexpectedly. A question, feature idea, or concern about generated document content is not a problem report.

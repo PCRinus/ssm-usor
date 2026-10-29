@@ -68,10 +68,11 @@ import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
-import { GuidesProvider } from '@/features/guides/guides-provider';
 import { instructionSections } from '@/features/instructions/instruction-sections';
 import { testBankSections } from '@/features/knowledge-tests/test-bank-sections';
 import { legislationSections } from '@/features/legislation/legislation-sections';
+import { SetupGuideHeaderButton, SetupGuidePanel } from '@/features/setup-guide/setup-guide-panel';
+import { SetupGuideProvider } from '@/features/setup-guide/setup-guide-provider';
 import { SubscriptionBadge } from '@/features/subscription/subscription-badge';
 import { SubscriptionBar } from '@/features/subscription/subscription-bar';
 import { newCount } from '@/features/updates/release-format';
@@ -217,7 +218,6 @@ function AppNavigation({
                           <Link
                             to={to}
                             data-testid={`nav-${to.slice(1)}`}
-                            data-tour={`nav-${to.slice(1)}`}
                             aria-current={pathname === to ? 'page' : inside ? 'true' : undefined}
                             onClick={closeOnMobile}
                           >
@@ -253,7 +253,7 @@ function AppNavigation({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter data-tour="sidebar-footer">
+      <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={within('/actualizari')} tooltip="Actualizări">
@@ -453,7 +453,10 @@ export function AppShell() {
       onOpenChange={saveSidebarOpen}
       className={cn('flex-col', editorPage && 'fixed inset-0 h-dvh min-h-0 overflow-hidden')}
     >
-      <GuidesProvider holdBack={releases.query.isPending || updateDialogOpen}>
+      <SetupGuideProvider
+        editorPage={editorPage}
+        holdBack={releases.query.isPending || updateDialogOpen}
+      >
         <a
           href="#main-content"
           className="sr-only z-50 rounded-md bg-card p-3 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
@@ -462,11 +465,7 @@ export function AppShell() {
         </a>
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-            <SidebarTrigger
-              data-testid="sidebar-toggle"
-              data-tour="menu"
-              aria-label="Comută meniul lateral"
-            />
+            <SidebarTrigger data-testid="sidebar-toggle" aria-label="Comută meniul lateral" />
             <Separator orientation="vertical" className="!h-6" />
             <Link to="/dashboard" aria-label="SSM Ușor — pagina principală">
               <img
@@ -486,7 +485,12 @@ export function AppShell() {
                 className="ml-auto sm:ml-0"
               />
             )}
+            <SetupGuideHeaderButton
+              variant="ring"
+              className={me.data?.subscription ? undefined : 'ml-auto'}
+            />
           </div>
+          <SetupGuideHeaderButton variant="pill" />
         </header>
         <div
           className={cn(
@@ -571,13 +575,14 @@ export function AppShell() {
             )}
           </div>
         </div>
+        <SetupGuidePanel />
         <ReportProblemDialog open={reportingByEmail} onClose={() => setReportingByEmail(false)} />
         {releases.newestUnread && (
           <Suspense fallback={null}>
             <UpdateDialog />
           </Suspense>
         )}
-      </GuidesProvider>
+      </SetupGuideProvider>
     </SidebarProvider>
   );
 }
