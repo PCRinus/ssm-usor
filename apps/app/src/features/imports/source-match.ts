@@ -35,8 +35,9 @@ export function requestPage(file: string): number | null {
   return page ? Number(page) : null;
 }
 
-export const requestFileName = (file: string) =>
-  file.replace(pagePattern, '').split('/').at(-1) ?? file;
+export const requestPath = (file: string) => file.replace(pagePattern, '');
+
+export const requestFileName = (file: string) => requestPath(file).split('/').at(-1) ?? file;
 
 // The quote is matched against the words of the text layer, folded as the API folds them,
 // since pdf.js splits a line into runs that do not follow the text poppler took out. The API may

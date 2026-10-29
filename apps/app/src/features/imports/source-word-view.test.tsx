@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
@@ -7,11 +8,45 @@ import WordSourceView from './source-word-view';
 
 vi.mock('@docx-editor.dev/core/styles/editor.css', () => ({}));
 vi.mock('@docx-editor.dev/fonts', () => ({ packagedFonts: () => [] }));
-vi.mock('@docx-editor.dev/react', () => ({
-  DocxEditor: () => <div data-testid="docx-editor" />,
-  useDocxEditor: () => null,
-  useHighlights: () => {},
-}));
+const paragraphs = ['Echipament individual de protectie', 'Manusi', 'Ochelari de protectie'];
+const editor = {
+  findMatches: (query: string) =>
+    paragraphs.flatMap((text, paragraphIndex) =>
+      text.includes(query)
+        ? [
+            {
+              blockId: `p${paragraphIndex}`,
+              start: text.indexOf(query),
+              length: query.length,
+              paragraphIndex,
+            },
+          ]
+        : []
+    ),
+  scrollToBlock: vi.fn(),
+};
+const mounts = { count: 0 };
+
+vi.mock('@docx-editor.dev/react', async () => {
+  const { useEffect } = await import('react');
+  return {
+    DocxEditor: ({
+      onReady,
+      children,
+    }: {
+      onReady?: (editor: unknown) => void;
+      children?: ReactNode;
+    }) => {
+      useEffect(() => {
+        mounts.count += 1;
+        onReady?.(editor);
+      }, [onReady]);
+      return <div data-testid="docx-editor">{children}</div>;
+    },
+    useDocxEditor: () => null,
+    useHighlights: () => {},
+  };
+});
 
 const sourceWith = (url: string) =>
   ({
@@ -62,5 +97,39 @@ describe('the Word viewer', () => {
     );
     expect(await screen.findByTestId('docx-editor')).toBeTruthy();
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('keeps the document when the next passage in it comes with a new link, and marks that one', async () => {
+    const fetched = vi.fn(async () => new Response(new Uint8Array([80, 75, 3, 4])));
+    vi.stubGlobal('fetch', fetched);
+    mounts.count = 0;
+    const onNotFound = vi.fn();
+    const { rerender } = render(
+      <WordSourceView
+        source={sourceWith('https://storage.example/leip.docx?token=1')}
+        quote="Manusi"
+        onNotFound={onNotFound}
+      />
+    );
+    await waitFor(() => expect(editor.scrollToBlock).toHaveBeenLastCalledWith('p1'));
+
+    rerender(
+      <WordSourceView
+        source={sourceWith('https://storage.example/leip.docx?token=2')}
+        quote="Ochelari de protectie"
+        onNotFound={onNotFound}
+      />
+    );
+    await waitFor(() => expect(editor.scrollToBlock).toHaveBeenLastCalledWith('p2'));
+    rerender(
+      <WordSourceView
+        source={sourceWith('https://storage.example/leip.docx?token=3')}
+        quote="Casca"
+        onNotFound={onNotFound}
+      />
+    );
+    await waitFor(() => expect(onNotFound).toHaveBeenCalledTimes(1));
+    expect(fetched).toHaveBeenCalledTimes(1);
+    expect(mounts.count).toBe(1);
   });
 });

@@ -2,8 +2,8 @@ import '@docx-editor.dev/core/styles/editor.css';
 import './source-word-view.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
-import { DocxEditor, useDocxEditor, useHighlights } from '@docx-editor.dev/react';
-import { type RefObject, useEffect, useRef, useState } from 'react';
+import { DocxEditor, type Editor, useDocxEditor, useHighlights } from '@docx-editor.dev/react';
+import { type RefObject, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
 import { editorStrings } from '@/features/documents/editor-strings.ro';
@@ -32,6 +32,8 @@ function QuotePassage({
   return null;
 }
 
+// Each answer carries a link signed anew, so the document is held by its file: stepping to
+// another passage in it only moves the mark.
 export default function WordSourceView({
   source,
   quote,
@@ -41,14 +43,19 @@ export default function WordSourceView({
   quote: string;
   onNotFound: () => void;
 }) {
-  const [bytes, setBytes] = useState<Uint8Array | null>(null);
+  const [loaded, setLoaded] = useState<{ fileId: string; bytes: Uint8Array } | null>(null);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
-  const [ranges, setRanges] = useState<Range[]>([]);
+  const [editor, setEditor] = useState<Editor | null>(null);
   const host = useRef<HTMLDivElement>(null);
+  const reportNotFound = useEffectEvent(() => onNotFound());
+  const { fileId } = source;
   const url = source.derived?.url ?? source.original.url;
-  const failed = failedUrl === url;
+  const bytes = loaded?.fileId === fileId ? loaded.bytes : null;
+  const held = bytes !== null;
+  const failed = !held && failedUrl === url;
 
   useEffect(() => {
+    if (held) return;
     let cancelled = false;
     fetch(url)
       .then((response) => {
@@ -56,7 +63,7 @@ export default function WordSourceView({
         return response.arrayBuffer();
       })
       .then((buffer) => {
-        if (!cancelled) setBytes(new Uint8Array(buffer));
+        if (!cancelled) setLoaded({ fileId, bytes: new Uint8Array(buffer) });
       })
       .catch(() => {
         if (!cancelled) setFailedUrl(url);
@@ -64,7 +71,29 @@ export default function WordSourceView({
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [url, fileId, held]);
+
+  const passage = useMemo(
+    () =>
+      editor
+        ? passageHits(
+            quoteLines(source, quote),
+            (line) => findLine(line, (query) => editor.findMatches(query)),
+            lineOccurrences(source, quote)
+          )
+        : null,
+    [editor, source, quote]
+  );
+  const ranges = useMemo(
+    () => passage?.hits.map(({ blockId, start, length }) => ({ blockId, start, length })) ?? [],
+    [passage]
+  );
+  useEffect(() => {
+    if (!editor || !passage) return;
+    // The editor paints a highlight only once its page is in view.
+    if (passage.anchor) editor.scrollToBlock(passage.anchor.blockId);
+    else reportNotFound();
+  }, [editor, passage]);
 
   if (failed) {
     return (
@@ -93,17 +122,7 @@ export default function WordSourceView({
         locale="ro-RO"
         i18n={editorStrings}
         fonts={fonts}
-        onReady={(editor) => {
-          const { hits, anchor } = passageHits(
-            quoteLines(source, quote),
-            (line) => findLine(line, (query) => editor.findMatches(query)),
-            lineOccurrences(source, quote)
-          );
-          setRanges(hits.map(({ blockId, start, length }) => ({ blockId, start, length })));
-          // The editor paints a highlight only once its page is in view.
-          if (anchor) editor.scrollToBlock(anchor.blockId);
-          else onNotFound();
-        }}
+        onReady={setEditor}
       >
         <QuotePassage ranges={ranges} host={host} />
       </DocxEditor>

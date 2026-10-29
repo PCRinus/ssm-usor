@@ -32,12 +32,16 @@ vi.mock('@/features/imports/source-word-view', () => ({
   },
 }));
 
+const pdfMounts = { count: 0 };
+
 vi.mock('@/features/imports/source-pdf-view', async () => {
-  const { useState } = await import('react');
+  const { useEffect } = await import('react');
   return {
     default: function PdfView({ quote }: { quote: string | null }) {
-      const [opened] = useState(quote);
-      return <div data-testid="pdf-view" data-quote={quote ?? ''} data-opened={opened ?? ''} />;
+      useEffect(() => {
+        pdfMounts.count += 1;
+      }, []);
+      return <div data-testid="pdf-view" data-quote={quote ?? ''} />;
     },
   };
 });
@@ -231,24 +235,27 @@ describe('the source dialog', () => {
     );
   });
 
-  it('opens a passage on its own place when stepping back to it in the same file', async () => {
+  it('keeps the file open when stepping between its passages, each answer with a new link', async () => {
     mockSources({ 'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf' } }, [
       { file: 'Contract prestari SSM 2019.pdf', quote: 'Telefon: 0269 214 377' },
       { file: 'Contract prestari SSM 2019.pdf', quote: 'Fax: 0269 214 377' },
     ]);
+    pdfMounts.count = 0;
     const dialog = await openPhoneSource();
-    expect((await within(dialog).findByTestId('pdf-view')).dataset.opened).toBe(
+    expect((await within(dialog).findByTestId('pdf-view')).dataset.quote).toBe(
       'Telefon: 0269 214 377'
     );
 
     await userEvent.click(within(dialog).getByTestId('source-next'));
     await waitFor(() =>
-      expect(within(dialog).getByTestId('pdf-view').dataset.opened).toBe('Fax: 0269 214 377')
+      expect(within(dialog).getByTestId('pdf-view').dataset.quote).toBe('Fax: 0269 214 377')
     );
     await userEvent.click(within(dialog).getByTestId('source-previous'));
     await waitFor(() =>
-      expect(within(dialog).getByTestId('pdf-view').dataset.opened).toBe('Telefon: 0269 214 377')
+      expect(within(dialog).getByTestId('pdf-view').dataset.quote).toBe('Telefon: 0269 214 377')
     );
+    expect(sourceRequests).toBe(2);
+    expect(pdfMounts.count).toBe(1);
   });
 
   it('asks for a fresh link to download the original, since the first one expires', async () => {

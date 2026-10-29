@@ -17,7 +17,7 @@ import { Notice } from '@/components/notice';
 
 import { endSentence, filesLabel, importErrorMessage } from './import-format';
 import type { LabelledSource } from './review-model';
-import { type SourceKind, sourceKind } from './source-match';
+import { requestPath, type SourceKind, sourceKind } from './source-match';
 import { sourceParams, sourceQuery, viewerChunks } from './source-query';
 import { ZoomBar } from './zoom-bar';
 
@@ -73,6 +73,16 @@ function SourceContent({
   // The answer outlives its links: kept four minutes after the dialog closes, it can come back
   // with links Storage now refuses, so a reopened dialog waits for the new ones.
   const source = query.isStale && (query.isFetching || query.isError) ? undefined : query.data;
+  // The viewer keeps the file it shows while the next passage's answer is on its way, so stepping
+  // within one file neither opens it again nor blanks it.
+  const [shown, setShown] = useState<{ source: ImportSourceResponse; index: number } | null>(null);
+  if (source && (shown?.source !== source || shown.index !== index)) setShown({ source, index });
+  const viewing =
+    shown && (shown.index === index || shown.source.uploadPath === requestPath(current.file))
+      ? shown
+      : null;
+  const viewed = viewing && request.sources[viewing.index]!;
+  const viewedKind = viewing && sourceKind(viewing.source);
   const kind = source ? sourceKind(source) : null;
   const fileCount = new Set(request.sources.map((each) => each.file)).size;
   const step = (next: number) => {
@@ -178,7 +188,7 @@ function SourceContent({
         className="relative min-h-0 flex-1 overflow-hidden bg-muted/60"
         data-testid="source-viewer"
       >
-        {!source && !query.isError && (
+        {!viewing && !query.isError && (
           <p className="p-6 text-sm text-muted-foreground" role="status">
             Se deschide fișierul…
           </p>
@@ -195,7 +205,7 @@ function SourceContent({
             </Notice>
           </div>
         )}
-        {source && (
+        {viewing && viewed && !query.isError && (
           <Suspense
             fallback={
               <p className="p-6 text-sm text-muted-foreground" role="status">
@@ -203,31 +213,37 @@ function SourceContent({
               </p>
             }
           >
-            {kind === 'word' && (
+            {viewedKind === 'word' && (
               <WordSourceView
-                key={index}
-                source={source}
-                quote={current.quote}
+                key={viewing.source.fileId}
+                source={viewing.source}
+                quote={viewed.quote}
                 onNotFound={() =>
                   setNotFound(
-                    source.match ? unplaced : 'Nu am găsit pasajul în document, așa că nu e marcat.'
+                    viewing.source.match
+                      ? unplaced
+                      : 'Nu am găsit pasajul în document, așa că nu e marcat.'
                   )
                 }
               />
             )}
-            {(kind === 'pdf' || kind === 'scan') && (
+            {(viewedKind === 'pdf' || viewedKind === 'scan') && (
               <PdfSourceView
-                key={index}
-                source={source}
-                quote={kind === 'pdf' ? current.quote : null}
+                key={viewing.source.fileId}
+                source={viewing.source}
+                quote={viewedKind === 'pdf' ? viewed.quote : null}
                 onNotFound={() =>
                   setNotFound(
-                    source.match ? unplaced : 'Nu am găsit pasajul pe pagină, așa că nu e marcat.'
+                    viewing.source.match
+                      ? unplaced
+                      : 'Nu am găsit pasajul pe pagină, așa că nu e marcat.'
                   )
                 }
               />
             )}
-            {kind === 'image' && <ImageSourceView key={index} source={source} />}
+            {viewedKind === 'image' && (
+              <ImageSourceView key={viewing.source.fileId} source={viewing.source} />
+            )}
           </Suspense>
         )}
       </div>
