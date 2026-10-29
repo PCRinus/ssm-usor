@@ -103,6 +103,8 @@ export const fileReasons = {
   genericText: 'Text general, fără date despre client.',
   ownInstructions:
     'Instrucțiuni proprii: aplicația le alcătuiește din biblioteca de instrucțiuni. Le citim doar dacă ceri.',
+  trainingMaterial:
+    'Material de instruire introductiv-generală: text general, nu conține date despre client. Îl citim doar dacă ceri.',
   noClientData: 'Nu conține date despre client.',
   trainingSheet: 'Fișă de instruire individuală: rămâne pentru importul angajaților.',
 } as const;
@@ -419,6 +421,7 @@ function setAsideReason(kind: DocumentKind) {
   if (kind === 'blank_form') return fileReasons.blankForm;
   if (kind === 'generic_text') return fileReasons.genericText;
   if (kind === 'own_instructions') return fileReasons.ownInstructions;
+  if (kind === 'training_material') return fileReasons.trainingMaterial;
   return fileReasons.noClientData;
 }
 

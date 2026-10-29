@@ -53,14 +53,15 @@ For each file say:
 - kind: what the document is.
   - decision: a decision (decizie) that names people or sets the client's rules.
   - own_instructions: the client's own safety instructions (instrucțiuni proprii).
-  - training_themes: the training themes (tematica de instruire).
+  - training_themes: the training themes (tematica de instruire): the themes and hours of each training, by post, naming the posts and the trainers.
+  - training_material: the material of the introductory general training, for SSM (material de instruire introductiv-generală, MISSMIG) or for fire safety: a long text read to every new employee, generic and the same for every client. It never carries client data, even when the client's name is in its header.
   - risk_assessment: the risk assessment or the prevention and protection plan.
   - fire_safety_document: another fire safety document, such as a list of means, an evacuation plan or a posted sheet.
   - contract: the service contract.
   - training_sheet: an individual training sheet (fișă de instruire individuală) filled in for a person.
   - blank_form: a register, test or form that is not filled in.
   - cover: a cover page, label or table of contents.
-  - generic_text: legal extracts, manuals and generic training material.
+  - generic_text: legal extracts, manuals and other generic text.
   - other: anything else.
 - companyName and companyCui: the client company the file is about, as written, never the safety service's. "" when the file names none.
 - carriesClientData: whether the file holds facts about the client an importer needs: its identity, addresses and work points, named people and their roles, job positions and their activities, training intervals and durations, fire-safety means, protective equipment per position, employees. Generic text that only repeats the client's name in a header does not. A list or register of the client's fire-safety means, protective equipment, workplaces, staff or trainings always carries client data and is never blank_form, generic_text or cover, however short or form-like it looks.

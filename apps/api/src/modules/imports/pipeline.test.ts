@@ -750,6 +750,39 @@ describe('the import queue', () => {
     });
   });
 
+  it('sets the general training material aside by its kind, even when told it carries client data', async () => {
+    const material: FileSpec = {
+      ...files[0]!,
+      path: 'Dosar/MISSMIG.docx',
+      bytes: docx(['BRUTĂRIA FICTIVĂ S.R.L.', 'Material de instruire introductiv-generală']),
+    };
+    model = (request) =>
+      request.name === 'import_sorting' && request.images.length === 0
+        ? {
+            files: [
+              ...answers.sorting.files,
+              {
+                path: 'Dosar/MISSMIG.docx',
+                kind: 'training_material',
+                companyName: 'BRUTĂRIA FICTIVĂ S.R.L.',
+                companyCui: '',
+                carriesClientData: true,
+              },
+            ],
+          }
+        : defaultModel(request);
+    startWith([files[0]!, material]);
+    await drain(deps());
+
+    expect(world.imports.get(importId)!.status).toBe('ready');
+    expect(world.fileAt('Dosar/MISSMIG.docx')).toMatchObject({
+      state: 'set_aside',
+      document_kind: 'training_material',
+      reason:
+        'Material de instruire introductiv-generală: text general, nu conține date despre client. Îl citim doar dacă ceri.',
+    });
+  });
+
   it('fails the import when no file could be prepared', async () => {
     startWith([files[7]!]);
     await drain(deps());

@@ -7,6 +7,7 @@ export const documentKinds = [
   'decision',
   'own_instructions',
   'training_themes',
+  'training_material',
   'risk_assessment',
   'fire_safety_document',
   'contract',
@@ -35,13 +36,15 @@ export type SortingAnswer = z.infer<typeof sortingSchema>;
 
 export const sortingAnswer = answerFormat('import_sorting', sortingSchema);
 
-// Own instructions are the longest files of a pack and boilerplate the app builds from the
-// provider's library (ADR 012), so they are read only when the member sends them back (ADR 030).
+// Own instructions and the general training material are the longest files of a pack and
+// boilerplate: the app builds the first from the provider's library (ADR 012), and the second is
+// the same in every pack. They are read only when the member sends them back (ADR 030).
 export const setAsideKinds: readonly DocumentKind[] = [
   'cover',
   'blank_form',
   'generic_text',
   'own_instructions',
+  'training_material',
 ];
 
 export interface Company {
