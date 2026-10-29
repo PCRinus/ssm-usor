@@ -48,10 +48,10 @@ let sourceRequests: number;
 
 function mockSources(
   answers: Record<string, SourceAnswer | 'missing'>,
-  sources: { file: string; quote: string }[] = phoneSources
+  sources: { file: string; quote: string }[] = phoneSources,
+  proposal: ReturnType<typeof proposalFixture> = proposalFixture()
 ) {
   sourceRequests = 0;
-  const proposal = proposalFixture();
   proposal.client.contactPhone.options[0]!.sources = sources;
   mockApi((_init, url) => {
     if (url.pathname === `/imports/${importId}`) {
@@ -97,6 +97,19 @@ async function openPhoneSource() {
   await userEvent.click(within(row).getByTestId('review-source'));
   return screen.findByTestId('import-source-dialog');
 }
+
+async function openItemSource(section: string, name: string) {
+  mountApp(authFixture(makeSession()).client, `/clients/import/${importId}/${section}`);
+  const items = await screen.findAllByTestId('review-item');
+  const item = items.find((each) => each.textContent?.includes(name))!;
+  await userEvent.click(within(item).getByTestId('review-source'));
+  return screen.findByTestId('import-source-dialog');
+}
+
+const word = {
+  mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  match: { page: null, start: 0, end: 4 },
+};
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -215,5 +228,77 @@ describe('the source dialog', () => {
     expect((await within(dialog).findByTestId('source-error')).textContent).toContain(
       'Fișierul nu mai este în import.'
     );
+  });
+
+  it('shows a person’s name, then each role’s passage, saying which role it proves', async () => {
+    const proposal = proposalFixture();
+    Object.assign(proposal.responsiblePersons[0]!, {
+      roleSources: {
+        workers_representative: [{ file: 'dosar-ssm.zip/Decizie 1.docx', quote: 'Radu Lazăr' }],
+        first_aid: [
+          { file: 'Scanari/Decizie PSI.pdf (pagina 2)', quote: 'prim ajutor: Radu Lazăr' },
+          { file: 'dosar-ssm.zip/Decizie 3.docx', quote: 'acordarea primului ajutor' },
+        ],
+      },
+    });
+    mockSources(
+      {
+        'dosar-ssm.zip/Decizie 1.docx': word,
+        'Scanari/Decizie PSI.pdf (pagina 2)': { mimeType: 'application/pdf', page: 2 },
+        'dosar-ssm.zip/Decizie 3.docx': word,
+      },
+      phoneSources,
+      proposal
+    );
+    const dialog = await openItemSource('responsible', 'Radu Lazăr');
+    const heading = () => within(dialog).getByRole('heading').textContent;
+
+    expect(heading()).toBe('Sursa: Radu Lazăr — Reprezentantul lucrătorilor');
+    expect(within(dialog).getByTestId('source-position').textContent).toBe('1 din 3, în 3 fișiere');
+
+    await userEvent.click(within(dialog).getByTestId('source-next'));
+    expect(heading()).toBe('Sursa: Radu Lazăr — Prim ajutor');
+    expect(await within(dialog).findByTestId('source-read')).toBeTruthy();
+    expect(dialog.textContent).toContain('Pagina 2');
+
+    await userEvent.click(within(dialog).getByTestId('source-next'));
+    expect(heading()).toBe('Sursa: Radu Lazăr — Prim ajutor');
+    expect(within(dialog).getByTestId('source-position').textContent).toMatch(/^3 din 3/);
+  });
+
+  it('shows only the person’s passage for a proposal stored before roles had their own', async () => {
+    mockSources({ 'dosar-ssm.zip/Decizie 1.docx': word });
+    const dialog = await openItemSource('responsible', 'Radu Lazăr');
+
+    expect(within(dialog).getByRole('heading').textContent).toBe('Sursa: Radu Lazăr');
+    expect(within(dialog).getByTestId('source-position').textContent).toBe('1 din 1');
+  });
+
+  it('shows a post’s passage, then its category’s and its activities’', async () => {
+    const proposal = proposalFixture();
+    Object.assign(proposal.jobPositions[0]!, {
+      fieldSources: {
+        staffCategory: [{ file: 'dosar-ssm.zip/Decizie instruire.docx', quote: 'execuție' }],
+        activities: [{ file: 'dosar-ssm.zip/Evaluare.docx', quote: 'Frământare și coacere' }],
+      },
+    });
+    mockSources(
+      {
+        'dosar-ssm.zip/Fise post.doc': word,
+        'dosar-ssm.zip/Decizie instruire.docx': word,
+        'dosar-ssm.zip/Evaluare.docx': word,
+      },
+      phoneSources,
+      proposal
+    );
+    const dialog = await openItemSource('job-positions', 'Brutar');
+    const heading = () => within(dialog).getByRole('heading').textContent;
+
+    expect(heading()).toBe('Sursa: Brutar');
+    await userEvent.click(within(dialog).getByTestId('source-next'));
+    expect(heading()).toBe('Sursa: Brutar — Categorie de personal');
+    await userEvent.click(within(dialog).getByTestId('source-next'));
+    expect(heading()).toBe('Sursa: Brutar — Activități desfășurate');
+    expect(within(dialog).getByTestId('source-position').textContent).toBe('3 din 3, în 3 fișiere');
   });
 });

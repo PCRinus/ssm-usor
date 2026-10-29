@@ -45,11 +45,14 @@ import {
   itemFieldLabel,
   type ItemList,
   itemName,
+  itemSources,
   type ItemState,
   itemStates,
+  type LabelledSource,
   roleLabel,
   sameValue,
   type Source,
+  unprovenRoles,
 } from './review-model';
 import {
   EditButton,
@@ -119,23 +122,28 @@ function ItemRow({
   context,
   title,
   details,
-  sources = state.item.sources,
+  sources = itemSources(state),
   onEdit,
 }: {
   state: ItemState;
   context: ItemsContext;
   title: string;
   details: ReactNode[];
-  sources?: Source[];
+  sources?: LabelledSource[];
   onEdit?: () => void;
 }) {
   const prefix = `${state.list}.${state.index}`;
   const blockers = context.blockers.filter(
     (blocker) => blocker.path === prefix || blocker.path.startsWith(`${prefix}.`)
   );
-  const flags = flagsAt(context.proposal, prefix).filter(
-    (flag) => !['missing', 'unknown_reference'].includes(flag.code)
-  );
+  const roles = (state.values.roles as string[] | undefined) ?? [];
+  const flags = flagsAt(context.proposal, prefix).filter((flag) => {
+    const [, , field, role] = flag.path.split('.');
+    return (
+      !['missing', 'unknown_reference'].includes(flag.code) &&
+      (field !== 'roles' || roles.includes(role ?? ''))
+    );
+  });
   return (
     <li
       id={anchorOf(`${state.list}.${state.item.id}`)}
@@ -265,7 +273,7 @@ function OptionalBox({
               <SourceButton
                 sources={state.item.sources}
                 onOpen={() =>
-                  context.openSource(name, state.item.sources, state.item.otherCompanyName)
+                  context.openSource(name, itemSources(state), state.item.otherCompanyName)
                 }
               />
             </li>
@@ -501,7 +509,7 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
             },
           })),
         aside: quoteAside(editing.item.sources, () =>
-          context.openSource(String(editing.values.name), editing.item.sources)
+          context.openSource(String(editing.values.name), itemSources(editing))
         ),
       }
     : null;
@@ -593,7 +601,7 @@ function useItemDialog(context: ItemsContext) {
       aside={quoteAside(editing.state.item.sources, () =>
         context.openSource(
           itemName(editing.state.list, editing.state.values),
-          editing.state.item.sources
+          itemSources(editing.state)
         )
       )}
       onClose={() => setEditing(null)}
@@ -685,6 +693,7 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
         empty="Documentele nu numesc niciun responsabil."
         render={(state) => {
           const roles = (state.values.roles as string[] | undefined) ?? [];
+          const unproven = unprovenRoles(context.proposal, state);
           return (
             <ItemRow
               key={state.item.id}
@@ -693,7 +702,11 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
               title={itemName('responsiblePersons', state.values)}
               details={[
                 text(state.values.jobTitle) ?? 'Funcția lipsește',
-                roles.map(roleLabel).join(', '),
+                roles
+                  .map((role) =>
+                    unproven.has(role) ? `${roleLabel(role)} (pasaj negăsit)` : roleLabel(role)
+                  )
+                  .join(', '),
                 referenceName(context, 'workplaces', state.values.workplace) ??
                   'Toate punctele de lucru',
               ]}
