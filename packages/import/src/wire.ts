@@ -47,11 +47,22 @@ export function months<T extends z.ZodNumber>(schema: T): T {
   return schema;
 }
 
+const yearWord = /\b(?:ani?|years?)\b/;
+// Romanian puts "de" between a number from 20 up and its unit: "24 de luni", "20 de ani".
+const years = /^(\d+(?:[.,]\d+)?|un|one)\s+(?:de\s+)?(?:ani?|years?)(?:\s+de\s+zile)?$/;
+
 function wireMonths(value: unknown) {
-  const match = /^(\d+)(?:\s*(ani|an|luni|lun[aă]))?$/i.exec(String(value).trim());
+  const text = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/[\s.,;:!]+$/, '');
+  if (!yearWord.test(text)) return wireNumber(text, true);
+  const match = years.exec(text);
   if (!match) return null;
-  const count = Number(match[1]);
-  return match[2]?.toLowerCase().startsWith('an') ? count * 12 : count;
+  const count = /^\d/.test(match[1]!) ? Number(match[1]!.replace(',', '.')) : 1;
+  const months = count * 12;
+  return Number.isInteger(months) ? months : null;
 }
 
 export function restore(schema: z.ZodType, value: unknown): unknown {

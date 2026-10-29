@@ -74,12 +74,17 @@ describe('checkQuotes', () => {
       quoted('Mănuși termorezistente | 12 luni', 12),
       quoted('Mănuși termorezistente | 1 an', 1),
       quoted('Mănuși termorezistente | 2 ani', 2),
+      quoted('Mănuși termorezistente | 1,5 ani', 18),
+      quoted('Mănuși termorezistente | 20 de ani', 240),
+      quoted('Mănuși termorezistente | 24 de luni', 24),
+      quoted('Mănuși termorezistente | 1,5 ani', 1),
     ];
     const withYears = { ...files, 'Dosar/Ani.docx': null };
 
     expect(codes(checkQuotes(value, withYears))).toEqual([
       'protectiveEquipment.4.sources.0 value_not_in_quote',
       'protectiveEquipment.5.sources.0 value_not_in_quote',
+      'protectiveEquipment.9.sources.0 value_not_in_quote',
     ]);
   });
 

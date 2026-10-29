@@ -123,19 +123,19 @@ const holdsWords =
     );
   };
 
-const yearWords = new Set(['an', 'ani']);
+const durations = /(\d+(?:[.,]\d+)?|\bun\b|\bone\b)(\s+(?:de\s+)?(?:ani?|years?)\b)?/g;
 
 // A duration in years is the months over twelve: "1 an" is 12 months, never 1.
 const holdsMonths =
   (months: number): Holds =>
-  (quote) => {
-    const words = foldText(quote).split(' ');
-    return words.some((word, index) => {
-      const years = yearWords.has(words[index + 1] ?? '');
-      if (word === 'un') return years && months === 12;
-      return /^\d+$/.test(word) && Number(word) * (years ? 12 : 1) === months;
-    });
-  };
+  (quote) =>
+    [...quote.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().matchAll(durations)].some(
+      ([, count, inYears]) => {
+        if (inYears)
+          return (/^\d/.test(count!) ? Number(count!.replace(',', '.')) : 1) * 12 === months;
+        return /^\d+$/.test(count!) && Number(count) === months;
+      }
+    );
 
 function equipmentHolds(entry: Proposal['protectiveEquipment'][number]): Holds {
   const item = holdsWords(entry.item, ...(entry.spelling.item ? [entry.spelling.item] : []));
