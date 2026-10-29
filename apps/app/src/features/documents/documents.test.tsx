@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
+vi.mock('./document-editor', () => import('@/test/fake-document-editor'));
+
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const sampleClient = {
   id: clientId,
@@ -1355,7 +1357,9 @@ describe('client documents', () => {
     await openSection(user, '1');
     const [title] = await screen.findAllByTestId('document-title');
     await user.click(title!);
-    await screen.findByText('Salvat');
+    await waitFor(() =>
+      expect(screen.getByTestId('editor-frame').getAttribute('data-ready')).toBe('true')
+    );
     await user.click(screen.getByTestId('editor-back'));
     await screen.findAllByTestId('document-row');
     expect(runtime.router.history.location.pathname).toBe(`/clients/${clientId}/documents`);
@@ -1371,7 +1375,9 @@ describe('client documents', () => {
     );
     const user = userEvent.setup();
     // The placeholder's back link is replaced once the editor loads.
-    await screen.findByText('Salvat');
+    await waitFor(() =>
+      expect(screen.getByTestId('editor-frame').getAttribute('data-ready')).toBe('true')
+    );
     await user.click(screen.getByTestId('editor-back'));
     await screen.findAllByTestId('document-row');
     expect(runtime.router.history.location.pathname).toBe(`/clients/${clientId}/documents`);
