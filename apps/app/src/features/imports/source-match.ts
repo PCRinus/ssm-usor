@@ -108,28 +108,31 @@ function lineSpans(text: string, from: number, to: number): QuoteLine[] {
   return lines;
 }
 
+export type PassagePart = { lines: string[]; occurrences: number[] };
+
 // Only the parts of a quote an ellipsis separates are the passage, not the rows between them.
-function quoteSpans(source: ImportSourceResponse): QuoteLine[] | null {
+// The API may have found a part again further on, as a table row repeated for each post, so each
+// line is the editor's hit with as many of the line before it as the API's text has, both counted
+// ignoring case.
+export function passageParts(source: ImportSourceResponse, quote: string): PassagePart[] {
   const { text, match } = source;
-  if (!text || !match || match.page !== null) return null;
-  return match.parts.flatMap((part) => lineSpans(text, part.start, part.end));
-}
-
-export function quoteLines(source: ImportSourceResponse, quote: string) {
-  return (
-    quoteSpans(source)?.map(({ line }) => line) ??
-    lineSpans(quote, 0, quote.length).map(({ line }) => line)
-  );
-}
-
-// The API may have found the passage again further on, as a table row repeated for each post, so
-// each line is the editor's hit with as many of the line before it as the API's text has, both
-// counted ignoring case.
-export function lineOccurrences(source: ImportSourceResponse, quote: string): number[] {
-  const spans = quoteSpans(source);
-  if (!spans) return quoteLines(source, quote).map(() => 0);
-  const text = source.text!.toLowerCase();
-  return spans.map(({ line, at }) => occurrences(text.slice(0, at), line.toLowerCase()).length);
+  const lower = text?.toLowerCase() ?? '';
+  const parts =
+    text && match && match.page === null
+      ? match.parts.map((part) => {
+          const spans = lineSpans(text, part.start, part.end);
+          return {
+            lines: spans.map(({ line }) => line),
+            occurrences: spans.map(
+              ({ line, at }) => occurrences(lower.slice(0, at), line.toLowerCase()).length
+            ),
+          };
+        })
+      : quote.split(/…|\.{3,}/).map((part) => {
+          const lines = lineSpans(part, 0, part.length).map(({ line }) => line);
+          return { lines, occurrences: lines.map(() => 0) };
+        });
+  return parts.filter(({ lines }) => lines.length > 0);
 }
 
 export type LineHit = {
@@ -138,7 +141,13 @@ export type LineHit = {
   length: number;
   paragraphIndex: number;
   scope?: unknown;
+  contextAfter?: string;
 };
+
+type Find = (
+  queries: readonly string[],
+  options?: { wholeWord?: boolean }
+) => readonly (readonly LineHit[])[];
 
 // The lines of a passage sit in consecutive paragraphs or table cells, so a later line is only
 // looked for a few paragraphs on: a short cell such as "CUI" also appears elsewhere.
@@ -156,21 +165,21 @@ const comesAfter = (hit: LineHit, previous: LineHit) =>
 
 // The text the API matched in collapses runs of spaces that the document keeps, as in a cell
 // "Substante de curatat  (maini)", so a line the editor cannot find whole is found word by word,
-// each word a space or two after the previous one in the same paragraph.
-const wordGap = 4;
-
-export function findLine(line: string, find: (query: string) => readonly LineHit[]): LineHit[] {
-  const whole = find(line);
+// each word after nothing but spaces from the previous one in the same paragraph. The words are
+// looked for in one pass, since a word such as "de" is in most paragraphs of a long document.
+export function findLine(line: string, find: Find): LineHit[] {
+  const whole = find([line])[0] ?? [];
   const words = line.split(/\s+/);
   if (whole.length > 0 || words.length < 2) return [...whole];
-  const [first, ...rest] = words.map(find);
-  return first!.flatMap((start) => {
+  const [first = [], ...rest] = find(words, { wholeWord: true });
+  if (first.length === 0 || rest.some((hits) => hits.length === 0)) return [];
+  const at = rest.map((hits) => new Map(hits.map((hit) => [`${hit.blockId}:${hit.start}`, hit])));
+  return first.flatMap((start) => {
     let last = start;
-    for (const hits of rest) {
-      const end = last.start + last.length;
-      const next = hits.find(
-        (hit) => hit.blockId === last.blockId && hit.start > end && hit.start - end <= wordGap
-      );
+    for (const hits of at) {
+      const spaces = /^\s+/.exec(last.contextAfter ?? '')?.[0].length ?? 0;
+      const next =
+        spaces > 0 ? hits.get(`${last.blockId}:${last.start + last.length + spaces}`) : undefined;
       if (!next) return [];
       last = next;
     }
@@ -178,13 +187,24 @@ export function findLine(line: string, find: (query: string) => readonly LineHit
   });
 }
 
-// The longest line is the least ambiguous, so the passage is anchored on it and the other lines
-// are taken next to it, in order.
+// The longest line of a part is the least ambiguous, so the part is anchored on it and its other
+// lines are taken next to it, in order. Each part has its own anchor, since rows that repeat the
+// row's cells stand between a heading and its row; the last part's, the row, is the one shown.
 export function passageHits(
-  lines: string[],
-  find: (line: string) => readonly LineHit[],
-  occurrences: readonly number[] = []
+  parts: readonly PassagePart[],
+  find: (line: string) => readonly LineHit[]
 ) {
+  const hits: LineHit[] = [];
+  let anchor: LineHit | null = null;
+  for (const part of parts) {
+    const found = partHits(part, find);
+    hits.push(...found.hits);
+    anchor = found.anchor ?? anchor;
+  }
+  return { hits, anchor };
+}
+
+function partHits({ lines, occurrences }: PassagePart, find: (line: string) => readonly LineHit[]) {
   const found = lines.map(find);
   let anchorAt = -1;
   found.forEach((hits, index) => {

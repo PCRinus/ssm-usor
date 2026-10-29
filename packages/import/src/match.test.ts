@@ -178,3 +178,88 @@ describe('findQuotes and placeQuote', () => {
     expect(span?.start).toBe('Mănuși, apoi '.length);
   });
 });
+
+describe('placing a row repeated under posts with like names', () => {
+  const row = '| Praf | Mască | 1 an | Inventar |';
+  const cells = row.slice(2, -2);
+  const tables = (...posts: string[]) =>
+    [
+      `Posturi evaluate: ${posts.join(', ')}`,
+      ...posts.flatMap((post, index) => [
+        `MESERIA : ${post}`,
+        '| Arsuri | Mănuși | 6 luni | Inventar |',
+        ...(index === 0 ? ['| Zgomot | Antifoane | 1 an | Inventar |'] : []),
+        row,
+        '',
+      ]),
+    ].join('\n');
+
+  it('counts a post only as the whole of its heading, not inside a longer name or a list', () => {
+    const text = tables('BUCĂTAR', 'AJUTOR BUCĂTAR');
+    const first = text.indexOf(cells);
+    const second = text.lastIndexOf(cells);
+    expect(placeQuote([text], row, 'Bucătar')?.start).toBe(first);
+    expect(placeQuote([text], row, 'Ajutor bucătar')?.start).toBe(second);
+
+    const workers = tables('MUNCITOR', 'MUNCITOR NECALIFICAT');
+    expect(placeQuote([workers], row, 'Muncitor')?.start).toBe(workers.indexOf(cells));
+    expect(placeQuote([workers], row, 'Muncitor necalificat')?.start).toBe(
+      workers.lastIndexOf(cells)
+    );
+    const listedLast = tables('MUNCITOR NECALIFICAT', 'MUNCITOR');
+    expect(placeQuote([listedLast], row, 'Muncitor')?.start).toBe(listedLast.lastIndexOf(cells));
+  });
+
+  it("takes a post's cell as its heading, as in a table that names the post in a column", () => {
+    const text = [
+      '| Post | Risc | Echipament | Durată | Gestiune |',
+      `| Ajutor bucătar ${row}`,
+      `| Bucătar ${row}`,
+    ].join('\n');
+    expect(placeQuote([text], row, 'Bucătar')?.start).toBe(text.lastIndexOf(cells));
+    expect(placeQuote([text], row, 'Ajutor bucătar')?.start).toBe(text.indexOf(cells));
+  });
+
+  it("places an entry for several posts under each post's own table, by its row", () => {
+    const text = tables('BUCĂTAR', 'AJUTOR BUCĂTAR');
+    const quote = `MESERIA : BUCĂTAR … ${row}`;
+    const heading = text.indexOf('MESERIA : BUCĂTAR');
+    const first = text.indexOf(cells);
+    const second = text.lastIndexOf(cells);
+    expect(placeQuote([text], quote, 'Bucătar')?.parts).toEqual([
+      { start: heading, end: heading + 'MESERIA : BUCĂTAR'.length },
+      { start: first, end: first + cells.length },
+    ]);
+    expect(placeQuote([text], quote, 'Ajutor bucătar')).toEqual({
+      textIndex: 0,
+      start: second,
+      end: second + cells.length,
+      parts: [{ start: second, end: second + cells.length }],
+    });
+    expect(placeQuote([text], quote, 'Ospătar')?.start).toBe(heading);
+  });
+
+  it('finds a table broken across pages, on the page of its row', () => {
+    const pages = [
+      'Fișa de dotare\nMESERIA : BUCĂTAR\n| Arsuri | Mănuși | 6 luni | Inventar |',
+      `${row}\n\nMESERIA : CAMERISTĂ\n| Alunecare | Încălțăminte | 2 ani | Inventar |`,
+      `${row}\nSfârșit`,
+    ];
+    const quote = `MESERIA : BUCĂTAR … ${row}`;
+    expect(placeQuote(pages, quote, 'Bucătar')).toEqual({
+      textIndex: 1,
+      start: 2,
+      end: 2 + cells.length,
+      parts: [{ start: 2, end: 2 + cells.length }],
+    });
+    expect(placeQuote(pages, `MESERIA : CAMERISTĂ … ${row}`, 'Cameristă')).toMatchObject({
+      textIndex: 2,
+      parts: [{ start: 2, end: 2 + cells.length }],
+    });
+    const heading = pages[1]!.indexOf('CAMERISTĂ');
+    expect(placeQuote(pages, 'CAMERISTĂ … | 2 ani | Inventar |')?.parts).toEqual([
+      { start: heading, end: heading + 'CAMERISTĂ'.length },
+      { start: pages[1]!.indexOf('2 ani'), end: pages[1]!.lastIndexOf('Inventar') + 8 },
+    ]);
+  });
+});

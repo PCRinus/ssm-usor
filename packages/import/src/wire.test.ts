@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { readingAnswer } from './reading';
 import { sortingAnswer } from './sorting';
+import { wireAnswer } from './test/fixtures';
 import { answerFormat, flatten, months, restore, strictJsonSchema } from './wire';
 
 function visit(node: unknown, each: (node: Record<string, unknown>) => void) {
@@ -68,6 +69,43 @@ describe('the wire form', () => {
       )
     ).toEqual([6, 12, 24, 36, 12, null, null, null, null, 9]);
     expect(restore(z.int().nullable(), '1 an')).toBe(1);
+  });
+
+  it('reads the durations of an answer as the documents write them', () => {
+    const written = {
+      '24 de luni': 24,
+      '36 luni de zile': 36,
+      '12 luni.': 12,
+      '12 months': 12,
+      '18 luni (1,5 ani)': 18,
+      '1,5 ani': 18,
+      'un an': 12,
+      '20 de ani': 240,
+      '2 years': 24,
+      '1 an (12 luni)': 12,
+      '1,3 ani': null,
+      '2 pe an': null,
+    };
+    const answer = wireAnswer();
+    const entry = answer.protectiveEquipment[0]!;
+    const post = answer.jobPositions[0]!;
+    answer.protectiveEquipment = Object.keys(written).map((durationMonths) => ({
+      ...entry,
+      durationMonths,
+    }));
+    answer.jobPositions = Object.keys(written).map((trainingIntervalMonths) => ({
+      ...post,
+      trainingIntervalMonths,
+    }));
+
+    const read = readingAnswer.parse(answer);
+
+    expect(read.protectiveEquipment.map((each) => each.durationMonths)).toEqual(
+      Object.values(written)
+    );
+    expect(read.jobPositions.map((each) => each.trainingIntervalMonths)).toEqual(
+      Object.values(written)
+    );
   });
 
   it('refuses an answer outside the schema', () => {

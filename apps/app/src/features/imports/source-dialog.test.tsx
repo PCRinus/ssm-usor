@@ -84,6 +84,7 @@ type SourceAnswer = {
     end: number;
     parts: { start: number; end: number }[];
   } | null;
+  expiresInSeconds?: number;
 };
 
 const phoneSources = [
@@ -137,7 +138,7 @@ function mockSources(
         text: null,
         pages: null,
         match: answer.match ?? null,
-        expiresInSeconds: 300,
+        expiresInSeconds: answer.expiresInSeconds ?? 300,
       });
       const gate = sourceGate ?? quoteGates.get(url.searchParams.get('quote')!);
       return gate ? gate.then(() => reply) : reply;
@@ -146,8 +147,10 @@ function mockSources(
   });
 }
 
+let mounted: ReturnType<typeof mountApp>;
+
 async function openPhoneSource() {
-  mountApp(authFixture(makeSession()).client, `/clients/import/${importId}/identity`);
+  mounted = mountApp(authFixture(makeSession()).client, `/clients/import/${importId}/identity`);
   const groups = await screen.findAllByTestId('review-group');
   const contact = groups.find((group) => group.textContent?.includes('Persoană de contact'))!;
   const row = within(contact)
@@ -321,9 +324,9 @@ describe('the source dialog', () => {
     expect(within(dialog).getByTestId('pdf-view').dataset.quote).toBe('Telefon: 0269 214 377');
   });
 
-  it('waits for new links when reopened after the old ones expired', async () => {
+  async function reopenWordSourceAfter(expiresInSeconds: number, minutes: number) {
     vi.useFakeTimers({ toFake: ['Date'] });
-    mockSources({ 'dosar-ssm.zip/Decizie 1.docx': word }, [
+    mockSources({ 'dosar-ssm.zip/Decizie 1.docx': { ...word, expiresInSeconds } }, [
       { file: 'dosar-ssm.zip/Decizie 1.docx', quote: '0269 214 377' },
     ]);
     const dialog = await openPhoneSource();
@@ -331,8 +334,12 @@ describe('the source dialog', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Închide' }));
     await waitFor(() => expect(screen.queryByTestId('import-source-dialog')).toBeNull());
     wordLinks.length = 0;
+    const kept = mounted.queryClient
+      .getQueryCache()
+      .getAll()
+      .find((each) => String(each.queryKey[0]).endsWith('/source'))!.gcTime;
 
-    vi.setSystemTime(Date.now() + 6 * 60_000);
+    vi.setSystemTime(Date.now() + minutes * 60_000);
     const contact = screen
       .getAllByTestId('review-group')
       .find((group) => group.textContent?.includes('Persoană de contact'))!;
@@ -341,8 +348,27 @@ describe('the source dialog', () => {
       .find((each) => each.textContent?.includes('Telefon'))!;
     await userEvent.click(within(row).getByTestId('review-source'));
     const reopened = await screen.findByTestId('import-source-dialog');
-
     await within(reopened).findByTestId('word-view');
+    return kept;
+  }
+
+  it('waits for new links when reopened after the old ones expired', async () => {
+    await reopenWordSourceAfter(300, 6);
+
+    expect(sourceRequests).toBe(2);
+    expect(new Set(wordLinks)).toEqual(new Set(['https://storage.example/object?token=2']));
+  });
+
+  it('keeps the links as long as the server says they last, less a minute', async () => {
+    expect(await reopenWordSourceAfter(600, 8)).toBe(9 * 60_000);
+
+    expect(sourceRequests).toBe(1);
+    expect(new Set(wordLinks)).toEqual(new Set(['https://storage.example/object?token=1']));
+  });
+
+  it('asks for new links sooner when the server says they last less', async () => {
+    await reopenWordSourceAfter(120, 1.5);
+
     expect(sourceRequests).toBe(2);
     expect(new Set(wordLinks)).toEqual(new Set(['https://storage.example/object?token=2']));
   });
@@ -613,5 +639,42 @@ describe('the source dialog', () => {
     expect(heading()).toBe('Sursa: Brutar — Activități desfășurate');
     expect(within(dialog).getByTestId('source-position').textContent).toBe('3 din 3, în 3 fișiere');
     expect(new Set(sourceNears)).toEqual(new Set(['Brutar']));
+  });
+
+  it("sends a fire equipment's room as where it stands", async () => {
+    const proposal = proposalFixture();
+    const pdf = { mimeType: 'application/pdf' };
+    mockSources({ 'b.pdf': pdf }, phoneSources, proposal);
+    await openItemSource('fire-safety', 'Laborator');
+    expect(sourceNears).toEqual(['Laborator']);
+  });
+
+  it('sends the workplace of a fire equipment without a room', async () => {
+    const pdf = { mimeType: 'application/pdf' };
+    const roomless = proposalFixture();
+    Object.assign(roomless.fireEquipment[0]!, { room: null });
+    mockSources({ 'b.pdf': pdf }, phoneSources, roomless);
+    await openItemSource('fire-safety', 'Stingător');
+    expect(sourceNears).toEqual(['Sediu']);
+  });
+
+  it("sends a protective equipment entry's post as where its row stands", async () => {
+    const proposal = proposalFixture();
+    (proposal as { protectiveEquipment: unknown[] }).protectiveEquipment = [
+      {
+        id: 'equipment-entry-1',
+        sources: [{ file: 'dosar-ssm.zip/Echipament.docx', quote: 'Mănuși termorezistente' }],
+        otherCompanyName: null,
+        jobPosition: { name: 'Brutar', id: 'position-1' },
+        risk: 'Arsuri',
+        item: 'Mănuși termorezistente',
+        quantity: 1,
+        durationMonths: 12,
+        allocation: 'personal_inventory',
+      },
+    ];
+    mockSources({ 'dosar-ssm.zip/Echipament.docx': word }, phoneSources, proposal);
+    await openItemSource('equipment', 'Mănuși termorezistente');
+    expect(sourceNears).toEqual(['Brutar']);
   });
 });

@@ -1066,6 +1066,47 @@ describe('GET /imports/{importId}/source', () => {
     expect((await source('Cameristă')).match).toEqual({ page: null, ...span, parts: [span] });
     expect((await source()).match.start).toBe(text.indexOf(cells));
   });
+
+  it('finds a table broken across PDF pages on the page of its row', async () => {
+    const pdf = fileRow(1, {
+      upload_path: 'Dosar/Echipament.pdf',
+      original_file_name: 'Echipament.pdf',
+      mime_type: 'application/pdf',
+      storage_path: storagePath(importId, 1, 'pdf'),
+      text_path: storagePath(importId, 1, 'json'),
+      state: 'read',
+    });
+    const row = '| Praf | Mască | 1 an | Inventar |';
+    const pages = {
+      pageCount: 3,
+      pages: [
+        {
+          number: 1,
+          text: 'MESERIA : BUCĂTAR\n| Arsuri | Mănuși | 6 luni | Inventar |',
+          isScan: false,
+        },
+        { number: 2, text: '', isScan: true },
+        { number: 3, text: `${row}\nMESERIA : AJUTOR BUCĂTAR\n${row}`, isScan: false },
+      ],
+    };
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow({ status: 'ready' }));
+      if (url.pathname === '/rest/v1/import_files') return Response.json([pdf]);
+      if (url.pathname.startsWith('/storage/v1/object/sign/imports/') && method === 'POST') {
+        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+      }
+      if (url.pathname.endsWith('.json')) return Response.json(pages);
+    });
+    const response = await request(
+      `/imports/${importId}/source?file=${encodeURIComponent('Dosar/Echipament.pdf')}&quote=${encodeURIComponent(`MESERIA : BUCĂTAR … ${row}`)}&near=Bucătar`
+    );
+    const end = row.length - 2;
+
+    expect(response.status).toBe(200);
+    expect((await response.json()) as unknown).toMatchObject({
+      match: { page: 3, start: 2, end, parts: [{ start: 2, end }] },
+    });
+  });
 });
 
 describe('POST /imports/{importId}/abandon', () => {

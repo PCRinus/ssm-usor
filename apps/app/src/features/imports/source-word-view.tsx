@@ -14,7 +14,7 @@ import { type RefObject, useEffect, useEffectEvent, useMemo, useRef, useState } 
 import type { ImportSourceResponse } from '@/api/generated/api';
 import { editorStrings } from '@/features/documents/editor-strings.ro';
 
-import { findLine, lineOccurrences, passageHits, quoteLines } from './source-match';
+import { findLine, passageHits, passageParts } from './source-match';
 import { holdPassage } from './source-word-passage';
 
 const fonts = packagedFonts({ allow: ['Arial'] });
@@ -25,10 +25,12 @@ const paintWaitMs = 15_000;
 
 function QuotePassage({
   ranges,
+  showEnd,
   host,
   onPainted,
 }: {
   ranges: Range[];
+  showEnd: boolean;
   host: RefObject<HTMLDivElement | null>;
   onPainted: () => void;
 }) {
@@ -58,8 +60,11 @@ function QuotePassage({
   useEffect(() => {
     const viewport = host.current?.querySelector<HTMLElement>('.docx-editor-one-surface__viewport');
     if (!editor || ranges.length === 0 || !viewport) return;
-    return holdPassage(viewport, { fontsPending: () => editor.fontMeasurement().resolving });
-  }, [editor, ranges, host]);
+    return holdPassage(viewport, {
+      fontsPending: () => editor.fontMeasurement().resolving,
+      showEnd,
+    });
+  }, [editor, ranges, showEnd, host]);
   return null;
 }
 
@@ -115,17 +120,14 @@ export default function WordSourceView({
     if (failed) reportShown();
   }, [failed]);
 
-  const passage = useMemo(
-    () =>
-      editor
-        ? passageHits(
-            quoteLines(source, quote),
-            (line) => findLine(line, (query) => editor.findMatches(query)),
-            lineOccurrences(source, quote)
-          )
-        : null,
-    [editor, source, quote]
-  );
+  const passage = useMemo(() => {
+    if (!editor) return null;
+    const parts = passageParts(source, quote);
+    const found = passageHits(parts, (line) =>
+      findLine(line, (queries, options) => editor.findMatches(queries, options))
+    );
+    return { ...found, showEnd: parts.length > 1 };
+  }, [editor, source, quote]);
   const ranges = useMemo(
     () => passage?.hits.map(({ blockId, start, length }) => ({ blockId, start, length })) ?? [],
     [passage]
@@ -160,7 +162,12 @@ export default function WordSourceView({
         fonts={fonts}
         onReady={setEditor}
       >
-        <QuotePassage ranges={ranges} host={host} onPainted={onShown} />
+        <QuotePassage
+          ranges={ranges}
+          showEnd={passage?.showEnd ?? false}
+          host={host}
+          onPainted={onShown}
+        />
       </DocxEditor>
     </div>
   );

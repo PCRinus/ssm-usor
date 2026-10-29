@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import {
   ChevronLeft,
@@ -85,9 +85,10 @@ function SourceContent({
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const current = request.sources[index]!;
   const params = sourceParams(current);
-  const query = useQuery(sourceQuery(importId, params, apiRequest));
-  // The answer outlives its links: kept four minutes after the dialog closes, it can come back
-  // with links Storage now refuses, so a reopened dialog waits for the new ones.
+  const queryClient = useQueryClient();
+  const query = useQuery(sourceQuery(importId, params, apiRequest, queryClient));
+  // The answer can outlive its links: kept after the dialog closes, it can come back with links
+  // Storage now refuses, so a reopened dialog waits for the new ones.
   const source = query.isStale && (query.isFetching || query.isError) ? undefined : query.data;
   // The viewer keeps the file it shows while the next passage's answer is on its way, so stepping
   // within one file neither opens it again nor blanks it.
