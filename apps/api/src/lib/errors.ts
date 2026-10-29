@@ -23,7 +23,16 @@ export const defaultMessages = {
   internal_error: 'An unexpected error occurred.',
 } as const satisfies Record<ApiErrorCode, string>;
 
+export interface BrokenConstraint {
+  name: string;
+  // Null when the database's message names no table, as for a unique violation.
+  table: string | null;
+}
+
 export class ApiError extends Error {
+  // Names only: the database's message and details quote the refused row's values.
+  constraint?: BrokenConstraint;
+
   constructor(
     readonly code: ApiErrorCode,
     message: string = defaultMessages[code],

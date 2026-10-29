@@ -28,6 +28,55 @@ describe('fromDatabaseError', () => {
     expect(error.code).toBe('internal_error');
     expect(logged).toHaveBeenCalledWith('Database request failed (save employee): XX000');
   });
+
+  it('names the constraint a write broke, and its table, never the values', () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const refused = [
+      {
+        code: '23514',
+        message:
+          'new row for relation "job_position_equipment" violates check constraint "job_position_equipment_duration_by_allocation"',
+        details: 'Failing row contains (Manusi, 1, null).',
+      },
+      {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint "clients_organization_cui_key"',
+        details: 'Key (cui)=(12345674) already exists.',
+      },
+      {
+        code: '23503',
+        message:
+          'insert or update on table "employees" violates foreign key constraint "employees_job_position_fkey"',
+      },
+      {
+        code: '23502',
+        message:
+          'null value in column "risk" of relation "job_position_equipment" violates not-null constraint',
+      },
+      { code: '23514', message: 'Ion Popescu' },
+    ].map((error) => fromDatabaseError(error, 'save'));
+
+    expect(refused.map((error) => [error.code, error.constraint])).toEqual([
+      [
+        'validation_error',
+        { name: 'job_position_equipment_duration_by_allocation', table: 'job_position_equipment' },
+      ],
+      ['conflict', { name: 'clients_organization_cui_key', table: null }],
+      ['conflict', { name: 'employees_job_position_fkey', table: 'employees' }],
+      [
+        'internal_error',
+        { name: 'job_position_equipment_risk_not_null', table: 'job_position_equipment' },
+      ],
+      ['validation_error', undefined],
+    ]);
+    expect(logged.mock.calls.map(([line]) => line)).toEqual([
+      'Database request rejected (save): 23514 job_position_equipment_duration_by_allocation',
+      'Database request rejected (save): 23505 clients_organization_cui_key',
+      'Database request rejected (save): 23503 employees_job_position_fkey',
+      'Database request rejected (save): 23502 job_position_equipment_risk_not_null',
+      'Database request rejected (save): 23514',
+    ]);
+  });
 });
 
 describe('the knowledge tests errors', () => {

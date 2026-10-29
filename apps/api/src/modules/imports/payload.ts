@@ -1,4 +1,8 @@
-import type { ImportBlocker, ImportChanges } from '@ssm-usor/contracts';
+import {
+  type ImportBlocker,
+  type ImportChanges,
+  maxEquipmentDurationMonths,
+} from '@ssm-usor/contracts';
 import {
   type Field,
   type Flag,
@@ -244,6 +248,13 @@ const itemSchemas = {
 
 const referenceFields = new Set(['workplace', 'jobPosition', 'employee']);
 
+const allowedDuration = (months: number) => months >= 1 && months <= maxEquipmentDurationMonths;
+
+// A check's flag on a duration may be about its allocation, which the member can change instead.
+const settlingFields: Record<string, string[]> = {
+  durationMonths: ['durationMonths', 'allocation'],
+};
+
 export interface ClientImportPayload {
   client: Row;
   workplaces: Row[];
@@ -383,7 +394,8 @@ export function toClientPayload(input: {
       if (!parsed.success) block(`${list}.${index}`, 'invalid');
       for (const flag of flagged(`${list}.${index}`)) {
         const field = flag.path.split('.')[2];
-        if (field === undefined || !(field in (change?.values ?? {}))) block(flag.path, 'invalid');
+        const settledBy = field === undefined ? [] : (settlingFields[field] ?? [field]);
+        if (!settledBy.some((name) => name in written)) block(flag.path, 'invalid');
       }
       return [{ item, index, values }];
     });
@@ -503,6 +515,15 @@ export function toClientPayload(input: {
         `protectiveEquipment.${index}.jobPosition`
       );
       if (empty(values.risk)) block(`protectiveEquipment.${index}.risk`, 'missing');
+      // `job_position_equipment` takes a duration for inventory only, and none for a consumable.
+      const duration = `protectiveEquipment.${index}.durationMonths`;
+      if (values.allocation === 'consumable') {
+        if (!empty(values.durationMonths)) block(duration, 'invalid');
+      } else if (empty(values.durationMonths)) {
+        block(duration, 'missing');
+      } else if (!allowedDuration(Number(values.durationMonths))) {
+        block(duration, 'invalid');
+      }
       if (!position) return [];
       return [
         dropEmpty({

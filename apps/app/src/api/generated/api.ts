@@ -31691,7 +31691,7 @@ export const getConfirmImportUrl = (importId: string) => {
 };
 
 /**
- * Writes the proposal with the member's changes into the client, its workplaces, positions, people and fire-safety data in one transaction, and the import folder into its files, on the `version` the caller read. `422` with `import_incomplete` lists in `issues` what still blocks (a choice, a missing or invalid value, an unknown reference). `409` with `import_changed`, `import_not_ready`, `import_other_company` (an existing client's CUI is not the documents'), `import_client_exists` (a new client's CUI is the organization's already) or `import_outdated` (a workplace, position or employee the review named is no longer the client's). The files are copied into the client's files by the queue after the answer.
+ * Writes the proposal with the member's changes into the client, its workplaces, positions, people and fire-safety data in one transaction, and the import folder into its files, on the `version` the caller read. `422` with `import_incomplete` lists in `issues` what still blocks (a choice, a missing or invalid value, an unknown reference). `409` with `import_changed`, `import_not_ready`, `import_other_company` (an existing client's CUI is not the documents'), `import_client_exists` (a new client's CUI is the organization's already) or `import_outdated` (a workplace, position or employee the review named is no longer the client's). `422` with `import_refused` when a table still refuses a value: one issue with the proposal's list or group as `path` and the constraint's name as `message`. The files are copied into the client's files by the queue after the answer.
  * @summary Confirm the proposal
  */
 export const confirmImport = async (

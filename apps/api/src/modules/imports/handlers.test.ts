@@ -628,6 +628,65 @@ describe('POST /imports/{importId}/confirm', () => {
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({ reason: 'import_outdated' });
   });
+
+  it('answers a value a table refuses with its section and rule, and logs no value', async () => {
+    const logged = vi.mocked(console.error);
+    const refusals = [
+      {
+        code: '23514',
+        message:
+          'new row for relation "job_position_equipment" violates check constraint "job_position_equipment_duration_by_allocation"',
+        details: 'Failing row contains (Substante de curatat (maini), Manusi, 1, null).',
+      },
+      {
+        code: '23502',
+        message:
+          'null value in column "risk" of relation "job_position_equipment" violates not-null constraint',
+        details: 'Failing row contains (null, Manusi).',
+      },
+      {
+        code: '23514',
+        message:
+          'new row for relation "client_files" violates check constraint "client_files_name_length"',
+      },
+    ];
+    const answers = [];
+    for (const refusal of refusals) {
+      mockUpstream(({ url }) => {
+        if (url.pathname === '/rest/v1/imports') return Response.json(ready());
+        if (url.pathname === '/rest/v1/rpc/apply_client_import') {
+          return Response.json({ hint: null, ...refusal }, { status: 400 });
+        }
+      });
+      const response = await request(`/imports/${importId}/confirm`, 'POST', { version: 4 });
+      expect(response.status).toBe(422);
+      answers.push(await response.json());
+    }
+
+    expect(answers).toEqual([
+      expect.objectContaining({
+        error: 'unprocessable',
+        reason: 'import_refused',
+        issues: [
+          {
+            path: 'protectiveEquipment',
+            message: 'job_position_equipment_duration_by_allocation',
+          },
+        ],
+      }),
+      expect.objectContaining({
+        issues: [{ path: 'protectiveEquipment', message: 'job_position_equipment_risk_not_null' }],
+      }),
+      expect.objectContaining({
+        issues: [{ path: 'client_files', message: 'client_files_name_length' }],
+      }),
+    ]);
+    expect(logged).toHaveBeenCalledWith(
+      'Database request rejected (confirm import): 23514 job_position_equipment_duration_by_allocation'
+    );
+    expect(JSON.stringify([answers, logged.mock.calls])).not.toMatch(/Manusi|Failing row/);
+    expect(sent).toEqual([]);
+  });
 });
 
 describe('POST /imports/{importId}/split', () => {

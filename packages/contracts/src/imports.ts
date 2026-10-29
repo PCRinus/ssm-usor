@@ -72,6 +72,7 @@ export const importErrorReasons = {
   changed: 'import_changed',
   ended: 'import_ended',
   incomplete: 'import_incomplete',
+  refused: 'import_refused',
   otherCompany: 'import_other_company',
   clientExists: 'import_client_exists',
   alreadySplit: 'import_already_split',

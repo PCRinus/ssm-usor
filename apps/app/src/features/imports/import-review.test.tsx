@@ -43,7 +43,10 @@ const existingClient = {
 
 let saves: number;
 
-function mockReview(detail: Detail, { save }: { save?: (body: unknown) => Response } = {}) {
+function mockReview(
+  detail: Detail,
+  { save, confirm }: { save?: (body: unknown) => Response; confirm?: () => Response } = {}
+) {
   saves = 0;
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
@@ -56,7 +59,7 @@ function mockReview(detail: Detail, { save }: { save?: (body: unknown) => Respon
       return save?.(body) ?? Response.json({ version: body.version + 1 });
     }
     if (url.pathname === `/imports/${importId}/confirm`) {
-      return Response.json({ clientId, fileCount: 3 });
+      return confirm?.() ?? Response.json({ clientId, fileCount: 3 });
     }
     if (url.pathname === '/imports') return Response.json({ items: [] });
     if (url.pathname === '/clients') {
@@ -492,7 +495,7 @@ describe('what the checks found', () => {
       isRegisteredOffice: false,
     });
     proposal.workplaces[0]!.name = 'Sediul și laboratorul';
-    proposal.flags = [
+    (proposal as { flags: unknown[] }).flags = [
       {
         path: 'client.legalName.options.0.sources.0',
         code: 'file_not_found',
@@ -598,6 +601,109 @@ describe('the employees an import creates', () => {
     await userEvent.click(within(ticked).getByRole('button', { name: 'Nu-l face angajat' }));
     await waitFor(() => expect(saves).toBe(2));
     expect(savedChanges(1).changes.items).toEqual({ 'employee-2': { included: false } });
+  });
+});
+
+describe("a protective-equipment entry's duration", () => {
+  function durationDetail() {
+    const proposal = proposalFixture();
+    const entry = (
+      id: string,
+      item: string,
+      durationMonths: number | null,
+      allocation: string
+    ) => ({
+      id,
+      sources: [{ file: 'dosar-ssm.zip/Evaluare riscuri.docx', quote: item }],
+      otherCompanyName: null,
+      jobPosition: { name: 'Brutar', id: 'position-1' },
+      risk: 'Substanțe de curățat',
+      item,
+      quantity: 1,
+      durationMonths,
+      allocation,
+    });
+    (proposal as { protectiveEquipment: unknown[] }).protectiveEquipment = [
+      entry('equipment-entry-1', 'Mănuși', null, 'personal_inventory'),
+      entry('equipment-entry-2', 'Mască', 3, 'consumable'),
+    ];
+    (proposal as { flags: unknown[] }).flags = [
+      { path: 'protectiveEquipment.0.durationMonths', code: 'missing' },
+      {
+        path: 'protectiveEquipment.1.durationMonths',
+        code: 'value_not_allowed',
+        detail: 'consumable',
+      },
+    ];
+    return readyDetail({
+      proposal,
+      blockers: [
+        { path: 'protectiveEquipment.0.durationMonths', code: 'missing' },
+        { path: 'protectiveEquipment.1.durationMonths', code: 'invalid' },
+      ],
+    });
+  }
+
+  it('asks inventory for a duration and a consumable for none, before confirming', async () => {
+    mockReview(durationDetail());
+    mount();
+
+    const blockers = await screen.findByTestId('import-blockers');
+    expect(
+      within(blockers)
+        .getAllByTestId('import-blocker-link')
+        .map((link) => link.textContent)
+    ).toEqual([
+      'Scrie durata de utilizare pentru Mănuși sau alege alocarea Consum',
+      'Șterge durata de utilizare pentru Mască sau alege altă alocare',
+    ]);
+  });
+
+  it('says on each row what the duration needs', async () => {
+    mockReview(durationDetail());
+    mount('/equipment');
+
+    const [gloves, mask] = await screen.findAllByTestId('review-item');
+    expect(gloves!.textContent).toContain(
+      'Lipsește durata de utilizare. Scrie-o, sau alege alocarea Consum dacă articolul se consumă.'
+    );
+    expect(mask!.textContent).toContain(
+      'Un articol de consum nu are durată de utilizare. Șterge durata sau alege altă alocare.'
+    );
+    expect(
+      within(mask!).getByText('Un articol de consum nu are durată de utilizare.')
+    ).toBeTruthy();
+  });
+});
+
+describe('a value the app refuses on confirm', () => {
+  it('names the section and the rule instead of a bare retry', async () => {
+    mockReview(readyDetail({ blockers: [] }), {
+      confirm: () =>
+        Response.json(
+          {
+            error: 'unprocessable',
+            message: 'The client refused a value of the import.',
+            reason: 'import_refused',
+            issues: [
+              {
+                path: 'protectiveEquipment',
+                message: 'job_position_equipment_duration_by_allocation',
+              },
+            ],
+          },
+          { status: 422 }
+        ),
+    });
+    mount();
+
+    await userEvent.click(await screen.findByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    await userEvent.click(within(dialog).getByTestId('import-confirm-submit'));
+
+    expect((await within(dialog).findByTestId('import-confirm-error')).textContent).toBe(
+      'Nu am putut salva o valoare din secțiunea «Echipament de protecție»: un articol de inventar are durată de utilizare, unul de consum nu are. Verifică secțiunea și încearcă din nou.'
+    );
   });
 });
 
