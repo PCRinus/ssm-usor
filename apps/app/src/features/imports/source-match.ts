@@ -78,6 +78,30 @@ const comesAfter = (hit: LineHit, previous: LineHit) =>
     (hit.paragraphIndex === previous.paragraphIndex &&
       hit.start >= previous.start + previous.length));
 
+// The text the API matched in collapses runs of spaces that the document keeps, as in a cell
+// "Substante de curatat  (maini)", so a line the editor cannot find whole is found word by word,
+// each word a space or two after the previous one in the same paragraph.
+const wordGap = 4;
+
+export function findLine(line: string, find: (query: string) => readonly LineHit[]): LineHit[] {
+  const whole = find(line);
+  const words = line.split(/\s+/);
+  if (whole.length > 0 || words.length < 2) return [...whole];
+  const [first, ...rest] = words.map(find);
+  return first!.flatMap((start) => {
+    let last = start;
+    for (const hits of rest) {
+      const end = last.start + last.length;
+      const next = hits.find(
+        (hit) => hit.blockId === last.blockId && hit.start > end && hit.start - end <= wordGap
+      );
+      if (!next) return [];
+      last = next;
+    }
+    return [{ ...start, length: last.start + last.length - start.start }];
+  });
+}
+
 // The longest line is the least ambiguous, so the passage is anchored on it and the other lines
 // are taken next to it, in order.
 export function passageHits(lines: string[], find: (line: string) => readonly LineHit[]) {

@@ -1,0 +1,4 @@
+/* An inset shadow paints over a cell's own shading and under its text. */
+.docx-table-row.import-source-row > .docx-table-cell {
+  box-shadow: inset 0 0 0 100vmax rgb(255 214 0 / 0.2);
+}

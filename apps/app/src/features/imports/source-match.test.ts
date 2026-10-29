@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { type LineHit, markQuote, passageHits, quoteLines, sourceKind } from './source-match';
+import {
+  findLine,
+  type LineHit,
+  markQuote,
+  passageHits,
+  quoteLines,
+  sourceKind,
+} from './source-match';
 
 const span = (text: string) => {
   const element = document.createElement('span');
@@ -138,5 +145,23 @@ describe('finding a passage in the viewers', () => {
       'word'
     );
     expect(sourceKind(source({}))).toBe('pdf');
+  });
+
+  it('finds a cell whose words the document spaces wider than the text the API read', () => {
+    const paragraphs = ['Arsuri (maini)', 'Substante de curatat  (maini)', 'Manusi'];
+    const find = (query: string) =>
+      paragraphs.flatMap((paragraph, paragraphIndex) => {
+        const start = paragraph.indexOf(query);
+        return start === -1
+          ? []
+          : [{ blockId: `p${paragraphIndex}`, start, length: query.length, paragraphIndex }];
+      });
+    expect(findLine('Substante de curatat (maini)', find)).toEqual([
+      { blockId: 'p1', start: 0, length: 29, paragraphIndex: 1 },
+    ]);
+    expect(findLine('Arsuri (maini)', find)).toEqual([
+      { blockId: 'p0', start: 0, length: 14, paragraphIndex: 0 },
+    ]);
+    expect(findLine('Substante (maini)', find)).toEqual([]);
   });
 });

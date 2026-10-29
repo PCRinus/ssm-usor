@@ -1,4 +1,5 @@
 import '@docx-editor.dev/core/styles/editor.css';
+import './source-word-view.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
 import { DocxEditor, useHighlights } from '@docx-editor.dev/react';
@@ -7,7 +8,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { ImportSourceResponse } from '@/api/generated/api';
 import { editorStrings } from '@/features/documents/editor-strings.ro';
 
-import { passageHits, quoteLines } from './source-match';
+import { findLine, passageHits, quoteLines } from './source-match';
+import { holdPassage } from './source-word-passage';
 
 const fonts = packagedFonts({ allow: ['Arial'] });
 
@@ -52,16 +54,10 @@ export default function WordSourceView({
     };
   }, [url]);
 
-  // The editor paints a highlight only once its page is in view, so the passage is centred
-  // after the scroll to its block, not with it.
   useEffect(() => {
-    if (ranges.length === 0) return;
-    let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => {
-        host.current?.querySelector('.docx-text-highlight')?.scrollIntoView?.({ block: 'center' });
-      });
-    });
-    return () => cancelAnimationFrame(frame);
+    const viewport = host.current?.querySelector<HTMLElement>('.docx-editor-one-surface__viewport');
+    if (ranges.length === 0 || !viewport) return;
+    return holdPassage(viewport);
   }, [ranges]);
 
   if (failed) {
@@ -93,9 +89,10 @@ export default function WordSourceView({
         fonts={fonts}
         onReady={(editor) => {
           const { hits, anchor } = passageHits(quoteLines(source, quote), (line) =>
-            editor.findMatches(line)
+            findLine(line, (query) => editor.findMatches(query))
           );
           setRanges(hits.map(({ blockId, start, length }) => ({ blockId, start, length })));
+          // The editor paints a highlight only once its page is in view.
           if (anchor) editor.scrollToBlock(anchor.blockId);
           else onNotFound();
         }}
