@@ -88,7 +88,10 @@ export const meResponse = {
   },
 };
 
-export type Route = (init: RequestInit | undefined, url: URL) => Response | undefined;
+export type Route = (
+  init: RequestInit | undefined,
+  url: URL
+) => Response | Promise<Response> | undefined;
 
 export const fetchMock = vi.fn<typeof fetch>();
 

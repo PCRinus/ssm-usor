@@ -2,7 +2,13 @@ import '@docx-editor.dev/core/styles/editor.css';
 import './source-word-view.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
-import { DocxEditor, type Editor, useDocxEditor, useHighlights } from '@docx-editor.dev/react';
+import {
+  DocxEditor,
+  type Editor,
+  useDocxEditor,
+  useEditorState,
+  useHighlights,
+} from '@docx-editor.dev/react';
 import { type RefObject, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
@@ -15,15 +21,40 @@ const fonts = packagedFonts({ allow: ['Arial'] });
 
 type Range = { blockId: string; start: number; length: number };
 
+const paintWaitMs = 15_000;
+
 function QuotePassage({
   ranges,
   host,
+  onPainted,
 }: {
   ranges: Range[];
   host: RefObject<HTMLDivElement | null>;
+  onPainted: () => void;
 }) {
   useHighlights('import-quote', ranges, { priority: 20 });
   const editor = useDocxEditor();
+  const failed = useEditorState((state) => state.parseError !== null);
+  const reportPainted = useEffectEvent(onPainted);
+  // The editor tells of no paint, and its snapshot calls the document open before a page is laid
+  // out, so the first page drawn is the sign.
+  useEffect(() => {
+    const root = host.current;
+    if (!root) return;
+    if (failed) {
+      reportPainted();
+      return;
+    }
+    const started = performance.now();
+    let frame = 0;
+    const look = () => {
+      if (root.querySelector('.docx-page') || performance.now() - started > paintWaitMs) {
+        reportPainted();
+      } else frame = requestAnimationFrame(look);
+    };
+    frame = requestAnimationFrame(look);
+    return () => cancelAnimationFrame(frame);
+  }, [failed, host]);
   useEffect(() => {
     const viewport = host.current?.querySelector<HTMLElement>('.docx-editor-one-surface__viewport');
     if (!editor || ranges.length === 0 || !viewport) return;
@@ -38,16 +69,19 @@ export default function WordSourceView({
   source,
   quote,
   onNotFound,
+  onShown,
 }: {
   source: ImportSourceResponse;
   quote: string;
   onNotFound: () => void;
+  onShown: () => void;
 }) {
   const [loaded, setLoaded] = useState<{ fileId: string; bytes: Uint8Array } | null>(null);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
   const host = useRef<HTMLDivElement>(null);
   const reportNotFound = useEffectEvent(() => onNotFound());
+  const reportShown = useEffectEvent(() => onShown());
   const { fileId } = source;
   const url = source.derived?.url ?? source.original.url;
   const bytes = loaded?.fileId === fileId ? loaded.bytes : null;
@@ -72,6 +106,10 @@ export default function WordSourceView({
       cancelled = true;
     };
   }, [url, fileId, held]);
+
+  useEffect(() => {
+    if (failed) reportShown();
+  }, [failed]);
 
   const passage = useMemo(
     () =>
@@ -102,13 +140,7 @@ export default function WordSourceView({
       </p>
     );
   }
-  if (!bytes) {
-    return (
-      <p className="p-6 text-sm text-muted-foreground" role="status">
-        Se deschide documentul…
-      </p>
-    );
-  }
+  if (!bytes) return null;
   return (
     <div ref={host} className="flex h-full min-h-0 flex-col" data-testid="source-word">
       <DocxEditor
@@ -124,7 +156,7 @@ export default function WordSourceView({
         fonts={fonts}
         onReady={setEditor}
       >
-        <QuotePassage ranges={ranges} host={host} />
+        <QuotePassage ranges={ranges} host={host} onPainted={onShown} />
       </DocxEditor>
     </div>
   );

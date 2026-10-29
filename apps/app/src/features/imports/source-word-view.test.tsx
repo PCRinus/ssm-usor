@@ -41,9 +41,16 @@ vi.mock('@docx-editor.dev/react', async () => {
         mounts.count += 1;
         onReady?.(editor);
       }, [onReady]);
-      return <div data-testid="docx-editor">{children}</div>;
+      return (
+        <div data-testid="docx-editor">
+          <div className="docx-page" />
+          {children}
+        </div>
+      );
     },
     useDocxEditor: () => null,
+    useEditorState: (select: (state: object) => unknown) =>
+      select({ isLoading: false, isOpening: false, parseError: null }),
     useHighlights: () => {},
   };
 });
@@ -69,6 +76,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('the Word viewer', () => {
   it('opens the document from a new link after the old one was refused', async () => {
+    const onShown = vi.fn();
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string) =>
@@ -82,21 +90,25 @@ describe('the Word viewer', () => {
         source={sourceWith('https://storage.example/leip.docx?token=expired')}
         quote="Manusi"
         onNotFound={() => {}}
+        onShown={onShown}
       />
     );
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Documentul nu a putut fi deschis aici.'
     );
+    expect(onShown).toHaveBeenCalledTimes(1);
 
     rerender(
       <WordSourceView
         source={sourceWith('https://storage.example/leip.docx?token=fresh')}
         quote="Manusi"
         onNotFound={() => {}}
+        onShown={onShown}
       />
     );
     expect(await screen.findByTestId('docx-editor')).toBeTruthy();
     expect(screen.queryByRole('alert')).toBeNull();
+    await waitFor(() => expect(onShown).toHaveBeenCalledTimes(2));
   });
 
   it('keeps the document when the next passage in it comes with a new link, and marks that one', async () => {
@@ -109,6 +121,7 @@ describe('the Word viewer', () => {
         source={sourceWith('https://storage.example/leip.docx?token=1')}
         quote="Manusi"
         onNotFound={onNotFound}
+        onShown={() => {}}
       />
     );
     await waitFor(() => expect(editor.scrollToBlock).toHaveBeenLastCalledWith('p1'));
@@ -118,6 +131,7 @@ describe('the Word viewer', () => {
         source={sourceWith('https://storage.example/leip.docx?token=2')}
         quote="Ochelari de protectie"
         onNotFound={onNotFound}
+        onShown={() => {}}
       />
     );
     await waitFor(() => expect(editor.scrollToBlock).toHaveBeenLastCalledWith('p2'));
@@ -126,6 +140,7 @@ describe('the Word viewer', () => {
         source={sourceWith('https://storage.example/leip.docx?token=3')}
         quote="Casca"
         onNotFound={onNotFound}
+        onShown={() => {}}
       />
     );
     await waitFor(() => expect(onNotFound).toHaveBeenCalledTimes(1));

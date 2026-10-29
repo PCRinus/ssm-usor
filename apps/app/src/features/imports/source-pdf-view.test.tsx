@@ -63,7 +63,7 @@ describe('the PDF viewer', () => {
     );
     render(
       <StrictMode>
-        <PdfSourceView source={source} quote={null} onNotFound={() => {}} />
+        <PdfSourceView source={source} quote={null} onNotFound={() => {}} onShown={() => {}} />
       </StrictMode>
     );
 
@@ -77,7 +77,7 @@ describe('the PDF viewer', () => {
       () => loadingTask('loads') as unknown as ReturnType<typeof getDocument>
     );
     const { rerender } = render(
-      <PdfSourceView source={source} quote={null} onNotFound={() => {}} />
+      <PdfSourceView source={source} quote={null} onNotFound={() => {}} onShown={() => {}} />
     );
     expect(await screen.findByText('Pagina 1 din 2')).toBeTruthy();
 
@@ -90,6 +90,7 @@ describe('the PDF viewer', () => {
         }}
         quote={null}
         onNotFound={() => {}}
+        onShown={() => {}}
       />
     );
     expect(await screen.findByText('Pagina 2 din 2')).toBeTruthy();
@@ -100,7 +101,9 @@ describe('the PDF viewer', () => {
     vi.mocked(getDocument).mockImplementation(
       () => loadingTask('loads') as unknown as ReturnType<typeof getDocument>
     );
-    const first = render(<PdfSourceView source={source} quote={null} onNotFound={() => {}} />);
+    const first = render(
+      <PdfSourceView source={source} quote={null} onNotFound={() => {}} onShown={() => {}} />
+    );
     await screen.findByText('Pagina 1 din 2');
     first.unmount();
     render(
@@ -108,6 +111,7 @@ describe('the PDF viewer', () => {
         source={{ ...source, fileId: 'c4a1f0e2-7d3b-4b8e-9f21-6a5c3e8d1b07' }}
         quote={null}
         onNotFound={() => {}}
+        onShown={() => {}}
       />
     );
     await waitFor(() => expect(vi.mocked(getDocument)).toHaveBeenCalledTimes(2));
@@ -120,14 +124,38 @@ describe('the PDF viewer', () => {
     expect(document.loadingTask.destroy).toHaveBeenCalled();
   });
 
+  it('says when its first page is drawn, and how much of the file has come', async () => {
+    vi.mocked(getDocument).mockImplementation(() => {
+      const task = loadingTask('loads') as unknown as ReturnType<typeof getDocument>;
+      setTimeout(() => task.onProgress?.({ loaded: 3_250_000, total: 23_700_000 }), 0);
+      return task;
+    });
+    const onShown = vi.fn();
+    const onProgress = vi.fn();
+    render(
+      <PdfSourceView
+        source={source}
+        quote={null}
+        onNotFound={() => {}}
+        onShown={onShown}
+        onProgress={onProgress}
+      />
+    );
+
+    await waitFor(() => expect(onShown).toHaveBeenCalledTimes(1));
+    expect(onProgress).toHaveBeenCalledWith(3_250_000, 23_700_000);
+  });
+
   it('says so when the PDF cannot be opened', async () => {
     vi.mocked(getDocument).mockImplementation(
       () => loadingTask('fails') as unknown as ReturnType<typeof getDocument>
     );
-    render(<PdfSourceView source={source} quote={null} onNotFound={() => {}} />);
+    const onShown = vi.fn();
+    render(<PdfSourceView source={source} quote={null} onNotFound={() => {}} onShown={onShown} />);
 
     expect((await screen.findByRole('alert')).textContent).toContain(
       'PDF-ul nu a putut fi deschis aici.'
     );
+    expect(onShown).toHaveBeenCalledTimes(1);
   });
 });

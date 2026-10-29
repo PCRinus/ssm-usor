@@ -9,15 +9,23 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { ChevronLeft, ChevronRight, Copy, Download, FileText, ScanText } from 'lucide-react';
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
 import { getImportSource, type ImportSourceResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
+import { PagePlaceholder } from '@/features/documents/editor-placeholder';
 
 import { endSentence, filesLabel, importErrorMessage } from './import-format';
 import type { LabelledSource } from './review-model';
-import { requestPath, type SourceKind, sourceKind } from './source-match';
+import {
+  requestFileName,
+  requestKind,
+  requestPage,
+  requestPath,
+  type SourceKind,
+  sourceKind,
+} from './source-match';
 import { sourceParams, sourceQuery, viewerChunks } from './source-query';
 import { ZoomBar } from './zoom-bar';
 
@@ -83,7 +91,22 @@ function SourceContent({
       : null;
   const viewed = viewing && request.sources[viewing.index]!;
   const viewedKind = viewing && sourceKind(viewing.source);
-  const kind = source ? sourceKind(source) : null;
+  const viewerKey = viewing?.source.fileId ?? null;
+  const [viewer, setViewer] = useState<ViewerState>({ key: null, shown: false, progress: null });
+  if (viewer.key !== viewerKey) setViewer({ key: viewerKey, shown: false, progress: null });
+  const shownViewer = () =>
+    setViewer((state) =>
+      state.key === viewerKey && !state.shown ? { ...state, shown: true } : state
+    );
+  const progressOf = (loaded: number, total: number) =>
+    setViewer((state) =>
+      state.key === viewerKey && !state.shown && state.progress?.loaded !== loaded
+        ? { ...state, progress: { loaded, total } }
+        : state
+    );
+  const opening = !query.isError && !(viewer.key === viewerKey && viewer.shown);
+  const kind = source ? sourceKind(source) : requestKind(current.file);
+  const page = source ? source.page : requestPage(current.file);
   const fileCount = new Set(request.sources.map((each) => each.file)).size;
   const step = (next: number) => {
     setNotFound(null);
@@ -132,16 +155,16 @@ function SourceContent({
               ) : (
                 <FileText className="size-3.5" aria-hidden="true" />
               )}
-              {source?.fileName ?? current.file.split('/').at(-1)}
+              {source?.fileName ?? requestFileName(current.file)}
             </span>
             {kind && (
               <span className="rounded-md bg-secondary px-2 py-0.5 font-medium text-secondary-foreground">
                 {kindLabels[kind]}
               </span>
             )}
-            {source?.page && (
+            {page !== null && (
               <span className="rounded-md bg-secondary px-2 py-0.5 font-medium text-secondary-foreground tabular-nums">
-                Pagina {source.page}
+                Pagina {page}
               </span>
             )}
           </div>
@@ -188,11 +211,6 @@ function SourceContent({
         className="relative min-h-0 flex-1 overflow-hidden bg-muted/60"
         data-testid="source-viewer"
       >
-        {!viewing && !query.isError && (
-          <p className="p-6 text-sm text-muted-foreground" role="status">
-            Se deschide fișierul…
-          </p>
-        )}
         {query.isError && (
           <div className="p-6">
             <Notice variant="destructive" data-testid="source-error">
@@ -206,18 +224,13 @@ function SourceContent({
           </div>
         )}
         {viewing && viewed && !query.isError && (
-          <Suspense
-            fallback={
-              <p className="p-6 text-sm text-muted-foreground" role="status">
-                Se deschide fișierul…
-              </p>
-            }
-          >
+          <Suspense fallback={null}>
             {viewedKind === 'word' && (
               <WordSourceView
                 key={viewing.source.fileId}
                 source={viewing.source}
                 quote={viewed.quote}
+                onShown={shownViewer}
                 onNotFound={() =>
                   setNotFound(
                     viewing.source.match
@@ -232,6 +245,8 @@ function SourceContent({
                 key={viewing.source.fileId}
                 source={viewing.source}
                 quote={viewedKind === 'pdf' ? viewed.quote : null}
+                onShown={shownViewer}
+                onProgress={progressOf}
                 onNotFound={() =>
                   setNotFound(
                     viewing.source.match
@@ -242,10 +257,15 @@ function SourceContent({
               />
             )}
             {viewedKind === 'image' && (
-              <ImageSourceView key={viewing.source.fileId} source={viewing.source} />
+              <ImageSourceView
+                key={viewing.source.fileId}
+                source={viewing.source}
+                onShown={shownViewer}
+              />
             )}
           </Suspense>
         )}
+        {opening && <SourcePlaceholder kind={kind} progress={viewer.progress} />}
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t px-5 py-3">
         <Button
@@ -274,19 +294,17 @@ function SourceContent({
           <ChevronRight aria-hidden="true" />
         </Button>
         <span className="flex-1" />
-        {source && (
-          <Button
-            variant="outline"
-            size="sm"
-            title="Fișierul așa cum a fost încărcat, fără marcaj"
-            data-testid="source-download"
-            disabled={downloading}
-            onClick={() => void download()}
-          >
-            <Download aria-hidden="true" />
-            Descarcă originalul
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          title="Fișierul așa cum a fost încărcat, fără marcaj"
+          data-testid="source-download"
+          disabled={!source || downloading}
+          onClick={() => void download()}
+        >
+          <Download aria-hidden="true" />
+          Descarcă originalul
+        </Button>
         <Button size="sm" onClick={onClose}>
           Închide
         </Button>
@@ -300,7 +318,88 @@ function SourceContent({
 const downloadLink = (url: string, fileName: string) =>
   `${url}${url.includes('?') ? '&' : '?'}download=${encodeURIComponent(fileName)}`;
 
-function ImageSourceView({ source }: { source: ImportSourceResponse }) {
+type ViewerState = {
+  key: string | null;
+  shown: boolean;
+  progress: { loaded: number; total: number } | null;
+};
+
+const openingLabels: Record<SourceKind, string> = {
+  word: 'Se deschide documentul…',
+  pdf: 'Se deschide documentul…',
+  scan: 'Se deschide scanarea…',
+  image: 'Se deschide fotografia…',
+};
+
+const progressAfterMs = 800;
+const megabytes = new Intl.NumberFormat('ro-RO', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+const inMegabytes = (bytes: number) => megabytes.format(bytes / 1024 / 1024);
+
+// One placeholder from the click until the file is drawn, over the answer, the viewer's code and
+// the file itself, so the dialog does not change three times while it opens.
+function SourcePlaceholder({
+  kind,
+  progress,
+}: {
+  kind: SourceKind | null;
+  progress: ViewerState['progress'];
+}) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), progressAfterMs);
+    return () => clearTimeout(timer);
+  }, []);
+  const share =
+    progress && progress.total > 0 ? Math.min(1, progress.loaded / progress.total) : null;
+  return (
+    <div
+      className="absolute inset-0 z-10 overflow-hidden bg-background"
+      data-testid="source-loading"
+      aria-busy="true"
+    >
+      <PagePlaceholder
+        className="h-full bg-muted/60"
+        detail={
+          slow &&
+          progress &&
+          share !== null && (
+            <div className="grid gap-1.5" data-testid="source-progress">
+              <div
+                role="progressbar"
+                aria-label="Fișier descărcat"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(share * 100)}
+                className="h-1 w-full min-w-48 overflow-hidden rounded-full bg-muted"
+              >
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] motion-reduce:transition-none"
+                  style={{ width: `${share * 100}%` }}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {inMegabytes(progress.loaded)} din {inMegabytes(progress.total)} MB
+              </span>
+            </div>
+          )
+        }
+      >
+        {openingLabels[kind ?? 'pdf']}
+      </PagePlaceholder>
+    </div>
+  );
+}
+
+function ImageSourceView({
+  source,
+  onShown,
+}: {
+  source: ImportSourceResponse;
+  onShown: () => void;
+}) {
   const [zoom, setZoom] = useState<number | 'fit'>('fit');
   const url = source.derived?.url ?? source.original.url;
   return (
@@ -309,6 +408,8 @@ function ImageSourceView({ source }: { source: ImportSourceResponse }) {
         <img
           src={url}
           alt={`Fotografia ${source.fileName}`}
+          onLoad={onShown}
+          onError={onShown}
           className={cn(
             'mx-auto block bg-card shadow-sm',
             zoom === 'fit' && 'max-h-full max-w-full object-contain'

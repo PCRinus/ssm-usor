@@ -35,10 +35,14 @@ export default function PdfSourceView({
   source,
   quote,
   onNotFound,
+  onShown,
+  onProgress,
 }: {
   source: ImportSourceResponse;
   quote: string | null;
   onNotFound: () => void;
+  onShown: () => void;
+  onProgress?: (loaded: number, total: number) => void;
 }) {
   const url = source.original.url;
   const { fileId } = source;
@@ -56,6 +60,10 @@ export default function PdfSourceView({
   const page = useRef<HTMLDivElement>(null);
   const reported = useRef<ImportSourceResponse | null>(null);
   const reportNotFound = useEffectEvent(() => onNotFound());
+  const reportShown = useEffectEvent(() => onShown());
+  const reportProgress = useEffectEvent((loaded: number, total: number) =>
+    onProgress?.(loaded, total)
+  );
   if (opened !== source) {
     setOpened(source);
     setPageNumber(openingPage(source));
@@ -68,6 +76,9 @@ export default function PdfSourceView({
     let cancelled = false;
     let kept = false;
     const task = getDocument({ url, worker: sharedWorker() });
+    task.onProgress = ({ loaded, total }: { loaded: number; total: number }) => {
+      if (!cancelled) reportProgress(loaded, total);
+    };
     task.promise.then(
       (document) => {
         if (cancelled) return;
@@ -122,6 +133,7 @@ export default function PdfSourceView({
           transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
         });
         await rendering.promise;
+        if (!cancelled) reportShown();
         layer.replaceChildren();
         if (cancelled || !quote) return;
         text = new TextLayer({
@@ -150,6 +162,10 @@ export default function PdfSourceView({
       text?.cancel();
     };
   }, [pdf, url, pageNumber, zoom, quote, source]);
+
+  useEffect(() => {
+    if (failed) reportShown();
+  }, [failed]);
 
   if (failed) {
     return (

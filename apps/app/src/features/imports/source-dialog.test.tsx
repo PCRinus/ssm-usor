@@ -14,33 +14,62 @@ import {
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
 const wordLinks: string[] = [];
+const viewers = {
+  draw: true,
+  progress: null as { loaded: number; total: number } | null,
+};
 
-vi.mock('@/features/imports/source-word-view', () => ({
-  default: ({
-    source,
-    onNotFound,
-  }: {
-    source: { original: { url: string } };
-    onNotFound: () => void;
-  }) => {
-    wordLinks.push(source.original.url);
-    return (
-      <button type="button" data-testid="word-view" onClick={onNotFound}>
-        Word
-      </button>
-    );
-  },
-}));
+vi.mock('@/features/imports/source-word-view', async () => {
+  const { useEffect } = await import('react');
+  return {
+    default: function WordView({
+      source,
+      onNotFound,
+      onShown,
+    }: {
+      source: { original: { url: string } };
+      onNotFound: () => void;
+      onShown: () => void;
+    }) {
+      wordLinks.push(source.original.url);
+      useEffect(() => {
+        if (viewers.draw) onShown();
+      }, [onShown]);
+      return (
+        <>
+          <button type="button" data-testid="word-view" onClick={onNotFound}>
+            Word
+          </button>
+          <button type="button" data-testid="word-drawn" onClick={onShown}>
+            Desenat
+          </button>
+        </>
+      );
+    },
+  };
+});
 
 const pdfMounts = { count: 0 };
 
 vi.mock('@/features/imports/source-pdf-view', async () => {
   const { useEffect } = await import('react');
   return {
-    default: function PdfView({ quote }: { quote: string | null }) {
+    default: function PdfView({
+      quote,
+      onShown,
+      onProgress,
+    }: {
+      quote: string | null;
+      onShown: () => void;
+      onProgress: (loaded: number, total: number) => void;
+    }) {
       useEffect(() => {
         pdfMounts.count += 1;
       }, []);
+      useEffect(() => {
+        if (viewers.progress) onProgress(viewers.progress.loaded, viewers.progress.total);
+        if (viewers.draw) onShown();
+      }, [onShown, onProgress]);
       return <div data-testid="pdf-view" data-quote={quote ?? ''} />;
     },
   };
@@ -65,6 +94,7 @@ const phoneSources = [
 ];
 
 let sourceRequests: number;
+let sourceGate: Promise<unknown> | null;
 let sourceNears: (string | null)[];
 
 function mockSources(
@@ -87,7 +117,7 @@ function mockSources(
       if (!answer || answer === 'missing') {
         return Response.json({ error: 'not_found', message: 'No such file.' }, { status: 404 });
       }
-      return Response.json({
+      const reply = Response.json({
         fileId: '0b8f6a52-4f0e-4d3a-9c1b-7e2d5a6f8c01',
         uploadPath: file,
         fileName: file
@@ -105,6 +135,7 @@ function mockSources(
         match: answer.match ?? null,
         expiresInSeconds: 300,
       });
+      return sourceGate ? sourceGate.then(() => reply) : reply;
     }
     return undefined;
   });
@@ -136,6 +167,9 @@ const word = {
 
 beforeEach(() => {
   wordLinks.length = 0;
+  viewers.draw = true;
+  viewers.progress = null;
+  sourceGate = null;
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -333,6 +367,66 @@ describe('the source dialog', () => {
     expect((await within(dialog).findByTestId('source-error')).textContent).toContain(
       'Fișierul nu mai este în import.'
     );
+    expect(within(dialog).queryByTestId('source-loading')).toBeNull();
+  });
+
+  it('shows one placeholder from the click until the file is drawn, under a complete header', async () => {
+    let answer: () => void = () => {};
+    sourceGate = new Promise<void>((resolve) => (answer = resolve));
+    viewers.draw = false;
+    mockSources({ 'dosar-ssm.zip/Decizie 1.docx': word }, [
+      { file: 'dosar-ssm.zip/Decizie 1.docx', quote: '0269 214 377' },
+    ]);
+    const dialog = await openPhoneSource();
+    const loading = () => within(dialog).queryByTestId('source-loading');
+    const download = () => within(dialog).getByTestId('source-download') as HTMLButtonElement;
+
+    expect(within(loading()!).getByRole('status').textContent).toBe('Se deschide documentul…');
+    expect(loading()!.getAttribute('aria-busy')).toBe('true');
+    expect(within(dialog).getByRole('heading').textContent).toBe('Sursa: Telefon');
+    expect(dialog.textContent).toContain('Decizie 1.docx');
+    expect(dialog.textContent).toContain('Document Word');
+    expect(download().disabled).toBe(true);
+
+    answer();
+    await within(dialog).findByTestId('word-view');
+    expect(loading()).toBeTruthy();
+    expect(download().disabled).toBe(false);
+
+    await userEvent.click(within(dialog).getByTestId('word-drawn'));
+    expect(loading()).toBeNull();
+  });
+
+  it('names a scanned page and what was read on it before the answer comes', async () => {
+    sourceGate = new Promise(() => {});
+    mockSources(
+      { 'Scanari/Decizie PSI.pdf (pagina 2)': { mimeType: 'application/pdf', page: 2 } },
+      [{ file: 'Scanari/Decizie PSI.pdf (pagina 2)', quote: 'tel. 0269 214 377' }]
+    );
+    const dialog = await openPhoneSource();
+
+    expect(
+      within(within(dialog).getByTestId('source-loading')).getByRole('status').textContent
+    ).toBe('Se deschide scanarea…');
+    expect(dialog.textContent).toContain('Decizie PSI.pdf');
+    expect(dialog.textContent).toContain('Scanare');
+    expect(dialog.textContent).toContain('Pagina 2');
+    expect(within(dialog).getByTestId('source-read').textContent).toContain('tel. 0269 214 377');
+  });
+
+  it('shows how much of a PDF has come once it takes a while', async () => {
+    viewers.draw = false;
+    viewers.progress = { loaded: 3.1 * 1024 * 1024, total: 22.6 * 1024 * 1024 };
+    mockSources({ 'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf' } }, [
+      { file: 'Contract prestari SSM 2019.pdf', quote: 'Telefon: 0269 214 377' },
+    ]);
+    const dialog = await openPhoneSource();
+    await within(dialog).findByTestId('pdf-view');
+    expect(within(dialog).queryByTestId('source-progress')).toBeNull();
+
+    const progress = await within(dialog).findByTestId('source-progress', {}, { timeout: 2000 });
+    expect(progress.textContent).toBe('3,1 din 22,6 MB');
+    expect(within(progress).getByRole('progressbar').getAttribute('aria-valuenow')).toBe('14');
   });
 
   it('shows a person’s name, then each role’s passage, saying which role it proves', async () => {
