@@ -1,5 +1,6 @@
 ---
 import BillingToggle from '../../components/site/BillingToggle.astro';
+import PaymentFacts from '../../components/site/PaymentFacts.astro';
 import PlanCards from '../../components/site/PlanCards.astro';
 import {
   addOns,
@@ -35,6 +36,7 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
 
       <section class="cards" id="planuri" aria-label="Planuri">
         <PlanCards placement="pricing_page" />
+        <PaymentFacts />
         <p class="calc">
           {pricingPage.calculatorPrompt}{' '}
           <a
