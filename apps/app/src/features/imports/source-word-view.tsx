@@ -2,8 +2,8 @@ import '@docx-editor.dev/core/styles/editor.css';
 import './source-word-view.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
-import { DocxEditor, useHighlights } from '@docx-editor.dev/react';
-import { useEffect, useRef, useState } from 'react';
+import { DocxEditor, useDocxEditor, useHighlights } from '@docx-editor.dev/react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
 import { editorStrings } from '@/features/documents/editor-strings.ro';
@@ -15,8 +15,20 @@ const fonts = packagedFonts({ allow: ['Arial'] });
 
 type Range = { blockId: string; start: number; length: number };
 
-function QuoteHighlights({ ranges }: { ranges: Range[] }) {
+function QuotePassage({
+  ranges,
+  host,
+}: {
+  ranges: Range[];
+  host: RefObject<HTMLDivElement | null>;
+}) {
   useHighlights('import-quote', ranges, { priority: 20 });
+  const editor = useDocxEditor();
+  useEffect(() => {
+    const viewport = host.current?.querySelector<HTMLElement>('.docx-editor-one-surface__viewport');
+    if (!editor || ranges.length === 0 || !viewport) return;
+    return holdPassage(viewport, { fontsPending: () => editor.fontMeasurement().resolving });
+  }, [editor, ranges, host]);
   return null;
 }
 
@@ -53,12 +65,6 @@ export default function WordSourceView({
       cancelled = true;
     };
   }, [url]);
-
-  useEffect(() => {
-    const viewport = host.current?.querySelector<HTMLElement>('.docx-editor-one-surface__viewport');
-    if (ranges.length === 0 || !viewport) return;
-    return holdPassage(viewport);
-  }, [ranges]);
 
   if (failed) {
     return (
@@ -97,7 +103,7 @@ export default function WordSourceView({
           else onNotFound();
         }}
       >
-        <QuoteHighlights ranges={ranges} />
+        <QuotePassage ranges={ranges} host={host} />
       </DocxEditor>
     </div>
   );

@@ -76,7 +76,7 @@ describe('holding the passage in view in the Word viewer', () => {
     const { viewport, mark } = editorViewport();
     const clock = manualClock();
     const passage = mark({ top: 5000, left: 100, width: 80, height: 20 });
-    const stop = holdPassage(viewport, clock);
+    const stop = holdPassage(viewport, { clock });
 
     clock.run(32);
     expect(viewport.scrollTop).toBe(5010 - 300);
@@ -95,15 +95,15 @@ describe('holding the passage in view in the Word viewer', () => {
     const { viewport, mark } = editorViewport();
     const clock = manualClock();
     mark({ top: 5000, left: 100, width: 80, height: 20 });
-    holdPassage(viewport, clock);
-    clock.run(1000);
+    holdPassage(viewport, { clock });
+    clock.run(1200);
     viewport.scrollTop = 0;
     clock.run(100);
     expect(viewport.scrollTop).toBe(0);
 
     const second = editorViewport();
     second.mark({ top: 5000, left: 100, width: 80, height: 20 });
-    holdPassage(second.viewport, clock);
+    holdPassage(second.viewport, { clock });
     clock.run(32);
     second.viewport.dispatchEvent(new WheelEvent('wheel'));
     second.viewport.scrollTop = 6000;
@@ -111,10 +111,31 @@ describe('holding the passage in view in the Word viewer', () => {
     expect(second.viewport.scrollTop).toBe(6000);
   });
 
+  it('holds the passage while the fonts load and follows it when they move it without a scroll', () => {
+    const { viewport, mark } = editorViewport();
+    const clock = manualClock();
+    let fontsPending = true;
+    const passage = mark({ top: 8400, left: 100, width: 80, height: 20 });
+    holdPassage(viewport, { clock, fontsPending: () => fontsPending });
+    clock.run(32);
+    expect(viewport.scrollTop).toBe(8110);
+
+    clock.run(2000);
+    passage.place.top = 8010;
+    fontsPending = false;
+    clock.run(32);
+    expect(viewport.scrollTop).toBe(7720);
+
+    clock.run(1200);
+    viewport.scrollTop = 0;
+    clock.run(100);
+    expect(viewport.scrollTop).toBe(0);
+  });
+
   it('waits for the editor to paint the passage before it scrolls', () => {
     const { viewport, mark } = editorViewport();
     const clock = manualClock();
-    holdPassage(viewport, clock);
+    holdPassage(viewport, { clock });
     clock.run(800);
     expect(viewport.scrollTop).toBe(0);
     expect(clock.waiting).toBeGreaterThan(0);
@@ -130,14 +151,14 @@ describe('holding the passage in view in the Word viewer', () => {
     const above = row({ top: 4960, left: 50, width: 700, height: 20 });
     const matched = row({ top: 4980, left: 50, width: 700, height: 60 });
     mark({ top: 5000, left: 600, width: 80, height: 20 });
-    const stop = holdPassage(viewport, clock);
+    const stop = holdPassage(viewport, { clock });
 
     clock.run(32);
     expect(matched.classList.contains(passageRowClass)).toBe(true);
     expect(above.classList.contains(passageRowClass)).toBe(false);
     expect(viewport.scrollTop).toBe(5010 - 300);
 
-    clock.run(1000);
+    clock.run(1200);
     const repainted = row({ top: 4980, left: 50, width: 700, height: 60 });
     matched.remove();
     await Promise.resolve();
@@ -151,7 +172,7 @@ describe('holding the passage in view in the Word viewer', () => {
     Object.assign(viewport, { clientWidth: 300, scrollWidth: 900 });
     const clock = manualClock();
     mark({ top: 1000, left: 700, width: 100, height: 20 });
-    holdPassage(viewport, clock);
+    holdPassage(viewport, { clock });
     clock.run(32);
     expect(viewport.scrollLeft).toBe(700 + 100 + 24 - 300);
   });

@@ -2,10 +2,12 @@ export const passageMarks = '[data-highlight-set="import-quote"] .docx-text-high
 export const passageRowClass = 'import-source-row';
 
 const edgePadding = 24;
-const settledAfterMs = 600;
-const giveUpAfterMs = 6000;
+const settledAfterMs = 1000;
+const giveUpAfterMs = 15_000;
 
 type Box = { top: number; bottom: number; left: number; right: number };
+
+type Hold = { fontsPending?: () => boolean; clock?: Clock };
 
 type Clock = {
   frame: (callback: () => void) => number;
@@ -98,13 +100,16 @@ export function passageScroll(box: Box, viewport: HTMLElement) {
   };
 }
 
-// The editor lays out and paints pages after it scrolls to a block, and may scroll again as it
-// does, so one measurement soon after opening can leave the passage out of view: the passage is
-// held in the middle until it has not moved for a while, or until the reader scrolls.
-export function holdPassage(viewport: HTMLElement, clock: Clock = browserClock) {
+// The editor lays the document out first with estimated text widths and again once the fonts it
+// fetched arrive, which can move a passage by most of a page without any scroll, so the passage
+// is held in the middle until the fonts are in and it has not moved for a while, or until the
+// reader scrolls.
+export function holdPassage(
+  viewport: HTMLElement,
+  { fontsPending = () => false, clock = browserClock }: Hold = {}
+) {
   const started = clock.now();
   let still = started;
-  let centred = false;
   let holding = true;
   let frame = 0;
   let pending = 0;
@@ -128,11 +133,9 @@ export function holdPassage(viewport: HTMLElement, clock: Clock = browserClock) 
         viewport.scrollLeft = left;
         still = now;
       }
-      centred = true;
-    } else {
-      still = now;
     }
-    if ((centred && now - still >= settledAfterMs) || now - started >= giveUpAfterMs) {
+    if (!box || fontsPending()) still = now;
+    if (now - still >= settledAfterMs || now - started >= giveUpAfterMs) {
       release();
       return;
     }

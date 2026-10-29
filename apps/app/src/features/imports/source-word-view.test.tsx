@@ -9,6 +9,7 @@ vi.mock('@docx-editor.dev/core/styles/editor.css', () => ({}));
 vi.mock('@docx-editor.dev/fonts', () => ({ packagedFonts: () => [] }));
 vi.mock('@docx-editor.dev/react', () => ({
   DocxEditor: () => <div data-testid="docx-editor" />,
+  useDocxEditor: () => null,
   useHighlights: () => {},
 }));
 
