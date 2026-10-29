@@ -34,7 +34,7 @@ import {
   yesNoValues,
 } from './proposal';
 import { correctProposalSpelling } from './spelling';
-import { answerFormat } from './wire';
+import { answerFormat, months } from './wire';
 
 export const factFields = [
   ...clientFieldNames.map((name) => `client.${name}`),
@@ -90,7 +90,7 @@ export const readingSchema = z.object({
   jobPositions: z.array(
     z.object({
       name: z.string(),
-      trainingIntervalMonths: z.int().nullable(),
+      trainingIntervalMonths: months(z.int()).nullable(),
       workZone: z.string().nullable(),
       managementOnly: z.boolean(),
       // An enum, since a boolean on the wire cannot be unknown.
@@ -147,7 +147,7 @@ export const readingSchema = z.object({
       risk: z.string().nullable(),
       item: z.string(),
       quantity: z.int().nullable(),
-      durationMonths: z.int().nullable(),
+      durationMonths: months(z.int()).nullable(),
       allocation: z.enum(equipmentAllocations).nullable(),
       ...quoted,
     })

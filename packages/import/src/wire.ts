@@ -38,6 +38,22 @@ function wireNumber(value: unknown, integer: boolean) {
   return integer && !Number.isInteger(number) ? null : number;
 }
 
+const monthSchemas = new WeakSet<z.ZodType>();
+
+// A duration in months the model may write in years ("1 an"), which the first number of the
+// text would read as one month.
+export function months<T extends z.ZodNumber>(schema: T): T {
+  monthSchemas.add(schema);
+  return schema;
+}
+
+function wireMonths(value: unknown) {
+  const match = /^(\d+)(?:\s*(ani|an|luni|lun[aă]))?$/i.exec(String(value).trim());
+  if (!match) return null;
+  const count = Number(match[1]);
+  return match[2]?.toLowerCase().startsWith('an') ? count * 12 : count;
+}
+
 export function restore(schema: z.ZodType, value: unknown): unknown {
   if (schema instanceof z.ZodNullable) {
     if (value === null || value === undefined) return null;
@@ -46,6 +62,7 @@ export function restore(schema: z.ZodType, value: unknown): unknown {
   }
   if (schema instanceof z.ZodNumber) {
     if (typeof value === 'number') return value;
+    if (monthSchemas.has(schema)) return wireMonths(value);
     return wireNumber(value, schema.format === 'safeint' || schema.format === 'int32');
   }
   if (schema instanceof z.ZodArray) {

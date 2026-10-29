@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { readingAnswer } from './reading';
 import { sortingAnswer } from './sorting';
-import { answerFormat, flatten, restore, strictJsonSchema } from './wire';
+import { answerFormat, flatten, months, restore, strictJsonSchema } from './wire';
 
 function visit(node: unknown, each: (node: Record<string, unknown>) => void) {
   if (Array.isArray(node)) node.forEach((child) => visit(child, each));
@@ -57,6 +57,17 @@ describe('the wire form', () => {
       })
     ).toEqual({ name: 'Brutar', count: 12, kind: null, items: [{ note: null, done: true }] });
     expect(restore(z.int().nullable(), '2,5')).toBeNull();
+  });
+
+  it('reads a duration in years as months, and any other text as unknown', () => {
+    const duration = months(z.int()).nullable();
+
+    expect(
+      ['6', '1 an', '2 ani', '3 ANI', '12 luni', '', '-', 'până la uzură', '1-2 ani', 9].map(
+        (value) => restore(duration, value)
+      )
+    ).toEqual([6, 12, 24, 36, 12, null, null, null, null, 9]);
+    expect(restore(z.int().nullable(), '1 an')).toBe(1);
   });
 
   it('refuses an answer outside the schema', () => {

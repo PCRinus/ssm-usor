@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { contained, cuiDigits, findQuote, foldName, foldText, sameName, similar } from './match';
+import {
+  contained,
+  cuiDigits,
+  findQuote,
+  findQuotes,
+  foldName,
+  foldText,
+  placeQuote,
+  sameName,
+  similar,
+} from './match';
 
 describe('foldText', () => {
   it('drops diacritics of both the comma and the cedilla forms', () => {
@@ -90,5 +100,81 @@ describe('findQuote', () => {
   it('does not find words that are not there', () => {
     expect(findQuote(text, 'Se numește dl. Georgescu Mihai')).toBeNull();
     expect(findQuote(text, '   ')).toBeNull();
+  });
+});
+
+describe('findQuotes and placeQuote', () => {
+  const row = '| Substanțe de curățat (mâini) | Mănuși | - | Inventar |';
+  const text = [
+    'Posturi evaluate: Bucătar, Cameristă, Recepționer',
+    'LOC DE MUNCĂ : RESTAURANT / MESERIA : BUCĂTAR',
+    '| Arsuri (mâini) | Mănuși termorezistente | 1 an | Inventar |',
+    row,
+    '',
+    'LOC DE MUNCĂ : HOTEL / MESERIA : CAMERISTĂ',
+    '| Alunecare | Încălțăminte | 2 ani | Inventar |',
+    row,
+    '',
+  ].join('\n');
+  const cells = row.slice(2, -2);
+  const first = text.indexOf(cells);
+  const second = text.lastIndexOf(cells);
+
+  it('finds every place of a quote, in order', () => {
+    expect(findQuotes(text, row)).toEqual(
+      [first, second].map((start) => {
+        const span = { start, end: start + cells.length };
+        return { ...span, parts: [span] };
+      })
+    );
+    expect(findQuote(text, row)?.start).toBe(first);
+  });
+
+  it("takes the place of a repeated row under the heading of the entry's post", () => {
+    expect(placeQuote([text], row, 'Cameristă')).toMatchObject({
+      textIndex: 0,
+      start: second,
+      end: second + cells.length,
+    });
+    expect(placeQuote([text], 'Inventar', 'Cameristă')?.start).toBe(
+      text.indexOf('Inventar', text.indexOf('CAMERISTĂ'))
+    );
+    expect(placeQuote([text], row, 'Bucătar')?.start).toBe(first);
+  });
+
+  it('takes the first place when the hint is missing or found nowhere before it', () => {
+    expect(placeQuote([text], row)?.start).toBe(first);
+    expect(placeQuote([text], row, 'Ospătar')?.start).toBe(first);
+    expect(placeQuote([text], 'Lipsește', 'Cameristă')).toBeNull();
+  });
+
+  it('reads the texts as one, so a heading on a page heads the rows of the next', () => {
+    const pages = [
+      `MESERIA : BUCĂTAR\n${row}`,
+      `${row}\nMESERIA : CAMERISTĂ`,
+      `Continuare\n${row}`,
+    ];
+    expect(placeQuote(pages, row, 'Cameristă')).toMatchObject({
+      textIndex: 2,
+      start: pages[2]!.indexOf(cells),
+      end: pages[2]!.indexOf(cells) + cells.length,
+    });
+    expect(placeQuote(pages, row)?.textIndex).toBe(0);
+  });
+
+  it('starts an ellipsis quote at the latest first part that still comes before the rest', () => {
+    const headed = findQuotes(text, `CAMERISTĂ … ${row}`);
+    expect(headed).toHaveLength(2);
+    expect(text.slice(headed[0]!.start, headed[0]!.end)).toMatch(/^Cameristă, Recepționer/);
+    expect(text.slice(headed[1]!.start, headed[1]!.end)).toBe(
+      `CAMERISTĂ\n| Alunecare | Încălțăminte | 2 ani | Inventar |\n| ${cells}`
+    );
+    const heading = text.indexOf('CAMERISTĂ');
+    expect(placeQuote([text], `CAMERISTĂ … ${row}`, 'Cameristă')?.parts).toEqual([
+      { start: heading, end: heading + 'CAMERISTĂ'.length },
+      { start: second, end: second + cells.length },
+    ]);
+    const span = findQuote('Mănuși, apoi Mănuși de bumbac și Inventar', 'Mănuși … Inventar');
+    expect(span?.start).toBe('Mănuși, apoi '.length);
   });
 });
