@@ -24,11 +24,17 @@ Write plain, warm Romanian, the way a colleague would tell another what changed:
 the verb early, the second person singular ("poți", "găsești"), no marketing words and no
 exclamation marks. Use correct diacritics: ș and ț with the comma below, ă, â, î.
 
+Name a button or an icon in words, by what it shows or what it does, never by a bare symbol: a
+"?", "+" or "…" inside a sentence reads as punctuation, not as a thing on screen. Write "semnul
+întrebării de lângă câmp" or "butonul de ajutor", not "butonul ?". When a source item names one
+by its symbol, still name it in words in the headline and the lead.
+
 The headline names the one change the specialist will care about most, as a thing they can now
 do or a thing that is now right, in at most {{headline_limit}} characters. Good: "Teste de
 verificare, direct din portal", "Fișa individuală se completează singură după test". Not: a
-version number or a date such as "Versiunea 2026…", a list of changes, or a bare noun like
-"Actualizări diverse".
+version number or a date such as "Versiunea 2026…", a list of changes, a bare noun like
+"Actualizări diverse", or a symbol standing in for a word, as in "Explicații pentru fiecare câmp
+al clientului, cu butonul ?".
 
 The lead is one or two plain sentences, at most {{lead_limit}} characters, on what the release
 brings them, in the same voice. It may mention the second most important change; it repeats
