@@ -92,7 +92,12 @@ export const clientSchema = z.object({
 
 export type Client = z.infer<typeof clientSchema>;
 
-export const clientResponseSchema = z.object({ client: clientSchema });
+export const clientResponseSchema = z.object({
+  client: clientSchema,
+  // Whether the caller may delete the client outright: an archived client, outside production
+  // or for a platform admin only.
+  canDelete: z.boolean(),
+});
 
 export type ClientResponse = z.infer<typeof clientResponseSchema>;
 
@@ -150,6 +155,7 @@ export const clientConflictReasons = {
   clientArchived: 'client_archived',
   cuiTakenByLead: 'cui_taken_by_lead',
   clientIsLead: 'client_is_lead',
+  clientNotArchived: 'client_not_archived',
 } as const;
 
 export type ListClientsQuery = z.infer<typeof listClientsQuerySchema>;

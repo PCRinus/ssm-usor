@@ -11,7 +11,13 @@ import {
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership, requireOwner } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors, ownerErrors } from '../../lib/openapi';
+import {
+  authErrors,
+  bearerSecurity,
+  errorContent,
+  membershipErrors,
+  ownerErrors,
+} from '../../lib/openapi';
 
 export const listClientsRoute = createRoute({
   method: 'get',
@@ -167,6 +173,30 @@ export const restoreClientRoute = createRoute({
   middleware: [requireAuth, requireMembership, requireOwner] as const,
   request: { params: z.object({ clientId: z.uuid() }) },
   responses: archivingResponses,
+});
+
+export const deleteClientRoute = createRoute({
+  method: 'delete',
+  path: '/clients/{clientId}',
+  operationId: 'deleteClient',
+  summary: 'Delete an archived client outright, with everything under it',
+  description:
+    "For testing with real documents, where an archived client's CUI keeps the same company from being added or imported again. Outside production any member may; in production a platform admin only (`403` otherwise), as `canDelete` on the client says. Only an archived client (`409` with the reason `client_not_archived` otherwise). Its employees, positions, workplaces, trainings and their signatures, tests, sheets, documents, files, risk evaluations, fire-safety data, participants and imports are deleted with it, and then its stored files, as far as the storage answers. Nothing is kept to restore it.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: z.object({ clientId: z.uuid() }) },
+  responses: {
+    204: { description: 'The client is deleted' },
+    400: { description: 'Invalid path', content: errorContent },
+    404: { description: 'The client does not exist in the organization', content: errorContent },
+    409: { description: 'The client is not archived', content: errorContent },
+    ...authErrors,
+    403: {
+      description:
+        'The account is not a member of an organization, or this is production and the caller is not a platform admin',
+      content: errorContent,
+    },
+  },
 });
 
 export const promoteLeadRoute = createRoute({

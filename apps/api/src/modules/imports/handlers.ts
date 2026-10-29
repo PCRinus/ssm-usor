@@ -16,13 +16,14 @@ import type { Context } from 'hono';
 
 import type { Database } from '../../database.types';
 import { type AdminClient, createAdminClient } from '../../lib/admin-db';
+import { adminToolsAllowed } from '../../lib/auth';
 import {
   archivedClientError,
   createDataClient,
   type DataClient,
   fromDatabaseError,
 } from '../../lib/db';
-import { type ApiEnv, type ImportMessage, type ImportQueue, isProduction } from '../../lib/env';
+import type { ApiEnv, ImportMessage, ImportQueue } from '../../lib/env';
 import { ApiError, type BrokenConstraint } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
 import {
@@ -219,8 +220,6 @@ export async function existingRecords(db: DataClient, clientId: string): Promise
   };
 }
 
-const usageVisible = (c: Context<ApiEnv>) => !isProduction(c.env) || c.get('platformAdmin');
-
 type UsageColumns = {
   input_tokens: unknown;
   cached_input_tokens: unknown;
@@ -392,7 +391,7 @@ export const getImport: RouteHandler<typeof getImportRoute, ApiEnv> = async (c) 
     blockers,
     proposalDroppedAt: row.proposal_dropped_at,
     proposal: visible ? stored.proposal : null,
-    ...(usageVisible(c) ? { usage: usageOf(row) } : {}),
+    ...(adminToolsAllowed(c) ? { usage: usageOf(row) } : {}),
   };
   return c.json({ import: detail }, 200);
 };

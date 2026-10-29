@@ -16,6 +16,7 @@ import { openApiConfig } from '../../lib/openapi';
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: 'https://example.supabase.co',
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
+  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
   CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
 };
 
@@ -78,7 +79,17 @@ const fetchMock = vi.fn<typeof fetch>();
 
 function mockUpstream(
   handlers: Partial<
-    Record<'auth' | 'membership' | 'clients' | 'notes' | 'participants' | 'invitations', Handler>
+    Record<
+      | 'auth'
+      | 'membership'
+      | 'clients'
+      | 'notes'
+      | 'participants'
+      | 'invitations'
+      | 'deleteClient'
+      | 'storage',
+      Handler
+    >
   >
 ) {
   fetchMock.mockImplementation(async (input, init) => {
@@ -102,6 +113,12 @@ function mockUpstream(
     if (url.pathname === '/rest/v1/participant_invitations') {
       return handlers.invitations?.(init) ?? Response.json([]);
     }
+    if (url.pathname === '/rest/v1/rpc/delete_archived_client') {
+      return handlers.deleteClient?.(init) ?? Response.json([]);
+    }
+    if (url.pathname.startsWith('/storage/v1/object/')) {
+      return handlers.storage?.(init) ?? Response.json([]);
+    }
     throw new Error(`Unexpected upstream request: ${url}`);
   });
 }
@@ -109,11 +126,16 @@ function mockUpstream(
 const calls = (pathname: string) =>
   fetchMock.mock.calls.filter(([input]) => new URL(String(input)).pathname === pathname);
 
-const request = (path: string, init: RequestInit = {}, token = 'Bearer test-access-token') =>
+const request = (
+  path: string,
+  init: RequestInit = {},
+  token = 'Bearer test-access-token',
+  bindings: ApiEnv['Bindings'] = env
+) =>
   createApp().request(
     path,
     { ...init, headers: { Authorization: token, ...(init.headers ?? {}) } },
-    env
+    bindings
   );
 
 const postClient = (body: unknown, token?: string) =>
@@ -576,6 +598,19 @@ describe('GET /clients/{clientId}', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('not_found');
   });
 
+  it.each([
+    ['an archived client outside production', '2026-01-01T00:00:00+00:00', undefined, true],
+    ['an active client', null, undefined, false],
+    ['an archived client in production', '2026-01-01T00:00:00+00:00', 'production', false],
+  ])('says whether the caller may delete %s', async (_, archivedAt, environment, canDelete) => {
+    mockUpstream({ clients: () => Response.json([{ ...clientRow, archived_at: archivedAt }]) });
+    const response = await request(`/clients/${clientRow.id}`, {}, undefined, {
+      ...env,
+      ENVIRONMENT: environment,
+    });
+    expect(clientResponseSchema.parse(await response.json()).canDelete).toBe(canDelete);
+  });
+
   it('rejects a malformed id', async () => {
     mockUpstream({});
     expect((await request('/clients/nope')).status).toBe(400);
@@ -869,6 +904,105 @@ describe('archiving a client', () => {
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
     expect((await post(action)).status).toBe(403);
     expect(calls('/rest/v1/clients')).toHaveLength(0);
+  });
+});
+
+describe('DELETE /clients/{clientId}', () => {
+  const archived = { id: clientRow.id, archived_at: '2026-09-21T08:00:00+00:00' };
+  const production = { ...env, ENVIRONMENT: 'production' };
+  const objects = [
+    { bucket: 'documents', path: `${membership.organization_id}/${clientRow.id}/d/1.docx` },
+    { bucket: 'documents', path: `signed-sheets/${clientRow.id}/e/ssm-1/v1-a.pdf` },
+    { bucket: 'client-files', path: `${membership.organization_id}/${clientRow.id}/f.pdf` },
+  ];
+  const remove = (bindings = env) =>
+    request(`/clients/${clientRow.id}`, { method: 'DELETE' }, undefined, bindings);
+  const storageCalls = () =>
+    fetchMock.mock.calls.filter(([input]) =>
+      new URL(String(input)).pathname.startsWith('/storage/v1/object/')
+    );
+
+  it('deletes an archived client with the secret key, then its objects bucket by bucket', async () => {
+    mockUpstream({
+      clients: () => Response.json([archived]),
+      deleteClient: () => Response.json(objects),
+    });
+    const response = await remove();
+    expect(response.status).toBe(204);
+    const [, rpcInit] = calls('/rest/v1/rpc/delete_archived_client')[0]!;
+    expect(JSON.parse(String(rpcInit?.body))).toEqual({
+      p_organization_id: membership.organization_id,
+      p_client_id: clientRow.id,
+    });
+    expect(new Headers(rpcInit?.headers).get('apikey')).toBe(env.SUPABASE_SECRET_KEY);
+    const removed = storageCalls().map(([input, init]) => [
+      new URL(String(input)).pathname,
+      JSON.parse(String(init?.body)).prefixes,
+    ]);
+    expect(removed).toEqual([
+      ['/storage/v1/object/documents', [objects[0]!.path, objects[1]!.path]],
+      ['/storage/v1/object/client-files', [objects[2]!.path]],
+    ]);
+  });
+
+  it('is refused to a member in production', async () => {
+    mockUpstream({ clients: () => Response.json([archived]) });
+    const response = await remove(production);
+    expect(response.status).toBe(403);
+    expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('forbidden');
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
+  });
+
+  it('is open to a platform admin in production', async () => {
+    mockUpstream({
+      auth: () => Response.json({ ...user, app_metadata: { provider: 'email', role: 'admin' } }),
+      clients: () => Response.json([archived]),
+    });
+    expect((await remove(production)).status).toBe(204);
+    expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(1);
+  });
+
+  it('refuses a client that is not archived, before and inside the database', async () => {
+    mockUpstream({ clients: () => Response.json([{ ...archived, archived_at: null }]) });
+    const active = await remove();
+    expect(active.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await active.json()).reason).toBe('client_not_archived');
+    expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
+
+    mockUpstream({
+      clients: () => Response.json([archived]),
+      deleteClient: () => Response.json({ code: 'CLA02', message: 'restored' }, { status: 400 }),
+    });
+    const restored = await remove();
+    expect(restored.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await restored.json()).reason).toBe('client_not_archived');
+  });
+
+  it('answers 404 for a client the caller does not reach', async () => {
+    mockUpstream({ clients: () => Response.json([]) });
+    expect((await remove()).status).toBe(404);
+    expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
+
+    mockUpstream({
+      clients: () => Response.json([archived]),
+      deleteClient: () => Response.json({ code: 'P0002', message: 'gone' }, { status: 400 }),
+    });
+    expect((await remove()).status).toBe(404);
+  });
+
+  it('still answers 204 when the storage fails, and logs how many objects, never their names', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mockUpstream({
+      clients: () => Response.json([archived]),
+      deleteClient: () => Response.json(objects),
+      storage: () => Response.json({ message: 'unavailable' }, { status: 500 }),
+    });
+    expect((await remove()).status).toBe(204);
+    const lines = logged.mock.calls.map((call) => call.join(' '));
+    expect(lines).toContain('Objects of a deleted client left in documents: 2');
+    expect(lines).toContain('Objects of a deleted client left in client-files: 1');
+    expect(lines.join('\n')).not.toContain(clientRow.id);
   });
 });
 

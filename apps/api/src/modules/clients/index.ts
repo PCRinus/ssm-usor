@@ -2,6 +2,7 @@ import { createRouter } from '../../router';
 import {
   archiveClient,
   createClient,
+  deleteClient,
   getClient,
   getClientOwnerNotes,
   listClients,
@@ -13,6 +14,7 @@ import {
 import {
   archiveClientRoute,
   createClientRoute,
+  deleteClientRoute,
   getClientOwnerNotesRoute,
   getClientRoute,
   listClientsRoute,
@@ -27,6 +29,7 @@ export const clientsRouter = createRouter()
   .openapi(createClientRoute, createClient)
   .openapi(getClientRoute, getClient)
   .openapi(updateClientRoute, updateClient)
+  .openapi(deleteClientRoute, deleteClient)
   .openapi(archiveClientRoute, archiveClient)
   .openapi(restoreClientRoute, restoreClient)
   .openapi(promoteLeadRoute, promoteLead)

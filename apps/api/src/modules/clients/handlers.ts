@@ -8,8 +8,11 @@ import {
   pageRange,
   serviceContractTypeKey,
 } from '@ssm-usor/contracts';
+import type { Context } from 'hono';
 
 import type { Database } from '../../database.types';
+import { createAdminClient } from '../../lib/admin-db';
+import { adminToolsAllowed } from '../../lib/auth';
 import {
   archivedClientError,
   createDataClient,
@@ -18,10 +21,12 @@ import {
 } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { clientObjectBuckets, createAdminFileStore } from '../../lib/files';
 import { documentationProgress } from '../documents/context';
 import type {
   archiveClientRoute,
   createClientRoute,
+  deleteClientRoute,
   getClientOwnerNotesRoute,
   getClientRoute,
   listClientsRoute,
@@ -113,6 +118,10 @@ export function toClient(row: SelectedClientRow & ContractDocuments): Client {
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
   };
+}
+
+function clientResponse(c: Context<ApiEnv>, client: Client) {
+  return { client, canDelete: client.archivedAt !== null && adminToolsAllowed(c) };
 }
 
 // The policies hide leads from a specialist, which would read as an empty list or a missing
@@ -269,7 +278,7 @@ export const getClient: RouteHandler<typeof getClientRoute, ApiEnv> = async (c) 
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'get client');
   if (!data) throw new ApiError('not_found', 'This client does not exist in your organization.');
-  return c.json({ client: toClient(data) }, 200);
+  return c.json(clientResponse(c, toClient(data)), 200);
 };
 
 // An archived client keeps its CUI, and the caller cannot see it in the list they came from.
@@ -334,7 +343,7 @@ export const createClient: RouteHandler<typeof createClientRoute, ApiEnv> = asyn
       ? await cuiConflict(db, cui)
       : fromDatabaseError(error, 'create client');
   }
-  return c.json({ client: toClient(data) }, 201);
+  return c.json(clientResponse(c, toClient(data)), 201);
 };
 
 export const updateClient: RouteHandler<typeof updateClientRoute, ApiEnv> = async (c) => {
@@ -371,7 +380,7 @@ export const updateClient: RouteHandler<typeof updateClientRoute, ApiEnv> = asyn
       ? await cuiConflict(db, cui)
       : fromDatabaseError(error, 'update client');
   }
-  if (data) return c.json({ client: toClient(data) }, 200);
+  if (data) return c.json(clientResponse(c, toClient(data)), 200);
   const existing = await db.from('clients').select('id').eq('id', clientId).maybeSingle();
   if (existing.error) throw fromDatabaseError(existing.error, 'find client');
   if (!existing.data) {
@@ -409,12 +418,63 @@ async function setArchived(db: DataClient, clientId: string, archived: boolean) 
 
 export const archiveClient: RouteHandler<typeof archiveClientRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
-  return c.json({ client: await setArchived(createDataClient(c), clientId, true) }, 200);
+  return c.json(clientResponse(c, await setArchived(createDataClient(c), clientId, true)), 200);
 };
 
 export const restoreClient: RouteHandler<typeof restoreClientRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
-  return c.json({ client: await setArchived(createDataClient(c), clientId, false) }, 200);
+  return c.json(clientResponse(c, await setArchived(createDataClient(c), clientId, false)), 200);
+};
+
+const clientNotFound = () =>
+  new ApiError('not_found', 'This client does not exist in your organization.');
+
+const clientNotArchived = () =>
+  new ApiError(
+    'conflict',
+    'Only an archived client is deleted; archive it first.',
+    undefined,
+    clientConflictReasons.clientNotArchived
+  );
+
+// The function runs with the secret key, since only this route decides who may delete, so the
+// client is first read as the caller: the policies decide which clients they reach.
+export const deleteClient: RouteHandler<typeof deleteClientRoute, ApiEnv> = async (c) => {
+  if (!adminToolsAllowed(c)) {
+    throw new ApiError(
+      'forbidden',
+      'Only a platform administrator deletes a client in production.'
+    );
+  }
+  const { clientId } = c.req.valid('param');
+  const found = await createDataClient(c)
+    .from('clients')
+    .select('id, archived_at')
+    .eq('id', clientId)
+    .maybeSingle();
+  if (found.error) throw fromDatabaseError(found.error, 'find client');
+  if (!found.data) throw clientNotFound();
+  if (!found.data.archived_at) throw clientNotArchived();
+
+  const deleted = await createAdminClient(c).rpc('delete_archived_client', {
+    p_organization_id: c.get('membership').organizationId,
+    p_client_id: clientId,
+  });
+  if (deleted.error?.code === 'P0002') throw clientNotFound();
+  if (deleted.error?.code === 'CLA02') throw clientNotArchived();
+  if (deleted.error) throw fromDatabaseError(deleted.error, 'delete client');
+
+  // The rows are gone whatever the storage answers; an object left behind is an orphan, not a
+  // reason to tell the caller the client is still there.
+  const files = createAdminFileStore(c);
+  for (const bucket of clientObjectBuckets) {
+    const paths = deleted.data.filter((row) => row.bucket === bucket).map((row) => row.path);
+    if (paths.length === 0) continue;
+    await files.removeClientObjects(bucket, paths).catch(() => {
+      console.error(`Objects of a deleted client left in ${bucket}: ${paths.length}`);
+    });
+  }
+  return c.body(null, 204);
 };
 
 export const promoteLead: RouteHandler<typeof promoteLeadRoute, ApiEnv> = async (c) => {
@@ -429,14 +489,14 @@ export const promoteLead: RouteHandler<typeof promoteLeadRoute, ApiEnv> = async 
     .select(clientColumns)
     .maybeSingle();
   if (promoted.error) throw fromDatabaseError(promoted.error, 'promote lead');
-  if (promoted.data) return c.json({ client: toClient(promoted.data) }, 200);
+  if (promoted.data) return c.json(clientResponse(c, toClient(promoted.data)), 200);
   const current = await db.from('clients').select(clientColumns).eq('id', clientId).maybeSingle();
   if (current.error) throw fromDatabaseError(current.error, 'find client');
   if (!current.data) {
     throw new ApiError('not_found', 'This client does not exist in your organization.');
   }
   if (current.data.stage === 'lead') throw archivedClientError();
-  return c.json({ client: toClient(current.data) }, 200);
+  return c.json(clientResponse(c, toClient(current.data)), 200);
 };
 
 export const getClientOwnerNotes: RouteHandler<typeof getClientOwnerNotesRoute, ApiEnv> = async (
