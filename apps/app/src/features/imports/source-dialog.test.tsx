@@ -123,6 +123,19 @@ afterEach(() => {
 });
 
 describe('the source dialog', () => {
+  it('counts passages from one file in the singular', async () => {
+    mockSources({ 'dosar-ssm.zip/Decizie 1.docx': word }, [
+      { file: 'dosar-ssm.zip/Decizie 1.docx', quote: 'Telefon: 0269 214 377' },
+      { file: 'dosar-ssm.zip/Decizie 1.docx', quote: 'tel. 0269 214 377' },
+      { file: 'dosar-ssm.zip/Decizie 1.docx', quote: '0269 214 377' },
+    ]);
+    const dialog = await openPhoneSource();
+
+    expect(within(dialog).getByTestId('source-position').textContent).toBe(
+      '1 din 3, într-un fișier'
+    );
+  });
+
   it('steps through every passage, and says when a PDF passage was not found', async () => {
     mockSources({
       'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf', match: null },

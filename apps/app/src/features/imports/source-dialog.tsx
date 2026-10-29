@@ -254,7 +254,8 @@ function SourceContent({
         </Button>
         <span className="text-sm text-muted-foreground tabular-nums" data-testid="source-position">
           {index + 1} din {request.sources.length}
-          {request.sources.length > 1 && `, în ${filesLabel(fileCount)}`}
+          {request.sources.length > 1 &&
+            (fileCount === 1 ? ', într-un fișier' : `, în ${filesLabel(fileCount)}`)}
         </span>
         <Button
           variant="outline"
