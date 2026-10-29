@@ -1987,7 +1987,9 @@ workplace or position the review named is no longer the client's), and `422` wit
 missed): one issue whose `path` is the proposal's list or group for that table (or the table)
 and whose `message` is the constraint's name, never the refused values. A new client's VAT
 registration is ANAF's. A post's decision that it needs no protective equipment goes into the
-payload only while none of its entries is written. The payload's `quality` counts per section, without values, how many
+payload only while none of its entries is written, and a smoking place only beside designated
+places, the policy the member chose or the client keeps, since `client_fire_safety` refuses a
+place under another policy or none; a place left out never blocks. The payload's `quality` counts per section, without values, how many
 values the member changed, unticked or kept. The answer is `{ clientId, fileCount }`, and a `copy`
 message copies the folder afterwards. `GET /imports/{importId}/source?file=&quote=` resolves a
 source's `file`, an upload path or `<upload path> (pagina N)`, and answers five-minute links to

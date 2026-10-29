@@ -52,6 +52,7 @@ The rules the model is given, from the decisions of 2026-10-26:
 - A post that is only the running of the firm (administrator, director, asociat, manager, with at most driving for the firm, office work or representing it) is proposed unticked, under "Doar dacă lucrează în firmă cu contract de muncă", unless a document shows someone holding it under an employment contract or names someone on it among the exposed staff; its equipment entries stay out with it unless the member moves them to another post. A post that adds a trade ("Administrator – vânzător") is proposed ticked, as the documents name it. The import never merges a post into another or splits one out (2026-10-29).
 - An equipment table naming several positions applies to each of them.
 - A staff category has either a periodic training interval or "nu se aplică", never both ([ADR 008](adr-008-applicable-training-categories.md)).
+- A smoking place goes with designated places only ([ADR 019](adr-019-fire-safety-stage-three.md)): the smoking policy chosen decides, and a place read from a decision the member did not choose shows as not applying and is left out, never blocking (2026-10-29).
 - The hire date comes from "admis la lucru".
 - Where documents disagree, both values are proposed as a choice; mandatory values that are missing are flagged.
 
