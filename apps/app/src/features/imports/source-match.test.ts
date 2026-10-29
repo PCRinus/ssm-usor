@@ -50,6 +50,53 @@ describe('finding a passage in the viewers', () => {
     ]);
   });
 
+  it('searches a passage from a table cell by cell, without the separators the text added', () => {
+    const text =
+      'FISA POSTULUI\n| FUNCTIA : | INGRIJITOR HOTEL |\n| Locul de muncă : | Etaj 1 / Etaj 2 |\n';
+    const start = text.indexOf('FUNCTIA');
+    const end = text.indexOf('Etaj 2') + 'Etaj 2'.length;
+    const lines = quoteLines(source({ text, match: { page: null, start, end } }), 'ignored');
+    expect(lines).toEqual([
+      'FUNCTIA :',
+      'INGRIJITOR HOTEL',
+      'Locul de muncă :',
+      'Etaj 1',
+      'Etaj 2',
+    ]);
+
+    const paragraphs = [
+      'FISA POSTULUI',
+      'FUNCTIA :',
+      'INGRIJITOR HOTEL',
+      'Locul de muncă :',
+      'Etaj 1',
+      'Etaj 2',
+    ];
+    const { hits, anchor } = passageHits(lines, (line) =>
+      paragraphs.flatMap((paragraph, paragraphIndex) =>
+        paragraph.toLowerCase().includes(line.toLowerCase())
+          ? [{ blockId: `p${paragraphIndex}`, start: 0, length: line.length, paragraphIndex }]
+          : []
+      )
+    );
+    expect(anchor?.blockId).toBe('p2');
+    expect(hits.map((hit) => hit.blockId)).toEqual(['p1', 'p2', 'p3', 'p4', 'p5']);
+  });
+
+  it("keeps the cells of a header's table together, though each search gives its own scope", () => {
+    const paragraphs = ['S.C. HOTEL EXEMPLU S.R.L.', 'CUI 31458207'];
+    const { hits } = passageHits(['S.C. HOTEL EXEMPLU S.R.L.', 'CUI 31458207'], (line) => [
+      {
+        blockId: `h${paragraphs.indexOf(line)}`,
+        start: 0,
+        length: line.length,
+        paragraphIndex: paragraphs.indexOf(line),
+        scope: { kind: 'headerFooter', rId: 'rId7' },
+      },
+    ]);
+    expect(hits.map((hit) => hit.blockId)).toEqual(['h0', 'h1']);
+  });
+
   it('takes each line of a Word passage next to the longest one, not its first hit anywhere', () => {
     const paragraphs = [
       'Date de identificare',

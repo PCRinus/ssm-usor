@@ -42,15 +42,16 @@ export function markQuote(spans: HTMLElement[], quote: string) {
   return marked;
 }
 
-// The text the API matched the quote in is ours, taken out of the XML with tables as rows of
-// cells; the editor finds within one paragraph, so the passage is searched line by line.
+// The text the API matched the quote in is ours, taken out of the XML with a table row as
+// `| cell | cell |` and a cell's paragraphs joined by " / "; the editor finds within one
+// paragraph and knows none of these separators, so the passage is searched piece by piece.
 export function quoteLines(source: ImportSourceResponse, quote: string) {
   const matched =
     source.text && source.match && source.match.page === null
       ? source.text.slice(source.match.start, source.match.end)
       : quote;
   return matched
-    .split(/\n|\t|\s{3,}/)
+    .split(/\n|\t|\s{3,}|\s*\|\s*|\s+\/\s+/)
     .map((line) => line.trim())
     .filter((line) => line.length >= 3);
 }
@@ -67,8 +68,11 @@ export type LineHit = {
 // looked for a few paragraphs on: a short cell such as "CUI" also appears elsewhere.
 const nearbyParagraphs = 8;
 
+// The editor builds a header's or footer's scope afresh on each search.
+const sameScope = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
 const comesAfter = (hit: LineHit, previous: LineHit) =>
-  hit.scope === previous.scope &&
+  sameScope(hit.scope, previous.scope) &&
   hit.paragraphIndex - previous.paragraphIndex <= nearbyParagraphs &&
   (hit.paragraphIndex > previous.paragraphIndex ||
     (hit.paragraphIndex === previous.paragraphIndex &&
