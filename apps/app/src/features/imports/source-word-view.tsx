@@ -95,7 +95,7 @@ export default function WordSourceView({
         fonts={fonts}
         onReady={(editor) => {
           const { hits, anchor } = passageHits(quoteLines(source, quote), (line) =>
-            findLine(line, (query) => editor.findMatches(query))
+            findLine(line, (queries, options) => editor.findMatches(queries, options))
           );
           setRanges(hits.map(({ blockId, start, length }) => ({ blockId, start, length })));
           // The editor paints a highlight only once its page is in view.
