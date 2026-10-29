@@ -1462,19 +1462,22 @@ see an owners-only document:
   lead, by `created_by`); `workplaces_positions_done` (a workplace and a job position, of any
   clients); `employees_done`; `responsible_persons_done`; `risk_evaluation_done`;
   `fire_safety_data_done` (the client's fire-safety row, whose `created_by` is whoever first
-  saved it); `generate_sets_done` (a generation of each group); `issue_document_done` (a
+  saved it, while it holds a fact of the card: the substances declaration alone also creates
+  the row); `generate_sets_done` (a generation of each group); `issue_document_done` (a
   revision of the two sets, by `issued_by`; the service contract does not count);
   `portal_invitation_done` (an invitation of kind `employee`, by `invited_by`);
   `training_done` (a training of source `app`); and `signature_done` (a request in state
-  `signed`, by `issued_by`).
+  `signed` with a signer account, by `issued_by`; a slot marked on paper has none).
 - The facts the locks need, about the organization's active clients (stage `client`, not
   archived) whoever did the work: `has_client`; `has_client_with_workplace_and_position` and
   `has_client_with_position`, current ones; `has_client_with_basic_data`, a client absent
   from `clients_missing_basic_data`; `has_draft_revision`, a draft of the two sets;
   `has_client_with_employee`, a current, active employee; and `has_training_record`.
 - `furthest_client_id`, the active client with the most of steps 6 to 15 done by anyone, the
-  newest first on a tie; null when the organization has no active client.
-- `owner_names`, the owners' full names in order, empty when none has a profile.
+  newest first on a tie, by the same tests as the steps; null when the organization has no
+  active client.
+- `owner_count`, from the memberships, and `owner_names`, the full names in order of the owners
+  who have a profile, so the names alone can undercount.
 
 Each check is an `exists` over an index on `organization_id`, `client_id` or the author
 column (`created_by`, `issued_by`, `invited_by`).
