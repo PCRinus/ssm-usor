@@ -63,7 +63,8 @@ export async function createAccount(name: string, fullName?: string) {
   if (error) throw error;
   created.users.push(data.user.id);
   if (fullName) {
-    // The setup guide would cover a corner of every flow's pages; setup-guide.spec.ts opens it.
+    // Closed, as it would cover a corner of the flow's pages; setup-guide.spec.ts opens it. An
+    // account made without a full name has no profile yet, and shows the guide.
     const profile = await admin.from('profiles').insert({
       user_id: data.user.id,
       full_name: fullName,

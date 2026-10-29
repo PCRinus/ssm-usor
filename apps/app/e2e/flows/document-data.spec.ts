@@ -277,7 +277,7 @@ test('an employee is designated once, and the administrator is added by hand', a
 test("the workers' representative is an employee other than the legal representative", async ({
   page,
 }) => {
-  const owner = await createAccount('workers-representative-owner');
+  const owner = await createAccount('workers-representative-owner', 'Rita Reprezentant');
   const organizationId = await createOrganization('Reprezentant lucrători E2E', owner.id);
   // Its legal representative is Maria Popescu.
   const clientId = await createClientCompany(organizationId, 'CLIENT REPREZENTANT E2E SRL');
@@ -327,7 +327,7 @@ test("the workers' representative is an employee other than the legal representa
 test('employee choices scroll with the wheel inside the responsible-person dialog', async ({
   page,
 }) => {
-  const owner = await createAccount('responsible-scroll-owner');
+  const owner = await createAccount('responsible-scroll-owner', 'Sabina Listă');
   const organizationId = await createOrganization('Lista angajați E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'CLIENT ANGAJAȚI E2E SRL');
   for (let index = 0; index < 16; index++) {
@@ -354,7 +354,7 @@ test('employee choices scroll with the wheel inside the responsible-person dialo
 test('the county and locality lists scroll with the wheel inside the workplace dialog', async ({
   page,
 }) => {
-  const owner = await createAccount('workplace-scroll-owner');
+  const owner = await createAccount('workplace-scroll-owner', 'Lucian Județ');
   const organizationId = await createOrganization('Liste punct de lucru E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'CLIENT LISTE E2E SRL');
   await signIn(page, owner.email);
