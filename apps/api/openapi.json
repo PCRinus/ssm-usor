@@ -13820,9 +13820,27 @@
               "end": {
                 "type": "integer",
                 "minimum": 0
+              },
+              "parts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "start": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "end": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": ["start", "end"]
+                },
+                "minItems": 1
               }
             },
-            "required": ["page", "start", "end"]
+            "required": ["page", "start", "end", "parts"]
           },
           "expiresInSeconds": {
             "type": "integer"
@@ -36158,7 +36176,7 @@
       "get": {
         "operationId": "getImportSource",
         "summary": "Get the file a value was quoted from",
-        "description": "`file` is a source's `file` exactly as the proposal names it: a file's upload path, or `<upload path> (pagina N)` for a page read as an image. The answer links to the original and to the converted file, carries the text taken out of a Word file or the pages of a PDF, and where `quote` is in them.",
+        "description": "`file` is a source's `file` exactly as the proposal names it: a file's upload path, or `<upload path> (pagina N)` for a page read as an image. The answer links to the original and to the converted file, carries the text taken out of a Word file or the pages of a PDF, and where `quote` is in them: when it is in several places, the one `near` (the post a table row is for) precedes most closely, or else the first.",
         "security": [
           {
             "bearerAuth": []
@@ -36191,6 +36209,15 @@
             },
             "required": false,
             "name": "quote",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "required": false,
+            "name": "near",
             "in": "query"
           }
         ],

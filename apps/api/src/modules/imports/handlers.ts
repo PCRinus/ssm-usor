@@ -8,10 +8,11 @@ import {
   importFileExtensions,
   type ImportFileType,
   importLimits,
+  type ImportSourceResponse,
   type ImportSummary,
   type ImportUsage,
 } from '@ssm-usor/contracts';
-import { findQuote, proposalSchema } from '@ssm-usor/import';
+import { placeQuote, proposalSchema } from '@ssm-usor/import';
 import type { Context } from 'hono';
 
 import type { Database } from '../../database.types';
@@ -652,7 +653,7 @@ export const saveImportChanges: RouteHandler<typeof saveImportChangesRoute, ApiE
 
 export const getImportSource: RouteHandler<typeof getImportSourceRoute, ApiEnv> = async (c) => {
   const { importId } = c.req.valid('param');
-  const { file: named, quote } = c.req.valid('query');
+  const { file: named, quote, near } = c.req.valid('query');
   const db = createDataClient(c);
   await findImport(db, importId);
   const files = await listFilesOf(db, importId);
@@ -670,7 +671,7 @@ export const getImportSource: RouteHandler<typeof getImportSourceRoute, ApiEnv> 
 
   let text: string | null = null;
   let pages: { number: number; text: string }[] | null = null;
-  let match: { page: number | null; start: number; end: number } | null = null;
+  let match: ImportSourceResponse['match'] = null;
   const readable = file.text_path && !file.mime_type.startsWith('image/');
   if (readable) {
     const bytes = await store.readImportObject(file.text_path ?? textPathOf(file));
@@ -680,19 +681,22 @@ export const getImportSource: RouteHandler<typeof getImportSourceRoute, ApiEnv> 
       pages = prepared.pages
         .filter((each) => !each.isScan)
         .map((each) => ({ number: each.number, text: each.text }));
-      if (quote && page === null) {
-        for (const each of pages) {
-          const found = findQuote(each.text, quote);
-          if (found) {
-            match = { page: each.number, ...found };
-            break;
-          }
-        }
+      const found =
+        quote && page === null
+          ? placeQuote(
+              pages.map((each) => each.text),
+              quote,
+              near
+            )
+          : null;
+      if (found) {
+        const { start, end, parts } = found;
+        match = { page: pages[found.textIndex]!.number, start, end, parts };
       }
     } else {
       text = content;
-      const found = quote ? findQuote(content, quote) : null;
-      if (found) match = { page: null, ...found };
+      const found = quote ? placeQuote([content], quote, near) : null;
+      if (found) match = { page: null, start: found.start, end: found.end, parts: found.parts };
     }
   }
   return c.json(

@@ -939,7 +939,7 @@ describe('GET /imports/{importId}/source', () => {
         { number: 1, text: 'Decizia nr. 1' },
         { number: 2, text: 'Administratorul, dl. Vasilescu Andrei, numește' },
       ],
-      match: { page: 2, start: 17, end: 37 },
+      match: { page: 2, start: 17, end: 37, parts: [{ start: 17, end: 37 }] },
     });
     expect(String((body.original as { url: string }).url)).toContain(
       storagePath(importId, 1, 'pdf')
@@ -949,6 +949,44 @@ describe('GET /imports/{importId}/source', () => {
       `/imports/${importId}/source?file=${encodeURIComponent('Dosar/Decizie.pdf (pagina 3)')}`
     );
     expect(await scanned.json()).toMatchObject({ page: 3, match: null });
+  });
+
+  it('places a row repeated under several posts under the post the value is for', async () => {
+    const word = fileRow(1, {
+      upload_path: 'Dosar/Echipament.doc',
+      original_file_name: 'Echipament.doc',
+      mime_type: 'application/msword',
+      storage_path: storagePath(importId, 1, 'doc'),
+      text_path: storagePath(importId, 1, 'txt'),
+      state: 'read',
+    });
+    const row = '| Substanțe de curățat (mâini) | Mănuși | - | Inventar |';
+    const text = [
+      'Posturi: Bucătar, Cameristă',
+      'MESERIA : BUCĂTAR',
+      row,
+      'MESERIA : CAMERISTĂ',
+      row,
+    ].join('\n');
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow({ status: 'ready' }));
+      if (url.pathname === '/rest/v1/import_files') return Response.json([word]);
+      if (url.pathname.startsWith('/storage/v1/object/sign/imports/') && method === 'POST') {
+        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+      }
+      if (url.pathname.endsWith('.txt')) return new Response(text);
+    });
+    const source = async (near?: string) => {
+      const response = await request(
+        `/imports/${importId}/source?file=${encodeURIComponent('Dosar/Echipament.doc')}&quote=${encodeURIComponent(row)}${near ? `&near=${encodeURIComponent(near)}` : ''}`
+      );
+      return (await response.json()) as { match: { start: number } };
+    };
+    const cells = row.slice(2, -2);
+
+    const span = { start: text.lastIndexOf(cells), end: text.lastIndexOf(cells) + cells.length };
+    expect((await source('Cameristă')).match).toEqual({ page: null, ...span, parts: [span] });
+    expect((await source()).match.start).toBe(text.indexOf(cells));
   });
 });
 
