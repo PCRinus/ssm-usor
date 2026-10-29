@@ -1,5 +1,5 @@
 begin;
-select plan(103);
+select plan(104);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -25,6 +25,9 @@ insert into public.clients (id, organization_id, legal_name, cui, stage, trade_r
 
 insert into public.job_positions (id, organization_id, client_id, name) values
   ('dddddddd-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001', 'Vânzător');
+
+insert into public.client_fire_safety (client_id, organization_id, smoking_policy, smoking_place) values
+  ('cccccccc-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'designated_places', 'Curtea din spate');
 
 create or replace function pg_temp.act_as(user_id text)
 returns void language sql as $$
@@ -583,7 +586,8 @@ select is(
       "worker_training_interval_months": 3, "administrative_training_not_applicable": true,
       "replace": ["contact_phone"]},
     "job_positions": [{"key": "p1", "name": " vânzător ", "work_zone": "Magazin"}],
-    "equipment": [{"job_position_key": "p1", "risk": "Frig", "item": "Vestă termică", "duration_months": 24}]
+    "equipment": [{"job_position_key": "p1", "risk": "Frig", "item": "Vestă termică", "duration_months": 24}],
+    "fire_safety": {"smoking_policy": "forbidden_everywhere", "replace": ["smoking_policy"]}
   } $payload$),
   '{"client_id": "cccccccc-0000-4000-8000-000000000001", "files": []}'::jsonb,
   'confirming into an existing client returns it'
@@ -602,6 +606,13 @@ select results_eq(
      from public.job_positions p where p.client_id = 'cccccccc-0000-4000-8000-000000000001' $$,
   $$ values ('dddddddd-0000-4000-8000-000000000001'::uuid, 'Magazin', 1) $$,
   'a job position the client has by that name is completed, not duplicated'
+);
+
+select results_eq(
+  $$ select smoking_policy::text, smoking_place from public.client_fire_safety
+     where client_id = 'cccccccc-0000-4000-8000-000000000001' $$,
+  $$ values ('forbidden_everywhere', null::text) $$,
+  'a smoking policy replaced by one other than designated places clears the client''s smoking place'
 );
 
 select lives_ok(
