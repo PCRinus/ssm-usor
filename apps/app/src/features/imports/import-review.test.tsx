@@ -934,3 +934,48 @@ describe('what the import now fills for the fire-safety and safety sets', () => 
     expect(row.textContent).toContain('Documentele dau și o periodicitate');
   });
 });
+
+describe('the passages of a person’s roles', () => {
+  const flaggedRole = () => {
+    const proposal = proposalFixture();
+    Object.assign(proposal.responsiblePersons[0]!, {
+      roleSources: {
+        workers_representative: [{ file: 'dosar-ssm.zip/Decizie 1.docx', quote: 'Radu Lazăr' }],
+        first_aid: [{ file: 'dosar-ssm.zip/Decizie 3.docx', quote: 'primul ajutor' }],
+      },
+    });
+    proposal.flags = [
+      { path: 'responsiblePersons.0.roles.first_aid.sources.0', code: 'quote_not_found' },
+    ] as never;
+    return proposal;
+  };
+
+  it('marks a role none of whose passages was found', async () => {
+    mockReview(readyDetail({ proposal: flaggedRole(), blockers: [] }));
+    mount('/responsible');
+
+    const list = await screen.findByTestId('review-list-responsiblePersons');
+    expect(list.textContent).toContain('Reprezentantul lucrătorilor, Prim ajutor (pasaj negăsit)');
+    expect(list.textContent).toContain(
+      'Pasajul citat pentru rolul «Prim ajutor» nu a fost găsit în fișier.'
+    );
+  });
+
+  it('says nothing of a role the member removed', async () => {
+    mockReview(
+      readyDetail({
+        proposal: flaggedRole(),
+        blockers: [],
+        changes: {
+          fields: {},
+          items: { 'person-1': { values: { roles: ['workers_representative'] } } },
+        },
+      })
+    );
+    mount('/responsible');
+
+    const list = await screen.findByTestId('review-list-responsiblePersons');
+    expect(list.textContent).toContain('Reprezentantul lucrătorilor');
+    expect(list.textContent).not.toContain('Prim ajutor');
+  });
+});

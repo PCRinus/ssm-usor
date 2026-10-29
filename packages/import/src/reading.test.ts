@@ -86,16 +86,27 @@ describe('fromWire', () => {
     ]);
   });
 
-  it('reads a Romanian date, a role once, and drops blank notes', () => {
+  it('reads a Romanian date, a role once with its passage, and drops blank notes', () => {
     expect(proposal.employees[0]).toMatchObject({ hiredAt: '2020-03-01', cnp: null });
     expect(proposal.responsiblePersons[0]!.roles).toEqual(['workplace_manager', 'first_aid']);
+    expect(proposal.responsiblePersons[0]!.roleSources).toEqual({
+      workplace_manager: [
+        { file: 'Dosar/Decizia 1.docx', quote: 'conducător al locului de muncă' },
+      ],
+      first_aid: [
+        {
+          file: 'Dosar/Decizia 1.docx',
+          quote: 'lucrător desemnat pentru acordarea primului ajutor',
+        },
+      ],
+    });
     expect(proposal.notes).toEqual(['Decizia de numire a echipei de intervenție lipsește.']);
     expect(proposal.flags).toEqual([]);
   });
 
   it('refuses a role outside the schema', () => {
     const answer = wireAnswer();
-    answer.responsiblePersons[0]!.roles = ['site_manager'];
+    answer.responsiblePersons[0]!.roles[0]!.role = 'site_manager';
 
     expect(() => fromWire(answer)).toThrow(ZodError);
   });
@@ -232,20 +243,21 @@ describe('toProposal', () => {
       jobPositions: [
         {
           name: 'vânzător',
-          staffCategory: 'execution',
           trainingIntervalMonths: null,
           workZone: 'Magazin',
-          activities: null,
           managementOnly: false,
           needsProtectiveEquipment: null,
           ...quoted,
         },
       ],
+      jobPositionFacts: [
+        { jobPosition: 'Vânzător', field: 'staffCategory', value: 'execuție', ...quoted },
+      ],
       responsiblePersons: [
         {
           fullName: 'IONESCU MARIA',
           jobTitle: null,
-          roles: ['fire_safety_coordinator'],
+          roles: [{ role: 'fire_safety_coordinator', file: scanFile, quote: 'responsabil PSI' }],
           workplace: null,
           ...quoted,
         },
@@ -271,12 +283,16 @@ describe('toProposal', () => {
       name: 'Vânzător',
       staffCategory: 'execution',
       workZone: 'Magazin',
+      fieldSources: { staffCategory: [{ file: scanFile, quote: 'str. Exemplului nr. 5' }] },
     });
     expect(proposal.responsiblePersons).toHaveLength(1);
     expect(proposal.responsiblePersons[0]!.roles).toEqual([
       'workplace_manager',
       'first_aid',
       'fire_safety_coordinator',
+    ]);
+    expect(proposal.responsiblePersons[0]!.roleSources.fire_safety_coordinator).toEqual([
+      { file: scanFile, quote: 'responsabil PSI' },
     ]);
     expect(proposal.employees).toEqual([
       expect.objectContaining({
@@ -341,12 +357,10 @@ describe('toProposal', () => {
 
 describe('a post that is only the running of the firm', () => {
   const evaluation = 'Dosar/Evaluare riscuri.docx';
-  const post = (name: string, managementOnly: boolean, activities = '') => ({
+  const post = (name: string, managementOnly: boolean) => ({
     name,
-    staffCategory: 'technical_administrative',
     trainingIntervalMonths: '',
     workZone: '',
-    activities,
     managementOnly,
     needsProtectiveEquipment: '',
     file: evaluation,
@@ -356,10 +370,15 @@ describe('a post that is only the running of the firm', () => {
 
   it('is proposed unticked, while a post that adds a trade is proposed ticked', () => {
     const answer = wireAnswer();
-    answer.jobPositions.push(
-      post('Administrator', true, 'conducerea firmei, conduce autoturismul în interes de serviciu'),
-      post('Administrator – vânzător', false)
-    );
+    answer.jobPositions.push(post('Administrator', true), post('Administrator – vânzător', false));
+    answer.jobPositionFacts.push({
+      jobPosition: 'Administrator',
+      field: 'activities',
+      value: 'conducerea firmei, conduce autoturismul în interes de serviciu',
+      file: evaluation,
+      quote: 'conducerea firmei',
+      otherCompany: '',
+    });
 
     const positions = fromWire(answer).jobPositions;
 
@@ -410,6 +429,144 @@ describe('a post that is only the running of the firm', () => {
     expect(
       proposalSchema.parse(stored).jobPositions.map((position) => proposedIncluded(position))
     ).toEqual([true, true]);
+  });
+});
+
+describe('a responsible person’s roles', () => {
+  const decision = 'Dosar/Decizia 1.docx';
+  const psi = 'Dosar/PSI/Decizia PSI.docx';
+  const page = 'Dosar/Decizii scanate.pdf (pagina 2)';
+  const person = (
+    fullName: string,
+    file: string,
+    quote: string,
+    roles: { role: string; file: string; quote: string }[]
+  ) => ({ fullName, jobTitle: '', roles, workplace: '', file, quote, otherCompany: '' });
+  const readingWith = (persons: ReturnType<typeof person>[]) =>
+    readingAnswer.parse({ ...wireAnswer(), responsiblePersons: persons });
+
+  it('join across files and scanned pages, each role keeping its own passages', () => {
+    const documents = readingWith([
+      person('Cimpean Ramona Barbara', decision, 'dna. Cimpean Ramona Barbara', [
+        { role: 'workplace_manager', file: decision, quote: 'conducător al locului de muncă' },
+        { role: 'first_aid', file: decision, quote: 'acordarea primului ajutor' },
+      ]),
+      person('CIMPEAN Ramona Barbara', psi, 'CIMPEAN Ramona Barbara', [
+        { role: 'fire_safety_coordinator', file: psi, quote: 'responsabil cu apărarea' },
+        { role: 'first_aid', file: psi, quote: 'cursul de prim ajutor' },
+      ]),
+    ]);
+    const scan = readingWith([
+      person('Cimpean Ramona Barbara', `${page} (image follows)`, 'Cimpean Ramona', [
+        {
+          role: 'risk_evaluation_team',
+          file: `${page} (image follows)`,
+          quote: 'echipa de evaluare',
+        },
+        { role: 'first_aid', file: decision, quote: 'acordarea primului ajutor' },
+      ]),
+    ]);
+
+    const [joined, ...rest] = toProposal(documents, scan).responsiblePersons;
+
+    expect(rest).toEqual([]);
+    expect(joined!.roles).toEqual([
+      'workplace_manager',
+      'first_aid',
+      'fire_safety_coordinator',
+      'risk_evaluation_team',
+    ]);
+    expect(joined!.roleSources).toEqual({
+      workplace_manager: [{ file: decision, quote: 'conducător al locului de muncă' }],
+      first_aid: [
+        { file: decision, quote: 'acordarea primului ajutor' },
+        { file: psi, quote: 'cursul de prim ajutor' },
+      ],
+      fire_safety_coordinator: [{ file: psi, quote: 'responsabil cu apărarea' }],
+      risk_evaluation_team: [{ file: page, quote: 'echipa de evaluare' }],
+    });
+    expect(joined!.sources).toEqual([
+      { file: decision, quote: 'dna. Cimpean Ramona Barbara' },
+      { file: psi, quote: 'CIMPEAN Ramona Barbara' },
+      { file: page, quote: 'Cimpean Ramona' },
+    ]);
+  });
+
+  it('stand on the person’s passage from a scan’s page read before roles had their own', () => {
+    const old = readingAnswer.parse(wireAnswer());
+    (old.responsiblePersons[0] as { roles: unknown }).roles = ['first_aid', 'imminent_danger'];
+
+    const [read] = toProposal(old).responsiblePersons;
+
+    expect(read!.roles).toEqual(['first_aid', 'imminent_danger']);
+    expect(read!.roleSources.imminent_danger).toEqual(read!.sources);
+  });
+});
+
+describe('a post’s category and activities', () => {
+  const evaluation = 'Dosar/Evaluare riscuri.docx';
+  const fact = (jobPosition: string, field: string, value: string, otherCompany = '') => ({
+    jobPosition,
+    field,
+    value,
+    file: evaluation,
+    quote: value,
+    otherCompany,
+  });
+
+  it('fill the post they name, each with its own passage', () => {
+    const [baker, seller] = fromWire(wireAnswer()).jobPositions;
+
+    expect(baker).toMatchObject({ staffCategory: 'execution', activities: null });
+    expect(baker!.fieldSources).toEqual({
+      staffCategory: [
+        { file: 'Dosar/Decizia 1.docx', quote: 'la 6 luni pentru personalul de execuție' },
+      ],
+    });
+    expect(baker!.sources).toEqual([
+      { file: 'Dosar/Decizia 1.docx', quote: 'Ionescu Maria, brutar' },
+    ]);
+    expect(seller).toMatchObject({ staffCategory: null, fieldSources: {} });
+  });
+
+  it('keep the first value, leave another company’s or an unknown category, and note a post none matches', () => {
+    const answer = wireAnswer();
+    answer.jobPositionFacts.push(
+      fact('Brutar', 'staffCategory', 'tehnico-administrativ'),
+      fact('Brutar', 'activities', 'coace pâinea'),
+      fact('Vânzător', 'activities', 'vinde produsele', 'ATELIERUL INVENTAT'),
+      fact('Vânzător', 'staffCategory', 'personal sezonier'),
+      fact('Ospătar', 'activities', 'servește clienții')
+    );
+
+    const proposal = fromWire(answer);
+
+    expect(
+      proposal.jobPositions.map((position) => [position.staffCategory, position.activities])
+    ).toEqual([
+      ['execution', 'coace pâinea'],
+      [null, null],
+    ]);
+    expect(proposal.jobPositions[0]!.fieldSources.staffCategory).toHaveLength(1);
+    expect(proposal.notes.at(-1)).toContain('«Ospătar»');
+  });
+
+  it('come with a post that is another company’s as a whole', () => {
+    const answer = wireAnswer();
+    answer.jobPositions[1]!.otherCompany = 'ATELIERUL INVENTAT';
+    answer.jobPositionFacts.push(fact('Vânzător', 'activities', 'vinde', 'ATELIERUL INVENTAT'));
+
+    expect(fromWire(answer).jobPositions[1]!.activities).toBe('vinde');
+  });
+
+  it('are taken from the post on a scan’s page read before they had passages of their own', () => {
+    const old = readingAnswer.parse({ ...wireAnswer(), jobPositionFacts: [] });
+    Object.assign(old.jobPositions[1]!, { staffCategory: 'execution', activities: 'vinde' });
+
+    const [, seller] = toProposal(old).jobPositions;
+
+    expect(seller).toMatchObject({ staffCategory: 'execution', activities: 'vinde' });
+    expect(seller!.fieldSources.activities).toEqual(seller!.sources);
   });
 });
 
@@ -543,7 +700,7 @@ describe('a post’s protective equipment decision', () => {
   });
 });
 
-describe('a proposal or a scan’s page that predates the fire-safety values', () => {
+describe('a proposal or a scan’s page that predates the fire-safety values and the passages', () => {
   it('reads with them empty', () => {
     const page = readingAnswer.parse(wireAnswer()) as Partial<Reading>;
     delete page.workplaceFacts;
@@ -564,13 +721,21 @@ describe('a proposal or a scan’s page that predates the fire-safety values', (
         delete workplace[name];
       }
     }
-    for (const position of stored.jobPositions) delete position.needsProtectiveEquipment;
+    for (const position of stored.jobPositions) {
+      delete position.needsProtectiveEquipment;
+      delete position.fieldSources;
+    }
+    for (const person of stored.responsiblePersons) delete person.roleSources;
 
     const parsed = proposalSchema.parse(stored);
     expect(parsed.fireSafety.hasThirdParties).toEqual({ options: [] });
     expect(parsed.trainingSchedule.workerTrainingNotApplicable).toEqual({ options: [] });
     expect(parsed.workplaces[0]).toMatchObject({ floorAreaM2: null, fieldSources: {} });
-    expect(parsed.jobPositions[0]!.needsProtectiveEquipment).toBeNull();
+    expect(parsed.jobPositions[0]).toMatchObject({
+      needsProtectiveEquipment: null,
+      fieldSources: {},
+    });
+    expect(parsed.responsiblePersons[0]!.roleSources).toEqual({});
   });
 });
 

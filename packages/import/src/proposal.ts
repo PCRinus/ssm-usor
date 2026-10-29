@@ -178,6 +178,11 @@ export const proposedWorkplaceSchema = z.object({
 
 export type ProposedWorkplace = z.infer<typeof proposedWorkplaceSchema>;
 
+// What the training decision and the risk assessment say of a post, each from its own passage.
+export const jobPositionFactFieldNames = ['staffCategory', 'activities'] as const;
+
+export type JobPositionFactFieldName = (typeof jobPositionFactFieldNames)[number];
+
 export const proposedJobPositionSchema = z.object({
   ...item,
   name: z.string().min(1),
@@ -191,6 +196,8 @@ export const proposedJobPositionSchema = z.object({
   managementOnly: z.boolean().default(false),
   // Null when the documents do not say, which leaves the post's equipment undecided.
   needsProtectiveEquipment: laterValue(z.boolean()),
+  // The sources of the category and the activities by their field, apart from the post's own.
+  fieldSources: z.record(z.string(), z.array(sourceSchema)).default({}),
 });
 
 export type ProposedJobPosition = z.infer<typeof proposedJobPositionSchema>;
@@ -203,6 +210,9 @@ export const proposedResponsiblePersonSchema = z.object({
   fullName: z.string().min(1),
   jobTitle: z.string().nullable(),
   roles: z.array(z.enum(responsiblePersonRoles)).min(1),
+  // The passages that give each role, by role; the item's own sources give the name. A proposal
+  // stored before roles had their own has none, and its roles stand on the person's passages.
+  roleSources: z.record(z.string(), z.array(sourceSchema)).default({}),
   // Without a name, the person stands for every workplace, as `workplace_id` null does.
   workplace: z.object(reference(z.string().nullable())),
 });

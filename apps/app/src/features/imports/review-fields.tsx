@@ -41,12 +41,12 @@ import {
   formatFieldValue,
   integerPaths,
   intervalOfNotApplicable,
+  type LabelledSource,
   type Proposal,
   type RegisteredCompany,
   sameCompanyName,
   sameValue,
   type SectionId,
-  type Source,
   sourceFilesCount,
   yesNoLabels,
 } from './review-model';
@@ -65,7 +65,7 @@ import type { ImportReview } from './use-import-review';
 
 export type OpenSource = (
   title: string,
-  sources: Source[],
+  sources: LabelledSource[],
   otherCompanyName?: string | null
 ) => void;
 

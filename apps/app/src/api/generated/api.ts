@@ -8795,6 +8795,15 @@ export type ImportDetailProposalJobPositionsItemSourcesItem = {
   quote: string;
 };
 
+export type ImportDetailProposalJobPositionsItemFieldSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalJobPositionsItemFieldSources = {
+  [key: string]: ImportDetailProposalJobPositionsItemFieldSourcesItem[];
+};
+
 export type ImportDetailProposalJobPositionsItem = {
   /** @minLength 1 */
   id: string;
@@ -8818,11 +8827,21 @@ export type ImportDetailProposalJobPositionsItem = {
   managementOnly?: boolean;
   /** @nullable */
   needsProtectiveEquipment?: boolean | null;
+  fieldSources?: ImportDetailProposalJobPositionsItemFieldSources;
 };
 
 export type ImportDetailProposalResponsiblePersonsItemSourcesItem = {
   file: string;
   quote: string;
+};
+
+export type ImportDetailProposalResponsiblePersonsItemRoleSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalResponsiblePersonsItemRoleSources = {
+  [key: string]: ImportDetailProposalResponsiblePersonsItemRoleSourcesItem[];
 };
 
 export type ImportDetailProposalResponsiblePersonsItemWorkplace = {
@@ -8848,6 +8867,7 @@ export type ImportDetailProposalResponsiblePersonsItem = {
   jobTitle: string | null;
   /** @minItems 1 */
   roles: ImportDetailProposalResponsiblePersonsItemRolesItem[];
+  roleSources?: ImportDetailProposalResponsiblePersonsItemRoleSources;
   workplace: ImportDetailProposalResponsiblePersonsItemWorkplace;
 };
 

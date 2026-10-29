@@ -1943,6 +1943,11 @@ fire-safety sheet and the list of means say of each workplace (`kind`, `floorAre
 `extinguisherNorm`, `assemblyPoint`, `combustibleMaterials`, `ignitionSources`,
 `fireRiskEquipment`, `specificMeasures`), each with its own sources in the workplace's
 `fieldSources`, and a post's `needsProtectiveEquipment` (null when the documents do not say).
+A post's `staffCategory` and `activities` also carry their own sources in the post's
+`fieldSources`, and each of a responsible person's `roles` its own in `roleSources`, by role
+code, the person's `sources` giving the name; a role whose quote is not found is flagged on
+`responsiblePersons.<i>.roles.<role>.sources.<n>`. A proposal stored before them reads them as
+`{}`, and the review then shows the item's own passages.
 `fireSafety.wasteKinds` is one text, the kinds separated by semicolons, written as the list
 `waste_kinds`; the yes-or-no fields `fireSafety.hasThirdParties` and
 `trainingSchedule.administrativeTrainingNotApplicable` / `workerTrainingNotApplicable` are

@@ -22,6 +22,8 @@ import { allocationLabels } from '@/features/protective-equipment/equipment-sche
 
 export type Proposal = NonNullable<ImportDetail['proposal']>;
 export type Source = { file: string; quote: string };
+// What the passage proves, when it is one value of its item rather than the item itself.
+export type LabelledSource = Source & { label?: string };
 export type Option = { value: string | number; sources: Source[]; otherCompanyName: string | null };
 export type ProposedField = { options: Option[] };
 
@@ -590,6 +592,8 @@ const itemFieldLabels: Record<string, string> = {
   ignitionSources: 'sursele de aprindere',
   fireRiskEquipment: 'echipamentele și mijloacele de lucru',
   specificMeasures: 'măsurile specifice',
+  staffCategory: 'categoria de personal',
+  activities: 'activitățile desfășurate',
 };
 
 export const itemFieldLabel = (field: string) => itemFieldLabels[field] ?? field;
@@ -807,13 +811,19 @@ export function flagNote(flag: Flag, proposal: Proposal, changes: Changes): stri
   const root = parts[0]!;
   const single = root === 'client' || root === 'trainingSchedule' || root === 'fireSafety';
   const field = single ? parts[1] : parts[2];
+  const cited =
+    single || !field || field === 'sources'
+      ? ''
+      : field === 'roles'
+        ? ` pentru rolul «${roleLabel(parts[3] ?? '')}»`
+        : ` pentru ${itemFieldLabel(field)}`;
   switch (flag.code) {
     case 'file_not_found':
-      return 'Fișierul citat nu este printre cele încărcate. Verifică valoarea în documente.';
+      return `Fișierul citat${cited} nu este printre cele încărcate. Verifică valoarea în documente.`;
     case 'quote_not_found':
-      return 'Pasajul citat nu a fost găsit în fișier.';
+      return `Pasajul citat${cited} nu a fost găsit în fișier.`;
     case 'value_not_in_quote':
-      return 'Pasajul citat nu cuprinde această valoare. Verifică valoarea în documente.';
+      return `Pasajul citat${cited} nu cuprinde această valoare. Verifică valoarea în documente.`;
     case 'invalid_cui':
       return 'Numărul nu trece verificarea CUI.';
     case 'invalid_cnp':
@@ -881,6 +891,64 @@ export function flagsAt(proposal: Proposal, prefix: string) {
 
 export function sourceFilesCount(sources: Source[]) {
   return new Set(sources.map((source) => source.file)).size;
+}
+
+// A passage that proves several values is shown once, naming all of them.
+function labelled(groups: { label?: string; sources: Source[] }[]): LabelledSource[] {
+  const kept: LabelledSource[] = [];
+  for (const { label, sources } of groups) {
+    for (const source of sources) {
+      const known = kept.find((each) => each.file === source.file && each.quote === source.quote);
+      if (!known) kept.push(label ? { ...source, label } : { ...source });
+      else if (label) known.label = known.label ? `${known.label}, ${label}` : label;
+    }
+  }
+  return kept;
+}
+
+const positionFieldLabels = [
+  ['staffCategory', 'Categorie de personal'],
+  ['activities', 'Activități desfășurate'],
+] as const;
+
+/** The item's passages, then one for each value that has its own, in the order shown. */
+export function itemSources(state: Pick<ItemState, 'list' | 'item' | 'values'>): LabelledSource[] {
+  const own = { sources: state.item.sources };
+  if (state.list === 'responsiblePersons') {
+    const bySource = (state.item.roleSources ?? {}) as Record<string, Source[]>;
+    const roles = (state.values.roles as string[] | undefined) ?? [];
+    return labelled([
+      own,
+      ...roles.map((role) => ({ label: roleLabel(role), sources: bySource[role] ?? [] })),
+    ]);
+  }
+  if (state.list === 'jobPositions') {
+    const bySource = (state.item.fieldSources ?? {}) as Record<string, Source[]>;
+    return labelled([
+      own,
+      ...positionFieldLabels.map(([field, label]) => ({ label, sources: bySource[field] ?? [] })),
+    ]);
+  }
+  return state.item.sources;
+}
+
+const sourceFlags = new Set(['file_not_found', 'quote_not_found']);
+
+/** The roles of a person none of whose passages the checks found. */
+export function unprovenRoles(proposal: Proposal, state: Pick<ItemState, 'index' | 'item'>) {
+  const bySource = (state.item.roleSources ?? {}) as Record<string, Source[]>;
+  return new Set(
+    Object.entries(bySource)
+      .filter(([role, sources]) => {
+        const flagged = new Set(
+          flagsAt(proposal, `responsiblePersons.${state.index}.roles.${role}`)
+            .filter((flag) => sourceFlags.has(flag.code))
+            .map((flag) => flag.path)
+        );
+        return sources.length > 0 && flagged.size >= sources.length;
+      })
+      .map(([role]) => role)
+  );
 }
 
 export const changesOf = (changes: ImportDetail['changes']): Changes => ({

@@ -104,6 +104,29 @@ describe('checkQuotes', () => {
     ]);
   });
 
+  it('checks each role of a person and a post’s category and activities against their own passages', () => {
+    const value = proposal();
+    const decision = 'Dosar/Decizia 1.docx';
+    value.responsiblePersons[0]!.roleSources.first_aid = [
+      { file: decision, quote: 'lucrător desemnat pentru acordarea primului ajutor' },
+      { file: decision, quote: 'responsabil cu primul ajutor' },
+    ];
+    value.responsiblePersons[0]!.roleSources.imminent_danger = [{ file: '', quote: '' }];
+    value.jobPositions[1]!.fieldSources.activities = [
+      { file: decision, quote: 'vinde produsele de panificație' },
+    ];
+
+    expect(checkQuotes(value, files)).toEqual([
+      { path: 'jobPositions.1.activities.sources.0', code: 'quote_not_found' },
+      { path: 'responsiblePersons.0.roles.first_aid.sources.1', code: 'quote_not_found' },
+      {
+        path: 'responsiblePersons.0.roles.imminent_danger.sources.0',
+        code: 'file_not_found',
+        detail: '',
+      },
+    ]);
+  });
+
   it('leaves a file without text unchecked', () => {
     expect(checkQuotes(proposal(), { ...files, 'Dosar/Decizia 1.docx': null })).toEqual([]);
   });

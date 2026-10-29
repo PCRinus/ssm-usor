@@ -155,7 +155,19 @@ function tracedValues(proposal: Proposal): Traced[] {
           : undefined,
     }))
   );
-  return [...options, ...items, ...workplaceValues];
+  const positionValues = proposal.jobPositions.flatMap((position, index) =>
+    Object.entries(position.fieldSources).map(([field, sources]): Traced => ({
+      path: `jobPositions.${index}.${field}`,
+      sources,
+    }))
+  );
+  const roles = proposal.responsiblePersons.flatMap((person, index) =>
+    Object.entries(person.roleSources).map(([role, sources]): Traced => ({
+      path: `responsiblePersons.${index}.roles.${role}`,
+      sources,
+    }))
+  );
+  return [...options, ...items, ...workplaceValues, ...positionValues, ...roles];
 }
 
 export function checkQuotes(proposal: Proposal, files: CheckInput['files']): Flag[] {

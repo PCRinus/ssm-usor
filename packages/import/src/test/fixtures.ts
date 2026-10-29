@@ -61,6 +61,8 @@ const workplaceFact = (workplace: string, field: string, value: string, quote: s
   otherCompany: '',
 });
 
+const role = (code: string, quote: string) => ({ role: code, file: decision, quote });
+
 export function wireAnswer() {
   return {
     facts: [
@@ -161,10 +163,8 @@ export function wireAnswer() {
     jobPositions: [
       {
         name: 'Brutar',
-        staffCategory: 'execution',
         trainingIntervalMonths: '',
         workZone: 'Laborator',
-        activities: '',
         managementOnly: false,
         needsProtectiveEquipment: 'true',
         file: decision,
@@ -173,10 +173,8 @@ export function wireAnswer() {
       },
       {
         name: 'Vânzător',
-        staffCategory: '',
         trainingIntervalMonths: '',
         workZone: '',
-        activities: '',
         managementOnly: false,
         needsProtectiveEquipment: '',
         file: decision,
@@ -184,11 +182,25 @@ export function wireAnswer() {
         otherCompany: '',
       },
     ],
+    jobPositionFacts: [
+      {
+        jobPosition: 'brutar',
+        field: 'staffCategory',
+        value: 'execution',
+        file: decision,
+        quote: 'la 6 luni pentru personalul de execuție',
+        otherCompany: '',
+      },
+    ],
     responsiblePersons: [
       {
         fullName: 'Ionescu Maria',
         jobTitle: 'brutar',
-        roles: ['workplace_manager', 'first_aid', 'first_aid'],
+        roles: [
+          role('workplace_manager', 'conducător al locului de muncă'),
+          role('first_aid', 'lucrător desemnat pentru acordarea primului ajutor'),
+          role('first_aid', 'lucrător desemnat pentru acordarea primului ajutor'),
+        ],
         workplace: '',
         file: decision,
         quote: 'numește pe dna. Ionescu Maria, brutar',

@@ -20,7 +20,7 @@ import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 
 import { endSentence, filesLabel, importErrorMessage } from './import-format';
-import type { Source } from './review-model';
+import type { LabelledSource } from './review-model';
 import { type SourceKind, sourceKind } from './source-match';
 import { ZoomBar } from './zoom-bar';
 
@@ -29,7 +29,7 @@ const PdfSourceView = lazy(() => import('./source-pdf-view'));
 
 export type SourceRequest = {
   title: string;
-  sources: Source[];
+  sources: LabelledSource[];
   otherCompanyName?: string | null;
 };
 
@@ -119,7 +119,10 @@ function SourceContent({
       className="flex h-[calc(100svh-2rem)] max-w-[calc(100vw-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(1400px,calc(100vw-4rem))]"
     >
       <div className="grid gap-3 border-b px-5 pt-4 pb-3 pr-12">
-        <DialogTitle className="text-lg leading-snug">Sursa: {request.title}</DialogTitle>
+        <DialogTitle className="text-lg leading-snug">
+          Sursa: {request.title}
+          {current.label && ` — ${current.label}`}
+        </DialogTitle>
         <DialogDescription asChild>
           <div className="flex flex-wrap gap-1.5 text-xs">
             <span className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 font-medium text-secondary-foreground">
