@@ -7,6 +7,8 @@ import { disposeRuntimes, mountApp } from '@/test/mount';
 
 import { fireSafetyHeadcountRule } from './document-labels';
 
+vi.mock('./document-editor', () => import('@/test/fake-document-editor'));
+
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const sampleClient = {
   id: clientId,
@@ -795,7 +797,9 @@ describe('client fire-safety documents', () => {
     await openSection(user, '6');
     const [, title] = await screen.findAllByTestId('document-title');
     await user.click(title!);
-    await screen.findByText('Salvat');
+    await waitFor(() =>
+      expect(screen.getByTestId('editor-frame').getAttribute('data-ready')).toBe('true')
+    );
     const back = screen.getByTestId('editor-back');
     expect(back.getAttribute('aria-label')).toBe('Înapoi la documentele PSI');
     expect(back.textContent).toBe('Documente PSI');
@@ -812,7 +816,9 @@ describe('client fire-safety documents', () => {
     const runtime = mount(`${firePath}/${registersId}`);
     const user = userEvent.setup();
 
-    await screen.findByText('Salvat');
+    await waitFor(() =>
+      expect(screen.getByTestId('editor-frame').getAttribute('data-ready')).toBe('true')
+    );
     expect(
       requests('/documents').every(({ url }) => url.searchParams.get('set') === 'fire_safety')
     ).toBe(true);
