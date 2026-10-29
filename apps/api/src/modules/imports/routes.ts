@@ -211,7 +211,7 @@ export const getImportSourceRoute = createRoute({
   operationId: 'getImportSource',
   summary: 'Get the file a value was quoted from',
   description:
-    "`file` is a source's `file` exactly as the proposal names it: a file's upload path, or `<upload path> (pagina N)` for a page read as an image. The answer links to the original and to the converted file, carries the text taken out of a Word file or the pages of a PDF, and where `quote` is in them.",
+    "`file` is a source's `file` exactly as the proposal names it: a file's upload path, or `<upload path> (pagina N)` for a page read as an image. The answer links to the original and to the converted file, carries the text taken out of a Word file or the pages of a PDF, none for a page read as an image, and where `quote` is in them: when it is in several places, the one `near` (the post a table row is for) precedes most closely, or else the first.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: importParams, query: importSourceQuerySchema },

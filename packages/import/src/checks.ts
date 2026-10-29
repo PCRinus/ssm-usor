@@ -112,6 +112,37 @@ function employeeHolds(employee: Proposal['employees'][number]): Holds | undefin
   return (quote) => Boolean(byCnp?.(quote) || byName?.(quote));
 }
 
+const holdsWords =
+  (...written: string[]): Holds =>
+  (quote) => {
+    const words = new Set(foldText(quote).split(' '));
+    return written.some((value) =>
+      foldText(value)
+        .split(' ')
+        .every((word) => words.has(word))
+    );
+  };
+
+const durations = /(\d+(?:[.,]\d+)?|\bun\b|\bone\b)(\s+(?:de\s+)?(?:ani?|years?)\b)?/g;
+
+// A duration in years is the months over twelve: "1 an" is 12 months, never 1.
+const holdsMonths =
+  (months: number): Holds =>
+  (quote) =>
+    [...quote.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().matchAll(durations)].some(
+      ([, count, inYears]) => {
+        if (inYears)
+          return (/^\d/.test(count!) ? Number(count!.replace(',', '.')) : 1) * 12 === months;
+        return /^\d+$/.test(count!) && Number(count) === months;
+      }
+    );
+
+function equipmentHolds(entry: Proposal['protectiveEquipment'][number]): Holds {
+  const item = holdsWords(entry.item, ...(entry.spelling.item ? [entry.spelling.item] : []));
+  const duration = entry.durationMonths === null ? null : holdsMonths(entry.durationMonths);
+  return (quote) => item(quote) && (duration?.(quote) ?? true);
+}
+
 function itemHolds(
   proposal: Proposal,
   list: (typeof listNames)[number],
@@ -119,6 +150,7 @@ function itemHolds(
 ): Holds | undefined {
   if (list === 'responsiblePersons') return holdsName(proposal.responsiblePersons[index]!.fullName);
   if (list === 'employees') return employeeHolds(proposal.employees[index]!);
+  if (list === 'protectiveEquipment') return equipmentHolds(proposal.protectiveEquipment[index]!);
   return undefined;
 }
 

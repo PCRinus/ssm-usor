@@ -107,7 +107,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /imports/{importId}/files`                                       | Verified user with a membership       | `201 { "files": [ … ] }`, the bucket and path each file is uploaded to, after registering `{ files }`                                                                                              |
 | `POST /imports/{importId}/start`                                       | Verified user with a membership       | `{ "import": { … } }`, `preparing`, after dropping files never uploaded and queueing the rest                                                                                                      |
 | `PUT /imports/{importId}/changes`                                      | Verified user with a membership       | `{ "version" }` after saving `{ version, changes }`; `409` on a stale version                                                                                                                      |
-| `GET /imports/{importId}/source`                                       | Verified user with a membership       | Signed links to a source file and its converted file, its text, and where `?quote=` is in it; `?file=` as the proposal names it                                                                    |
+| `GET /imports/{importId}/source`                                       | Verified user with a membership       | Signed links to a source file and its converted file, its text, and where `?quote=` is in it, nearest after `?near=`; `?file=` as the proposal names it                                            |
 | `POST /imports/{importId}/confirm`                                     | Verified user with a membership       | `{ "clientId", "fileCount" }` after writing the proposal and the changes in one transaction; `422` lists what blocks                                                                               |
 | `POST /imports/{importId}/abandon`                                     | Verified user with a membership       | `204`                                                                                                                                                                                              |
 | `POST /imports/{importId}/split`                                       | Verified user with a membership       | `201 { "import": { … } }`, another company's files `{ fileIds }` in a new import, already reading                                                                                                  |
@@ -2018,10 +2018,16 @@ payload only while none of its entries is written, and a smoking place only besi
 places, the policy the member chose or the client keeps, since `client_fire_safety` refuses a
 place under another policy or none; a place left out never blocks. The payload's `quality` counts per section, without values, how many
 values the member changed, unticked or kept. The answer is `{ clientId, fileCount }`, and a `copy`
-message copies the folder afterwards. `GET /imports/{importId}/source?file=&quote=` resolves a
-source's `file`, an upload path or `<upload path> (pagina N)`, and answers five-minute links to
+message copies the folder afterwards. `GET /imports/{importId}/source?file=&quote=&near=` resolves
+a source's `file`, an upload path or `<upload path> (pagina N)`, and answers five-minute links to
 the original and the converted file, a Word file's text, a PDF's pages, and where the quote is
-(`findQuote`), on a page for a PDF.
+(`placeQuote`), on a page for a PDF, with the place of each part an ellipsis separates. A quote
+found in several places, as an equipment row repeated in each post's table, is placed after the
+closest preceding `near`, the post (or room) the app sends for the item, counted only as the whole
+of a heading or a cell; without it, or when nothing precedes it, the first place. When no place
+starts at a heading naming `near`, as for an entry the model gave for several posts, the quote's
+last part is placed alone. A PDF's pages are searched as one text, as the model read them, and the
+match is on the page of the last part, with only the parts on that page.
 
 `POST /imports/{importId}/abandon` ends an import not yet confirmed (`abandon_import`).
 `POST /imports/{importId}/split` with `{ fileIds }`, all `other_company` (else `422`,

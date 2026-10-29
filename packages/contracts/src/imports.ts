@@ -354,11 +354,15 @@ export const importSourceQuerySchema = z.object({
   // A source's `file`, exactly as the proposal names it.
   file: z.string().min(1).max(1100),
   quote: z.string().max(2000).optional(),
+  // What the passage stands under, as the post an equipment row is for: of the places the quote
+  // is found in, the one that follows it most closely is matched.
+  near: z.string().max(200).optional(),
 });
 
 export type ImportSourceQuery = z.infer<typeof importSourceQuerySchema>;
 
 const link = z.object({ url: z.url(), mimeType: z.string() });
+const span = z.object({ start: z.int().min(0), end: z.int().min(0) });
 
 export const importSourceResponseSchema = z.object({
   fileId: z.uuid(),
@@ -375,9 +379,14 @@ export const importSourceResponseSchema = z.object({
   // The text of each page of a PDF, which its viewer's text layer shows.
   pages: z.array(z.object({ number: z.int().min(1), text: z.string() })).nullable(),
   // Where the quote is: in `text`, or in the text of `match.page`. Null when it was not found
-  // or the file is an image.
+  // or the file is an image. `parts` are the places of the passages an ellipsis in the quote
+  // separates, one for a quote without one.
   match: z
-    .object({ page: z.int().min(1).nullable(), start: z.int().min(0), end: z.int().min(0) })
+    .object({
+      page: z.int().min(1).nullable(),
+      ...span.shape,
+      parts: z.array(span).min(1),
+    })
     .nullable(),
   expiresInSeconds: z.int(),
 });

@@ -81,6 +81,9 @@ describe('readingMessages', () => {
       'Each role is given with the file and the verbatim passage that assigns it',
       'also when the person is named in several decisions',
       "jobPositionFacts: a post's staff category and activities",
+      'a value read from a table row quotes the whole row as written, pipes included',
+      'starts with that table\'s heading naming the post, then "…", then the row',
+      'A row that repeats under the tables of several posts is one entry for each table',
     ]) {
       expect(system!.content).toContain(rule);
     }

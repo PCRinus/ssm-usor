@@ -1,39 +1,104 @@
 import '@docx-editor.dev/core/styles/editor.css';
+import './source-word-view.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
-import { DocxEditor, useHighlights } from '@docx-editor.dev/react';
-import { useEffect, useRef, useState } from 'react';
+import {
+  DocxEditor,
+  type Editor,
+  useDocxEditor,
+  useEditorState,
+  useHighlights,
+} from '@docx-editor.dev/react';
+import { type RefObject, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
 import { editorStrings } from '@/features/documents/editor-strings.ro';
 
-import { passageHits, quoteLines } from './source-match';
+import { findLine, passageHits, passageParts } from './source-match';
+import { holdPassage } from './source-word-passage';
 
 const fonts = packagedFonts({ allow: ['Arial'] });
 
 type Range = { blockId: string; start: number; length: number };
 
-function QuoteHighlights({ ranges }: { ranges: Range[] }) {
+const paintWaitMs = 15_000;
+
+function QuotePassage({
+  ranges,
+  showEnd,
+  host,
+  onPainted,
+}: {
+  ranges: Range[];
+  showEnd: boolean;
+  host: RefObject<HTMLDivElement | null>;
+  onPainted: () => void;
+}) {
   useHighlights('import-quote', ranges, { priority: 20 });
+  const editor = useDocxEditor();
+  const failed = useEditorState((state) => state.parseError !== null);
+  const reportPainted = useEffectEvent(onPainted);
+  // The editor tells of no paint, and its snapshot calls the document open before a page is laid
+  // out, so the first page drawn is the sign.
+  useEffect(() => {
+    const root = host.current;
+    if (!root) return;
+    if (failed) {
+      reportPainted();
+      return;
+    }
+    const started = performance.now();
+    let frame = 0;
+    const look = () => {
+      if (root.querySelector('.docx-page') || performance.now() - started > paintWaitMs) {
+        reportPainted();
+      } else frame = requestAnimationFrame(look);
+    };
+    frame = requestAnimationFrame(look);
+    return () => cancelAnimationFrame(frame);
+  }, [failed, host]);
+  useEffect(() => {
+    const viewport = host.current?.querySelector<HTMLElement>('.docx-editor-one-surface__viewport');
+    if (!editor || ranges.length === 0 || !viewport) return;
+    return holdPassage(viewport, {
+      fontsPending: () => editor.fontMeasurement().resolving,
+      showEnd,
+    });
+  }, [editor, ranges, showEnd, host]);
   return null;
 }
 
+// Each answer carries a link signed anew, so the document is held by its file: stepping to
+// another passage in it only moves the mark.
 export default function WordSourceView({
   source,
   quote,
   onNotFound,
+  onShown,
 }: {
   source: ImportSourceResponse;
   quote: string;
   onNotFound: () => void;
+  onShown: () => void;
 }) {
-  const [bytes, setBytes] = useState<Uint8Array | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [ranges, setRanges] = useState<Range[]>([]);
+  const [loaded, setLoaded] = useState<{ fileId: string; bytes: Uint8Array } | null>(null);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const [editor, setEditor] = useState<Editor | null>(null);
   const host = useRef<HTMLDivElement>(null);
+  const reportNotFound = useEffectEvent(() => onNotFound());
+  const reportShown = useEffectEvent(() => onShown());
+  const { fileId } = source;
   const url = source.derived?.url ?? source.original.url;
+  const bytes = loaded?.fileId === fileId ? loaded.bytes : null;
+  const held = bytes !== null;
+  const failed = !held && failedUrl === url;
 
+  const currentUrl = useEffectEvent(() => url);
+  // A load is started once for the file and again only after one failed: the next passage's new
+  // link must not restart a download already under way.
   useEffect(() => {
+    if (held || failed) return;
+    const url = currentUrl();
     let cancelled = false;
     fetch(url)
       .then((response) => {
@@ -41,27 +106,38 @@ export default function WordSourceView({
         return response.arrayBuffer();
       })
       .then((buffer) => {
-        if (!cancelled) setBytes(new Uint8Array(buffer));
+        if (!cancelled) setLoaded({ fileId, bytes: new Uint8Array(buffer) });
       })
       .catch(() => {
-        if (!cancelled) setFailed(true);
+        if (!cancelled) setFailedUrl(url);
       });
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [fileId, held, failed]);
 
-  // The editor paints a highlight only once its page is in view, so the passage is centred
-  // after the scroll to its block, not with it.
   useEffect(() => {
-    if (ranges.length === 0) return;
-    let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => {
-        host.current?.querySelector('.docx-text-highlight')?.scrollIntoView?.({ block: 'center' });
-      });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [ranges]);
+    if (failed) reportShown();
+  }, [failed]);
+
+  const passage = useMemo(() => {
+    if (!editor) return null;
+    const parts = passageParts(source, quote);
+    const found = passageHits(parts, (line) =>
+      findLine(line, (queries, options) => editor.findMatches(queries, options))
+    );
+    return { ...found, showEnd: parts.length > 1 };
+  }, [editor, source, quote]);
+  const ranges = useMemo(
+    () => passage?.hits.map(({ blockId, start, length }) => ({ blockId, start, length })) ?? [],
+    [passage]
+  );
+  useEffect(() => {
+    if (!editor || !passage) return;
+    // The editor paints a highlight only once its page is in view.
+    if (passage.anchor) editor.scrollToBlock(passage.anchor.blockId);
+    else reportNotFound();
+  }, [editor, passage]);
 
   if (failed) {
     return (
@@ -70,13 +146,7 @@ export default function WordSourceView({
       </p>
     );
   }
-  if (!bytes) {
-    return (
-      <p className="p-6 text-sm text-muted-foreground" role="status">
-        Se deschide documentul…
-      </p>
-    );
-  }
+  if (!bytes) return null;
   return (
     <div ref={host} className="flex h-full min-h-0 flex-col" data-testid="source-word">
       <DocxEditor
@@ -90,16 +160,14 @@ export default function WordSourceView({
         locale="ro-RO"
         i18n={editorStrings}
         fonts={fonts}
-        onReady={(editor) => {
-          const { hits, anchor } = passageHits(quoteLines(source, quote), (line) =>
-            editor.findMatches(line)
-          );
-          setRanges(hits.map(({ blockId, start, length }) => ({ blockId, start, length })));
-          if (anchor) editor.scrollToBlock(anchor.blockId);
-          else onNotFound();
-        }}
+        onReady={setEditor}
       >
-        <QuoteHighlights ranges={ranges} />
+        <QuotePassage
+          ranges={ranges}
+          showEnd={passage?.showEnd ?? false}
+          host={host}
+          onPainted={onShown}
+        />
       </DocxEditor>
     </div>
   );

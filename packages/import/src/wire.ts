@@ -38,6 +38,33 @@ function wireNumber(value: unknown, integer: boolean) {
   return integer && !Number.isInteger(number) ? null : number;
 }
 
+const monthSchemas = new WeakSet<z.ZodType>();
+
+// A duration in months the model may write in years ("1 an"), which the first number of the
+// text would read as one month.
+export function months<T extends z.ZodNumber>(schema: T): T {
+  monthSchemas.add(schema);
+  return schema;
+}
+
+const yearWord = /\b(?:ani?|years?)\b/;
+// Romanian puts "de" between a number from 20 up and its unit: "24 de luni", "20 de ani".
+const years = /^(\d+(?:[.,]\d+)?|un|one)\s+(?:de\s+)?(?:ani?|years?)(?:\s+de\s+zile)?$/;
+
+function wireMonths(value: unknown) {
+  const text = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/[\s.,;:!]+$/, '');
+  if (!yearWord.test(text)) return wireNumber(text, true);
+  const match = years.exec(text);
+  if (!match) return null;
+  const count = /^\d/.test(match[1]!) ? Number(match[1]!.replace(',', '.')) : 1;
+  const months = count * 12;
+  return Number.isInteger(months) ? months : null;
+}
+
 export function restore(schema: z.ZodType, value: unknown): unknown {
   if (schema instanceof z.ZodNullable) {
     if (value === null || value === undefined) return null;
@@ -46,6 +73,7 @@ export function restore(schema: z.ZodType, value: unknown): unknown {
   }
   if (schema instanceof z.ZodNumber) {
     if (typeof value === 'number') return value;
+    if (monthSchemas.has(schema)) return wireMonths(value);
     return wireNumber(value, schema.format === 'safeint' || schema.format === 'int32');
   }
   if (schema instanceof z.ZodArray) {

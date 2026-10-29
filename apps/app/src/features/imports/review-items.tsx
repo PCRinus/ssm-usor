@@ -307,7 +307,7 @@ function OptionalBox({
                 )}
               </span>
               <SourceButton
-                sources={state.item.sources}
+                sources={itemSources(state)}
                 onOpen={() =>
                   context.openSource(name, itemSources(state), state.item.otherCompanyName)
                 }

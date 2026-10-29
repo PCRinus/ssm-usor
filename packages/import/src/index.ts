@@ -28,8 +28,12 @@ export {
 export {
   contained,
   findQuote,
+  findQuotes,
   foldName,
   foldText,
+  type FoundQuote,
+  type PlacedQuote,
+  placeQuote,
   type QuoteMatch,
   sameName,
   similar,

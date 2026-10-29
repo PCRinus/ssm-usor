@@ -5,6 +5,7 @@ import {
   getDocument,
   GlobalWorkerOptions,
   type PDFDocumentProxy,
+  PDFWorker,
   type RenderTask,
   TextLayer,
 } from 'pdfjs-dist';
@@ -13,53 +14,95 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
 
-import { markQuote } from './source-match';
+import { markQuote, pageQuotes } from './source-match';
 import { ZoomBar } from './zoom-bar';
 
 GlobalWorkerOptions.workerSrc = workerUrl;
 
+// Starting a worker takes about half a second, so one serves every PDF opened; a loading task
+// handed a worker leaves it running when it is destroyed.
+let worker: PDFWorker | null = null;
+const sharedWorker = () => {
+  if (!worker || worker.destroyed) worker = new PDFWorker();
+  return worker;
+};
+
+const openingPage = (source: ImportSourceResponse) => source.page ?? source.match?.page ?? 1;
+
+// Each answer carries a link signed anew, so the PDF is held by its file: stepping to another
+// passage in it only turns to its page and moves the mark.
 export default function PdfSourceView({
   source,
   quote,
   onNotFound,
+  onShown,
+  onProgress,
 }: {
   source: ImportSourceResponse;
   quote: string | null;
   onNotFound: () => void;
+  onShown: () => void;
+  onProgress?: (loaded: number, total: number) => void;
 }) {
   const url = source.original.url;
-  const [loaded, setLoaded] = useState<{ url: string; pdf: PDFDocumentProxy } | null>(null);
+  const { fileId } = source;
+  const [loaded, setLoaded] = useState<{ fileId: string; pdf: PDFDocumentProxy } | null>(null);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
-  const pdf = loaded?.url === url ? loaded.pdf : null;
+  const pdf = loaded?.fileId === fileId ? loaded.pdf : null;
+  const held = pdf !== null;
   const failed = failedUrl === url;
-  const [pageNumber, setPageNumber] = useState(source.page ?? source.match?.page ?? 1);
+  const [opened, setOpened] = useState(source);
+  const [pageNumber, setPageNumber] = useState(openingPage(source));
   const [zoom, setZoom] = useState<number | 'fit'>('fit');
   const scroller = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const textLayer = useRef<HTMLDivElement>(null);
   const page = useRef<HTMLDivElement>(null);
-  const reported = useRef(false);
-  const firstPage = useRef(pageNumber);
+  const reported = useRef<ImportSourceResponse | null>(null);
   const reportNotFound = useEffectEvent(() => onNotFound());
+  const reportShown = useEffectEvent(() => onShown());
+  const reportProgress = useEffectEvent((loaded: number, total: number) =>
+    onProgress?.(loaded, total)
+  );
+  if (opened !== source) {
+    setOpened(source);
+    setPageNumber(openingPage(source));
+  }
 
-  // Destroying the task rejects its promise, which is no failure: React's development mode
-  // mounts twice, and a new link replaces the old one.
+  const currentUrl = useEffectEvent(() => url);
+  // A load is started once for the file and again only after one failed: the next passage's new
+  // link must not restart a download already under way.
   useEffect(() => {
+    if (held || failed) return;
+    const url = currentUrl();
     let cancelled = false;
-    const task = getDocument({ url });
+    let kept = false;
+    const task = getDocument({ url, worker: sharedWorker() });
+    task.onProgress = ({ loaded, total }: { loaded: number; total: number }) => {
+      if (!cancelled) reportProgress(loaded, total);
+    };
     task.promise.then(
       (document) => {
-        if (!cancelled) setLoaded({ url, pdf: document });
+        if (cancelled) return;
+        kept = true;
+        setLoaded({ fileId, pdf: document });
       },
       () => {
         if (!cancelled) setFailedUrl(url);
       }
     );
+    // Destroying the task rejects its promise, which is no failure: React's development mode
+    // mounts twice.
     return () => {
       cancelled = true;
-      void task.destroy();
+      if (!kept) void task.destroy();
     };
-  }, [url]);
+  }, [fileId, held, failed]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    return () => void loaded.pdf.loadingTask.destroy();
+  }, [loaded]);
 
   useEffect(() => {
     if (!pdf || !canvas.current || !textLayer.current || !page.current || !scroller.current) {
@@ -94,8 +137,9 @@ export default function PdfSourceView({
           transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
         });
         await rendering.promise;
-        if (cancelled || !quote) return;
+        if (!cancelled) reportShown();
         layer.replaceChildren();
+        if (cancelled || !quote) return;
         text = new TextLayer({
           textContentSource: pdfPage.streamTextContent(),
           container: layer,
@@ -103,22 +147,33 @@ export default function PdfSourceView({
         });
         await text.render();
         if (cancelled) return;
-        const marked = markQuote(text.textDivs, quote);
+        const spans = text.textDivs;
+        const marked = pageQuotes(source, pageNumber, quote).flatMap((part) =>
+          markQuote(spans, part.quote, part.occurrence)
+        );
         if (marked.length > 0) marked[0]!.scrollIntoView({ block: 'center' });
-        else if (!reported.current && pageNumber === firstPage.current) {
-          reported.current = true;
+        else if (reported.current !== source && pageNumber === openingPage(source)) {
+          reported.current = source;
           reportNotFound();
         }
       })
       .catch(() => {
-        if (!cancelled) setFailedUrl(url);
+        if (cancelled) return;
+        // pdf.js keeps fetching the file's bytes from the link it was opened with, which may have
+        // expired, so the next link opens the file again.
+        setLoaded(null);
+        setFailedUrl(url);
       });
     return () => {
       cancelled = true;
       rendering?.cancel();
       text?.cancel();
     };
-  }, [pdf, url, pageNumber, zoom, quote]);
+  }, [pdf, url, pageNumber, zoom, quote, source]);
+
+  useEffect(() => {
+    if (failed) reportShown();
+  }, [failed]);
 
   if (failed) {
     return (

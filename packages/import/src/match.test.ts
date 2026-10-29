@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { contained, cuiDigits, findQuote, foldName, foldText, sameName, similar } from './match';
+import {
+  contained,
+  cuiDigits,
+  findQuote,
+  findQuotes,
+  foldName,
+  foldText,
+  placeQuote,
+  sameName,
+  similar,
+} from './match';
 
 describe('foldText', () => {
   it('drops diacritics of both the comma and the cedilla forms', () => {
@@ -90,5 +100,166 @@ describe('findQuote', () => {
   it('does not find words that are not there', () => {
     expect(findQuote(text, 'Se numește dl. Georgescu Mihai')).toBeNull();
     expect(findQuote(text, '   ')).toBeNull();
+  });
+});
+
+describe('findQuotes and placeQuote', () => {
+  const row = '| Substanțe de curățat (mâini) | Mănuși | - | Inventar |';
+  const text = [
+    'Posturi evaluate: Bucătar, Cameristă, Recepționer',
+    'LOC DE MUNCĂ : RESTAURANT / MESERIA : BUCĂTAR',
+    '| Arsuri (mâini) | Mănuși termorezistente | 1 an | Inventar |',
+    row,
+    '',
+    'LOC DE MUNCĂ : HOTEL / MESERIA : CAMERISTĂ',
+    '| Alunecare | Încălțăminte | 2 ani | Inventar |',
+    row,
+    '',
+  ].join('\n');
+  const cells = row.slice(2, -2);
+  const first = text.indexOf(cells);
+  const second = text.lastIndexOf(cells);
+
+  it('finds every place of a quote, in order', () => {
+    expect(findQuotes(text, row)).toEqual(
+      [first, second].map((start) => {
+        const span = { start, end: start + cells.length };
+        return { ...span, parts: [span] };
+      })
+    );
+    expect(findQuote(text, row)?.start).toBe(first);
+  });
+
+  it("takes the place of a repeated row under the heading of the entry's post", () => {
+    expect(placeQuote([text], row, 'Cameristă')).toMatchObject({
+      textIndex: 0,
+      start: second,
+      end: second + cells.length,
+    });
+    expect(placeQuote([text], 'Inventar', 'Cameristă')?.start).toBe(
+      text.indexOf('Inventar', text.indexOf('CAMERISTĂ'))
+    );
+    expect(placeQuote([text], row, 'Bucătar')?.start).toBe(first);
+  });
+
+  it('takes the first place when the hint is missing or found nowhere before it', () => {
+    expect(placeQuote([text], row)?.start).toBe(first);
+    expect(placeQuote([text], row, 'Ospătar')?.start).toBe(first);
+    expect(placeQuote([text], 'Lipsește', 'Cameristă')).toBeNull();
+  });
+
+  it('reads the texts as one, so a heading on a page heads the rows of the next', () => {
+    const pages = [
+      `MESERIA : BUCĂTAR\n${row}`,
+      `${row}\nMESERIA : CAMERISTĂ`,
+      `Continuare\n${row}`,
+    ];
+    expect(placeQuote(pages, row, 'Cameristă')).toMatchObject({
+      textIndex: 2,
+      start: pages[2]!.indexOf(cells),
+      end: pages[2]!.indexOf(cells) + cells.length,
+    });
+    expect(placeQuote(pages, row)?.textIndex).toBe(0);
+  });
+
+  it('starts an ellipsis quote at the latest first part that still comes before the rest', () => {
+    const headed = findQuotes(text, `CAMERISTĂ … ${row}`);
+    expect(headed).toHaveLength(2);
+    expect(text.slice(headed[0]!.start, headed[0]!.end)).toMatch(/^Cameristă, Recepționer/);
+    expect(text.slice(headed[1]!.start, headed[1]!.end)).toBe(
+      `CAMERISTĂ\n| Alunecare | Încălțăminte | 2 ani | Inventar |\n| ${cells}`
+    );
+    const heading = text.indexOf('CAMERISTĂ');
+    expect(placeQuote([text], `CAMERISTĂ … ${row}`, 'Cameristă')?.parts).toEqual([
+      { start: heading, end: heading + 'CAMERISTĂ'.length },
+      { start: second, end: second + cells.length },
+    ]);
+    const span = findQuote('Mănuși, apoi Mănuși de bumbac și Inventar', 'Mănuși … Inventar');
+    expect(span?.start).toBe('Mănuși, apoi '.length);
+  });
+});
+
+describe('placing a row repeated under posts with like names', () => {
+  const row = '| Praf | Mască | 1 an | Inventar |';
+  const cells = row.slice(2, -2);
+  const tables = (...posts: string[]) =>
+    [
+      `Posturi evaluate: ${posts.join(', ')}`,
+      ...posts.flatMap((post, index) => [
+        `MESERIA : ${post}`,
+        '| Arsuri | Mănuși | 6 luni | Inventar |',
+        ...(index === 0 ? ['| Zgomot | Antifoane | 1 an | Inventar |'] : []),
+        row,
+        '',
+      ]),
+    ].join('\n');
+
+  it('counts a post only as the whole of its heading, not inside a longer name or a list', () => {
+    const text = tables('BUCĂTAR', 'AJUTOR BUCĂTAR');
+    const first = text.indexOf(cells);
+    const second = text.lastIndexOf(cells);
+    expect(placeQuote([text], row, 'Bucătar')?.start).toBe(first);
+    expect(placeQuote([text], row, 'Ajutor bucătar')?.start).toBe(second);
+
+    const workers = tables('MUNCITOR', 'MUNCITOR NECALIFICAT');
+    expect(placeQuote([workers], row, 'Muncitor')?.start).toBe(workers.indexOf(cells));
+    expect(placeQuote([workers], row, 'Muncitor necalificat')?.start).toBe(
+      workers.lastIndexOf(cells)
+    );
+    const listedLast = tables('MUNCITOR NECALIFICAT', 'MUNCITOR');
+    expect(placeQuote([listedLast], row, 'Muncitor')?.start).toBe(listedLast.lastIndexOf(cells));
+  });
+
+  it("takes a post's cell as its heading, as in a table that names the post in a column", () => {
+    const text = [
+      '| Post | Risc | Echipament | Durată | Gestiune |',
+      `| Ajutor bucătar ${row}`,
+      `| Bucătar ${row}`,
+    ].join('\n');
+    expect(placeQuote([text], row, 'Bucătar')?.start).toBe(text.lastIndexOf(cells));
+    expect(placeQuote([text], row, 'Ajutor bucătar')?.start).toBe(text.indexOf(cells));
+  });
+
+  it("places an entry for several posts under each post's own table, by its row", () => {
+    const text = tables('BUCĂTAR', 'AJUTOR BUCĂTAR');
+    const quote = `MESERIA : BUCĂTAR … ${row}`;
+    const heading = text.indexOf('MESERIA : BUCĂTAR');
+    const first = text.indexOf(cells);
+    const second = text.lastIndexOf(cells);
+    expect(placeQuote([text], quote, 'Bucătar')?.parts).toEqual([
+      { start: heading, end: heading + 'MESERIA : BUCĂTAR'.length },
+      { start: first, end: first + cells.length },
+    ]);
+    expect(placeQuote([text], quote, 'Ajutor bucătar')).toEqual({
+      textIndex: 0,
+      start: second,
+      end: second + cells.length,
+      parts: [{ start: second, end: second + cells.length }],
+    });
+    expect(placeQuote([text], quote, 'Ospătar')?.start).toBe(heading);
+  });
+
+  it('finds a table broken across pages, on the page of its row', () => {
+    const pages = [
+      'Fișa de dotare\nMESERIA : BUCĂTAR\n| Arsuri | Mănuși | 6 luni | Inventar |',
+      `${row}\n\nMESERIA : CAMERISTĂ\n| Alunecare | Încălțăminte | 2 ani | Inventar |`,
+      `${row}\nSfârșit`,
+    ];
+    const quote = `MESERIA : BUCĂTAR … ${row}`;
+    expect(placeQuote(pages, quote, 'Bucătar')).toEqual({
+      textIndex: 1,
+      start: 2,
+      end: 2 + cells.length,
+      parts: [{ start: 2, end: 2 + cells.length }],
+    });
+    expect(placeQuote(pages, `MESERIA : CAMERISTĂ … ${row}`, 'Cameristă')).toMatchObject({
+      textIndex: 2,
+      parts: [{ start: 2, end: 2 + cells.length }],
+    });
+    const heading = pages[1]!.indexOf('CAMERISTĂ');
+    expect(placeQuote(pages, 'CAMERISTĂ … | 2 ani | Inventar |')?.parts).toEqual([
+      { start: heading, end: heading + 'CAMERISTĂ'.length },
+      { start: pages[1]!.indexOf('2 ani'), end: pages[1]!.lastIndexOf('Inventar') + 8 },
+    ]);
   });
 });

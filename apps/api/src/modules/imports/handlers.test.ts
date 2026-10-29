@@ -126,7 +126,7 @@ function importRow(overrides: Record<string, unknown> = {}) {
 }
 
 type Call = { method: string; url: URL; body: unknown; admin: boolean };
-type Handler = (call: Call) => Response | undefined;
+type Handler = (call: Call) => Response | Promise<Response> | undefined;
 
 const fetchMock = vi.fn<typeof fetch>();
 let calls: Call[] = [];
@@ -939,16 +939,173 @@ describe('GET /imports/{importId}/source', () => {
         { number: 1, text: 'Decizia nr. 1' },
         { number: 2, text: 'Administratorul, dl. Vasilescu Andrei, numește' },
       ],
-      match: { page: 2, start: 17, end: 37 },
+      match: { page: 2, start: 17, end: 37, parts: [{ start: 17, end: 37 }] },
     });
     expect(String((body.original as { url: string }).url)).toContain(
       storagePath(importId, 1, 'pdf')
     );
 
+    calls = [];
     const scanned = await request(
       `/imports/${importId}/source?file=${encodeURIComponent('Dosar/Decizie.pdf (pagina 3)')}`
     );
-    expect(await scanned.json()).toMatchObject({ page: 3, match: null });
+    expect(await scanned.json()).toMatchObject({ page: 3, text: null, pages: null, match: null });
+    expect(calls.some((call) => call.url.pathname.endsWith('.json'))).toBe(false);
+  });
+
+  it('looks up the file, reads its text and signs its links at the same time', async () => {
+    const word = fileRow(1, {
+      upload_path: 'Dosar/Fișa.doc',
+      original_file_name: 'Fișa.doc',
+      mime_type: 'application/msword',
+      storage_path: storagePath(importId, 1, 'doc'),
+      derived_path: storagePath(importId, 1, 'docx'),
+      text_path: storagePath(importId, 1, 'txt'),
+      state: 'read',
+    });
+    const waiting = new Map<string, () => void>();
+    const held = (name: string, respond: () => Response) =>
+      new Promise<Response>((resolve) => waiting.set(name, () => resolve(respond())));
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/imports') {
+        return held('import', () => Response.json({ id: importId }));
+      }
+      if (url.pathname === '/rest/v1/import_files') {
+        return held('files', () => Response.json([word]));
+      }
+      if (url.pathname.startsWith('/storage/v1/object/sign/imports/') && method === 'POST') {
+        return held(`sign ${url.pathname.split('.').at(-1)}`, () =>
+          Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` })
+        );
+      }
+      if (url.pathname.endsWith('.txt')) return held('text', () => new Response('Fișa postului'));
+    });
+    const answer = request(
+      `/imports/${importId}/source?file=${encodeURIComponent('Dosar/Fișa.doc')}&quote=${encodeURIComponent('Fișa postului')}`
+    );
+    const pending = async (count: number) => {
+      await vi.waitFor(() => expect(waiting.size).toBe(count));
+      const names = [...waiting.keys()].sort();
+      for (const release of waiting.values()) release();
+      waiting.clear();
+      return names;
+    };
+
+    expect(await pending(2)).toEqual(['files', 'import']);
+    expect(await pending(3)).toEqual(['sign doc', 'sign docx', 'sign txt']);
+    expect(await pending(1)).toEqual(['text']);
+    const body = (await (await answer).json()) as Record<string, unknown>;
+    expect(body).toMatchObject({
+      text: 'Fișa postului',
+      match: { page: null, start: 0, end: 13 },
+      derived: {
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      },
+    });
+    expect(calls.find((call) => call.url.pathname === '/rest/v1/imports')?.url.search).toContain(
+      'select=id'
+    );
+  });
+
+  it('answers an import the member cannot see as not found, though its files are asked for at once', async () => {
+    const waiting = new Map<string, () => void>();
+    const held = (name: string, respond: () => Response) =>
+      new Promise<Response>((resolve) => waiting.set(name, () => resolve(respond())));
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') return held('import', () => Response.json([]));
+      if (url.pathname === '/rest/v1/import_files') {
+        return held('files', () => Response.json([fileRow(1, { upload_path: 'Dosar/Fișa.doc' })]));
+      }
+    });
+    const answer = request(
+      `/imports/${importId}/source?file=${encodeURIComponent('Dosar/Fișa.doc')}&quote=${encodeURIComponent('Fișa postului')}`
+    );
+
+    await vi.waitFor(() => expect([...waiting.keys()].sort()).toEqual(['files', 'import']));
+    for (const release of waiting.values()) release();
+    const response = await answer;
+
+    expect(response.status).toBe(404);
+    expect(calls.some((call) => call.url.pathname.startsWith('/storage/'))).toBe(false);
+  });
+
+  it('places a row repeated under several posts under the post the value is for', async () => {
+    const word = fileRow(1, {
+      upload_path: 'Dosar/Echipament.doc',
+      original_file_name: 'Echipament.doc',
+      mime_type: 'application/msword',
+      storage_path: storagePath(importId, 1, 'doc'),
+      text_path: storagePath(importId, 1, 'txt'),
+      state: 'read',
+    });
+    const row = '| Substanțe de curățat (mâini) | Mănuși | - | Inventar |';
+    const text = [
+      'Posturi: Bucătar, Cameristă',
+      'MESERIA : BUCĂTAR',
+      row,
+      'MESERIA : CAMERISTĂ',
+      row,
+    ].join('\n');
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow({ status: 'ready' }));
+      if (url.pathname === '/rest/v1/import_files') return Response.json([word]);
+      if (url.pathname.startsWith('/storage/v1/object/sign/imports/') && method === 'POST') {
+        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+      }
+      if (url.pathname.endsWith('.txt')) return new Response(text);
+    });
+    const source = async (near?: string) => {
+      const response = await request(
+        `/imports/${importId}/source?file=${encodeURIComponent('Dosar/Echipament.doc')}&quote=${encodeURIComponent(row)}${near ? `&near=${encodeURIComponent(near)}` : ''}`
+      );
+      return (await response.json()) as { match: { start: number } };
+    };
+    const cells = row.slice(2, -2);
+
+    const span = { start: text.lastIndexOf(cells), end: text.lastIndexOf(cells) + cells.length };
+    expect((await source('Cameristă')).match).toEqual({ page: null, ...span, parts: [span] });
+    expect((await source()).match.start).toBe(text.indexOf(cells));
+  });
+
+  it('finds a table broken across PDF pages on the page of its row', async () => {
+    const pdf = fileRow(1, {
+      upload_path: 'Dosar/Echipament.pdf',
+      original_file_name: 'Echipament.pdf',
+      mime_type: 'application/pdf',
+      storage_path: storagePath(importId, 1, 'pdf'),
+      text_path: storagePath(importId, 1, 'json'),
+      state: 'read',
+    });
+    const row = '| Praf | Mască | 1 an | Inventar |';
+    const pages = {
+      pageCount: 3,
+      pages: [
+        {
+          number: 1,
+          text: 'MESERIA : BUCĂTAR\n| Arsuri | Mănuși | 6 luni | Inventar |',
+          isScan: false,
+        },
+        { number: 2, text: '', isScan: true },
+        { number: 3, text: `${row}\nMESERIA : AJUTOR BUCĂTAR\n${row}`, isScan: false },
+      ],
+    };
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow({ status: 'ready' }));
+      if (url.pathname === '/rest/v1/import_files') return Response.json([pdf]);
+      if (url.pathname.startsWith('/storage/v1/object/sign/imports/') && method === 'POST') {
+        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
+      }
+      if (url.pathname.endsWith('.json')) return Response.json(pages);
+    });
+    const response = await request(
+      `/imports/${importId}/source?file=${encodeURIComponent('Dosar/Echipament.pdf')}&quote=${encodeURIComponent(`MESERIA : BUCĂTAR … ${row}`)}&near=Bucătar`
+    );
+    const end = row.length - 2;
+
+    expect(response.status).toBe(200);
+    expect((await response.json()) as unknown).toMatchObject({
+      match: { page: 3, start: 2, end, parts: [{ start: 2, end }] },
+    });
   });
 });
 

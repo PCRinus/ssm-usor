@@ -8,10 +8,11 @@ import {
   importFileExtensions,
   type ImportFileType,
   importLimits,
+  type ImportSourceResponse,
   type ImportSummary,
   type ImportUsage,
 } from '@ssm-usor/contracts';
-import { findQuote, proposalSchema } from '@ssm-usor/import';
+import { placeQuote, proposalSchema } from '@ssm-usor/import';
 import type { Context } from 'hono';
 
 import type { Database } from '../../database.types';
@@ -173,6 +174,14 @@ async function findImport(db: DataClient, importId: string) {
   if (error) throw fromDatabaseError(error, 'find import');
   if (!data) throw notFound();
   return data;
+}
+
+// The source needs only to know the import is the caller's; the detail's columns carry the whole
+// proposal.
+async function importExists(db: DataClient, importId: string) {
+  const { data, error } = await db.from('imports').select('id').eq('id', importId).maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find import');
+  if (!data) throw notFound();
 }
 
 async function listFilesOf(db: DataClient | AdminClient, importId: string) {
@@ -652,10 +661,9 @@ export const saveImportChanges: RouteHandler<typeof saveImportChangesRoute, ApiE
 
 export const getImportSource: RouteHandler<typeof getImportSourceRoute, ApiEnv> = async (c) => {
   const { importId } = c.req.valid('param');
-  const { file: named, quote } = c.req.valid('query');
+  const { file: named, quote, near } = c.req.valid('query');
   const db = createDataClient(c);
-  await findImport(db, importId);
-  const files = await listFilesOf(db, importId);
+  const [, files] = await Promise.all([importExists(db, importId), listFilesOf(db, importId)]);
   const paged = /^(.*) \(pagina (\d+)\)$/.exec(named);
   const exact = files.find((file) => file.upload_path === named);
   const file = exact ?? (paged ? files.find((each) => each.upload_path === paged[1]) : undefined);
@@ -668,32 +676,41 @@ export const getImportSource: RouteHandler<typeof getImportSourceRoute, ApiEnv> 
       ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       : 'image/jpeg';
 
+  // A scan page is shown as its image, which no text marks.
+  const readable = file.text_path && !file.mime_type.startsWith('image/') && page === null;
+  const [content, originalUrl, derivedUrl] = await Promise.all([
+    readable
+      ? store
+          .readImportObject(file.text_path ?? textPathOf(file))
+          .then((bytes) => new TextDecoder().decode(bytes))
+      : null,
+    store.importObjectLink(file.storage_path, expiresInSeconds),
+    file.derived_path ? store.importObjectLink(file.derived_path, expiresInSeconds) : null,
+  ]);
+
   let text: string | null = null;
   let pages: { number: number; text: string }[] | null = null;
-  let match: { page: number | null; start: number; end: number } | null = null;
-  const readable = file.text_path && !file.mime_type.startsWith('image/');
-  if (readable) {
-    const bytes = await store.readImportObject(file.text_path ?? textPathOf(file));
-    const content = new TextDecoder().decode(bytes);
-    if (file.mime_type === 'application/pdf') {
-      const prepared = JSON.parse(content) as PreparedPages;
-      pages = prepared.pages
-        .filter((each) => !each.isScan)
-        .map((each) => ({ number: each.number, text: each.text }));
-      if (quote && page === null) {
-        for (const each of pages) {
-          const found = findQuote(each.text, quote);
-          if (found) {
-            match = { page: each.number, ...found };
-            break;
-          }
-        }
-      }
-    } else {
-      text = content;
-      const found = quote ? findQuote(content, quote) : null;
-      if (found) match = { page: null, ...found };
+  let match: ImportSourceResponse['match'] = null;
+  if (content !== null && file.mime_type === 'application/pdf') {
+    const prepared = JSON.parse(content) as PreparedPages;
+    pages = prepared.pages
+      .filter((each) => !each.isScan)
+      .map((each) => ({ number: each.number, text: each.text }));
+    const found = quote
+      ? placeQuote(
+          pages.map((each) => each.text),
+          quote,
+          near
+        )
+      : null;
+    if (found) {
+      const { start, end, parts } = found;
+      match = { page: pages[found.textIndex]!.number, start, end, parts };
     }
+  } else if (content !== null) {
+    text = content;
+    const found = quote ? placeQuote([content], quote, near) : null;
+    if (found) match = { page: null, start: found.start, end: found.end, parts: found.parts };
   }
   return c.json(
     {
@@ -701,16 +718,8 @@ export const getImportSource: RouteHandler<typeof getImportSourceRoute, ApiEnv> 
       uploadPath: file.upload_path,
       fileName: file.original_file_name,
       page,
-      original: {
-        url: await store.importObjectLink(file.storage_path, expiresInSeconds),
-        mimeType: file.mime_type,
-      },
-      derived: file.derived_path
-        ? {
-            url: await store.importObjectLink(file.derived_path, expiresInSeconds),
-            mimeType: derivedType,
-          }
-        : null,
+      original: { url: originalUrl, mimeType: file.mime_type },
+      derived: derivedUrl ? { url: derivedUrl, mimeType: derivedType } : null,
       text,
       pages,
       match,

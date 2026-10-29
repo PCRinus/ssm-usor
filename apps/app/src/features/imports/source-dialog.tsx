@@ -6,26 +6,39 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { cn } from '@ssm-usor/ui/lib/utils';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
-import { ChevronLeft, ChevronRight, Copy, Download, FileText, ScanText } from 'lucide-react';
-import { lazy, Suspense, useState } from 'react';
-
 import {
-  getGetImportSourceQueryKey,
-  getImportSource,
-  type ImportSourceResponse,
-  useGetImportSource,
-} from '@/api/generated/api';
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Download,
+  FileText,
+  LoaderCircle,
+  ScanText,
+} from 'lucide-react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+
+import { getImportSource, type ImportSourceResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
+import { PagePlaceholder } from '@/features/documents/editor-placeholder';
 
 import { endSentence, filesLabel, importErrorMessage } from './import-format';
 import type { LabelledSource } from './review-model';
-import { type SourceKind, sourceKind } from './source-match';
+import {
+  requestFileName,
+  requestKind,
+  requestPage,
+  requestPath,
+  type SourceKind,
+  sourceKind,
+} from './source-match';
+import { sourceParams, sourceQuery, useSourcePrefetch, viewerChunks } from './source-query';
 import { ZoomBar } from './zoom-bar';
 
-const WordSourceView = lazy(() => import('./source-word-view'));
-const PdfSourceView = lazy(() => import('./source-pdf-view'));
+const WordSourceView = lazy(viewerChunks.word);
+const PdfSourceView = lazy(viewerChunks.pdf);
 
 export type SourceRequest = {
   title: string;
@@ -71,19 +84,48 @@ function SourceContent({
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const current = request.sources[index]!;
-  const params = { file: current.file, quote: current.quote.slice(0, 2000) };
-  const query = useGetImportSource(importId, params, {
-    request: apiRequest,
-    query: {
-      queryKey: getGetImportSourceQueryKey(importId, params),
-      staleTime: 4 * 60_000,
-      gcTime: 4 * 60_000,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-    },
-  });
-  const source = query.data;
-  const kind = source ? sourceKind(source) : null;
+  const params = sourceParams(current);
+  const queryClient = useQueryClient();
+  const query = useQuery(sourceQuery(importId, params, apiRequest, queryClient));
+  // The answer can outlive its links: kept after the dialog closes, it can come back with links
+  // Storage now refuses, so a reopened dialog waits for the new ones.
+  const source = query.isStale && (query.isFetching || query.isError) ? undefined : query.data;
+  // The viewer keeps the file it shows while the next passage's answer is on its way, so stepping
+  // within one file neither opens it again nor blanks it.
+  const [shown, setShown] = useState<{ source: ImportSourceResponse; index: number } | null>(null);
+  if (source && (shown?.source !== source || shown.index !== index)) setShown({ source, index });
+  const viewing =
+    shown && (shown.index === index || shown.source.uploadPath === requestPath(current.file))
+      ? shown
+      : null;
+  const viewed = viewing && request.sources[viewing.index]!;
+  const viewedKind = viewing && sourceKind(viewing.source);
+  const viewerKey = viewing?.source.fileId ?? null;
+  const [viewer, setViewer] = useState<ViewerState>({ key: null, shown: false, progress: null });
+  if (viewer.key !== viewerKey) setViewer({ key: viewerKey, shown: false, progress: null });
+  const shownViewer = () =>
+    setViewer((state) =>
+      state.key === viewerKey && !state.shown ? { ...state, shown: true } : state
+    );
+  // pdf.js tells of every chunk, and each new state draws the dialog again.
+  const progressOf = (loaded: number, total: number) =>
+    setViewer((state) =>
+      state.key === viewerKey && !state.shown && !sameProgress(state.progress, loaded, total)
+        ? { ...state, progress: { loaded, total } }
+        : state
+    );
+  const opening = !query.isError && !(viewer.key === viewerKey && viewer.shown);
+  const switching = viewing !== null && viewing.index !== index && !query.isError;
+  const settled = viewing?.index === index && !opening && !query.isError;
+  const prefetch = useSourcePrefetch(importId);
+  useEffect(() => {
+    if (!settled) return;
+    for (const neighbour of [request.sources[index - 1], request.sources[index + 1]]) {
+      if (neighbour) prefetch(neighbour);
+    }
+  }, [settled, index, request.sources, prefetch]);
+  const kind = source ? sourceKind(source) : requestKind(current.file);
+  const page = source ? source.page : requestPage(current.file);
   const fileCount = new Set(request.sources.map((each) => each.file)).size;
   const step = (next: number) => {
     setNotFound(null);
@@ -132,16 +174,16 @@ function SourceContent({
               ) : (
                 <FileText className="size-3.5" aria-hidden="true" />
               )}
-              {source?.fileName ?? current.file.split('/').at(-1)}
+              {source?.fileName ?? requestFileName(current.file)}
             </span>
             {kind && (
               <span className="rounded-md bg-secondary px-2 py-0.5 font-medium text-secondary-foreground">
                 {kindLabels[kind]}
               </span>
             )}
-            {source?.page && (
+            {page !== null && (
               <span className="rounded-md bg-secondary px-2 py-0.5 font-medium text-secondary-foreground tabular-nums">
-                Pagina {source.page}
+                Pagina {page}
               </span>
             )}
           </div>
@@ -187,12 +229,8 @@ function SourceContent({
       <div
         className="relative min-h-0 flex-1 overflow-hidden bg-muted/60"
         data-testid="source-viewer"
+        aria-busy={opening || switching}
       >
-        {query.isPending && (
-          <p className="p-6 text-sm text-muted-foreground" role="status">
-            Se deschide fișierul…
-          </p>
-        )}
         {query.isError && (
           <div className="p-6">
             <Notice variant="destructive" data-testid="source-error">
@@ -205,41 +243,70 @@ function SourceContent({
             </Notice>
           </div>
         )}
-        {source && (
-          <Suspense
-            fallback={
-              <p className="p-6 text-sm text-muted-foreground" role="status">
-                Se deschide fișierul…
-              </p>
-            }
+        {viewing && viewed && !query.isError && (
+          <div
+            className={cn(
+              'h-full transition-opacity motion-reduce:transition-none',
+              switching && !opening && 'opacity-50'
+            )}
+            inert={opening}
           >
-            {kind === 'word' && (
-              <WordSourceView
-                key={index}
-                source={source}
-                quote={current.quote}
-                onNotFound={() =>
-                  setNotFound(
-                    source.match ? unplaced : 'Nu am găsit pasajul în document, așa că nu e marcat.'
-                  )
-                }
-              />
-            )}
-            {(kind === 'pdf' || kind === 'scan') && (
-              <PdfSourceView
-                key={index}
-                source={source}
-                quote={kind === 'pdf' ? current.quote : null}
-                onNotFound={() =>
-                  setNotFound(
-                    source.match ? unplaced : 'Nu am găsit pasajul pe pagină, așa că nu e marcat.'
-                  )
-                }
-              />
-            )}
-            {kind === 'image' && <ImageSourceView key={index} source={source} />}
-          </Suspense>
+            <Suspense fallback={null}>
+              {viewedKind === 'word' && (
+                <WordSourceView
+                  key={viewing.source.fileId}
+                  source={viewing.source}
+                  quote={viewed.quote}
+                  onShown={shownViewer}
+                  onNotFound={() =>
+                    setNotFound(
+                      viewing.source.match
+                        ? unplaced
+                        : 'Nu am găsit pasajul în document, așa că nu e marcat.'
+                    )
+                  }
+                />
+              )}
+              {(viewedKind === 'pdf' || viewedKind === 'scan') && (
+                <PdfSourceView
+                  key={viewing.source.fileId}
+                  source={viewing.source}
+                  quote={viewedKind === 'pdf' ? viewed.quote : null}
+                  onShown={shownViewer}
+                  onProgress={progressOf}
+                  onNotFound={() =>
+                    setNotFound(
+                      viewing.source.match
+                        ? unplaced
+                        : 'Nu am găsit pasajul pe pagină, așa că nu e marcat.'
+                    )
+                  }
+                />
+              )}
+              {viewedKind === 'image' && (
+                <ImageSourceView
+                  key={viewing.source.fileId}
+                  source={viewing.source}
+                  onShown={shownViewer}
+                />
+              )}
+            </Suspense>
+          </div>
         )}
+        {switching && !opening && (
+          <div
+            role="status"
+            className="absolute top-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs shadow-sm"
+            data-testid="source-switching"
+          >
+            <LoaderCircle
+              className="size-3.5 animate-spin text-primary motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+            Se deschide pasajul…
+          </div>
+        )}
+        {opening && <SourcePlaceholder kind={kind} progress={viewer.progress} />}
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t px-5 py-3">
         <Button
@@ -268,19 +335,17 @@ function SourceContent({
           <ChevronRight aria-hidden="true" />
         </Button>
         <span className="flex-1" />
-        {source && (
-          <Button
-            variant="outline"
-            size="sm"
-            title="Fișierul așa cum a fost încărcat, fără marcaj"
-            data-testid="source-download"
-            disabled={downloading}
-            onClick={() => void download()}
-          >
-            <Download aria-hidden="true" />
-            Descarcă originalul
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          title="Fișierul așa cum a fost încărcat, fără marcaj"
+          data-testid="source-download"
+          disabled={!source || downloading}
+          onClick={() => void download()}
+        >
+          <Download aria-hidden="true" />
+          Descarcă originalul
+        </Button>
         <Button size="sm" onClick={onClose}>
           Închide
         </Button>
@@ -294,15 +359,110 @@ function SourceContent({
 const downloadLink = (url: string, fileName: string) =>
   `${url}${url.includes('?') ? '&' : '?'}download=${encodeURIComponent(fileName)}`;
 
-function ImageSourceView({ source }: { source: ImportSourceResponse }) {
+type ViewerState = {
+  key: string | null;
+  shown: boolean;
+  progress: { loaded: number; total: number } | null;
+};
+
+const openingLabels: Record<SourceKind, string> = {
+  word: 'Se deschide documentul…',
+  pdf: 'Se deschide documentul…',
+  scan: 'Se deschide scanarea…',
+  image: 'Se deschide fotografia…',
+};
+
+const progressAfterMs = 800;
+const megabytes = new Intl.NumberFormat('ro-RO', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+const inMegabytes = (bytes: number) => megabytes.format(bytes / 1024 / 1024);
+const sameProgress = (shown: ViewerState['progress'], loaded: number, total: number) =>
+  shown !== null && shown.total === total && inMegabytes(shown.loaded) === inMegabytes(loaded);
+
+// One placeholder from the click until the file is drawn, over the answer, the viewer's code and
+// the file itself, so the dialog does not change three times while it opens.
+function SourcePlaceholder({
+  kind,
+  progress,
+}: {
+  kind: SourceKind | null;
+  progress: ViewerState['progress'];
+}) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), progressAfterMs);
+    return () => clearTimeout(timer);
+  }, []);
+  const share =
+    progress && progress.total > 0 ? Math.min(1, progress.loaded / progress.total) : null;
+  return (
+    <div
+      className="absolute inset-0 z-10 overflow-hidden bg-background"
+      data-testid="source-loading"
+    >
+      <PagePlaceholder
+        className="h-full bg-muted/60"
+        detail={
+          slow &&
+          progress &&
+          share !== null && (
+            <div className="grid gap-1.5" data-testid="source-progress">
+              <div
+                role="progressbar"
+                aria-label="Fișier descărcat"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(share * 100)}
+                className="h-1 w-full min-w-48 overflow-hidden rounded-full bg-muted"
+              >
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] motion-reduce:transition-none"
+                  style={{ width: `${share * 100}%` }}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {inMegabytes(progress.loaded)} din {inMegabytes(progress.total)} MB
+              </span>
+            </div>
+          )
+        }
+      >
+        {openingLabels[kind ?? 'pdf']}
+      </PagePlaceholder>
+    </div>
+  );
+}
+
+function ImageSourceView({
+  source,
+  onShown,
+}: {
+  source: ImportSourceResponse;
+  onShown: () => void;
+}) {
   const [zoom, setZoom] = useState<number | 'fit'>('fit');
-  const url = source.derived?.url ?? source.original.url;
+  const latest = source.derived?.url ?? source.original.url;
+  // Each answer carries a link signed anew, so the photo is held by its first link unless that
+  // one failed.
+  const [url, setUrl] = useState(latest);
+  const [failed, setFailed] = useState(false);
+  if (failed && latest !== url) {
+    setUrl(latest);
+    setFailed(false);
+  }
   return (
     <>
       <div className="h-full overflow-auto p-4" data-testid="source-image">
         <img
           src={url}
           alt={`Fotografia ${source.fileName}`}
+          onLoad={onShown}
+          onError={() => {
+            setFailed(true);
+            onShown();
+          }}
           className={cn(
             'mx-auto block bg-card shadow-sm',
             zoom === 'fit' && 'max-h-full max-w-full object-contain'

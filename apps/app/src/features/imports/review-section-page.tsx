@@ -20,6 +20,7 @@ import { type Blocker, type SectionId, sectionIds, sectionLabels } from './revie
 import { SavingNote } from './review-parts';
 import { fieldStates, reviewName } from './review-summary';
 import { SourceDialog, type SourceRequest } from './source-dialog';
+import { SourcePrefetchContext, useSourcePrefetch } from './source-query';
 import { useExistingValues, useImportReview } from './use-import-review';
 
 export function ReviewSectionPage({
@@ -33,6 +34,7 @@ export function ReviewSectionPage({
   const review = useImportReview(detail);
   const existing = useExistingValues(detail);
   const [source, setSource] = useState<SourceRequest | null>(null);
+  const prefetchSource = useSourcePrefetch(detail.id);
   useScrollToHash(existing.ready);
   const states = fieldStates(proposal, review.changes, existing.valueAt);
   const registered = detail.registeredCompany;
@@ -53,58 +55,60 @@ export function ReviewSectionPage({
   const name = reviewName(detail, proposal, review.changes);
 
   return (
-    <div data-testid="import-review-section" data-section={section} className="grid gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="grid max-w-3xl gap-1">
-          <h1 className="text-3xl font-semibold tracking-tight">{sectionLabels[section]}</h1>
-          <p className="text-sm text-muted-foreground">
-            {detail.intoExistingClient
-              ? `Completezi clientul existent ${endSentence(name)} Ce are deja în aplicație nu se schimbă fără alegerea ta.`
-              : `${endSentence(name)} Valorile se preiau așa cum sunt, dacă nu le schimbi.`}
-          </p>
+    <SourcePrefetchContext value={prefetchSource}>
+      <div data-testid="import-review-section" data-section={section} className="grid gap-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="grid max-w-3xl gap-1">
+            <h1 className="text-3xl font-semibold tracking-tight">{sectionLabels[section]}</h1>
+            <p className="text-sm text-muted-foreground">
+              {detail.intoExistingClient
+                ? `Completezi clientul existent ${endSentence(name)} Ce are deja în aplicație nu se schimbă fără alegerea ta.`
+                : `${endSentence(name)} Valorile se preiau așa cum sunt, dacă nu le schimbi.`}
+            </p>
+          </div>
+          <div className="grid justify-items-end gap-1">
+            <span className="text-sm text-muted-foreground tabular-nums">
+              Secțiunea {position + 1} din {sectionIds.length}
+            </span>
+            <SavingNote saving={review.saving} />
+          </div>
         </div>
-        <div className="grid justify-items-end gap-1">
-          <span className="text-sm text-muted-foreground tabular-nums">
-            Secțiunea {position + 1} din {sectionIds.length}
-          </span>
-          <SavingNote saving={review.saving} />
-        </div>
-      </div>
-      <ConflictNotice review={review} />
-      {(section === 'identity' || section === 'training') && (
-        <FieldsSection section={section} context={context} />
-      )}
-      {section === 'fire-safety' && (
-        <>
+        <ConflictNotice review={review} />
+        {(section === 'identity' || section === 'training') && (
           <FieldsSection section={section} context={context} />
-          <FireMeansSection context={context} />
-        </>
-      )}
-      {section === 'workplaces' && <WorkplacesSection context={context} />}
-      {section === 'job-positions' && <JobPositionsSection context={context} />}
-      {section === 'responsible' && <ResponsibleSection context={context} />}
-      {section === 'equipment' && <EquipmentSection context={context} />}
-      <div className="flex flex-wrap justify-between gap-2">
-        <Button asChild variant="outline">
-          <Link to="/clients/import/$importId" params={{ importId: detail.id }}>
-            <ArrowLeft aria-hidden="true" />
-            Înapoi la listă
-          </Link>
-        </Button>
-        {next && (
-          <Button asChild>
-            <Link
-              to="/clients/import/$importId/$section"
-              params={{ importId: detail.id, section: next }}
-              data-testid="import-next-section"
-            >
-              Următoarea secțiune: {sectionLabels[next]}
-              <ArrowRight aria-hidden="true" />
+        )}
+        {section === 'fire-safety' && (
+          <>
+            <FieldsSection section={section} context={context} />
+            <FireMeansSection context={context} />
+          </>
+        )}
+        {section === 'workplaces' && <WorkplacesSection context={context} />}
+        {section === 'job-positions' && <JobPositionsSection context={context} />}
+        {section === 'responsible' && <ResponsibleSection context={context} />}
+        {section === 'equipment' && <EquipmentSection context={context} />}
+        <div className="flex flex-wrap justify-between gap-2">
+          <Button asChild variant="outline">
+            <Link to="/clients/import/$importId" params={{ importId: detail.id }}>
+              <ArrowLeft aria-hidden="true" />
+              Înapoi la listă
             </Link>
           </Button>
-        )}
+          {next && (
+            <Button asChild>
+              <Link
+                to="/clients/import/$importId/$section"
+                params={{ importId: detail.id, section: next }}
+                data-testid="import-next-section"
+              >
+                Următoarea secțiune: {sectionLabels[next]}
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            </Button>
+          )}
+        </div>
+        <SourceDialog importId={detail.id} request={source} onClose={() => setSource(null)} />
       </div>
-      <SourceDialog importId={detail.id} request={source} onClose={() => setSource(null)} />
-    </div>
+    </SourcePrefetchContext>
   );
 }

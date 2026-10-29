@@ -42,6 +42,52 @@ describe('checkQuotes', () => {
     ]);
   });
 
+  it('flags an equipment entry whose quote does not name its item or its duration', () => {
+    const value = proposal();
+    const decision = 'Dosar/Decizia 1.docx';
+    const entry = value.protectiveEquipment[0]!;
+    value.protectiveEquipment = [
+      { ...entry, sources: [{ file: decision, quote: 'Brutar, Vânzător' }] },
+      { ...entry, durationMonths: 12 },
+      { ...entry, durationMonths: null },
+      { ...entry, item: 'Manusi termorezistente', spelling: {} },
+    ];
+
+    expect(codes(checkQuotes(value, files))).toEqual([
+      'protectiveEquipment.0.sources.0 value_not_in_quote',
+      'protectiveEquipment.1.sources.0 value_not_in_quote',
+    ]);
+  });
+
+  it('reads a duration in years as twelve months each', () => {
+    const value = proposal();
+    const entry = value.protectiveEquipment[0]!;
+    const quoted = (quote: string, durationMonths: number) => ({
+      ...entry,
+      durationMonths,
+      sources: [{ file: 'Dosar/Ani.docx', quote }],
+    });
+    value.protectiveEquipment = [
+      quoted('Mănuși termorezistente | 1 an', 12),
+      quoted('Mănuși termorezistente | 2 ani', 24),
+      quoted('Mănuși termorezistente, un an', 12),
+      quoted('Mănuși termorezistente | 12 luni', 12),
+      quoted('Mănuși termorezistente | 1 an', 1),
+      quoted('Mănuși termorezistente | 2 ani', 2),
+      quoted('Mănuși termorezistente | 1,5 ani', 18),
+      quoted('Mănuși termorezistente | 20 de ani', 240),
+      quoted('Mănuși termorezistente | 24 de luni', 24),
+      quoted('Mănuși termorezistente | 1,5 ani', 1),
+    ];
+    const withYears = { ...files, 'Dosar/Ani.docx': null };
+
+    expect(codes(checkQuotes(value, withYears))).toEqual([
+      'protectiveEquipment.4.sources.0 value_not_in_quote',
+      'protectiveEquipment.5.sources.0 value_not_in_quote',
+      'protectiveEquipment.9.sources.0 value_not_in_quote',
+    ]);
+  });
+
   it('flags a quote that is found but does not hold its value', () => {
     const value = proposal();
     const decision = 'Dosar/Decizia 1.docx';
