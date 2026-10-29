@@ -86,6 +86,7 @@ const reading = {
     },
   ],
   workplaces: [],
+  workplaceFacts: [],
   jobPositions: [],
   responsiblePersons: [],
   fireEquipment: [],

@@ -51,6 +51,7 @@ const fireLines = [
   'BRUTĂRIA FICTIVĂ S.R.L.',
   'Lista mijloacelor de stingere',
   '| Sediu | stingător P6 | 2 |',
+  'Punct de adunare: parcarea din spate.',
 ];
 const otherLines = ['ATELIERUL INVENTAT S.R.L.', 'CUI 87654329', 'Decizie privind instruirea'];
 const scannedFirstPage =
@@ -252,6 +253,7 @@ const quoted = (file: string, quote: string) => ({ file, quote, otherCompany: ''
 const emptyReading = {
   facts: [],
   workplaces: [],
+  workplaceFacts: [],
   jobPositions: [],
   responsiblePersons: [],
   fireEquipment: [],
@@ -331,6 +333,14 @@ const answers = {
         activity: '',
         rooms: [],
         ...quoted('Dosar/PSI/Lista mijloace.doc', '| Sediu | stingător P6 | 2 |'),
+      },
+    ],
+    workplaceFacts: [
+      {
+        workplace: 'Sediu',
+        field: 'assemblyPoint',
+        value: 'parcarea din spate',
+        ...quoted('Dosar/PSI/Lista mijloace.doc', 'Punct de adunare: parcarea din spate'),
       },
     ],
     fireEquipment: [
@@ -627,6 +637,14 @@ describe('the import queue', () => {
     ]);
     expect(proposal.fireInstallations).toHaveLength(1);
     expect(proposal.fireEquipment[0]?.workplace.id).toBe('workplace-1');
+    expect(proposal.workplaces[0]).toMatchObject({
+      assemblyPoint: 'parcarea din spate',
+      fieldSources: {
+        assemblyPoint: [
+          { file: 'Dosar/PSI/Lista mijloace.doc', quote: 'Punct de adunare: parcarea din spate' },
+        ],
+      },
+    });
     expect(proposal.flags).toEqual(
       expect.arrayContaining([
         {

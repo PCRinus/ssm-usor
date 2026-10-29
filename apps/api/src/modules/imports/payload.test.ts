@@ -55,6 +55,7 @@ function reading(overrides: Partial<Reading> = {}): Reading {
         ...quoted(),
       },
     ],
+    workplaceFacts: [],
     jobPositions: [
       {
         name: 'Brutar',
@@ -63,6 +64,7 @@ function reading(overrides: Partial<Reading> = {}): Reading {
         workZone: 'Laborator',
         activities: null,
         managementOnly: false,
+        needsProtectiveEquipment: null,
         ...quoted(),
       },
       {
@@ -72,6 +74,7 @@ function reading(overrides: Partial<Reading> = {}): Reading {
         workZone: null,
         activities: null,
         managementOnly: false,
+        needsProtectiveEquipment: null,
         ...quoted(),
       },
     ],
@@ -441,6 +444,7 @@ describe('toClientPayload', () => {
             workZone: null,
             activities: 'conducerea firmei, conduce autoturismul în interes de serviciu',
             managementOnly: true,
+            needsProtectiveEquipment: null,
             ...quoted(),
           },
         ],
@@ -493,6 +497,128 @@ describe('toClientPayload', () => {
     expect(keptAlone.blockers).toEqual([
       { path: 'protectiveEquipment.2.jobPosition', code: 'unknown_reference' },
     ]);
+  });
+
+  it('carries the fire-safety sheet, the waste, other firms, a category without training and a post needing no equipment', () => {
+    const base = reading();
+    const sheet = (workplace: string, field: string, value: string) =>
+      ({ workplace, field, value, ...quoted(fire) }) as Reading['workplaceFacts'][number];
+    const proposal = proposalOf(
+      reading({
+        facts: [
+          ...base.facts,
+          fact('trainingSchedule.administrativeTrainingNotApplicable', 'true'),
+          fact('fireSafety.wasteKinds', 'deșeuri menajere; carton', fire),
+          fact('fireSafety.wasteCollectors', 'vânzătorii de serviciu', fire),
+          fact('fireSafety.hasThirdParties', 'false', fire),
+        ],
+        workplaceFacts: [
+          sheet('Sediu', 'floorAreaM2', '120'),
+          sheet('Sediu', 'extinguisherNorm', 'commercial_200'),
+          sheet('Sediu', 'assemblyPoint', 'parcarea din spate'),
+          sheet('Magazin', 'kind', 'mobile_site'),
+        ],
+        jobPositions: [
+          ...base.jobPositions,
+          { ...base.jobPositions[1]!, name: 'Contabil', needsProtectiveEquipment: 'false' },
+          { ...base.jobPositions[1]!, name: 'Șofer', needsProtectiveEquipment: 'false' },
+        ],
+      })
+    );
+    const payloadWith = (items: Record<string, object>) =>
+      toClientPayload({
+        proposal,
+        changes: { fields: {}, items },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      });
+
+    const { payload, blockers } = payloadWith({});
+    expect(blockers).toEqual([]);
+    expect(payload.client).toMatchObject({ administrative_training_not_applicable: true });
+    expect(payload.fire_safety).toEqual({
+      smoking_policy: 'forbidden_everywhere',
+      waste_kinds: ['deșeuri menajere', 'carton'],
+      waste_collectors: 'vânzătorii de serviciu',
+      has_third_parties: false,
+    });
+    expect(payload.workplaces[0]).toMatchObject({
+      floor_area_m2: 120,
+      extinguisher_norm: 'commercial_200',
+      assembly_point: 'parcarea din spate',
+    });
+    expect(payload.workplaces[0]).not.toHaveProperty('fieldSources');
+    expect(payload.workplaces[1]).toMatchObject({ kind: 'mobile_site' });
+    expect(payload.job_positions.map((row) => [row.name, row.needs_protective_equipment])).toEqual([
+      ['Brutar', undefined],
+      ['Vânzător', undefined],
+      ['Contabil', false],
+      ['Șofer', false],
+    ]);
+
+    const moved = payloadWith({
+      'equipment-entry-2': { values: { jobPosition: 'position-4' } },
+      'position-3': { values: { needsProtectiveEquipment: null } },
+    });
+    expect(moved.payload.job_positions.map((row) => row.needs_protective_equipment)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it('blocks a category given both an interval and "not applicable"', () => {
+    const base = reading();
+    const { blockers } = toClientPayload({
+      proposal: proposalOf(
+        reading({
+          facts: [...base.facts, fact('trainingSchedule.workerTrainingNotApplicable', 'da')],
+        })
+      ),
+      changes: null,
+      intoExistingClient: false,
+      existing: noExistingRecords,
+    });
+
+    expect(blockers).toEqual([
+      { path: 'trainingSchedule.workerTrainingNotApplicable', code: 'invalid' },
+    ]);
+  });
+
+  it('blocks a fire-safety value the checks found outside what the database takes', () => {
+    const base = reading();
+    const proposal = withChecks(
+      proposalOf(
+        reading({
+          workplaceFacts: [
+            {
+              workplace: 'Sediu',
+              field: 'extinguisherNorm',
+              value: '1 stingător la 200 mp',
+              ...quoted(fire),
+            },
+          ],
+          facts: base.facts,
+        })
+      ),
+      { files: {} }
+    );
+    const blockersWith = (items: Record<string, object>) =>
+      toClientPayload({
+        proposal,
+        changes: { fields: {}, items },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      }).blockers;
+
+    expect(blockersWith({})).toContainEqual({
+      path: 'workplaces.0.extinguisherNorm',
+      code: 'invalid',
+    });
+    expect(
+      blockersWith({ 'workplace-1': { values: { extinguisherNorm: 'commercial_200' } } })
+    ).not.toContainEqual(expect.objectContaining({ path: 'workplaces.0.extinguisherNorm' }));
   });
 
   it("still asks for the workers' representative's hire date", () => {
