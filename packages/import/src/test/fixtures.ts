@@ -16,7 +16,7 @@ export const decisionText = [
   'Instruirea periodică se face la 6 luni pentru personalul de execuție, cu durata de 60 de minute.',
   'Pentru personalul tehnico-administrativ instruirea periodică nu se aplică.',
   '| Post | Riscuri | Echipament | Durata |',
-  '| Brutar, Vânzător | Arsuri | Mănuși termorezistente | 6 luni |',
+  '| Brutar, Vânzător | ARSURI | Manusi termorezistente | 6 luni |',
   'Punct de lucru: Magazin, Timișoara, str. Piața Mică nr. 2',
   'Reprezentantul lucrătorilor: Georgescu Dan, vânzător, admis la lucru 01.03.2020',
 ].join('\n');
@@ -237,13 +237,13 @@ export function wireAnswer() {
     protectiveEquipment: [
       {
         jobPositions: ['Brutar', 'Vânzător', 'brutar'],
-        risk: 'Arsuri',
+        risk: 'ARSURI',
         item: 'Mănuși termorezistente',
         quantity: '',
         durationMonths: '6',
         allocation: 'personal_inventory',
         file: decision,
-        quote: '| Brutar, Vânzător | Arsuri | Mănuși termorezistente | 6 luni |',
+        quote: '| Brutar, Vânzător | ARSURI | Manusi termorezistente | 6 luni |',
         otherCompany: '',
       },
     ],

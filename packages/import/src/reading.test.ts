@@ -74,6 +74,67 @@ describe('fromWire', () => {
     );
   });
 
+  it('corrects capitals and diacritics and keeps the document’s spelling beside', () => {
+    expect(proposal.protectiveEquipment[0]).toMatchObject({
+      risk: 'Arsuri',
+      item: 'Mănuși termorezistente',
+      spelling: { risk: 'ARSURI', item: 'Manusi termorezistente' },
+    });
+    expect(proposal.jobPositions[0]!.spelling).toEqual({});
+    expect(proposal.client.legalName.options[0]!.value).toBe('BRUTĂRIA FICTIVĂ S.R.L.');
+  });
+
+  it('corrects a text field’s options, a waste kind at a time, and leaves names as written', () => {
+    const answer = wireAnswer();
+    answer.facts.push(
+      {
+        field: 'fireSafety.smokingPlace',
+        value: 'ÎN CURTEA INTERIOARĂ',
+        file: 'Dosar/Decizia 1.docx',
+        quote: 'Locul pentru fumat: IN CURTEA INTERIOARA',
+        otherCompany: '',
+      },
+      {
+        field: 'client.legalRepresentativeRole',
+        value: 'ADMINISTRATOR',
+        file: 'Dosar/Decizia 1.docx',
+        quote: 'ADMINISTRATOR',
+        otherCompany: '',
+      }
+    );
+    answer.facts = answer.facts.map((fact) =>
+      fact.field === 'fireSafety.wasteKinds'
+        ? { ...fact, value: 'DEȘEURI MENAJERE; PET', quote: 'DESEURI MENAJERE, PET' }
+        : fact.field === 'client.legalRepresentativeName'
+          ? { ...fact, value: fact.value.toUpperCase() }
+          : fact
+    );
+    answer.workplaces[1]!.name = 'MAGAZIN CENTRAL';
+    answer.workplaces[1]!.addressLine = 'STR. PIAȚA MICĂ NR. 2';
+
+    const read = fromWire(answer);
+
+    expect(read.fireSafety.smokingPlace.options).toEqual([
+      expect.objectContaining({ value: 'În curtea interioară', spelling: 'IN CURTEA INTERIOARA' }),
+    ]);
+    expect(read.fireSafety.wasteKinds.options[0]).toMatchObject({
+      value: 'Deșeuri menajere; PET',
+      spelling: 'DESEURI MENAJERE; PET',
+    });
+    expect(read.client.legalRepresentativeRole.options.map((option) => option.value)).toEqual([
+      'Administrator',
+    ]);
+    expect(read.client.legalRepresentativeName.options[0]).toMatchObject({
+      value: 'VASILESCU ANDREI',
+    });
+    expect(read.client.legalRepresentativeName.options[0]).not.toHaveProperty('spelling');
+    expect(read.workplaces[1]).toMatchObject({
+      name: 'Magazin central',
+      addressLine: 'STR. PIAȚA MICĂ NR. 2',
+      spelling: { name: 'MAGAZIN CENTRAL' },
+    });
+  });
+
   it('keeps an equipment entry that names no post, with its post unresolved', () => {
     const answer = wireAnswer();
     answer.protectiveEquipment[0]!.jobPositions = [];
@@ -726,6 +787,9 @@ describe('a proposal or a scan’s page that predates the fire-safety values and
       delete position.fieldSources;
     }
     for (const person of stored.responsiblePersons) delete person.roleSources;
+    for (const list of ['workplaces', 'jobPositions', 'fireEquipment', 'protectiveEquipment']) {
+      for (const item of stored[list]) delete item.spelling;
+    }
 
     const parsed = proposalSchema.parse(stored);
     expect(parsed.fireSafety.hasThirdParties).toEqual({ options: [] });
@@ -736,6 +800,8 @@ describe('a proposal or a scan’s page that predates the fire-safety values and
       fieldSources: {},
     });
     expect(parsed.responsiblePersons[0]!.roleSources).toEqual({});
+    expect(parsed.protectiveEquipment[0]!.spelling).toEqual({});
+    expect(parsed.fireEquipment[0]!.spelling).toEqual({});
   });
 });
 

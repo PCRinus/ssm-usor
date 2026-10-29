@@ -91,6 +91,16 @@ describe('readingMessages', () => {
     ]);
   });
 
+  it('asks for diacritics in the texts it corrects, and leaves names and quotes as written', () => {
+    const [system] = readingMessages({ provider, files: [] });
+
+    expect(system!.content).toContain('names of people and companies stay exactly as written');
+    expect(system!.content).toContain(
+      'are written with Romanian diacritics (ă, â, î, ș, ț) even where the document leaves them out, while their quote stays verbatim'
+    );
+    expect(system!.content).not.toContain('do not translate or normalise names');
+  });
+
   it('leaves the existing client out of a new client’s import', () => {
     const [system] = readingMessages({ provider, files: [] });
 

@@ -33,6 +33,7 @@ import {
   workplaceFireFieldNames,
   yesNoValues,
 } from './proposal';
+import { correctProposalSpelling } from './spelling';
 import { answerFormat } from './wire';
 
 export const factFields = [
@@ -528,6 +529,7 @@ export function toProposal(...readings: Reading[]): Proposal {
         activity: workplace.activity,
         rooms: workplace.rooms,
         ...noFireValues(),
+        spelling: {} as Record<string, string>,
       })),
     sameAddress,
     (into, from) => {
@@ -583,6 +585,7 @@ export function toProposal(...readings: Reading[]): Proposal {
               ? false
               : null,
         fieldSources: {} as Record<string, Source[]>,
+        spelling: {} as Record<string, string>,
       })),
     (a, b) => foldText(a.name) === foldText(b.name),
     (into, from) => {
@@ -612,6 +615,7 @@ export function toProposal(...readings: Reading[]): Proposal {
     capacity: equipment.capacity,
     wheeled: equipment.wheeled,
     count: equipment.count,
+    spelling: {},
   }));
   for (const workplace of workplaces) {
     const rooms = fireEquipment
@@ -635,6 +639,7 @@ export function toProposal(...readings: Reading[]): Proposal {
         quantity: entry.quantity,
         durationMonths: entry.durationMonths,
         allocation: entry.allocation,
+        spelling: {},
       }));
     });
   // The entries are what the post receives, whatever another passage says of it.
@@ -717,5 +722,5 @@ export function toProposal(...readings: Reading[]): Proposal {
     ],
     flags: [],
   };
-  return proposalSchema.parse(proposal);
+  return proposalSchema.parse(correctProposalSpelling(proposal));
 }
