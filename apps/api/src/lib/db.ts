@@ -4,7 +4,7 @@ import type { Context } from 'hono';
 
 import type { Database } from '../database.types';
 import { type ApiEnv, supabaseConfigSchema } from './env';
-import { ApiError } from './errors';
+import { ApiError, type BrokenConstraint } from './errors';
 
 const slowRequestMs = 2_000;
 
@@ -133,18 +133,46 @@ const testErrors: Record<string, { code: 'conflict' | 'validation_error'; messag
   TST08: { code: 'conflict', message: 'Fișa de test nu se șterge și nu se întocmește din nou.' },
 };
 
+const constraintPatterns: Record<string, RegExp> = {
+  '23505': /violates unique constraint "([^"]+)"/,
+  '23503': /violates foreign key constraint "([^"]+)"/,
+  '23514': /violates check constraint "([^"]+)"/,
+};
+
+function brokenConstraint(error: PostgrestError): BrokenConstraint | undefined {
+  const message = error.message ?? '';
+  if (error.code === '23502') {
+    const column = /null value in column "([^"]+)" of relation "([^"]+)"/.exec(message);
+    return column ? { name: `${column[2]}_${column[1]}_not_null`, table: column[2]! } : undefined;
+  }
+  const name = error.code ? constraintPatterns[error.code]?.exec(message)?.[1] : undefined;
+  if (!name) return undefined;
+  return { name, table: /(?:relation|on table) "([^"]+)"/.exec(message)?.[1] ?? null };
+}
+
 // Translate PostgREST/Postgres failures into API errors without leaking details.
 export function fromDatabaseError(error: PostgrestError, context: string): ApiError {
   const known = error.code ? (signingErrors[error.code] ?? testErrors[error.code]) : undefined;
   if (known) {
     return new ApiError(known.code, known.message, undefined, error.message || undefined);
   }
+  const rejected = (apiError: ApiError) => {
+    const constraint = brokenConstraint(error);
+    console.error(
+      `Database request rejected (${context}): ${error.code}${constraint ? ` ${constraint.name}` : ''}`
+    );
+    apiError.constraint = constraint;
+    return apiError;
+  };
   switch (error.code) {
     case '23505':
-      return new ApiError('conflict');
+      return rejected(new ApiError('conflict'));
     case '23503':
-      return new ApiError('conflict', 'Other records depend on this one.');
+      return rejected(new ApiError('conflict', 'Other records depend on this one.'));
     case '23514':
+      return rejected(new ApiError('validation_error'));
+    case '23502':
+      return rejected(new ApiError('internal_error'));
     case '22P02':
       return new ApiError('validation_error');
     case '42501':
