@@ -50,49 +50,68 @@ export function markPassageRows(viewport: HTMLElement) {
   }
 }
 
-function passageBox(viewport: HTMLElement): Box | null {
-  const parts = viewport.querySelectorAll<HTMLElement>(`${passageMarks}, .${passageRowClass}`);
-  if (parts.length === 0) return null;
+const union = (a: Box | null, b: Box): Box =>
+  a
+    ? {
+        top: Math.min(a.top, b.top),
+        bottom: Math.max(a.bottom, b.bottom),
+        left: Math.min(a.left, b.left),
+        right: Math.max(a.right, b.right),
+      }
+    : b;
+
+type Passage = { marks: Box; whole: Box };
+
+function passageBox(viewport: HTMLElement): Passage | null {
   const frame = viewport.getBoundingClientRect();
   const x = frame.left - viewport.scrollLeft;
   const y = frame.top - viewport.scrollTop;
-  let box: Box | null = null;
-  for (const part of parts) {
+  const boxOf = (part: HTMLElement) => {
     const rect = part.getBoundingClientRect();
-    const each = {
+    return {
       top: rect.top - y,
       bottom: rect.bottom - y,
       left: rect.left - x,
       right: rect.right - x,
     };
-    box = box
-      ? {
-          top: Math.min(box.top, each.top),
-          bottom: Math.max(box.bottom, each.bottom),
-          left: Math.min(box.left, each.left),
-          right: Math.max(box.right, each.right),
-        }
-      : each;
+  };
+  let marks: Box | null = null;
+  for (const mark of viewport.querySelectorAll<HTMLElement>(passageMarks)) {
+    marks = union(marks, boxOf(mark));
   }
-  return box;
+  if (!marks) return null;
+  let whole = marks;
+  for (const row of viewport.querySelectorAll<HTMLElement>(`.${passageRowClass}`)) {
+    whole = union(whole, boxOf(row));
+  }
+  return { marks, whole };
 }
+
+const samePlace = (a: Box, b: Box) =>
+  Math.abs(a.top - b.top) <= 1 &&
+  Math.abs(a.bottom - b.bottom) <= 1 &&
+  Math.abs(a.left - b.left) <= 1 &&
+  Math.abs(a.right - b.right) <= 1;
 
 const clamp = (value: number, max: number) => Math.round(Math.max(0, Math.min(value, max)));
 
 // Centred top to bottom; across, moved only as far as it takes to show the passage, which on a
-// phone is wider than the screen as often as not.
-export function passageScroll(box: Box, viewport: HTMLElement) {
+// phone is wider than the screen as often as not. The row is shown with the highlight only where
+// it fits, since a row's edge taken past the screen would leave the highlight off it.
+export function passageScroll({ marks, whole }: Passage, viewport: HTMLElement) {
   const height = viewport.clientHeight;
   const width = viewport.clientWidth;
+  const forTop = whole.bottom - whole.top <= height - 2 * edgePadding ? whole : marks;
   const top =
-    box.bottom - box.top > height - 2 * edgePadding
-      ? box.top - edgePadding
-      : (box.top + box.bottom) / 2 - height / 2;
+    forTop.bottom - forTop.top > height - 2 * edgePadding
+      ? forTop.top - edgePadding
+      : (forTop.top + forTop.bottom) / 2 - height / 2;
+  const forLeft = whole.right - whole.left <= width - 2 * edgePadding ? whole : marks;
   let left = viewport.scrollLeft;
-  if (box.right - box.left > width - 2 * edgePadding || box.left < left + edgePadding) {
-    left = box.left - edgePadding;
-  } else if (box.right > left + width - edgePadding) {
-    left = box.right + edgePadding - width;
+  if (forLeft.right - forLeft.left > width - 2 * edgePadding || forLeft.left < left + edgePadding) {
+    left = forLeft.left - edgePadding;
+  } else if (forLeft.right > left + width - edgePadding) {
+    left = forLeft.right + edgePadding - width;
   }
   return {
     top: clamp(top, viewport.scrollHeight - height),
@@ -103,13 +122,15 @@ export function passageScroll(box: Box, viewport: HTMLElement) {
 // The editor lays the document out first with estimated text widths and again once the fonts it
 // fetched arrive, which can move a passage by most of a page without any scroll, so the passage
 // is held in the middle until the fonts are in and it has not moved for a while, or until the
-// reader scrolls.
+// reader scrolls. On a slow link the fonts can land long after the cap, so the cap counts from
+// the last moment they were still loading.
 export function holdPassage(
   viewport: HTMLElement,
   { fontsPending = () => false, clock = browserClock }: Hold = {}
 ) {
-  const started = clock.now();
-  let still = started;
+  let armed = clock.now();
+  let still = armed;
+  let held: { top: number; left: number; marks: Box } | null = null;
   let holding = true;
   let frame = 0;
   let pending = 0;
@@ -124,18 +145,31 @@ export function holdPassage(
 
   const step = () => {
     markPassageRows(viewport);
-    const box = passageBox(viewport);
+    const passage = passageBox(viewport);
     const now = clock.now();
-    if (box) {
-      const { top, left } = passageScroll(box, viewport);
+    // Dragging the scrollbar fires none of the reader's events above, only the scroll itself.
+    if (
+      passage &&
+      held &&
+      samePlace(passage.marks, held.marks) &&
+      (Math.abs(viewport.scrollTop - held.top) > 1 || Math.abs(viewport.scrollLeft - held.left) > 1)
+    ) {
+      release();
+      return;
+    }
+    if (passage) {
+      const { top, left } = passageScroll(passage, viewport);
       if (Math.abs(viewport.scrollTop - top) > 1 || Math.abs(viewport.scrollLeft - left) > 1) {
         viewport.scrollTop = top;
         viewport.scrollLeft = left;
         still = now;
       }
+      held = { top: viewport.scrollTop, left: viewport.scrollLeft, marks: passage.marks };
     }
-    if (!box || fontsPending()) still = now;
-    if (now - still >= settledAfterMs || now - started >= giveUpAfterMs) {
+    const loading = fontsPending();
+    if (loading) armed = now;
+    if (!passage || loading) still = now;
+    if (now - still >= settledAfterMs || now - armed >= giveUpAfterMs) {
       release();
       return;
     }
