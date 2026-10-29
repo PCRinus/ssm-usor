@@ -1007,6 +1007,28 @@ describe('GET /imports/{importId}/source', () => {
     );
   });
 
+  it('answers an import the member cannot see as not found, though its files are asked for at once', async () => {
+    const waiting = new Map<string, () => void>();
+    const held = (name: string, respond: () => Response) =>
+      new Promise<Response>((resolve) => waiting.set(name, () => resolve(respond())));
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') return held('import', () => Response.json([]));
+      if (url.pathname === '/rest/v1/import_files') {
+        return held('files', () => Response.json([fileRow(1, { upload_path: 'Dosar/Fișa.doc' })]));
+      }
+    });
+    const answer = request(
+      `/imports/${importId}/source?file=${encodeURIComponent('Dosar/Fișa.doc')}&quote=${encodeURIComponent('Fișa postului')}`
+    );
+
+    await vi.waitFor(() => expect([...waiting.keys()].sort()).toEqual(['files', 'import']));
+    for (const release of waiting.values()) release();
+    const response = await answer;
+
+    expect(response.status).toBe(404);
+    expect(calls.some((call) => call.url.pathname.startsWith('/storage/'))).toBe(false);
+  });
+
   it('places a row repeated under several posts under the post the value is for', async () => {
     const word = fileRow(1, {
       upload_path: 'Dosar/Echipament.doc',
