@@ -22,6 +22,7 @@ export const documentKindLabels: Record<string, string> = {
   decision: 'Decizie',
   own_instructions: 'Instrucțiuni proprii',
   training_themes: 'Tematică de instruire',
+  training_material: 'Material de instruire',
   risk_assessment: 'Evaluare de riscuri',
   fire_safety_document: 'Document PSI',
   contract: 'Contract',

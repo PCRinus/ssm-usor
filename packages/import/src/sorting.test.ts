@@ -87,6 +87,20 @@ describe('sortFiles', () => {
     expect(sorting.company).toEqual({ name: 'PROTECȚIE CONSTRUCT S.R.L.', cui: null });
   });
 
+  it('sets the general training material aside even when told it carries client data', () => {
+    const sorting = sortFiles([
+      triage('Decizia 1.docx', 'decision', 'Brutăria Fictivă', null),
+      triage('MISSMIG.doc', 'training_material', 'Brutăria Fictivă', null, true),
+      triage('Tematica.doc', 'training_themes', 'Brutăria Fictivă', null, true),
+    ]);
+
+    expect(sorting.files).toEqual([
+      { path: 'Decizia 1.docx', outcome: 'read' },
+      { path: 'MISSMIG.doc', outcome: 'set_aside', kind: 'training_material' },
+      { path: 'Tematica.doc', outcome: 'read' },
+    ]);
+  });
+
   it('names no company when no file names one', () => {
     const sorting = sortFiles([triage('Decizia.docx', 'decision', null, null)]);
 

@@ -68,6 +68,7 @@ const request = {
   messages: sortingMessages({ provider, files: [{ path: 'Decizia 1.docx', text: 'DECIZIA' }] }),
   answer: sortingAnswer,
   reasoningEffort: 'low',
+  maxCompletionTokens: 16_000,
   metadata: { organizationId: 'org-1', importId: 'import-1' },
 } as const;
 
@@ -234,10 +235,19 @@ describe('createModelClient', () => {
 });
 
 describe('costOf', () => {
-  it('prices GPT-6.1 Terra and GPT-6 Luna’s higher tier', () => {
+  it('prices a prompt up to 272,000 tokens at the standard rates', () => {
     expect(
-      costOf(readingModel, { input: 1_000_000, cachedInput: 1_000_000, output: 1_000_000 })
-    ).toBe(1 + 0.05 + 5);
+      costOf(readingModel, { input: 200_000, cachedInput: 72_000, output: 1_000_000 })
+    ).toBeCloseTo(0.2 * 1 + 0.072 * 0.05 + 5, 12);
+    expect(
+      costOf(sortingModel, { input: 200_000, cachedInput: 72_000, output: 1_000_000 })
+    ).toBeCloseTo(0.2 * 0.1 + 0.072 * 0.01 + 0.5, 12);
+  });
+
+  it('prices the whole request higher once its prompt passes 272,000 tokens', () => {
+    expect(
+      costOf(readingModel, { input: 200_000, cachedInput: 72_001, output: 1_000_000 })
+    ).toBeCloseTo(0.2 * 2 + 0.072001 * 0.1 + 7.5, 12);
     expect(costOf(sortingModel, { input: 300_000, cachedInput: 0, output: 1_000_000 })).toBeCloseTo(
       0.3 * 0.2 + 0.75,
       12

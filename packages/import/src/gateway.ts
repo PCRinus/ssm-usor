@@ -2,7 +2,7 @@ import { addUsage, costOf, type ModelId, noUsage, type Usage } from './models';
 import type { ChatMessage } from './prompts';
 import type { AnswerFormat } from './wire';
 
-export type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high';
+export type ReasoningEffort = 'low' | 'medium' | 'high';
 
 export interface GatewayOptions {
   // The gateway's base URL, up to the gateway's name: https://gateway.ai.cloudflare.com/v1/<account>/<gateway>.
@@ -18,7 +18,8 @@ export interface CompletionRequest<T> {
   messages: ChatMessage[];
   answer: AnswerFormat<T>;
   reasoningEffort: ReasoningEffort;
-  maxCompletionTokens?: number;
+  // Reasoning tokens count toward it.
+  maxCompletionTokens: number;
   metadata: { organizationId: string; importId: string };
 }
 
@@ -164,9 +165,7 @@ export function createModelClient(options: GatewayOptions) {
           },
         },
         reasoning_effort: request.reasoningEffort,
-        ...(request.maxCompletionTokens
-          ? { max_completion_tokens: request.maxCompletionTokens }
-          : {}),
+        max_completion_tokens: request.maxCompletionTokens,
       };
       let usage = noUsage;
       // Each attempt is priced on its own: a price tier depends on one request's prompt size.

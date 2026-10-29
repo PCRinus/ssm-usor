@@ -40,6 +40,7 @@ import {
   flagsAt,
   formatFieldValue,
   integerPaths,
+  intervalOfNotApplicable,
   type Proposal,
   type RegisteredCompany,
   sameCompanyName,
@@ -47,6 +48,7 @@ import {
   type SectionId,
   type Source,
   sourceFilesCount,
+  yesNoLabels,
 } from './review-model';
 import {
   AnafTag,
@@ -336,6 +338,13 @@ function FieldRow({
           Nu-l prelua
         </LinkButton>
       )}
+      {state.value === 'true' &&
+        intervalOfNotApplicable[state.path] &&
+        context.states[intervalOfNotApplicable[state.path]!]?.value != null && (
+          <RowNote tone="danger">
+            Documentele dau și o periodicitate. Păstrează doar una dintre ele.
+          </RowNote>
+        )}
       {mismatch && (
         <RowNote tone="warning" testId="review-anaf-mismatch">
           {anafMismatchNote(mismatch)}
@@ -373,7 +382,9 @@ const formSchema = (paths: string[]) => {
               .string()
               .trim()
               .regex(/^([0-9]{1,4})?$/, 'Scrie un număr întreg.')
-          : z.string().trim().max(240, 'Cel mult 240 de caractere.'),
+          : path === 'fireSafety.wasteKinds'
+            ? z.string().trim().max(3000, 'Cel mult 3000 de caractere.')
+            : z.string().trim().max(240, 'Cel mult 240 de caractere.'),
       ])
     )
   );
@@ -427,9 +438,11 @@ function GroupForm({
         const id = `review-input-${key}`;
         const error = errors[key];
         const info = fieldInfo[path];
-        if (path === 'client.countyCode' || path === 'fireSafety.smokingPolicy') {
-          const options =
-            path === 'client.countyCode'
+        const yesNo = yesNoLabels[path];
+        if (path === 'client.countyCode' || path === 'fireSafety.smokingPolicy' || yesNo) {
+          const options = yesNo
+            ? (Object.entries(yesNo) as [string, string][])
+            : path === 'client.countyCode'
               ? (Object.entries(countyNames) as [CountyCode, string][])
               : fireSmokingPolicies.map(
                   (policy) => [policy, fireSmokingPolicyLabels[policy]] as const
@@ -459,6 +472,11 @@ function GroupForm({
             id={id}
             label={info?.label ?? path}
             mark={path === 'client.legalName' || path === 'client.cui' ? 'required' : 'optional'}
+            hint={
+              path === 'fireSafety.wasteKinds'
+                ? 'Desparte tipurile de deșeuri cu punct și virgulă.'
+                : undefined
+            }
             error={error}
             className={integerPaths.has(path) ? undefined : 'sm:col-span-2'}
           >

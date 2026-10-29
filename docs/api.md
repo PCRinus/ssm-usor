@@ -1893,16 +1893,20 @@ send fails, so the retried delivery moves on again.
 | Message          | Step                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `prepare` (file) | Reads the original; one whose size is not the declared one fails, its real size recorded, and a real size past the caps (`IMP05`) fails the import. A `.docx` is rendered to text (`docxToText`); a `.doc` is converted by the extractor and its `.docx` kept as the derived file; a PDF's pages are taken with `pdfText`, scans marked; a HEIC photograph is converted to the JPEG kept as the derived file, while JPEG and PNG stay as uploaded. The text goes to `<id>.txt`, the pages to `<id>.json` (a photograph is one scanned page). The stored bytes' hash replaces what the browser declared. When no file is left `uploaded`, the import moves to `sorting`. |
-| `sort` (import)  | One GPT-6 Luna request with the first 3,000 characters of every file that has text, then `sortFiles` with the organization as the provider and, for an existing client, the client. Each file gets its kind and company: read, set aside with a reason, kept for the employee import, or another company's. The company most files name is recorded on the import. Fails the import past 600,000 characters to read or 150 scanned pages. Moves to `reading`, sending one `scan` per file with scanned pages and one `read`.                                                                                                                                            |
+| `sort` (import)  | One GPT-6 Luna request with the first 3,000 characters of every file that has text, then `sortFiles` with the organization as the provider and, for an existing client, the client. Each file gets its kind and company: read, set aside with a reason, kept for the employee import, or another company's. The company most files name is recorded on the import. The characters to read are recorded on the import (`read_characters`) before it fails past 600,000 of them or 150 scanned pages. Moves to `reading`, sending one `scan` per file with scanned pages and one `read`.                                                                                  |
 | `scan` (file)    | A photograph or a PDF with no text is first sorted from its first page as an image (Luna); a training sheet is kept for the employee import, a cover or blank form set aside. Then one `scan` message per batch of five scanned pages, each a GPT-6.1 Terra request per page (`pdfPageImage`) or photograph, each reading kept in `<id>.page-<n>.json` as it comes, so a retry pays only for what is left. The batch that finds every page read gathers the readings into the file's `.json` and the file becomes `read`. Each step and batch first claims `<id>.scan.json` or `<id>.scan-<first page>.json`, created only when absent, so one sent twice is read once. |
 | `read` (import)  | Comes back every 10 seconds while a scan is unfinished, and gives up after half an hour in which no scanned page was read. Then one Terra request with the text of every file read, and `toProposal` joins it with the scans' readings. Moves to `checking` with that proposal.                                                                                                                                                                                                                                                                                                                                                                                         |
 | `check` (import) | `withChecks` against every file's text, and the proposal's CUIs confirmed with ANAF (`companies/anaf.ts`); what ANAF answered is kept beside the proposal as `registeredCompany`. Moves to `ready`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `copy` (import)  | After confirming: copies each file of the import folder from `imports` to `client-files` (`import_folder_copies`), an object already there counting as copied, then sets `files_copied_at`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 Every model request carries `{ organizationId, importId }` as the gateway's metadata, and its
-tokens and cost go to `record_import_usage`, on the file for a file's own request; a request
-that failed is recorded with what it used. The provider the prompts name is the organization's
-legal name and CUI, and its members', legal representative's, risk evaluator's and PSI
+tokens and cost go to `record_import_usage` with its step (`sorting` for the pack and a scan's
+first page, `scanning` for a scanned page, `reading` for the documents), on the file for a file's
+own request; a request that failed is recorded with what it used. Each caps its output,
+reasoning included (`max_completion_tokens`): 16,000 tokens for sorting a pack or a scan, 64,000
+for reading the documents or a scanned page. An answer cut off at the cap fails at once, with
+the reason an answer outside the schema gets. The provider the prompts name is the
+organization's legal name and CUI, and its members', legal representative's, risk evaluator's and PSI
 technician's names; an existing client's name and CUI are passed as well.
 
 Failures follow the regeneration queue: an unreachable database, Storage or gateway (a dropped
@@ -1934,6 +1938,16 @@ takes the documents' value over the app's. `items` is keyed by a list item's id 
 row a workplace or a position completes, and `replace`. `PUT /imports/{importId}/changes` saves
 them on the version read (`save_import_changes`).
 
+Besides the fields and lists the review shows, the proposal carries what the posted
+fire-safety sheet and the list of means say of each workplace (`kind`, `floorAreaM2`,
+`extinguisherNorm`, `assemblyPoint`, `combustibleMaterials`, `ignitionSources`,
+`fireRiskEquipment`, `specificMeasures`), each with its own sources in the workplace's
+`fieldSources`, and a post's `needsProtectiveEquipment` (null when the documents do not say).
+`fireSafety.wasteKinds` is one text, the kinds separated by semicolons, written as the list
+`waste_kinds`; the yes-or-no fields `fireSafety.hasThirdParties` and
+`trainingSchedule.administrativeTrainingNotApplicable` / `workerTrainingNotApplicable` are
+`"true"` or `"false"`. A proposal stored before they were read reads them empty.
+
 Without a change a value is the proposal's: a field with one value of the client's own documents
 takes it, two or more of them are a **choice** that blocks, and a value only another company
 gives is left out. A list item is taken unless only another company gives it. Into an existing
@@ -1942,7 +1956,8 @@ its name, an employee by the CNP or the name (and then not created again), and a
 person the client has already is left as it is; the client's filled values are kept unless
 replaced. A responsible person is linked to the employee of the same name, the workers'
 representative must be. The `blockers` are a choice not made, the new client's name or CUI
-missing, a value the checks flagged that would be written unchanged (`invalid`), an employee
+missing, a value the checks flagged that would be written unchanged (`invalid`), a staff
+category given both an interval and "not applicable" (`invalid` on the latter), an employee
 without a name, job title or hire date, equipment without a risk, a person without a job title,
 and a fire-safety unit, an installation or equipment whose workplace or position is unknown
 (`unknown_reference`).
@@ -1952,7 +1967,8 @@ the payload, answers `422` with `import_incomplete` and the blockers as `issues`
 left, then calls `apply_client_import` as the member: `409` with `import_changed`,
 `import_not_ready`, `import_other_company`, `import_client_exists` or `import_outdated` (a
 workplace or position the review named is no longer the client's). A new client's VAT
-registration is ANAF's. The payload's `quality` counts per section, without values, how many
+registration is ANAF's. A post's decision that it needs no protective equipment goes into the
+payload only while none of its entries is written. The payload's `quality` counts per section, without values, how many
 values the member changed, unticked or kept. The answer is `{ clientId, fileCount }`, and a `copy`
 message copies the folder afterwards. `GET /imports/{importId}/source?file=&quote=` resolves a
 source's `file`, an upload path or `<upload path> (pagina N)`, and answers five-minute links to
@@ -1971,10 +1987,11 @@ frees the files for another split; when the objects cannot be removed, it abando
 instead, so the clean-up finds them by its file rows.
 `POST /imports/{importId}/files/{fileId}/read` sends a `set_aside` file of a `ready` import back
 to be read: the file becomes `read` (`prepared` with a scan message when it has scanned pages),
-the import returns to `reading` with its proposal and changes dropped and its version moved on,
-and a `read` message reads every file again, since the documents are read in one request. Item
-ids may change with the new reading, so changes kept would point at the wrong items. `409`
-with `import_not_ready` or `import_changed`, `422` with `import_file_not_set_aside`.
+the import returns to `reading` with its proposal and changes dropped, its version moved on and
+`read_characters` counted again with the file, and a `read` message reads every file again,
+since the documents are read in one request. Item ids may change with the new reading, so
+changes kept would point at the wrong items. `409` with `import_not_ready` or `import_changed`,
+`422` with `import_file_not_set_aside`.
 
 ### The clean-up
 

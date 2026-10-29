@@ -146,6 +146,16 @@ export const fieldInfo: Record<string, FieldInfo> = {
     choose: 'Alege periodicitatea pentru execuție',
     write: 'Scrie periodicitatea pentru execuție',
   },
+  'trainingSchedule.workerTrainingNotApplicable': {
+    label: 'Instruirea periodică, execuție',
+    choose: 'Alege dacă instruirea periodică se aplică pentru execuție',
+    write: 'Alege dacă instruirea periodică se aplică pentru execuție',
+  },
+  'trainingSchedule.administrativeTrainingNotApplicable': {
+    label: 'Instruirea periodică, tehnico-administrativ',
+    choose: 'Alege dacă instruirea periodică se aplică pentru tehnico-administrativ',
+    write: 'Alege dacă instruirea periodică se aplică pentru tehnico-administrativ',
+  },
   'trainingSchedule.trainingFirstMonth': {
     label: 'Prima lună a instruirii',
     choose: 'Alege prima lună a instruirii',
@@ -191,6 +201,38 @@ export const fieldInfo: Record<string, FieldInfo> = {
     choose: 'Alege firma de salubritate',
     write: 'Scrie firma de salubritate',
   },
+  'fireSafety.wasteKinds': {
+    label: 'Deșeuri colectate',
+    choose: 'Alege deșeurile colectate',
+    write: 'Scrie deșeurile colectate',
+  },
+  'fireSafety.wasteCollectors': {
+    label: 'Cine colectează deșeurile',
+    choose: 'Alege cine colectează deșeurile',
+    write: 'Scrie cine colectează deșeurile',
+  },
+  'fireSafety.hasThirdParties': {
+    label: 'Alte firme în spațiile clientului',
+    choose: 'Alege dacă alte firme lucrează în spațiile clientului',
+    write: 'Alege dacă alte firme lucrează în spațiile clientului',
+  },
+};
+
+// The proposal's yes or no, which the app's own forms word for each field.
+export const yesNoLabels: Record<string, Record<'true' | 'false', string>> = {
+  'trainingSchedule.workerTrainingNotApplicable': { true: 'Nu se aplică', false: 'Se aplică' },
+  'trainingSchedule.administrativeTrainingNotApplicable': {
+    true: 'Nu se aplică',
+    false: 'Se aplică',
+  },
+  'fireSafety.hasThirdParties': { true: 'Da', false: 'Nu' },
+};
+
+// A staff category has an interval or "Nu se aplică", never both (ADR 008).
+export const intervalOfNotApplicable: Record<string, string> = {
+  'trainingSchedule.workerTrainingNotApplicable': 'trainingSchedule.workerTrainingIntervalMonths',
+  'trainingSchedule.administrativeTrainingNotApplicable':
+    'trainingSchedule.administrativeTrainingIntervalMonths',
 };
 
 export const fieldGroups: { section: SectionId; title: string; paths: string[] }[] = [
@@ -223,7 +265,9 @@ export const fieldGroups: { section: SectionId; title: string; paths: string[] }
     paths: [
       'trainingSchedule.periodicTrainingMinutes',
       'trainingSchedule.workerTrainingIntervalMonths',
+      'trainingSchedule.workerTrainingNotApplicable',
       'trainingSchedule.administrativeTrainingIntervalMonths',
+      'trainingSchedule.administrativeTrainingNotApplicable',
       'trainingSchedule.trainingFirstMonth',
       'trainingSchedule.trainingDayFrom',
       'trainingSchedule.trainingDayTo',
@@ -236,6 +280,9 @@ export const fieldGroups: { section: SectionId; title: string; paths: string[] }
       'fireSafety.smokingPolicy',
       'fireSafety.smokingPlace',
       'fireSafety.wasteContractor',
+      'fireSafety.wasteKinds',
+      'fireSafety.wasteCollectors',
+      'fireSafety.hasThirdParties',
       'fireSafety.periodicTrainingHours',
       'fireSafety.workerTrainingIntervalMonths',
       'fireSafety.administrativeTrainingIntervalMonths',
@@ -246,7 +293,7 @@ export const fieldGroups: { section: SectionId; title: string; paths: string[] }
 export const integerPaths = new Set(
   Object.keys(fieldInfo).filter(
     (path) =>
-      path.startsWith('trainingSchedule.') ||
+      (path.startsWith('trainingSchedule.') && !(path in yesNoLabels)) ||
       [
         'fireSafety.periodicTrainingHours',
         'fireSafety.administrativeTrainingIntervalMonths',
@@ -283,6 +330,8 @@ export function formatFieldValue(
 ): string {
   if (value === null || value === undefined || value === '') return '';
   const text = String(value);
+  const yesNo = yesNoLabels[path];
+  if (yesNo) return yesNo[text as 'true' | 'false'] ?? text;
   switch (path) {
     case 'client.cui':
       return formatCui(text.replace(/^RO/i, ''), vatPayer);
@@ -529,6 +578,14 @@ const itemFieldLabels: Record<string, string> = {
   fullName: 'numele',
   cnp: 'CNP-ul',
   countyCode: 'județul',
+  kind: 'felul locului de muncă',
+  floorAreaM2: 'suprafața utilă',
+  extinguisherNorm: 'norma de dotare cu stingătoare',
+  assemblyPoint: 'punctul de adunare',
+  combustibleMaterials: 'materialele combustibile',
+  ignitionSources: 'sursele de aprindere',
+  fireRiskEquipment: 'echipamentele și mijloacele de lucru',
+  specificMeasures: 'măsurile specifice',
 };
 
 export const itemFieldLabel = (field: string) => itemFieldLabels[field] ?? field;
@@ -699,6 +756,16 @@ const notAllowed: Record<string, string> = {
   count: 'Numărul de bucăți nu pare corect.',
   quantity: 'Cantitatea nu pare corectă.',
   durationMonths: 'Durata de utilizare nu pare corectă.',
+  kind: 'Felul locului de muncă nu a fost recunoscut. Alege-l din listă.',
+  floorAreaM2: 'Suprafața utilă e un număr întreg de metri pătrați, de la 1 la 1.000.000.',
+  extinguisherNorm: 'Norma de dotare nu a fost recunoscută. Alege-o din listă.',
+  assemblyPoint: 'Punctul de adunare are între 2 și 240 de caractere.',
+  combustibleMaterials: 'Textul are între 2 și 600 de caractere.',
+  ignitionSources: 'Textul are între 2 și 600 de caractere.',
+  fireRiskEquipment: 'Textul are între 2 și 600 de caractere.',
+  specificMeasures: 'Textul are între 2 și 600 de caractere.',
+  wasteKinds: 'Cel mult 12 tipuri de deșeuri, fiecare între 2 și 240 de caractere.',
+  wasteCollectors: 'Textul are între 2 și 160 de caractere.',
 };
 
 const referenceNouns: Record<string, string> = {

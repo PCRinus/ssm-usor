@@ -12129,6 +12129,92 @@
                       }
                     },
                     "required": ["options"]
+                  },
+                  "administrativeTrainingNotApplicable": {
+                    "type": "object",
+                    "properties": {
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string",
+                              "enum": ["true", "false"]
+                            },
+                            "sources": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "file": {
+                                    "type": "string"
+                                  },
+                                  "quote": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["file", "quote"]
+                              },
+                              "minItems": 1
+                            },
+                            "otherCompanyName": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["value", "sources", "otherCompanyName"]
+                        }
+                      }
+                    },
+                    "default": {
+                      "options": []
+                    },
+                    "required": ["options"]
+                  },
+                  "workerTrainingNotApplicable": {
+                    "type": "object",
+                    "properties": {
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string",
+                              "enum": ["true", "false"]
+                            },
+                            "sources": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "file": {
+                                    "type": "string"
+                                  },
+                                  "quote": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["file", "quote"]
+                              },
+                              "minItems": 1
+                            },
+                            "otherCompanyName": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["value", "sources", "otherCompanyName"]
+                        }
+                      }
+                    },
+                    "default": {
+                      "options": []
+                    },
+                    "required": ["options"]
                   }
                 },
                 "required": [
@@ -12379,6 +12465,135 @@
                       }
                     },
                     "required": ["options"]
+                  },
+                  "wasteKinds": {
+                    "type": "object",
+                    "properties": {
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "sources": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "file": {
+                                    "type": "string"
+                                  },
+                                  "quote": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["file", "quote"]
+                              },
+                              "minItems": 1
+                            },
+                            "otherCompanyName": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["value", "sources", "otherCompanyName"]
+                        }
+                      }
+                    },
+                    "default": {
+                      "options": []
+                    },
+                    "required": ["options"]
+                  },
+                  "wasteCollectors": {
+                    "type": "object",
+                    "properties": {
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "sources": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "file": {
+                                    "type": "string"
+                                  },
+                                  "quote": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["file", "quote"]
+                              },
+                              "minItems": 1
+                            },
+                            "otherCompanyName": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["value", "sources", "otherCompanyName"]
+                        }
+                      }
+                    },
+                    "default": {
+                      "options": []
+                    },
+                    "required": ["options"]
+                  },
+                  "hasThirdParties": {
+                    "type": "object",
+                    "properties": {
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string",
+                              "enum": ["true", "false"]
+                            },
+                            "sources": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "file": {
+                                    "type": "string"
+                                  },
+                                  "quote": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["file", "quote"]
+                              },
+                              "minItems": 1
+                            },
+                            "otherCompanyName": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["value", "sources", "otherCompanyName"]
+                        }
+                      }
+                    },
+                    "default": {
+                      "options": []
+                    },
+                    "required": ["options"]
                   }
                 },
                 "required": [
@@ -12449,6 +12664,72 @@
                         "type": "string",
                         "minLength": 1
                       }
+                    },
+                    "kind": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "default": null
+                    },
+                    "floorAreaM2": {
+                      "type": "integer",
+                      "nullable": true,
+                      "default": null
+                    },
+                    "extinguisherNorm": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "default": null
+                    },
+                    "assemblyPoint": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "default": null
+                    },
+                    "combustibleMaterials": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "default": null
+                    },
+                    "ignitionSources": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "default": null
+                    },
+                    "fireRiskEquipment": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "default": null
+                    },
+                    "specificMeasures": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "default": null
+                    },
+                    "fieldSources": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "file": {
+                              "type": "string"
+                            },
+                            "quote": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["file", "quote"]
+                        }
+                      },
+                      "default": {}
                     }
                   },
                   "required": [
@@ -12519,6 +12800,11 @@
                     "managementOnly": {
                       "type": "boolean",
                       "default": false
+                    },
+                    "needsProtectiveEquipment": {
+                      "type": "boolean",
+                      "nullable": true,
+                      "default": null
                     }
                   },
                   "required": [

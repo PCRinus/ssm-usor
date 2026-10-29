@@ -1,11 +1,13 @@
 import {
   equipmentAllocations,
   fireEquipmentKinds,
+  fireExtinguisherNorms,
   fireExtinguishingAgents,
   fireInstallationKinds,
   responsiblePersonRoles,
   romanianCounties,
   staffCategories,
+  workplaceKinds,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
@@ -15,25 +17,38 @@ import {
   type Field,
   fireSafetyIntegerFieldNames,
   fireSafetyTextFieldNames,
+  fireSafetyYesNoFieldNames,
   importedEmployeeRoles,
   type Option,
   type Proposal,
   proposalSchema,
+  type ProposedWorkplace,
   type Source,
   trainingScheduleFieldNames,
+  trainingScheduleYesNoFieldNames,
+  type WorkplaceFireFieldName,
+  workplaceFireFieldNames,
+  yesNoValues,
 } from './proposal';
 import { answerFormat } from './wire';
 
 export const factFields = [
   ...clientFieldNames.map((name) => `client.${name}`),
   ...trainingScheduleFieldNames.map((name) => `trainingSchedule.${name}`),
+  ...trainingScheduleYesNoFieldNames.map((name) => `trainingSchedule.${name}`),
   ...fireSafetyIntegerFieldNames.map((name) => `fireSafety.${name}`),
   ...fireSafetyTextFieldNames.map((name) => `fireSafety.${name}`),
+  ...fireSafetyYesNoFieldNames.map((name) => `fireSafety.${name}`),
 ] as [string, ...string[]];
 
 const integerFacts = new Set([
   ...trainingScheduleFieldNames.map((name) => `trainingSchedule.${name}`),
   ...fireSafetyIntegerFieldNames.map((name) => `fireSafety.${name}`),
+]);
+
+const yesNoFacts = new Set([
+  ...trainingScheduleYesNoFieldNames.map((name) => `trainingSchedule.${name}`),
+  ...fireSafetyYesNoFieldNames.map((name) => `fireSafety.${name}`),
 ]);
 
 const quoted = {
@@ -58,6 +73,16 @@ export const readingSchema = z.object({
       ...quoted,
     })
   ),
+  // A workplace's fire-safety values come from other documents than its address, so each has
+  // its own passage, as the facts do.
+  workplaceFacts: z.array(
+    z.object({
+      workplace: z.string(),
+      field: z.enum(workplaceFireFieldNames),
+      value: z.string(),
+      ...quoted,
+    })
+  ),
   jobPositions: z.array(
     z.object({
       name: z.string(),
@@ -66,6 +91,8 @@ export const readingSchema = z.object({
       workZone: z.string().nullable(),
       activities: z.string().nullable(),
       managementOnly: z.boolean(),
+      // An enum, since a boolean on the wire cannot be unknown.
+      needsProtectiveEquipment: z.enum(yesNoValues).nullable(),
       ...quoted,
     })
   ),
@@ -203,6 +230,18 @@ function countyCode(written: string) {
   return romanianCounties.find((county) => foldText(county.name) === folded)?.code ?? written;
 }
 
+function yesNo(written: string) {
+  const folded = foldText(written);
+  if (['true', 'da', 'yes'].includes(folded)) return 'true';
+  if (['false', 'nu', 'no'].includes(folded)) return 'false';
+  return null;
+}
+
+function wasteKinds(written: string) {
+  const kinds = uniqueFolded(written.split(/[;\n]+/).map((kind) => kind.trim()));
+  return kinds.length === 0 ? null : kinds.join('; ');
+}
+
 function factValue(field: string, value: string): string | number | null {
   const trimmed = value.trim();
   if (trimmed === '') return null;
@@ -210,8 +249,35 @@ function factValue(field: string, value: string): string | number | null {
     const digits = trimmed.match(/\d+/)?.[0];
     return digits === undefined ? null : Number(digits);
   }
+  if (yesNoFacts.has(field)) return yesNo(trimmed);
   if (field === 'client.cui') return cuiDigits(trimmed) ?? trimmed;
   if (field === 'client.countyCode') return countyCode(trimmed);
+  if (field === 'fireSafety.wasteKinds') return wasteKinds(trimmed);
+  return trimmed;
+}
+
+// "1.250,5 mp" is 1251: Romanian groups thousands with a point or a space and writes a decimal
+// comma.
+function floorArea(written: string) {
+  const grouped = written.match(/\d{1,3}(?:[.\s]\d{3})+(?:,\d+)?/)?.[0];
+  const number = grouped ? grouped.replace(/[.\s]/g, '') : written.match(/\d+(?:[.,]\d+)?/)?.[0];
+  return number === undefined ? null : Math.round(Number(number.replace(',', '.')));
+}
+
+function workplaceKind(written: string) {
+  if ((workplaceKinds as readonly string[]).includes(written)) return written;
+  return /santier|mobil/.test(foldText(written)) ? 'mobile_site' : written;
+}
+
+function workplaceFactValue(field: WorkplaceFireFieldName, value: string): string | number | null {
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  if (field === 'floorAreaM2') return floorArea(trimmed);
+  if (field === 'kind') return workplaceKind(trimmed);
+  if (field === 'extinguisherNorm') {
+    const code = trimmed.toLowerCase();
+    return (fireExtinguisherNorms as readonly string[]).includes(code) ? code : trimmed;
+  }
   return trimmed;
 }
 
@@ -298,12 +364,57 @@ function uniqueFolded(values: string[]) {
   });
 }
 
+const noFireValues = () => ({
+  ...(Object.fromEntries(workplaceFireFieldNames.map((field) => [field, null])) as Record<
+    WorkplaceFireFieldName,
+    null
+  >),
+  fieldSources: {} as Record<string, Source[]>,
+});
+
+type FireValues = Pick<ProposedWorkplace, WorkplaceFireFieldName | 'id' | 'fieldSources'>;
+
+// A value only another company's passages give is left for the member to write, since a
+// workplace's values have no tick of their own.
+function fillFireValues(
+  workplaces: FireValues[],
+  facts: Reading['workplaceFacts'],
+  workplaceOf: (name: string) => string | null
+): string[] {
+  const unplaced: string[] = [];
+  for (const fact of facts) {
+    if (fact.otherCompany !== null) continue;
+    const value = workplaceFactValue(fact.field, fact.value);
+    if (value === null) continue;
+    const workplace = workplaces.find((each) => each.id === workplaceOf(fact.workplace));
+    if (!workplace) {
+      if (!unplaced.some((name) => foldText(name) === foldText(fact.workplace))) {
+        unplaced.push(fact.workplace.trim() || 'fără nume');
+      }
+      continue;
+    }
+    const known = workplace[fact.field];
+    if (known !== null && !sameValue(known, value)) continue;
+    if (known === null) (workplace as Record<string, unknown>)[fact.field] = value;
+    workplace.fieldSources[fact.field] ??= [];
+    mergeSources(workplace.fieldSources[fact.field]!, traced(fact).sources);
+  }
+  return unplaced;
+}
+
 export function toProposal(...readings: Reading[]): Proposal {
   const facts = readings.flatMap((reading) => reading.facts);
   const groups = {
     client: emptyFields(clientFieldNames),
-    trainingSchedule: emptyFields(trainingScheduleFieldNames),
-    fireSafety: emptyFields([...fireSafetyIntegerFieldNames, ...fireSafetyTextFieldNames]),
+    trainingSchedule: emptyFields([
+      ...trainingScheduleFieldNames,
+      ...trainingScheduleYesNoFieldNames,
+    ]),
+    fireSafety: emptyFields([
+      ...fireSafetyIntegerFieldNames,
+      ...fireSafetyTextFieldNames,
+      ...fireSafetyYesNoFieldNames,
+    ]),
   } as Record<string, Record<string, Field<string | number>>>;
   for (const fact of facts) {
     const value = factValue(fact.field, fact.value);
@@ -329,6 +440,7 @@ export function toProposal(...readings: Reading[]): Proposal {
         isRegisteredOffice: workplace.isRegisteredOffice,
         activity: workplace.activity,
         rooms: workplace.rooms,
+        ...noFireValues(),
       })),
     sameAddress,
     (into, from) => {
@@ -349,6 +461,12 @@ export function toProposal(...readings: Reading[]): Proposal {
     }))
   );
   const onlyWorkplace = workplaces.length === 1 ? workplaces[0]!.id : null;
+  const unplaced = fillFireValues(
+    workplaces,
+    // A scan's page read before the field existed has none.
+    list((reading) => reading.workplaceFacts ?? []),
+    (name) => (named(name) ? (resolve(name, workplaceNames, true) ?? onlyWorkplace) : onlyWorkplace)
+  );
   const workplaceReference = (name: string | null, defaultToOnly: boolean) => ({
     name,
     id:
@@ -367,6 +485,12 @@ export function toProposal(...readings: Reading[]): Proposal {
         activities: position.activities,
         // A scan's page read before the field existed has none.
         managementOnly: position.managementOnly === true,
+        needsProtectiveEquipment:
+          position.needsProtectiveEquipment === 'true'
+            ? true
+            : position.needsProtectiveEquipment === 'false'
+              ? false
+              : null,
       })),
     (a, b) => foldText(a.name) === foldText(b.name),
     (into, from) => {
@@ -394,6 +518,29 @@ export function toProposal(...readings: Reading[]): Proposal {
   }
 
   let ppeCount = 0;
+  // A table naming several positions applies to each of them.
+  const protectiveEquipment = list((reading) => reading.protectiveEquipment)
+    .filter((entry) => named(entry.item))
+    .flatMap((entry) => {
+      const names = uniqueFolded(entry.jobPositions);
+      return (names.length > 0 ? names : [null]).map((name) => ({
+        id: `equipment-entry-${++ppeCount}`,
+        ...traced(entry),
+        jobPosition: { name, id: resolve(name, jobPositions) },
+        risk: entry.risk,
+        item: entry.item,
+        quantity: entry.quantity,
+        durationMonths: entry.durationMonths,
+        allocation: entry.allocation,
+      }));
+    });
+  // The entries are what the post receives, whatever another passage says of it.
+  for (const position of jobPositions) {
+    if (protectiveEquipment.some((entry) => entry.jobPosition.id === position.id)) {
+      position.needsProtectiveEquipment = true;
+    }
+  }
+
   const proposal: Proposal = {
     client: groups.client as Proposal['client'],
     trainingSchedule: groups.trainingSchedule as Proposal['trainingSchedule'],
@@ -428,22 +575,7 @@ export function toProposal(...readings: Reading[]): Proposal {
       kind: installation.kind,
       description: installation.description,
     })),
-    // A table naming several positions applies to each of them.
-    protectiveEquipment: list((reading) => reading.protectiveEquipment)
-      .filter((entry) => named(entry.item))
-      .flatMap((entry) => {
-        const names = uniqueFolded(entry.jobPositions);
-        return (names.length > 0 ? names : [null]).map((name) => ({
-          id: `equipment-entry-${++ppeCount}`,
-          ...traced(entry),
-          jobPosition: { name, id: resolve(name, jobPositions) },
-          risk: entry.risk,
-          item: entry.item,
-          quantity: entry.quantity,
-          durationMonths: entry.durationMonths,
-          allocation: entry.allocation,
-        }));
-      }),
+    protectiveEquipment,
     employees: joined(
       list((reading) => reading.employees).map((employee) => ({
         ...traced(employee),
@@ -462,7 +594,13 @@ export function toProposal(...readings: Reading[]): Proposal {
           : a.cnp === b.cnp),
       fillGaps
     ).map((employee, index) => ({ id: `employee-${index + 1}`, ...employee })),
-    notes: list((reading) => reading.notes).filter((note) => note.trim() !== ''),
+    notes: [
+      ...list((reading) => reading.notes).filter((note) => note.trim() !== ''),
+      ...unplaced.map(
+        (name) =>
+          `Datele PSI ale locului de muncă «${name}» nu se potrivesc cu niciun punct de lucru și nu au fost preluate.`
+      ),
+    ],
     flags: [],
   };
   return proposalSchema.parse(proposal);

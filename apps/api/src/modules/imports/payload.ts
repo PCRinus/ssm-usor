@@ -17,6 +17,7 @@ import {
 import type { z } from 'zod';
 
 type Value = string | number;
+type ColumnValue = Value | boolean | string[];
 type Row = Record<string, unknown>;
 type FieldChange = ImportChanges['fields'][string];
 type ItemChange = ImportChanges['items'][string];
@@ -66,6 +67,8 @@ const clientColumns: Record<string, string> = {
   'trainingSchedule.trainingFirstMonth': 'training_first_month',
   'trainingSchedule.trainingDayFrom': 'training_day_from',
   'trainingSchedule.trainingDayTo': 'training_day_to',
+  'trainingSchedule.administrativeTrainingNotApplicable': 'administrative_training_not_applicable',
+  'trainingSchedule.workerTrainingNotApplicable': 'worker_training_not_applicable',
 };
 
 const fireSafetyColumns: Record<string, string> = {
@@ -75,6 +78,9 @@ const fireSafetyColumns: Record<string, string> = {
   'fireSafety.smokingPolicy': 'smoking_policy',
   'fireSafety.smokingPlace': 'smoking_place',
   'fireSafety.wasteContractor': 'waste_contractor',
+  'fireSafety.wasteKinds': 'waste_kinds',
+  'fireSafety.wasteCollectors': 'waste_collectors',
+  'fireSafety.hasThirdParties': 'has_third_parties',
 };
 
 const integerColumns = new Set([
@@ -87,6 +93,13 @@ const integerColumns = new Set([
   'periodic_training_hours',
 ]);
 
+// The proposal's yes or no is "true" or "false".
+const booleanColumns = new Set([
+  'administrative_training_not_applicable',
+  'worker_training_not_applicable',
+  'has_third_parties',
+]);
+
 const workplaceColumns: Record<string, string> = {
   name: 'name',
   isRegisteredOffice: 'is_registered_office',
@@ -94,6 +107,14 @@ const workplaceColumns: Record<string, string> = {
   locality: 'locality',
   addressLine: 'address_line',
   activity: 'activity',
+  kind: 'kind',
+  floorAreaM2: 'floor_area_m2',
+  extinguisherNorm: 'extinguisher_norm',
+  assemblyPoint: 'assembly_point',
+  combustibleMaterials: 'combustible_materials',
+  ignitionSources: 'ignition_sources',
+  fireRiskEquipment: 'fire_risk_equipment',
+  specificMeasures: 'specific_measures',
 };
 
 const jobPositionColumns: Record<string, string> = {
@@ -135,10 +156,23 @@ const empty = (value: unknown) =>
 const differs = (current: unknown, proposed: unknown) =>
   typeof current === 'number' || typeof proposed === 'number'
     ? Number(current) !== Number(proposed)
-    : foldText(String(current)) !== foldText(String(proposed));
+    : Array.isArray(current) || Array.isArray(proposed)
+      ? foldText([current].flat().join(' ')) !== foldText([proposed].flat().join(' '))
+      : foldText(String(current)) !== foldText(String(proposed));
 
-function columnValue(column: string, value: Value | null): Value | null {
+function columnValue(column: string, value: Value | null): ColumnValue | null {
   if (value === null) return null;
+  if (booleanColumns.has(column)) {
+    const text = String(value).trim();
+    return text === 'true' ? true : text === 'false' ? false : null;
+  }
+  if (column === 'waste_kinds') {
+    const kinds = String(value)
+      .split(';')
+      .map((kind) => kind.trim())
+      .filter(Boolean);
+    return kinds.length > 0 ? kinds : null;
+  }
   if (!integerColumns.has(column)) return String(value).trim() || null;
   const number = typeof value === 'number' ? value : Number(String(value).trim());
   return Number.isFinite(number) ? number : null;
@@ -306,6 +340,15 @@ export function toClientPayload(input: {
       client.vat_payer = input.registeredCompany.vatPayer;
     }
   }
+  // `clients` refuses an interval beside its category's "not applicable".
+  for (const scope of ['administrative', 'worker'] as const) {
+    if (
+      client[`${scope}_training_interval_months`] !== undefined &&
+      client[`${scope}_training_not_applicable`] === true
+    ) {
+      block(`trainingSchedule.${scope}TrainingNotApplicable`, 'invalid');
+    }
+  }
   if (clientReplace.length) client.replace = clientReplace;
   if (fireReplace.length) fireSafety.replace = fireReplace;
 
@@ -413,7 +456,8 @@ export function toClientPayload(input: {
   };
 
   const positionKeys = new Set<string>();
-  const jobPositions = included('jobPositions').map(({ item, index, values }) => {
+  const positionValues = included('jobPositions');
+  const jobPositions = positionValues.map(({ item, index, values }) => {
     positionKeys.add(item.id);
     const change = changes.items[item.id];
     const row: Row = { key: item.id };
@@ -593,6 +637,22 @@ export function toClientPayload(input: {
     });
     return Array.from({ length: Math.min(count, 999) }, () => ({ ...unit }));
   });
+
+  // A post's decision that it needs no equipment goes only where none of its entries is written,
+  // since an entry decides that it needs some.
+  const equippedPositions = new Set(
+    equipment.map((row) => String(row.job_position_key ?? row.job_position_id))
+  );
+  for (const [index, row] of jobPositions.entries()) {
+    const { values } = positionValues[index]!;
+    if (
+      values.needsProtectiveEquipment === false &&
+      !equippedPositions.has(String(row.key)) &&
+      !(row.id !== undefined && equippedPositions.has(String(row.id)))
+    ) {
+      row.needs_protective_equipment = false;
+    }
+  }
 
   const fireInstallations = included('fireInstallations').flatMap(({ item, index, values }) => {
     const workplace = workplaceReference(

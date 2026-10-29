@@ -31,6 +31,7 @@ import {
   toClientPayload,
 } from './payload';
 import {
+  characterCount,
   describe,
   loadPrepared,
   maxScannedPages,
@@ -84,7 +85,7 @@ type ImportRow = Pick<
 const summaryColumns =
   'id, kind, status, client_id, into_existing_client, company_name, company_cui, source_import_id, failure_reason, created_by, created_at, started_at, ready_at, failed_at, confirmed_at, clients!imports_client_in_organization(id, legal_name), import_files(count)';
 
-const detailColumns = `${summaryColumns}, version, proposal, changes, proposal_dropped_at`;
+const detailColumns = `${summaryColumns}, version, proposal, changes, proposal_dropped_at, read_characters`;
 
 const openStatuses = [
   'uploading',
@@ -793,14 +794,11 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
       .filter((each) => each.state === 'read' || each === file)
       .map((each) => loadPrepared({ read: objects.readImportObject }, each))
   );
-  if (
-    tooMuchText(
-      toRead.map((entry) => ({
-        name: entry.file.original_file_name,
-        characters: entry.text.length,
-      }))
-    )
-  ) {
+  const texts = toRead.map((entry) => ({
+    name: entry.file.original_file_name,
+    characters: entry.text.length,
+  }));
+  if (tooMuchText(texts)) {
     throw new ApiError(
       'unprocessable',
       'With this file the documents have more text than one import reads.',
@@ -829,6 +827,7 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
       changes: null,
       ready_at: null,
       version: row.version + 1,
+      read_characters: characterCount(texts),
     })
     .eq('id', importId)
     .eq('status', 'ready')
@@ -861,6 +860,7 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
         changes: row.changes,
         ready_at: row.ready_at,
         version: row.version + 2,
+        read_characters: row.read_characters,
       })
       .eq('id', importId)
       .eq('status', 'reading');

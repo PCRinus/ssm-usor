@@ -3,12 +3,18 @@ import {
   countyNames,
   fireEquipmentKindLabels,
   fireEquipmentKinds,
+  type FireExtinguisherNorm,
+  fireExtinguisherNormLabels,
+  fireExtinguisherNorms,
   fireExtinguishingAgentLabels,
   fireExtinguishingAgents,
   fireInstallationKindLabels,
   fireInstallationKinds,
   responsiblePersonRoles,
   type StaffCategory,
+  type WorkplaceKind,
+  workplaceKindLabels,
+  workplaceKinds,
 } from '@ssm-usor/contracts';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Copy, HardHat, UserRound } from 'lucide-react';
@@ -113,12 +119,14 @@ function ItemRow({
   context,
   title,
   details,
+  sources = state.item.sources,
   onEdit,
 }: {
   state: ItemState;
   context: ItemsContext;
   title: string;
   details: ReactNode[];
+  sources?: Source[];
   onEdit?: () => void;
 }) {
   const prefix = `${state.list}.${state.index}`;
@@ -164,8 +172,8 @@ function ItemRow({
       </div>
       <div className="flex flex-wrap items-start gap-4 sm:justify-end">
         <SourceButton
-          sources={state.item.sources}
-          onOpen={() => context.openSource(title, state.item.sources, state.item.otherCompanyName)}
+          sources={sources}
+          onOpen={() => context.openSource(title, sources, state.item.otherCompanyName)}
         />
         {onEdit && <EditButton onClick={onEdit} />}
       </div>
@@ -336,6 +344,44 @@ const quoteAside = (sources: Source[], openSource: () => void) => {
 const plural = (count: number, one: string, many: string) =>
   count === 1 ? `Un ${one}` : `${count} ${many}`;
 
+const fireTexts = [
+  ['assemblyPoint', 'Punctul de adunare'],
+  ['combustibleMaterials', 'Materiale combustibile'],
+  ['ignitionSources', 'Surse de aprindere'],
+  ['fireRiskEquipment', 'Echipamente și mijloace de lucru'],
+  ['specificMeasures', 'Măsuri specifice'],
+] as const;
+
+const fireTextFields = fireTexts.map(([field]) => field);
+
+function oneOf<T extends string>(values: readonly T[], value: unknown): T | '' {
+  return values.includes(value as T) ? (value as T) : '';
+}
+
+function fireSheetDetails(values: Record<string, unknown>): string[] {
+  const norm = values.extinguisherNorm as FireExtinguisherNorm | null | undefined;
+  const space = [
+    values.kind ? (workplaceKindLabels[values.kind as WorkplaceKind] ?? String(values.kind)) : null,
+    values.floorAreaM2 != null ? `Suprafața utilă ${String(values.floorAreaM2)} m²` : null,
+    norm ? `Norma de dotare: ${fireExtinguisherNormLabels[norm]?.label ?? String(norm)}` : null,
+  ].filter(Boolean);
+  return [
+    space.join(' · '),
+    ...fireTexts.flatMap(([field, label]) =>
+      text(values[field]) ? [`${label}: ${String(values[field])}`] : []
+    ),
+  ].filter(Boolean);
+}
+
+function workplaceSources(item: ItemState['item']): Source[] {
+  const bySource = new Map<string, Source>();
+  const fieldSources = (item.fieldSources ?? {}) as Record<string, Source[]>;
+  for (const source of [...item.sources, ...Object.values(fieldSources).flat()]) {
+    bySource.set(`${source.file}\u0000${source.quote}`, source);
+  }
+  return [...bySource.values()];
+}
+
 export function WorkplacesSection({ context }: { context: ItemsContext }) {
   const [editing, setEditing] = useState<ItemState | null>(null);
   const draft: WorkplaceDraft | null = editing
@@ -348,6 +394,12 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
           locality: String(editing.values.locality ?? ''),
           addressLine: String(editing.values.addressLine ?? ''),
           activity: String(editing.values.activity ?? ''),
+          kind: oneOf(workplaceKinds, editing.values.kind) || 'fixed_space',
+          floorAreaM2: editing.values.floorAreaM2 == null ? '' : String(editing.values.floorAreaM2),
+          extinguisherNorm: oneOf(fireExtinguisherNorms, editing.values.extinguisherNorm),
+          ...Object.fromEntries(
+            fireTextFields.map((field) => [field, String(editing.values[field] ?? '')])
+          ),
         },
         onSave: (values: WorkplaceFormValues) =>
           context.review.setItem(editing.item.id, (current) => ({
@@ -359,10 +411,17 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
               locality: values.locality.trim() || null,
               addressLine: values.addressLine.trim() || null,
               activity: values.activity.trim() || null,
-            }) as Record<string, string | boolean | null>,
+              kind:
+                editing.values.kind == null && values.kind === 'fixed_space' ? null : values.kind,
+              floorAreaM2: /^[0-9]+$/.test(values.floorAreaM2) ? Number(values.floorAreaM2) : null,
+              extinguisherNorm: values.extinguisherNorm || null,
+              ...Object.fromEntries(
+                fireTextFields.map((field) => [field, values[field].trim() || null])
+              ),
+            }) as Record<string, string | number | boolean | null>,
           })),
         aside: quoteAside(editing.item.sources, () =>
-          context.openSource(String(editing.values.name), editing.item.sources)
+          context.openSource(String(editing.values.name), workplaceSources(editing.item))
         ),
       }
     : null;
@@ -394,7 +453,9 @@ export function WorkplacesSection({ context }: { context: ItemsContext }) {
               details={[
                 address || 'Fără adresă în documente',
                 rooms.length > 0 ? `Încăperi: ${rooms.join(', ')}` : null,
+                ...fireSheetDetails(state.values),
               ]}
+              sources={workplaceSources(state.item)}
               onEdit={() => setEditing(state)}
             />
           );
@@ -424,15 +485,20 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
         onSave: (values: JobPositionFormValues) =>
           context.review.setItem(editing.item.id, (current) => ({
             ...current,
-            values: changedValues(editing, {
-              name: values.name.trim(),
-              staffCategory: values.staffCategory,
-              workZone: values.workZone.trim() || null,
-              activities: values.activities.trim() || null,
-              trainingIntervalMonths: values.trainingIntervalMonths
-                ? Number(values.trainingIntervalMonths)
-                : null,
-            }) as Record<string, string | number | null>,
+            values: {
+              ...(current.values?.needsProtectiveEquipment === undefined
+                ? {}
+                : { needsProtectiveEquipment: current.values.needsProtectiveEquipment }),
+              ...(changedValues(editing, {
+                name: values.name.trim(),
+                staffCategory: values.staffCategory,
+                workZone: values.workZone.trim() || null,
+                activities: values.activities.trim() || null,
+                trainingIntervalMonths: values.trainingIntervalMonths
+                  ? Number(values.trainingIntervalMonths)
+                  : null,
+              }) as Record<string, string | number | null>),
+            },
           })),
         aside: quoteAside(editing.item.sources, () =>
           context.openSource(String(editing.values.name), editing.item.sources)
@@ -470,6 +536,7 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
               state.values.staffCategory
                 ? staffCategoryShortLabels[state.values.staffCategory as StaffCategory]
                 : 'Categoria de personal lipsește',
+              <EquipmentDecision key="equipment" state={state} context={context} />,
             ]}
             onEdit={() => setEditing(state)}
           />
@@ -482,6 +549,29 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
         onClose={() => setEditing(null)}
       />
     </>
+  );
+}
+
+// Only "needs none" is the documents' to decide: the entries decide that a post needs some.
+function EquipmentDecision({ state, context }: { state: ItemState; context: ItemsContext }) {
+  if (state.item.needsProtectiveEquipment !== false) return null;
+  const undecided = state.values.needsProtectiveEquipment === null;
+  const decide = (needsProtectiveEquipment: false | null) =>
+    context.review.setItem(state.item.id, (current) => {
+      const values = { ...current.values };
+      if (needsProtectiveEquipment === null) values.needsProtectiveEquipment = null;
+      else delete values.needsProtectiveEquipment;
+      return { ...current, values };
+    });
+  return (
+    <span className="flex flex-wrap items-baseline gap-x-2" data-testid="review-equipment-decision">
+      {undecided
+        ? 'Echipamentul de protecție rămâne de stabilit'
+        : 'Nu necesită echipament de protecție'}
+      <LinkButton className="text-[13px]" onClick={() => decide(undecided ? false : null)}>
+        {undecided ? 'Postul nu necesită echipament' : 'Lasă de stabilit'}
+      </LinkButton>
+    </span>
   );
 }
 

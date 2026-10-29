@@ -45,6 +45,7 @@ export type ImportFileRow = Pick<
 >;
 
 export type ImportUpdate = Tables['imports']['Update'];
+export type ImportStep = 'sorting' | 'reading' | 'scanning';
 export type ImportFileUpdate = Tables['import_files']['Update'];
 
 const importColumns =
@@ -60,7 +61,13 @@ export interface ImportStore {
   updateFile(fileId: string, patch: ImportFileUpdate, from?: ImportFileState): Promise<boolean>;
   // False when the import was no longer at `from`, which another delivery moved on.
   advance(importId: string, from: ImportStatus, patch: ImportUpdate): Promise<boolean>;
-  recordUsage(importId: string, fileId: string | null, usage: Usage, cost: number): Promise<void>;
+  recordUsage(
+    importId: string,
+    fileId: string | null,
+    step: ImportStep,
+    usage: Usage,
+    cost: number
+  ): Promise<void>;
   provider(organizationId: string): Promise<ProviderIdentity>;
   client(clientId: string): Promise<ExistingClient | null>;
   folderCopies(importId: string): Promise<{ source_path: string; target_path: string }[]>;
@@ -130,11 +137,12 @@ export function importStore(admin: AdminClient): ImportStore {
       return data.length > 0;
     },
 
-    async recordUsage(importId, fileId, usage, cost) {
+    async recordUsage(importId, fileId, step, usage, cost) {
       const { error } = await admin.rpc('record_import_usage', {
         p_import_id: importId,
         // Null for a request about the whole import; the generated type does not know it can be.
         p_import_file_id: fileId as string,
+        p_step: step,
         p_input_tokens: usage.input,
         p_cached_input_tokens: usage.cachedInput,
         p_output_tokens: usage.output,

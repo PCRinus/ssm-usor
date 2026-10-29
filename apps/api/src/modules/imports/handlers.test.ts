@@ -86,6 +86,7 @@ const reading = {
     },
   ],
   workplaces: [],
+  workplaceFacts: [],
   jobPositions: [],
   responsiblePersons: [],
   fireEquipment: [],
@@ -118,6 +119,7 @@ function importRow(overrides: Record<string, unknown> = {}) {
     proposal: null,
     changes: null,
     proposal_dropped_at: null,
+    read_characters: null,
     ...overrides,
   };
 }
@@ -901,6 +903,7 @@ describe('POST /imports/{importId}/files/{fileId}/read', () => {
       changes: null,
       ready_at: null,
       version: 4,
+      read_characters: 2_300,
     });
     expect(moved.url.searchParams.get('version')).toBe('eq.3');
     expect(callsTo('/rest/v1/import_files', 'PATCH')[0]!.body).toEqual({
@@ -911,6 +914,45 @@ describe('POST /imports/{importId}/files/{fileId}/read', () => {
       { type: 'scan', importId, fileId: fileId(2) },
       { type: 'read', importId, waits: 0 },
     ]);
+  });
+
+  it('sends the general training material back to be read', async () => {
+    const texts = storedText({ 1: 2_000, 2: 285_000 });
+    mockUpstream((call) => {
+      const { url, method } = call;
+      const text = texts(call);
+      if (text) return text;
+      if (url.pathname === '/rest/v1/imports' && method === 'PATCH') {
+        return Response.json([{ id: importId }]);
+      }
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow(ready));
+      if (url.pathname === '/rest/v1/import_files' && method === 'PATCH') {
+        return new Response(null, { status: 204 });
+      }
+      if (url.pathname === '/rest/v1/import_files') {
+        return Response.json([
+          fileRow(1, { state: 'read' }),
+          fileRow(2, {
+            state: 'set_aside',
+            document_kind: 'training_material',
+            reason:
+              'Material de instruire introductiv-generală: text general, nu conține date despre client. Îl citim doar dacă ceri.',
+          }),
+        ]);
+      }
+    });
+    const response = await request(`/imports/${importId}/files/${fileId(2)}/read`, 'POST');
+
+    expect(response.status).toBe(200);
+    expect(callsTo('/rest/v1/imports', 'PATCH')[0]!.body).toMatchObject({
+      status: 'reading',
+      read_characters: 287_000,
+    });
+    expect(callsTo('/rest/v1/import_files', 'PATCH')[0]!.body).toEqual({
+      state: 'read',
+      reason: null,
+    });
+    expect(sent).toEqual([{ type: 'read', importId, waits: 0 }]);
   });
 
   it('refuses before the import is ready, and a file that was not set aside', async () => {

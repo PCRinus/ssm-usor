@@ -38,6 +38,10 @@ export type Field<T> = { options: Option<T>[] };
 const textField = fieldSchema(z.string().min(1));
 const integerField = fieldSchema(z.int());
 
+export const yesNoValues = ['true', 'false'] as const;
+
+const yesNoField = fieldSchema(z.enum(yesNoValues));
+
 export const clientFieldNames = [
   'legalName',
   'cui',
@@ -64,7 +68,13 @@ export const trainingScheduleFieldNames = [
   'trainingDayTo',
 ] as const;
 
-export type TrainingScheduleFieldName = (typeof trainingScheduleFieldNames)[number];
+export const trainingScheduleYesNoFieldNames = [
+  'administrativeTrainingNotApplicable',
+  'workerTrainingNotApplicable',
+] as const;
+
+export type TrainingScheduleFieldName =
+  (typeof trainingScheduleFieldNames)[number] | (typeof trainingScheduleYesNoFieldNames)[number];
 
 export const fireSafetyIntegerFieldNames = [
   'periodicTrainingHours',
@@ -72,30 +82,75 @@ export const fireSafetyIntegerFieldNames = [
   'workerTrainingIntervalMonths',
 ] as const;
 
+// The waste kinds are one text, the kinds separated by semicolons, as `waste_kinds` lists them.
 export const fireSafetyTextFieldNames = [
   'smokingPolicy',
   'smokingPlace',
   'wasteContractor',
+  'wasteKinds',
+  'wasteCollectors',
 ] as const;
 
+export const fireSafetyYesNoFieldNames = ['hasThirdParties'] as const;
+
 export type FireSafetyFieldName =
-  (typeof fireSafetyIntegerFieldNames)[number] | (typeof fireSafetyTextFieldNames)[number];
+  | (typeof fireSafetyIntegerFieldNames)[number]
+  | (typeof fireSafetyTextFieldNames)[number]
+  | (typeof fireSafetyYesNoFieldNames)[number];
 
 function fields<const K extends string, T extends z.ZodType>(names: readonly K[], field: T) {
   return z.object(Object.fromEntries(names.map((name) => [name, field])) as Record<K, T>);
+}
+
+// A proposal stored before these were read has none of them.
+const readSinceFields = new Set<string>([
+  ...trainingScheduleYesNoFieldNames,
+  'wasteKinds',
+  'wasteCollectors',
+  ...fireSafetyYesNoFieldNames,
+]);
+
+function laterFields<const K extends string, T extends z.ZodType>(names: readonly K[], field: T) {
+  const defaulted = (field as unknown as z.ZodType<Field<unknown>>).default({ options: [] });
+  return z.object(
+    Object.fromEntries(
+      names.map((name) => [name, readSinceFields.has(name) ? defaulted : field])
+    ) as Record<K, T>
+  );
 }
 
 // The county is the vehicle registration code when the written one could be recognised, and
 // the smoking policy a `fire_smoking_policy` value; otherwise as written, which the checks flag.
 export const proposedClientSchema = fields(clientFieldNames, textField);
 
-export const proposedTrainingScheduleSchema = fields(trainingScheduleFieldNames, integerField);
+export const proposedTrainingScheduleSchema = fields(
+  trainingScheduleFieldNames,
+  integerField
+).extend(laterFields(trainingScheduleYesNoFieldNames, yesNoField).shape);
 
-export const proposedFireSafetySchema = fields(fireSafetyIntegerFieldNames, integerField).extend(
-  fields(fireSafetyTextFieldNames, textField).shape
-);
+export const proposedFireSafetySchema = fields(fireSafetyIntegerFieldNames, integerField)
+  .extend(laterFields(fireSafetyTextFieldNames, textField).shape)
+  .extend(laterFields(fireSafetyYesNoFieldNames, yesNoField).shape);
 
 const item = { id: z.string().min(1), ...traced };
+
+// What the workplace's fire-safety sheet and the list of means say of it (OMAI 163/2007), each
+// value from its own passage.
+export const workplaceFireFieldNames = [
+  'kind',
+  'floorAreaM2',
+  'extinguisherNorm',
+  'assemblyPoint',
+  'combustibleMaterials',
+  'ignitionSources',
+  'fireRiskEquipment',
+  'specificMeasures',
+] as const;
+
+export type WorkplaceFireFieldName = (typeof workplaceFireFieldNames)[number];
+
+// Defaulted for a proposal stored before they were read.
+const laterValue = <T extends z.ZodType>(value: T) => value.nullable().default(null);
 
 export const proposedWorkplaceSchema = z.object({
   ...item,
@@ -107,6 +162,18 @@ export const proposedWorkplaceSchema = z.object({
   activity: z.string().nullable(),
   // Where fire-safety means stand at this address: a workplace is an address, not a room.
   rooms: z.array(z.string().min(1)),
+  // A `workplace_kind` and a `fire_extinguisher_norm` when recognised; otherwise as written,
+  // which the checks flag.
+  kind: laterValue(z.string().min(1)),
+  floorAreaM2: laterValue(z.int()),
+  extinguisherNorm: laterValue(z.string().min(1)),
+  assemblyPoint: laterValue(z.string().min(1)),
+  combustibleMaterials: laterValue(z.string().min(1)),
+  ignitionSources: laterValue(z.string().min(1)),
+  fireRiskEquipment: laterValue(z.string().min(1)),
+  specificMeasures: laterValue(z.string().min(1)),
+  // The sources of the fire-safety values by their field, apart from the workplace's own.
+  fieldSources: z.record(z.string(), z.array(sourceSchema)).default({}),
 });
 
 export type ProposedWorkplace = z.infer<typeof proposedWorkplaceSchema>;
@@ -122,6 +189,8 @@ export const proposedJobPositionSchema = z.object({
   // not as a worker, so the post exists only when someone holds it under an employment contract.
   // Defaulted for a proposal stored before it was read.
   managementOnly: z.boolean().default(false),
+  // Null when the documents do not say, which leaves the post's equipment undecided.
+  needsProtectiveEquipment: laterValue(z.boolean()),
 });
 
 export type ProposedJobPosition = z.infer<typeof proposedJobPositionSchema>;

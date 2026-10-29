@@ -44,6 +44,7 @@ import {
   ImportLimitError,
   type ImportRow,
   type ImportStatus,
+  type ImportStep,
   type ImportStore,
   type ImportUpdate,
 } from './store';
@@ -69,9 +70,12 @@ export interface PipelineDeps {
 }
 
 // The documents go to the reading model in one request, so this bounds that request's cost and
-// size: about 170,000 tokens at 3.5 characters a token.
+// size: about 185,000 tokens at the 3.25 characters a token measured on the reference packs.
 export const maxReadingCharacters = 600_000;
 export const maxScannedPages = 150;
+// The reading's is the one the evaluation used.
+export const sortingOutputTokens = 16_000;
+export const readingOutputTokens = 64_000;
 // About a hundred seconds of reading, well inside a consumer's 15 minutes of wall time.
 export const scanBatchPages = 5;
 export const readPollSeconds = 10;
@@ -103,6 +107,8 @@ export const fileReasons = {
   genericText: 'Text general, fără date despre client.',
   ownInstructions:
     'Instrucțiuni proprii: aplicația le alcătuiește din biblioteca de instrucțiuni. Le citim doar dacă ceri.',
+  trainingMaterial:
+    'Material de instruire introductiv-generală: text general, nu conține date despre client. Îl citim doar dacă ceri.',
   noClientData: 'Nu conține date despre client.',
   trainingSheet: 'Fișă de instruire individuală: rămâne pentru importul angajaților.',
 } as const;
@@ -133,9 +139,12 @@ const percent = (part: number, whole: number) => Math.max(1, Math.round((part / 
 
 const quotedName = (name: string) => `„${name.length > 60 ? `${name.slice(0, 59)}…` : name}”`;
 
+export const characterCount = (files: TextOfFile[]) =>
+  files.reduce((sum, file) => sum + file.characters, 0);
+
 /** Why the files' text does not fit one reading, naming the longest; null when it does. */
 export function tooMuchText(files: TextOfFile[]): string | null {
-  const total = files.reduce((sum, file) => sum + file.characters, 0);
+  const total = characterCount(files);
   if (total <= maxReadingCharacters) return null;
   const excess = Math.max(
     1,
@@ -249,6 +258,7 @@ async function ask<T>(
   deps: PipelineDeps,
   row: ImportRow,
   fileId: string | null,
+  step: ImportStep,
   request: Omit<CompletionRequest<T>, 'metadata'>
 ): Promise<T> {
   if (!deps.model) throw new ImportFailure(importReasons.notConfigured);
@@ -259,7 +269,7 @@ async function ask<T>(
     if (usage.input + usage.cachedInput + usage.output === 0) return;
     // Paying for a request twice is worse than a missing count, so a failure here is not retried.
     await deps.store
-      .recordUsage(row.id, fileId, usage, cost)
+      .recordUsage(row.id, fileId, step, usage, cost)
       .catch((error: unknown) =>
         console.error(`Usage of import ${row.id} was not recorded: ${describe(error)}`)
       );
@@ -419,6 +429,7 @@ function setAsideReason(kind: DocumentKind) {
   if (kind === 'blank_form') return fileReasons.blankForm;
   if (kind === 'generic_text') return fileReasons.genericText;
   if (kind === 'own_instructions') return fileReasons.ownInstructions;
+  if (kind === 'training_material') return fileReasons.trainingMaterial;
   return fileReasons.noClientData;
 }
 
@@ -436,7 +447,7 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
   const textual = loaded.filter((entry) => entry.text.trim() !== '');
   const triages = new Map<string, FileTriage>();
   if (textual.length > 0) {
-    const answer = await ask(deps, row, null, {
+    const answer = await ask(deps, row, null, 'sorting', {
       model: sortingModel,
       messages: sortingMessages({
         provider,
@@ -444,6 +455,7 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
       }),
       answer: sortingAnswer,
       reasoningEffort: 'low',
+      maxCompletionTokens: sortingOutputTokens,
     });
     for (const triage of answer.files) triages.set(triage.path, triage);
   }
@@ -496,6 +508,7 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
     }
     await deps.store.updateFile(entry.file.id, patch);
   }
+  await deps.store.advance(importId, 'sorting', { read_characters: characterCount(kept) });
   if (toRead === 0) throw new ImportFailure(importReasons.nothingToRead);
   const overCap = tooMuchText(kept);
   if (overCap) throw new ImportFailure(overCap);
@@ -619,11 +632,12 @@ async function triageScan(
     },
   ];
   const triage = (
-    await ask(deps, row, file.id, {
+    await ask(deps, row, file.id, 'sorting', {
       model: sortingModel,
       messages,
       answer: sortingAnswer,
       reasoningEffort: 'low',
+      maxCompletionTokens: sortingOutputTokens,
     })
   ).files[0];
   if (!triage) return null;
@@ -663,7 +677,7 @@ export async function scanPages(
       if (read.has(page)) continue;
       const label = pageLabel(file, page);
       const picture = await image(page);
-      const reading = await ask(deps, row, file.id, {
+      const reading = await ask(deps, row, file.id, 'scanning', {
         model: readingModel,
         messages: readingMessages({
           provider,
@@ -672,6 +686,7 @@ export async function scanPages(
         }),
         answer: readingAnswer,
         reasoningEffort: 'medium',
+        maxCompletionTokens: readingOutputTokens,
       });
       await deps.objects.write(
         pageReadingPathOf(file, page),
@@ -750,7 +765,7 @@ export async function readImport(
   if (textual.length > 0) {
     const { provider, client } = await identityOf(deps, row);
     readings.push(
-      await ask(deps, row, null, {
+      await ask(deps, row, null, 'reading', {
         model: readingModel,
         messages: readingMessages({
           provider,
@@ -759,6 +774,7 @@ export async function readImport(
         }),
         answer: readingAnswer,
         reasoningEffort: 'medium',
+        maxCompletionTokens: readingOutputTokens,
       })
     );
   }

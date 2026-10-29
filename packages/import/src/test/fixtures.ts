@@ -14,6 +14,7 @@ export const decisionText = [
   'Administratorul societății, dl. Vasilescu Andrei, numește pe dna. Ionescu Maria, brutar,',
   'conducător al locului de muncă și lucrător desemnat pentru acordarea primului ajutor.',
   'Instruirea periodică se face la 6 luni pentru personalul de execuție, cu durata de 60 de minute.',
+  'Pentru personalul tehnico-administrativ instruirea periodică nu se aplică.',
   '| Post | Riscuri | Echipament | Durata |',
   '| Brutar, Vânzător | Arsuri | Mănuși termorezistente | 6 luni |',
   'Punct de lucru: Magazin, Timișoara, str. Piața Mică nr. 2',
@@ -27,6 +28,11 @@ export const fireText = [
   '| Sediu – laborator | stingător P6 | 2 |',
   '| Sediu – birou | stingător G2 | 1 |',
   'Fumatul este interzis în toate spațiile societății.',
+  'Instrucțiuni afișate – Sediu: suprafața utilă 1.250 mp, normă de dotare: clădiri comerciale.',
+  'Punct de adunare: parcarea din spatele clădirii.',
+  'Materiale combustibile: făină, ambalaje din carton.',
+  'Deșeuri colectate: deșeuri menajere; carton și hârtie. Le colectează vânzătorii de serviciu.',
+  'În sediu își desfășoară activitatea și chiriașul DEPOZITUL FICTIV S.R.L.',
   'Copiat din: ATELIERUL INVENTAT S.R.L. – Administrator Petrescu Ion',
 ].join('\n');
 
@@ -44,6 +50,15 @@ const fact = (field: string, value: string, quote: string, file = decision, othe
   file,
   quote,
   otherCompany,
+});
+
+const workplaceFact = (workplace: string, field: string, value: string, quote: string) => ({
+  workplace,
+  field,
+  value,
+  file: fire,
+  quote,
+  otherCompany: '',
 });
 
 export function wireAnswer() {
@@ -72,11 +87,29 @@ export function wireAnswer() {
       ),
       fact('trainingSchedule.periodicTrainingMinutes', '60', 'cu durata de 60 de minute'),
       fact(
+        'trainingSchedule.administrativeTrainingNotApplicable',
+        'da',
+        'tehnico-administrativ instruirea periodică nu se aplică'
+      ),
+      fact(
         'fireSafety.smokingPolicy',
         'forbidden_everywhere',
         'Fumatul este interzis în toate spațiile',
         fire
       ),
+      fact(
+        'fireSafety.wasteKinds',
+        'deșeuri menajere; carton și hârtie; Deseuri menajere',
+        'Deșeuri colectate: deșeuri menajere; carton și hârtie',
+        fire
+      ),
+      fact(
+        'fireSafety.wasteCollectors',
+        'vânzătorii de serviciu',
+        'Le colectează vânzătorii de serviciu',
+        fire
+      ),
+      fact('fireSafety.hasThirdParties', 'true', 'își desfășoară activitatea și chiriașul', fire),
     ],
     workplaces: [
       {
@@ -104,6 +137,27 @@ export function wireAnswer() {
         otherCompany: '',
       },
     ],
+    workplaceFacts: [
+      workplaceFact('Sediu', 'floorAreaM2', '1.250 mp', 'suprafața utilă 1.250 mp'),
+      workplaceFact(
+        'Sediul',
+        'extinguisherNorm',
+        'commercial_200',
+        'normă de dotare: clădiri comerciale'
+      ),
+      workplaceFact(
+        'Sediu',
+        'assemblyPoint',
+        'parcarea din spatele clădirii',
+        'Punct de adunare: parcarea din spatele clădirii'
+      ),
+      workplaceFact(
+        'Sediu',
+        'combustibleMaterials',
+        'făină, ambalaje din carton',
+        'Materiale combustibile: făină, ambalaje din carton'
+      ),
+    ],
     jobPositions: [
       {
         name: 'Brutar',
@@ -112,6 +166,7 @@ export function wireAnswer() {
         workZone: 'Laborator',
         activities: '',
         managementOnly: false,
+        needsProtectiveEquipment: 'true',
         file: decision,
         quote: 'Ionescu Maria, brutar',
         otherCompany: '',
@@ -123,6 +178,7 @@ export function wireAnswer() {
         workZone: '',
         activities: '',
         managementOnly: false,
+        needsProtectiveEquipment: '',
         file: decision,
         quote: 'Georgescu Dan, vânzător',
         otherCompany: '',

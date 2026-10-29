@@ -51,6 +51,7 @@ const fireLines = [
   'BRUTĂRIA FICTIVĂ S.R.L.',
   'Lista mijloacelor de stingere',
   '| Sediu | stingător P6 | 2 |',
+  'Punct de adunare: parcarea din spate.',
 ];
 const otherLines = ['ATELIERUL INVENTAT S.R.L.', 'CUI 87654329', 'Decizie privind instruirea'];
 const scannedFirstPage =
@@ -102,7 +103,7 @@ class World {
   files = new Map<string, ImportFileRow & Record<string, unknown>>();
   objects = new Map<string, Uint8Array>();
   clientFiles = new Map<string, Uint8Array>();
-  usage: { fileId: string | null; input: number; cost: number }[] = [];
+  usage: { fileId: string | null; step: string; input: number; cost: number }[] = [];
   sent: { id: string; body: ImportMessage; attempts: number; delaySeconds?: number }[] = [];
   failCopyAfter: number | null = null;
   sizeLimit: number | null = null;
@@ -184,8 +185,8 @@ class World {
         Object.assign(row, patch);
         return true;
       },
-      recordUsage: async (_importId, fileId, usage, cost) => {
-        this.usage.push({ fileId, input: usage.input, cost });
+      recordUsage: async (_importId, fileId, step, usage, cost) => {
+        this.usage.push({ fileId, step, input: usage.input, cost });
       },
       provider: async () => ({
         name: 'SERVICIUL EXTERN EXEMPLU S.R.L.',
@@ -252,6 +253,7 @@ const quoted = (file: string, quote: string) => ({ file, quote, otherCompany: ''
 const emptyReading = {
   facts: [],
   workplaces: [],
+  workplaceFacts: [],
   jobPositions: [],
   responsiblePersons: [],
   fireEquipment: [],
@@ -333,6 +335,14 @@ const answers = {
         ...quoted('Dosar/PSI/Lista mijloace.doc', '| Sediu | stingător P6 | 2 |'),
       },
     ],
+    workplaceFacts: [
+      {
+        workplace: 'Sediu',
+        field: 'assemblyPoint',
+        value: 'parcarea din spate',
+        ...quoted('Dosar/PSI/Lista mijloace.doc', 'Punct de adunare: parcarea din spate'),
+      },
+    ],
     fireEquipment: [
       {
         workplace: 'Sediu',
@@ -404,7 +414,12 @@ const defaultModel: Recorded = ({ name, text, images }) => {
 
 let world: World;
 let model: Recorded;
-let modelRequests: { name: string; images: string[]; metadata: string | null }[];
+let modelRequests: {
+  name: string;
+  images: string[];
+  metadata: string | null;
+  maxTokens: number;
+}[];
 
 function completion(content: unknown) {
   return Response.json({
@@ -466,6 +481,7 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps {
       fetch: async (_input, init) => {
         const body = JSON.parse(String(init?.body)) as {
           response_format: { json_schema: { name: string } };
+          max_completion_tokens: number;
           messages: {
             content: string | { type: string; text?: string; image_url?: { url: string } }[];
           }[];
@@ -484,6 +500,7 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps {
           name: request.name,
           images: request.images,
           metadata: new Headers(init?.headers).get('cf-aig-metadata'),
+          maxTokens: body.max_completion_tokens,
         });
         const answer = model(request);
         return answer instanceof Response ? answer : completion(answer);
@@ -620,6 +637,14 @@ describe('the import queue', () => {
     ]);
     expect(proposal.fireInstallations).toHaveLength(1);
     expect(proposal.fireEquipment[0]?.workplace.id).toBe('workplace-1');
+    expect(proposal.workplaces[0]).toMatchObject({
+      assemblyPoint: 'parcarea din spate',
+      fieldSources: {
+        assemblyPoint: [
+          { file: 'Dosar/PSI/Lista mijloace.doc', quote: 'Punct de adunare: parcarea din spate' },
+        ],
+      },
+    });
     expect(proposal.flags).toEqual(
       expect.arrayContaining([
         {
@@ -649,6 +674,11 @@ describe('the import queue', () => {
         (request) => request.metadata === JSON.stringify({ organizationId, importId })
       )
     ).toBe(true);
+    expect(
+      modelRequests.every(
+        (request) => request.maxTokens === (request.name === 'import_sorting' ? 16_000 : 64_000)
+      )
+    ).toBe(true);
     const photo = modelRequests.find(
       (request) =>
         request.name === 'client_import' && request.images[0]?.startsWith('data:image/jpeg;base64,')
@@ -656,6 +686,25 @@ describe('the import queue', () => {
     expect(photo).toBeDefined();
     expect(world.usage).toHaveLength(6);
     expect(world.usage.filter((usage) => usage.fileId === null)).toHaveLength(2);
+    expect(world.usage.map((usage) => usage.step).sort()).toEqual([
+      'reading',
+      'scanning',
+      'scanning',
+      'sorting',
+      'sorting',
+      'sorting',
+    ]);
+    const kept = [
+      'Dosar/Decizia 1.docx',
+      'Dosar/PSI/Lista mijloace.doc',
+      'Dosar/Scanate/Decizie semnata.pdf',
+    ];
+    const keptText = kept.reduce((sum, path) => {
+      const file = world.fileAt(path);
+      const stored = new TextDecoder().decode(world.objects.get(file.text_path!)!);
+      return sum + (path.endsWith('.pdf') ? scannedFirstPage.length : stored.length);
+    }, 0);
+    expect(row.read_characters).toBe(keptText);
   });
 
   it('fails a file the model cannot read and still reads the others', async () => {
@@ -674,6 +723,27 @@ describe('the import queue', () => {
     expect(
       world.usage.filter((usage) => usage.fileId === world.fileAt('Dosar/Poze/plan.jpg').id)
     ).toEqual([expect.objectContaining({ input: 1000 }), expect.objectContaining({ input: 2000 })]);
+  });
+
+  it('fails the import, without retrying, when the reading is cut off at its output cap', async () => {
+    model = (request) =>
+      request.name === 'client_import'
+        ? Response.json({
+            choices: [{ finish_reason: 'length', message: { content: '{"facts": [' } }],
+            usage: { prompt_tokens: 1000, completion_tokens: 64_000 },
+          })
+        : defaultModel(request);
+    startWith([files[0]!]);
+    const outcomes = await drain(deps());
+
+    expect(outcomes.filter((outcome) => outcome.type === 'read')).toEqual([
+      { type: 'read', outcome: 'ack', attempts: 1 },
+    ]);
+    expect(world.imports.get(importId)).toMatchObject({
+      status: 'failed',
+      failure_reason: importReasons.modelFailed,
+    });
+    expect(world.usage.at(-1)).toMatchObject({ fileId: null, input: 1000 });
   });
 
   it('retries a step the gateway could not answer and fails the import on the last delivery', async () => {
@@ -712,6 +782,7 @@ describe('the import queue', () => {
 
     expect(world.imports.get(importId)).toMatchObject({
       status: 'failed',
+      read_characters: 720_000,
       failure_reason:
         'Documentele au cu 20% mai mult text decât încape într-un import. Cele mai lungi: „Evaluare riscuri.docx” (42% din text), „Decizia 1.docx” (33%) și „Tematica.docx” (17%). Scoate-le pe cele care nu trebuie citite.',
     });
@@ -747,6 +818,39 @@ describe('the import queue', () => {
       state: 'set_aside',
       document_kind: 'own_instructions',
       reason: fileReasons.ownInstructions,
+    });
+  });
+
+  it('sets the general training material aside by its kind, even when told it carries client data', async () => {
+    const material: FileSpec = {
+      ...files[0]!,
+      path: 'Dosar/MISSMIG.docx',
+      bytes: docx(['BRUTĂRIA FICTIVĂ S.R.L.', 'Material de instruire introductiv-generală']),
+    };
+    model = (request) =>
+      request.name === 'import_sorting' && request.images.length === 0
+        ? {
+            files: [
+              ...answers.sorting.files,
+              {
+                path: 'Dosar/MISSMIG.docx',
+                kind: 'training_material',
+                companyName: 'BRUTĂRIA FICTIVĂ S.R.L.',
+                companyCui: '',
+                carriesClientData: true,
+              },
+            ],
+          }
+        : defaultModel(request);
+    startWith([files[0]!, material]);
+    await drain(deps());
+
+    expect(world.imports.get(importId)!.status).toBe('ready');
+    expect(world.fileAt('Dosar/MISSMIG.docx')).toMatchObject({
+      state: 'set_aside',
+      document_kind: 'training_material',
+      reason:
+        'Material de instruire introductiv-generală: text general, nu conține date despre client. Îl citim doar dacă ceri.',
     });
   });
 
