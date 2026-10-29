@@ -22,8 +22,12 @@ import { allocationLabels } from '@/features/protective-equipment/equipment-sche
 
 export type Proposal = NonNullable<ImportDetail['proposal']>;
 export type Source = { file: string; quote: string };
-// What the passage proves, when it is one value of its item rather than the item itself.
-export type LabelledSource = Source & { label?: string };
+export type LabelledSource = Source & {
+  // What the passage proves, when it is one value of its item rather than the item itself.
+  label?: string;
+  // The post or room the passage stands under, which tells apart a table row repeated for each.
+  near?: string;
+};
 export type Option = {
   value: string | number;
   sources: Source[];
@@ -973,8 +977,27 @@ const positionFieldLabels = [
   ['activities', 'Activități desfășurate'],
 ] as const;
 
+function sourceNear(state: Pick<ItemState, 'list' | 'item'>): string | null {
+  const { item } = state;
+  switch (state.list) {
+    case 'jobPositions':
+      return item.name as string;
+    case 'protectiveEquipment':
+      return (item.jobPosition as { name: string | null }).name;
+    case 'fireEquipment':
+      return (item.room as string | null) ?? (item.workplace as { name: string | null }).name;
+    default:
+      return null;
+  }
+}
+
 /** The item's passages, then one for each value that has its own, in the order shown. */
 export function itemSources(state: Pick<ItemState, 'list' | 'item' | 'values'>): LabelledSource[] {
+  const near = sourceNear(state);
+  return ownSources(state).map((source) => (near ? { ...source, near } : source));
+}
+
+function ownSources(state: Pick<ItemState, 'list' | 'item' | 'values'>): LabelledSource[] {
   const own = { sources: state.item.sources };
   if (state.list === 'responsiblePersons') {
     const bySource = (state.item.roleSources ?? {}) as Record<string, Source[]>;

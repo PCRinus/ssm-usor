@@ -13,7 +13,7 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
 
-import { markQuote } from './source-match';
+import { markQuote, pageQuotes } from './source-match';
 import { ZoomBar } from './zoom-bar';
 
 GlobalWorkerOptions.workerSrc = workerUrl;
@@ -103,7 +103,10 @@ export default function PdfSourceView({
         });
         await text.render();
         if (cancelled) return;
-        const marked = markQuote(text.textDivs, quote);
+        const spans = text.textDivs;
+        const marked = pageQuotes(source, pageNumber, quote).flatMap((part) =>
+          markQuote(spans, part.quote, part.occurrence)
+        );
         if (marked.length > 0) marked[0]!.scrollIntoView({ block: 'center' });
         else if (!reported.current && pageNumber === firstPage.current) {
           reported.current = true;
@@ -118,7 +121,7 @@ export default function PdfSourceView({
       rendering?.cancel();
       text?.cancel();
     };
-  }, [pdf, url, pageNumber, zoom, quote]);
+  }, [pdf, url, pageNumber, zoom, quote, source]);
 
   if (failed) {
     return (

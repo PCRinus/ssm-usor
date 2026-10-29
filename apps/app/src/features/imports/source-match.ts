@@ -17,13 +17,16 @@ export function sourceKind(source: ImportSourceResponse): SourceKind {
 }
 
 // The quote is matched against the words of the text layer, folded as the API folds them,
-// since pdf.js splits a line into runs that do not follow the text poppler took out.
-export function markQuote(spans: HTMLElement[], quote: string) {
+// since pdf.js splits a line into runs that do not follow the text poppler took out. The API may
+// have found it again further on the page, as a table row repeated for each post, so the place
+// marked is the one with as many before it as in the API's text.
+export function markQuote(spans: HTMLElement[], quote: string, occurrence = 0) {
   const target = foldText(quote).replace(/\s+/g, '');
   if (target.length < 3) return [];
   const pieces = spans.map((span) => foldText(span.textContent ?? '').replace(/\s+/g, ''));
   const joined = pieces.join('');
-  let at = joined.indexOf(target);
+  const places = occurrences(joined, target);
+  let at = places[occurrence] ?? places[0] ?? -1;
   let length = target.length;
   if (at === -1) {
     const head = target.slice(0, 40);
@@ -42,18 +45,68 @@ export function markQuote(spans: HTMLElement[], quote: string) {
   return marked;
 }
 
+function occurrences(text: string, target: string) {
+  const places: number[] = [];
+  for (let at = text.indexOf(target); at !== -1; at = text.indexOf(target, at + target.length)) {
+    places.push(at);
+  }
+  return places;
+}
+
+export function pageQuotes(source: ImportSourceResponse, pageNumber: number, quote: string) {
+  const text = source.pages?.find((page) => page.number === pageNumber)?.text;
+  if (!text || source.match?.page !== pageNumber) return [{ quote, occurrence: 0 }];
+  const folded = (value: string) => foldText(value).replace(/\s+/g, '');
+  return source.match.parts.map((part) => {
+    const target = folded(text.slice(part.start, part.end));
+    const before = occurrences(folded(text.slice(0, part.end)), target);
+    return { quote: text.slice(part.start, part.end), occurrence: before.length - 1 };
+  });
+}
+
 // The text the API matched the quote in is ours, taken out of the XML with a table row as
 // `| cell | cell |` and a cell's paragraphs joined by " / "; the editor finds within one
 // paragraph and knows none of these separators, so the passage is searched piece by piece.
+const separators = /\n|\t|\s{3,}|\s*\|\s*|\s+\/\s+/g;
+
+type QuoteLine = { line: string; at: number };
+
+function lineSpans(text: string, from: number, to: number): QuoteLine[] {
+  const slice = text.slice(from, to);
+  const lines: QuoteLine[] = [];
+  let start = 0;
+  for (const separator of [...slice.matchAll(separators), null]) {
+    const end = separator ? separator.index : slice.length;
+    const raw = slice.slice(start, end);
+    const line = raw.trim();
+    if (line.length >= 3) lines.push({ line, at: from + start + raw.indexOf(line) });
+    if (separator) start = separator.index + separator[0].length;
+  }
+  return lines;
+}
+
+// Only the parts of a quote an ellipsis separates are the passage, not the rows between them.
+function quoteSpans(source: ImportSourceResponse): QuoteLine[] | null {
+  const { text, match } = source;
+  if (!text || !match || match.page !== null) return null;
+  return match.parts.flatMap((part) => lineSpans(text, part.start, part.end));
+}
+
 export function quoteLines(source: ImportSourceResponse, quote: string) {
-  const matched =
-    source.text && source.match && source.match.page === null
-      ? source.text.slice(source.match.start, source.match.end)
-      : quote;
-  return matched
-    .split(/\n|\t|\s{3,}|\s*\|\s*|\s+\/\s+/)
-    .map((line) => line.trim())
-    .filter((line) => line.length >= 3);
+  return (
+    quoteSpans(source)?.map(({ line }) => line) ??
+    lineSpans(quote, 0, quote.length).map(({ line }) => line)
+  );
+}
+
+// The API may have found the passage again further on, as a table row repeated for each post, so
+// each line is the editor's hit with as many of the line before it as the API's text has, both
+// counted ignoring case.
+export function lineOccurrences(source: ImportSourceResponse, quote: string): number[] {
+  const spans = quoteSpans(source);
+  if (!spans) return quoteLines(source, quote).map(() => 0);
+  const text = source.text!.toLowerCase();
+  return spans.map(({ line, at }) => occurrences(text.slice(0, at), line.toLowerCase()).length);
 }
 
 export type LineHit = {
@@ -104,7 +157,11 @@ export function findLine(line: string, find: (query: string) => readonly LineHit
 
 // The longest line is the least ambiguous, so the passage is anchored on it and the other lines
 // are taken next to it, in order.
-export function passageHits(lines: string[], find: (line: string) => readonly LineHit[]) {
+export function passageHits(
+  lines: string[],
+  find: (line: string) => readonly LineHit[],
+  occurrences: readonly number[] = []
+) {
   const found = lines.map(find);
   let anchorAt = -1;
   found.forEach((hits, index) => {
@@ -113,7 +170,8 @@ export function passageHits(lines: string[], find: (line: string) => readonly Li
     }
   });
   if (anchorAt === -1) return { hits: [], anchor: null };
-  const anchor = found[anchorAt]![0]!;
+  const anchors = found[anchorAt]!;
+  const anchor = anchors[occurrences[anchorAt] ?? 0] ?? anchors[0]!;
   const hits: LineHit[] = [anchor];
   let previous = anchor;
   for (const lineHits of found.slice(anchorAt + 1)) {

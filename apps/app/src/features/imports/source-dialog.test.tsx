@@ -45,7 +45,12 @@ vi.mock('@/features/imports/source-pdf-view', async () => {
 type SourceAnswer = {
   mimeType: string;
   page?: number | null;
-  match?: { page: number | null; start: number; end: number } | null;
+  match?: {
+    page: number | null;
+    start: number;
+    end: number;
+    parts: { start: number; end: number }[];
+  } | null;
 };
 
 const phoneSources = [
@@ -56,6 +61,7 @@ const phoneSources = [
 ];
 
 let sourceRequests: number;
+let sourceNears: (string | null)[];
 
 function mockSources(
   answers: Record<string, SourceAnswer | 'missing'>,
@@ -63,6 +69,7 @@ function mockSources(
   proposal: ReturnType<typeof proposalFixture> = proposalFixture()
 ) {
   sourceRequests = 0;
+  sourceNears = [];
   proposal.client.contactPhone.options[0]!.sources = sources;
   mockApi((_init, url) => {
     if (url.pathname === `/imports/${importId}`) {
@@ -72,6 +79,7 @@ function mockSources(
       const file = url.searchParams.get('file')!;
       const answer = answers[file];
       sourceRequests += 1;
+      sourceNears.push(url.searchParams.get('near'));
       if (!answer || answer === 'missing') {
         return Response.json({ error: 'not_found', message: 'No such file.' }, { status: 404 });
       }
@@ -119,7 +127,7 @@ async function openItemSource(section: string, name: string) {
 
 const word = {
   mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  match: { page: null, start: 0, end: 4 },
+  match: { page: null, start: 0, end: 4, parts: [{ start: 0, end: 4 }] },
 };
 
 beforeEach(() => {
@@ -147,6 +155,7 @@ describe('the source dialog', () => {
     expect(within(dialog).getByTestId('source-position').textContent).toBe(
       '1 din 3, într-un fișier'
     );
+    expect(sourceNears).toEqual([null]);
   });
 
   it('steps through every passage, and says when a PDF passage was not found', async () => {
@@ -156,7 +165,7 @@ describe('the source dialog', () => {
       'IMG_2041.jpg': { mimeType: 'image/jpeg' },
       'dosar-ssm.zip/Decizie 1.docx': {
         mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        match: { page: null, start: 0, end: 12 },
+        match: { page: null, start: 0, end: 12, parts: [{ start: 0, end: 12 }] },
       },
     });
     const dialog = await openPhoneSource();
@@ -367,5 +376,6 @@ describe('the source dialog', () => {
     await userEvent.click(within(dialog).getByTestId('source-next'));
     expect(heading()).toBe('Sursa: Brutar — Activități desfășurate');
     expect(within(dialog).getByTestId('source-position').textContent).toBe('3 din 3, în 3 fișiere');
+    expect(new Set(sourceNears)).toEqual(new Set(['Brutar']));
   });
 });

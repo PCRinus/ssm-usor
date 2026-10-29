@@ -8,7 +8,7 @@ import { type RefObject, useEffect, useRef, useState } from 'react';
 import type { ImportSourceResponse } from '@/api/generated/api';
 import { editorStrings } from '@/features/documents/editor-strings.ro';
 
-import { findLine, passageHits, quoteLines } from './source-match';
+import { findLine, lineOccurrences, passageHits, quoteLines } from './source-match';
 import { holdPassage } from './source-word-passage';
 
 const fonts = packagedFonts({ allow: ['Arial'] });
@@ -94,8 +94,10 @@ export default function WordSourceView({
         i18n={editorStrings}
         fonts={fonts}
         onReady={(editor) => {
-          const { hits, anchor } = passageHits(quoteLines(source, quote), (line) =>
-            findLine(line, (query) => editor.findMatches(query))
+          const { hits, anchor } = passageHits(
+            quoteLines(source, quote),
+            (line) => findLine(line, (query) => editor.findMatches(query)),
+            lineOccurrences(source, quote)
           );
           setRanges(hits.map(({ blockId, start, length }) => ({ blockId, start, length })));
           // The editor paints a highlight only once its page is in view.

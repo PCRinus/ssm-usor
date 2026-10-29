@@ -71,7 +71,11 @@ function SourceContent({
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const current = request.sources[index]!;
-  const params = { file: current.file, quote: current.quote.slice(0, 2000) };
+  const params = {
+    file: current.file,
+    quote: current.quote.slice(0, 2000),
+    ...(current.near && { near: current.near.slice(0, 200) }),
+  };
   const query = useGetImportSource(importId, params, {
     request: apiRequest,
     query: {

@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   findLine,
   type LineHit,
+  lineOccurrences,
   markQuote,
+  pageQuotes,
   passageHits,
   quoteLines,
   sourceKind,
@@ -30,6 +32,13 @@ const source = (overrides: Record<string, unknown>) =>
     ...overrides,
   }) as Parameters<typeof sourceKind>[0];
 
+const matched = (start: number, end: number, page: number | null = null) => ({
+  page,
+  start,
+  end,
+  parts: [{ start, end }],
+});
+
 describe('finding a passage in the viewers', () => {
   it('marks the runs of the text layer a quote spans, ignoring case, diacritics and spacing', () => {
     const spans = ['Denumirea postului: ', 'OPERATOR', ' linie', ' ambalare.', ' Atribuții'].map(
@@ -49,9 +58,10 @@ describe('finding a passage in the viewers', () => {
   it('searches a Word passage line by line, from the text the API matched', () => {
     const text = 'Antet\nNr. crt.\tPostul\tActivități\n1\tBrutar\tFrământare și coacere\nFinal';
     const start = text.indexOf('1\tBrutar');
-    expect(
-      quoteLines(source({ text, match: { page: null, start, end: start + 30 } }), 'ignored')
-    ).toEqual(['Brutar', 'Frământare și coacere']);
+    expect(quoteLines(source({ text, match: matched(start, start + 30) }), 'ignored')).toEqual([
+      'Brutar',
+      'Frământare și coacere',
+    ]);
     expect(quoteLines(source({}), 'Reprezentant: Ioana Mureșan')).toEqual([
       'Reprezentant: Ioana Mureșan',
     ]);
@@ -62,7 +72,7 @@ describe('finding a passage in the viewers', () => {
       'FISA POSTULUI\n| FUNCTIA : | INGRIJITOR HOTEL |\n| Locul de muncă : | Etaj 1 / Etaj 2 |\n';
     const start = text.indexOf('FUNCTIA');
     const end = text.indexOf('Etaj 2') + 'Etaj 2'.length;
-    const lines = quoteLines(source({ text, match: { page: null, start, end } }), 'ignored');
+    const lines = quoteLines(source({ text, match: matched(start, end) }), 'ignored');
     expect(lines).toEqual([
       'FUNCTIA :',
       'INGRIJITOR HOTEL',
@@ -163,5 +173,92 @@ describe('finding a passage in the viewers', () => {
       { blockId: 'p0', start: 0, length: 14, paragraphIndex: 0 },
     ]);
     expect(findLine('Substante (maini)', find)).toEqual([]);
+  });
+
+  describe('a table row repeated under several posts', () => {
+    const row = '| Substante de curatat (maini) | Manusi | - | Inventar |';
+    const text = [
+      'MESERIA : BUCATAR',
+      '| Arsuri (maini) | Manusi termorezistente | 1 an | Inventar |',
+      row,
+      'MESERIA : CAMERISTA',
+      '| Alunecare | Incaltaminte | 2 ani | Inventar |',
+      row,
+    ].join('\n');
+    const cells = (at: number) => ({ start: at + 2, end: at + row.length - 2 });
+    const paragraphs = text.split(/\n|\s*\|\s*/).filter(Boolean);
+    const find = (line: string): LineHit[] =>
+      paragraphs.flatMap((paragraph, paragraphIndex) =>
+        paragraph.toLowerCase().includes(line.toLowerCase())
+          ? [{ blockId: `p${paragraphIndex}`, start: 0, length: line.length, paragraphIndex }]
+          : []
+      );
+    const marked = (match: ReturnType<typeof matched>, quote = row) => {
+      const answer = source({ text, match });
+      const lines = quoteLines(answer, quote);
+      const { hits } = passageHits(lines, find, lineOccurrences(answer, quote));
+      return hits.map((hit) => paragraphs[hit.paragraphIndex]);
+    };
+
+    it('marks the row the API placed, not its first place in the document', () => {
+      const second = cells(text.lastIndexOf(row));
+      const { hits } = passageHits(
+        ['Substante de curatat (maini)', 'Manusi', 'Inventar'],
+        find,
+        lineOccurrences(source({ text, match: matched(second.start, second.end) }), row)
+      );
+      expect(hits.map((hit) => hit.blockId)).toEqual(['p14', 'p15', 'p17']);
+      expect(marked(matched(second.start, second.end))).toEqual([
+        'Substante de curatat (maini)',
+        'Manusi',
+        'Inventar',
+      ]);
+      const first = cells(text.indexOf(row));
+      const { anchor } = passageHits(
+        ['Substante de curatat (maini)'],
+        find,
+        lineOccurrences(source({ text, match: matched(first.start, first.end) }), row)
+      );
+      expect(anchor?.blockId).toBe('p5');
+    });
+
+    it('marks the parts of a quote with an ellipsis, not the rows between them', () => {
+      const heading = text.indexOf('CAMERISTA');
+      const second = cells(text.lastIndexOf(row));
+      const quote = `CAMERISTA … ${row}`;
+      const match = {
+        page: null,
+        start: heading,
+        end: second.end,
+        parts: [{ start: heading, end: heading + 'CAMERISTA'.length }, second],
+      };
+      expect(quoteLines(source({ text, match }), quote)).toEqual([
+        'CAMERISTA',
+        'Substante de curatat (maini)',
+        'Manusi',
+        'Inventar',
+      ]);
+      expect(lineOccurrences(source({ text, match }), quote)).toEqual([0, 1, 2, 3]);
+      expect(marked(match, quote)).toEqual([
+        'MESERIA : CAMERISTA',
+        'Substante de curatat (maini)',
+        'Manusi',
+        'Inventar',
+      ]);
+    });
+
+    it('marks the place on a PDF page the API counted', () => {
+      const second = cells(text.lastIndexOf(row));
+      const answer = source({
+        pages: [{ number: 2, text }],
+        match: matched(second.start, second.end, 2),
+      });
+      const parts = pageQuotes(answer, 2, row);
+      expect(parts).toEqual([{ quote: row.slice(2, -2), occurrence: 1 }]);
+      const spans = text.split('\n').map(span);
+      const highlighted = markQuote(spans, parts[0]!.quote, parts[0]!.occurrence);
+      expect(highlighted.map((each) => spans.indexOf(each))).toEqual([5]);
+      expect(pageQuotes(answer, 1, row)).toEqual([{ quote: row, occurrence: 0 }]);
+    });
   });
 });
