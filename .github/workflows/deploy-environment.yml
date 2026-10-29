@@ -845,6 +845,8 @@ jobs:
           # Oblio has no test mode, so only production issues fiscal invoices. Here and not in
           # wrangler.jsonc, whose top level is production's and is what `wrangler dev` reads.
           OBLIO_DOCUMENTS: ${{ inputs.environment == 'production' && 'invoice' || 'proforma' }}
+          # Here too, so that `wrangler dev`, without it, counts as outside production.
+          ENVIRONMENT: ${{ inputs.environment }}
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -859,6 +861,7 @@ jobs:
             SUPABASE_PUBLISHABLE_KEY
             PDF_CONVERSION
             OBLIO_DOCUMENTS
+            ENVIRONMENT
           secrets: ${{ steps.secrets.outputs.names }}
 
       - name: Check deployed API and browser access
