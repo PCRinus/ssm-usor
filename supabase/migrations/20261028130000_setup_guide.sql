@@ -66,6 +66,8 @@ comment on column public.profiles.setup_guide_finished_at is
 grant update (setup_guide_closed_at, setup_guide_finished_at) on table public.profiles to authenticated;
 
 -- The locks read active clients only, since a step on a client leads to one (ADR 031).
+-- The fire-safety card's facts are the API's holdsCardFacts: declaring the substances alone
+-- creates the row, and must not tick the step.
 create function public.setup_progress()
 returns table (
   organization_id uuid,
@@ -98,6 +100,7 @@ returns table (
   has_client_with_employee boolean,
   has_training_record boolean,
   furthest_client_id uuid,
+  owner_count integer,
   owner_names text[]
 )
 language sql
@@ -147,6 +150,15 @@ as $$
     exists (
       select 1 from public.client_fire_safety f
       where f.organization_id = o.id and f.created_by = me.id
+        and (
+          num_nonnulls(
+            f.periodic_training_hours, f.administrative_training_interval_months, f.worker_training_interval_months,
+            f.training_first_month, f.training_day_from, f.training_day_to, f.smoking_policy, f.waste_contractor,
+            f.waste_collectors
+          ) > 0
+          or cardinality(f.waste_kinds) > 0
+          or f.has_third_parties
+        )
     ),
     exists (
       select 1 from public.document_generations g
@@ -172,6 +184,7 @@ as $$
     exists (
       select 1 from public.signature_requests r
       where r.organization_id = o.id and r.issued_by = me.id and r.state = 'signed'
+        and r.signer_account_id is not null
     ),
     exists (
       select 1 from public.clients c
@@ -235,7 +248,19 @@ as $$
           + exists (select 1 from public.employees e where e.client_id = c.id and e.archived_at is null)::integer
           + exists (select 1 from public.client_responsible_persons p where p.client_id = c.id and p.archived_at is null)::integer
           + exists (select 1 from public.risk_evaluations r where r.client_id = c.id)::integer
-          + exists (select 1 from public.client_fire_safety f where f.client_id = c.id)::integer
+          + exists (
+              select 1 from public.client_fire_safety f
+              where f.client_id = c.id
+                and (
+                  num_nonnulls(
+                    f.periodic_training_hours, f.administrative_training_interval_months, f.worker_training_interval_months,
+                    f.training_first_month, f.training_day_from, f.training_day_to, f.smoking_policy, f.waste_contractor,
+                    f.waste_collectors
+                  ) > 0
+                  or cardinality(f.waste_kinds) > 0
+                  or f.has_third_parties
+                )
+            )::integer
           + (exists (select 1 from public.document_generations g where g.client_id = c.id and g.document_group = 'documentation_set')
             and exists (select 1 from public.document_generations g where g.client_id = c.id and g.document_group = 'fire_safety_set'))::integer
           + exists (
@@ -246,12 +271,20 @@ as $$
             )::integer
           + exists (select 1 from public.participant_invitations i where i.client_id = c.id and i.kind = 'employee')::integer
           + exists (select 1 from public.trainings t where t.client_id = c.id and t.source = 'app')::integer
-          + exists (select 1 from public.signature_requests r where r.client_id = c.id and r.state = 'signed')::integer
+          + exists (
+              select 1 from public.signature_requests r
+              where r.client_id = c.id and r.state = 'signed' and r.signer_account_id is not null
+            )::integer
           as steps
       ) as progress
       where c.organization_id = o.id and c.stage = 'client' and c.archived_at is null
       order by progress.steps desc, c.created_at desc, c.id desc
       limit 1
+    ),
+    (
+      select count(*)::integer
+      from public.organization_members m
+      where m.organization_id = o.id and m.role = 'owner'
     ),
     coalesce((
       select array_agg(p.full_name order by p.full_name)
@@ -283,7 +316,7 @@ as $$
 $$;
 
 comment on function public.setup_progress() is
-  'The setup guide''s facts for the caller in their organization (ADR 031): each step done by the caller, or by an owner for the two organization steps; the fields of those two still empty; what each lock needs; the active client furthest along; and the owners'' names. No row for an account without an organization.';
+  'The setup guide''s facts for the caller in their organization (ADR 031): each step done by the caller, or by an owner for the two organization steps; which fields of those two are filled; what each lock needs; the active client furthest along; and how many owners there are, with the names of those who have a profile. No row for an account without an organization.';
 
 revoke all on function public.setup_progress() from public, anon;
 grant execute on function public.setup_progress() to authenticated, service_role;

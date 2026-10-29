@@ -1,5 +1,5 @@
 begin;
-select plan(46);
+select plan(64);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -60,8 +60,8 @@ insert into public.client_responsible_persons (organization_id, client_id, full_
 insert into public.risk_evaluations (organization_id, client_id, kind, job_position_id, created_by) values
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'job_position', 'b1b1b1b1-0000-4000-8000-000000000001', 'bbbbbbbb-0000-4000-8000-000000000001');
 
-insert into public.client_fire_safety (client_id, organization_id, created_by) values
-  ('c1c1c1c1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'bbbbbbbb-0000-4000-8000-000000000001');
+insert into public.client_fire_safety (client_id, organization_id, smoking_policy, created_by) values
+  ('c1c1c1c1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'forbidden_everywhere', 'bbbbbbbb-0000-4000-8000-000000000001');
 
 insert into public.document_generations (organization_id, client_id, issue_date, document_group, created_by) values
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '2026-10-01', 'documentation_set', 'bbbbbbbb-0000-4000-8000-000000000001'),
@@ -90,9 +90,9 @@ insert into public.participant_invitations (organization_id, client_id, kind, em
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'employee', 'e1e1e1e1-0000-4000-8000-000000000001', null, 'email', 'dan@example.com', 'bbbbbbbb-0000-4000-8000-000000000001'),
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'client_administrator', null, 'Ion Pop', 'email', 'ion@example.com', 'aaaaaaaa-0000-4000-8000-000000000001');
 
-insert into public.signature_requests (organization_id, client_id, training_record_id, slot, state, issued_by) values
-  ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000001', 'trainee', 'signed', 'bbbbbbbb-0000-4000-8000-000000000001'),
-  ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000001', 'trainer', 'pending', 'aaaaaaaa-0000-4000-8000-000000000001');
+insert into public.signature_requests (organization_id, client_id, training_record_id, slot, signer_account_id, state, issued_by) values
+  ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000001', 'trainer', 'aaaaaaaa-0000-4000-8000-000000000001', 'signed', 'bbbbbbbb-0000-4000-8000-000000000001'),
+  ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000001', 'trainee', null, 'pending', 'aaaaaaaa-0000-4000-8000-000000000001');
 
 create or replace function pg_temp.act_as(user_id text)
 returns void language sql as $$
@@ -165,9 +165,9 @@ select results_eq(
 );
 
 select results_eq(
-  $$ select owner_names from public.setup_progress() $$,
-  $$ values ('{Ioana Popescu}'::text[]) $$,
-  'the owner is named'
+  $$ select owner_count, owner_names from public.setup_progress() $$,
+  $$ values (1, '{Ioana Popescu}'::text[]) $$,
+  'the owner is counted and named'
 );
 
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');
@@ -238,8 +238,8 @@ insert into public.job_positions (organization_id, client_id, name, created_by) 
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000004', 'Vânzător', 'cccccccc-0000-4000-8000-000000000001');
 insert into public.client_responsible_persons (organization_id, client_id, full_name, job_title, roles, created_by) values
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000004', 'Vasile Matei', 'Administrator', '{first_aid}', 'cccccccc-0000-4000-8000-000000000001');
-insert into public.client_fire_safety (client_id, organization_id, created_by) values
-  ('c1c1c1c1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001');
+insert into public.client_fire_safety (client_id, organization_id, periodic_training_hours, created_by) values
+  ('c1c1c1c1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 2, 'cccccccc-0000-4000-8000-000000000001');
 select pg_temp.act_as('cccccccc-0000-4000-8000-000000000001');
 
 select results_eq(
@@ -272,9 +272,9 @@ select results_eq(
 );
 
 select results_eq(
-  $$ select owner_names from public.setup_progress() $$,
-  $$ values ('{Ana Barbu,Dan Barbu}'::text[]) $$,
-  'every owner is named, in order'
+  $$ select owner_count, owner_names from public.setup_progress() $$,
+  $$ values (2, '{Ana Barbu,Dan Barbu}'::text[]) $$,
+  'every owner is counted and named, in order'
 );
 
 select pg_temp.act_as('eeeeeeee-0000-4000-8000-000000000001');
@@ -434,6 +434,234 @@ select results_eq(
   $$ select has_training_record from public.setup_progress() $$,
   $$ values (true) $$,
   'a training with a record unlocks the signature'
+);
+
+reset role;
+insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+values
+  ('f0f0f0f0-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'owner-d@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
+  ('f0f0f0f0-0000-4000-8000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'second-owner-d@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
+  ('f0f0f0f0-0000-4000-8000-000000000003', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'specialist-d@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
+  ('f0f0f0f0-0000-4000-8000-000000000004', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'no-organization@test', 'x', now(), '{"provider":"email"}', '{}', now(), now());
+insert into public.profiles (user_id, full_name, professional_title) values
+  ('f0f0f0f0-0000-4000-8000-000000000001', 'Radu Stan', null),
+  ('f0f0f0f0-0000-4000-8000-000000000003', 'Sorin Lupu', null),
+  ('f0f0f0f0-0000-4000-8000-000000000004', 'Paul Dinu', null);
+insert into public.organizations (id, name) values ('44444444-0000-4000-8000-000000000004', 'Org D');
+insert into public.organization_members (user_id, organization_id, role, created_at) values
+  ('f0f0f0f0-0000-4000-8000-000000000001', '44444444-0000-4000-8000-000000000004', 'owner', '2026-01-01'),
+  ('f0f0f0f0-0000-4000-8000-000000000002', '44444444-0000-4000-8000-000000000004', 'owner', '2026-01-01'),
+  ('f0f0f0f0-0000-4000-8000-000000000003', '44444444-0000-4000-8000-000000000004', 'specialist', '2026-01-02');
+insert into public.clients (id, organization_id, legal_name, cui, stage, created_at) values
+  ('c4c4c4c4-0000-4000-8000-000000000001', '44444444-0000-4000-8000-000000000004', 'Vechi', '15', 'client', '2026-03-01'),
+  ('c4c4c4c4-0000-4000-8000-000000000002', '44444444-0000-4000-8000-000000000004', 'Nou', '16', 'client', '2026-04-01');
+insert into public.job_positions (id, organization_id, client_id, name) values
+  ('b4b4b4b4-0000-4000-8000-000000000001', '44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000001', 'Casier'),
+  ('b4b4b4b4-0000-4000-8000-000000000002', '44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000002', 'Casier');
+insert into public.employees (id, organization_id, client_id, job_position_id, last_name, first_name, job_title, hired_at) values
+  ('e4e4e4e4-0000-4000-8000-000000000001', '44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000001', 'b4b4b4b4-0000-4000-8000-000000000001', 'Toma', 'Ana', 'Casier', '2025-01-01'),
+  ('e4e4e4e4-0000-4000-8000-000000000002', '44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000002', 'b4b4b4b4-0000-4000-8000-000000000002', 'Neagu', 'Ion', 'Casier', '2025-01-01');
+insert into public.client_documents (id, organization_id, client_id, type_key, title, document_group, owners_only) values
+  ('d4d4d4d4-0000-4000-8000-000000000001', '44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000001', 'service_contract', 'Contract', 'other', true);
+insert into public.document_revisions (organization_id, document_id, revision, status, docx_path, issued_at, docx_sha256, issued_by) values
+  ('44444444-0000-4000-8000-000000000004', 'd4d4d4d4-0000-4000-8000-000000000001', 1, 'issued', '44444444-0000-4000-8000-000000000004/d1/1.docx', now(), repeat('c', 64), 'f0f0f0f0-0000-4000-8000-000000000003'),
+  ('44444444-0000-4000-8000-000000000004', 'd4d4d4d4-0000-4000-8000-000000000001', 2, 'draft', '44444444-0000-4000-8000-000000000004/d1/2.docx', null, null, null);
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select owner_count, owner_names from public.setup_progress() $$,
+  $$ values (2, '{Radu Stan}'::text[]) $$,
+  'an owner without a profile is counted though not named'
+);
+
+select results_eq(
+  $$ select furthest_client_id from public.setup_progress() $$,
+  $$ values ('c4c4c4c4-0000-4000-8000-000000000002'::uuid) $$,
+  'two clients with the same steps done open the newer one, and the service contract is no step done'
+);
+
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000003');
+
+select results_eq(
+  $$ select issue_document_done, has_draft_revision from public.setup_progress() $$,
+  $$ values (false, false) $$,
+  'a specialist neither issues nor unlocks issuing through the service contract'
+);
+
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000004');
+
+select is(
+  (select count(*) from public.setup_progress()),
+  0::bigint,
+  'an account without an organization gets no row'
+);
+
+reset role;
+insert into public.risk_evaluations (organization_id, client_id, kind, job_position_id) values
+  ('44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000001', 'job_position', 'b4b4b4b4-0000-4000-8000-000000000001');
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select furthest_client_id from public.setup_progress() $$,
+  $$ values ('c4c4c4c4-0000-4000-8000-000000000001'::uuid) $$,
+  'a risk evaluation counts as a step done'
+);
+
+reset role;
+insert into public.risk_evaluations (organization_id, client_id, kind, job_position_id) values
+  ('44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000002', 'job_position', 'b4b4b4b4-0000-4000-8000-000000000002');
+insert into public.client_fire_safety (client_id, organization_id, substances_state, created_by) values
+  ('c4c4c4c4-0000-4000-8000-000000000001', '44444444-0000-4000-8000-000000000004', 'none', 'f0f0f0f0-0000-4000-8000-000000000001');
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select fire_safety_data_done, furthest_client_id from public.setup_progress() $$,
+  $$ values (false, 'c4c4c4c4-0000-4000-8000-000000000002'::uuid) $$,
+  'a fire-safety row holding only the substances declaration ticks nothing and scores nothing'
+);
+
+reset role;
+update public.client_fire_safety set has_third_parties = true where client_id = 'c4c4c4c4-0000-4000-8000-000000000001';
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select fire_safety_data_done, furthest_client_id from public.setup_progress() $$,
+  $$ values (true, 'c4c4c4c4-0000-4000-8000-000000000001'::uuid) $$,
+  'a fact of the fire-safety card ticks the step and counts for the client'
+);
+
+reset role;
+insert into public.client_fire_safety (client_id, organization_id, waste_kinds) values
+  ('c4c4c4c4-0000-4000-8000-000000000002', '44444444-0000-4000-8000-000000000004', '{Hârtie}');
+insert into public.document_generations (organization_id, client_id, issue_date, document_group) values
+  ('44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000001', '2026-10-01', 'documentation_set');
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select furthest_client_id from public.setup_progress() $$,
+  $$ values ('c4c4c4c4-0000-4000-8000-000000000002'::uuid) $$,
+  'one of the two sets generated is no step done'
+);
+
+reset role;
+insert into public.document_generations (organization_id, client_id, issue_date, document_group) values
+  ('44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000001', '2026-10-01', 'fire_safety_set');
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select furthest_client_id from public.setup_progress() $$,
+  $$ values ('c4c4c4c4-0000-4000-8000-000000000001'::uuid) $$,
+  'both sets generated count as a step done'
+);
+
+reset role;
+insert into public.document_generations (organization_id, client_id, issue_date, document_group) values
+  ('44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000002', '2026-10-01', 'documentation_set'),
+  ('44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000002', '2026-10-01', 'fire_safety_set');
+insert into public.client_documents (id, organization_id, client_id, type_key, title, document_group, owners_only) values
+  ('d4d4d4d4-0000-4000-8000-000000000002', '44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000001', 'decision_training', 'Decizie', 'documentation_set', false),
+  ('d4d4d4d4-0000-4000-8000-000000000003', '44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000002', 'decision_training', 'Decizie', 'documentation_set', false);
+insert into public.document_revisions (organization_id, document_id, revision, status, docx_path) values
+  ('44444444-0000-4000-8000-000000000004', 'd4d4d4d4-0000-4000-8000-000000000002', 1, 'draft', '44444444-0000-4000-8000-000000000004/d2/1.docx');
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select furthest_client_id from public.setup_progress() $$,
+  $$ values ('c4c4c4c4-0000-4000-8000-000000000002'::uuid) $$,
+  'a draft of a set is no document issued'
+);
+
+reset role;
+insert into public.document_revisions (organization_id, document_id, revision, status, docx_path, issued_at, docx_sha256) values
+  ('44444444-0000-4000-8000-000000000004', 'd4d4d4d4-0000-4000-8000-000000000002', 2, 'issued', '44444444-0000-4000-8000-000000000004/d2/2.docx', now(), repeat('d', 64));
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select furthest_client_id from public.setup_progress() $$,
+  $$ values ('c4c4c4c4-0000-4000-8000-000000000001'::uuid) $$,
+  'an issued revision of a set counts as a step done'
+);
+
+reset role;
+insert into public.document_revisions (organization_id, document_id, revision, status, docx_path, issued_at, docx_sha256) values
+  ('44444444-0000-4000-8000-000000000004', 'd4d4d4d4-0000-4000-8000-000000000003', 1, 'issued', '44444444-0000-4000-8000-000000000004/d3/1.docx', now(), repeat('e', 64));
+insert into public.participant_invitations (organization_id, client_id, kind, employee_id, full_name, channel, address) values
+  ('44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000001', 'client_administrator', null, 'Vasile Toma', 'email', 'vasile@example.com');
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select furthest_client_id from public.setup_progress() $$,
+  $$ values ('c4c4c4c4-0000-4000-8000-000000000002'::uuid) $$,
+  'inviting a client administrator is no step done'
+);
+
+reset role;
+insert into public.participant_invitations (organization_id, client_id, kind, employee_id, full_name, channel, address) values
+  ('44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000001', 'employee', 'e4e4e4e4-0000-4000-8000-000000000001', null, 'email', 'ana@example.com');
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select furthest_client_id from public.setup_progress() $$,
+  $$ values ('c4c4c4c4-0000-4000-8000-000000000001'::uuid) $$,
+  'inviting an employee counts as a step done'
+);
+
+reset role;
+insert into public.participant_invitations (organization_id, client_id, kind, employee_id, full_name, channel, address) values
+  ('44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000002', 'employee', 'e4e4e4e4-0000-4000-8000-000000000002', null, 'email', 'ion@example.com');
+insert into public.trainings (id, organization_id, client_id, domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, source) values
+  ('a4a4a4a4-0000-4000-8000-000000000001', '44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000001', 'ssm', 'periodic', '2025-10-01', 120, 'Material', 'Ion POP', 'Șef', 'paper');
+insert into public.training_records (id, organization_id, client_id, training_id, phase, employee_id, occupation) values
+  ('7a7a7a7a-0000-4000-8000-000000000004', '44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000001', 'a4a4a4a4-0000-4000-8000-000000000001', 'periodic', 'e4e4e4e4-0000-4000-8000-000000000001', 'Casier');
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select furthest_client_id from public.setup_progress() $$,
+  $$ values ('c4c4c4c4-0000-4000-8000-000000000002'::uuid) $$,
+  'a training recorded from paper is no step done'
+);
+
+reset role;
+insert into public.trainings (organization_id, client_id, domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, source) values
+  ('44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000001', 'ssm', 'workplace', '2026-10-01', 120, 'Material', 'Ion POP', 'Șef', 'app');
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select furthest_client_id from public.setup_progress() $$,
+  $$ values ('c4c4c4c4-0000-4000-8000-000000000001'::uuid) $$,
+  'a training held in the app counts as a step done'
+);
+
+reset role;
+insert into public.trainings (organization_id, client_id, domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, source) values
+  ('44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000002', 'ssm', 'workplace', '2026-10-01', 120, 'Material', 'Ion POP', 'Șef', 'app');
+insert into public.signature_requests (organization_id, client_id, training_record_id, slot, signer_account_id, issued_by) values
+  ('44444444-0000-4000-8000-000000000004', 'c4c4c4c4-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000004', 'trainer', 'f0f0f0f0-0000-4000-8000-000000000001', 'f0f0f0f0-0000-4000-8000-000000000001');
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select signature_done, furthest_client_id from public.setup_progress() $$,
+  $$ values (false, 'c4c4c4c4-0000-4000-8000-000000000002'::uuid) $$,
+  'a pending signature request ticks nothing and scores nothing'
+);
+
+do $$ begin perform public.mark_paper_signature('7a7a7a7a-0000-4000-8000-000000000004', 'trainee', 'Ana Toma'); end $$;
+
+select results_eq(
+  $$ select signature_done, furthest_client_id from public.setup_progress() $$,
+  $$ values (false, 'c4c4c4c4-0000-4000-8000-000000000002'::uuid) $$,
+  'a slot the caller marked as signed on paper ticks nothing and scores nothing'
+);
+
+reset role;
+update public.signature_requests set state = 'signed'
+  where training_record_id = '7a7a7a7a-0000-4000-8000-000000000004' and slot = 'trainer';
+select pg_temp.act_as('f0f0f0f0-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select signature_done, furthest_client_id from public.setup_progress() $$,
+  $$ values (true, 'c4c4c4c4-0000-4000-8000-000000000001'::uuid) $$,
+  'a request signed electronically ticks the step and counts for the client'
 );
 
 reset role;

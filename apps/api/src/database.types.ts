@@ -7278,6 +7278,7 @@ export type Database = {
           issue_document_done: boolean;
           legal_name_filled: boolean;
           organization_id: string;
+          owner_count: number;
           owner_names: string[];
           portal_invitation_done: boolean;
           professional_title_done: boolean;
