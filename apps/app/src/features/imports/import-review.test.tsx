@@ -734,3 +734,97 @@ describe('completing an existing client (E2)', () => {
     expect(screen.getByTestId('review-same').textContent).toContain('La fel în documente');
   });
 });
+
+function fireSheetProposal() {
+  const proposal = proposalFixture();
+  const source = (quote: string) => [{ file: 'b.pdf', quote }];
+  Object.assign(proposal.workplaces[0]!, {
+    kind: null,
+    floorAreaM2: 180,
+    extinguisherNorm: 'commercial_200',
+    assemblyPoint: 'Parcarea din spatele clădirii',
+    combustibleMaterials: 'Făină, ambalaje din carton',
+    ignitionSources: null,
+    fireRiskEquipment: null,
+    specificMeasures: null,
+    fieldSources: { assemblyPoint: source('Punct de adunare: parcarea din spatele clădirii') },
+  });
+  Object.assign(proposal.jobPositions[0]!, { needsProtectiveEquipment: false });
+  const one = (value: string | number, quote: string) => ({
+    options: [{ value, sources: source(quote), otherCompanyName: null }],
+  });
+  Object.assign(proposal.fireSafety, {
+    wasteKinds: one('deșeuri menajere; carton', 'Deșeuri: menajere, carton'),
+    wasteCollectors: { options: [] },
+    hasThirdParties: one('true', 'chiriașul'),
+  });
+  Object.assign(proposal.trainingSchedule, {
+    workerTrainingNotApplicable: one('true', 'nu se aplică'),
+  });
+  return readyDetail({ proposal });
+}
+
+describe('what the import now fills for the fire-safety and safety sets', () => {
+  it("shows a workplace's fire-safety sheet, and edits it in the app's dialog", async () => {
+    mockReview(fireSheetProposal());
+    mount('/workplaces');
+
+    const [row] = await screen.findAllByTestId('review-item');
+    expect(row!.textContent).toContain('Suprafața utilă 180 m²');
+    expect(row!.textContent).toContain('Norma de dotare: Clădiri comerciale');
+    expect(row!.textContent).toContain('Punctul de adunare: Parcarea din spatele clădirii');
+    expect(row!.textContent).toContain('Materiale combustibile: Făină, ambalaje din carton');
+
+    await userEvent.click(within(row!).getByTestId('review-edit'));
+    const dialog = await screen.findByTestId('workplace-dialog');
+    expect((within(dialog).getByTestId('workplace-floor-area') as HTMLInputElement).value).toBe(
+      '180'
+    );
+    const assembly = within(dialog).getByTestId('workplace-assembly-point');
+    await userEvent.clear(assembly);
+    await userEvent.type(assembly, 'Curtea interioară');
+    await userEvent.click(within(dialog).getByTestId('workplace-save'));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.items).toEqual({
+      'workplace-1': { values: { assemblyPoint: 'Curtea interioară' } },
+    });
+  });
+
+  it('proposes that a post needs no protective equipment, and leaves it undecided on request', async () => {
+    mockReview(fireSheetProposal());
+    mount('/job-positions');
+
+    const decision = await screen.findByTestId('review-equipment-decision');
+    expect(decision.textContent).toContain('Nu necesită echipament de protecție');
+    await userEvent.click(within(decision).getByRole('button', { name: 'Lasă de stabilit' }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.items).toEqual({
+      'position-1': { values: { needsProtectiveEquipment: null } },
+    });
+    expect(screen.getByTestId('review-equipment-decision').textContent).toContain(
+      'Echipamentul de protecție rămâne de stabilit'
+    );
+  });
+
+  it('shows the waste, other firms on the premises, and a category without periodic training', async () => {
+    mockReview(fireSheetProposal());
+    mount('/fire-safety');
+
+    const waste = await screen.findByText('Deșeuri colectate');
+    expect(waste.closest('[id]')!.textContent).toContain('deșeuri menajere; carton');
+    expect(document.getElementById('review-fireSafety-hasThirdParties')!.textContent).toContain(
+      'Da'
+    );
+  });
+
+  it('asks to keep either the interval or "Nu se aplică" for a category', async () => {
+    mockReview(fireSheetProposal());
+    mount('/training');
+
+    const label = await screen.findByText('Instruirea periodică, execuție');
+    const row = label.closest('[id]')!;
+    expect(row.id).toBe('review-trainingSchedule-workerTrainingNotApplicable');
+    expect(row.textContent).toContain('Nu se aplică');
+    expect(row.textContent).toContain('Documentele dau și o periodicitate');
+  });
+});

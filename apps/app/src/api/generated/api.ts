@@ -7837,6 +7837,31 @@ export const ImportDetailBlockersItemCode = {
   invalid: 'invalid',
 } as const;
 
+export type ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemValue =
+  (typeof ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemValue)[keyof typeof ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemValue];
+
+export const ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemValue =
+  {
+    true: 'true',
+    false: 'false',
+  } as const;
+
+export type ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptionsItemValue =
+  (typeof ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptionsItemValue)[keyof typeof ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptionsItemValue];
+
+export const ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptionsItemValue = {
+  true: 'true',
+  false: 'false',
+} as const;
+
+export type ImportDetailProposalFireSafetyHasThirdPartiesOptionsItemValue =
+  (typeof ImportDetailProposalFireSafetyHasThirdPartiesOptionsItemValue)[keyof typeof ImportDetailProposalFireSafetyHasThirdPartiesOptionsItemValue];
+
+export const ImportDetailProposalFireSafetyHasThirdPartiesOptionsItemValue = {
+  true: 'true',
+  false: 'false',
+} as const;
+
 /**
  * @nullable
  */
@@ -8437,6 +8462,48 @@ export type ImportDetailProposalTrainingScheduleTrainingDayTo = {
   options: ImportDetailProposalTrainingScheduleTrainingDayToOptionsItem[];
 };
 
+export type ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemSourcesItem =
+  {
+    file: string;
+    quote: string;
+  };
+
+export type ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItem = {
+  value: ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemValue;
+  /** @minItems 1 */
+  sources: ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicable = {
+  options: ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItem[];
+};
+
+export type ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptionsItemSourcesItem =
+  {
+    file: string;
+    quote: string;
+  };
+
+export type ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptionsItem = {
+  value: ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptionsItemValue;
+  /** @minItems 1 */
+  sources: ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicable = {
+  options: ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptionsItem[];
+};
+
 export type ImportDetailProposalTrainingSchedule = {
   periodicTrainingMinutes: ImportDetailProposalTrainingSchedulePeriodicTrainingMinutes;
   administrativeTrainingIntervalMonths: ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMonths;
@@ -8444,6 +8511,8 @@ export type ImportDetailProposalTrainingSchedule = {
   trainingFirstMonth: ImportDetailProposalTrainingScheduleTrainingFirstMonth;
   trainingDayFrom: ImportDetailProposalTrainingScheduleTrainingDayFrom;
   trainingDayTo: ImportDetailProposalTrainingScheduleTrainingDayTo;
+  administrativeTrainingNotApplicable?: ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicable;
+  workerTrainingNotApplicable?: ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicable;
 };
 
 export type ImportDetailProposalFireSafetyPeriodicTrainingHoursOptionsItemSourcesItem = {
@@ -8570,6 +8639,68 @@ export type ImportDetailProposalFireSafetyWasteContractor = {
   options: ImportDetailProposalFireSafetyWasteContractorOptionsItem[];
 };
 
+export type ImportDetailProposalFireSafetyWasteKindsOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireSafetyWasteKindsOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalFireSafetyWasteKindsOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalFireSafetyWasteKinds = {
+  options: ImportDetailProposalFireSafetyWasteKindsOptionsItem[];
+};
+
+export type ImportDetailProposalFireSafetyWasteCollectorsOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireSafetyWasteCollectorsOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  sources: ImportDetailProposalFireSafetyWasteCollectorsOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalFireSafetyWasteCollectors = {
+  options: ImportDetailProposalFireSafetyWasteCollectorsOptionsItem[];
+};
+
+export type ImportDetailProposalFireSafetyHasThirdPartiesOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireSafetyHasThirdPartiesOptionsItem = {
+  value: ImportDetailProposalFireSafetyHasThirdPartiesOptionsItemValue;
+  /** @minItems 1 */
+  sources: ImportDetailProposalFireSafetyHasThirdPartiesOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+};
+
+export type ImportDetailProposalFireSafetyHasThirdParties = {
+  options: ImportDetailProposalFireSafetyHasThirdPartiesOptionsItem[];
+};
+
 export type ImportDetailProposalFireSafety = {
   periodicTrainingHours: ImportDetailProposalFireSafetyPeriodicTrainingHours;
   administrativeTrainingIntervalMonths: ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonths;
@@ -8577,11 +8708,23 @@ export type ImportDetailProposalFireSafety = {
   smokingPolicy: ImportDetailProposalFireSafetySmokingPolicy;
   smokingPlace: ImportDetailProposalFireSafetySmokingPlace;
   wasteContractor: ImportDetailProposalFireSafetyWasteContractor;
+  wasteKinds?: ImportDetailProposalFireSafetyWasteKinds;
+  wasteCollectors?: ImportDetailProposalFireSafetyWasteCollectors;
+  hasThirdParties?: ImportDetailProposalFireSafetyHasThirdParties;
 };
 
 export type ImportDetailProposalWorkplacesItemSourcesItem = {
   file: string;
   quote: string;
+};
+
+export type ImportDetailProposalWorkplacesItemFieldSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalWorkplacesItemFieldSources = {
+  [key: string]: ImportDetailProposalWorkplacesItemFieldSourcesItem[];
 };
 
 export type ImportDetailProposalWorkplacesItem = {
@@ -8607,6 +8750,44 @@ export type ImportDetailProposalWorkplacesItem = {
   activity: string | null;
   /** @items.minLength 1 */
   rooms: string[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  kind?: string | null;
+  /** @nullable */
+  floorAreaM2?: number | null;
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  extinguisherNorm?: string | null;
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  assemblyPoint?: string | null;
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  combustibleMaterials?: string | null;
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  ignitionSources?: string | null;
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  fireRiskEquipment?: string | null;
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  specificMeasures?: string | null;
+  fieldSources?: ImportDetailProposalWorkplacesItemFieldSources;
 };
 
 export type ImportDetailProposalJobPositionsItemSourcesItem = {
@@ -8635,6 +8816,8 @@ export type ImportDetailProposalJobPositionsItem = {
   /** @nullable */
   activities: string | null;
   managementOnly?: boolean;
+  /** @nullable */
+  needsProtectiveEquipment?: boolean | null;
 };
 
 export type ImportDetailProposalResponsiblePersonsItemSourcesItem = {

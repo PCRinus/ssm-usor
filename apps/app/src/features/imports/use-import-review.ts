@@ -244,8 +244,21 @@ export function useExistingValues(detail: ImportDetail) {
           ? (detailsRow[name] ?? null)
           : (clientRow[name] ?? null);
       }
-      if (group === 'trainingSchedule') return detailsRow[name] ?? null;
-      if (group === 'fireSafety') return fireRow[name] ?? null;
+      if (group === 'trainingSchedule') {
+        if (!name.endsWith('NotApplicable')) return detailsRow[name] ?? null;
+        // Without an interval, a category not declared "not applicable" is still undecided.
+        const interval = detailsRow[name.replace('NotApplicable', 'IntervalMonths')] ?? null;
+        const declared = (detailsRow[name] as unknown) === true;
+        return declared ? 'true' : interval === null ? null : 'false';
+      }
+      if (group === 'fireSafety') {
+        const value = fireRow[name] as unknown;
+        // The card's defaults stand in for a row the client does not have yet.
+        if (!fireSafety.data?.exists) return null;
+        if (Array.isArray(value)) return value.length > 0 ? value.join('; ') : null;
+        if (typeof value === 'boolean') return String(value);
+        return fireRow[name] ?? null;
+      }
       return undefined;
     },
   };
