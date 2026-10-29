@@ -1105,3 +1105,84 @@ describe('a smoking rule the decisions disagree on', () => {
     expect(within(row).queryByTestId('review-not-applicable')).toBeNull();
   });
 });
+
+describe('a value proposed with its spelling corrected', () => {
+  const spellingDetail = () => {
+    const proposal = proposalFixture();
+    Object.assign(proposal.jobPositions[0]!, {
+      name: 'Îngrijitor hotel',
+      sources: [{ file: 'dosar-ssm.zip/Fise post.doc', quote: 'FUNCTIA : | INGRIJITOR HOTEL' }],
+      spelling: { name: 'INGRIJITOR HOTEL', workZone: 'LABORATOR' },
+    });
+    Object.assign(proposal.fireSafety.smokingPlace.options[0]!, {
+      value: 'În curte',
+      spelling: 'In curte',
+    });
+    return readyDetail({ proposal });
+  };
+
+  it('shows the corrected value beside the document’s, and keeps the document’s at one click', async () => {
+    mockReview(spellingDetail());
+    mount('/job-positions');
+
+    const row = (await screen.findAllByTestId('review-item')).find((item) =>
+      item.textContent?.includes('Îngrijitor hotel')
+    )!;
+    const [name, zone] = within(row).getAllByTestId('review-spelling');
+    expect(name!.textContent).toBe(
+      'Denumire:Propus: Îngrijitor hotelÎn document: INGRIJITOR HOTELScrierea corectată: majuscule și diacriticePăstrează ca în document'
+    );
+    expect(zone!.textContent).toContain('Scrierea corectată: majuscule');
+    expect(zone!.textContent).not.toContain('diacritice');
+
+    await userEvent.click(within(name!).getByRole('button', { name: 'Păstrează ca în document' }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.items).toEqual({
+      'position-1': { values: { name: 'INGRIJITOR HOTEL' } },
+    });
+    const kept = screen
+      .getAllByTestId('review-item')
+      .find((item) => item.textContent?.includes('INGRIJITOR HOTEL'))!;
+    expect(within(kept).getAllByTestId('review-spelling')).toHaveLength(1);
+    expect(within(kept).getByTestId('edited-tag')).toBeTruthy();
+
+    await userEvent.click(within(kept).getByTestId('review-edit'));
+    const dialog = await screen.findByTestId('job-position-dialog');
+    await userEvent.type(within(dialog).getByTestId('job-position-activities'), ', curățenie');
+    await userEvent.click(within(dialog).getByTestId('job-position-save'));
+    await waitFor(() => expect(saves).toBe(2));
+    expect(savedChanges(1).changes.items['position-1']).toEqual({
+      values: { name: 'INGRIJITOR HOTEL', activities: 'Frământare și coacere, curățenie' },
+    });
+  });
+
+  it('keeps the document’s spelling of a single value as the member’s', async () => {
+    mockReview(spellingDetail());
+    mount('/fire-safety');
+
+    await screen.findByText('Locul pentru fumat');
+    const row = document.getElementById('review-fireSafety-smokingPlace')!;
+    expect(within(row).getByTestId('review-spelling').textContent).toContain(
+      'Scrierea corectată: diacritice'
+    );
+
+    await userEvent.click(within(row).getByRole('button', { name: 'Păstrează ca în document' }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'fireSafety.smokingPlace': { value: 'In curte' },
+    });
+    await waitFor(() => expect(within(row).queryByTestId('review-spelling')).toBeNull());
+    expect(within(row).getByTestId('edited-tag')).toBeTruthy();
+    expect(row.textContent).toContain('Propus din documente: În curte');
+  });
+
+  it('sums up the hub with the corrected value', async () => {
+    mockReview(spellingDetail());
+    mount();
+
+    const fireSafety = (await screen.findAllByTestId('import-section-link')).find(
+      (link) => link.dataset.section === 'fire-safety'
+    )!;
+    expect(fireSafety.textContent).toContain('Fumat doar în locurile amenajate: în curte');
+  });
+});

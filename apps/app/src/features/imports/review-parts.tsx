@@ -3,7 +3,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, Pencil, ShieldCheck } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 
-import type { SectionStatus, Source } from './review-model';
+import { type SectionStatus, type Source, spellingCorrection } from './review-model';
 
 const tones = {
   warning: 'border-warning-border bg-warning text-warning-foreground',
@@ -199,6 +199,41 @@ export function SavingNote({ saving }: { saving: boolean }) {
   return (
     <span className="text-xs text-muted-foreground" role="status" aria-live="polite">
       {saving ? 'Se salvează…' : ''}
+    </span>
+  );
+}
+
+export function SpellingPair({
+  label,
+  value,
+  written,
+  onKeep,
+}: {
+  label?: string;
+  value: string;
+  written: string;
+  onKeep: () => void;
+}) {
+  return (
+    <span
+      className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]"
+      data-testid="review-spelling"
+    >
+      {label && <span className="text-muted-foreground">{label}:</span>}
+      <span className="rounded-md border border-success-border bg-success px-1.5 py-0.5 text-success-foreground wrap-anywhere">
+        <span className="sr-only">Propus: </span>
+        {value}
+      </span>
+      <span className="rounded-md border border-destructive-border bg-destructive-soft px-1.5 py-0.5 text-destructive-foreground wrap-anywhere">
+        <span className="sr-only">În document: </span>
+        {written}
+      </span>
+      <span className="text-muted-foreground">
+        Scrierea corectată: {spellingCorrection(value, written)}
+      </span>
+      <LinkButton className="text-[13px]" onClick={onKeep}>
+        Păstrează ca în document
+      </LinkButton>
     </span>
   );
 }

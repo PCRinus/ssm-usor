@@ -8122,6 +8122,8 @@ export type ImportDetailProposalClientLegalNameOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalClientLegalName = {
@@ -8143,6 +8145,8 @@ export type ImportDetailProposalClientCuiOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalClientCui = {
@@ -8164,6 +8168,8 @@ export type ImportDetailProposalClientTradeRegisterNumberOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalClientTradeRegisterNumber = {
@@ -8185,6 +8191,8 @@ export type ImportDetailProposalClientCaenCodeOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalClientCaenCode = {
@@ -8206,6 +8214,8 @@ export type ImportDetailProposalClientCountyCodeOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalClientCountyCode = {
@@ -8227,6 +8237,8 @@ export type ImportDetailProposalClientLocalityOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalClientLocality = {
@@ -8248,6 +8260,8 @@ export type ImportDetailProposalClientAddressLineOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalClientAddressLine = {
@@ -8269,6 +8283,8 @@ export type ImportDetailProposalClientLegalRepresentativeNameOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalClientLegalRepresentativeName = {
@@ -8290,6 +8306,8 @@ export type ImportDetailProposalClientLegalRepresentativeRoleOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalClientLegalRepresentativeRole = {
@@ -8311,6 +8329,8 @@ export type ImportDetailProposalClientContactNameOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalClientContactName = {
@@ -8332,6 +8352,8 @@ export type ImportDetailProposalClientContactPhoneOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalClientContactPhone = {
@@ -8353,6 +8375,8 @@ export type ImportDetailProposalClientContactEmailOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalClientContactEmail = {
@@ -8388,6 +8412,8 @@ export type ImportDetailProposalTrainingSchedulePeriodicTrainingMinutesOptionsIt
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalTrainingSchedulePeriodicTrainingMinutes = {
@@ -8409,6 +8435,8 @@ export type ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMo
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMonths = {
@@ -8430,6 +8458,8 @@ export type ImportDetailProposalTrainingScheduleWorkerTrainingIntervalMonthsOpti
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalTrainingScheduleWorkerTrainingIntervalMonths = {
@@ -8450,6 +8480,8 @@ export type ImportDetailProposalTrainingScheduleTrainingFirstMonthOptionsItem = 
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalTrainingScheduleTrainingFirstMonth = {
@@ -8470,6 +8502,8 @@ export type ImportDetailProposalTrainingScheduleTrainingDayFromOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalTrainingScheduleTrainingDayFrom = {
@@ -8490,6 +8524,8 @@ export type ImportDetailProposalTrainingScheduleTrainingDayToOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalTrainingScheduleTrainingDayTo = {
@@ -8511,6 +8547,8 @@ export type ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplica
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicable = {
@@ -8532,6 +8570,8 @@ export type ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptio
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicable = {
@@ -8563,6 +8603,8 @@ export type ImportDetailProposalFireSafetyPeriodicTrainingHoursOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalFireSafetyPeriodicTrainingHours = {
@@ -8584,6 +8626,8 @@ export type ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonthsOp
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonths = {
@@ -8604,6 +8648,8 @@ export type ImportDetailProposalFireSafetyWorkerTrainingIntervalMonthsOptionsIte
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalFireSafetyWorkerTrainingIntervalMonths = {
@@ -8625,6 +8671,8 @@ export type ImportDetailProposalFireSafetySmokingPolicyOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalFireSafetySmokingPolicy = {
@@ -8646,6 +8694,8 @@ export type ImportDetailProposalFireSafetySmokingPlaceOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalFireSafetySmokingPlace = {
@@ -8667,6 +8717,8 @@ export type ImportDetailProposalFireSafetyWasteContractorOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalFireSafetyWasteContractor = {
@@ -8688,6 +8740,8 @@ export type ImportDetailProposalFireSafetyWasteKindsOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalFireSafetyWasteKinds = {
@@ -8709,6 +8763,8 @@ export type ImportDetailProposalFireSafetyWasteCollectorsOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalFireSafetyWasteCollectors = {
@@ -8729,6 +8785,8 @@ export type ImportDetailProposalFireSafetyHasThirdPartiesOptionsItem = {
    * @nullable
    */
   otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
 };
 
 export type ImportDetailProposalFireSafetyHasThirdParties = {
@@ -8760,6 +8818,8 @@ export type ImportDetailProposalWorkplacesItemFieldSourcesItem = {
 export type ImportDetailProposalWorkplacesItemFieldSources = {
   [key: string]: ImportDetailProposalWorkplacesItemFieldSourcesItem[];
 };
+
+export type ImportDetailProposalWorkplacesItemSpelling = { [key: string]: string };
 
 export type ImportDetailProposalWorkplacesItem = {
   /** @minLength 1 */
@@ -8822,6 +8882,7 @@ export type ImportDetailProposalWorkplacesItem = {
    */
   specificMeasures?: string | null;
   fieldSources?: ImportDetailProposalWorkplacesItemFieldSources;
+  spelling?: ImportDetailProposalWorkplacesItemSpelling;
 };
 
 export type ImportDetailProposalJobPositionsItemSourcesItem = {
@@ -8837,6 +8898,8 @@ export type ImportDetailProposalJobPositionsItemFieldSourcesItem = {
 export type ImportDetailProposalJobPositionsItemFieldSources = {
   [key: string]: ImportDetailProposalJobPositionsItemFieldSourcesItem[];
 };
+
+export type ImportDetailProposalJobPositionsItemSpelling = { [key: string]: string };
 
 export type ImportDetailProposalJobPositionsItem = {
   /** @minLength 1 */
@@ -8862,6 +8925,7 @@ export type ImportDetailProposalJobPositionsItem = {
   /** @nullable */
   needsProtectiveEquipment?: boolean | null;
   fieldSources?: ImportDetailProposalJobPositionsItemFieldSources;
+  spelling?: ImportDetailProposalJobPositionsItemSpelling;
 };
 
 export type ImportDetailProposalResponsiblePersonsItemSourcesItem = {
@@ -8917,6 +8981,8 @@ export type ImportDetailProposalFireEquipmentItemWorkplace = {
   id: string | null;
 };
 
+export type ImportDetailProposalFireEquipmentItemSpelling = { [key: string]: string };
+
 export type ImportDetailProposalFireEquipmentItem = {
   /** @minLength 1 */
   id: string;
@@ -8938,6 +9004,7 @@ export type ImportDetailProposalFireEquipmentItem = {
   wheeled: boolean;
   /** @nullable */
   count: number | null;
+  spelling?: ImportDetailProposalFireEquipmentItemSpelling;
 };
 
 export type ImportDetailProposalFireInstallationsItemSourcesItem = {
@@ -8983,6 +9050,8 @@ export type ImportDetailProposalProtectiveEquipmentItemJobPosition = {
   id: string | null;
 };
 
+export type ImportDetailProposalProtectiveEquipmentItemSpelling = { [key: string]: string };
+
 export type ImportDetailProposalProtectiveEquipmentItem = {
   /** @minLength 1 */
   id: string;
@@ -9004,6 +9073,7 @@ export type ImportDetailProposalProtectiveEquipmentItem = {
   durationMonths: number | null;
   /** @nullable */
   allocation: ImportDetailProposalProtectiveEquipmentItemAllocation;
+  spelling?: ImportDetailProposalProtectiveEquipmentItemSpelling;
 };
 
 export type ImportDetailProposalEmployeesItemSourcesItem = {

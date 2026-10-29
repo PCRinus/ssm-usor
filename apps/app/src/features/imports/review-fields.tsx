@@ -36,6 +36,7 @@ import {
   type Changes,
   fieldGroups,
   fieldInfo,
+  fieldSpelling,
   type FieldState,
   flagNote,
   flagsAt,
@@ -60,6 +61,7 @@ import {
   ReviewCard,
   RowNote,
   SourceButton,
+  SpellingPair,
   SummaryRow,
   Tag,
 } from './review-parts';
@@ -98,6 +100,14 @@ function fieldProblem(path: string, raw: string) {
   if (raw.trim() === '') return `${fieldInfo[path]?.write ?? 'Scrie o valoare'}.`;
   const checked = formSchema([path]).safeParse({ [fieldKey(path)]: raw });
   return checked.success ? null : (checked.error.issues[0]?.message ?? 'Valoare greșită.');
+}
+
+function keepWritten(context: FieldContext, path: string, written: string) {
+  const current = context.changes.fields[path] ?? {};
+  const rest = Object.fromEntries(
+    Object.entries(current).filter(([key]) => key !== 'value' && key !== 'option')
+  );
+  context.review.setField(path, { ...rest, value: written });
 }
 
 // A value equal to what the documents propose is not stored as the member's.
@@ -263,6 +273,7 @@ function FieldRow({
     registered &&
     state.value !== null &&
     sameCompanyName(registered.legalName, String(state.value));
+  const spelling = fieldSpelling(state);
   const anafCui =
     state.path === 'client.cui' &&
     registered &&
@@ -325,6 +336,13 @@ function FieldRow({
           {state.edited && <EditedTag />}
           {state.otherCompanyName && <Tag tone="info">De la {state.otherCompanyName}</Tag>}
         </span>
+      )}
+      {spelling !== null && (
+        <SpellingPair
+          value={String(state.value)}
+          written={spelling}
+          onKeep={() => keepWritten(context, state.path, spelling)}
+        />
       )}
       {state.edited && state.proposedValue !== null && (
         <RowNote>

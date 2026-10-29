@@ -24,7 +24,12 @@ export type Proposal = NonNullable<ImportDetail['proposal']>;
 export type Source = { file: string; quote: string };
 // What the passage proves, when it is one value of its item rather than the item itself.
 export type LabelledSource = Source & { label?: string };
-export type Option = { value: string | number; sources: Source[]; otherCompanyName: string | null };
+export type Option = {
+  value: string | number;
+  sources: Source[];
+  otherCompanyName: string | null;
+  spelling?: string;
+};
 export type ProposedField = { options: Option[] };
 
 type ChangedValue = string | number | boolean | null | string[];
@@ -369,6 +374,46 @@ export const foldText = (text: string) =>
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
+
+const words = (text: string) =>
+  text
+    .normalize('NFC')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+
+const withoutMarks = (text: string) =>
+  text.normalize('NFD').replace(/\p{M}/gu, '').normalize('NFC');
+
+/** What the import corrected in a value the document writes otherwise. */
+export function spellingCorrection(value: string, written: string) {
+  const corrected = words(value);
+  const original = words(written);
+  const capitals = withoutMarks(corrected) !== withoutMarks(original);
+  const diacritics = corrected.toLowerCase() !== original.toLowerCase();
+  if (capitals && diacritics) return 'majuscule și diacritice';
+  return capitals ? 'majuscule' : 'diacritice';
+}
+
+// Into an existing client, the client's own value stands where it is kept or the same.
+export function fieldSpelling(state: FieldState): string | null {
+  if (state.edited || state.option === null || state.status !== 'value') return null;
+  if (state.comparison === 'kept' || state.comparison === 'same') return null;
+  return state.options[state.option]?.spelling ?? null;
+}
+
+export type ItemSpelling = { field: string; value: string; written: string };
+
+export function itemSpellings(state: ItemState, changes: Changes): ItemSpelling[] {
+  const written = changes.items[state.item.id]?.values ?? {};
+  return Object.entries((state.item.spelling ?? {}) as Record<string, string>).flatMap(
+    ([field, spelling]) => {
+      const value = state.item[field];
+      return field in written || typeof value !== 'string'
+        ? []
+        : [{ field, value, written: spelling }];
+    }
+  );
+}
 
 export const sameValue = (a: unknown, b: unknown) =>
   typeof a === 'number' || typeof b === 'number'
