@@ -1901,7 +1901,10 @@ send fails, so the retried delivery moves on again.
 
 Every model request carries `{ organizationId, importId }` as the gateway's metadata, and its
 tokens and cost go to `record_import_usage`, on the file for a file's own request; a request
-that failed is recorded with what it used. The provider the prompts name is the organization's
+that failed is recorded with what it used. Each caps its output, reasoning included
+(`max_completion_tokens`): 16,000 tokens for sorting a pack or a scan, 64,000 for reading the
+documents or a scanned page. An answer cut off at the cap fails at once, with the reason an
+answer outside the schema gets. The provider the prompts name is the organization's
 legal name and CUI, and its members', legal representative's, risk evaluator's and PSI
 technician's names; an existing client's name and CUI are passed as well.
 

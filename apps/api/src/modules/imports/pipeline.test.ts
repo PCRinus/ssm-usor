@@ -404,7 +404,12 @@ const defaultModel: Recorded = ({ name, text, images }) => {
 
 let world: World;
 let model: Recorded;
-let modelRequests: { name: string; images: string[]; metadata: string | null }[];
+let modelRequests: {
+  name: string;
+  images: string[];
+  metadata: string | null;
+  maxTokens: number;
+}[];
 
 function completion(content: unknown) {
   return Response.json({
@@ -466,6 +471,7 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps {
       fetch: async (_input, init) => {
         const body = JSON.parse(String(init?.body)) as {
           response_format: { json_schema: { name: string } };
+          max_completion_tokens: number;
           messages: {
             content: string | { type: string; text?: string; image_url?: { url: string } }[];
           }[];
@@ -484,6 +490,7 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps {
           name: request.name,
           images: request.images,
           metadata: new Headers(init?.headers).get('cf-aig-metadata'),
+          maxTokens: body.max_completion_tokens,
         });
         const answer = model(request);
         return answer instanceof Response ? answer : completion(answer);
@@ -649,6 +656,11 @@ describe('the import queue', () => {
         (request) => request.metadata === JSON.stringify({ organizationId, importId })
       )
     ).toBe(true);
+    expect(
+      modelRequests.every(
+        (request) => request.maxTokens === (request.name === 'import_sorting' ? 16_000 : 64_000)
+      )
+    ).toBe(true);
     const photo = modelRequests.find(
       (request) =>
         request.name === 'client_import' && request.images[0]?.startsWith('data:image/jpeg;base64,')
@@ -674,6 +686,27 @@ describe('the import queue', () => {
     expect(
       world.usage.filter((usage) => usage.fileId === world.fileAt('Dosar/Poze/plan.jpg').id)
     ).toEqual([expect.objectContaining({ input: 1000 }), expect.objectContaining({ input: 2000 })]);
+  });
+
+  it('fails the import, without retrying, when the reading is cut off at its output cap', async () => {
+    model = (request) =>
+      request.name === 'client_import'
+        ? Response.json({
+            choices: [{ finish_reason: 'length', message: { content: '{"facts": [' } }],
+            usage: { prompt_tokens: 1000, completion_tokens: 64_000 },
+          })
+        : defaultModel(request);
+    startWith([files[0]!]);
+    const outcomes = await drain(deps());
+
+    expect(outcomes.filter((outcome) => outcome.type === 'read')).toEqual([
+      { type: 'read', outcome: 'ack', attempts: 1 },
+    ]);
+    expect(world.imports.get(importId)).toMatchObject({
+      status: 'failed',
+      failure_reason: importReasons.modelFailed,
+    });
+    expect(world.usage.at(-1)).toMatchObject({ fileId: null, input: 1000 });
   });
 
   it('retries a step the gateway could not answer and fails the import on the last delivery', async () => {

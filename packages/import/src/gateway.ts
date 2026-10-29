@@ -18,7 +18,8 @@ export interface CompletionRequest<T> {
   messages: ChatMessage[];
   answer: AnswerFormat<T>;
   reasoningEffort: ReasoningEffort;
-  maxCompletionTokens?: number;
+  // Reasoning tokens count toward it.
+  maxCompletionTokens: number;
   metadata: { organizationId: string; importId: string };
 }
 
@@ -164,9 +165,7 @@ export function createModelClient(options: GatewayOptions) {
           },
         },
         reasoning_effort: request.reasoningEffort,
-        ...(request.maxCompletionTokens
-          ? { max_completion_tokens: request.maxCompletionTokens }
-          : {}),
+        max_completion_tokens: request.maxCompletionTokens,
       };
       let usage = noUsage;
       // Each attempt is priced on its own: a price tier depends on one request's prompt size.

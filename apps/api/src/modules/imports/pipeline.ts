@@ -72,6 +72,10 @@ export interface PipelineDeps {
 // size: about 170,000 tokens at 3.5 characters a token.
 export const maxReadingCharacters = 600_000;
 export const maxScannedPages = 150;
+// The reading's is what the evaluation used. An answer cut off at it fails as one the model did
+// not give, rather than leaving the request to run on.
+export const sortingOutputTokens = 16_000;
+export const readingOutputTokens = 64_000;
 // About a hundred seconds of reading, well inside a consumer's 15 minutes of wall time.
 export const scanBatchPages = 5;
 export const readPollSeconds = 10;
@@ -447,6 +451,7 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
       }),
       answer: sortingAnswer,
       reasoningEffort: 'low',
+      maxCompletionTokens: sortingOutputTokens,
     });
     for (const triage of answer.files) triages.set(triage.path, triage);
   }
@@ -627,6 +632,7 @@ async function triageScan(
       messages,
       answer: sortingAnswer,
       reasoningEffort: 'low',
+      maxCompletionTokens: sortingOutputTokens,
     })
   ).files[0];
   if (!triage) return null;
@@ -675,6 +681,7 @@ export async function scanPages(
         }),
         answer: readingAnswer,
         reasoningEffort: 'medium',
+        maxCompletionTokens: readingOutputTokens,
       });
       await deps.objects.write(
         pageReadingPathOf(file, page),
@@ -762,6 +769,7 @@ export async function readImport(
         }),
         answer: readingAnswer,
         reasoningEffort: 'medium',
+        maxCompletionTokens: readingOutputTokens,
       })
     );
   }

@@ -68,6 +68,7 @@ const request = {
   messages: sortingMessages({ provider, files: [{ path: 'Decizia 1.docx', text: 'DECIZIA' }] }),
   answer: sortingAnswer,
   reasoningEffort: 'low',
+  maxCompletionTokens: 16_000,
   metadata: { organizationId: 'org-1', importId: 'import-1' },
 } as const;
 
