@@ -1938,6 +1938,16 @@ takes the documents' value over the app's. `items` is keyed by a list item's id 
 row a workplace or a position completes, and `replace`. `PUT /imports/{importId}/changes` saves
 them on the version read (`save_import_changes`).
 
+Besides the fields and lists the review shows, the proposal carries what the posted
+fire-safety sheet and the list of means say of each workplace (`kind`, `floorAreaM2`,
+`extinguisherNorm`, `assemblyPoint`, `combustibleMaterials`, `ignitionSources`,
+`fireRiskEquipment`, `specificMeasures`), each with its own sources in the workplace's
+`fieldSources`, and a post's `needsProtectiveEquipment` (null when the documents do not say).
+`fireSafety.wasteKinds` is one text, the kinds separated by semicolons, written as the list
+`waste_kinds`; the yes-or-no fields `fireSafety.hasThirdParties` and
+`trainingSchedule.administrativeTrainingNotApplicable` / `workerTrainingNotApplicable` are
+`"true"` or `"false"`. A proposal stored before they were read reads them empty.
+
 Without a change a value is the proposal's: a field with one value of the client's own documents
 takes it, two or more of them are a **choice** that blocks, and a value only another company
 gives is left out. A list item is taken unless only another company gives it. Into an existing
@@ -1946,7 +1956,8 @@ its name, an employee by the CNP or the name (and then not created again), and a
 person the client has already is left as it is; the client's filled values are kept unless
 replaced. A responsible person is linked to the employee of the same name, the workers'
 representative must be. The `blockers` are a choice not made, the new client's name or CUI
-missing, a value the checks flagged that would be written unchanged (`invalid`), an employee
+missing, a value the checks flagged that would be written unchanged (`invalid`), a staff
+category given both an interval and "not applicable" (`invalid` on the latter), an employee
 without a name, job title or hire date, equipment without a risk, a person without a job title,
 and a fire-safety unit, an installation or equipment whose workplace or position is unknown
 (`unknown_reference`).
@@ -1956,7 +1967,8 @@ the payload, answers `422` with `import_incomplete` and the blockers as `issues`
 left, then calls `apply_client_import` as the member: `409` with `import_changed`,
 `import_not_ready`, `import_other_company`, `import_client_exists` or `import_outdated` (a
 workplace or position the review named is no longer the client's). A new client's VAT
-registration is ANAF's. The payload's `quality` counts per section, without values, how many
+registration is ANAF's. A post's decision that it needs no protective equipment goes into the
+payload only while none of its entries is written. The payload's `quality` counts per section, without values, how many
 values the member changed, unticked or kept. The answer is `{ clientId, fileCount }`, and a `copy`
 message copies the folder afterwards. `GET /imports/{importId}/source?file=&quote=` resolves a
 source's `file`, an upload path or `<upload path> (pagina N)`, and answers five-minute links to

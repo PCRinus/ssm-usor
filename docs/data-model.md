@@ -1313,7 +1313,7 @@ values, JSON null or absent leaving the default:
     "extinguisher_norm", "assembly_point", "combustible_materials", "ignition_sources",
     "fire_risk_equipment", "specific_measures" }],
   "job_positions": [{ "key", "id", "replace", "name", "staff_category", "work_zone",
-    "activities", "training_interval_months" }],
+    "activities", "training_interval_months", "needs_protective_equipment" }],
   "equipment": [{ "job_position_key | job_position_id", "risk", "item", "quantity",
     "duration_months", "allocation" }],
   "employees": [{ "key", "job_position_key | job_position_id", "workplace_key | workplace_id",
@@ -1338,11 +1338,14 @@ values, JSON null or absent leaving the default:
 - An existing client's import fills the client's empty columns and keeps the others, except
   those listed in `replace`, the columns where the member took the documents' value. A
   training interval and its "not applicable" are one choice: an interval fills only a client
-  that has not declared the category not applicable, and replacing it clears the declaration.
+  that has not declared the category not applicable, and replacing it clears the declaration;
+  "not applicable" fills a category that has no interval.
   `cui`, when given, must be the client's.
 - A workplace or a job position with `id` is an existing row of the client, filled the same
   way; a job position without `id` named like an active one of the client is that one, as the
-  unique index on the name says. The client's `client_fire_safety` row is filled the same way
+  unique index on the name says. A job position's `needs_protective_equipment` is `false` or
+  absent (`22023` otherwise): it fills an undecided position, and the position's entries are
+  what decide that it needs some. The client's `client_fire_safety` row is filled the same way
   when it exists. An empty array counts as empty. Every other item is a new row.
 - `key` is any string unique within its list. An item names a row of another list by its `key`
   in the payload, or by the `id` of an existing row of the client, which the composite foreign
