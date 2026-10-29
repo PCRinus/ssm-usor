@@ -140,6 +140,39 @@ const stars = [
             </g>
           </svg>
         )}
+        {fact.mark === 'payment' && (
+          <svg class="mark" viewBox="0 0 68 68" aria-hidden="true">
+            <circle cx="34" cy="34" r="33" fill="#eaf2d6" />
+            <rect
+              x="12"
+              y="19"
+              width="38"
+              height="26"
+              rx="4"
+              fill="#ffffff"
+              stroke="#18342e"
+              stroke-width="1.6"
+            />
+            <rect x="12.8" y="25" width="36.4" height="5" fill="#18342e" />
+            <rect x="17" y="35" width="7" height="5" rx="1.2" fill="#b6d86f" />
+            <path d="M28 37.5h8" stroke="#9fb39c" stroke-width="2" stroke-linecap="round" />
+            <path
+              d="M48 37l8.5 3.2v6.3c0 5.2-3.6 8.8-8.5 10.5c-4.9-1.7-8.5-5.3-8.5-10.5v-6.3z"
+              fill="#18342e"
+              stroke="#eaf2d6"
+              stroke-width="2"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M44.3 47l2.6 2.6 4.8-5"
+              fill="none"
+              stroke="#b6d86f"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        )}
         <div>
           <b>{fact.title}</b>
           <span>{fact.text}</span>
@@ -153,22 +186,30 @@ const stars = [
   .facts {
     padding-block: 8px 0;
   }
+  /* Five facts as three over two: five in one row only fit with the icons stacked over the text. */
   ul {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     border: 1px solid var(--line);
     border-radius: 20px;
     background: #fff;
     overflow: hidden;
   }
   li {
+    grid-column: span 2;
     display: flex;
     align-items: center;
     gap: 18px;
     padding: 26px 24px;
     animation: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
-  li + li {
+  li:nth-child(n + 4) {
+    grid-column: span 3;
+    border-top: 1px solid var(--line);
+  }
+  li:nth-child(2),
+  li:nth-child(3),
+  li:nth-child(5) {
     border-left: 1px solid var(--line);
   }
   li:nth-child(1) {
@@ -182,6 +223,9 @@ const stars = [
   }
   li:nth-child(4) {
     animation-delay: 0.79s;
+  }
+  li:nth-child(5) {
+    animation-delay: 0.87s;
   }
   .mark {
     display: block;
@@ -207,26 +251,45 @@ const stars = [
       animation: none;
     }
   }
-  @media (max-width: 1240px) {
+  @media (max-width: 1080px) {
+    li {
+      gap: 14px;
+      padding: 22px 20px;
+    }
+    .mark {
+      flex-basis: 52px;
+      width: 52px;
+      height: 52px;
+    }
+  }
+  @media (max-width: 860px) {
     ul {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    li:nth-child(3) {
+    li:nth-child(n) {
+      grid-column: auto;
       border-left: 0;
+      border-top: 0;
+    }
+    li:nth-child(even) {
+      border-left: 1px solid var(--line);
     }
     li:nth-child(n + 3) {
       border-top: 1px solid var(--line);
+    }
+    li:last-child {
+      grid-column: 1 / -1;
     }
   }
   @media (max-width: 760px) {
     ul {
       grid-template-columns: 1fr;
     }
-    li {
+    li:nth-child(n) {
       padding: 20px;
+      border-left: 0;
     }
     li + li {
-      border-left: 0;
       border-top: 1px solid var(--line);
     }
     .mark {
