@@ -7,7 +7,9 @@ const giveUpAfterMs = 15_000;
 
 type Box = { top: number; bottom: number; left: number; right: number };
 
-type Hold = { fontsPending?: () => boolean; clock?: Clock };
+// showEnd: a passage taller than the view is shown at its end, as a heading and the row it leads
+// up to are, rather than at its start.
+type Hold = { fontsPending?: () => boolean; clock?: Clock; showEnd?: boolean };
 
 type Clock = {
   frame: (callback: () => void) => number;
@@ -81,13 +83,13 @@ const clamp = (value: number, max: number) => Math.round(Math.max(0, Math.min(va
 
 // Centred top to bottom; across, moved only as far as it takes to show the passage, which on a
 // phone is wider than the screen as often as not.
-export function passageScroll(box: Box, viewport: HTMLElement) {
+export function passageScroll(box: Box, viewport: HTMLElement, showEnd = false) {
   const height = viewport.clientHeight;
   const width = viewport.clientWidth;
-  const top =
-    box.bottom - box.top > height - 2 * edgePadding
-      ? box.top - edgePadding
-      : (box.top + box.bottom) / 2 - height / 2;
+  let top = (box.top + box.bottom) / 2 - height / 2;
+  if (box.bottom - box.top > height - 2 * edgePadding) {
+    top = showEnd ? box.bottom + edgePadding - height : box.top - edgePadding;
+  }
   let left = viewport.scrollLeft;
   if (box.right - box.left > width - 2 * edgePadding || box.left < left + edgePadding) {
     left = box.left - edgePadding;
@@ -106,7 +108,7 @@ export function passageScroll(box: Box, viewport: HTMLElement) {
 // reader scrolls.
 export function holdPassage(
   viewport: HTMLElement,
-  { fontsPending = () => false, clock = browserClock }: Hold = {}
+  { fontsPending = () => false, clock = browserClock, showEnd = false }: Hold = {}
 ) {
   const started = clock.now();
   let still = started;
@@ -127,7 +129,7 @@ export function holdPassage(
     const box = passageBox(viewport);
     const now = clock.now();
     if (box) {
-      const { top, left } = passageScroll(box, viewport);
+      const { top, left } = passageScroll(box, viewport, showEnd);
       if (Math.abs(viewport.scrollTop - top) > 1 || Math.abs(viewport.scrollLeft - left) > 1) {
         viewport.scrollTop = top;
         viewport.scrollLeft = left;

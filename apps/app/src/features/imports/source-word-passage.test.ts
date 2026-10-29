@@ -167,6 +167,23 @@ describe('holding the passage in view in the Word viewer', () => {
     stop();
   });
 
+  it('shows the end of a passage taller than the screen when asked, as a row under its heading', () => {
+    const { viewport, mark } = editorViewport();
+    const clock = manualClock();
+    mark({ top: 1000, left: 100, width: 80, height: 20 });
+    mark({ top: 3000, left: 100, width: 80, height: 20 });
+    holdPassage(viewport, { clock, showEnd: true });
+    clock.run(32);
+    expect(viewport.scrollTop).toBe(3020 + 24 - 600);
+
+    const second = editorViewport();
+    second.mark({ top: 1000, left: 100, width: 80, height: 20 });
+    second.mark({ top: 3000, left: 100, width: 80, height: 20 });
+    holdPassage(second.viewport, { clock });
+    clock.run(32);
+    expect(second.viewport.scrollTop).toBe(1000 - 24);
+  });
+
   it('scrolls across to a passage past the right edge of a narrow screen', () => {
     const { viewport, mark } = editorViewport();
     Object.assign(viewport, { clientWidth: 300, scrollWidth: 900 });

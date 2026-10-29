@@ -8,7 +8,7 @@ import { type RefObject, useEffect, useRef, useState } from 'react';
 import type { ImportSourceResponse } from '@/api/generated/api';
 import { editorStrings } from '@/features/documents/editor-strings.ro';
 
-import { findLine, lineOccurrences, passageHits, quoteLines } from './source-match';
+import { findLine, passageHits, passageParts } from './source-match';
 import { holdPassage } from './source-word-passage';
 
 const fonts = packagedFonts({ allow: ['Arial'] });
@@ -17,9 +17,11 @@ type Range = { blockId: string; start: number; length: number };
 
 function QuotePassage({
   ranges,
+  showEnd,
   host,
 }: {
   ranges: Range[];
+  showEnd: boolean;
   host: RefObject<HTMLDivElement | null>;
 }) {
   useHighlights('import-quote', ranges, { priority: 20 });
@@ -27,8 +29,11 @@ function QuotePassage({
   useEffect(() => {
     const viewport = host.current?.querySelector<HTMLElement>('.docx-editor-one-surface__viewport');
     if (!editor || ranges.length === 0 || !viewport) return;
-    return holdPassage(viewport, { fontsPending: () => editor.fontMeasurement().resolving });
-  }, [editor, ranges, host]);
+    return holdPassage(viewport, {
+      fontsPending: () => editor.fontMeasurement().resolving,
+      showEnd,
+    });
+  }, [editor, ranges, showEnd, host]);
   return null;
 }
 
@@ -43,7 +48,10 @@ export default function WordSourceView({
 }) {
   const [bytes, setBytes] = useState<Uint8Array | null>(null);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
-  const [ranges, setRanges] = useState<Range[]>([]);
+  const [passage, setPassage] = useState<{ ranges: Range[]; showEnd: boolean }>({
+    ranges: [],
+    showEnd: false,
+  });
   const host = useRef<HTMLDivElement>(null);
   const url = source.derived?.url ?? source.original.url;
   const failed = failedUrl === url;
@@ -94,18 +102,20 @@ export default function WordSourceView({
         i18n={editorStrings}
         fonts={fonts}
         onReady={(editor) => {
-          const { hits, anchor } = passageHits(
-            quoteLines(source, quote),
-            (line) => findLine(line, (query) => editor.findMatches(query)),
-            lineOccurrences(source, quote)
+          const parts = passageParts(source, quote);
+          const { hits, anchor } = passageHits(parts, (line) =>
+            findLine(line, (query) => editor.findMatches(query))
           );
-          setRanges(hits.map(({ blockId, start, length }) => ({ blockId, start, length })));
+          setPassage({
+            ranges: hits.map(({ blockId, start, length }) => ({ blockId, start, length })),
+            showEnd: parts.length > 1,
+          });
           // The editor paints a highlight only once its page is in view.
           if (anchor) editor.scrollToBlock(anchor.blockId);
           else onNotFound();
         }}
       >
-        <QuotePassage ranges={ranges} host={host} />
+        <QuotePassage ranges={passage.ranges} showEnd={passage.showEnd} host={host} />
       </DocxEditor>
     </div>
   );

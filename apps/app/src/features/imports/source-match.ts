@@ -85,28 +85,31 @@ function lineSpans(text: string, from: number, to: number): QuoteLine[] {
   return lines;
 }
 
+export type PassagePart = { lines: string[]; occurrences: number[] };
+
 // Only the parts of a quote an ellipsis separates are the passage, not the rows between them.
-function quoteSpans(source: ImportSourceResponse): QuoteLine[] | null {
+// The API may have found a part again further on, as a table row repeated for each post, so each
+// line is the editor's hit with as many of the line before it as the API's text has, both counted
+// ignoring case.
+export function passageParts(source: ImportSourceResponse, quote: string): PassagePart[] {
   const { text, match } = source;
-  if (!text || !match || match.page !== null) return null;
-  return match.parts.flatMap((part) => lineSpans(text, part.start, part.end));
-}
-
-export function quoteLines(source: ImportSourceResponse, quote: string) {
-  return (
-    quoteSpans(source)?.map(({ line }) => line) ??
-    lineSpans(quote, 0, quote.length).map(({ line }) => line)
-  );
-}
-
-// The API may have found the passage again further on, as a table row repeated for each post, so
-// each line is the editor's hit with as many of the line before it as the API's text has, both
-// counted ignoring case.
-export function lineOccurrences(source: ImportSourceResponse, quote: string): number[] {
-  const spans = quoteSpans(source);
-  if (!spans) return quoteLines(source, quote).map(() => 0);
-  const text = source.text!.toLowerCase();
-  return spans.map(({ line, at }) => occurrences(text.slice(0, at), line.toLowerCase()).length);
+  const lower = text?.toLowerCase() ?? '';
+  const parts =
+    text && match && match.page === null
+      ? match.parts.map((part) => {
+          const spans = lineSpans(text, part.start, part.end);
+          return {
+            lines: spans.map(({ line }) => line),
+            occurrences: spans.map(
+              ({ line, at }) => occurrences(lower.slice(0, at), line.toLowerCase()).length
+            ),
+          };
+        })
+      : quote.split(/…|\.{3,}/).map((part) => {
+          const lines = lineSpans(part, 0, part.length).map(({ line }) => line);
+          return { lines, occurrences: lines.map(() => 0) };
+        });
+  return parts.filter(({ lines }) => lines.length > 0);
 }
 
 export type LineHit = {
@@ -155,13 +158,24 @@ export function findLine(line: string, find: (query: string) => readonly LineHit
   });
 }
 
-// The longest line is the least ambiguous, so the passage is anchored on it and the other lines
-// are taken next to it, in order.
+// The longest line of a part is the least ambiguous, so the part is anchored on it and its other
+// lines are taken next to it, in order. Each part has its own anchor, since rows that repeat the
+// row's cells stand between a heading and its row; the last part's, the row, is the one shown.
 export function passageHits(
-  lines: string[],
-  find: (line: string) => readonly LineHit[],
-  occurrences: readonly number[] = []
+  parts: readonly PassagePart[],
+  find: (line: string) => readonly LineHit[]
 ) {
+  const hits: LineHit[] = [];
+  let anchor: LineHit | null = null;
+  for (const part of parts) {
+    const found = partHits(part, find);
+    hits.push(...found.hits);
+    anchor = found.anchor ?? anchor;
+  }
+  return { hits, anchor };
+}
+
+function partHits({ lines, occurrences }: PassagePart, find: (line: string) => readonly LineHit[]) {
   const found = lines.map(find);
   let anchorAt = -1;
   found.forEach((hits, index) => {
