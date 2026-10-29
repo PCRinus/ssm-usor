@@ -815,8 +815,9 @@ before the handler runs. A participant's change through `/portal/participants/{p
 answers the same. Exempt, through `allowWhileReadOnly` placed before those middlewares:
 printing a document's unsaved edits, the portal's notice and language, the caller's setup
 guide (closing it and skipping its steps), and what only takes access away: removing a member,
-revoking a member's invitation, revoking a participant or a participant's invitation. Reads are never affected. Accepting an invitation and a client's
-upload through the contract return link stay open (ADR 029).
+revoking a member's invitation, revoking a participant or a participant's invitation. Reads are
+never affected. Accepting an invitation and a client's upload through the contract return link
+stay open (ADR 029).
 
 ## Billing
 
@@ -953,11 +954,14 @@ with the caller's token. `GET /me/setup` reads `setup_progress()`, the caller's
   always done. `canDo` is false for `company` and `authorizations` when the caller is not an
   owner. `lock` is present only on a locked step: `needs-client` (`workplaces-positions`,
   `responsible-persons`, `fire-safety-data`), `needs-workplace-and-position` (`employees`),
-  `needs-position` (`risk-evaluation`), `needs-organization-data` and then `needs-basic-data`
-  (`generate-sets`), `needs-draft` (`issue-document`), `needs-employee` (`portal-invitation`,
-  `training`) and `needs-training-record` (`signature`). `missing`, on `company` and
+  `needs-position` (`risk-evaluation`), `needs-organization-data`, then
+  `needs-professional-title`, then `needs-basic-data` (`generate-sets`), `needs-draft`
+  (`issue-document`), `needs-employee` (`portal-invitation`, `training`) and
+  `needs-training-record` (`signature`). `needs-organization-data` asks only what the sets print:
+  the legal name, the representative's name and role, and the fire-safety technician; the CUI,
+  the address and the certificate serve the service contract. `missing`, on `company` and
   `authorizations` while not done, lists the focus keys of the empty fields in the form's order:
-  `legal-name`, `cui`, `address`, `representative-name`, `representative-role`; `certificate`,
+  `cui`, `legal-name`, `address`, `representative-name`, `representative-role`; `certificate`,
   `fire-safety-technician`.
 - `next`: the first open step the caller can do, or null.
 - `clientId`: the active client furthest along, or null.
@@ -973,7 +977,9 @@ profile. `PUT /me/setup/skips/{step}` and `DELETE /me/setup/skips/{step}` skip a
 and undo the skip, both idempotent; `400` for any step but the eleven member steps. All three
 answer the guide as `GET` does. They are the caller's own state, so they stay open while the
 organization is read-only, and during an impersonation they act on the signed-in admin's own
-account, as the releases and the guides do.
+account, as the releases and the guides do. During an impersonation every route answers the
+admin's own done steps, skips, `closed` and `finished`, while `canDo` and `next` follow the
+impersonated member's role, and the locks their organization.
 
 ## Dashboard
 
