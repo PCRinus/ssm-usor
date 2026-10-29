@@ -18,10 +18,14 @@ interface Rates {
   output: number;
 }
 
-// USD per million tokens at list price, by the size of the whole prompt. The cached-input rates
-// of GPT-6 Luna are the ones the evaluation used on 2026-10-26.
+// USD per million tokens at list price. Both models price the whole request higher once its
+// prompt passes 272,000 tokens. The cached-input rates of GPT-6 Luna are the ones the evaluation
+// used on 2026-10-26.
 export const modelRates: Record<ModelId, (promptTokens: number) => Rates> = {
-  'gpt-6.1-terra': () => ({ input: 1, cachedInput: 0.05, output: 5 }),
+  'gpt-6.1-terra': (promptTokens) =>
+    promptTokens > 272_000
+      ? { input: 2, cachedInput: 0.1, output: 7.5 }
+      : { input: 1, cachedInput: 0.05, output: 5 },
   'gpt-6-luna': (promptTokens) =>
     promptTokens > 272_000
       ? { input: 0.2, cachedInput: 0.02, output: 0.75 }

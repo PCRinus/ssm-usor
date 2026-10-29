@@ -2,7 +2,7 @@ import { addUsage, costOf, type ModelId, noUsage, type Usage } from './models';
 import type { ChatMessage } from './prompts';
 import type { AnswerFormat } from './wire';
 
-export type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high';
+export type ReasoningEffort = 'low' | 'medium' | 'high';
 
 export interface GatewayOptions {
   // The gateway's base URL, up to the gateway's name: https://gateway.ai.cloudflare.com/v1/<account>/<gateway>.
