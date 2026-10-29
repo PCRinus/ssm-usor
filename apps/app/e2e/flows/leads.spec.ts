@@ -118,6 +118,9 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   page,
   browser,
 }) => {
+  // The whole contract lifecycle takes 45–60 s beside three other workers on CI, so the default
+  // 60 s ran out at whichever step was last.
+  test.slow();
   const owner = await createAccount('contract-owner', 'Olga Owner');
   const specialist = await createAccount('contract-specialist', 'Sorin Specialist');
   const organizationId = await createOrganization('Contract E2E', owner.id);
