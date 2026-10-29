@@ -4,11 +4,13 @@ import {
   setupStepIds,
   type SubscriptionSummary,
 } from '@ssm-usor/contracts';
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { toast } from '@ssm-usor/ui/lib/toast';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Release, SetupGuide, SetupStep } from '@/api/generated/api';
+import type { AppRuntime } from '@/app/app-runtime';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { quietSummary } from '@/test/dashboard-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
@@ -66,6 +68,13 @@ function guideWith(
 
 const founder = guideWith();
 
+const doneUpTo = (last: SetupStepId) =>
+  Object.fromEntries(
+    setupStepIds
+      .slice(0, setupStepIds.indexOf(last) + 1)
+      .map((id) => [id, { state: 'done' as const, lock: undefined }])
+  ) as Partial<Record<SetupStepId, Partial<SetupStep>>>;
+
 const everythingDone = guideWith(
   Object.fromEntries(
     setupStepIds.map((id) => [id, { state: 'done' as const, lock: undefined }])
@@ -98,12 +107,20 @@ interface ApiState {
 function mockApi(state: ApiState) {
   let guide = state.guide;
   let releases = state.releases ?? [];
+  let held: ((answer: SetupGuide) => void) | null = null;
+  let holding = false;
   const api = {
     get guide() {
       return guide;
     },
     set guide(next: SetupGuide) {
       guide = next;
+    },
+    holdNextGet() {
+      holding = true;
+    },
+    release(answer: SetupGuide) {
+      held?.(answer);
     },
   };
   const withStep = (id: string, change: Partial<SetupStep>) => {
@@ -160,7 +177,14 @@ function mockApi(state: ApiState) {
       releases = releases.map((release) => ({ ...release, unread: false }));
       return Response.json({ acknowledgedThrough: unreadRelease.tag });
     }
-    if (pathname === '/me/setup' && method === 'GET') return Response.json(guide);
+    if (pathname === '/me/setup' && method === 'GET') {
+      if (!holding) return Response.json(guide);
+      holding = false;
+      return new Promise<Response>((resolve) => {
+        held = (answer) => resolve(Response.json(answer));
+        init?.signal?.addEventListener('abort', () => resolve(Response.error()));
+      });
+    }
     if (pathname === '/me/setup' && method === 'PUT') {
       guide = { ...guide, ...(JSON.parse(String(init?.body)) as Partial<SetupGuide>) };
       return Response.json(guide);
@@ -185,6 +209,22 @@ const bodiesOf = (path: string, method: string) =>
   calls(path, method).map(([, init]) => JSON.parse(String(init?.body)) as unknown);
 
 const mount = (path = '/dashboard') => mountApp(authFixture(makeSession()).client, path);
+
+const anotherChange = (runtime: AppRuntime) =>
+  runtime.queryClient
+    .getMutationCache()
+    .build(runtime.queryClient, { mutationFn: () => Promise.resolve('client') })
+    .execute(undefined);
+
+const readOnly: SubscriptionSummary = {
+  plan: 'profesional',
+  planChosen: false,
+  status: 'canceled',
+  trialEndsAt: null,
+  accessUntil: null,
+  access: 'read_only',
+  deletesAt: '2026-11-28T12:00:00.000Z',
+};
 
 const openedKey = 'ssm-usor:setup-guide-opened:user-one';
 
@@ -349,6 +389,21 @@ describe('the steps', () => {
     );
   });
 
+  it('closes a lock reason on Escape and stays expanded', async () => {
+    mockApi({ guide: founder });
+    mount();
+    await panel();
+
+    const locked = step('workplaces-positions');
+    locked.focus();
+    fireEvent.focus(locked);
+    await screen.findByRole('tooltip');
+    fireEvent.keyDown(locked, { key: 'Escape' });
+
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+    expect(screen.getByTestId('setup-guide').dataset.view).toBe('expanded');
+  });
+
   it('names the owner a specialist waits for', () => {
     expect(
       lockReason('needs-organization-data', { ownerName: 'Ioana Popescu', isOwner: false })
@@ -358,7 +413,10 @@ describe('the steps', () => {
     );
     expect(
       lockReason('needs-organization-data', { ownerName: 'Ioana Popescu', isOwner: true })
-    ).toBe('Completează întâi datele firmei și abilitările.');
+    ).toBe('Completează întâi datele firmei și cadrul tehnic PSI.');
+    expect(lockReason('needs-professional-title', { ownerName: null, isOwner: false })).toBe(
+      'Completează-ți întâi titlul profesional.'
+    );
     expect(lockReason('needs-employee', { ownerName: null, isOwner: false })).toBe(
       'Adaugă întâi angajații clientului.'
     );
@@ -443,6 +501,27 @@ describe('the steps', () => {
     expect(step('authorizations').textContent).toContain('Gata');
   });
 
+  it('lists the missing company fields CUI first and opens the CUI', async () => {
+    mockApi({
+      guide: guideWith({
+        company: {
+          state: 'open',
+          missing: ['cui', 'legal-name', 'address', 'representative-name', 'representative-role'],
+        },
+      }),
+    });
+    mount();
+    await panel();
+
+    const card = step('company');
+    expect(within(card).getByTestId('setup-step-missing').textContent).toBe(
+      'Lipsesc: CUI, denumirea juridică, adresa sediului, reprezentantul legal, funcția reprezentantului legal'
+    );
+    expect(within(card).getByTestId('setup-step-action-0').getAttribute('href')).toBe(
+      '/organization/company?focus=cui'
+    );
+  });
+
   it('links each missing company field with its focus, and opens the first', async () => {
     mockApi({
       guide: guideWith({ company: { state: 'open', missing: ['cui', 'address'] } }),
@@ -520,6 +599,28 @@ describe('the steps', () => {
     });
   });
 
+  it('opens both documents tabs to generate the sets and to issue a document', async () => {
+    mockApi({
+      guide: guideWith(
+        {
+          ...doneUpTo('fire-safety-data'),
+          'generate-sets': { state: 'open', lock: undefined },
+        },
+        { clientId, organizationHasClients: true }
+      ),
+    });
+    mount();
+    await panel();
+
+    const card = step('generate-sets');
+    expect(card.dataset.state).toBe('next');
+    const actions = within(card).getAllByRole('link');
+    expect(actions.map((action) => [action.textContent, action.getAttribute('href')])).toEqual([
+      ['Documente SSM', `/clients/${clientId}/documents`],
+      ['Documente PSI', `/clients/${clientId}/fire-safety-documents`],
+    ]);
+  });
+
   it('skips a member step with Știu deja and undoes it', async () => {
     mockApi({ guide: founder });
     mount();
@@ -548,26 +649,36 @@ describe('when the guide shows', () => {
     await expectNoGuide();
   });
 
-  it('hides while the organization is read-only', async () => {
-    mockApi({
-      guide: founder,
-      subscription: {
-        plan: 'profesional',
-        planChosen: false,
-        status: 'canceled',
-        trialEndsAt: null,
-        accessUntil: null,
-        access: 'read_only',
-        deletesAt: '2026-11-28T12:00:00.000Z',
-      },
-    });
+  it('hides while the organization is read-only, and does not ask for it', async () => {
+    mockApi({ guide: founder, subscription: readOnly });
     mount();
     await screen.findByTestId('subscription-badge');
     await expectNoGuide();
+    expect(calls('/me/setup')).toHaveLength(0);
   });
 
-  it('hides while the platform admin acts as an owner', async () => {
+  it('hides while the platform admin acts as an owner, and does not ask for it', async () => {
     mockApi({ guide: founder, impersonating: true });
+    mount();
+    await expectNoGuide();
+    expect(calls('/me/setup')).toHaveLength(0);
+  });
+
+  it('hides an answer that lacks a step, and keeps the shell', async () => {
+    mockApi({ guide: { ...founder, steps: founder.steps.filter((one) => one.id !== 'training') } });
+    mount();
+    await waitFor(() => expect(calls('/me/setup')).toHaveLength(1));
+    await expectNoGuide();
+    expect(screen.getByTestId('app-logo')).toBeTruthy();
+  });
+
+  it('hides an answer with a step twice', async () => {
+    mockApi({
+      guide: {
+        ...founder,
+        steps: founder.steps.map((one) => (one.id === 'training' ? founder.steps[4]! : one)),
+      },
+    });
     mount();
     await waitFor(() => expect(calls('/me/setup')).toHaveLength(1));
     await expectNoGuide();
@@ -678,6 +789,40 @@ describe('closing and reopening', () => {
     await waitFor(() => expect(screen.queryByTestId('setup-guide')).toBeNull());
     expect(bodiesOf('/me/setup', 'PUT')).toEqual([{ finished: true }]);
   });
+
+  it('opens once to say Gata when the member finishes while it is closed', async () => {
+    const api = mockApi({ guide: { ...founder, closed: true } });
+    const runtime = mount();
+    await screen.findByTestId('setup-guide-pill');
+
+    api.guide = { ...everythingDone, closed: true };
+    await anotherChange(runtime);
+
+    const guide = await panel();
+    expect(guide.dataset.view).toBe('expanded');
+    expect(screen.getByTestId('setup-guide-finished').textContent).toContain('Gata');
+    for (const group of ['firma', 'client', 'documentatie', 'instruire']) {
+      expect(screen.getByTestId(`setup-guide-group-${group}`).textContent).toContain('Gata');
+    }
+    expect(screen.queryByTestId('setup-guide-pill')).toBeNull();
+
+    await userEvent.setup().click(screen.getByTestId('setup-guide-close'));
+    await waitFor(() => expect(screen.queryByTestId('setup-guide')).toBeNull());
+    expect(screen.queryByTestId('setup-guide-pill')).toBeNull();
+    expect(bodiesOf('/me/setup', 'PUT')).toEqual([{ closed: false, finished: true }]);
+  });
+
+  it('says Gata on a load after finishing while it was closed', async () => {
+    sessionStorage.setItem('ssm-usor:setup-guide-view:user-one', 'collapsed');
+    mockApi({ guide: { ...everythingDone, closed: true } });
+    mount();
+
+    expect((await panel()).dataset.view).toBe('expanded');
+    expect(screen.queryByTestId('setup-guide-pill')).toBeNull();
+    await userEvent.setup().click(screen.getByTestId('setup-guide-collapse'));
+    await waitFor(() => expect(screen.queryByTestId('setup-guide')).toBeNull());
+    expect(bodiesOf('/me/setup', 'PUT')).toEqual([{ closed: false, finished: true }]);
+  });
 });
 
 describe('Setări', () => {
@@ -696,6 +841,32 @@ describe('Setări', () => {
     expect(screen.getByTestId('setup-guide-finished')).toBeTruthy();
     expect(bodiesOf('/me/setup', 'PUT')).toEqual([{ closed: false, finished: false }]);
     expect(captureEvent).toHaveBeenCalledWith('setup_guide_reopened', { from: 'settings' });
+  });
+
+  it('cannot show it while the organization is read-only, and says why', async () => {
+    mockApi({ guide: founder, subscription: readOnly });
+    mount('/setari');
+
+    const show = await screen.findByTestId('settings-setup-guide-show');
+    expect((show as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByTestId('settings-setup-guide-progress').textContent).toBe('4 din 15');
+    expect(screen.getByTestId('settings-setup-guide-hidden').textContent).toBe(
+      'Ghidul nu se arată cât contul e doar pentru citire.'
+    );
+    expect(show.getAttribute('aria-describedby')).toBe(
+      screen.getByTestId('settings-setup-guide-hidden').id
+    );
+  });
+
+  it('cannot show it while the platform admin acts as an owner', async () => {
+    mockApi({ guide: founder, impersonating: true });
+    mount('/setari');
+
+    const show = await screen.findByTestId('settings-setup-guide-show');
+    expect((show as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByTestId('settings-setup-guide-hidden').textContent).toBe(
+      'Ghidul nu se arată cât acționezi în locul unui administrator.'
+    );
   });
 
   it('shows a closed guide collapsed', async () => {
@@ -719,15 +890,70 @@ describe('refetching', () => {
       { client: { state: 'done' }, 'workplaces-positions': { state: 'open', lock: undefined } },
       { clientId, organizationHasClients: true }
     );
-    await runtime.queryClient
-      .getMutationCache()
-      .build(runtime.queryClient, { mutationFn: () => Promise.resolve('client') })
-      .execute(undefined);
+    await anotherChange(runtime);
 
     await waitFor(() => expect(step('client').dataset.state).toBe('done'));
     expect(step('workplaces-positions').dataset.state).toBe('next');
     expect(captureEvent).toHaveBeenCalledWith('setup_step_done', { step: 'client' });
     expect(captureEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks once for a burst of changes', async () => {
+    const api = mockApi({ guide: founder });
+    const runtime = mount();
+    await panel();
+
+    api.guide = guideWith({ client: { state: 'done' } }, { organizationHasClients: true });
+    for (let change = 0; change < 3; change++) {
+      await anotherChange(runtime);
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+
+    await waitFor(() => expect(step('client').dataset.state).toBe('done'));
+    expect(calls('/me/setup')).toHaveLength(2);
+  });
+
+  it('stops asking once the guide is finished', async () => {
+    mockApi({ guide: { ...everythingDone, finished: true } });
+    const runtime = mount('/setari');
+    await screen.findByTestId('settings-setup-guide');
+
+    await anotherChange(runtime);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(calls('/me/setup')).toHaveLength(1);
+  });
+
+  it('keeps a close that a refetch in flight would undo', async () => {
+    const api = mockApi({ guide: founder });
+    const runtime = mount();
+    await panel();
+
+    api.holdNextGet();
+    await anotherChange(runtime);
+    await waitFor(() => expect(calls('/me/setup')).toHaveLength(2));
+    await userEvent.setup().click(screen.getByTestId('setup-guide-close'));
+    await screen.findByTestId('setup-guide-pill');
+
+    api.release(founder);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByTestId('setup-guide-pill')).toBeTruthy();
+    expect(screen.queryByTestId('setup-guide')).toBeNull();
+  });
+
+  it('keeps a skip that a refetch in flight would undo', async () => {
+    const api = mockApi({ guide: founder });
+    const runtime = mount();
+    await panel();
+
+    api.holdNextGet();
+    await anotherChange(runtime);
+    await waitFor(() => expect(calls('/me/setup')).toHaveLength(2));
+    await userEvent.setup().click(within(step('client')).getByTestId('setup-step-skip'));
+    await waitFor(() => expect(step('client').dataset.state).toBe('skipped'));
+
+    api.release(founder);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(step('client').dataset.state).toBe('skipped');
   });
 
   it('does not refetch after its own changes', async () => {
@@ -738,5 +964,190 @@ describe('refetching', () => {
     await userEvent.setup().click(within(step('client')).getByTestId('setup-step-skip'));
     await waitFor(() => expect(step('client').dataset.state).toBe('skipped'));
     expect(calls('/me/setup')).toHaveLength(1);
+  });
+});
+
+describe('a specialist’s end', () => {
+  const waitingForTheOwner = guideWith(
+    {
+      ...doneUpTo('fire-safety-data'),
+      company: { state: 'open', canDo: false, missing: ['legal-name'] },
+      'generate-sets': { state: 'locked', lock: 'needs-organization-data' },
+      'issue-document': { state: 'locked', lock: 'needs-draft' },
+      'portal-invitation': { state: 'done', lock: undefined },
+      training: { state: 'done', lock: undefined },
+      signature: { state: 'done', lock: undefined },
+    },
+    { clientId, organizationHasClients: true, next: null }
+  );
+
+  it('reads Așteaptă administratorul while only an owner can unlock the rest', async () => {
+    localStorage.setItem(openedKey, '2026-10-27T10:00:00.000Z');
+    mockApi({ guide: waitingForTheOwner, role: 'specialist' });
+    mount();
+
+    const guide = await panel();
+    expect(guide.dataset.view).toBe('collapsed');
+    expect(screen.getByTestId('setup-guide-waiting').textContent).toBe('Așteaptă administratorul');
+    expect(screen.queryByTestId('setup-guide-next')).toBeNull();
+    expect(screen.queryByTestId('setup-guide-finished')).toBeNull();
+  });
+
+  it('finishes once every step they can do is done, though an owner’s step waits', async () => {
+    localStorage.setItem(openedKey, '2026-10-27T10:00:00.000Z');
+    mockApi({
+      guide: guideWith(
+        {
+          ...doneUpTo('signature'),
+          company: { state: 'open', canDo: false, missing: ['legal-name'] },
+        },
+        { clientId, organizationHasClients: true }
+      ),
+      role: 'specialist',
+    });
+    mount();
+
+    const guide = await panel();
+    expect(guide.dataset.view).toBe('expanded');
+    expect(screen.getByTestId('setup-guide-count').textContent).toBe('14 din 15');
+    expect(screen.getByTestId('setup-guide-finished').textContent).toContain('Gata');
+
+    await userEvent.setup().click(screen.getByTestId('setup-guide-collapse'));
+    await waitFor(() => expect(screen.queryByTestId('setup-guide')).toBeNull());
+    expect(bodiesOf('/me/setup', 'PUT')).toEqual([{ finished: true }]);
+  });
+});
+
+describe('focus', () => {
+  it('moves to the header pill after closing, and back to the guide after reopening', async () => {
+    mockApi({ guide: founder });
+    mount();
+    await panel();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId('setup-guide-close'));
+    const pill = await screen.findByTestId('setup-guide-pill');
+    await waitFor(() => expect(document.activeElement).toBe(pill));
+
+    await user.keyboard('{Enter}');
+    await panel();
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByTestId('setup-guide-expand'))
+    );
+  });
+
+  it('moves to the ring after closing on a phone', async () => {
+    onPhone();
+    mockApi({ guide: founder });
+    mount();
+    await panel();
+
+    await userEvent.setup().click(screen.getByTestId('setup-guide-close'));
+    const ring = await screen.findByTestId('setup-guide-ring');
+    await waitFor(() => expect(document.activeElement).toBe(ring));
+  });
+
+  it('moves to the other chevron on expanding and collapsing', async () => {
+    mockApi({ guide: founder });
+    mount();
+    await panel();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId('setup-guide-collapse'));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByTestId('setup-guide-expand'))
+    );
+    await user.keyboard('{Enter}');
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByTestId('setup-guide-collapse'))
+    );
+  });
+
+  it('moves between the sheet and the docked bar on a phone', async () => {
+    onPhone();
+    mockApi({ guide: founder });
+    mount();
+    await panel();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId('setup-guide-expand'));
+    await waitFor(() => expect(screen.getByTestId('setup-guide').dataset.view).toBe('expanded'));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByTestId('setup-guide-collapse'))
+    );
+
+    await user.click(screen.getByTestId('setup-guide-collapse'));
+    await waitFor(() => expect(screen.getByTestId('setup-guide').dataset.view).toBe('collapsed'));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(document.activeElement).toBe(screen.getByTestId('setup-guide-expand'));
+  });
+
+  it('moves to the new next step after Știu deja', async () => {
+    mockApi({
+      guide: guideWith({
+        'workplaces-positions': { state: 'open', lock: undefined },
+      }),
+    });
+    mount();
+    await panel();
+
+    await userEvent.setup().click(within(step('client')).getByTestId('setup-step-skip'));
+    await waitFor(() => expect(step('workplaces-positions').dataset.state).toBe('next'));
+    await waitFor(() => expect(document.activeElement).toBe(step('workplaces-positions')));
+    expect(step('workplaces-positions').getAttribute('role')).toBe('group');
+  });
+
+  it('moves to the heading when Știu deja leaves no next step', async () => {
+    mockApi({
+      guide: guideWith(
+        { ...doneUpTo('training'), signature: { state: 'open', lock: undefined } },
+        { clientId }
+      ),
+    });
+    mount();
+    await panel();
+
+    await userEvent.setup().click(within(step('signature')).getByTestId('setup-step-skip'));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('heading', { name: 'Ghid de configurare' })
+      )
+    );
+  });
+});
+
+describe('the toasts', () => {
+  const toaster = () => document.querySelector<HTMLElement>('[data-sonner-toaster]');
+
+  it('stand to the left of the guide on a desktop, and in the corner once it is closed', async () => {
+    mockApi({ guide: founder });
+    mount();
+    await panel();
+
+    act(() => void toast.success('Clientul a fost adăugat.'));
+    await waitFor(() => expect(toaster()).not.toBeNull());
+    expect(toaster()!.style.getPropertyValue('--offset-right')).toBe('412px');
+
+    await userEvent.setup().click(screen.getByTestId('setup-guide-collapse'));
+    await waitFor(() => expect(toaster()!.style.getPropertyValue('--offset-right')).toBe('380px'));
+
+    await userEvent.setup().click(screen.getByTestId('setup-guide-close'));
+    await screen.findByTestId('setup-guide-pill');
+    await waitFor(() => expect(toaster()!.style.getPropertyValue('--offset-right')).toBe('24px'));
+    act(() => toast.dismiss());
+  });
+
+  it('stand above the docked bar on a phone', async () => {
+    onPhone();
+    mockApi({ guide: founder });
+    mount();
+    await panel();
+
+    act(() => void toast.success('Clientul a fost adăugat.'));
+    await waitFor(() => expect(toaster()).not.toBeNull());
+    expect(toaster()!.style.getPropertyValue('--mobile-offset-bottom')).toBe(
+      'calc(9.5rem + env(safe-area-inset-bottom, 0px))'
+    );
+    act(() => toast.dismiss());
   });
 });

@@ -18,6 +18,11 @@ export const totalSteps = 15;
 export const countsAsDone = (step: { state: string }) =>
   step.state === 'done' || step.state === 'skipped';
 
+// A specialist cannot do an organization step, so one still waiting for an owner would keep
+// their guide open for good (ADR 031).
+export const isComplete = (steps: readonly { state: string; canDo: boolean }[]) =>
+  steps.every((step) => !step.canDo || countsAsDone(step));
+
 const to = {
   company: (focus?: OrganizationCompanyFocus) =>
     linkOptions({ to: '/organization/company', search: { focus } }),
@@ -38,6 +43,8 @@ const to = {
     linkOptions({ to: '/clients/$clientId/trainings', params: { clientId } }),
   documents: (clientId: string) =>
     linkOptions({ to: '/clients/$clientId/documents', params: { clientId } }),
+  fireSafetyDocuments: (clientId: string) =>
+    linkOptions({ to: '/clients/$clientId/fire-safety-documents', params: { clientId } }),
   portal: (clientId: string) =>
     linkOptions({ to: '/clients/$clientId/portal', params: { clientId } }),
   signatures: () => linkOptions({ to: '/signatures' }),
@@ -67,8 +74,8 @@ interface StepCopy {
 }
 
 export const fieldLabels: Record<SetupField, string> = {
-  'legal-name': 'denumirea juridică',
   cui: 'CUI',
+  'legal-name': 'denumirea juridică',
   address: 'adresa sediului',
   'representative-name': 'reprezentantul legal',
   'representative-role': 'funcția reprezentantului legal',
@@ -86,6 +93,11 @@ export function fieldTarget(field: SetupField): StepTarget {
 // when the furthest client has just been archived.
 const onClient = (clientId: string | null, target: (clientId: string) => StepTarget) =>
   clientId ? target(clientId) : to.clients();
+
+const documentsActions = ({ clientId }: StepContext): StepAction[] => [
+  { label: 'Documente SSM', kind: 'open', target: onClient(clientId, to.documents) },
+  { label: 'Documente PSI', kind: 'open', target: onClient(clientId, to.fireSafetyDocuments) },
+];
 
 export const stepCopy: Record<SetupStepId, StepCopy> = {
   account: {
@@ -173,17 +185,13 @@ export const stepCopy: Record<SetupStepId, StepCopy> = {
   'generate-sets': {
     label: 'Generează documentația SSM și PSI',
     sentence: 'Din datele adăugate generezi setul de documente SSM și pe cel PSI.',
-    actions: ({ clientId }) => [
-      { label: 'Deschide Documente SSM', kind: 'open', target: onClient(clientId, to.documents) },
-    ],
+    actions: documentsActions,
   },
   'issue-document': {
     label: 'Emite primul document',
     neutralLabel: 'Emite un document',
     sentence: 'Verifici un document generat și îl emiți, ca să-l poți tipări și semna.',
-    actions: ({ clientId }) => [
-      { label: 'Deschide Documente SSM', kind: 'open', target: onClient(clientId, to.documents) },
-    ],
+    actions: documentsActions,
   },
   'portal-invitation': {
     label: 'Invită angajații în portal',
@@ -263,6 +271,7 @@ const lockReasons: Record<Exclude<SetupLock, 'needs-organization-data'>, string>
   'needs-client': 'Adaugă întâi primul client ca să deblochezi pasul.',
   'needs-workplace-and-position': 'Adaugă întâi punctele de lucru și posturile.',
   'needs-position': 'Se deblochează după ce clientul are posturi.',
+  'needs-professional-title': 'Completează-ți întâi titlul profesional.',
   'needs-basic-data': 'Se deblochează când clientul are toate datele de bază.',
   'needs-draft': 'Generează întâi documentația.',
   'needs-employee': 'Adaugă întâi angajații clientului.',
@@ -274,7 +283,7 @@ export function lockReason(
   { ownerName, isOwner }: { ownerName: string | null; isOwner: boolean }
 ) {
   if (lock !== 'needs-organization-data') return lockReasons[lock];
-  if (isOwner) return 'Completează întâi datele firmei și abilitările.';
+  if (isOwner) return 'Completează întâi datele firmei și cadrul tehnic PSI.';
   return ownerName
     ? `Așteaptă datele firmei de la administrator, ${ownerName}.`
     : 'Așteaptă datele firmei de la un administrator.';

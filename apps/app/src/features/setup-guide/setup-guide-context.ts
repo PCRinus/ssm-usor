@@ -6,18 +6,25 @@ import type { SetupGuide } from '@/api/generated/api';
 import type { GuideView } from './guide-storage';
 import type { StepActionKind } from './steps';
 
+export type GuideHiddenReason = 'read-only' | 'impersonation';
+
+export type GuideFocusTarget = 'expand' | 'collapse' | 'header-button' | 'next' | 'heading';
+
 export interface SetupGuideControls {
   guide: SetupGuide | undefined;
   isPending: boolean;
   isError: boolean;
   retry: () => void;
   doneCount: number;
-  allDone: boolean;
+  complete: boolean;
   // Null while the guide is hidden, waiting, or not decided yet.
   view: GuideView | 'closed' | null;
+  hiddenBecause: GuideHiddenReason | null;
   phone: boolean;
   isOwner: boolean;
   pendingStep: SetupStepId | undefined;
+  focusRequest: GuideFocusTarget | null;
+  focusHandled: () => void;
   expand: () => void;
   collapse: () => void;
   close: () => void;

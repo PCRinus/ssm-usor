@@ -1,15 +1,22 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Eye } from 'lucide-react';
+import { useId } from 'react';
 
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 
-import { useSetupGuide } from './setup-guide-context';
+import { type GuideHiddenReason, useSetupGuide } from './setup-guide-context';
 import { totalSteps } from './steps';
 
+const hiddenReasons: Record<GuideHiddenReason, string> = {
+  'read-only': 'Ghidul nu se arată cât contul e doar pentru citire.',
+  impersonation: 'Ghidul nu se arată cât acționezi în locul unui administrator.',
+};
+
 export function SetupGuideSection() {
-  const { guide, isPending, isError, retry, doneCount, reopen } = useSetupGuide();
+  const { guide, isPending, isError, retry, doneCount, reopen, hiddenBecause } = useSetupGuide();
+  const reasonId = useId();
 
   return (
     <SectionCard data-testid="settings-guides" title="Ghiduri">
@@ -45,11 +52,22 @@ export function SetupGuideSection() {
               Pașii prin care pornești: firma, primul client, documentația, instruirea și
               semnăturile.
             </p>
+            {hiddenBecause && (
+              <p
+                id={reasonId}
+                data-testid="settings-setup-guide-hidden"
+                className="text-sm text-muted-foreground"
+              >
+                {hiddenReasons[hiddenBecause]}
+              </p>
+            )}
           </div>
           <Button
             data-testid="settings-setup-guide-show"
             variant="outline"
             size="sm"
+            disabled={Boolean(hiddenBecause)}
+            aria-describedby={hiddenBecause ? reasonId : undefined}
             onClick={() => reopen('settings')}
           >
             <Eye aria-hidden="true" />

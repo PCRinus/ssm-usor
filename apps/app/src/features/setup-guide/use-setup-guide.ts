@@ -1,4 +1,4 @@
-import { setupGuideSchema, type SetupMemberStepId } from '@ssm-usor/contracts';
+import { setupGuideSchema, type SetupMemberStepId, setupStepIds } from '@ssm-usor/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 
@@ -19,7 +19,12 @@ export const setupGuideQueryKey = (userId: string | undefined) => [
 ];
 
 // The guide is an aid: an answer it cannot read keeps it off the page, never takes the shell down.
-const readable = (guide: SetupGuide) => (setupGuideSchema.safeParse(guide).success ? guide : null);
+const readable = (guide: SetupGuide) =>
+  setupGuideSchema.safeParse(guide).success &&
+  guide.steps.length === setupStepIds.length &&
+  new Set(guide.steps.map((step) => step.id)).size === setupStepIds.length
+    ? guide
+    : null;
 
 export function useSetupGuideQuery(enabled: boolean) {
   const { session } = useAuth();
@@ -48,16 +53,25 @@ export function useSetupGuideChanges() {
   const skip = useSkipMySetupStep({ request: apiRequest, mutation: settle });
   const unskip = useUnskipMySetupStep({ request: apiRequest, mutation: settle });
 
+  // A refetch already in flight would land after the change and undo it on screen.
+  const cancelRefetch = () => queryClient.cancelQueries({ queryKey });
   const assume = (change: Partial<SetupGuide>) =>
     queryClient.setQueryData<SetupGuide>(queryKey, (guide) => guide && { ...guide, ...change });
 
   return {
-    record: (data: UpdateSetupGuideRequest) => {
+    record: async (data: UpdateSetupGuideRequest) => {
+      await cancelRefetch();
       assume(data);
       update.mutate({ data });
     },
-    skip: (step: SetupMemberStepId) => skip.mutate({ step }),
-    unskip: (step: SetupMemberStepId) => unskip.mutate({ step }),
+    skip: async (step: SetupMemberStepId, then?: (guide: SetupGuide) => void) => {
+      await cancelRefetch();
+      skip.mutate({ step }, { onSuccess: then });
+    },
+    unskip: async (step: SetupMemberStepId, then?: (guide: SetupGuide) => void) => {
+      await cancelRefetch();
+      unskip.mutate({ step }, { onSuccess: then });
+    },
     pendingStep: skip.isPending
       ? skip.variables?.step
       : unskip.isPending

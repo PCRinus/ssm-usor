@@ -9,13 +9,14 @@ import { Progress } from '@ssm-usor/ui/components/progress';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
-import { type ReactNode, useId } from 'react';
+import { type ReactNode, useId, useRef } from 'react';
 
 import type { SetupGuide } from '@/api/generated/api';
 
 import { useSetupGuide } from './setup-guide-context';
 import { SetupGuideSteps } from './setup-guide-steps';
 import { stepCopy, stepLabel, totalSteps } from './steps';
+import { useGuideFocus } from './use-guide-focus';
 
 const title = 'Ghid de configurare';
 
@@ -56,9 +57,12 @@ function Controls({ expanded }: { expanded: boolean }) {
   const { phone, expand, collapse, close } = useSetupGuide();
   const Chevron = expanded ? ChevronDown : ChevronUp;
   const label = expanded ? 'Micșorează ghidul' : 'Arată toți pașii';
+  const toggle = useRef<HTMLButtonElement>(null);
+  useGuideFocus(expanded ? 'collapse' : 'expand', toggle);
   return (
     <>
       <button
+        ref={toggle}
         type="button"
         data-testid={expanded ? 'setup-guide-collapse' : 'setup-guide-expand'}
         aria-label={label}
@@ -94,10 +98,23 @@ function FinishedLine() {
 }
 
 function NextLine({ guide, phone }: { guide: SetupGuide; phone: boolean }) {
-  const { follow, allDone } = useSetupGuide();
-  if (allDone) return <FinishedLine />;
+  const { follow, complete } = useSetupGuide();
+  if (complete) return <FinishedLine />;
   const next = guide.steps.find((step) => step.id === guide.next);
-  if (!next) return null;
+  if (!next) {
+    // A step the member skipped can lock the one after it too; that wait is not an owner's.
+    const waitsForOwner = guide.steps.some(
+      (step) => step.state === 'locked' && step.lock === 'needs-organization-data'
+    );
+    return waitsForOwner ? (
+      <p
+        data-testid="setup-guide-waiting"
+        className={cn('m-0 text-[13.5px] text-dashboard-quiet', phone && 'mr-3 text-sm')}
+      >
+        Așteaptă administratorul
+      </p>
+    ) : null;
+  }
   const action = stepCopy[next.id].actions({
     clientId: guide.clientId,
     missing: next.missing ?? [],
@@ -125,8 +142,23 @@ function NextLine({ guide, phone }: { guide: SetupGuide; phone: boolean }) {
   );
 }
 
+function Heading({ id }: { id: string }) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useGuideFocus('heading', heading);
+  return (
+    <h2
+      ref={heading}
+      id={id}
+      tabIndex={-1}
+      className="m-0 grow text-[15px] font-semibold outline-none"
+    >
+      {title}
+    </h2>
+  );
+}
+
 function DesktopWindow({ guide, expanded }: { guide: SetupGuide; expanded: boolean }) {
-  const { doneCount, collapse, allDone } = useSetupGuide();
+  const { doneCount, collapse, complete } = useSetupGuide();
   const titleId = useId();
   return (
     <section
@@ -134,7 +166,8 @@ function DesktopWindow({ guide, expanded }: { guide: SetupGuide; expanded: boole
       data-testid="setup-guide"
       data-view={expanded ? 'expanded' : 'collapsed'}
       onKeyDown={(event) => {
-        if (event.key !== 'Escape' || !expanded) return;
+        // A lock's tooltip closes on the same Esc, and marks it handled.
+        if (event.key !== 'Escape' || !expanded || event.defaultPrevented) return;
         event.preventDefault();
         collapse();
       }}
@@ -149,25 +182,21 @@ function DesktopWindow({ guide, expanded }: { guide: SetupGuide; expanded: boole
         <>
           <div className="flex flex-col gap-2.5 border-b border-muted pt-3.5 pr-3.5 pb-3 pl-[18px]">
             <div className="flex items-center gap-1.5">
-              <h2 id={titleId} className="m-0 grow text-[15px] font-semibold">
-                {title}
-              </h2>
+              <Heading id={titleId} />
               <Count doneCount={doneCount} phone={false} />
               <Controls expanded />
             </div>
             <Bar doneCount={doneCount} />
           </div>
           <div className="flex flex-col gap-1 overflow-y-auto p-2">
-            {allDone && <FinishedLine />}
+            {complete && <FinishedLine />}
             <SetupGuideSteps guide={guide} />
           </div>
         </>
       ) : (
         <>
           <div className="flex items-center gap-1.5">
-            <h2 id={titleId} className="m-0 grow text-[15px] font-semibold">
-              {title}
-            </h2>
+            <Heading id={titleId} />
             <Count doneCount={doneCount} phone={false} />
             <Controls expanded={false} />
           </div>
@@ -212,24 +241,34 @@ function PhoneBar({ guide }: { guide: SetupGuide }) {
 }
 
 function PhoneSheet({ guide }: { guide: SetupGuide }) {
-  const { doneCount, collapse, allDone } = useSetupGuide();
+  const { doneCount, collapse, complete } = useSetupGuide();
+  const heading = useRef<HTMLHeadingElement>(null);
+  useGuideFocus('heading', heading);
   return (
     <Drawer open onOpenChange={(open) => !open && collapse()}>
+      {/* The sheet leaves by unmounting, and the bar that replaces it takes the focus. */}
       <DrawerContent
         data-testid="setup-guide"
         data-view="expanded"
+        finalFocus={false}
         className="h-auto max-h-[85dvh] bg-card"
       >
         <DrawerHeader className="flex-col items-stretch gap-2.5 border-b border-muted pt-2.5 pr-3 pb-3 pl-[18px]">
           <div className="flex items-center gap-1.5">
-            <DrawerTitle className="grow text-base font-semibold">{title}</DrawerTitle>
+            <DrawerTitle
+              ref={heading}
+              tabIndex={-1}
+              className="grow text-base font-semibold outline-none"
+            >
+              {title}
+            </DrawerTitle>
             <Count doneCount={doneCount} phone />
             <Controls expanded />
           </div>
           <Bar doneCount={doneCount} />
         </DrawerHeader>
         <DrawerBody className="flex flex-col gap-1 px-2.5 pt-2 pb-[calc(1.75rem+env(safe-area-inset-bottom,0px))]">
-          {allDone && <FinishedLine />}
+          {complete && <FinishedLine />}
           <SetupGuideSteps guide={guide} />
         </DrawerBody>
       </DrawerContent>
@@ -282,7 +321,10 @@ export function SetupGuideHeaderButton({
   className?: string;
 }) {
   const { view, phone, doneCount, reopen } = useSetupGuide();
-  if (view !== 'closed' || phone !== (variant === 'ring')) return null;
+  const button = useRef<HTMLButtonElement>(null);
+  const shown = view === 'closed' && phone === (variant === 'ring');
+  useGuideFocus(shown ? 'header-button' : null, button);
+  if (!shown) return null;
   const name = `${title}, ${doneCount} din ${totalSteps} pași făcuți`;
   const shared =
     'shrink-0 cursor-pointer border border-input bg-card text-foreground outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50';
@@ -302,6 +344,7 @@ export function SetupGuideHeaderButton({
   }
   return (
     <button
+      ref={button}
       type="button"
       data-testid={variant === 'ring' ? 'setup-guide-ring' : 'setup-guide-pill'}
       aria-label={name}

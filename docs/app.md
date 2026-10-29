@@ -1318,13 +1318,21 @@ _Gata_ among several owners).
 - `SetupGuideProvider`, in the shell, holds the query, the guide's size and the actions. It hides
   the guide on `editorPage` routes, while access is read-only, during an impersonation, without
   a membership and once `finished`, and holds it back while the releases load or the update
-  dialog shows. A response that does not parse as the contract keeps it hidden.
+  dialog shows. While read-only or impersonating it does not ask for the guide at all, except on
+  `/setari`. A response that does not parse as the contract, or lacks one of the fifteen steps or
+  repeats one, keeps it hidden.
 - Three views: expanded (372 px at the bottom right, the four groups as an accordion with the
   next step's group open), collapsed (340 px, _Următorul: …_) and closed (`closed` from the
   API: a pill at the right end of the header, or on a phone a 40 px ring after the subscription
   badge). The pill and the ring reopen it collapsed with `PUT { closed: false }`. On a phone
   the expanded guide is the `Drawer` and the collapsed one a bar docked at the bottom, with a
-  spacer so the page's last controls scroll clear of it; its controls are 44 px.
+  spacer so the page's last controls scroll clear of it; its controls are 44 px. Every change of
+  view moves the focus to what replaces the control used: the other chevron, the pill or the
+  ring after ×, the up chevron after the pill, the new next step (or the heading) after Știu
+  deja.
+- While the guide is in view, the shell's Toaster moves out of its corner (`toast-offset.ts`): to
+  the guide's left on a desktop, above the docked bar on a phone. The phone's sheet dims the page
+  and is left alone.
 - The first load in a browser opens it expanded (`ssm-usor:setup-guide-opened:<user>` in
   localStorage), later loads collapsed, and a phone always collapsed. The size then lasts for
   the browser session (`ssm-usor:setup-guide-view:<user>` in sessionStorage). Esc collapses it.
@@ -1334,20 +1342,27 @@ _Gata_ among several owners).
   step is a row leading where its first action does; a skipped one has **Anulează**, a locked one
   a padlock and its reason in a tooltip (inline on a phone), and an organization step a
   specialist cannot do neither link nor button. Following a link from the sheet collapses it.
-- When every step is done or skipped, the guide shows expanded with _Gata_; collapsing or
-  closing it sends `PUT { finished: true }` and it leaves for good. Setări → Ghiduri's **Arată
-  ghidul** sends `PUT { closed: false, finished: false }` and shows it collapsed.
-- The query client's `MutationCache` invalidates the guide after every successful mutation but
-  the guide's own, so a step ticks while it is in view; it also refetches, when stale (10 s), on
-  each route change.
+- The member is done once every step with `canDo` is done or skipped, so a specialist is not
+  held by an organization step left to an owner. With no next step before that, the collapsed
+  line reads _Așteaptă administratorul_ while a step waits on the organization's data.
+- When the member is done, the guide shows expanded with _Gata_, also when it was closed to
+  the pill; collapsing or closing it sends `PUT { finished: true }` (with `closed: false` if it
+  was closed) and it leaves for good. Setări → Ghiduri's **Arată ghidul** sends
+  `PUT { closed: false, finished: false }` and shows it collapsed; while read-only or
+  impersonating the button is disabled, with the reason under it.
+- The query client's `MutationCache` invalidates the guide 300 ms after the last of a burst of
+  successful mutations but the guide's own, so a step ticks while it is in view, unless the
+  cached guide is finished; the provider also refetches, when stale (10 s), on each route change
+  until it is finished, and on `/setari`. The guide's own writes cancel a refetch in flight
+  first, so it cannot undo them.
 - PostHog gets `setup_guide_expanded`, `setup_guide_collapsed`, `setup_guide_closed`,
   `setup_guide_reopened` (`from: pill | settings`), `setup_step_clicked` (`step`, `action:
 form | open`), `setup_step_skipped`, `setup_step_unskipped`, `setup_step_done` (a step a
   refetch shows done that was not before, in this page's life) and `setup_guide_finished`.
 
-`createAccount` in the flow tests closes the guide on the profile it creates, since the window
-would cover a corner of every flow's pages; `e2e/flows/setup-guide.spec.ts` opens it with
-`openSetupGuide`. The flows that create an account through the app (registration, an accepted
+`createAccount` in the flow tests closes the guide on the profile it writes when given a full
+name, since the window would cover a corner of the flow's pages; without one it writes no
+profile and the guide shows. `e2e/flows/setup-guide.spec.ts` opens it with `openSetupGuide`. The flows that create an account through the app (registration, an accepted
 invitation) close it on arrival.
 
 ## Actualizări

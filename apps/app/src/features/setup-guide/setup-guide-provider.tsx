@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useLocation } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
-import type { SetupStep } from '@/api/generated/api';
+import type { SetupGuide, SetupStep } from '@/api/generated/api';
 import { captureEvent } from '@/app/observability/posthog';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
@@ -16,12 +16,19 @@ import {
   saveGuideView,
   wasOpenedHere,
 } from './guide-storage';
-import { SetupGuideContext, type SetupGuideControls } from './setup-guide-context';
-import { countsAsDone } from './steps';
+import {
+  type GuideFocusTarget,
+  type GuideHiddenReason,
+  SetupGuideContext,
+  type SetupGuideControls,
+} from './setup-guide-context';
+import { countsAsDone, isComplete } from './steps';
+import { setGuideFootprint } from './toast-offset';
 import { setupGuideQueryKey, useSetupGuideChanges, useSetupGuideQuery } from './use-setup-guide';
 
-// `holdBack` keeps the guide off the page while the update dialog loads or shows, so the two
-// never overlap.
+const settingsPath = '/setari';
+
+// `holdBack`: the guide never overlaps the update dialog (ADR 031).
 export function SetupGuideProvider({
   editorPage,
   holdBack,
@@ -35,24 +42,25 @@ export function SetupGuideProvider({
   const userId = session?.user.id;
   const me = useMe();
   const membership = me.data?.membership;
-  const query = useSetupGuideQuery(Boolean(membership));
+  const pathname = useLocation({ select: (location) => location.pathname });
+  // A platform admin acting as an owner would close or skip on their own account.
+  const hiddenBecause: GuideHiddenReason | null = me.data?.impersonation
+    ? 'impersonation'
+    : me.data?.subscription?.access === 'read_only'
+      ? 'read-only'
+      : null;
+  const query = useSetupGuideQuery(
+    Boolean(membership) && (!hiddenBecause || pathname === settingsPath)
+  );
   const changes = useSetupGuideChanges();
   const phone = useIsMobile();
   const queryClient = useQueryClient();
-  const pathname = useLocation({ select: (location) => location.pathname });
   const guide = query.data ?? undefined;
 
   const doneCount = guide?.steps.filter(countsAsDone).length ?? 0;
-  const allDone = Boolean(guide && doneCount === guide.steps.length);
+  const complete = Boolean(guide && isComplete(guide.steps));
 
-  // A platform admin acting as an owner would close or skip on their own account.
-  const hidden =
-    editorPage ||
-    !membership ||
-    me.data?.subscription?.access === 'read_only' ||
-    Boolean(me.data?.impersonation) ||
-    !guide ||
-    guide.finished;
+  const hidden = editorPage || !membership || Boolean(hiddenBecause) || !guide || guide.finished;
 
   const storedChoice = () => {
     const stored = userId ? readGuideView(userId) : null;
@@ -61,24 +69,34 @@ export function SetupGuideProvider({
   const [chosen, setChosen] = useState<{ userId?: string; view: GuideView | null }>(storedChoice);
   if (chosen.userId !== userId) setChosen(storedChoice());
 
-  const [sawAllDone, setSawAllDone] = useState<boolean | undefined>(undefined);
-  if (guide && sawAllDone !== allDone) {
-    setSawAllDone(allDone);
-    if (allDone && sawAllDone === false) setChosen({ userId, view: 'expanded' });
+  const [sawComplete, setSawComplete] = useState<boolean | undefined>(undefined);
+  if (guide && sawComplete !== complete) {
+    setSawComplete(complete);
+    if (complete && sawComplete === false) setChosen({ userId, view: 'expanded' });
   }
 
   const waiting = holdBack || hidden;
-  if (!waiting && userId && guide && !guide.closed && chosen.view === null) {
+  const pill = Boolean(guide?.closed && !complete);
+  if (!waiting && userId && guide && !pill && chosen.view === null) {
     const view: GuideView =
-      allDone || (!phone && !wasOpenedHere(userId)) ? 'expanded' : 'collapsed';
+      complete || (!phone && !wasOpenedHere(userId)) ? 'expanded' : 'collapsed';
     setChosen({ userId, view });
   }
+
+  // A guide closed to the pill opens once by itself to say Gata (ADR 031).
+  const view: SetupGuideControls['view'] =
+    waiting || !guide ? null : pill ? 'closed' : guide.closed ? 'expanded' : chosen.view;
 
   useEffect(() => {
     if (!userId || !chosen.view) return;
     saveGuideView(userId, chosen.view);
     markOpenedHere(userId);
   }, [userId, chosen.view]);
+
+  useEffect(() => {
+    setGuideFootprint(view === 'expanded' || view === 'collapsed' ? { view, phone } : null);
+  }, [view, phone]);
+  useEffect(() => () => setGuideFootprint(null), []);
 
   const previous = useRef<Map<SetupStepId, SetupStep['state']>>(null);
   useEffect(() => {
@@ -93,17 +111,23 @@ export function SetupGuideProvider({
     previous.current = new Map(guide.steps.map((step) => [step.id, step.state]));
   }, [guide]);
 
+  const refetchOnRoute = !guide?.finished || pathname === settingsPath;
   useEffect(() => {
+    if (!refetchOnRoute) return;
     void queryClient.refetchQueries({
       queryKey: setupGuideQueryKey(userId),
       stale: true,
       type: 'active',
     });
-  }, [pathname, queryClient, userId]);
+  }, [pathname, queryClient, userId, refetchOnRoute]);
 
-  const setView = (view: GuideView) => setChosen({ userId, view });
+  const [focusRequest, setFocusRequest] = useState<GuideFocusTarget | null>(null);
+  const focusAfterStepChange = (next: SetupGuide) =>
+    setFocusRequest(next.next ? 'next' : 'heading');
+
+  const setView = (next: GuideView) => setChosen({ userId, view: next });
   const finish = () => {
-    changes.record({ finished: true });
+    void changes.record(guide?.closed ? { closed: false, finished: true } : { finished: true });
     captureEvent('setup_guide_finished', {});
   };
 
@@ -113,36 +137,45 @@ export function SetupGuideProvider({
     isError: query.isError || query.data === null,
     retry: () => void query.refetch(),
     doneCount,
-    allDone,
-    view: waiting || !guide ? null : guide.closed ? 'closed' : chosen.view,
+    complete,
+    view,
+    hiddenBecause,
     phone,
     isOwner: membership?.role === 'owner',
     pendingStep: changes.pendingStep,
+    focusRequest,
+    focusHandled: () => setFocusRequest(null),
     expand: () => {
       setView('expanded');
+      setFocusRequest('collapse');
       captureEvent('setup_guide_expanded', {});
     },
     collapse: () => {
-      if (allDone) return finish();
+      if (complete) return finish();
       setView('collapsed');
+      setFocusRequest('expand');
       captureEvent('setup_guide_collapsed', {});
     },
     close: () => {
-      if (allDone) return finish();
-      changes.record({ closed: true });
+      if (complete) return finish();
+      void changes.record({ closed: true });
+      setFocusRequest('header-button');
       captureEvent('setup_guide_closed', {});
     },
     reopen: (from) => {
-      changes.record(from === 'settings' ? { closed: false, finished: false } : { closed: false });
+      void changes.record(
+        from === 'settings' ? { closed: false, finished: false } : { closed: false }
+      );
       setView('collapsed');
+      if (from === 'pill') setFocusRequest('expand');
       captureEvent('setup_guide_reopened', { from });
     },
     skip: (step) => {
-      changes.skip(step);
+      void changes.skip(step, focusAfterStepChange);
       captureEvent('setup_step_skipped', { step });
     },
     unskip: (step) => {
-      changes.unskip(step);
+      void changes.unskip(step, focusAfterStepChange);
       captureEvent('setup_step_unskipped', { step });
     },
     follow: (step, action) => {

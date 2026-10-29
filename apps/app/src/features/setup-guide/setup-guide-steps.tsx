@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@ssm-usor/ui/components
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Check, ChevronDown, ChevronUp, Hourglass, Lock } from 'lucide-react';
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 
 import type { SetupGuide, SetupStep } from '@/api/generated/api';
 
@@ -25,6 +25,7 @@ import {
   stepGroups,
   stepLabel,
 } from './steps';
+import { useGuideFocus } from './use-guide-focus';
 
 function Tick({ light = false }: { light?: boolean }) {
   return light ? (
@@ -70,15 +71,25 @@ function NextCard({ step, label, context }: RowProps) {
   const copy = stepCopy[step.id];
   const missing = context.missing;
   const skippable = isMemberStep(step.id) ? step.id : null;
+  const labelId = useId();
+  const card = useRef<HTMLDivElement>(null);
+  useGuideFocus('next', card);
   return (
     <div
+      ref={card}
+      role="group"
+      aria-labelledby={labelId}
+      tabIndex={-1}
       data-testid={`setup-step-${step.id}`}
       data-state="next"
-      className="my-0.5 mb-1 flex gap-2.5 rounded-[10px] border border-dashboard-panel-border bg-card px-2.5 pt-2.5 pb-3"
+      className="my-0.5 mb-1 flex gap-2.5 rounded-[10px] border border-dashboard-panel-border bg-card px-2.5 pt-2.5 pb-3 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       <span className="mt-px size-[18px] shrink-0 rounded-full border-2 border-primary" />
       <div className="flex min-w-0 flex-col items-start gap-1.5">
-        <span className={cn('text-[13.5px] leading-[19px] font-semibold', phone && 'text-sm')}>
+        <span
+          id={labelId}
+          className={cn('text-[13.5px] leading-[19px] font-semibold', phone && 'text-sm')}
+        >
           {label}
         </span>
         <span
@@ -261,7 +272,7 @@ function StepRow({
         <button
           type="button"
           data-testid="setup-step-unskip"
-          aria-label={`Anulează «Știi deja» la ${label}`}
+          aria-label={`Anulează „Știi deja” la ${label}`}
           disabled={pendingStep === skipped}
           onClick={() => unskip(skipped)}
           className={cn(
@@ -327,7 +338,7 @@ function GroupSection({
 }) {
   const { phone } = useSetupGuide();
   const id = useId();
-  const steps = group.steps.map((stepId) => guide.steps.find((step) => step.id === stepId)!);
+  const steps = group.steps.flatMap((stepId) => guide.steps.filter((step) => step.id === stepId));
   const done = steps.filter(countsAsDone).length;
   const complete = done === steps.length;
   const neutral = guide.organizationHasClients;
