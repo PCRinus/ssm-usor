@@ -13,12 +13,23 @@ import {
 } from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
+const wordLinks: string[] = [];
+
 vi.mock('@/features/imports/source-word-view', () => ({
-  default: ({ onNotFound }: { onNotFound: () => void }) => (
-    <button type="button" data-testid="word-view" onClick={onNotFound}>
-      Word
-    </button>
-  ),
+  default: ({
+    source,
+    onNotFound,
+  }: {
+    source: { original: { url: string } };
+    onNotFound: () => void;
+  }) => {
+    wordLinks.push(source.original.url);
+    return (
+      <button type="button" data-testid="word-view" onClick={onNotFound}>
+        Word
+      </button>
+    );
+  },
 }));
 
 vi.mock('@/features/imports/source-pdf-view', async () => {
@@ -112,11 +123,13 @@ const word = {
 };
 
 beforeEach(() => {
+  wordLinks.length = 0;
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   disposeRuntimes();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -248,6 +261,32 @@ describe('the source dialog', () => {
       ])
     );
     expect(within(dialog).getByTestId('pdf-view').dataset.quote).toBe('Telefon: 0269 214 377');
+  });
+
+  it('waits for new links when reopened after the old ones expired', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    mockSources({ 'dosar-ssm.zip/Decizie 1.docx': word }, [
+      { file: 'dosar-ssm.zip/Decizie 1.docx', quote: '0269 214 377' },
+    ]);
+    const dialog = await openPhoneSource();
+    await within(dialog).findByTestId('word-view');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Închide' }));
+    await waitFor(() => expect(screen.queryByTestId('import-source-dialog')).toBeNull());
+    wordLinks.length = 0;
+
+    vi.setSystemTime(Date.now() + 6 * 60_000);
+    const contact = screen
+      .getAllByTestId('review-group')
+      .find((group) => group.textContent?.includes('Persoană de contact'))!;
+    const row = within(contact)
+      .getAllByTestId('review-row')
+      .find((each) => each.textContent?.includes('Telefon'))!;
+    await userEvent.click(within(row).getByTestId('review-source'));
+    const reopened = await screen.findByTestId('import-source-dialog');
+
+    await within(reopened).findByTestId('word-view');
+    expect(sourceRequests).toBe(2);
+    expect(new Set(wordLinks)).toEqual(new Set(['https://storage.example/object?token=2']));
   });
 
   it('says so when the file cannot be opened', async () => {

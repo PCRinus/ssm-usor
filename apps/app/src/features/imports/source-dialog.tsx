@@ -82,7 +82,9 @@ function SourceContent({
       refetchOnReconnect: false,
     },
   });
-  const source = query.data;
+  // The answer outlives its links: kept four minutes after the dialog closes, it can come back
+  // with links Storage now refuses, so a reopened dialog waits for the new ones.
+  const source = query.isStale && (query.isFetching || query.isError) ? undefined : query.data;
   const kind = source ? sourceKind(source) : null;
   const fileCount = new Set(request.sources.map((each) => each.file)).size;
   const step = (next: number) => {
@@ -188,7 +190,7 @@ function SourceContent({
         className="relative min-h-0 flex-1 overflow-hidden bg-muted/60"
         data-testid="source-viewer"
       >
-        {query.isPending && (
+        {!source && !query.isError && (
           <p className="p-6 text-sm text-muted-foreground" role="status">
             Se deschide fișierul…
           </p>

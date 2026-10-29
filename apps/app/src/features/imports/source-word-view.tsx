@@ -28,10 +28,11 @@ export default function WordSourceView({
   onNotFound: () => void;
 }) {
   const [bytes, setBytes] = useState<Uint8Array | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [ranges, setRanges] = useState<Range[]>([]);
   const host = useRef<HTMLDivElement>(null);
   const url = source.derived?.url ?? source.original.url;
+  const failed = failedUrl === url;
 
   useEffect(() => {
     let cancelled = false;
@@ -44,7 +45,7 @@ export default function WordSourceView({
         if (!cancelled) setBytes(new Uint8Array(buffer));
       })
       .catch(() => {
-        if (!cancelled) setFailed(true);
+        if (!cancelled) setFailedUrl(url);
       });
     return () => {
       cancelled = true;
