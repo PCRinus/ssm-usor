@@ -1206,7 +1206,8 @@ fills these two columns: the column grants leave them out of a member's insert.
 
 An **import** ([ADR 030](architecture/adr-030-import-from-documents.md)) holds a client's
 uploaded files and the proposal a model read from them until a member confirms or abandons it.
-Created by `20261028100000_imports` and `20261028100100_import_functions`.
+Created by `20261028100000_imports` and `20261028100100_import_functions`; `read_characters`,
+`usage_by_step` and the step of `record_import_usage` by `20261029100000_import_bookkeeping`.
 
 `imports` has one row per import, with `organization_id`:
 
@@ -1222,6 +1223,8 @@ Created by `20261028100000_imports` and `20261028100100_import_functions`.
 | `version`                                                          | Counts the saves of `changes`; a save and the confirmation name the version they were made on.                                                                           |
 | `quality`                                                          | Value-free counts per section of how many proposed values were changed, unticked or kept, stored at confirming.                                                          |
 | `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | Every model request of the import, the cost in US dollars as `numeric(12, 6)`.                                                                                           |
+| `usage_by_step`                                                    | The same four counts by step, `sorting` (the pack, a scan's first page), `scanning` (scanned pages) or `reading`, each an object keyed by the four column names.         |
+| `read_characters`                                                  | The characters sent to the reading model, which the 600,000 cap counts: set on sorting, past the cap too, and again when a set-aside file is sent back. Null before.     |
 | `created_by`, `created_at`, `started_at`, `ready_at`, `failed_at`  | Who started it, as the real user during an impersonation, and when each step was reached. Checks tie each stamp to its status.                                           |
 | `confirmed_at`, `confirmed_by`, `abandoned_at`                     | The end. A confirmed import has its client.                                                                                                                              |
 | `files_copied_at`, `proposal_dropped_at`, `objects_removed_at`     | The API copied the folder into `client-files`; the proposal was dropped; the API removed the import's objects, which needs the other two.                                |
@@ -1255,8 +1258,9 @@ import into a client is read only by those who read the client, since the policy
 client under the caller's own policies. Nobody signed in inserts, updates or deletes either
 table. The API creates imports and their files' rows with the secret key, after checking the
 member, and its queue consumer records the steps, the files' states, the proposal and the
-usage the same way, the usage through `record_import_usage(import, file, input, cached, output,
-cost)`, which adds to the import and, given a file, to that file. A member's decisions are four
+usage the same way, the usage through `record_import_usage(import, file, step, input, cached,
+output, cost)`, which adds to the import's totals and to its step in `usage_by_step` and, given a
+file, to that file; a step other than `sorting`, `reading` or `scanning` is refused (`22023`). A member's decisions are four
 functions that run as their owner and find the import as the select policy does, answering
 `P0002` for one the caller cannot see: `save_import_changes(import, expected version, changes)`
 stores the review and returns the next version, `abandon_import(import)` ends any import not

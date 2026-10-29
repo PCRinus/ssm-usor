@@ -1,5 +1,5 @@
 begin;
-select plan(99);
+select plan(102);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -632,7 +632,7 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ select public.record_import_usage('10000000-0000-4000-8000-000000000001', null, 1, 0, 1, 0.01) $$,
+  $$ select public.record_import_usage('10000000-0000-4000-8000-000000000001', null, 'reading', 1, 0, 1, 0.01) $$,
   '42501',
   null,
   'members do not record usage'
@@ -670,21 +670,40 @@ select throws_ok(
 );
 
 select lives_ok(
-  $$ select public.record_import_usage('10000000-0000-4000-8000-000000000001', null, 120000, 80000, 9000, 0.12) $$,
+  $$ select public.record_import_usage('10000000-0000-4000-8000-000000000001', null, 'reading', 120000, 80000, 9000, 0.12) $$,
   'the queue consumer records the reading''s usage'
 );
 
 select lives_ok(
-  $$ select public.record_import_usage('10000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000002', 3000, 0, 500, 0.004) $$,
+  $$ select public.record_import_usage('10000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000002', 'scanning', 3000, 0, 500, 0.004) $$,
   'and a photograph''s'
+);
+
+select lives_ok(
+  $$ select public.record_import_usage('10000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000002', 'scanning', 2000, 1000, 250, 0.003) $$,
+  'and another page''s'
+);
+
+select throws_ok(
+  $$ select public.record_import_usage('10000000-0000-4000-8000-000000000001', null, 'checking', 1, 0, 1, 0.01) $$,
+  '22023',
+  null,
+  'only a step that asks a model records usage'
 );
 
 select results_eq(
   $$ select i.input_tokens, i.cached_input_tokens, i.output_tokens, i.cost_usd, f.input_tokens, f.cost_usd
      from public.imports i join public.import_files f on f.import_id = i.id
      where f.id = 'f0000000-0000-4000-8000-000000000002' $$,
-  $$ values (123000::bigint, 80000::bigint, 9500::bigint, 0.124::numeric, 3000::bigint, 0.004::numeric) $$,
-  'the import counts both, the photograph its own'
+  $$ values (125000::bigint, 81000::bigint, 9750::bigint, 0.127::numeric, 5000::bigint, 0.007::numeric) $$,
+  'the import counts them all, the photograph its own'
+);
+
+select is(
+  (select usage_by_step from public.imports where id = '10000000-0000-4000-8000-000000000001'),
+  '{"reading": {"input_tokens": 120000, "cached_input_tokens": 80000, "output_tokens": 9000, "cost_usd": 0.12},
+    "scanning": {"input_tokens": 5000, "cached_input_tokens": 1000, "output_tokens": 750, "cost_usd": 0.007}}'::jsonb,
+  'and each step apart'
 );
 
 select throws_ok(
@@ -875,7 +894,7 @@ select results_eq(
 
 select results_eq(
   $$ select input_tokens, cost_usd, client_id is not null from public.imports where id = '10000000-0000-4000-8000-000000000001' $$,
-  $$ values (123000::bigint, 0.124::numeric, true) $$,
+  $$ values (125000::bigint, 0.127::numeric, true) $$,
   'and so do the import''s counts and cost'
 );
 
