@@ -1135,9 +1135,10 @@ describe('a value proposed with its spelling corrected', () => {
     expect(name!.textContent).toBe(
       'Denumire:Propus: Îngrijitor hotelÎn document: INGRIJITOR HOTELScrierea corectată: majuscule și diacriticePăstrează ca în document'
     );
-    expect(markedWords(name!)).toEqual(['Îngrijitor hotel', 'INGRIJITOR HOTEL']);
+    expect(markedWords(name!)).toEqual(['Îngrijitor', 'INGRIJITOR']);
     expect(zone!.textContent).toContain('Scrierea corectată: majuscule');
     expect(zone!.textContent).not.toContain('diacritice');
+    expect(markedWords(zone!)).toEqual([]);
 
     await userEvent.click(within(name!).getByRole('button', { name: 'Păstrează ca în document' }));
     await waitFor(() => expect(saves).toBe(1));

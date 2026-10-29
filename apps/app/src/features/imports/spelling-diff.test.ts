@@ -30,18 +30,32 @@ describe('splitting a value into words and separators', () => {
 });
 
 describe('marking the words the spelling correction changed', () => {
-  it('marks a word whose case changed, whole', () => {
-    const diff = spellingDiff('Îngrijitor hotel etaj', 'Îngrijitor HOTEL etaj');
+  it('marks nothing in a value that differs in case alone', () => {
+    expect(spellingDiff('Șef de tură', 'ȘEF DE TURĂ')).toEqual({
+      value: [{ text: 'Șef de tură', changed: false }],
+      written: [{ text: 'ȘEF DE TURĂ', changed: false }],
+    });
+    expect(spellingDiff('Îngrijitor hotel', 'îNGRIJITOR HOTEL').value).toEqual([
+      { text: 'Îngrijitor hotel', changed: false },
+    ]);
+  });
+
+  it('marks only the words whose diacritics changed when the case changed too', () => {
+    const diff = spellingDiff(
+      'Prepararea mâncării, lucrul la cuptor',
+      'PREPARAREA MANCARII, LUCRUL LA CUPTOR'
+    );
     expect(diff.value).toEqual([
-      { text: 'Îngrijitor ', changed: false },
-      { text: 'hotel', changed: true },
-      { text: ' etaj', changed: false },
+      { text: 'Prepararea ', changed: false },
+      { text: 'mâncării', changed: true },
+      { text: ', lucrul la cuptor', changed: false },
     ]);
     expect(diff.written).toEqual([
-      { text: 'Îngrijitor ', changed: false },
-      { text: 'HOTEL', changed: true },
-      { text: ' etaj', changed: false },
+      { text: 'PREPARAREA ', changed: false },
+      { text: 'MANCARII', changed: true },
+      { text: ', LUCRUL LA CUPTOR', changed: false },
     ]);
+    expect(marked(spellingDiff('Bucătar', 'BUCATAR').written)).toEqual(['BUCATAR']);
   });
 
   it('marks a word that gained a diacritic, whole', () => {
@@ -56,15 +70,16 @@ describe('marking the words the spelling correction changed', () => {
     expect(marked(diff.written)).toEqual(['mancare,']);
   });
 
-  it('marks a value whose every word changed as one span', () => {
-    const diff = spellingDiff(
-      'Prepararea mâncării, lucrul la cuptor',
-      'PREPARAREA MANCARII, LUCRUL LA CUPTOR'
-    );
-    expect(diff.value).toEqual([{ text: 'Prepararea mâncării, lucrul la cuptor', changed: true }]);
-    expect(diff.written).toEqual([
-      { text: 'PREPARAREA MANCARII, LUCRUL LA CUPTOR', changed: true },
-    ]);
+  it('marks a run of changed words as one span', () => {
+    const diff = spellingDiff('Curățenie în spații', 'CURATENIE IN SPATII');
+    expect(diff.value).toEqual([{ text: 'Curățenie în spații', changed: true }]);
+    expect(diff.written).toEqual([{ text: 'CURATENIE IN SPATII', changed: true }]);
+  });
+
+  it('still marks changed punctuation and spacing beside a recapitalised word', () => {
+    const diff = spellingDiff('Ulei uzat); deșeuri', 'ULEI UZAT; DESEURI');
+    expect(marked(diff.value)).toEqual(['); deșeuri']);
+    expect(marked(diff.written)).toEqual(['; DESEURI']);
   });
 
   it('leaves a separator beside an unchanged word plain', () => {
