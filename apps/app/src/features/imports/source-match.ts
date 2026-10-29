@@ -1,3 +1,5 @@
+import { importFileExtensions } from '@ssm-usor/contracts';
+
 import type { ImportSourceResponse } from '@/api/generated/api';
 
 import { foldText } from './review-model';
@@ -9,12 +11,32 @@ const wordTypes = new Set([
 
 export type SourceKind = 'word' | 'pdf' | 'scan' | 'image';
 
+const kindOfType = (mimeType: string): SourceKind =>
+  mimeType.startsWith('image/') ? 'image' : wordTypes.has(mimeType) ? 'word' : 'pdf';
+
 export function sourceKind(source: ImportSourceResponse): SourceKind {
-  if (source.page !== null) return 'scan';
-  if (source.original.mimeType.startsWith('image/')) return 'image';
-  if (wordTypes.has(source.original.mimeType)) return 'word';
-  return 'pdf';
+  return source.page !== null ? 'scan' : kindOfType(source.original.mimeType);
 }
+
+const pagePattern = / \(pagina (\d+)\)$/;
+
+// What a source shows can be told from its name before the API answers: the upload checked the
+// extension against the type, and a page read as an image is named after it.
+export function requestKind(file: string): SourceKind | null {
+  if (pagePattern.test(file)) return 'scan';
+  const extension = file.split('.').at(-1)?.toLowerCase() ?? '';
+  const types: readonly string[] | undefined =
+    importFileExtensions[extension as keyof typeof importFileExtensions];
+  return types?.[0] ? kindOfType(types[0]) : null;
+}
+
+export function requestPage(file: string): number | null {
+  const page = pagePattern.exec(file)?.[1];
+  return page ? Number(page) : null;
+}
+
+export const requestFileName = (file: string) =>
+  file.replace(pagePattern, '').split('/').at(-1) ?? file;
 
 // The quote is matched against the words of the text layer, folded as the API folds them,
 // since pdf.js splits a line into runs that do not follow the text poppler took out. The API may

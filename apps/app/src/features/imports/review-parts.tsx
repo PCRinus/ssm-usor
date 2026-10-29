@@ -1,9 +1,10 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, Pencil, ShieldCheck } from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
+import { type ComponentProps, type ReactNode, use } from 'react';
 
-import { type SectionStatus, type Source, spellingCorrection } from './review-model';
+import { type LabelledSource, type SectionStatus, spellingCorrection } from './review-model';
+import { SourcePrefetchContext } from './source-query';
 
 const tones = {
   warning: 'border-warning-border bg-warning text-warning-foreground',
@@ -99,13 +100,15 @@ export function SourceButton({
   onOpen,
   label = 'Sursa',
 }: {
-  sources: Source[];
+  sources: LabelledSource[];
   onOpen: () => void;
   label?: string;
 }) {
+  const prefetch = use(SourcePrefetchContext);
   if (sources.length === 0) return null;
+  const warm = () => prefetch?.(sources[0]!);
   return (
-    <LinkButton data-testid="review-source" onClick={onOpen}>
+    <LinkButton data-testid="review-source" onPointerEnter={warm} onFocus={warm} onClick={onOpen}>
       {label}
     </LinkButton>
   );

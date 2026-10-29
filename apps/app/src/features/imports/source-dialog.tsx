@@ -6,26 +6,23 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { cn } from '@ssm-usor/ui/lib/utils';
+import { useQuery } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { ChevronLeft, ChevronRight, Copy, Download, FileText, ScanText } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 
-import {
-  getGetImportSourceQueryKey,
-  getImportSource,
-  type ImportSourceResponse,
-  useGetImportSource,
-} from '@/api/generated/api';
+import { getImportSource, type ImportSourceResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 
 import { endSentence, filesLabel, importErrorMessage } from './import-format';
 import type { LabelledSource } from './review-model';
 import { type SourceKind, sourceKind } from './source-match';
+import { sourceParams, sourceQuery, viewerChunks } from './source-query';
 import { ZoomBar } from './zoom-bar';
 
-const WordSourceView = lazy(() => import('./source-word-view'));
-const PdfSourceView = lazy(() => import('./source-pdf-view'));
+const WordSourceView = lazy(viewerChunks.word);
+const PdfSourceView = lazy(viewerChunks.pdf);
 
 export type SourceRequest = {
   title: string;
@@ -71,21 +68,8 @@ function SourceContent({
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const current = request.sources[index]!;
-  const params = {
-    file: current.file,
-    quote: current.quote.slice(0, 2000),
-    ...(current.near && { near: current.near.slice(0, 200) }),
-  };
-  const query = useGetImportSource(importId, params, {
-    request: apiRequest,
-    query: {
-      queryKey: getGetImportSourceQueryKey(importId, params),
-      staleTime: 4 * 60_000,
-      gcTime: 4 * 60_000,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-    },
-  });
+  const params = sourceParams(current);
+  const query = useQuery(sourceQuery(importId, params, apiRequest));
   // The answer outlives its links: kept four minutes after the dialog closes, it can come back
   // with links Storage now refuses, so a reopened dialog waits for the new ones.
   const source = query.isStale && (query.isFetching || query.isError) ? undefined : query.data;

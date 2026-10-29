@@ -8,6 +8,9 @@ import {
   pageQuotes,
   passageHits,
   quoteLines,
+  requestFileName,
+  requestKind,
+  requestPage,
   sourceKind,
 } from './source-match';
 
@@ -155,6 +158,18 @@ describe('finding a passage in the viewers', () => {
       'word'
     );
     expect(sourceKind(source({}))).toBe('pdf');
+  });
+
+  it('tells what a source shows from its name, before the API answers', () => {
+    expect(requestKind('Scanari/Decizie PSI.pdf (pagina 3)')).toBe('scan');
+    expect(requestPage('Scanari/Decizie PSI.pdf (pagina 3)')).toBe(3);
+    expect(requestFileName('Scanari/Decizie PSI.pdf (pagina 3)')).toBe('Decizie PSI.pdf');
+    expect(requestKind('dosar.zip/6._LEIP.DOC')).toBe('word');
+    expect(requestKind('Fisa post.docx')).toBe('word');
+    expect(requestKind('Contract.pdf')).toBe('pdf');
+    expect(requestKind('IMG_2041.heic')).toBe('image');
+    expect(requestPage('Contract.pdf')).toBeNull();
+    expect(requestKind('Fără extensie')).toBeNull();
   });
 
   it('finds a cell whose words the document spaces wider than the text the API read', () => {

@@ -298,6 +298,28 @@ describe('the source dialog', () => {
     expect(new Set(wordLinks)).toEqual(new Set(['https://storage.example/object?token=2']));
   });
 
+  it('asks for the source while the pointer is on Sursa, once, and opens it from that answer', async () => {
+    mockSources({ 'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf' } });
+    mountApp(authFixture(makeSession()).client, `/clients/import/${importId}/identity`);
+    const groups = await screen.findAllByTestId('review-group');
+    const contact = groups.find((group) => group.textContent?.includes('Persoană de contact'))!;
+    const row = within(contact)
+      .getAllByTestId('review-row')
+      .find((each) => each.textContent?.includes('Telefon'))!;
+    const button = within(row).getByTestId('review-source');
+
+    await userEvent.hover(button);
+    await waitFor(() => expect(sourceRequests).toBe(1));
+    await userEvent.unhover(button);
+    await userEvent.hover(button);
+    await userEvent.click(button);
+    const dialog = await screen.findByTestId('import-source-dialog');
+    expect((await within(dialog).findByTestId('pdf-view')).dataset.quote).toBe(
+      'Telefon: 0269 214 377'
+    );
+    expect(sourceRequests).toBe(1);
+  });
+
   it('says so when the file cannot be opened', async () => {
     mockSources({ 'Contract prestari SSM 2019.pdf': 'missing' });
     const dialog = await openPhoneSource();
