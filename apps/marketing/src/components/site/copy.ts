@@ -66,7 +66,7 @@ export const hero = {
   phoneAlt: 'Portalul angajatului: alege ce semnează',
 };
 
-export type FactMark = 'eu' | 'signature' | 'legislation' | 'formats';
+export type FactMark = 'eu' | 'signature' | 'legislation' | 'formats' | 'payment';
 
 export const facts: { mark: FactMark; title: string; text: string }[] = [
   {
@@ -88,6 +88,11 @@ export const facts: { mark: FactMark; title: string; text: string }[] = [
     mark: 'formats',
     title: 'Documentele rămân ale tale',
     text: 'Le descarci oricând, în Word sau PDF.',
+  },
+  {
+    mark: 'payment',
+    title: 'Plata cu cardul, în siguranță',
+    text: 'Numărul cardului tău nu ajunge la noi.',
   },
 ];
 
