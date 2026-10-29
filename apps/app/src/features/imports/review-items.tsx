@@ -39,6 +39,7 @@ import {
   allocationLabel,
   anchorOf,
   type Blocker,
+  durationBlockerNote,
   employeeRoleLabel,
   flagNote,
   flagsAt,
@@ -156,11 +157,13 @@ function ItemRow({
           const field = blocker.path.split('.')[2];
           return (
             <RowNote key={`${blocker.path}-${blocker.code}`} tone="danger">
-              {blocker.code === 'unknown_reference'
-                ? `Alege ${itemFieldLabel(field ?? 'workplace')}.`
-                : blocker.code === 'invalid'
-                  ? `Corectează ${field ? itemFieldLabel(field) : 'datele'}.`
-                  : `Lipsește ${field ? itemFieldLabel(field) : 'o dată obligatorie'}.`}
+              {state.list === 'protectiveEquipment' && field === 'durationMonths'
+                ? durationBlockerNote(blocker.code, state.values)
+                : blocker.code === 'unknown_reference'
+                  ? `Alege ${itemFieldLabel(field ?? 'workplace')}.`
+                  : blocker.code === 'invalid'
+                    ? `Corectează ${field ? itemFieldLabel(field) : 'datele'}.`
+                    : `Lipsește ${field ? itemFieldLabel(field) : 'o dată obligatorie'}.`}
             </RowNote>
           );
         })}

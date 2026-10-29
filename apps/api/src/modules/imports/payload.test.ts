@@ -455,7 +455,7 @@ describe('toClientPayload', () => {
             risk: 'Accident rutier',
             item: 'Vestă reflectorizantă',
             quantity: 1,
-            durationMonths: null,
+            durationMonths: 12,
             allocation: null,
             ...quoted(),
           },
@@ -619,6 +619,65 @@ describe('toClientPayload', () => {
     expect(
       blockersWith({ 'workplace-1': { values: { extinguisherNorm: 'commercial_200' } } })
     ).not.toContainEqual(expect.objectContaining({ path: 'workplaces.0.extinguisherNorm' }));
+  });
+
+  it('asks inventory for a duration the app takes and a consumable for none, as the database does', () => {
+    const entry = (item: string, durationMonths: number | null, allocation: string | null) => ({
+      jobPositions: ['Brutar'],
+      risk: 'Substanțe de curățat',
+      item,
+      quantity: 1,
+      durationMonths,
+      allocation: allocation as 'consumable' | null,
+      ...quoted(),
+    });
+    const proposal = withChecks(
+      proposalOf(
+        reading({
+          protectiveEquipment: [
+            entry('Mănuși', null, 'personal_inventory'),
+            entry('Mască', 3, 'consumable'),
+            entry('Cască', 121, 'section_inventory'),
+            entry('Ochelari', null, null),
+            entry('Soluție dezinfectantă', null, 'consumable'),
+          ],
+        })
+      ),
+      { files: {} }
+    );
+    const blockersWith = (items: Record<string, object>) =>
+      toClientPayload({
+        proposal,
+        changes: { fields: {}, items },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      })
+        .blockers.filter((blocker) => blocker.path.startsWith('protectiveEquipment'))
+        .sort((a, b) => a.path.localeCompare(b.path));
+
+    expect(blockersWith({})).toEqual([
+      { path: 'protectiveEquipment.0.durationMonths', code: 'missing' },
+      { path: 'protectiveEquipment.1.durationMonths', code: 'invalid' },
+      { path: 'protectiveEquipment.2.durationMonths', code: 'invalid' },
+      { path: 'protectiveEquipment.3.durationMonths', code: 'missing' },
+    ]);
+    expect(
+      blockersWith({
+        'equipment-entry-1': { values: { durationMonths: 12 } },
+        'equipment-entry-2': { values: { allocation: 'personal_inventory' } },
+        'equipment-entry-3': { values: { durationMonths: 120 } },
+        'equipment-entry-4': { values: { allocation: 'consumable' } },
+      })
+    ).toEqual([]);
+    expect(
+      blockersWith({
+        'equipment-entry-2': { values: { allocation: 'personal_inventory', durationMonths: 24 } },
+        'equipment-entry-1': { values: { allocation: 'consumable' } },
+      })
+    ).toEqual([
+      { path: 'protectiveEquipment.2.durationMonths', code: 'invalid' },
+      { path: 'protectiveEquipment.3.durationMonths', code: 'missing' },
+    ]);
   });
 
   it("still asks for the workers' representative's hire date", () => {

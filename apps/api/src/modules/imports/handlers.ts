@@ -22,7 +22,7 @@ import {
   fromDatabaseError,
 } from '../../lib/db';
 import type { ApiEnv, ImportMessage, ImportQueue } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, type BrokenConstraint } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
 import {
   type ExistingRecords,
@@ -541,7 +541,26 @@ export const startImport: RouteHandler<typeof startImportRoute, ApiEnv> = async 
   return c.json({ import: await summaryOf(db, importId) }, 200);
 };
 
-function decisionError(error: { code?: string | null }, context: string) {
+const proposalListOfTable: Record<string, string> = {
+  clients: 'client',
+  client_fire_safety: 'fireSafety',
+  client_workplaces: 'workplaces',
+  job_positions: 'jobPositions',
+  job_position_equipment: 'protectiveEquipment',
+  client_responsible_persons: 'responsiblePersons',
+  employees: 'employees',
+  fire_equipment: 'fireEquipment',
+  fire_installations: 'fireInstallations',
+};
+
+function proposalPathOf(constraint: BrokenConstraint) {
+  const table =
+    constraint.table ??
+    Object.keys(proposalListOfTable).find((name) => constraint.name.startsWith(`${name}_`));
+  return (table && proposalListOfTable[table]) ?? table ?? constraint.name;
+}
+
+function decisionError(error: { code?: string | null; message?: string }, context: string) {
   switch (error.code) {
     case 'P0002':
       return notFound();
@@ -571,7 +590,17 @@ function decisionError(error: { code?: string | null }, context: string) {
         importErrorReasons.outdated
       );
   }
-  return fromDatabaseError(error, context);
+  const refused = fromDatabaseError(error, context);
+  // The payload's checks mirror the tables' rules; one they miss still names the section.
+  if ((error.code === '23514' || error.code === '23502') && refused.constraint) {
+    return new ApiError(
+      'unprocessable',
+      'The client refused a value of the import.',
+      [{ path: proposalPathOf(refused.constraint), message: refused.constraint.name }],
+      importErrorReasons.refused
+    );
+  }
+  return refused;
 }
 
 export const saveImportChanges: RouteHandler<typeof saveImportChangesRoute, ApiEnv> = async (c) => {

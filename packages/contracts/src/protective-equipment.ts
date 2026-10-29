@@ -14,7 +14,8 @@ export type EquipmentAllocation = z.infer<typeof equipmentAllocationSchema>;
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 const quantity = z.int().min(1).max(999);
-const durationMonths = z.int().min(1).max(120);
+export const maxEquipmentDurationMonths = 120;
+const durationMonths = z.int().min(1).max(maxEquipmentDurationMonths);
 
 export const equipmentEntryRequestSchema = z
   .object({

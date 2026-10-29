@@ -12,6 +12,7 @@ import {
   type FireSmokingPolicy,
   fireSmokingPolicyLabels,
   formatCui,
+  maxEquipmentDurationMonths,
   type ResponsiblePersonRole,
   responsiblePersonRoleLabels,
 } from '@ssm-usor/contracts';
@@ -571,6 +572,9 @@ const itemFieldLabels: Record<string, string> = {
   firstName: 'prenumele',
   jobTitle: 'funcția',
   risk: 'riscul',
+  quantity: 'cantitatea',
+  durationMonths: 'durata de utilizare',
+  allocation: 'alocarea',
   jobPosition: 'postul',
   workplace: 'punctul de lucru',
   employee: 'angajatul',
@@ -601,6 +605,26 @@ export type BlockerLink = {
   anchor: string;
   code: Blocker['code'];
 };
+
+const durationRange = `între 1 și ${maxEquipmentDurationMonths} de luni`;
+
+export function durationBlockerNote(code: Blocker['code'], values: Record<string, unknown>) {
+  if (code === 'missing') {
+    return 'Lipsește durata de utilizare. Scrie-o, sau alege alocarea Consum dacă articolul se consumă.';
+  }
+  return values.allocation === 'consumable'
+    ? 'Un articol de consum nu are durată de utilizare. Șterge durata sau alege altă alocare.'
+    : `Durata de utilizare e ${durationRange}.`;
+}
+
+function durationBlockerLink(code: Blocker['code'], values: Record<string, unknown>, name: string) {
+  if (code === 'missing') {
+    return `Scrie durata de utilizare pentru ${name} sau alege alocarea Consum`;
+  }
+  return values.allocation === 'consumable'
+    ? `Șterge durata de utilizare pentru ${name} sau alege altă alocare`
+    : `Scrie o durată de utilizare ${durationRange} pentru ${name}`;
+}
 
 export const anchorOf = (path: string) => `review-${path.replace(/[^A-Za-z0-9]+/g, '-')}`;
 
@@ -633,7 +657,9 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
   const anchor = anchorOf(item ? `${list}.${item.id}` : blocker.path);
   const fieldText = field ? itemFieldLabel(field) : 'datele';
   let text: string;
-  if (blocker.code === 'unknown_reference') text = `Alege ${fieldText} pentru ${name}`;
+  if (list === 'protectiveEquipment' && field === 'durationMonths') {
+    text = durationBlockerLink(blocker.code, values, name);
+  } else if (blocker.code === 'unknown_reference') text = `Alege ${fieldText} pentru ${name}`;
   else if (blocker.code === 'invalid') text = `Corectează ${fieldText} pentru ${name}`;
   else if (list === 'employees') {
     const role = employeeRoleLabel(values.role);
@@ -755,7 +781,7 @@ const notAllowed: Record<string, string> = {
   wheeled: 'Doar un stingător poate fi pe roți.',
   count: 'Numărul de bucăți nu pare corect.',
   quantity: 'Cantitatea nu pare corectă.',
-  durationMonths: 'Durata de utilizare nu pare corectă.',
+  durationMonths: `Durata de utilizare e ${durationRange}.`,
   kind: 'Felul locului de muncă nu a fost recunoscut. Alege-l din listă.',
   floorAreaM2: 'Suprafața utilă e un număr întreg de metri pătrați, de la 1 la 1.000.000.',
   extinguisherNorm: 'Norma de dotare nu a fost recunoscută. Alege-o din listă.',
@@ -797,6 +823,9 @@ export function flagNote(flag: Flag, proposal: Proposal, changes: Changes): stri
         ? `CNP-ul arată altă dată a nașterii: ${isoDay(flag.detail)}.`
         : 'CNP-ul nu se potrivește cu data nașterii.';
     case 'value_not_allowed':
+      if (field === 'durationMonths' && flag.detail === 'consumable') {
+        return 'Un articol de consum nu are durată de utilizare.';
+      }
       return (
         (field && notAllowed[field]) ??
         (single ? 'Valoarea iese din limitele permise.' : 'Valoarea nu e una dintre cele permise.')
@@ -826,6 +855,22 @@ export function flagNote(flag: Flag, proposal: Proposal, changes: Changes): stri
         : 'Denumirea diferă de cea de la ANAF.';
     }
   }
+}
+
+const refusedRules: Record<string, string> = {
+  job_position_equipment_duration_by_allocation:
+    'un articol de inventar are durată de utilizare, unul de consum nu are',
+  job_position_equipment_duration_range: `durata de utilizare e ${durationRange}`,
+  job_position_equipment_quantity_range: 'cantitatea e între 1 și 999',
+};
+
+export function refusedValueMessage(issue: { path: string; message: string } | undefined) {
+  const section = issue && sectionOfRoot[issue.path.split('.')[0] ?? ''];
+  if (!issue || !section) {
+    return 'Nu am putut salva o valoare din import. Verifică datele și încearcă din nou.';
+  }
+  const rule = refusedRules[issue.message];
+  return `Nu am putut salva o valoare din secțiunea «${sectionLabels[section]}»${rule ? `: ${rule}` : ''}. Verifică secțiunea și încearcă din nou.`;
 }
 
 export function flagsAt(proposal: Proposal, prefix: string) {

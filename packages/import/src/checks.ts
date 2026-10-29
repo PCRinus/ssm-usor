@@ -5,6 +5,7 @@ import {
   fireSmokingPolicies,
   isValidCnp,
   isValidCui,
+  maxEquipmentDurationMonths,
   maxTrainingIntervalMonths,
   normalizeCnp,
   periodicTrainingMinutesOptions,
@@ -298,8 +299,15 @@ export function checkAllowedValues(proposal: Proposal): Flag[] {
   proposal.protectiveEquipment.forEach((entry, index) => {
     const path = `protectiveEquipment.${index}`;
     if (entry.quantity !== null) flag(`${path}.quantity`, between(1, 999)(entry.quantity));
-    if (entry.durationMonths !== null) {
-      flag(`${path}.durationMonths`, between(1, 600)(entry.durationMonths));
+    if (entry.durationMonths === null) return;
+    if (entry.allocation === 'consumable') {
+      flags.push({
+        path: `${path}.durationMonths`,
+        code: 'value_not_allowed',
+        detail: 'consumable',
+      });
+    } else {
+      flag(`${path}.durationMonths`, between(1, maxEquipmentDurationMonths)(entry.durationMonths));
     }
   });
   return flags;
@@ -365,6 +373,16 @@ export function checkMissing(proposal: Proposal, options: { clientExists?: boole
     for (const name of ['lastName', 'firstName', 'jobTitle', 'hiredAt'] as const) {
       if (employee[name] === null)
         flags.push({ path: `employees.${index}.${name}`, code: 'missing' });
+    }
+  });
+  // Inventory is replaced when its duration runs out, so the database takes none without one.
+  proposal.protectiveEquipment.forEach((entry, index) => {
+    if (
+      proposedIncluded(entry) &&
+      entry.allocation !== 'consumable' &&
+      entry.durationMonths === null
+    ) {
+      flags.push({ path: `protectiveEquipment.${index}.durationMonths`, code: 'missing' });
     }
   });
   return flags;
