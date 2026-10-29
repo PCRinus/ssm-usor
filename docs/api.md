@@ -1958,7 +1958,9 @@ replaced. A responsible person is linked to the employee of the same name, the w
 representative must be. The `blockers` are a choice not made, the new client's name or CUI
 missing, a value the checks flagged that would be written unchanged (`invalid`), a staff
 category given both an interval and "not applicable" (`invalid` on the latter), an employee
-without a name, job title or hire date, equipment without a risk, a person without a job title,
+without a name, job title or hire date, equipment without a risk, inventory without a duration
+(`missing` on `durationMonths`) or a consumable with one (`invalid` on it), as
+`job_position_equipment` refuses, a person without a job title,
 and a fire-safety unit, an installation or equipment whose workplace or position is unknown
 (`unknown_reference`).
 
@@ -1966,7 +1968,10 @@ and a fire-safety unit, an installation or equipment whose workplace or position
 the payload, answers `422` with `import_incomplete` and the blockers as `issues` while any is
 left, then calls `apply_client_import` as the member: `409` with `import_changed`,
 `import_not_ready`, `import_other_company`, `import_client_exists` or `import_outdated` (a
-workplace or position the review named is no longer the client's). A new client's VAT
+workplace or position the review named is no longer the client's), and `422` with
+`import_refused` when a table still refuses a value (a check or not-null violation the blockers
+missed): one issue whose `path` is the proposal's list or group for that table (or the table)
+and whose `message` is the constraint's name, never the refused values. A new client's VAT
 registration is ANAF's. A post's decision that it needs no protective equipment goes into the
 payload only while none of its entries is written. The payload's `quality` counts per section, without values, how many
 values the member changed, unticked or kept. The answer is `{ clientId, fileCount }`, and a `copy`
@@ -2111,7 +2116,8 @@ with an optional `reason` where one status covers cases the client words differe
 | `500`  | `internal_error`      | Unexpected API failure.                                                                                                                                    |
 
 Upstream error details are not returned to callers; database failures are logged by context
-only. Authentication failures include `WWW-Authenticate: Bearer`.
+and code only, and a broken unique, foreign key, check or not-null constraint also by its name,
+which quotes no values. Authentication failures include `WWW-Authenticate: Bearer`.
 
 Every response carries `Server-Timing`: `total` for the whole request, and `auth` and
 `membership` for the token and membership checks that run before a handler, or
