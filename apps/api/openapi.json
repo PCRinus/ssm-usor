@@ -11390,6 +11390,9 @@
             "nullable": true,
             "format": "date-time"
           },
+          "usage": {
+            "$ref": "#/components/schemas/ImportUsage"
+          },
           "proposal": {
             "type": "object",
             "nullable": true,
@@ -13330,6 +13333,76 @@
           "proposalDroppedAt",
           "proposal"
         ]
+      },
+      "ImportUsage": {
+        "type": "object",
+        "properties": {
+          "costUsd": {
+            "type": "number",
+            "minimum": 0
+          },
+          "inputTokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cachedInputTokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "outputTokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "readCharacters": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "bySteps": {
+            "type": "object",
+            "properties": {
+              "sorting": {
+                "$ref": "#/components/schemas/ImportModelUsage"
+              },
+              "reading": {
+                "$ref": "#/components/schemas/ImportModelUsage"
+              },
+              "scanning": {
+                "$ref": "#/components/schemas/ImportModelUsage"
+              }
+            }
+          }
+        },
+        "required": [
+          "costUsd",
+          "inputTokens",
+          "cachedInputTokens",
+          "outputTokens",
+          "readCharacters",
+          "bySteps"
+        ]
+      },
+      "ImportModelUsage": {
+        "type": "object",
+        "properties": {
+          "costUsd": {
+            "type": "number",
+            "minimum": 0
+          },
+          "inputTokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cachedInputTokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "outputTokens": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["costUsd", "inputTokens", "cachedInputTokens", "outputTokens"]
       },
       "RegisterImportFilesResponse": {
         "type": "object",
@@ -35384,7 +35457,7 @@
       "get": {
         "operationId": "getImport",
         "summary": "Get an import with its files and proposal",
-        "description": "Its step, every file with its state and reason, the progress counts, the other companies the documents named, and from `ready` on the proposal with its flags, the member's changes, the version to save on, and what still blocks confirming. The proposal is null before `ready` and once dropped, 30 days after confirming.",
+        "description": "Its step, every file with its state and reason, the progress counts, the other companies the documents named, and from `ready` on the proposal with its flags, the member's changes, the version to save on, and what still blocks confirming. The proposal is null before `ready` and once dropped, 30 days after confirming. `usage`, a debugging aid, is the models' cost at list price and tokens for the whole import and for each step, and the characters read; it is served outside production and, in production, only to a platform admin.",
         "security": [
           {
             "bearerAuth": []

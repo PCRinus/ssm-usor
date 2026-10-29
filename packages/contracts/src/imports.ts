@@ -281,6 +281,30 @@ export const importBlockerSchema = z.object({
 
 export type ImportBlocker = z.infer<typeof importBlockerSchema>;
 
+const modelUsageSchema = z
+  .object({
+    // At the models' list price.
+    costUsd: z.number().min(0),
+    inputTokens: z.int().min(0),
+    cachedInputTokens: z.int().min(0),
+    outputTokens: z.int().min(0),
+  })
+  .meta({ id: 'ImportModelUsage' });
+
+export const importUsageSchema = modelUsageSchema
+  .extend({
+    // The characters of text sent to the reading model; null until the files are sorted.
+    readCharacters: z.int().min(0).nullable(),
+    bySteps: z.object({
+      sorting: modelUsageSchema.optional(),
+      reading: modelUsageSchema.optional(),
+      scanning: modelUsageSchema.optional(),
+    }),
+  })
+  .meta({ id: 'ImportUsage' });
+
+export type ImportUsage = z.infer<typeof importUsageSchema>;
+
 export const importDetailSchema = importSummarySchema.extend({
   version: z.int().min(0),
   files: z.array(importFileSchema),
@@ -292,6 +316,8 @@ export const importDetailSchema = importSummarySchema.extend({
   // What keeps the import from being confirmed; empty once it can be.
   blockers: z.array(importBlockerSchema),
   proposalDroppedAt: z.iso.datetime({ offset: true }).nullable(),
+  // A debugging aid, served outside production and to platform admins only.
+  usage: importUsageSchema.optional(),
 });
 
 export type ImportDetail = z.infer<typeof importDetailSchema>;

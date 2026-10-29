@@ -44,6 +44,8 @@ export type ImportQueue = {
 
 export type ApiEnv = {
   Bindings: {
+    // "production" or "non-prod", set by the deploy workflow; absent under `wrangler dev`.
+    ENVIRONMENT?: string;
     SUPABASE_URL?: string;
     SUPABASE_PUBLISHABLE_KEY?: string;
     CORS_ORIGINS?: string;
@@ -105,6 +107,7 @@ export type ApiEnv = {
   Variables: {
     user: CurrentUser;
     emailConfirmed: boolean;
+    platformAdmin: boolean;
     accessToken: string;
     membership: Membership;
     participations: Participation[];
@@ -158,3 +161,5 @@ export function portalOrigin(env: ApiEnv['Bindings']) {
 export function apiOrigin(env: ApiEnv['Bindings']) {
   return requiredOrigin(env, 'API_ORIGIN');
 }
+
+export const isProduction = (env: ApiEnv['Bindings']) => env.ENVIRONMENT === 'production';

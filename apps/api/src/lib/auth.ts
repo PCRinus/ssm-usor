@@ -48,6 +48,8 @@ export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
 
   c.set('user', user.data);
   c.set('emailConfirmed', Boolean(data.user.email_confirmed_at));
+  // Only the secret key writes app_metadata, so the role is trusted, as is_platform_admin() does.
+  c.set('platformAdmin', data.user.app_metadata?.role === 'admin');
   c.set('accessToken', token);
   await next();
 });

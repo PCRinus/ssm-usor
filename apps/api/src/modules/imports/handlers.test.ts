@@ -130,6 +130,7 @@ type Handler = (call: Call) => Response | undefined;
 
 const fetchMock = vi.fn<typeof fetch>();
 let calls: Call[] = [];
+let authUser: object = user;
 
 function mockUpstream(handler: Handler = () => undefined) {
   fetchMock.mockImplementation(async (input, init) => {
@@ -148,7 +149,7 @@ function mockUpstream(handler: Handler = () => undefined) {
       admin: headers.get('Authorization') === `Bearer ${secretKey}`,
     };
     calls.push(call);
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
+    if (url.pathname === '/auth/v1/user') return Response.json(authUser);
     if (url.pathname === '/rest/v1/rpc/current_membership') {
       return Response.json([
         { user_id: user.id, organization_id: organizationId, role: 'specialist', access: 'full' },
@@ -163,7 +164,7 @@ function mockUpstream(handler: Handler = () => undefined) {
   });
 }
 
-const request = (path: string, method = 'GET', body?: unknown) =>
+const request = (path: string, method = 'GET', body?: unknown, bindings = env) =>
   createApp().request(
     path,
     {
@@ -174,7 +175,7 @@ const request = (path: string, method = 'GET', body?: unknown) =>
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     },
-    env
+    bindings
   );
 
 const callsTo = (pathname: string, method?: string) =>
@@ -184,6 +185,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
   fetchMock.mockReset();
   calls = [];
+  authUser = user;
   sent.length = 0;
   queue.send.mockClear();
   queue.sendBatch.mockClear();
@@ -534,6 +536,65 @@ describe('GET /imports/{importId}', () => {
       import: { proposal: unknown };
     };
     expect(body.import.proposal).toBeNull();
+  });
+
+  describe('usage', () => {
+    const step = { input_tokens: 1000, cached_input_tokens: 0, output_tokens: 200, cost_usd: 0.01 };
+    const getUsage = async (bindings: ApiEnv['Bindings']) => {
+      mockUpstream(({ url }) => {
+        if (url.pathname === '/rest/v1/imports') {
+          return Response.json(
+            importRow({
+              status: 'ready',
+              read_characters: 410000,
+              input_tokens: 182000,
+              cached_input_tokens: 31000,
+              output_tokens: 6400,
+              cost_usd: '0.270000',
+              usage_by_step: {
+                sorting: step,
+                reading: { ...step, input_tokens: 181000, cost_usd: '0.26' },
+              },
+            })
+          );
+        }
+        if (url.pathname === '/rest/v1/import_files') return Response.json([]);
+      });
+      const body = (await (
+        await request(`/imports/${importId}`, 'GET', undefined, bindings)
+      ).json()) as {
+        import: { usage?: unknown };
+      };
+      return body.import.usage;
+    };
+
+    it('serves the cost and tokens as numbers outside production', async () => {
+      for (const environment of ['non-prod', undefined]) {
+        expect(await getUsage({ ...env, ENVIRONMENT: environment })).toEqual({
+          costUsd: 0.27,
+          inputTokens: 182000,
+          cachedInputTokens: 31000,
+          outputTokens: 6400,
+          readCharacters: 410000,
+          bySteps: {
+            sorting: { costUsd: 0.01, inputTokens: 1000, cachedInputTokens: 0, outputTokens: 200 },
+            reading: {
+              costUsd: 0.26,
+              inputTokens: 181000,
+              cachedInputTokens: 0,
+              outputTokens: 200,
+            },
+          },
+        });
+      }
+    });
+
+    it('serves them in production to a platform admin only', async () => {
+      const production = { ...env, ENVIRONMENT: 'production' };
+      expect(await getUsage(production)).toBeUndefined();
+      authUser = { ...user, app_metadata: { provider: 'email', role: 'admin' } };
+      expect(await getUsage(production)).toMatchObject({ costUsd: 0.27 });
+    });
   });
 });
 
