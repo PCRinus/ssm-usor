@@ -24,6 +24,7 @@ import {
   IdCard,
   ScanText,
   Smartphone,
+  Trash2,
   UsersRound,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -36,6 +37,7 @@ import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { useEndWayBackOutside } from '@/features/missing-data/way-back';
 
 import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-dialog';
+import { ClientDeleteDialog, type ClientToDelete } from './client-delete-dialog';
 import { HeaderFact, RecordHeader } from './record-header';
 
 const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
@@ -92,7 +94,7 @@ const sections = [
 ] as const;
 
 export function ClientLayout() {
-  const { client } = clientRoute.useLoaderData();
+  const { client, canDelete } = clientRoute.useLoaderData();
   // Forms such as the new employee page stand on their own; the breadcrumb keeps the context.
   const fullPage = useMatches({
     select: (matches) => matches.some((match) => match.staticData.fullPage),
@@ -101,6 +103,7 @@ export function ClientLayout() {
   const isOwner = me.data?.membership?.role === 'owner';
   useEndWayBackOutside(client.id, me.data?.user.id);
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
+  const [deleting, setDeleting] = useState<ClientToDelete | null>(null);
   const [importing, setImporting] = useState(false);
   const navigate = useNavigate();
   if (fullPage) return <Outlet />;
@@ -155,17 +158,33 @@ export function ClientLayout() {
           data-testid="client-archived-banner"
           title="Client arhivat"
           action={
-            isOwner && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-warning-border bg-card"
-                data-testid="client-restore"
-                onClick={() => setArchiveChange({ client, action: 'restore' })}
-              >
-                <ArchiveRestore aria-hidden="true" />
-                Restaurează…
-              </Button>
+            (isOwner || canDelete) && (
+              <div className="flex flex-wrap gap-2">
+                {isOwner && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-warning-border bg-card"
+                    data-testid="client-restore"
+                    onClick={() => setArchiveChange({ client, action: 'restore' })}
+                  >
+                    <ArchiveRestore aria-hidden="true" />
+                    Restaurează…
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-destructive/40 bg-card text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    data-testid="client-delete"
+                    onClick={() => setDeleting(client)}
+                  >
+                    <Trash2 aria-hidden="true" />
+                    Șterge definitiv…
+                  </Button>
+                )}
+              </div>
             )
           }
         >
@@ -194,6 +213,7 @@ export function ClientLayout() {
       </SectionNav>
       <Outlet />
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
+      <ClientDeleteDialog client={deleting} onClose={() => setDeleting(null)} />
       <ImportUploadDialog
         open={importing}
         client={client}

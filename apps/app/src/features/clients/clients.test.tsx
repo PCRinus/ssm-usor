@@ -106,6 +106,7 @@ function mockApi(
       | 'update'
       | 'archive'
       | 'restore'
+      | 'delete'
       | 'details'
       | 'saveDetails'
       | 'employees',
@@ -133,6 +134,9 @@ function mockApi(
     }
     if (url.pathname === `/clients/${sampleClient.id}` && method === 'PUT') {
       return routes.update?.(init, url) ?? Response.json({ client: sampleClient });
+    }
+    if (url.pathname === `/clients/${sampleClient.id}` && method === 'DELETE') {
+      return routes.delete?.(init, url) ?? new Response(null, { status: 204 });
     }
     if (url.pathname === `/clients/${sampleClient.id}/archive` && method === 'POST') {
       return routes.archive?.(init, url) ?? Response.json({ client: archivedClient });
@@ -1105,6 +1109,62 @@ describe('client archiving', () => {
     const banner = await screen.findByTestId('client-archived-banner');
     expect(banner.textContent).toContain('Un administrator al organizației îl poate restaura.');
     expect(screen.queryByTestId('client-restore')).toBeNull();
+  });
+
+  describe('deleting it outright', () => {
+    const archivedResponse = (canDelete: boolean) => () =>
+      Response.json({ client: archivedClient, canDelete });
+
+    it('is offered only where the API says the caller may', async () => {
+      mockApi({ me: meAs('owner'), get: archivedResponse(false) });
+      mountApp(authFixture(makeSession()).client, `${clientPath}/employees`);
+      await screen.findByTestId('client-restore');
+      expect(screen.queryByTestId('client-delete')).toBeNull();
+    });
+
+    it('asks for the name before it deletes, then returns to the archived clients', async () => {
+      mockApi({
+        me: meAs('specialist'),
+        get: archivedResponse(true),
+        list: () => Response.json(page([])),
+      });
+      const runtime = mountApp(authFixture(makeSession()).client, `${clientPath}/employees`);
+      const user = userEvent.setup();
+      await user.click(await screen.findByTestId('client-delete'));
+      const dialog = await screen.findByTestId('client-delete-dialog');
+      expect(dialog.textContent).toContain('angajații');
+      expect(dialog.textContent).toContain('documentele');
+      expect(dialog.textContent).toContain('fișierele');
+      const confirm = within(dialog).getByTestId<HTMLButtonElement>('client-delete-confirm');
+      expect(confirm.textContent).toBe('Șterge definitiv');
+      await user.type(within(dialog).getByTestId('client-delete-name'), 'OMV PETROM');
+      expect(confirm.disabled).toBe(true);
+      await user.type(within(dialog).getByTestId('client-delete-name'), ' SA');
+      expect(confirm.disabled).toBe(false);
+      await user.click(confirm);
+      expect(await screen.findByText('OMV PETROM SA a fost șters definitiv.')).toBeTruthy();
+      await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/clients'));
+      expect(runtime.router.state.location.search).toEqual({ status: 'archived' });
+      expect(requests(clientPath, 'DELETE')).toHaveLength(1);
+    });
+
+    it('keeps the dialog open with the reason when the API refuses', async () => {
+      mockApi({
+        me: meAs('owner'),
+        get: archivedResponse(true),
+        delete: () =>
+          Response.json({ error: 'forbidden', message: 'Only an admin' }, { status: 403 }),
+      });
+      mountApp(authFixture(makeSession()).client, `${clientPath}/employees`);
+      const user = userEvent.setup();
+      await user.click(await screen.findByTestId('client-delete'));
+      await user.type(await screen.findByTestId('client-delete-name'), 'OMV PETROM SA');
+      await user.click(screen.getByTestId('client-delete-confirm'));
+      expect((await screen.findByTestId('client-delete-error')).textContent).toContain(
+        'administrator al platformei'
+      );
+      expect(screen.getByTestId('client-delete-dialog')).toBeTruthy();
+    });
   });
 
   it.each([
