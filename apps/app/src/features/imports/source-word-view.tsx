@@ -88,8 +88,12 @@ export default function WordSourceView({
   const held = bytes !== null;
   const failed = !held && failedUrl === url;
 
+  const currentUrl = useEffectEvent(() => url);
+  // A load is started once for the file and again only after one failed: the next passage's new
+  // link must not restart a download already under way.
   useEffect(() => {
-    if (held) return;
+    if (held || failed) return;
+    const url = currentUrl();
     let cancelled = false;
     fetch(url)
       .then((response) => {
@@ -105,7 +109,7 @@ export default function WordSourceView({
     return () => {
       cancelled = true;
     };
-  }, [url, fileId, held]);
+  }, [fileId, held, failed]);
 
   useEffect(() => {
     if (failed) reportShown();

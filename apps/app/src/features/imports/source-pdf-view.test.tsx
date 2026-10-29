@@ -41,6 +41,18 @@ function loadingTask(outcome: 'loads' | 'fails') {
   };
 }
 
+function heldTask() {
+  let open: () => void = () => {};
+  const promise = new Promise((resolve) => (open = () => resolve(document)));
+  return { task: { promise, destroy: vi.fn(async () => {}) }, open };
+}
+
+const withLink = (url: string, page?: number) => ({
+  ...source,
+  original: { ...source.original, url },
+  ...(page && { match: { page, start: 0, end: 8, parts: [{ start: 0, end: 8 }] } }),
+});
+
 const source = {
   fileId: '0b8f6a52-4f0e-4d3a-9c1b-7e2d5a6f8c01',
   uploadPath: 'Contract prestari SSM 2019.pdf',
@@ -54,7 +66,11 @@ const source = {
   expiresInSeconds: 300,
 } satisfies ImportSourceResponse;
 
-afterEach(() => vi.mocked(getDocument).mockReset());
+afterEach(() => {
+  vi.mocked(getDocument).mockReset();
+  document.getPage.mockClear();
+  document.loadingTask.destroy.mockClear();
+});
 
 describe('the PDF viewer', () => {
   it('opens the PDF though development mode loads it twice', async () => {
@@ -95,6 +111,80 @@ describe('the PDF viewer', () => {
     );
     expect(await screen.findByText('Pagina 2 din 2')).toBeTruthy();
     expect(vi.mocked(getDocument)).toHaveBeenCalledTimes(1);
+  });
+
+  it('goes on with the download under way when the next passage comes with a new link', async () => {
+    const { task, open } = heldTask();
+    vi.mocked(getDocument).mockReturnValue(task as unknown as ReturnType<typeof getDocument>);
+    const { rerender } = render(
+      <PdfSourceView source={source} quote={null} onNotFound={() => {}} onShown={() => {}} />
+    );
+    rerender(
+      <PdfSourceView
+        source={withLink('https://storage.example/contract.pdf?token=2', 2)}
+        quote={null}
+        onNotFound={() => {}}
+        onShown={() => {}}
+      />
+    );
+    open();
+
+    expect(await screen.findByText('Pagina 2 din 2')).toBeTruthy();
+    expect(vi.mocked(getDocument)).toHaveBeenCalledTimes(1);
+    expect(task.destroy).not.toHaveBeenCalled();
+  });
+
+  it('opens the PDF from a new link after the old one was refused', async () => {
+    vi.mocked(getDocument)
+      .mockImplementationOnce(
+        () => loadingTask('fails') as unknown as ReturnType<typeof getDocument>
+      )
+      .mockImplementation(() => loadingTask('loads') as unknown as ReturnType<typeof getDocument>);
+    const onShown = vi.fn();
+    const { rerender } = render(
+      <PdfSourceView source={source} quote={null} onNotFound={() => {}} onShown={onShown} />
+    );
+    await screen.findByRole('alert');
+
+    rerender(
+      <PdfSourceView
+        source={withLink('https://storage.example/contract.pdf?token=2')}
+        quote={null}
+        onNotFound={() => {}}
+        onShown={onShown}
+      />
+    );
+    expect(await screen.findByText('Pagina 1 din 2')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(
+      vi.mocked(getDocument).mock.calls.map(([parameters]) => (parameters as { url: string }).url)
+    ).toEqual([
+      'https://storage.example/contract.pdf',
+      'https://storage.example/contract.pdf?token=2',
+    ]);
+  });
+
+  it('opens the PDF again from the next link once a page of it could not be drawn', async () => {
+    vi.mocked(getDocument).mockImplementation(
+      () => loadingTask('loads') as unknown as ReturnType<typeof getDocument>
+    );
+    document.getPage.mockRejectedValueOnce(new Error('Unexpected server response (400)'));
+    const { rerender } = render(
+      <PdfSourceView source={source} quote={null} onNotFound={() => {}} onShown={() => {}} />
+    );
+    await screen.findByRole('alert');
+    expect(document.loadingTask.destroy).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <PdfSourceView
+        source={withLink('https://storage.example/contract.pdf?token=2')}
+        quote={null}
+        onNotFound={() => {}}
+        onShown={() => {}}
+      />
+    );
+    expect(await screen.findByText('Pagina 1 din 2')).toBeTruthy();
+    expect(vi.mocked(getDocument)).toHaveBeenCalledTimes(2);
   });
 
   it('opens every PDF on one worker', async () => {

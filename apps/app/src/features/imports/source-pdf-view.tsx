@@ -69,10 +69,12 @@ export default function PdfSourceView({
     setPageNumber(openingPage(source));
   }
 
-  // Destroying the task rejects its promise, which is no failure: React's development mode
-  // mounts twice, and a new link replaces the old one.
+  const currentUrl = useEffectEvent(() => url);
+  // A load is started once for the file and again only after one failed: the next passage's new
+  // link must not restart a download already under way.
   useEffect(() => {
-    if (held) return;
+    if (held || failed) return;
+    const url = currentUrl();
     let cancelled = false;
     let kept = false;
     const task = getDocument({ url, worker: sharedWorker() });
@@ -89,11 +91,13 @@ export default function PdfSourceView({
         if (!cancelled) setFailedUrl(url);
       }
     );
+    // Destroying the task rejects its promise, which is no failure: React's development mode
+    // mounts twice.
     return () => {
       cancelled = true;
       if (!kept) void task.destroy();
     };
-  }, [url, fileId, held]);
+  }, [fileId, held, failed]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -154,7 +158,11 @@ export default function PdfSourceView({
         }
       })
       .catch(() => {
-        if (!cancelled) setFailedUrl(url);
+        if (cancelled) return;
+        // pdf.js keeps fetching the file's bytes from the link it was opened with, which may have
+        // expired, so the next link opens the file again.
+        setLoaded(null);
+        setFailedUrl(url);
       });
     return () => {
       cancelled = true;

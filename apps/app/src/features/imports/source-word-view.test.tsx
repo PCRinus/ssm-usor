@@ -111,6 +111,37 @@ describe('the Word viewer', () => {
     await waitFor(() => expect(onShown).toHaveBeenCalledTimes(2));
   });
 
+  it('goes on with the download under way when the next passage comes with a new link', async () => {
+    let arrive: () => void = () => {};
+    const fetched = vi.fn(
+      () =>
+        new Promise<Response>(
+          (resolve) => (arrive = () => resolve(new Response(new Uint8Array([80, 75, 3, 4]))))
+        )
+    );
+    vi.stubGlobal('fetch', fetched);
+    const { rerender } = render(
+      <WordSourceView
+        source={sourceWith('https://storage.example/leip.docx?token=1')}
+        quote="Manusi"
+        onNotFound={() => {}}
+        onShown={() => {}}
+      />
+    );
+    rerender(
+      <WordSourceView
+        source={sourceWith('https://storage.example/leip.docx?token=2')}
+        quote="Ochelari de protectie"
+        onNotFound={() => {}}
+        onShown={() => {}}
+      />
+    );
+    arrive();
+
+    await waitFor(() => expect(editor.scrollToBlock).toHaveBeenLastCalledWith('p2'));
+    expect(fetched).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps the document when the next passage in it comes with a new link, and marks that one', async () => {
     const fetched = vi.fn(async () => new Response(new Uint8Array([80, 75, 3, 4])));
     vi.stubGlobal('fetch', fetched);
