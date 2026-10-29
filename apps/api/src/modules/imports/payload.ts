@@ -438,7 +438,14 @@ export function toClientPayload(input: {
   };
 
   const workplaceKeys = new Set<string>();
-  const workplaces = included('workplaces').map(({ item, index, values }) => {
+  const includedWorkplaces = included('workplaces');
+  // `client_workplaces` takes one registered office per client.
+  for (const { index } of includedWorkplaces
+    .filter(({ values }) => values.isRegisteredOffice === true)
+    .slice(1)) {
+    block(`workplaces.${index}.isRegisteredOffice`, 'invalid');
+  }
+  const workplaces = includedWorkplaces.map(({ item, index, values }) => {
     workplaceKeys.add(item.id);
     const change = changes.items[item.id];
     const row: Row = { key: item.id };

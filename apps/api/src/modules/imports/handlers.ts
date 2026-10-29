@@ -597,6 +597,8 @@ const proposalListOfTable: Record<string, string> = {
   fire_installations: 'fireInstallations',
 };
 
+const registeredOfficeKey = 'client_workplaces_registered_office_key';
+
 function proposalPathOf(constraint: BrokenConstraint) {
   const table =
     constraint.table ??
@@ -635,8 +637,13 @@ function decisionError(error: { code?: string | null; message?: string }, contex
       );
   }
   const refused = fromDatabaseError(error, context);
-  // The payload's checks mirror the tables' rules; one they miss still names the section.
-  if ((error.code === '23514' || error.code === '23502') && refused.constraint) {
+  // The payload's checks mirror the tables' rules; one they miss still names the section. The
+  // payload cannot see an existing client's registered office, which the unique index guards.
+  const refusedRule =
+    error.code === '23514' ||
+    error.code === '23502' ||
+    (error.code === '23505' && refused.constraint?.name === registeredOfficeKey);
+  if (refusedRule && refused.constraint) {
     return new ApiError(
       'unprocessable',
       'The client refused a value of the import.',

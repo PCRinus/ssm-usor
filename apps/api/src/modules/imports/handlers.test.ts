@@ -749,6 +749,42 @@ describe('POST /imports/{importId}/confirm', () => {
     expect(JSON.stringify([answers, logged.mock.calls])).not.toMatch(/Manusi|Failing row/);
     expect(sent).toEqual([]);
   });
+
+  it('answers a second registered office as a refused value of the workplaces, and any other duplicate as a conflict', async () => {
+    const duplicates = [
+      'client_workplaces_registered_office_key',
+      'clients_organization_id_cui_key',
+    ].map((name) => ({
+      code: '23505',
+      message: `duplicate key value violates unique constraint "${name}"`,
+      details: `Key (client_id)=(${clientId}) already exists.`,
+    }));
+    const answers = [];
+    for (const duplicate of duplicates) {
+      mockUpstream(({ url }) => {
+        if (url.pathname === '/rest/v1/imports') return Response.json(ready());
+        if (url.pathname === '/rest/v1/rpc/apply_client_import') {
+          return Response.json({ hint: null, ...duplicate }, { status: 409 });
+        }
+      });
+      const response = await request(`/imports/${importId}/confirm`, 'POST', { version: 4 });
+      answers.push([response.status, await response.json()]);
+    }
+
+    expect(answers).toEqual([
+      [
+        422,
+        expect.objectContaining({
+          error: 'unprocessable',
+          reason: 'import_refused',
+          issues: [{ path: 'workplaces', message: 'client_workplaces_registered_office_key' }],
+        }),
+      ],
+      [409, expect.objectContaining({ error: 'conflict' })],
+    ]);
+    expect(JSON.stringify(answers)).not.toContain(clientId);
+    expect(sent).toEqual([]);
+  });
 });
 
 describe('POST /imports/{importId}/split', () => {
