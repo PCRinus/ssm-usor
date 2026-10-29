@@ -12805,6 +12805,25 @@
                       "type": "boolean",
                       "nullable": true,
                       "default": null
+                    },
+                    "fieldSources": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "file": {
+                              "type": "string"
+                            },
+                            "quote": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["file", "quote"]
+                        }
+                      },
+                      "default": {}
                     }
                   },
                   "required": [
@@ -12872,6 +12891,25 @@
                         ]
                       },
                       "minItems": 1
+                    },
+                    "roleSources": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "file": {
+                              "type": "string"
+                            },
+                            "quote": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["file", "quote"]
+                        }
+                      },
+                      "default": {}
                     },
                     "workplace": {
                       "type": "object",

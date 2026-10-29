@@ -21,6 +21,12 @@ const fact = (
   ...quoted(file, otherCompany),
 });
 
+const role = (code: Reading['responsiblePersons'][number]['roles'][number]['role']) => ({
+  role: code,
+  file: decision,
+  quote: 'citat',
+});
+
 function reading(overrides: Partial<Reading> = {}): Reading {
   return {
     facts: [
@@ -59,37 +65,36 @@ function reading(overrides: Partial<Reading> = {}): Reading {
     jobPositions: [
       {
         name: 'Brutar',
-        staffCategory: 'execution',
         trainingIntervalMonths: null,
         workZone: 'Laborator',
-        activities: null,
         managementOnly: false,
         needsProtectiveEquipment: null,
         ...quoted(),
       },
       {
         name: 'Vânzător',
-        staffCategory: null,
         trainingIntervalMonths: null,
         workZone: null,
-        activities: null,
         managementOnly: false,
         needsProtectiveEquipment: null,
         ...quoted(),
       },
     ],
+    jobPositionFacts: [
+      { jobPosition: 'Brutar', field: 'staffCategory', value: 'execution', ...quoted() },
+    ],
     responsiblePersons: [
       {
         fullName: 'Ionescu Maria',
         jobTitle: 'brutar',
-        roles: ['workplace_manager', 'first_aid'],
+        roles: [role('workplace_manager'), role('first_aid')],
         workplace: null,
         ...quoted(),
       },
       {
         fullName: 'Georgescu Dan',
         jobTitle: 'vânzător',
-        roles: ['workers_representative'],
+        roles: [role('workers_representative')],
         workplace: null,
         ...quoted(),
       },
@@ -439,10 +444,8 @@ describe('toClientPayload', () => {
           ...base.jobPositions,
           {
             name: 'Administrator',
-            staffCategory: 'technical_administrative',
             trainingIntervalMonths: null,
             workZone: null,
-            activities: 'conducerea firmei, conduce autoturismul în interes de serviciu',
             managementOnly: true,
             needsProtectiveEquipment: null,
             ...quoted(),
@@ -548,6 +551,8 @@ describe('toClientPayload', () => {
       assembly_point: 'parcarea din spate',
     });
     expect(payload.workplaces[0]).not.toHaveProperty('fieldSources');
+    expect(payload.job_positions[0]).toMatchObject({ staff_category: 'execution' });
+    expect(payload.job_positions[0]).not.toHaveProperty('fieldSources');
     expect(payload.workplaces[1]).toMatchObject({ kind: 'mobile_site' });
     expect(payload.job_positions.map((row) => [row.name, row.needs_protective_equipment])).toEqual([
       ['Brutar', undefined],
