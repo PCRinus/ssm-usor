@@ -199,6 +199,7 @@ export function proposalFixture() {
         trainingIntervalMonths: null,
         workZone: 'Laborator',
         activities: 'Frământare și coacere',
+        managementOnly: false,
       },
       {
         id: 'position-2',
@@ -209,6 +210,7 @@ export function proposalFixture() {
         trainingIntervalMonths: null,
         workZone: null,
         activities: 'Conduce motostivuitorul',
+        managementOnly: false,
       },
     ],
     responsiblePersons: [

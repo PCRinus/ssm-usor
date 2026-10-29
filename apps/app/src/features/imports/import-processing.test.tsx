@@ -85,7 +85,7 @@ function readingDetail(overrides: Record<string, unknown> = {}) {
   });
 }
 
-function mockImport(detail: ReturnType<typeof importDetail>) {
+function mockImport(detail: ReturnType<typeof importDetail>, read?: () => Response) {
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
     if (url.pathname === `/imports/${importId}` && method === 'GET') {
@@ -113,6 +113,7 @@ function mockImport(detail: ReturnType<typeof importDetail>) {
     }
     if (url.pathname === `/imports/${importId}/abandon`) return new Response(null, { status: 204 });
     if (url.pathname.endsWith('/read')) {
+      if (read) return read();
       return Response.json({ import: summaryOf(importDetail({ status: 'reading' })) });
     }
     if (url.pathname === '/imports') return Response.json({ items: [] });
@@ -263,8 +264,8 @@ describe('the processing page', () => {
     );
     mount();
 
-    expect((await screen.findByTestId('import-failed')).textContent).toContain(
-      'Serviciul care citește documentele nu a răspuns.'
+    expect((await screen.findByTestId('import-failed')).textContent).toBe(
+      'Serviciul care citește documentele nu a răspuns. Renunță la import și încearcă din nou.'
     );
     expect(screen.getAllByTestId('import-step').map((step) => step.dataset.state)).toEqual([
       'done',
@@ -345,5 +346,56 @@ describe('the processing page', () => {
     await waitFor(() =>
       expect(requestsTo(`/imports/${importId}/files/${setAside.id}/read`, 'POST')).toHaveLength(1)
     );
+  });
+
+  it('says why own instructions are set aside, and when sending them back would be too much text', async () => {
+    const instructions = importFile({
+      fileName: 'IPSSM brutarie 2023.docx',
+      state: 'set_aside',
+      documentKind: 'own_instructions',
+      reason:
+        'Instrucțiuni proprii: aplicația le alcătuiește din biblioteca de instrucțiuni. Le citim doar dacă ceri.',
+    });
+    mockImport(
+      importDetail({
+        status: 'ready',
+        readyAt: '2026-10-28T09:20:00+00:00',
+        files: [importFile({ fileName: 'Decizie 1 organizare SSM 2024.docx' }), instructions],
+      }),
+      () =>
+        Response.json(
+          { error: 'unprocessable', message: 'Too much text.', reason: 'import_too_much_text' },
+          { status: 422 }
+        )
+    );
+    mount();
+
+    const group = await screen.findByTestId('import-group-set-aside');
+    expect(group.textContent).toContain('aplicația le alcătuiește din biblioteca de instrucțiuni');
+    await userEvent.click(within(group).getByTestId('import-read-set-aside'));
+
+    expect(
+      await screen.findByText(
+        'Cu acest fișier, documentele au prea mult text pentru un singur import.'
+      )
+    ).toBeDefined();
+  });
+
+  it('says when sending a scan back would pass the scanned pages of one import', async () => {
+    mockImport(readingDetail({ status: 'ready', readyAt: '2026-10-28T09:20:00+00:00' }), () =>
+      Response.json(
+        { error: 'unprocessable', message: 'Too many scans.', reason: 'import_too_many_scans' },
+        { status: 422 }
+      )
+    );
+    mount();
+
+    await userEvent.click(await screen.findByTestId('import-read-set-aside'));
+
+    expect(
+      await screen.findByText(
+        'Cu acest fișier, sunt prea multe pagini scanate pentru un singur import: cel mult 150.'
+      )
+    ).toBeDefined();
   });
 });

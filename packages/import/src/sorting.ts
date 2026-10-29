@@ -35,7 +35,14 @@ export type SortingAnswer = z.infer<typeof sortingSchema>;
 
 export const sortingAnswer = answerFormat('import_sorting', sortingSchema);
 
-const setAsideKinds: DocumentKind[] = ['cover', 'blank_form', 'generic_text'];
+// Own instructions are the longest files of a pack and boilerplate the app builds from the
+// provider's library (ADR 012), so they are read only when the member sends them back (ADR 030).
+export const setAsideKinds: readonly DocumentKind[] = [
+  'cover',
+  'blank_form',
+  'generic_text',
+  'own_instructions',
+];
 
 export interface Company {
   name: string | null;

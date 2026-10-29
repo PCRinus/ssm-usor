@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
 
-import { proposalChoices, proposedIncluded } from './proposal';
+import { proposalChoices, proposalSchema, proposedIncluded } from './proposal';
 import { fromWire, type Reading, readingAnswer, toProposal } from './reading';
 import { wireAnswer } from './test/fixtures';
 
@@ -236,6 +236,7 @@ describe('toProposal', () => {
           trainingIntervalMonths: null,
           workZone: 'Magazin',
           activities: null,
+          managementOnly: false,
           ...quoted,
         },
       ],
@@ -334,6 +335,79 @@ describe('toProposal', () => {
 
     expect(proposal.client.legalName.options[0]!.sources[0]!.file).toBe(scanFile);
     expect(proposal.client.cui.options[0]!.sources[0]!.file).toBe(scanFile);
+  });
+});
+
+describe('a post that is only the running of the firm', () => {
+  const evaluation = 'Dosar/Evaluare riscuri.docx';
+  const post = (name: string, managementOnly: boolean, activities = '') => ({
+    name,
+    staffCategory: 'technical_administrative',
+    trainingIntervalMonths: '',
+    workZone: '',
+    activities,
+    managementOnly,
+    file: evaluation,
+    quote: name,
+    otherCompany: '',
+  });
+
+  it('is proposed unticked, while a post that adds a trade is proposed ticked', () => {
+    const answer = wireAnswer();
+    answer.jobPositions.push(
+      post('Administrator', true, 'conducerea firmei, conduce autoturismul în interes de serviciu'),
+      post('Administrator – vânzător', false)
+    );
+
+    const positions = fromWire(answer).jobPositions;
+
+    expect(positions.map((position) => [position.name, proposedIncluded(position)])).toEqual([
+      ['Brutar', true],
+      ['Vânzător', true],
+      ['Administrator', false],
+      ['Administrator – vânzător', true],
+    ]);
+    expect(positions[2]).toMatchObject({
+      managementOnly: true,
+      activities: 'conducerea firmei, conduce autoturismul în interes de serviciu',
+    });
+  });
+
+  it('is ticked when another reading shows someone holding it', () => {
+    const documents = readingAnswer.parse({
+      ...wireAnswer(),
+      jobPositions: [post('Administrator', true)],
+    });
+    const scan = readingAnswer.parse({
+      ...wireAnswer(),
+      jobPositions: [post('ADMINISTRATOR', false)],
+    });
+
+    const [position] = toProposal(documents, scan).jobPositions;
+
+    expect(position).toMatchObject({ name: 'Administrator', managementOnly: false });
+    expect(proposedIncluded(position!)).toBe(true);
+  });
+
+  it('is ticked from a scan’s page read before the reading said it', () => {
+    const page = readingAnswer.parse(wireAnswer());
+    for (const position of page.jobPositions) {
+      delete (position as { managementOnly?: boolean }).managementOnly;
+    }
+
+    expect(toProposal(page).jobPositions.map((position) => position.managementOnly)).toEqual([
+      false,
+      false,
+    ]);
+  });
+
+  it('is read from a stored proposal that predates it as ticked', () => {
+    const stored = JSON.parse(JSON.stringify(fromWire(wireAnswer())));
+    for (const position of stored.jobPositions) delete position.managementOnly;
+
+    expect(
+      proposalSchema.parse(stored).jobPositions.map((position) => proposedIncluded(position))
+    ).toEqual([true, true]);
   });
 });
 

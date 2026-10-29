@@ -62,6 +62,7 @@ function reading(overrides: Partial<Reading> = {}): Reading {
         trainingIntervalMonths: null,
         workZone: 'Laborator',
         activities: null,
+        managementOnly: false,
         ...quoted(),
       },
       {
@@ -70,6 +71,7 @@ function reading(overrides: Partial<Reading> = {}): Reading {
         trainingIntervalMonths: null,
         workZone: null,
         activities: null,
+        managementOnly: false,
         ...quoted(),
       },
     ],
@@ -424,6 +426,73 @@ describe('toClientPayload', () => {
     expect(ticked.payload.employees.map((row) => row.key)).toEqual(['employee-1', 'employee-2']);
     expect(ticked.blockers).toEqual([{ path: 'employees.1.hiredAt', code: 'missing' }]);
     expect(ticked.payload.quality.employees).toEqual({ changed: 1, unticked: 0, kept: 0 });
+  });
+
+  it('leaves a post that is only the running of the firm out with its equipment until ticked', () => {
+    const base = reading();
+    const proposal = proposalOf(
+      reading({
+        jobPositions: [
+          ...base.jobPositions,
+          {
+            name: 'Administrator',
+            staffCategory: 'technical_administrative',
+            trainingIntervalMonths: null,
+            workZone: null,
+            activities: 'conducerea firmei, conduce autoturismul în interes de serviciu',
+            managementOnly: true,
+            ...quoted(),
+          },
+        ],
+        protectiveEquipment: [
+          ...base.protectiveEquipment,
+          {
+            jobPositions: ['Administrator'],
+            risk: 'Accident rutier',
+            item: 'Vestă reflectorizantă',
+            quantity: 1,
+            durationMonths: null,
+            allocation: null,
+            ...quoted(),
+          },
+        ],
+      })
+    );
+    const payloadWith = (items: Record<string, object>) =>
+      toClientPayload({
+        proposal,
+        changes: { fields: {}, items },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      });
+
+    const unticked = payloadWith({});
+    expect(unticked.payload.job_positions.map((row) => row.name)).toEqual(['Brutar', 'Vânzător']);
+    expect(unticked.payload.equipment.map((row) => row.item)).toEqual([
+      'Mănuși termorezistente',
+      'Mănuși termorezistente',
+    ]);
+    expect(unticked.blockers).toEqual([]);
+    expect(unticked.payload.quality.jobPositions).toEqual({ changed: 0, unticked: 0, kept: 0 });
+
+    const ticked = payloadWith({ 'position-3': { included: true } });
+    expect(ticked.payload.job_positions.map((row) => row.name)).toContain('Administrator');
+    expect(ticked.payload.equipment).toContainEqual(
+      expect.objectContaining({ job_position_key: 'position-3', item: 'Vestă reflectorizantă' })
+    );
+    expect(ticked.blockers).toEqual([]);
+
+    const moved = payloadWith({
+      'equipment-entry-3': { values: { jobPosition: 'position-2' } },
+    });
+    expect(moved.payload.equipment).toContainEqual(
+      expect.objectContaining({ job_position_key: 'position-2', item: 'Vestă reflectorizantă' })
+    );
+
+    const keptAlone = payloadWith({ 'equipment-entry-3': { included: true } });
+    expect(keptAlone.blockers).toEqual([
+      { path: 'protectiveEquipment.2.jobPosition', code: 'unknown_reference' },
+    ]);
   });
 
   it("still asks for the workers' representative's hire date", () => {

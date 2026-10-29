@@ -65,6 +65,7 @@ export const readingSchema = z.object({
       trainingIntervalMonths: z.int().nullable(),
       workZone: z.string().nullable(),
       activities: z.string().nullable(),
+      managementOnly: z.boolean(),
       ...quoted,
     })
   ),
@@ -364,9 +365,14 @@ export function toProposal(...readings: Reading[]): Proposal {
         trainingIntervalMonths: position.trainingIntervalMonths,
         workZone: position.workZone,
         activities: position.activities,
+        // A scan's page read before the field existed has none.
+        managementOnly: position.managementOnly === true,
       })),
     (a, b) => foldText(a.name) === foldText(b.name),
-    fillGaps
+    (into, from) => {
+      fillGaps(into, from);
+      into.managementOnly &&= from.managementOnly;
+    }
   ).map((position, index) => ({ id: `position-${index + 1}`, ...position }));
 
   const fireEquipment = list((reading) => reading.fireEquipment).map((equipment, index) => ({

@@ -30,7 +30,15 @@ import {
   type RegisteredCompany,
   toClientPayload,
 } from './payload';
-import { describe, type PreparedPages, sendAll, textPathOf } from './pipeline';
+import {
+  describe,
+  loadPrepared,
+  maxScannedPages,
+  type PreparedPages,
+  sendAll,
+  textPathOf,
+  tooMuchText,
+} from './pipeline';
 import type {
   abandonImportRoute,
   confirmImportRoute,
@@ -768,7 +776,8 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
   if (row.status !== 'ready') {
     throw conflict('The import is not ready for review.', importErrorReasons.notReady);
   }
-  const file = (await listFilesOf(db, importId)).find((each) => each.id === fileId);
+  const files = await listFilesOf(db, importId);
+  const file = files.find((each) => each.id === fileId);
   if (!file) throw new ApiError('not_found', 'The import has no such file.');
   if (file.state !== 'set_aside') {
     throw new ApiError(
@@ -776,6 +785,39 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
       'Only a file set aside is sent back to be read.',
       undefined,
       importErrorReasons.notSetAside
+    );
+  }
+  const objects = createAdminFileStore(c);
+  const toRead = await Promise.all(
+    files
+      .filter((each) => each.state === 'read' || each === file)
+      .map((each) => loadPrepared({ read: objects.readImportObject }, each))
+  );
+  if (
+    tooMuchText(
+      toRead.map((entry) => ({
+        name: entry.file.original_file_name,
+        characters: entry.text.length,
+      }))
+    )
+  ) {
+    throw new ApiError(
+      'unprocessable',
+      'With this file the documents have more text than one import reads.',
+      undefined,
+      importErrorReasons.tooMuchText
+    );
+  }
+  const scannedPages = toRead.reduce(
+    (sum, entry) => sum + (entry.pages?.pages.filter((page) => page.isScan).length ?? 0),
+    0
+  );
+  if (scannedPages > maxScannedPages) {
+    throw new ApiError(
+      'unprocessable',
+      'With this file the documents have more scanned pages than one import reads.',
+      undefined,
+      importErrorReasons.tooManyScans
     );
   }
   const admin = createAdminClient(c);

@@ -23,6 +23,7 @@ import {
   readingAnswer,
   readingMessages,
   readingModel,
+  setAsideKinds,
   sortFiles,
   sortingAnswer,
   sortingMessages,
@@ -67,8 +68,8 @@ export interface PipelineDeps {
   queue: ImportQueue | null;
 }
 
-// Below the price tier the sorting model charges more past (packages/import's models.ts), at
-// about 3.5 characters a token.
+// The documents go to the reading model in one request, so this bounds that request's cost and
+// size: about 170,000 tokens at 3.5 characters a token.
 export const maxReadingCharacters = 600_000;
 export const maxScannedPages = 150;
 // About a hundred seconds of reading, well inside a consumer's 15 minutes of wall time.
@@ -100,6 +101,8 @@ export const fileReasons = {
   coverOrIndex: 'Copertă, etichetă sau cuprins: nu conține date despre client.',
   blankForm: 'Formular sau registru necompletat.',
   genericText: 'Text general, fără date despre client.',
+  ownInstructions:
+    'Instrucțiuni proprii: aplicația le alcătuiește din biblioteca de instrucțiuni. Le citim doar dacă ceri.',
   noClientData: 'Nu conține date despre client.',
   trainingSheet: 'Fișă de instruire individuală: rămâne pentru importul angajaților.',
 } as const;
@@ -107,24 +110,46 @@ export const fileReasons = {
 export const importReasons = {
   nothingPrepared: 'Niciun fișier nu a putut fi citit.',
   nothingToRead: 'Niciun document nu conține date despre client.',
-  tooMuchText:
-    'Documentele au prea mult text pentru un singur import. Încearcă din nou cu mai puține fișiere.',
   tooManyScans:
-    'Sunt prea multe pagini scanate pentru un singur import. Încearcă din nou cu mai puține fișiere.',
+    'Sunt prea multe pagini scanate pentru un singur import: cel mult 150. Scoate o parte dintre fișierele scanate.',
   scansUnfinished: 'Citirea fișierelor scanate nu s-a terminat.',
-  unavailable:
-    'Serviciul care citește documentele nu a răspuns. Renunță la import și încearcă din nou.',
+  unavailable: 'Serviciul care citește documentele nu a răspuns.',
   notConfigured: 'Importul din documente nu este disponibil acum.',
   modelRefused: 'Modelul a refuzat să citească documentele.',
-  modelFailed: 'Modelul nu a dat un răspuns pe care să-l putem folosi. Încearcă din nou.',
-  failed: 'Importul s-a oprit din cauza unei erori. Renunță la el și încearcă din nou.',
+  modelFailed: 'Modelul nu a dat un răspuns pe care să-l putem folosi.',
+  failed: 'Importul s-a oprit din cauza unei erori.',
   overLimits:
     'Fișierele depășesc limitele unui import: cel mult 150 de fișiere și 100 MiB, fiecare fișier de cel mult 20 MiB.',
-  stalled: 'Importul s-a oprit înainte să se termine. Renunță la el și încearcă din nou.',
+  stalled: 'Importul s-a oprit înainte să se termine.',
   left: 'Importul a rămas neterminat 14 zile.',
 } as const;
 
-const setAsideKinds: DocumentKind[] = ['cover', 'blank_form', 'generic_text'];
+export interface TextOfFile {
+  name: string;
+  characters: number;
+}
+
+const percent = (part: number, whole: number) => Math.max(1, Math.round((part / whole) * 100));
+
+const quotedName = (name: string) => `„${name.length > 60 ? `${name.slice(0, 59)}…` : name}”`;
+
+/** Why the files' text does not fit one reading, naming the longest; null when it does. */
+export function tooMuchText(files: TextOfFile[]): string | null {
+  const total = files.reduce((sum, file) => sum + file.characters, 0);
+  if (total <= maxReadingCharacters) return null;
+  const excess = Math.max(
+    1,
+    Math.ceil(((total - maxReadingCharacters) / maxReadingCharacters) * 100)
+  );
+  const over = `Documentele au cu ${excess}% mai mult text decât încape într-un import.`;
+  const longest = [...files].sort((a, b) => b.characters - a.characters).slice(0, 3);
+  if (longest.length === 1) return `${over} Tot textul este în ${quotedName(longest[0]!.name)}.`;
+  const named = longest.map(
+    (file, index) =>
+      `${quotedName(file.name)} (${percent(file.characters, total)}%${index === 0 ? ' din text' : ''})`
+  );
+  return `${over} Cele mai lungi: ${named.slice(0, -1).join(', ')} și ${named.at(-1)}. Scoate-le pe cele care nu trebuie citite.`;
+}
 
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const wordTypes = new Set(['application/msword', docxType]);
@@ -180,7 +205,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 export async function loadPrepared(
-  objects: ImportObjects,
+  objects: Pick<ImportObjects, 'read'>,
   file: ImportFileRow
 ): Promise<LoadedFile> {
   const path = file.text_path ?? textPathOf(file);
@@ -393,6 +418,7 @@ function setAsideReason(kind: DocumentKind) {
   if (kind === 'cover') return fileReasons.coverOrIndex;
   if (kind === 'blank_form') return fileReasons.blankForm;
   if (kind === 'generic_text') return fileReasons.genericText;
+  if (kind === 'own_instructions') return fileReasons.ownInstructions;
   return fileReasons.noClientData;
 }
 
@@ -430,7 +456,7 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
   );
 
   const byPath = new Map(loaded.map((entry) => [entry.file.upload_path, entry]));
-  let characters = 0;
+  const kept: TextOfFile[] = [];
   let scannedPages = 0;
   let toRead = 0;
   const scans: string[] = [];
@@ -444,7 +470,7 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
     };
     if (outcome.outcome === 'read') {
       const pages = entry.pages?.pages.filter((page) => page.isScan).length ?? 0;
-      characters += entry.text.length;
+      kept.push({ name: entry.file.original_file_name, characters: entry.text.length });
       scannedPages += pages;
       toRead++;
       if (pages > 0) scans.push(entry.file.id);
@@ -471,7 +497,8 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
     await deps.store.updateFile(entry.file.id, patch);
   }
   if (toRead === 0) throw new ImportFailure(importReasons.nothingToRead);
-  if (characters > maxReadingCharacters) throw new ImportFailure(importReasons.tooMuchText);
+  const overCap = tooMuchText(kept);
+  if (overCap) throw new ImportFailure(overCap);
   if (scannedPages > maxScannedPages) throw new ImportFailure(importReasons.tooManyScans);
 
   const companyName = sorting.company?.name?.trim().slice(0, 200) ?? null;

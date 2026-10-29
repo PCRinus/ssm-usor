@@ -601,6 +601,107 @@ describe('the employees an import creates', () => {
   });
 });
 
+function administratorPost() {
+  const proposal = proposalFixture();
+  proposal.jobPositions.push({
+    ...proposal.jobPositions[0]!,
+    id: 'position-3',
+    sources: [{ file: 'dosar-ssm.zip/Evaluare riscuri.docx', quote: 'Administrator' }],
+    name: 'Administrator',
+    staffCategory: 'technical_administrative',
+    workZone: null,
+    activities: 'Conducerea firmei, conduce autoturismul în interes de serviciu',
+    managementOnly: true,
+  } as (typeof proposal.jobPositions)[number]);
+  const entry = (id: string, item: string, position: { name: string; id: string }) => ({
+    id,
+    sources: [{ file: 'dosar-ssm.zip/Evaluare riscuri.docx', quote: item }],
+    otherCompanyName: null,
+    jobPosition: position,
+    risk: 'Accidentare',
+    item,
+    quantity: 1,
+    durationMonths: 12,
+    allocation: 'personal_inventory',
+  });
+  (proposal as { protectiveEquipment: unknown[] }).protectiveEquipment = [
+    entry('equipment-entry-1', 'Mănuși termorezistente', { name: 'Brutar', id: 'position-1' }),
+    entry('equipment-entry-2', 'Vestă reflectorizantă', {
+      name: 'Administrator',
+      id: 'position-3',
+    }),
+  ];
+  return readyDetail({ proposal, blockers: [] });
+}
+
+describe('a post that is only the running of the firm', () => {
+  it('is proposed unticked with why, apart from posts of another client', async () => {
+    mockReview(administratorPost());
+    mount('/job-positions');
+
+    const held = await screen.findByTestId('review-management-only');
+    expect(held.textContent).toContain('Doar dacă lucrează în firmă cu contract de muncă');
+    expect(held.textContent).toContain(
+      'Conducerea firmei, conduce autoturismul în interes de serviciu'
+    );
+    expect(screen.getByTestId('review-other-company').textContent).not.toContain('Administrator');
+    expect(screen.getAllByTestId('review-item').map((row) => row.textContent)).toEqual([
+      expect.stringContaining('Brutar'),
+    ]);
+    const tick = within(held).getByRole('checkbox', { name: 'Preia postul Administrator' });
+    expect(tick.getAttribute('aria-checked')).toBe('false');
+
+    await userEvent.click(tick);
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.items).toEqual({ 'position-3': { included: true } });
+  });
+
+  it('keeps its equipment with it, until an entry is moved to another post', async () => {
+    mockReview(administratorPost());
+    mount('/equipment');
+
+    const held = await screen.findByTestId('review-position-left-out');
+    expect(held.textContent).toContain('Vestă reflectorizantă');
+    expect(held.textContent).toContain('Postul Administrator');
+    expect(screen.getAllByTestId('review-item').map((row) => row.textContent)).toEqual([
+      expect.stringContaining('Mănuși termorezistente'),
+    ]);
+
+    await userEvent.click(
+      within(held).getByRole('checkbox', { name: 'Preia articolul Vestă reflectorizantă' })
+    );
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.items).toEqual({ 'equipment-entry-2': { included: true } });
+    const moved = screen
+      .getAllByTestId('review-item')
+      .find((row) => row.textContent?.includes('Vestă reflectorizantă'))!;
+    await userEvent.click(within(moved).getByRole('button', { name: 'Lasă-l cu postul' }));
+    await waitFor(() => expect(saves).toBe(2));
+    expect(savedChanges(1).changes.items).toEqual({ 'equipment-entry-2': { included: false } });
+  });
+
+  it('is told apart in the summaries and left out of what is confirmed', async () => {
+    mockReview(administratorPost());
+    mount();
+
+    const hub = await screen.findByTestId('import-review-hub');
+    expect(hub.textContent).toContain(
+      'un post. Postul «Administrator» se preia doar dacă e ocupat cu contract de muncă.'
+    );
+    expect(hub.textContent).toContain(
+      'Un articol pentru un post. Un articol rămâne deoparte cu postul lui.'
+    );
+    await userEvent.click(screen.getByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    expect(
+      within(dialog)
+        .getAllByTestId('confirm-line')
+        .map((line) => line.textContent)
+    ).toContainEqual(expect.stringContaining('1post de lucru'));
+    expect(dialog.textContent).toContain('Nu preluăm un element de la alt client.');
+  });
+});
+
 describe('completing an existing client (E2)', () => {
   const existing = () =>
     readyDetail({

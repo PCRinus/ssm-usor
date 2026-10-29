@@ -315,7 +315,7 @@ export const readImportFileRoute = createRoute({
   operationId: 'readImportFile',
   summary: 'Read a file the sorting set aside',
   description:
-    "Only while the import is `ready` (else `409` with `import_not_ready`) and only a file `set_aside` (else `422` with `import_file_not_set_aside`). The file joins the files to read, the import goes back to `reading` with its proposal and the member's changes dropped and its version moved on, and the reading and the checks run again over every file to read.",
+    "Only while the import is `ready` (else `409` with `import_not_ready`) and only a file `set_aside` (else `422` with `import_file_not_set_aside`) whose text and scanned pages, with the files already read, fit one import (else `422` with `import_too_much_text` or `import_too_many_scans`). The file joins the files to read, the import goes back to `reading` with its proposal and the member's changes dropped and its version moved on, and the reading and the checks run again over every file to read.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: importFileParams },
@@ -324,7 +324,10 @@ export const readImportFileRoute = createRoute({
     400: { description: 'Invalid path', content: errorContent },
     404: { description: 'No such import, or no such file of it', content: errorContent },
     409: { description: 'Not ready, or saved since', content: errorContent },
-    422: { description: 'The file was not set aside', content: errorContent },
+    422: {
+      description: 'The file was not set aside, or its text or scanned pages do not fit the import',
+      content: errorContent,
+    },
     ...membershipErrors,
     503: unavailable,
   },

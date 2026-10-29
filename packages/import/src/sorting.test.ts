@@ -17,7 +17,7 @@ const pack = [
   triage('PSI/Lista.doc', 'fire_safety_document', 'S.C. BRUTĂRIA FICTIVĂ S.R.L.', '12345674'),
   triage('Coperta.docx', 'cover', 'Brutăria Fictivă', null, false),
   triage('Instructaj.doc', 'generic_text', null, null, false),
-  triage('Instructiuni.doc', 'own_instructions', null, null, false),
+  triage('Instructiuni.doc', 'own_instructions', 'Brutăria Fictivă', null),
   triage('Fise/Georgescu.jpg', 'training_sheet', 'Brutăria Fictivă', null),
   triage('Contract.docx', 'contract', provider.name, provider.cui),
   triage('Vechi/Decizia 1.doc', 'decision', 'ATELIERUL INVENTAT S.R.L.', '11122232'),

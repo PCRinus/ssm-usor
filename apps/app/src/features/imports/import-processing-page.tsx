@@ -207,7 +207,7 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
       )}
       {detail.status === 'failed' && (
         <Notice variant="destructive" data-testid="import-failed">
-          {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'} Renunță la el și
+          {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'} Renunță la import și
           încearcă din nou.
         </Notice>
       )}
@@ -352,14 +352,13 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
           testId="import-group-set-aside"
           title="Puse deoparte"
           files={setAside}
-          aside="Formulare goale, coperte și texte generale, fără date despre client"
+          aside="Instrucțiuni proprii, formulare goale, coperte și texte generale"
           render={(file) => (
             <FileRow
               file={file}
               detail={
-                file.documentKind
-                  ? documentKindLabels[file.documentKind]
-                  : (file.reason ?? undefined)
+                file.reason ??
+                (file.documentKind ? documentKindLabels[file.documentKind] : undefined)
               }
               status={
                 detail.status === 'ready' ? (

@@ -78,6 +78,8 @@ export const importErrorReasons = {
   notOtherCompany: 'import_not_other_company',
   outdated: 'import_outdated',
   notSetAside: 'import_file_not_set_aside',
+  tooMuchText: 'import_too_much_text',
+  tooManyScans: 'import_too_many_scans',
 } as const;
 
 const uploadPath = z
