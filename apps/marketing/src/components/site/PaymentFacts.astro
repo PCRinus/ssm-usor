@@ -1,42 +1,13 @@
 ---
 import applePay from '../../assets/payment/apple-pay-mark.svg';
 import googlePay from '../../assets/payment/google-pay-mark.svg';
+import CardMark from './CardMark.astro';
 import { paymentFacts } from './pricing';
 ---
 
 <ul class="payment" aria-label={paymentFacts.label}>
   <li>
-    <svg class="mark" viewBox="0 0 68 68" aria-hidden="true">
-      <circle cx="34" cy="34" r="33" fill="#eaf2d6" />
-      <rect
-        x="12"
-        y="19"
-        width="38"
-        height="26"
-        rx="4"
-        fill="#ffffff"
-        stroke="#18342e"
-        stroke-width="1.6"
-      />
-      <rect x="12.8" y="25" width="36.4" height="5" fill="#18342e" />
-      <rect x="17" y="35" width="7" height="5" rx="1.2" fill="#b6d86f" />
-      <path d="M28 37.5h8" stroke="#9fb39c" stroke-width="2" stroke-linecap="round" />
-      <path
-        d="M48 37l8.5 3.2v6.3c0 5.2-3.6 8.8-8.5 10.5c-4.9-1.7-8.5-5.3-8.5-10.5v-6.3z"
-        fill="#18342e"
-        stroke="#eaf2d6"
-        stroke-width="2"
-        stroke-linejoin="round"
-      />
-      <path
-        d="M44.3 47l2.6 2.6 4.8-5"
-        fill="none"
-        stroke="#b6d86f"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
+    <CardMark class="mark" />
     <div>
       <b>{paymentFacts.payment.title}</b>
       <p class="wallets">
