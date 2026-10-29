@@ -7837,6 +7837,40 @@ export const ImportDetailBlockersItemCode = {
   invalid: 'invalid',
 } as const;
 
+export interface ImportModelUsage {
+  /** @minimum 0 */
+  costUsd: number;
+  /** @minimum 0 */
+  inputTokens: number;
+  /** @minimum 0 */
+  cachedInputTokens: number;
+  /** @minimum 0 */
+  outputTokens: number;
+}
+
+export type ImportUsageBySteps = {
+  sorting?: ImportModelUsage;
+  reading?: ImportModelUsage;
+  scanning?: ImportModelUsage;
+};
+
+export interface ImportUsage {
+  /** @minimum 0 */
+  costUsd: number;
+  /** @minimum 0 */
+  inputTokens: number;
+  /** @minimum 0 */
+  cachedInputTokens: number;
+  /** @minimum 0 */
+  outputTokens: number;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  readCharacters: number | null;
+  bySteps: ImportUsageBySteps;
+}
+
 export type ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemValue =
   (typeof ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemValue)[keyof typeof ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemValue];
 
@@ -9066,6 +9100,7 @@ export interface ImportDetail {
   blockers: ImportDetailBlockersItem[];
   /** @nullable */
   proposalDroppedAt: string | null;
+  usage?: ImportUsage;
   /** @nullable */
   proposal: ImportDetailProposal;
 }
@@ -31137,7 +31172,7 @@ export const getGetImportUrl = (importId: string) => {
 };
 
 /**
- * Its step, every file with its state and reason, the progress counts, the other companies the documents named, and from `ready` on the proposal with its flags, the member's changes, the version to save on, and what still blocks confirming. The proposal is null before `ready` and once dropped, 30 days after confirming.
+ * Its step, every file with its state and reason, the progress counts, the other companies the documents named, and from `ready` on the proposal with its flags, the member's changes, the version to save on, and what still blocks confirming. The proposal is null before `ready` and once dropped, 30 days after confirming. `usage`, a debugging aid, is the models' cost at list price and tokens for the whole import and for each step, and the characters read; it is served outside production and, in production, only to a platform admin.
  * @summary Get an import with its files and proposal
  */
 export const getImport = async (

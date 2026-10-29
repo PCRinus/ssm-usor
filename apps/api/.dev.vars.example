@@ -49,3 +49,7 @@ CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,h
 # OBLIO_CLIENT_SECRET=replace_me
 # Oblio has no test mode: keep proformas outside production.
 # OBLIO_DOCUMENTS=proforma
+
+# Unset here, as outside production. `production` hides the import's cost and tokens from
+# everyone but a platform admin, as production does.
+# ENVIRONMENT=production

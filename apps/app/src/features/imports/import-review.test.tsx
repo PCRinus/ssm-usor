@@ -159,6 +159,58 @@ describe('the review hub', () => {
     );
   });
 
+  it('shows the cost and tokens of the reading when the API serves them', async () => {
+    const step = { inputTokens: 1000, cachedInputTokens: 0, outputTokens: 200 };
+    mockReview(
+      readyDetail({
+        usage: {
+          costUsd: 0.27,
+          inputTokens: 182000,
+          cachedInputTokens: 31000,
+          outputTokens: 6400,
+          readCharacters: 410000,
+          bySteps: {
+            sorting: { ...step, costUsd: 0.01 },
+            reading: { ...step, costUsd: 0.22 },
+            scanning: { ...step, costUsd: 0.04 },
+          },
+        },
+      })
+    );
+    mount();
+    expect((await screen.findByTestId('import-usage')).textContent).toBe(
+      'Depanare: cost citire 0,27\u00a0$ · 182.000 tokeni intrare (31.000 din cache) · 6.400 ieșire · 410.000 caractere citite · sortare 0,01\u00a0$, citire 0,22\u00a0$, scanare 0,04\u00a0$'
+    );
+  });
+
+  it('leaves out the steps that used no model and the characters not counted yet', async () => {
+    mockReview(
+      readyDetail({
+        usage: {
+          costUsd: 0.2,
+          inputTokens: 1500,
+          cachedInputTokens: 0,
+          outputTokens: 300,
+          readCharacters: null,
+          bySteps: {
+            reading: { costUsd: 0.2, inputTokens: 1500, cachedInputTokens: 0, outputTokens: 300 },
+          },
+        },
+      })
+    );
+    mount();
+    expect((await screen.findByTestId('import-usage')).textContent).toBe(
+      'Depanare: cost citire 0,20\u00a0$ · 1.500 tokeni intrare (0 din cache) · 300 ieșire · citire 0,20\u00a0$'
+    );
+  });
+
+  it('shows no cost when the API serves none', async () => {
+    mockReview(readyDetail());
+    mount();
+    await screen.findByTestId('import-review-hub');
+    expect(screen.queryByTestId('import-usage')).toBeNull();
+  });
+
   it('confirms a new client and opens its page with what was imported', async () => {
     mockReview(readyDetail({ blockers: [] }));
     const runtime = mount();

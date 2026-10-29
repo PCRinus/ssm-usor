@@ -1928,6 +1928,15 @@ marks the import `failed` with a reason. The copy is not failed: the clean-up co
 `proposal`, `registeredCompany`, the member's `changes`, the `version` and the `blockers`. The
 proposal is null before `ready` and once dropped.
 
+`usage` is a debugging aid, not a member's figure: the models' cost in dollars at list price
+(`costUsd`), `inputTokens`, `cachedInputTokens` and `outputTokens` for the whole import, the
+same four for each step that called a model in `bySteps` (`sorting`, `reading`, `scanning`), and
+`readCharacters`, null until sorted, all as numbers, from the import's bookkeeping columns. It is
+served when `ENVIRONMENT` is not `production` (non-prod and `wrangler dev`, where it is unset) and,
+in production, only to a platform admin, an account whose `app_metadata.role` is `admin`, the
+claim `is_platform_admin()` reads; otherwise the field is absent
+([deployment](deployment.md#the-same-gateway-for-imports-from-documents)).
+
 `changes` holds what the member decided, by the proposal's paths. `fields` is keyed
 `client.<name>`, `trainingSchedule.<name>` or `fireSafety.<name>`: `option` picks one of the
 documents' values, `value` writes another (null leaves the field empty), `included` takes or

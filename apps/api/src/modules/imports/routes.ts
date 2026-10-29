@@ -97,7 +97,7 @@ export const getImportRoute = createRoute({
   operationId: 'getImport',
   summary: 'Get an import with its files and proposal',
   description:
-    "Its step, every file with its state and reason, the progress counts, the other companies the documents named, and from `ready` on the proposal with its flags, the member's changes, the version to save on, and what still blocks confirming. The proposal is null before `ready` and once dropped, 30 days after confirming.",
+    "Its step, every file with its state and reason, the progress counts, the other companies the documents named, and from `ready` on the proposal with its flags, the member's changes, the version to save on, and what still blocks confirming. The proposal is null before `ready` and once dropped, 30 days after confirming. `usage`, a debugging aid, is the models' cost at list price and tokens for the whole import and for each step, and the characters read; it is served outside production and, in production, only to a platform admin.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: importParams },

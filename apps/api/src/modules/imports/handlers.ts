@@ -9,6 +9,7 @@ import {
   type ImportFileType,
   importLimits,
   type ImportSummary,
+  type ImportUsage,
 } from '@ssm-usor/contracts';
 import { findQuote, proposalSchema } from '@ssm-usor/import';
 import type { Context } from 'hono';
@@ -21,7 +22,7 @@ import {
   type DataClient,
   fromDatabaseError,
 } from '../../lib/db';
-import type { ApiEnv, ImportMessage, ImportQueue } from '../../lib/env';
+import { type ApiEnv, type ImportMessage, type ImportQueue, isProduction } from '../../lib/env';
 import { ApiError, type BrokenConstraint } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
 import {
@@ -85,7 +86,7 @@ type ImportRow = Pick<
 const summaryColumns =
   'id, kind, status, client_id, into_existing_client, company_name, company_cui, source_import_id, failure_reason, created_by, created_at, started_at, ready_at, failed_at, confirmed_at, clients!imports_client_in_organization(id, legal_name), import_files(count)';
 
-const detailColumns = `${summaryColumns}, version, proposal, changes, proposal_dropped_at, read_characters`;
+const detailColumns = `${summaryColumns}, version, proposal, changes, proposal_dropped_at, read_characters, input_tokens, cached_input_tokens, output_tokens, cost_usd, usage_by_step`;
 
 const openStatuses = [
   'uploading',
@@ -216,6 +217,40 @@ export async function existingRecords(db: DataClient, clientId: string): Promise
     employees: employees.data ?? [],
     responsiblePersons: persons.data ?? [],
   };
+}
+
+const usageVisible = (c: Context<ApiEnv>) => !isProduction(c.env) || c.get('platformAdmin');
+
+type UsageColumns = {
+  input_tokens: unknown;
+  cached_input_tokens: unknown;
+  output_tokens: unknown;
+  cost_usd: unknown;
+};
+
+// Postgres numeric and bigint may arrive as strings.
+const modelUsage = (row: UsageColumns) => ({
+  costUsd: Number(row.cost_usd ?? 0),
+  inputTokens: Number(row.input_tokens ?? 0),
+  cachedInputTokens: Number(row.cached_input_tokens ?? 0),
+  outputTokens: Number(row.output_tokens ?? 0),
+});
+
+function usageOf(row: UsageColumns & { read_characters: number | null; usage_by_step: unknown }) {
+  const steps =
+    row.usage_by_step && typeof row.usage_by_step === 'object' && !Array.isArray(row.usage_by_step)
+      ? (row.usage_by_step as Record<string, UsageColumns | null | undefined>)
+      : {};
+  const bySteps: ImportUsage['bySteps'] = {};
+  for (const step of ['sorting', 'reading', 'scanning'] as const) {
+    const usage = steps[step];
+    if (usage && typeof usage === 'object') bySteps[step] = modelUsage(usage);
+  }
+  return {
+    ...modelUsage(row),
+    readCharacters: row.read_characters,
+    bySteps,
+  } satisfies ImportUsage;
 }
 
 function storedProposal(value: unknown) {
@@ -357,6 +392,7 @@ export const getImport: RouteHandler<typeof getImportRoute, ApiEnv> = async (c) 
     blockers,
     proposalDroppedAt: row.proposal_dropped_at,
     proposal: visible ? stored.proposal : null,
+    ...(usageVisible(c) ? { usage: usageOf(row) } : {}),
   };
   return c.json({ import: detail }, 200);
 };

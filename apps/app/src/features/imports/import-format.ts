@@ -1,6 +1,6 @@
 import { importErrorReasons } from '@ssm-usor/contracts';
 
-import type { ApiErrorResponse } from '@/api/generated/api';
+import type { ApiErrorResponse, ImportUsage } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { roCount } from '@/features/employees/employee-format';
 
@@ -138,4 +138,30 @@ export function uploadedWhen(iso: string, now = new Date()) {
   return date.toDateString() === now.toDateString()
     ? `azi la ${time}`
     : `pe ${dayFormat.format(date)} la ${time}`;
+}
+
+const count = new Intl.NumberFormat('ro-RO');
+const dollars = new Intl.NumberFormat('ro-RO', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+const cost = (usd: number) => `${dollars.format(usd)}\u00a0$`;
+
+const stepLabels = { sorting: 'sortare', reading: 'citire', scanning: 'scanare' } as const;
+
+export function usageLine(usage: ImportUsage) {
+  const parts = [
+    `Depanare: cost citire ${cost(usage.costUsd)}`,
+    `${count.format(usage.inputTokens)} tokeni intrare (${count.format(usage.cachedInputTokens)} din cache)`,
+    `${count.format(usage.outputTokens)} ieșire`,
+  ];
+  if (usage.readCharacters !== null) {
+    parts.push(`${count.format(usage.readCharacters)} caractere citite`);
+  }
+  const steps = (['sorting', 'reading', 'scanning'] as const).flatMap((step) => {
+    const stepUsage = usage.bySteps[step];
+    return stepUsage ? [`${stepLabels[step]} ${cost(stepUsage.costUsd)}`] : [];
+  });
+  if (steps.length > 0) parts.push(steps.join(', '));
+  return parts.join(' · ');
 }
