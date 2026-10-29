@@ -88,6 +88,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /clients/{clientId}/archive`                                     | Owner                                 | `{ "client": { … } }`, archived; nothing under the client changes                                                                                                                                  |
 | `POST /clients/{clientId}/restore`                                     | Owner                                 | `{ "client": { … } }`, active again                                                                                                                                                                |
 | `POST /clients/{clientId}/promote`                                     | Owner                                 | `{ "client": { … } }`, a client from then on; one way                                                                                                                                              |
+| `DELETE /clients/{clientId}`                                           | Platform admin; anyone off production | `204` after deleting an archived client outright, with everything under it and its stored files                                                                                                    |
 | `GET /clients/{clientId}/service-contract`                             | Owner                                 | `{ "contract", "suggestedNumber", "clientRepresentative", "readiness", "document" }`                                                                                                               |
 | `PUT /clients/{clientId}/service-contract`                             | Owner                                 | The same, after saving the contract's details                                                                                                                                                      |
 | `POST /clients/{clientId}/service-contract/generate`                   | Owner                                 | The same, with the contract generated or generated again                                                                                                                                           |
@@ -253,6 +254,19 @@ holder is a lead, which is also the answer when the caller cannot see the holder
 specialist cannot) or `client_archived`.
 Archiving and restoring are an owner's, checked by `requireOwner` and again by a trigger;
 repeating either changes nothing and keeps the first date.
+
+`DELETE /clients/{clientId}` deletes an archived client outright, for testing an import with the
+same company again, which an archived client's CUI otherwise refuses. Who may call it is the rule
+of the import's `usage`: anyone when `ENVIRONMENT` is not `production`, and in production a
+platform admin only (`adminToolsAllowed` in `lib/auth.ts`); anyone else gets `403`. Every client
+response says it as `canDelete`: true for an archived client when the rule holds. The handler
+reads the client as the caller, so `404` and the policies are as for `GET`, answers `409` with
+the reason `client_not_archived` for an active client, and then calls `delete_archived_client`
+with the secret key and the caller's organization. Members cannot call that function, so the rule
+cannot be skipped through PostgREST. It returns the client's objects in the `documents`,
+`client-files` and `imports` buckets, which the handler removes after the rows are gone; a removal
+that fails is logged with the bucket and the number of objects, never their paths, and the answer
+is still `204`. No audit log records it: the API has none.
 
 What is known about the provider is two resources, as the organization page shows it.
 `/organization/company-details` is the company: its name and registration, `vatPayer`, which
@@ -1934,8 +1948,8 @@ same four for each step that called a model in `bySteps` (`sorting`, `reading`, 
 `readCharacters`, null until sorted, all as numbers, from the import's bookkeeping columns. It is
 served when `ENVIRONMENT` is not `production` (non-prod and `wrangler dev`, where it is unset) and,
 in production, only to a platform admin, an account whose `app_metadata.role` is `admin`, the
-claim `is_platform_admin()` reads; otherwise the field is absent
-([deployment](deployment.md#the-same-gateway-for-imports-from-documents)).
+claim `is_platform_admin()` reads (`adminToolsAllowed`, which also guards `DELETE
+/clients/{clientId}`); otherwise the field is absent ([deployment](deployment.md#the-same-gateway-for-imports-from-documents)).
 
 `changes` holds what the member decided, by the proposal's paths. `fields` is keyed
 `client.<name>`, `trainingSchedule.<name>` or `fireSafety.<name>`: `option` picks one of the

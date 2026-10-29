@@ -159,6 +159,31 @@ a revision runs as its function's owner, past the policies. `is_draft_document_p
 `is_writable_client_file_path` ask for an active client too, so the files follow. The secret key passes. Recording a leaver of an
 archived client used to be allowed; with restoring one click away it no longer is.
 
+`delete_archived_client(organization, client)` deletes an archived client outright with every row
+under it, for testing an import with the same company again, which the archived client's CUI
+would refuse (`IMP04`). Only the secret key runs it, since the API decides who may (anyone outside
+production, a platform admin in production); a member who could call it through PostgREST would
+skip that rule. It refuses a client the organization does not have (`P0002`) and an active one
+(`CLA02`), and deletes, children first: the signatures of trainings, test sheets and agreements,
+signed sheets and their rows, signature requests, test sheets, results and attempts with their
+keys, training records and trainings, invitations and participants (their signing sessions with
+them), signing agreements; the documents' sends, signed copies and revisions, the documents and
+their generations, regeneration items; prevention measures, risk factors and evaluations, the
+positions' equipment and instructions; the client's imports with their files and its client files;
+responsible persons, employees, the fire-safety rows (buildings, equipment, installations,
+maintenance items, substances, `client_fire_safety`), job positions, workplaces, owner notes,
+service contracts, and the client. The guards that keep evidence for good
+(`training_signatures_written_once`, `agreement_signatures_written_once`,
+`test_sheet_signatures_written_once`, `test_sheets_kept`, `test_attempts_frozen`,
+`test_attempt_keys_frozen`, `test_results_protect_from_attempt`,
+`employee_signing_agreements_retain_recorded`) are disabled inside its transaction and enabled
+again before it returns; the foreign keys stay on, so a table it forgets fails the call. It
+returns the objects to remove as `(bucket, path)`: those its rows name, and every object under the
+client's prefixes (`<organization>/<client>/` in `documents` and `client-files`,
+`signed-sheets/<client>/`, `test-sheets/<client>/` and `signing-agreements/<client>/` in
+`documents`, `<organization>/<import>/` in `imports`), since a sheet's earlier versions are kept
+and no row names them. The objects themselves are the API's to remove, through Storage.
+
 ### Leads
 
 A lead is a row of `clients` with `stage = 'lead'`: a company the organization hopes to serve.
