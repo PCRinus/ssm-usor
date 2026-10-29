@@ -73,8 +73,7 @@ export interface PipelineDeps {
 // size: about 185,000 tokens at the 3.25 characters a token measured on the reference packs.
 export const maxReadingCharacters = 600_000;
 export const maxScannedPages = 150;
-// The reading's is what the evaluation used. An answer cut off at it fails as one the model did
-// not give, rather than leaving the request to run on.
+// The reading's is the one the evaluation used.
 export const sortingOutputTokens = 16_000;
 export const readingOutputTokens = 64_000;
 // About a hundred seconds of reading, well inside a consumer's 15 minutes of wall time.
