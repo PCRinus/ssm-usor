@@ -18,7 +18,7 @@ import { Notice } from '@/components/notice';
 function serverMessage(cause: unknown) {
   if (cause instanceof ApiHttpError) {
     if (cause.status === 404) return 'Clientul potențial nu mai există în organizația ta.';
-    if (cause.status === 409) return 'Clientul potențial este arhivat. Restaurează-l mai întâi.';
+    if (cause.status === 409) return 'Clientul potențial este arhivat. Reactivează-l mai întâi.';
     if (cause.status === 403) {
       return 'Doar un administrator al organizației poate transforma un client potențial în client.';
     }

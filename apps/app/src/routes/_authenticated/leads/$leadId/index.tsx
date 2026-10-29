@@ -115,12 +115,12 @@ function LeadPage() {
               onClick={() => setArchiveChange({ client: lead, action: 'restore' })}
             >
               <ArchiveRestore aria-hidden="true" />
-              Restaurează…
+              Reactivează…
             </Button>
           }
         >
           Datele și notițele lui pot fi citite, dar nu modificate, și nu poate fi transformat în
-          client până nu este restaurat.
+          client până nu este reactivat.
         </Notice>
       )}
       <div className="grid gap-6">

@@ -41,7 +41,7 @@ function serverMessage(cause: unknown, action: ClientArchiveChange['action'], le
         : 'Clientul nu mai există în organizația ta.';
     }
     if (cause.status === 403) {
-      return `Doar un administrator al organizației poate arhiva sau restaura ${noun}.`;
+      return `Doar un administrator al organizației poate arhiva sau reactiva ${noun}.`;
     }
     if (cause.status === 401) {
       return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
@@ -49,7 +49,7 @@ function serverMessage(cause: unknown, action: ClientArchiveChange['action'], le
   }
   return action === 'archive'
     ? `Nu am putut arhiva ${noun}. Verifică conexiunea și încearcă din nou.`
-    : `Nu am putut restaura ${noun}. Verifică conexiunea și încearcă din nou.`;
+    : `Nu am putut reactiva ${noun}. Verifică conexiunea și încearcă din nou.`;
 }
 
 const draftsNotice = (count: number) =>
@@ -113,7 +113,7 @@ export function ClientArchiveDialog({
       toast.success(
         action === 'archive'
           ? `${client.legalName} a fost arhivat.`
-          : `${client.legalName} a fost restaurat.`
+          : `${client.legalName} a fost reactivat.`
       );
       close();
     } catch (cause) {
@@ -132,17 +132,17 @@ export function ClientArchiveDialog({
                   ? 'Arhivezi clientul potențial?'
                   : 'Arhivezi clientul?'
                 : lead
-                  ? 'Restaurezi clientul potențial?'
-                  : 'Restaurezi clientul?'}
+                  ? 'Reactivezi clientul potențial?'
+                  : 'Reactivezi clientul?'}
             </DialogTitle>
             <DialogDescription>
               <span className="font-medium text-foreground">{change.client.legalName}</span>
               {lead
                 ? change.action === 'archive'
-                  ? ' iese din lista clienților potențiali activi. Datele, contactul și notițele lui rămân neschimbate în lista „Arhivați”, de unde poate fi restaurat.'
+                  ? ' iese din lista clienților potențiali activi. Datele, contactul și notițele lui rămân neschimbate în lista „Arhivați”, de unde poate fi reactivat.'
                   : ' revine în lista clienților potențiali activi.'
                 : change.action === 'archive'
-                  ? ' iese din lista clienților activi. Angajații, posturile și documentele lui rămân neschimbate și pot fi consultate din lista „Arhivați”, de unde clientul poate fi restaurat.'
+                  ? ' iese din lista clienților activi. Angajații, posturile și documentele lui rămân neschimbate și pot fi consultate din lista „Arhivați”, de unde clientul poate fi reactivat.'
                   : ' revine în lista clienților activi, cu angajații, posturile și documentele lui.'}
             </DialogDescription>
           </DialogHeader>
@@ -170,8 +170,8 @@ export function ClientArchiveDialog({
                   ? 'Se arhivează…'
                   : 'Arhivează'
                 : busy
-                  ? 'Se restaurează…'
-                  : 'Restaurează'}
+                  ? 'Se reactivează…'
+                  : 'Reactivează'}
             </Button>
           </DialogFooter>
         </DialogContent>

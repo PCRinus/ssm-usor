@@ -125,6 +125,8 @@ export const clientListItemSchema = clientSchema.extend({
   // The occupational safety set.
   documentation: clientDocumentationSchema.nullable(),
   fireSafetyDocumentation: clientDocumentationSchema.nullable(),
+  // Whether the caller may delete the client outright, as on clientResponseSchema.
+  canDelete: z.boolean(),
 });
 
 export type ClientListItem = z.infer<typeof clientListItemSchema>;

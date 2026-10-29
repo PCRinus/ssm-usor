@@ -695,6 +695,7 @@ export type ClientListResponseItemsItem = {
   documentation: ClientListResponseItemsItemDocumentation;
   /** @nullable */
   fireSafetyDocumentation: ClientListResponseItemsItemFireSafetyDocumentation;
+  canDelete: boolean;
 };
 
 export interface ClientListResponse {

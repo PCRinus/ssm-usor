@@ -341,7 +341,7 @@ describe('leads', () => {
     await user.click(await screen.findByTestId('lead-promote'));
     await user.click(await screen.findByTestId('promote-lead-confirm'));
     expect((await screen.findByTestId('promote-lead-error')).textContent).toContain(
-      'Restaurează-l mai întâi'
+      'Reactivează-l mai întâi'
     );
     expect(screen.getByTestId('lead-page')).toBeTruthy();
   });

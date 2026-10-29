@@ -259,7 +259,8 @@ repeating either changes nothing and keeps the first date.
 same company again, which an archived client's CUI otherwise refuses. Who may call it is the rule
 of the import's `usage`: anyone when `ENVIRONMENT` is not `production`, and in production a
 platform admin only (`adminToolsAllowed` in `lib/auth.ts`); anyone else gets `403`. Every client
-response says it as `canDelete`: true for an archived client when the rule holds. The handler
+response, and each row of `GET /clients`, says it as `canDelete`: true for an archived client
+when the rule holds. The handler
 reads the client as the caller, so `404` and the policies are as for `GET`, answers `409` with
 the reason `client_not_archived` for an active client, and then calls `delete_archived_client`
 with the secret key and the caller's organization. Members cannot call that function, so the rule

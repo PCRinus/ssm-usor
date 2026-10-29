@@ -138,7 +138,7 @@ export function leadColumns(
                   onSelect={() => onArchiveChange({ client: lead, action: 'restore' })}
                 >
                   <ArchiveRestore aria-hidden="true" />
-                  Restaurează…
+                  Reactivează…
                 </DropdownMenuItem>
               ) : (
                 <>

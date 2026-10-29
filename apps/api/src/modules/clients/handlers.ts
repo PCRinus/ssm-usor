@@ -186,9 +186,10 @@ async function clientsWithParticipants(db: DataClient, clientIds: string[]) {
 }
 
 // The generated types make every column of a view nullable.
-function toClientListItem(row: ListedRow, hasParticipants: boolean) {
+function toClientListItem(row: ListedRow, hasParticipants: boolean, adminTools: boolean) {
   const item: ClientListItem = {
     ...toClient(row),
+    canDelete: row.archived_at !== null && adminTools,
     clientSince: null,
     documentation: null,
     fireSafetyDocumentation: null,
@@ -255,9 +256,10 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
     db,
     stage === 'lead' ? [] : data.map((row) => row.id)
   );
+  const adminTools = adminToolsAllowed(c);
   return c.json(
     {
-      items: data.map((row) => toClientListItem(row, withParticipants.has(row.id))),
+      items: data.map((row) => toClientListItem(row, withParticipants.has(row.id), adminTools)),
       page,
       pageSize,
       total: count ?? 0,

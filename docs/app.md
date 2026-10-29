@@ -476,9 +476,12 @@ their tab bars read.
   explained; other failures offer a retry). The company name wraps so that the table fits
   1280 px with the sidebar open; on a phone it scrolls sideways. "Activi" and "Arhivați" switch
   the list through `?status=`, with the same columns.
-  A row's menu holds "Modifică" and, for an owner, "Arhivează…", or "Restaurează…" on an
+  A row's menu holds "Modifică" and, for an owner, "Arhivează…", or "Reactivează…" on an
   archived row; one dialog confirms both and says how many documents are still drafts. An
-  archived client's page opens read-only under a banner, with "Restaurează…" for an owner.
+  archived row whose `canDelete` is true also offers "Șterge definitiv…", which opens the same
+  dialog as the client's page and refreshes the list. An archived client's page opens
+  read-only under a banner, with "Reactivează…" for an owner and "Șterge definitiv…" when the
+  client says `canDelete`.
 - `/clients/new`: the creation form, laid out as full-width sections with their purpose on
   the left and fields on the right. Entering a CUI and pressing **Caută la ANAF** calls `GET /companies/lookup` and prefills the
   name, VAT status, CAEN code, trade register number, and registered office; a missing record
@@ -898,7 +901,7 @@ their tab bars read.
   which for a lead speaks of leads and does not look for draft documents. "Transformă în
   client…" opens `PromoteLeadDialog`, which says that the whole team will see the company,
   that the notes stay the owners', and that it cannot be undone; then `POST …/promote`, a
-  toast, and the client's page. An archived lead shows a banner with "Restaurează…" and
+  toast, and the client's page. An archived lead shows a banner with "Reactivează…" and
   neither of the other two. The two addresses of one record lead to each other: the client
   layout redirects a lead to `/leads/:id`, and the lead loader redirects a client to
   `/clients/:id/details`, so a link kept from before the promotion still works.

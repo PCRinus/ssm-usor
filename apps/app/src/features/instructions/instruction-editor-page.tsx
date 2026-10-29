@@ -248,7 +248,7 @@ export function InstructionEditorPage({
       ) : (
         !editable && (
           <p role="status" className="shrink-0 text-sm text-muted-foreground">
-            O instrucțiune arhivată poate fi doar citită. Restaureaz-o din bibliotecă pentru a o
+            O instrucțiune arhivată poate fi doar citită. Reactiveaz-o din bibliotecă pentru a o
             modifica.
           </p>
         )

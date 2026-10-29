@@ -165,7 +165,7 @@ export function LeadsPage() {
                   data-testid="leads-empty"
                   className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
                 >
-                  Clienții potențiali arhivați vor apărea aici. Îi poți restaura oricând.
+                  Clienții potențiali arhivați vor apărea aici. Îi poți reactiva oricând.
                 </p>
               </>
             ) : (

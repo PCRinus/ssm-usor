@@ -118,7 +118,7 @@ Bifează căsuța dacă firma e înregistrată în scopuri de TVA. Căutarea la 
 Într-o organizație, un CUI aparține unei singure firme. Dacă îl folosești din nou, vezi sub câmp unul dintre mesajele:
 
 - „Există deja un client cu acest CUI în organizația ta.”: firma e deja în lista clienților. Caut-o acolo;
-- „Un client arhivat are deja acest CUI. Îl găsești în lista „Arhivați”, de unde un administrator îl poate restaura.”: firma a fost client și a fost arhivată. Restaureaz-o în loc s-o adaugi din nou (vezi [Restaurarea unui client](/clienti/#restaurarea-unui-client));
+- „Un client arhivat are deja acest CUI. Îl găsești în lista „Arhivați”, de unde un administrator îl poate reactiva.”: firma a fost client și a fost arhivată. Reactiveaz-o în loc s-o adaugi din nou (vezi [Reactivarea unui client](/clienti/#reactivarea-unui-client));
 - „Firma cu acest CUI este deja printre clienții potențiali ai organizației. Un administrator o poate transforma în client.”: firma e un client potențial. Un administrator o transformă în client din **Clienți potențiali**, cu tot ce s-a scris deja despre ea.
 
 ## Înregistrare

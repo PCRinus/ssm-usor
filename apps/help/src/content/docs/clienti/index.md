@@ -1,6 +1,6 @@
 ---
 title: Clienți
-description: Lista clienților, ce arată coloanele ei, pagina unui client, și arhivarea și restaurarea unui client.
+description: Lista clienților, ce arată coloanele ei, pagina unui client, și arhivarea și reactivarea unui client.
 topics:
   - id: clienti.lista
     heading: Lista clienților
@@ -14,8 +14,8 @@ topics:
     heading: Arhivarea unui client
   - id: clienti.client-arhivat
     heading: Un client arhivat
-  - id: clienti.restaurare
-    heading: Restaurarea unui client
+  - id: clienti.reactivare
+    heading: Reactivarea unui client
 sources:
   - docs/architecture/adr-005-document-generation.md
   - docs/architecture/adr-007-leads-and-service-contracts.md
@@ -82,22 +82,22 @@ Documentele se întocmesc din ce completezi în celelalte taburi. Când îți li
 
 ## Arhivarea unui client
 
-Arhivezi un client cu care nu mai lucrezi. Doar administratorii pot arhiva și restaura un client. Alege **Arhivează…** din capul paginii clientului sau din meniul rândului din listă, apoi confirmă.
+Arhivezi un client cu care nu mai lucrezi. Doar administratorii pot arhiva și reactiva un client. Alege **Arhivează…** din capul paginii clientului sau din meniul rândului din listă, apoi confirmă.
 
 Arhivarea nu șterge nimic. Clientul iese din lista clienților activi, iar angajații, posturile și documentele lui rămân cum erau și le găsești din **Arhivați**.
 
 Dacă unele documente ale clientului sunt încă ciorne, dialogul îți spune câte: „Un document este încă ciornă și nu va mai putea fi emis cât timp clientul este arhivat.” Dacă vrei să le emiți, emite-le înainte să arhivezi clientul.
 
-Un client arhivat își păstrează CUI-ul. Nu poți adăuga un client nou cu același CUI; restaurează-l pe cel arhivat (vezi [CUI folosit deja](/clienti/adaugare-si-modificare/#cui-folosit-deja)).
+Un client arhivat își păstrează CUI-ul. Nu poți adăuga un client nou cu același CUI; reactivează-l pe cel arhivat (vezi [CUI folosit deja](/clienti/adaugare-si-modificare/#cui-folosit-deja)).
 
 ## Un client arhivat
 
 Pe pagina unui client arhivat vezi „Client arhivat” și „Datele și documentele lui pot fi consultate și descărcate, dar nu modificate.”
 
-Nimic din ce ține de client nu se mai schimbă până la restaurare: nu poți modifica datele lui, adăuga sau modifica angajați, posturi și puncte de lucru, genera sau emite documente, înregistra instruiri ori trimite invitații în portal. Butoanele acestor acțiuni nu mai apar. Angajații lui nu mai apar nici în lista **Angajați** din meniul lateral.
+Nimic din ce ține de client nu se mai schimbă până la reactivare: nu poți modifica datele lui, adăuga sau modifica angajați, posturi și puncte de lucru, genera sau emite documente, înregistra instruiri ori trimite invitații în portal. Butoanele acestor acțiuni nu mai apar. Angajații lui nu mai apar nici în lista **Angajați** din meniul lateral.
 
 Dacă un coleg a arhivat clientul cât timp lucrai la el, la salvare vezi „Clientul este arhivat; datele lui nu mai pot fi modificate.”
 
-## Restaurarea unui client
+## Reactivarea unui client
 
-Un administrator restaurează un client cu **Restaurează…**, din capul paginii clientului arhivat sau din meniul rândului din lista **Arhivați**. Clientul revine în lista clienților activi, cu angajații, posturile și documentele lui, și poți lucra din nou la el.
+Un administrator reactivează un client cu **Reactivează…**, din capul paginii clientului arhivat sau din meniul rândului din lista **Arhivați**. Clientul revine în lista clienților activi, cu angajații, posturile și documentele lui, și poți lucra din nou la el.

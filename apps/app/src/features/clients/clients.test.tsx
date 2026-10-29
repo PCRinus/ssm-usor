@@ -1062,7 +1062,7 @@ describe('client archiving', () => {
     expect(screen.queryByTestId('clients-archive')).toBeNull();
   });
 
-  it('lists the archived clients apart, where an owner restores one', async () => {
+  it('lists the archived clients apart, where an owner reactivates one', async () => {
     mockApi({
       me: meAs('owner'),
       list: (_init, url) =>
@@ -1076,7 +1076,7 @@ describe('client archiving', () => {
     expect(screen.queryByTestId('clients-edit')).toBeNull();
     await user.click(await screen.findByTestId('clients-restore'));
     await user.click(await screen.findByTestId('client-archive-confirm'));
-    expect(await screen.findByText('OMV PETROM SA a fost restaurat.')).toBeTruthy();
+    expect(await screen.findByText('OMV PETROM SA a fost reactivat.')).toBeTruthy();
     expect(requests(`${clientPath}/restore`, 'POST')).toHaveLength(1);
   });
 
@@ -1103,11 +1103,11 @@ describe('client archiving', () => {
     expect(screen.getByTestId('employees-add')).toBeTruthy();
   });
 
-  it('tells a specialist who can restore', async () => {
+  it('tells a specialist who can reactivate it', async () => {
     mockApi({ me: meAs('specialist'), get: () => Response.json({ client: archivedClient }) });
     mountApp(authFixture(makeSession()).client, `${clientPath}/employees`);
     const banner = await screen.findByTestId('client-archived-banner');
-    expect(banner.textContent).toContain('Un administrator al organizației îl poate restaura.');
+    expect(banner.textContent).toContain('Un administrator al organizației îl poate reactiva.');
     expect(screen.queryByTestId('client-restore')).toBeNull();
   });
 
@@ -1146,6 +1146,44 @@ describe('client archiving', () => {
       await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/clients'));
       expect(runtime.router.state.location.search).toEqual({ status: 'archived' });
       expect(requests(clientPath, 'DELETE')).toHaveLength(1);
+    });
+
+    it('is offered in the archived list only on the rows the API says the caller may delete', async () => {
+      mockApi({
+        me: meAs('owner'),
+        list: () => Response.json(page([listed(archivedClient, { canDelete: false })])),
+      });
+      mountApp(authFixture(makeSession()).client, '/clients?status=archived');
+      const user = userEvent.setup();
+      await user.click(await screen.findByTestId('clients-row-menu'));
+      await screen.findByTestId('clients-restore');
+      expect(screen.queryByTestId('clients-delete')).toBeNull();
+    });
+
+    it('deletes from the archived list and refreshes it there', async () => {
+      let deleted = false;
+      mockApi({
+        me: meAs('specialist'),
+        list: () =>
+          Response.json(page(deleted ? [] : [listed(archivedClient, { canDelete: true })])),
+        delete: () => {
+          deleted = true;
+          return new Response(null, { status: 204 });
+        },
+      });
+      const runtime = mountApp(authFixture(makeSession()).client, '/clients?status=archived');
+      const user = userEvent.setup();
+      await user.click(await screen.findByTestId('clients-row-menu'));
+      expect(screen.queryByTestId('clients-restore')).toBeNull();
+      await user.click(await screen.findByTestId('clients-delete'));
+      const dialog = await screen.findByTestId('client-delete-dialog');
+      await user.type(within(dialog).getByTestId('client-delete-name'), 'OMV PETROM SA');
+      await user.click(within(dialog).getByTestId('client-delete-confirm'));
+      expect(await screen.findByText('OMV PETROM SA a fost șters definitiv.')).toBeTruthy();
+      await screen.findByTestId('clients-empty');
+      expect(requests(clientPath, 'DELETE')).toHaveLength(1);
+      expect(runtime.router.state.location.pathname).toBe('/clients');
+      expect(runtime.router.state.location.search).toEqual({ status: 'archived' });
     });
 
     it('keeps the dialog open with the reason when the API refuses', async () => {

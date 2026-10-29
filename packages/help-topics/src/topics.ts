@@ -238,11 +238,11 @@ export const helpTopics = {
   'clienti.lista': { path: '/clienti/', anchor: 'lista-clienților' },
   'clienti.modificare': { path: '/clienti/adaugare-si-modificare/', anchor: 'modificarea-datelor' },
   'clienti.pagina-clientului': { path: '/clienti/', anchor: 'pagina-unui-client' },
+  'clienti.reactivare': { path: '/clienti/', anchor: 'reactivarea-unui-client' },
   'clienti.registrul-comertului': {
     path: '/clienti/adaugare-si-modificare/',
     anchor: 'numărul-din-registrul-comerțului',
   },
-  'clienti.restaurare': { path: '/clienti/', anchor: 'restaurarea-unui-client' },
   'clienti.salvare-refuzata': {
     path: '/clienti/adaugare-si-modificare/',
     anchor: 'când-nu-se-salvează',

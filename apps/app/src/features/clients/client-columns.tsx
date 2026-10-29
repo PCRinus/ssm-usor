@@ -8,13 +8,14 @@ import {
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { Link } from '@tanstack/react-router';
-import { Archive, ArchiveRestore, MoreHorizontal, Pencil } from 'lucide-react';
+import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
 import type { ClientListResponse } from '@/api/generated/api';
 import { createDataTableColumns } from '@/components/data-table/columns';
 import { formatRoDate } from '@/lib/dates';
 
 import type { ClientArchiveChange } from './client-archive-dialog';
+import type { ClientToDelete } from './client-delete-dialog';
 import { DocumentationBadge } from './documentation-badge';
 
 export type ClientRow = ClientListResponse['items'][number];
@@ -64,7 +65,13 @@ function documentationColumn(
 // Sortable column ids are the API sort keys: legalName, cui, currentEmployeeCount,
 // documentation, fireSafetyDocumentation, clientSince. `onArchiveChange` is left out for a
 // member who is not an owner.
-export function clientColumns(onArchiveChange?: (change: ClientArchiveChange) => void) {
+export function clientColumns({
+  onArchiveChange,
+  onDelete,
+}: {
+  onArchiveChange?: (change: ClientArchiveChange) => void;
+  onDelete: (client: ClientToDelete) => void;
+}) {
   return helper.columns([
     helper.accessor('legalName', {
       id: 'legalName',
@@ -134,7 +141,7 @@ export function clientColumns(onArchiveChange?: (change: ClientArchiveChange) =>
       cell: ({ row }) => {
         const client = row.original;
         const archived = client.archivedAt !== null;
-        if (archived && !onArchiveChange) return null;
+        if (archived && !onArchiveChange && !client.canDelete) return null;
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -149,13 +156,28 @@ export function clientColumns(onArchiveChange?: (change: ClientArchiveChange) =>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {archived ? (
-                <DropdownMenuItem
-                  data-testid="clients-restore"
-                  onSelect={() => onArchiveChange?.({ client, action: 'restore' })}
-                >
-                  <ArchiveRestore aria-hidden="true" />
-                  Restaurează…
-                </DropdownMenuItem>
+                <>
+                  {onArchiveChange && (
+                    <DropdownMenuItem
+                      data-testid="clients-restore"
+                      onSelect={() => onArchiveChange({ client, action: 'restore' })}
+                    >
+                      <ArchiveRestore aria-hidden="true" />
+                      Reactivează…
+                    </DropdownMenuItem>
+                  )}
+                  {onArchiveChange && client.canDelete && <DropdownMenuSeparator />}
+                  {client.canDelete && (
+                    <DropdownMenuItem
+                      data-testid="clients-delete"
+                      variant="destructive"
+                      onSelect={() => onDelete(client)}
+                    >
+                      <Trash2 aria-hidden="true" />
+                      Șterge definitiv…
+                    </DropdownMenuItem>
+                  )}
+                </>
               ) : (
                 <>
                   <DropdownMenuItem asChild data-testid="clients-edit">

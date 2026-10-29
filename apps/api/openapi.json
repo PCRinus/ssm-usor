@@ -969,6 +969,9 @@
                     }
                   },
                   "required": ["state", "issuedCount", "totalCount", "lastGeneratedAt"]
+                },
+                "canDelete": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -995,7 +998,8 @@
                 "archivedAt",
                 "clientSince",
                 "documentation",
-                "fireSafetyDocumentation"
+                "fireSafetyDocumentation",
+                "canDelete"
               ]
             }
           },

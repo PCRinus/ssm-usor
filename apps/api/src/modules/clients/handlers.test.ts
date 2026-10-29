@@ -194,6 +194,7 @@ describe('GET /clients', () => {
           createdAt: clientRow.created_at,
           updatedAt: clientRow.updated_at,
           archivedAt: null,
+          canDelete: false,
           clientSince: '2026-09-17T10:00:00+00:00',
           documentation: {
             state: 'in_progress',
@@ -454,6 +455,27 @@ describe('GET /clients', () => {
     expect(new URL(String(url)).searchParams.get('archived_at')).toBe('not.is.null');
     expect((await request('/clients?status=all')).status).toBe(400);
   });
+
+  it.each([
+    ['outside production', undefined, true],
+    ['in production', 'production', false],
+  ])(
+    'says on each archived row whether the caller may delete it %s',
+    async (_, environment, canDelete) => {
+      mockUpstream({
+        clients: () =>
+          Response.json([{ ...clientRow, ...workRow, archived_at: '2026-01-01T00:00:00+00:00' }], {
+            headers: { 'Content-Range': '0-0/1' },
+          }),
+      });
+      const response = await request('/clients?status=archived', {}, undefined, {
+        ...env,
+        ENVIRONMENT: environment,
+      });
+      const [row] = clientListResponseSchema.parse(await response.json()).items;
+      expect(row?.canDelete).toBe(canDelete);
+    }
+  );
 
   it('lists the leads instead for an owner, and tells anyone else why not', async () => {
     mockUpstream({});

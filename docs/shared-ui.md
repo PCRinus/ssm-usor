@@ -96,7 +96,7 @@ The dashboard shows every in-page message through `apps/app/src/components/notic
 through `Alert` directly and not through a bordered paragraph:
 
 ```tsx
-<Notice variant="warning" title="Client arhivat" action={<Button …>Restaurează…</Button>}>
+<Notice variant="warning" title="Client arhivat" action={<Button …>Reactivează…</Button>}>
   Datele și documentele lui pot fi consultate și descărcate, dar nu modificate.
 </Notice>
 ```

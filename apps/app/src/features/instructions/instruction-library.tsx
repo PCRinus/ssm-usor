@@ -113,7 +113,7 @@ export function InstructionLibrary({
     try {
       await update.mutateAsync({ moduleId: module.id, data: { archived } });
       toast.success(
-        archived ? `„${module.title}” a fost arhivată.` : `„${module.title}” a fost restaurată.`
+        archived ? `„${module.title}” a fost arhivată.` : `„${module.title}” a fost reactivată.`
       );
     } catch (cause) {
       const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
@@ -282,7 +282,7 @@ export function InstructionLibrary({
                               data-testid="instruction-restore"
                               onSelect={() => void setArchived(module, false)}
                             >
-                              Restaurează
+                              Reactivează
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem

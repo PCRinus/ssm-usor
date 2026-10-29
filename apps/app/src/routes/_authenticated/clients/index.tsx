@@ -24,6 +24,7 @@ import {
   ClientArchiveDialog,
 } from '@/features/clients/client-archive-dialog';
 import { clientColumns, type ClientRow } from '@/features/clients/client-columns';
+import { ClientDeleteDialog, type ClientToDelete } from '@/features/clients/client-delete-dialog';
 import { ImportListCard } from '@/features/imports/import-list-card';
 import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { StartWays } from '@/features/imports/start-ways';
@@ -73,7 +74,15 @@ function ClientsPage() {
   const meta = clients.data ?? { page, pageSize: defaultPageSize, total: 0 };
   const isOwner = useMe().data?.membership?.role === 'owner';
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
-  const columns = useMemo(() => clientColumns(isOwner ? setArchiveChange : undefined), [isOwner]);
+  const [deleting, setDeleting] = useState<ClientToDelete | null>(null);
+  const columns = useMemo(
+    () =>
+      clientColumns({
+        onArchiveChange: isOwner ? setArchiveChange : undefined,
+        onDelete: setDeleting,
+      }),
+    [isOwner]
+  );
   const [importing, setImporting] = useState(false);
 
   return (
@@ -186,7 +195,7 @@ function ClientsPage() {
                   data-testid="clients-empty"
                   className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground"
                 >
-                  Clienții arhivați vor apărea aici. Îi poți restaura oricând.
+                  Clienții arhivați vor apărea aici. Îi poți reactiva oricând.
                 </p>
               </>
             ) : (
@@ -206,6 +215,7 @@ function ClientsPage() {
         />
       </div>
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
+      <ClientDeleteDialog client={deleting} onClose={() => setDeleting(null)} />
       <ImportUploadDialog
         open={importing}
         onClose={() => setImporting(false)}

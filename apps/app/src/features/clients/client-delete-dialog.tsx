@@ -9,7 +9,7 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useRouteContext } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 
 import { getGetClientQueryKey, getListClientsQueryKey, useDeleteClient } from '@/api/generated/api';
@@ -35,32 +35,45 @@ function serverMessage(cause: unknown) {
   return 'Nu am putut șterge clientul. Verifică conexiunea și încearcă din nou.';
 }
 
+interface ClientDeleteProps {
+  onClose: () => void;
+  onDeleted?: () => Promise<unknown>;
+}
+
 export function ClientDeleteDialog({
   client,
   onClose,
-}: {
-  client: ClientToDelete | null;
-  onClose: () => void;
-}) {
+  onDeleted,
+}: ClientDeleteProps & { client: ClientToDelete | null }) {
   return (
     <Dialog open={client !== null} onOpenChange={(open) => !open && onClose()}>
-      {client && <ClientDeleteContent key={client.id} client={client} onClose={onClose} />}
+      {client && (
+        <ClientDeleteContent
+          key={client.id}
+          client={client}
+          onClose={onClose}
+          onDeleted={onDeleted}
+        />
+      )}
     </Dialog>
   );
 }
 
-function ClientDeleteContent({ client, onClose }: { client: ClientToDelete; onClose: () => void }) {
+function ClientDeleteContent({
+  client,
+  onClose,
+  onDeleted,
+}: ClientDeleteProps & { client: ClientToDelete }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const navigate = useNavigate();
   const remove = useDeleteClient({ request: apiRequest });
   const [typed, setTyped] = useState('');
   const [error, setError] = useState<string | null>(null);
   const confirmed = typed.trim() === client.legalName.trim();
 
-  async function leave() {
+  async function forget() {
     queryClient.removeQueries({ queryKey: getGetClientQueryKey(client.id) });
     await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
-    await navigate({ to: '/clients', search: { status: 'archived' } });
+    await onDeleted?.();
   }
 
   async function confirm(event: FormEvent) {
@@ -77,7 +90,7 @@ function ClientDeleteContent({ client, onClose }: { client: ClientToDelete; onCl
     }
     onClose();
     toast.success(`${client.legalName} a fost șters definitiv.`);
-    await leave();
+    await forget();
   }
 
   return (

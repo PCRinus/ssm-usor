@@ -169,7 +169,7 @@ export function ClientLayout() {
                     onClick={() => setArchiveChange({ client, action: 'restore' })}
                   >
                     <ArchiveRestore aria-hidden="true" />
-                    Restaurează…
+                    Reactivează…
                   </Button>
                 )}
                 {canDelete && (
@@ -189,7 +189,7 @@ export function ClientLayout() {
           }
         >
           Datele și documentele lui pot fi consultate și descărcate, dar nu modificate.
-          {!isOwner && ' Un administrator al organizației îl poate restaura.'}
+          {!isOwner && ' Un administrator al organizației îl poate reactiva.'}
         </Notice>
       )}
       <SectionNav label="Secțiunile clientului">
@@ -213,7 +213,11 @@ export function ClientLayout() {
       </SectionNav>
       <Outlet />
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
-      <ClientDeleteDialog client={deleting} onClose={() => setDeleting(null)} />
+      <ClientDeleteDialog
+        client={deleting}
+        onClose={() => setDeleting(null)}
+        onDeleted={() => navigate({ to: '/clients', search: { status: 'archived' } })}
+      />
       <ImportUploadDialog
         open={importing}
         client={client}
