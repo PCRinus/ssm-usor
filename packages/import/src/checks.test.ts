@@ -172,6 +172,26 @@ describe('checkAllowedValues', () => {
       'fireEquipment.0.agent value_not_allowed',
     ]);
   });
+
+  it('flags a duration past the app’s limit, and any duration on a consumable', () => {
+    const value = proposal();
+    const entry = value.protectiveEquipment[0]!;
+    value.protectiveEquipment = [
+      { ...entry, durationMonths: 120 },
+      { ...entry, durationMonths: 121 },
+      { ...entry, durationMonths: 12, allocation: 'consumable' },
+      { ...entry, durationMonths: null, allocation: 'consumable' },
+    ];
+
+    expect(checkAllowedValues(value)).toEqual([
+      { path: 'protectiveEquipment.1.durationMonths', code: 'value_not_allowed' },
+      {
+        path: 'protectiveEquipment.2.durationMonths',
+        code: 'value_not_allowed',
+        detail: 'consumable',
+      },
+    ]);
+  });
 });
 
 describe('checkDuplicates', () => {
@@ -256,6 +276,22 @@ describe('checkMissing', () => {
     });
 
     expect(codes(checkMissing(value))).toEqual([]);
+  });
+
+  it('flags inventory without a duration, unless it is a consumable or proposed unticked', () => {
+    const value: Proposal = proposal();
+    const entry = value.protectiveEquipment[0]!;
+    value.protectiveEquipment = [
+      { ...entry, durationMonths: null, allocation: 'personal_inventory' },
+      { ...entry, durationMonths: null, allocation: null },
+      { ...entry, durationMonths: null, allocation: 'consumable' },
+      { ...entry, durationMonths: null, otherCompanyName: 'ATELIERUL INVENTAT S.R.L.' },
+    ];
+
+    expect(codes(checkMissing(value))).toEqual([
+      'protectiveEquipment.0.durationMonths missing',
+      'protectiveEquipment.1.durationMonths missing',
+    ]);
   });
 });
 
