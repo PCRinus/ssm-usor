@@ -378,4 +378,41 @@ describe('the source dialog', () => {
     expect(within(dialog).getByTestId('source-position').textContent).toBe('3 din 3, în 3 fișiere');
     expect(new Set(sourceNears)).toEqual(new Set(['Brutar']));
   });
+
+  it("sends a fire equipment's room as where it stands", async () => {
+    const proposal = proposalFixture();
+    const pdf = { mimeType: 'application/pdf' };
+    mockSources({ 'b.pdf': pdf }, phoneSources, proposal);
+    await openItemSource('fire-safety', 'Laborator');
+    expect(sourceNears).toEqual(['Laborator']);
+  });
+
+  it('sends the workplace of a fire equipment without a room', async () => {
+    const pdf = { mimeType: 'application/pdf' };
+    const roomless = proposalFixture();
+    Object.assign(roomless.fireEquipment[0]!, { room: null });
+    mockSources({ 'b.pdf': pdf }, phoneSources, roomless);
+    await openItemSource('fire-safety', 'Stingător');
+    expect(sourceNears).toEqual(['Sediu']);
+  });
+
+  it("sends a protective equipment entry's post as where its row stands", async () => {
+    const proposal = proposalFixture();
+    (proposal as { protectiveEquipment: unknown[] }).protectiveEquipment = [
+      {
+        id: 'equipment-entry-1',
+        sources: [{ file: 'dosar-ssm.zip/Echipament.docx', quote: 'Mănuși termorezistente' }],
+        otherCompanyName: null,
+        jobPosition: { name: 'Brutar', id: 'position-1' },
+        risk: 'Arsuri',
+        item: 'Mănuși termorezistente',
+        quantity: 1,
+        durationMonths: 12,
+        allocation: 'personal_inventory',
+      },
+    ];
+    mockSources({ 'dosar-ssm.zip/Echipament.docx': word }, phoneSources, proposal);
+    await openItemSource('equipment', 'Mănuși termorezistente');
+    expect(sourceNears).toEqual(['Brutar']);
+  });
 });
