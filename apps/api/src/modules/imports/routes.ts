@@ -128,7 +128,7 @@ export const registerImportFilesRoute = createRoute({
   operationId: 'registerImportFiles',
   summary: 'Register the files the browser is about to upload',
   description:
-    "One row per file, while the import is `uploading` (else `409` with `import_not_uploading`). Each answer names the bucket and the path the browser uploads the file to in Supabase Storage with the member's own session; the bucket's policy takes only that path, only while the file is uploading. A path the import already has, or twice in one request, answers `409` with `import_duplicate_path`; an extension that is not the type's, `400` with `import_type_mismatch`; more than 150 files or 100 MiB in all, `422` with `import_too_large`. Registering can be repeated in batches.",
+    "One row per file, while the import is `uploading` (else `409` with `import_not_uploading`). Each answer names the bucket and the path the browser uploads the file to in Supabase Storage with the member's own session; the bucket's policy takes only that path, only while the file is uploading. A path the import already has, or twice in one request, answers `409` with `import_duplicate_path`; an extension that is not the type's, `400` with `import_type_mismatch`; a file the system or Word leaves beside the documents (a name starting `~$` or `._`, `.DS_Store`, anything under `__MACOSX`), `400` with `import_system_file`; more than 150 files or 100 MiB in all, `422` with `import_too_large`. Registering can be repeated in batches.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {

@@ -68,6 +68,7 @@ export const importErrorReasons = {
   empty: 'import_empty',
   duplicatePath: 'import_duplicate_path',
   typeMismatch: 'import_type_mismatch',
+  systemFile: 'import_system_file',
   notReady: 'import_not_ready',
   changed: 'import_changed',
   ended: 'import_ended',
@@ -82,6 +83,21 @@ export const importErrorReasons = {
   tooMuchText: 'import_too_much_text',
   tooManyScans: 'import_too_many_scans',
 } as const;
+
+// What macOS, Windows and Word leave beside the documents. A Word lock file (~$name.docx) keeps
+// the document's extension but holds no document, so the extension alone does not keep it out.
+export function isSystemPath(path: string) {
+  const parts = path.split('/');
+  const name = parts.at(-1) ?? '';
+  return (
+    parts.some((part) => part === '__MACOSX') ||
+    name === '.DS_Store' ||
+    name.toLowerCase() === 'thumbs.db' ||
+    name.toLowerCase() === 'desktop.ini' ||
+    name.startsWith('._') ||
+    name.startsWith('~$')
+  );
+}
 
 const uploadPath = z
   .string()

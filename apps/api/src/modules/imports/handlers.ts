@@ -11,6 +11,7 @@ import {
   type ImportSourceResponse,
   type ImportSummary,
   type ImportUsage,
+  isSystemPath,
 } from '@ssm-usor/contracts';
 import { placeQuote, proposalSchema } from '@ssm-usor/import';
 import type { Context } from 'hono';
@@ -412,6 +413,14 @@ function checkedPaths(files: { uploadPath: string; mimeType: ImportFileType }[])
       throw conflict('The same path is in the upload twice.', importErrorReasons.duplicatePath);
     }
     seen.add(file.uploadPath);
+    if (isSystemPath(file.uploadPath)) {
+      throw new ApiError(
+        'validation_error',
+        'The file is one the system or Word leaves beside the documents.',
+        [{ path: `files.${index}.uploadPath`, message: 'The file is not a document.' }],
+        importErrorReasons.systemFile
+      );
+    }
     const extension = file.uploadPath.split('.').at(-1)?.toLowerCase() ?? '';
     const types = (importFileExtensions as Record<string, readonly string[]>)[extension];
     if (!types?.includes(file.mimeType)) {

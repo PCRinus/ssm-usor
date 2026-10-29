@@ -1,4 +1,9 @@
-import { importFileExtensions, type ImportFileType, importLimits } from '@ssm-usor/contracts';
+import {
+  importFileExtensions,
+  type ImportFileType,
+  importLimits,
+  isSystemPath,
+} from '@ssm-usor/contracts';
 import { unzipSync } from 'fflate';
 
 import { zipNameFixes } from './zip-names';
@@ -62,19 +67,6 @@ export function importTypeOf(name: string): ImportFileType | null {
   const extension = extensionOf(name);
   if (!Object.hasOwn(importFileExtensions, extension)) return null;
   return importFileExtensions[extension as keyof typeof importFileExtensions][0];
-}
-
-export function isSystemPath(path: string) {
-  const parts = path.split('/');
-  const name = parts.at(-1) ?? '';
-  return (
-    parts.some((part) => part === '__MACOSX') ||
-    name === '.DS_Store' ||
-    name.toLowerCase() === 'thumbs.db' ||
-    name.toLowerCase() === 'desktop.ini' ||
-    name.startsWith('._') ||
-    name.startsWith('~$')
-  );
 }
 
 // Zip entries may carry backslashes, "./" and "../"; none of them may leave the upload's folder.

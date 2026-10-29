@@ -70,6 +70,26 @@ describe('choosing the files of an import', () => {
     ]);
   });
 
+  it('leaves out the lock files Word keeps beside an open document, in a folder and in a zip', async () => {
+    const selection = await addToSelection(emptySelection, [
+      { path: 'Dosar SSM/Decizie numire.docx', blob: blob() },
+      { path: 'Dosar SSM/~$cizie numire.docx', blob: blob() },
+      { path: 'Dosar SSM/PSI/~$structiuni.doc', blob: blob() },
+      { path: 'arhiva.zip', blob: zip({ 'Plan.doc': 'a', '~$Plan.doc': 'b' }) },
+    ]);
+
+    expect(selection.files.map((file) => file.path)).toEqual([
+      'Dosar SSM/Decizie numire.docx',
+      'arhiva.zip/Plan.doc',
+    ]);
+    expect(selection.setAside).toEqual([]);
+    expect(selection.systemFiles).toEqual([
+      'Dosar SSM/~$cizie numire.docx',
+      'Dosar SSM/PSI/~$structiuni.doc',
+      'arhiva.zip/~$Plan.doc',
+    ]);
+  });
+
   it('keeps a folder whole, groups loose photographs and lists loose documents on their own', async () => {
     const selection = await addToSelection(emptySelection, [
       { path: 'Acte PSI/Registru.pdf', blob: blob() },

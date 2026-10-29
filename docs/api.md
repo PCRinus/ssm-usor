@@ -1882,7 +1882,9 @@ the extractor (`EXTRACTOR` with `PDF_CONVERSION=service`, or `EXTRACTOR_URL`) an
 not a lead (`409` with `client_archived` or `client_is_lead`). `POST /imports/{importId}/files`
 registers `{ files: [{ uploadPath, mimeType, sizeBytes, sha256 }] }`: the path inside the upload
 with its folders, whose last part is the name. A path climbing out (`..`) or an extension that is
-not the type's is `400` (`import_type_mismatch`), a path twice `409` (`import_duplicate_path`),
+not the type's is `400` (`import_type_mismatch`), a file the system or Word leaves beside the
+documents (a Word lock file `~$…`, a `._…` or `.DS_Store`, anything under `__MACOSX`) `400`
+(`import_system_file`), a path twice `409` (`import_duplicate_path`),
 more than 150 files or 100 MiB `422` (`import_too_large`). The answer gives each file's `id`, the
 bucket `imports` and the `storagePath`: the browser uploads the bytes there itself, with its own
 Supabase session, which the bucket's policy accepts for that path while the file and the import
