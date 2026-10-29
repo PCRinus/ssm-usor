@@ -573,6 +573,68 @@ describe('toClientPayload', () => {
     ]);
   });
 
+  it('sends the smoking place only beside designated places, as the policy chosen decides', () => {
+    const base = reading();
+    const proposal = proposalOf(
+      reading({
+        facts: [
+          ...base.facts,
+          fact('fireSafety.smokingPolicy', 'designated_places'),
+          fact('fireSafety.smokingPlace', 'În curtea interioară'),
+        ],
+      })
+    );
+    const policies = proposal.fireSafety.smokingPolicy.options.map((option) => option.value);
+    const payloadWith = (policy: string | null, existing = noExistingRecords, replace = false) =>
+      toClientPayload({
+        proposal,
+        changes: {
+          fields:
+            policy === null
+              ? {}
+              : {
+                  'fireSafety.smokingPolicy': {
+                    option: policies.indexOf(policy),
+                    ...(replace ? { replace } : {}),
+                  },
+                },
+          items: {},
+        },
+        intoExistingClient: existing !== noExistingRecords,
+        existing,
+      });
+
+    expect(payloadWith(null).blockers).toEqual([
+      { path: 'fireSafety.smokingPolicy', code: 'choice' },
+    ]);
+
+    const forbidden = payloadWith('forbidden_everywhere');
+    expect(forbidden.blockers).toEqual([]);
+    expect(forbidden.payload.fire_safety).toMatchObject({ smoking_policy: 'forbidden_everywhere' });
+    expect(forbidden.payload.fire_safety).not.toHaveProperty('smoking_place');
+
+    const designated = payloadWith('designated_places');
+    expect(designated.blockers).toEqual([]);
+    expect(designated.payload.fire_safety).toMatchObject({
+      smoking_policy: 'designated_places',
+      smoking_place: 'În curtea interioară',
+    });
+
+    const forbiddenInApp = {
+      ...noExistingRecords,
+      fireSafety: { smoking_policy: 'forbidden_everywhere' },
+    };
+    expect(payloadWith('designated_places', forbiddenInApp).payload.fire_safety).not.toHaveProperty(
+      'smoking_place'
+    );
+    expect(
+      payloadWith('designated_places', forbiddenInApp, true).payload.fire_safety
+    ).toMatchObject({
+      smoking_place: 'În curtea interioară',
+      replace: ['smoking_policy'],
+    });
+  });
+
   it('blocks a category given both an interval and "not applicable"', () => {
     const base = reading();
     const { blockers } = toClientPayload({

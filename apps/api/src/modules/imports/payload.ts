@@ -213,6 +213,24 @@ export function resolveField(field: Field<Value>, change: FieldChange | undefine
   return none;
 }
 
+// `client_fire_safety` takes a smoking place only beside designated places, and a pack whose
+// decisions disagree may carry a place from the policy the member did not choose.
+function smokingPlaceDropped(
+  proposal: Proposal,
+  changes: ImportChanges,
+  intoExistingClient: boolean,
+  existing: ExistingRecords
+) {
+  const change = changes.fields['fireSafety.smokingPolicy'];
+  const resolved = resolveField(proposal.fireSafety.smokingPolicy, change);
+  if (resolved.choice) return false;
+  const current = existing.fireSafety?.smoking_policy;
+  const value = columnValue('smoking_policy', resolved.value);
+  const written =
+    value !== null && (!intoExistingClient || empty(current) || Boolean(change?.replace));
+  return (written ? value : current) !== 'designated_places';
+}
+
 function fieldsOf(proposal: Proposal) {
   return Object.entries({
     client: proposal.client,
@@ -306,7 +324,9 @@ export function toClientPayload(input: {
   const clientReplace: string[] = [];
   const fireSafety: Row = {};
   const fireReplace: string[] = [];
+  const placeDropped = smokingPlaceDropped(proposal, changes, intoExistingClient, existing);
   for (const { section, path, field } of fieldsOf(proposal)) {
+    if (path === 'fireSafety.smokingPlace' && placeDropped) continue;
     const change = changes.fields[path];
     const resolved = resolveField(field, change);
     if (resolved.changed) quality[section].changed++;
