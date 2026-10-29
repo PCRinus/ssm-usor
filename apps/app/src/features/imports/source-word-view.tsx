@@ -2,7 +2,7 @@ import '@docx-editor.dev/core/styles/editor.css';
 
 import { packagedFonts } from '@docx-editor.dev/fonts';
 import { DocxEditor, useHighlights } from '@docx-editor.dev/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
 import { editorStrings } from '@/features/documents/editor-strings.ro';
@@ -30,6 +30,7 @@ export default function WordSourceView({
   const [bytes, setBytes] = useState<Uint8Array | null>(null);
   const [failed, setFailed] = useState(false);
   const [ranges, setRanges] = useState<Range[]>([]);
+  const host = useRef<HTMLDivElement>(null);
   const url = source.derived?.url ?? source.original.url;
 
   useEffect(() => {
@@ -50,6 +51,18 @@ export default function WordSourceView({
     };
   }, [url]);
 
+  // The editor paints a highlight only once its page is in view, so the passage is centred
+  // after the scroll to its block, not with it.
+  useEffect(() => {
+    if (ranges.length === 0) return;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        host.current?.querySelector('.docx-text-highlight')?.scrollIntoView?.({ block: 'center' });
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [ranges]);
+
   if (failed) {
     return (
       <p className="p-6 text-sm text-destructive" role="alert">
@@ -65,10 +78,11 @@ export default function WordSourceView({
     );
   }
   return (
-    <div className="h-full" data-testid="source-word">
+    <div ref={host} className="flex h-full min-h-0 flex-col" data-testid="source-word">
       <DocxEditor
         document={bytes}
         mode="view"
+        className="min-h-0 flex-1"
         chrome={false}
         menu={false}
         rulers={false}
