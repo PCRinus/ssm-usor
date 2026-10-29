@@ -1031,3 +1031,77 @@ describe('the passages of a person’s roles', () => {
     expect(list.textContent).not.toContain('Prim ajutor');
   });
 });
+
+describe('a smoking rule the decisions disagree on', () => {
+  const smokingDetail = (policy?: 'forbidden_everywhere' | 'designated_places') => {
+    const proposal = proposalFixture();
+    const option = (value: string, file: string, quote: string) => ({
+      value,
+      sources: [{ file, quote }],
+      otherCompanyName: null,
+    });
+    Object.assign(proposal.fireSafety, {
+      smokingPolicy: {
+        options: [
+          option('forbidden_everywhere', 'a.pdf', 'Se interzice fumatul'),
+          option('designated_places', 'b.pdf', 'Fumatul este permis numai'),
+        ],
+      },
+      smokingPlace: { options: [option('În curtea interioară', 'b.pdf', 'în curtea interioară')] },
+    });
+    return readyDetail({
+      proposal,
+      changes: {
+        fields: policy
+          ? {
+              'fireSafety.smokingPolicy': {
+                option: policy === 'forbidden_everywhere' ? 0 : 1,
+              },
+            }
+          : {},
+        items: {},
+      },
+    });
+  };
+  const hubSummary = async () =>
+    (await screen.findAllByTestId('import-section-link')).find(
+      (link) => link.dataset.section === 'fire-safety'
+    )!.textContent;
+
+  it('is summed up on the hub as the policy chosen says', async () => {
+    mockReview(smokingDetail('forbidden_everywhere'));
+    mount();
+    expect(await hubSummary()).toContain('Fumatul interzis peste tot, 6 mijloace de stingere.');
+    expect(await hubSummary()).not.toContain('curtea');
+  });
+
+  it('names the place once, without doubling its "în"', async () => {
+    mockReview(smokingDetail('designated_places'));
+    mount();
+    expect(await hubSummary()).toContain(
+      'Fumat doar în locurile amenajate: în curtea interioară, 6 mijloace de stingere.'
+    );
+  });
+
+  it('shows the place as not applying while smoking is forbidden everywhere', async () => {
+    mockReview(smokingDetail('forbidden_everywhere'));
+    mount('/fire-safety');
+
+    await screen.findByText('Locul pentru fumat');
+    const row = document.getElementById('review-fireSafety-smokingPlace')!;
+    expect(row.textContent).toContain('În curtea interioară');
+    expect(within(row).getByTestId('review-not-applicable').textContent).toBe(
+      'Nu se aplică: fumatul e interzis peste tot, așa că locul nu se preia.'
+    );
+  });
+
+  it('takes the place as any value under designated places', async () => {
+    mockReview(smokingDetail('designated_places'));
+    mount('/fire-safety');
+
+    await screen.findByText('Locul pentru fumat');
+    const row = document.getElementById('review-fireSafety-smokingPlace')!;
+    expect(row.textContent).toContain('În curtea interioară');
+    expect(within(row).queryByTestId('review-not-applicable')).toBeNull();
+  });
+});

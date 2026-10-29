@@ -465,6 +465,23 @@ export function fieldState(
   };
 }
 
+// What the client has after confirming: undefined while a choice waits, the client's own value
+// where it is kept or the documents give none.
+export function valueInForce(state: FieldState | undefined) {
+  if (!state || state.status === 'choice') return undefined;
+  return state.value === null || state.comparison === 'kept' ? state.existing : state.value;
+}
+
+// The fire-safety card keeps a smoking place only beside designated places, and the payload
+// drops it under any other policy (ADR 019).
+export function smokingPlaceApplies(states: Record<string, FieldState>) {
+  const policy = valueInForce(states['fireSafety.smokingPolicy']);
+  return policy === undefined || policy === 'designated_places';
+}
+
+export const appliesAt = (states: Record<string, FieldState>, path: string) =>
+  path !== 'fireSafety.smokingPlace' || smokingPlaceApplies(states);
+
 type AnyItem = {
   id: string;
   sources: Source[];
