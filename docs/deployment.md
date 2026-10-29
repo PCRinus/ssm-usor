@@ -150,6 +150,14 @@ the reason `import_unavailable`, and everything else works. Once, by hand:
 The API's import also needs the extractor in `apps/pdf` (the `EXTRACTOR` binding), which the PDF
 Worker's deployment provides.
 
+The import's review shows a debugging line with the import's cost and tokens to everyone outside
+production and, in production, to platform admins only. The API tells the two apart by the
+variable `ENVIRONMENT`, which the deploy workflow sets to the GitHub environment's name,
+`production` or `non-prod`, beside `OBLIO_DOCUMENTS`, and not in `wrangler.jsonc`, whose top level
+is production's and is what `wrangler dev` reads. A Worker without it counts as outside
+production, so a production API deployed by any other way must be given `ENVIRONMENT=production`
+or every member sees the line.
+
 The request goes to the gateway's Anthropic endpoint unchanged, so the model, the effort and the
 structured output are set in `packages/release-notes/scripts/draft.ts` and `claude.ts`, and the
 instructions the model follows are `packages/release-notes/prompts/update-draft.md`, whose voice
