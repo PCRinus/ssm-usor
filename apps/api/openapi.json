@@ -1174,9 +1174,12 @@
               "updatedAt",
               "archivedAt"
             ]
+          },
+          "canDelete": {
+            "type": "boolean"
           }
         },
-        "required": ["client"]
+        "required": ["client", "canDelete"]
       },
       "CreateClientRequest": {
         "type": "object",
@@ -20036,6 +20039,102 @@
           },
           "409": {
             "description": "Another client has this CUI, or the client is archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteClient",
+        "summary": "Delete an archived client outright, with everything under it",
+        "description": "For testing with real documents, where an archived client's CUI keeps the same company from being added or imported again. Outside production any member may; in production a platform admin only (`403` otherwise), as `canDelete` on the client says. Only an archived client (`409` with the reason `client_not_archived` otherwise). Its employees, positions, workplaces, trainings and their signatures, tests, sheets, documents, files, risk evaluations, fire-safety data, participants and imports are deleted with it, and then its stored files, as far as the storage answers. Nothing is kept to restore it.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The client is deleted"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization, or this is production and the caller is not a platform admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is not archived",
             "content": {
               "application/json": {
                 "schema": {

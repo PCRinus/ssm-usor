@@ -1,10 +1,11 @@
 import { currentUserSchema } from '@ssm-usor/contracts';
 import { createClient } from '@supabase/supabase-js';
+import type { Context } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { endTime, startTime } from 'hono/timing';
 
 import { requestFetch, supabaseConfig } from './db';
-import type { ApiEnv } from './env';
+import { type ApiEnv, isProduction } from './env';
 import { ApiError } from './errors';
 
 export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
@@ -53,3 +54,8 @@ export const requireAuth = createMiddleware<ApiEnv>(async (c, next) => {
   c.set('accessToken', token);
   await next();
 });
+
+// The debugging aids and the tools for test data: anyone outside production, and in production a
+// platform admin only.
+export const adminToolsAllowed = (c: Context<ApiEnv>) =>
+  !isProduction(c.env) || c.get('platformAdmin');

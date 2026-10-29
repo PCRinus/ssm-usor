@@ -6682,6 +6682,13 @@ export type Database = {
         Args: { p_import_ids: string[] };
         Returns: string[];
       };
+      delete_archived_client: {
+        Args: { p_client_id: string; p_organization_id: string };
+        Returns: {
+          bucket: string;
+          path: string;
+        }[];
+      };
       drop_import_proposals: { Args: never; Returns: number };
       effective_user_id: { Args: never; Returns: string };
       employee_client_search_name: {

@@ -13,8 +13,9 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId')({
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
     const userId = auth.getSnapshot().session?.user.id;
     let client;
+    let canDelete;
     try {
-      ({ client } = await queryClient.ensureQueryData(
+      ({ client, canDelete } = await queryClient.ensureQueryData(
         getGetClientQueryOptions(params.clientId, {
           request: apiRequest,
           query: { queryKey: [...getGetClientQueryKey(params.clientId), userId] },
@@ -29,7 +30,7 @@ export const Route = createFileRoute('/_authenticated/clients/$clientId')({
       throw redirect({ to: '/leads/$leadId', params: { leadId: client.id }, replace: true });
     }
     // The shell shows the crumb in place of a static title.
-    return { client, crumb: client.legalName };
+    return { client, canDelete, crumb: client.legalName };
   },
   component: ClientLayout,
   pendingComponent: ClientPending,

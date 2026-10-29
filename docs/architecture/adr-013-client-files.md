@@ -52,7 +52,7 @@ A lead has the same files, as a card on the lead's page, since a lead has no tab
 
 ### Archived clients
 
-The files of an archived client are listed and downloaded, and nothing else: no upload, rename, flag change or delete. The table joins the ones the `CLA01` triggers guard, and the path check of the bucket asks for an active client for every write, as the documents bucket does.
+The files of an archived client are listed and downloaded, and nothing else: no upload, rename, flag change or delete. The table joins the ones the `CLA01` triggers guard, and the path check of the bucket asks for an active client for every write, as the documents bucket does. Amended 2026-10-29: an archived client can be deleted outright, its files and their objects with it, by anyone outside production and by a platform admin in production, to test an import with the same company again; members never see it in production.
 
 ### Storage
 

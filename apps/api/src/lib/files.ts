@@ -214,10 +214,20 @@ function fileStore(
         if (error) throw fileError('remove import objects', error);
       }
     },
+
+    async removeClientObjects(bucket: ClientObjectBucket, paths: string[]) {
+      for (let start = 0; start < paths.length; start += 100) {
+        const { error } = await storage.from(bucket).remove(paths.slice(start, start + 100));
+        if (error) throw fileError('remove client objects', error);
+      }
+    },
   };
 }
 
 export type FileStore = ReturnType<typeof createFileStore>;
+
+export const clientObjectBuckets = [documentsBucket, clientFilesBucket, importsBucket] as const;
+export type ClientObjectBucket = (typeof clientObjectBuckets)[number];
 
 // Storage answers a duplicate with HTTP 400 and the status 409 in its body.
 function alreadyExists(error: { message?: string; status?: unknown; statusCode?: unknown }) {

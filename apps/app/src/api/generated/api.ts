@@ -825,6 +825,7 @@ export type ClientResponseClient = {
 
 export interface ClientResponse {
   client: ClientResponseClient;
+  canDelete: boolean;
 }
 
 /**
@@ -14175,6 +14176,90 @@ export const useUpdateClient = <TError = ErrorType<ApiErrorResponse>, TContext =
   TContext
 > => {
   return useMutation(getUpdateClientMutationOptions(options), queryClient);
+};
+
+export const getDeleteClientUrl = (clientId: string) => {
+  return `/clients/${clientId}`;
+};
+
+/**
+ * For testing with real documents, where an archived client's CUI keeps the same company from being added or imported again. Outside production any member may; in production a platform admin only (`403` otherwise), as `canDelete` on the client says. Only an archived client (`409` with the reason `client_not_archived` otherwise). Its employees, positions, workplaces, trainings and their signatures, tests, sheets, documents, files, risk evaluations, fire-safety data, participants and imports are deleted with it, and then its stored files, as far as the storage answers. Nothing is kept to restore it.
+ * @summary Delete an archived client outright, with everything under it
+ */
+export const deleteClient = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getDeleteClientUrl(clientId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getDeleteClientMutationKey = () => ['deleteClient'] as const;
+
+export const getDeleteClientMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteClient>>,
+    TError,
+    DeleteClientMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteClient>>,
+  TError,
+  DeleteClientMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteClientMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteClient>>,
+    DeleteClientMutationVariables
+  > = (props) => {
+    const { clientId } = props ?? {};
+
+    return deleteClient(clientId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteClientMutationResult = NonNullable<Awaited<ReturnType<typeof deleteClient>>>;
+
+export type DeleteClientMutationError = ErrorType<ApiErrorResponse>;
+export type DeleteClientMutationVariables = { clientId: string };
+
+/**
+ * @summary Delete an archived client outright, with everything under it
+ */
+export const useDeleteClient = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteClient>>,
+      TError,
+      DeleteClientMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteClient>>,
+  TError,
+  DeleteClientMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteClientMutationOptions(options), queryClient);
 };
 
 export const getArchiveClientUrl = (clientId: string) => {
