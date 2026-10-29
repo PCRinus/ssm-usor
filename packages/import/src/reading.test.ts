@@ -237,6 +237,7 @@ describe('toProposal', () => {
           workZone: 'Magazin',
           activities: null,
           managementOnly: false,
+          needsProtectiveEquipment: null,
           ...quoted,
         },
       ],
@@ -347,6 +348,7 @@ describe('a post that is only the running of the firm', () => {
     workZone: '',
     activities,
     managementOnly,
+    needsProtectiveEquipment: '',
     file: evaluation,
     quote: name,
     otherCompany: '',
@@ -408,6 +410,167 @@ describe('a post that is only the running of the firm', () => {
     expect(
       proposalSchema.parse(stored).jobPositions.map((position) => proposedIncluded(position))
     ).toEqual([true, true]);
+  });
+});
+
+describe('a workplace’s fire-safety values', () => {
+  const fire = 'Dosar/PSI/Lista mijloace.doc';
+
+  it('fill the workplace they name, each with its own passage', () => {
+    const [office, shop] = fromWire(wireAnswer()).workplaces;
+
+    expect(office).toMatchObject({
+      kind: null,
+      floorAreaM2: 1250,
+      extinguisherNorm: 'commercial_200',
+      assemblyPoint: 'parcarea din spatele clădirii',
+      combustibleMaterials: 'făină, ambalaje din carton',
+      ignitionSources: null,
+    });
+    expect(office!.fieldSources.floorAreaM2).toEqual([
+      { file: fire, quote: 'suprafața utilă 1.250 mp' },
+    ]);
+    expect(office!.sources).toHaveLength(1);
+    expect(shop).toMatchObject({ floorAreaM2: null, assemblyPoint: null, fieldSources: {} });
+  });
+
+  it('keep the first value, leave another company’s, and note a workplace none matches', () => {
+    const answer = wireAnswer();
+    const [area] = answer.workplaceFacts;
+    answer.workplaceFacts.push(
+      { ...area!, value: '1250', quote: 'aria 1250 mp' },
+      { ...area!, value: '900' },
+      { ...area!, field: 'ignitionSources', value: 'cuptor', otherCompany: 'ATELIERUL INVENTAT' },
+      { ...area!, workplace: 'Depozit Arad', field: 'kind', value: 'șantier mobil' }
+    );
+
+    const proposal = fromWire(answer);
+
+    expect(proposal.workplaces[0]).toMatchObject({ floorAreaM2: 1250, ignitionSources: null });
+    expect(proposal.workplaces[0]!.fieldSources.floorAreaM2).toHaveLength(2);
+    expect(proposal.notes.at(-1)).toContain('«Depozit Arad»');
+  });
+
+  it('read a mobile site, an area written with decimals, and an unknown norm as written', () => {
+    const answer = wireAnswer();
+    answer.workplaceFacts = [
+      {
+        ...answer.workplaceFacts[0]!,
+        workplace: 'Magazin',
+        field: 'kind',
+        value: 'Șantier temporar',
+      },
+      { ...answer.workplaceFacts[0]!, workplace: 'Magazin', value: '84,6 m²' },
+      {
+        ...answer.workplaceFacts[0]!,
+        workplace: 'Magazin',
+        field: 'extinguisherNorm',
+        value: '1/200 mp',
+      },
+    ];
+
+    expect(fromWire(answer).workplaces[1]).toMatchObject({
+      kind: 'mobile_site',
+      floorAreaM2: 85,
+      extinguisherNorm: '1/200 mp',
+    });
+  });
+
+  it('go to the only workplace when the passage names none the reading has', () => {
+    const answer = wireAnswer();
+    answer.workplaces.pop();
+    answer.workplaceFacts[0]!.workplace = 'Laborator';
+
+    expect(fromWire(answer).workplaces[0]!.floorAreaM2).toBe(1250);
+  });
+});
+
+describe('the client’s waste, third parties and training without a period', () => {
+  const proposal = fromWire(wireAnswer());
+
+  it('are read as yes or no, and the waste kinds once each', () => {
+    expect(proposal.fireSafety.wasteKinds.options.map((option) => option.value)).toEqual([
+      'deșeuri menajere; carton și hârtie',
+    ]);
+    expect(proposal.fireSafety.wasteCollectors.options[0]!.value).toBe('vânzătorii de serviciu');
+    expect(proposal.fireSafety.hasThirdParties.options[0]!.value).toBe('true');
+    expect(
+      proposal.trainingSchedule.administrativeTrainingNotApplicable.options.map(
+        (option) => option.value
+      )
+    ).toEqual(['true']);
+    expect(proposal.trainingSchedule.workerTrainingNotApplicable.options).toEqual([]);
+  });
+
+  it('drop a yes or no the model wrote otherwise', () => {
+    const answer = wireAnswer();
+    const fact = answer.facts.find((each) => each.field === 'fireSafety.hasThirdParties')!;
+    fact.value = 'posibil';
+
+    expect(fromWire(answer).fireSafety.hasThirdParties.options).toEqual([]);
+  });
+});
+
+describe('a post’s protective equipment decision', () => {
+  it('is that it needs some when it has entries, and none when the list says so', () => {
+    const answer = wireAnswer();
+    answer.jobPositions.push({
+      ...answer.jobPositions[0]!,
+      name: 'Contabil',
+      needsProtectiveEquipment: 'false',
+    });
+    answer.jobPositions[0]!.needsProtectiveEquipment = 'false';
+
+    expect(
+      fromWire(answer).jobPositions.map((position) => [
+        position.name,
+        position.needsProtectiveEquipment,
+      ])
+    ).toEqual([
+      ['Brutar', true],
+      ['Vânzător', true],
+      ['Contabil', false],
+    ]);
+  });
+
+  it('is undecided when the list does not name the post', () => {
+    const answer = wireAnswer();
+    answer.protectiveEquipment = [];
+
+    expect(
+      fromWire(answer).jobPositions.map((position) => position.needsProtectiveEquipment)
+    ).toEqual([true, null]);
+  });
+});
+
+describe('a proposal or a scan’s page that predates the fire-safety values', () => {
+  it('reads with them empty', () => {
+    const page = readingAnswer.parse(wireAnswer()) as Partial<Reading>;
+    delete page.workplaceFacts;
+    for (const position of page.jobPositions!) {
+      delete (position as { needsProtectiveEquipment?: unknown }).needsProtectiveEquipment;
+    }
+    const fromPage = toProposal(page as Reading);
+    expect(fromPage.workplaces[0]!.floorAreaM2).toBeNull();
+
+    const stored = JSON.parse(JSON.stringify(fromWire(wireAnswer())));
+    delete stored.trainingSchedule.administrativeTrainingNotApplicable;
+    delete stored.trainingSchedule.workerTrainingNotApplicable;
+    for (const name of ['wasteKinds', 'wasteCollectors', 'hasThirdParties']) {
+      delete stored.fireSafety[name];
+    }
+    for (const workplace of stored.workplaces) {
+      for (const name of ['kind', 'floorAreaM2', 'fieldSources', 'assemblyPoint']) {
+        delete workplace[name];
+      }
+    }
+    for (const position of stored.jobPositions) delete position.needsProtectiveEquipment;
+
+    const parsed = proposalSchema.parse(stored);
+    expect(parsed.fireSafety.hasThirdParties).toEqual({ options: [] });
+    expect(parsed.trainingSchedule.workerTrainingNotApplicable).toEqual({ options: [] });
+    expect(parsed.workplaces[0]).toMatchObject({ floorAreaM2: null, fieldSources: {} });
+    expect(parsed.jobPositions[0]!.needsProtectiveEquipment).toBeNull();
   });
 });
 

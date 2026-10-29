@@ -92,6 +92,18 @@ describe('checkQuotes', () => {
     ]);
   });
 
+  it('checks each of a workplace’s fire-safety values against its own passage', () => {
+    const value = proposal();
+    const fire = 'Dosar/PSI/Lista mijloace.doc';
+    value.workplaces[0]!.floorAreaM2 = 1200;
+    value.workplaces[0]!.fieldSources.assemblyPoint = [{ file: fire, quote: 'punct de întâlnire' }];
+
+    expect(codes(checkQuotes(value, files))).toEqual([
+      'workplaces.0.floorAreaM2.sources.0 value_not_in_quote',
+      'workplaces.0.assemblyPoint.sources.0 quote_not_found',
+    ]);
+  });
+
   it('leaves a file without text unchecked', () => {
     expect(checkQuotes(proposal(), { ...files, 'Dosar/Decizia 1.docx': null })).toEqual([]);
   });
@@ -133,14 +145,28 @@ describe('checkAllowedValues', () => {
     value.client.contactEmail.options.push({ ...option, value: 'office@' });
     value.trainingSchedule.periodicTrainingMinutes.options[0]!.value = 45;
     value.fireSafety.smokingPolicy.options[0]!.value = 'allowed';
+    value.fireSafety.wasteKinds.options[0]!.value = 'menajere; x';
+    value.fireSafety.wasteCollectors.options[0]!.value = 'x'.repeat(161);
     value.jobPositions[0]!.trainingIntervalMonths = 12;
     value.fireEquipment[0]!.kind = 'sand_box';
+    Object.assign(value.workplaces[0]!, {
+      kind: 'hală',
+      floorAreaM2: 0,
+      extinguisherNorm: '1/200 mp',
+      assemblyPoint: 'x',
+    });
 
     expect(codes(checkAllowedValues(value))).toEqual([
       'client.countyCode.options.0 value_not_allowed',
       'client.contactEmail.options.0 value_not_allowed',
       'trainingSchedule.periodicTrainingMinutes.options.0 value_not_allowed',
       'fireSafety.smokingPolicy.options.0 value_not_allowed',
+      'fireSafety.wasteKinds.options.0 value_not_allowed',
+      'fireSafety.wasteCollectors.options.0 value_not_allowed',
+      'workplaces.0.kind value_not_allowed',
+      'workplaces.0.floorAreaM2 value_not_allowed',
+      'workplaces.0.extinguisherNorm value_not_allowed',
+      'workplaces.0.assemblyPoint value_not_allowed',
       'jobPositions.0.trainingIntervalMonths value_not_allowed',
       'fireEquipment.0.capacity value_not_allowed',
       'fireEquipment.0.agent value_not_allowed',

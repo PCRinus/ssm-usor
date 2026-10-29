@@ -1,12 +1,14 @@
 import {
   countyCodes,
   decodeCnp,
+  fireExtinguisherNorms,
   fireSmokingPolicies,
   isValidCnp,
   isValidCui,
   maxTrainingIntervalMonths,
   normalizeCnp,
   periodicTrainingMinutesOptions,
+  workplaceKinds,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
@@ -66,6 +68,12 @@ const holdsNumber =
     const numbers = digitRuns(quote).map(Number);
     return numbers.length === 0 || numbers.some((number) => accepted.includes(number));
   };
+
+// An area may be written with its thousands grouped ("1.250 mp").
+const holdsArea =
+  (value: number): Holds =>
+  (quote) =>
+    holdsNumber(value)(quote) || holdsNumber(value)(quote.replace(/(\d)[.\s](?=\d{3}\b)/g, '$1'));
 
 const nameWords = (value: string) => foldName(value).split(' ').filter(Boolean);
 
@@ -136,7 +144,17 @@ function tracedValues(proposal: Proposal): Traced[] {
       holds: itemHolds(proposal, list, index),
     }))
   );
-  return [...options, ...items];
+  const workplaceValues = proposal.workplaces.flatMap((workplace, index) =>
+    Object.entries(workplace.fieldSources).map(([field, sources]): Traced => ({
+      path: `workplaces.${index}.${field}`,
+      sources,
+      holds:
+        field === 'floorAreaM2' && workplace.floorAreaM2 !== null
+          ? holdsArea(workplace.floorAreaM2)
+          : undefined,
+    }))
+  );
+  return [...options, ...items, ...workplaceValues];
 }
 
 export function checkQuotes(proposal: Proposal, files: CheckInput['files']): Flag[] {
@@ -187,6 +205,32 @@ const oneOf =
   (value) =>
     values.includes(value);
 
+// As the database's length checks count them, after trimming.
+const textOf =
+  (min: number, max: number): Allowed =>
+  (value) =>
+    typeof value === 'string' && value.trim().length >= min && value.trim().length <= max;
+
+const wasteKindsAllowed: Allowed = (value) => {
+  const kinds = String(value)
+    .split(';')
+    .map((kind) => kind.trim())
+    .filter(Boolean);
+  return kinds.length <= 12 && kinds.every((kind) => textOf(2, 240)(kind));
+};
+
+const workplaceAllowed: Partial<Record<string, Allowed>> = {
+  countyCode: oneOf(countyCodes),
+  kind: oneOf(workplaceKinds),
+  floorAreaM2: between(1, 1_000_000),
+  extinguisherNorm: oneOf(fireExtinguisherNorms),
+  assemblyPoint: textOf(2, 240),
+  combustibleMaterials: textOf(2, 600),
+  ignitionSources: textOf(2, 600),
+  fireRiskEquipment: textOf(2, 600),
+  specificMeasures: textOf(2, 600),
+};
+
 const allowedFacts: Record<string, Record<string, Allowed>> = {
   client: {
     countyCode: oneOf(countyCodes),
@@ -207,6 +251,8 @@ const allowedFacts: Record<string, Record<string, Allowed>> = {
     administrativeTrainingIntervalMonths: between(1, 6),
     workerTrainingIntervalMonths: between(1, 6),
     smokingPolicy: oneOf(fireSmokingPolicies),
+    wasteKinds: wasteKindsAllowed,
+    wasteCollectors: textOf(2, 160),
   },
 };
 
@@ -225,8 +271,10 @@ export function checkAllowedValues(proposal: Proposal): Flag[] {
     }
   }
   proposal.workplaces.forEach((workplace, index) => {
-    if (workplace.countyCode !== null) {
-      flag(`workplaces.${index}.countyCode`, oneOf(countyCodes)(workplace.countyCode));
+    for (const [field, allowed] of Object.entries(workplaceAllowed)) {
+      const value = workplace[field as keyof typeof workplace];
+      if (value === null || allowed === undefined) continue;
+      flag(`workplaces.${index}.${field}`, allowed(value as string | number));
     }
   });
   proposal.jobPositions.forEach((position, index) => {
