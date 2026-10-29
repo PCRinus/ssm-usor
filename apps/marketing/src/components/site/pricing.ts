@@ -126,6 +126,19 @@ export const addOns = {
   note: 'Dacă treci de limită, lucrezi mai departe cu tot ce ai. Îți propunem un pachet, iar după o lună, ca să adaugi angajați noi, îl adaugi întâi.',
 };
 
+export const paymentFacts = {
+  label: 'Plata și factura',
+  payment: { title: 'Plată securizată', walletsText: 'sau cu cardul, prin Stripe.' },
+  invoice: {
+    title: 'Factura vine singură',
+    text: 'După fiecare plată, pe email și în SPV, prin RO e-Factura.',
+  },
+  cancel: {
+    title: 'Renunți oricând',
+    text: 'Fără penalizări. Ai acces până la capătul perioadei plătite.',
+  },
+};
+
 export const comingSoon = {
   title: 'În curând',
   items: [

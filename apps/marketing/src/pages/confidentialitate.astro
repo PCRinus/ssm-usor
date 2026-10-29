@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Politica de confidențialitate"
   description="Cum prelucrează SSM Ușor datele personale ale vizitatorilor, ale furnizorilor și ale angajaților clienților lor."
-  updated="28 octombrie 2026"
+  updated="29 octombrie 2026"
 >
   {!legalEntity.filled && (
     <p class="note">
@@ -61,6 +61,13 @@ const M = legalEntity.filled ? 'span' : 'mark';
     <li>
       <strong>Contul de utilizator.</strong> Nume, adresă de email, firma și rolul, jurnalul
       autentificărilor. Temei: executarea contractului de utilizare a platformei.
+    </li>
+    <li>
+      <strong>Abonamentul și facturile.</strong> Planul ales, plățile, datele de facturare ale
+      firmei tale (denumirea, CUI-ul, numărul de înregistrare, adresa) și adresa de email la care
+      primești facturile. Datele cardului le introduci direct în formularul Stripe; noi vedem doar
+      tipul cardului, ultimele patru cifre și luna în care expiră. Temei: executarea contractului,
+      iar pentru emiterea și păstrarea facturilor, obligația legală.
     </li>
     <li>
       <strong>Datele din platformă.</strong> Datele firmelor client, ale punctelor de lucru, ale
@@ -162,9 +169,21 @@ const M = legalEntity.filled ? 'span' : 'mark';
     <li>
       citirea documentelor importate de serviciul extern: OpenAI, în Statele Unite, care nu
       folosește datele pentru antrenarea modelelor și le poate păstra cel mult 30 de zile, pentru
-      depistarea abuzurilor.
+      depistarea abuzurilor;
+    </li>
+    <li>
+      plata abonamentului cu cardul: Stripe Payments Europe, Limited, din Irlanda, care primește
+      datele cardului direct de la tine; pentru prevenirea fraudei și pentru obligațiile sale
+      legale, Stripe prelucrează unele dintre aceste date ca operator independent, conform propriei
+      sale politici de confidențialitate.
     </li>
   </ul>
+  <p>
+    Facturile pentru abonament le emitem cu programul de facturare Oblio, al Oblio Software SRL, din
+    Constanța. Oblio primește doar datele de facturare ale firmei tale și adresa de email pentru
+    facturi, ca să emită factura, să ți-o trimită pe email și să o încarce în sistemul RO e-Factura
+    al ANAF, cum cere legea.
+  </p>
   <p>
     Unii dintre acești furnizori au sediul în afara Uniunii Europene. Transferurile se fac în baza
     clauzelor contractuale standard aprobate de Comisia Europeană sau a unei decizii de adecvare. Nu
@@ -194,6 +213,10 @@ const M = legalEntity.filled ? 'span' : 'mark';
       consimțământul, oricare este mai devreme;
     </li>
     <li>contul de utilizator: pe durata contractului și 30 de zile după;</li>
+    <li>
+      facturile: 5 ani, socotiți de la 1 iulie a anului de după cel în care au fost emise, cum cere
+      legea contabilității;
+    </li>
     <li>
       datele din platformă: conform instrucțiunilor serviciului extern și termenelor legale de
       arhivare a documentelor de securitate și sănătate în muncă; la încetarea contractului,

@@ -5,6 +5,7 @@ import { type ComponentProps, type ReactNode, use, useEffect, useRef } from 'rea
 
 import { type LabelledSource, type SectionStatus, spellingCorrection } from './review-model';
 import { SourcePrefetchContext } from './source-query';
+import { type DiffRun, spellingDiff } from './spelling-diff';
 
 const tones = {
   warning: 'border-warning-border bg-warning text-warning-foreground',
@@ -221,6 +222,18 @@ export function SavingNote({ saving }: { saving: boolean }) {
   );
 }
 
+function DiffText({ runs, markClassName }: { runs: DiffRun[]; markClassName: string }) {
+  return runs.map((run, index) =>
+    run.changed ? (
+      <mark key={index} className={cn('rounded-xs font-semibold text-inherit', markClassName)}>
+        {run.text}
+      </mark>
+    ) : (
+      run.text
+    )
+  );
+}
+
 export function SpellingPair({
   label,
   value,
@@ -232,6 +245,7 @@ export function SpellingPair({
   written: string;
   onKeep: () => void;
 }) {
+  const diff = spellingDiff(value, written);
   return (
     <span
       className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]"
@@ -240,11 +254,11 @@ export function SpellingPair({
       {label && <span className="text-muted-foreground">{label}:</span>}
       <span className="rounded-md border border-success-border bg-success px-1.5 py-0.5 text-success-foreground wrap-anywhere">
         <span className="sr-only">Propus: </span>
-        {value}
+        <DiffText runs={diff.value} markClassName="bg-success-border" />
       </span>
       <span className="rounded-md border border-destructive-border bg-destructive-soft px-1.5 py-0.5 text-destructive-foreground wrap-anywhere">
         <span className="sr-only">În document: </span>
-        {written}
+        <DiffText runs={diff.written} markClassName="bg-destructive-border" />
       </span>
       <span className="text-muted-foreground">
         Scrierea corectată: {spellingCorrection(value, written)}
