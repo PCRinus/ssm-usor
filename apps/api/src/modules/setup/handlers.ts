@@ -57,9 +57,17 @@ const lockOf: Partial<Record<SetupStepId, (progress: Progress) => SetupLock | un
   employees: (p) =>
     p.has_client_with_workplace_and_position ? undefined : 'needs-workplace-and-position',
   'risk-evaluation': (p) => (p.has_client_with_position ? undefined : 'needs-position'),
-  // The organization's data first: a specialist cannot fill it, and waits for an owner.
+  // The organization's data first: a specialist cannot fill it, and waits for an owner. Only
+  // what the sets print; the CUI, address and certificate serve the service contract.
   'generate-sets': (p) => {
-    if (!p.company_done || !p.authorizations_done) return 'needs-organization-data';
+    const organizationData = [
+      p.legal_name_filled,
+      p.representative_name_filled,
+      p.representative_role_filled,
+      p.fire_safety_technician_filled,
+    ];
+    if (!organizationData.every(Boolean)) return 'needs-organization-data';
+    if (!p.professional_title_done) return 'needs-professional-title';
     return p.has_client_with_basic_data ? undefined : 'needs-basic-data';
   },
   'issue-document': (p) => (p.has_draft_revision ? undefined : 'needs-draft'),
@@ -70,8 +78,8 @@ const lockOf: Partial<Record<SetupStepId, (progress: Progress) => SetupLock | un
 
 const fieldsOf: Partial<Record<SetupStepId, [SetupField, keyof Progress][]>> = {
   company: [
-    ['legal-name', 'legal_name_filled'],
     ['cui', 'cui_filled'],
+    ['legal-name', 'legal_name_filled'],
     ['address', 'address_filled'],
     ['representative-name', 'representative_name_filled'],
     ['representative-role', 'representative_role_filled'],
@@ -130,7 +138,7 @@ async function loadSetupGuide(c: Context<ApiEnv>): Promise<SetupGuide> {
     steps,
     next: steps.find((step) => step.state === 'open' && step.canDo)?.id ?? null,
     clientId: row.furthest_client_id,
-    ownerName: row.owner_names.length === 1 ? row.owner_names[0]! : null,
+    ownerName: row.owner_count === 1 && row.owner_names.length === 1 ? row.owner_names[0]! : null,
     organizationHasClients: row.has_client,
     closed: Boolean(profile.data?.setup_guide_closed_at),
     finished: Boolean(profile.data?.setup_guide_finished_at),

@@ -39,6 +39,7 @@ export const setupLockSchema = z.enum([
   'needs-workplace-and-position',
   'needs-position',
   'needs-organization-data',
+  'needs-professional-title',
   'needs-basic-data',
   'needs-draft',
   'needs-employee',
@@ -47,10 +48,11 @@ export const setupLockSchema = z.enum([
 
 export type SetupLock = z.infer<typeof setupLockSchema>;
 
-// Focus keys the SPA's Date firmă and Abilitări pages accept, in their forms' order.
+// Focus keys the SPA's Date firmă and Abilitări pages accept, in their forms' order: the CUI
+// first, because its ANAF lookup fills the name and the address.
 export const setupCompanyFields = [
-  'legal-name',
   'cui',
+  'legal-name',
   'address',
   'representative-name',
   'representative-role',

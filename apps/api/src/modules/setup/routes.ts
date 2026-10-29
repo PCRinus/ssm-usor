@@ -23,7 +23,7 @@ export const getSetupGuideRoute = createRoute({
   operationId: 'getMySetupGuide',
   summary: "Get the caller's setup guide",
   description:
-    "The fifteen steps of the setup guide in order (ADR 031), each done, skipped, locked or open for the caller in their organization, with the next step, the client the steps on a client open, and whether the caller closed or finished the guide. During an impersonation it is the signed-in admin's own guide.",
+    "The fifteen steps of the setup guide in order (ADR 031), each done, skipped, locked or open for the caller in their organization, with the next step, the client the steps on a client open, and whether the caller closed or finished the guide. During an impersonation the done steps, skips, `closed` and `finished` are the signed-in admin's own, while `canDo` and `next` follow the impersonated member's role, and the locks their organization.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   responses: { 200: setupGuideResponse, ...membershipErrors },

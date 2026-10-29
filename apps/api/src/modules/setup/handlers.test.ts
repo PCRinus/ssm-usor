@@ -47,6 +47,7 @@ const emptyProgress: ProgressRow = {
   has_client_with_employee: false,
   has_training_record: false,
   furthest_client_id: null,
+  owner_count: 1,
   owner_names: ['Ioana Popescu'],
 };
 
@@ -82,6 +83,11 @@ interface Fake {
   skips: Set<string>;
   writes: { method: string; path: string; search: string; body: unknown }[];
 }
+
+const colleagueProfile = {
+  setup_guide_closed_at: '2026-10-27T09:00:00+00:00',
+  setup_guide_finished_at: '2026-10-27T09:05:00+00:00',
+};
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -128,6 +134,11 @@ function createFake({
           if (!fake.profile) return Response.json([]);
           fake.profile = { ...fake.profile, ...body };
           return Response.json([{ user_id: fake.caller.id }]);
+        }
+        if (url.searchParams.get('user_id') !== `eq.${fake.caller.id}`) {
+          return Response.json(
+            fake.profile ? [colleagueProfile, fake.profile] : [colleagueProfile]
+          );
         }
         return Response.json(fake.profile ? [fake.profile] : []);
       case '/rest/v1/setup_step_skips': {
@@ -257,22 +268,69 @@ describe('GET /me/setup', () => {
     ['training', 'has_client_with_employee'],
     ['signature', 'has_training_record'],
   ])('unlocks %s on the organization fact %s', async (step, fact) => {
-    createFake({ progress: { ...organizationReady, [fact]: true } });
+    createFake({ progress: { ...organizationReady, professional_title_done: true, [fact]: true } });
 
     const guide = await getGuide();
 
     expect(stepOf(guide, step)).toEqual({ id: step, state: 'open', canDo: true });
   });
 
-  it('waits for the organization data before the basic data to generate the sets', async () => {
-    createFake({ progress: { company_done: true, has_client_with_basic_data: true } });
-    expect(stepOf(await getGuide(), 'generate-sets').lock).toBe('needs-organization-data');
-
-    createFake({ progress: { authorizations_done: true, has_client_with_basic_data: false } });
+  it('locks generating the sets on the organization data, then the title, then the basic data', async () => {
+    createFake({ progress: { has_client_with_basic_data: false } });
     expect(stepOf(await getGuide(), 'generate-sets').lock).toBe('needs-organization-data');
 
     createFake({ progress: { ...organizationReady, has_client_with_basic_data: false } });
+    expect(stepOf(await getGuide(), 'generate-sets').lock).toBe('needs-professional-title');
+
+    createFake({
+      progress: {
+        ...organizationReady,
+        professional_title_done: true,
+        has_client_with_basic_data: false,
+      },
+    });
     expect(stepOf(await getGuide(), 'generate-sets').lock).toBe('needs-basic-data');
+  });
+
+  it.each([
+    'legal_name_filled',
+    'representative_name_filled',
+    'representative_role_filled',
+    'fire_safety_technician_filled',
+  ])('waits for the organization data while %s is false', async (column) => {
+    createFake({
+      progress: {
+        ...organizationReady,
+        professional_title_done: true,
+        has_client_with_basic_data: true,
+        [column]: false,
+      },
+    });
+
+    expect(stepOf(await getGuide(), 'generate-sets').lock).toBe('needs-organization-data');
+  });
+
+  it('generates the sets without the CUI, the address or the certificate', async () => {
+    createFake({
+      progress: {
+        legal_name_filled: true,
+        representative_name_filled: true,
+        representative_role_filled: true,
+        fire_safety_technician_filled: true,
+        professional_title_done: true,
+        has_client_with_basic_data: true,
+      },
+    });
+
+    const guide = await getGuide();
+
+    expect(stepOf(guide, 'company').state).toBe('open');
+    expect(stepOf(guide, 'authorizations').state).toBe('open');
+    expect(stepOf(guide, 'generate-sets')).toEqual({
+      id: 'generate-sets',
+      state: 'open',
+      canDo: true,
+    });
   });
 
   it('ranks done over skipped, skipped over locked, and locked over open', async () => {
@@ -295,16 +353,16 @@ describe('GET /me/setup', () => {
 
   it('lists the empty fields of the organization steps in the forms’ order', async () => {
     createFake({
-      progress: { cui_filled: true, representative_role_filled: true, certificate_filled: true },
+      progress: {
+        legal_name_filled: true,
+        representative_role_filled: true,
+        certificate_filled: true,
+      },
     });
 
     const guide = await getGuide();
 
-    expect(stepOf(guide, 'company').missing).toEqual([
-      'legal-name',
-      'address',
-      'representative-name',
-    ]);
+    expect(stepOf(guide, 'company').missing).toEqual(['cui', 'address', 'representative-name']);
     expect(stepOf(guide, 'authorizations').missing).toEqual(['fire-safety-technician']);
   });
 
@@ -312,8 +370,8 @@ describe('GET /me/setup', () => {
     createFake();
     const before = await getGuide();
     expect(stepOf(before, 'company').missing).toEqual([
-      'legal-name',
       'cui',
+      'legal-name',
       'address',
       'representative-name',
       'representative-role',
@@ -413,11 +471,13 @@ describe('GET /me/setup', () => {
   });
 
   it.each([
-    [[], null],
-    [['Ioana Popescu'], 'Ioana Popescu'],
-    [['Ioana Popescu', 'Mihai Ionescu'], null],
-  ])('names the owner among %j as %j', async (owners, ownerName) => {
-    createFake({ progress: { owner_names: owners } });
+    [0, [], null],
+    [1, ['Ioana Popescu'], 'Ioana Popescu'],
+    [1, [], null],
+    [2, ['Ioana Popescu', 'Mihai Ionescu'], null],
+    [2, ['Ioana Popescu'], null],
+  ])('names %i owner(s) with profiles %j as %j', async (count, owners, ownerName) => {
+    createFake({ progress: { owner_count: count, owner_names: owners } });
 
     expect((await getGuide()).ownerName).toBe(ownerName);
   });
@@ -431,6 +491,12 @@ describe('GET /me/setup', () => {
     });
 
     expect(await getGuide()).toMatchObject({ closed: true, finished: false });
+  });
+
+  it('reads the caller’s own profile, not a colleague’s', async () => {
+    createFake();
+
+    expect(await getGuide()).toMatchObject({ closed: false, finished: false });
   });
 
   it('answers an account without a profile as neither closed nor finished', async () => {

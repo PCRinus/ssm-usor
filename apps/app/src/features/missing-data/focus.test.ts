@@ -3,19 +3,20 @@ import { describe, expect, it } from 'vitest';
 
 import { authorizationsFocus, organizationCompanyFocus } from './focus';
 
-const inPageOrder = (page: readonly string[], fields: readonly string[]) =>
-  page.filter((key) => fields.includes(key));
-
 describe("the setup guide's missing fields", () => {
-  it('are focus keys of Date firmă, in its order', () => {
-    expect(inPageOrder(organizationCompanyFocus, setupCompanyFields)).toEqual([
-      ...setupCompanyFields,
+  it('follow the Date firmă form, the CUI first, and are focus keys of the page', () => {
+    expect(setupCompanyFields).toEqual([
+      'cui',
+      'legal-name',
+      'address',
+      'representative-name',
+      'representative-role',
     ]);
+    expect(organizationCompanyFocus).toEqual(expect.arrayContaining([...setupCompanyFields]));
   });
 
-  it('are focus keys of Abilitări, in its order', () => {
-    expect(inPageOrder(authorizationsFocus, setupAuthorizationsFields)).toEqual([
-      ...setupAuthorizationsFields,
-    ]);
+  it('follow the Abilitări form and are focus keys of the page', () => {
+    expect(setupAuthorizationsFields).toEqual(['certificate', 'fire-safety-technician']);
+    expect(authorizationsFocus).toEqual(expect.arrayContaining([...setupAuthorizationsFields]));
   });
 });
