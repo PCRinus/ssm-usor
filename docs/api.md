@@ -1957,6 +1957,18 @@ A post's `staffCategory` and `activities` also carry their own sources in the po
 code, the person's `sources` giving the name; a role whose quote is not found is flagged on
 `responsiblePersons.<i>.roles.<role>.sources.<n>`. A proposal stored before them reads them as
 `{}`, and the review then shows the item's own passages.
+A text value is proposed with its spelling corrected: sentence case for one written in capitals
+(by code) and Romanian diacritics (by the reading model), for a workplace's `name`, `activity` and
+fire-safety texts and its `rooms`, a post's `name`, `workZone` and `activities`, an equipment
+entry's `item` and `risk`, a unit's `room`, `fireSafety.smokingPlace`, `wasteKinds` (a kind at a
+time) and `wasteCollectors`, and `client.legalRepresentativeRole` (sentence case only); names of
+people and companies, identifiers and addresses stay as written. Where the document writes the
+value otherwise only in its capitals or diacritics, the document's spelling is kept beside it: in
+the item's `spelling`, by field (`{ "name": "INGRIJITOR HOTEL" }`; never for a room of the
+workplace, which confirming does not write), and in an option's `spelling`. It comes from the
+quote, or is the value before its capitals were corrected when the quote does not hold it. The
+member keeps it by writing it as their value. A proposal stored before it reads `spelling` as `{}`
+on an item and without it on an option.
 `fireSafety.wasteKinds` is one text, the kinds separated by semicolons, written as the list
 `waste_kinds`; the yes-or-no fields `fireSafety.hasThirdParties` and
 `trainingSchedule.administrativeTrainingNotApplicable` / `workerTrainingNotApplicable` are
