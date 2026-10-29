@@ -1,7 +1,7 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, Pencil, ShieldCheck } from 'lucide-react';
-import { type ComponentProps, type ReactNode, use } from 'react';
+import { type ComponentProps, type ReactNode, use, useEffect, useRef } from 'react';
 
 import { type LabelledSource, type SectionStatus, spellingCorrection } from './review-model';
 import { SourcePrefetchContext } from './source-query';
@@ -95,6 +95,10 @@ export function LinkButton({ children, className, ...props }: ComponentProps<'bu
   );
 }
 
+// Each ask costs the API several reads and signings, so a pointer sweeping down a list of rows asks
+// for none of those it only crosses.
+const pointerIntentMs = 130;
+
 export function SourceButton({
   sources,
   onOpen,
@@ -105,10 +109,21 @@ export function SourceButton({
   label?: string;
 }) {
   const prefetch = use(SourcePrefetchContext);
+  const intent = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(intent.current), []);
   if (sources.length === 0) return null;
   const warm = () => prefetch?.(sources[0]!);
   return (
-    <LinkButton data-testid="review-source" onPointerEnter={warm} onFocus={warm} onClick={onOpen}>
+    <LinkButton
+      data-testid="review-source"
+      onPointerEnter={() => {
+        clearTimeout(intent.current);
+        intent.current = setTimeout(warm, pointerIntentMs);
+      }}
+      onPointerLeave={() => clearTimeout(intent.current)}
+      onFocus={warm}
+      onClick={onOpen}
+    >
       {label}
     </LinkButton>
   );

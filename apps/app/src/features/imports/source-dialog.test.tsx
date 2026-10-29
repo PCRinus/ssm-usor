@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -95,7 +95,9 @@ const phoneSources = [
 
 let sourceRequests: number;
 let sourceGate: Promise<unknown> | null;
+const quoteGates = new Map<string, Promise<unknown>>();
 let sourceNears: (string | null)[];
+let sourceQuotes: string[];
 
 function mockSources(
   answers: Record<string, SourceAnswer | 'missing'>,
@@ -104,6 +106,7 @@ function mockSources(
 ) {
   sourceRequests = 0;
   sourceNears = [];
+  sourceQuotes = [];
   proposal.client.contactPhone.options[0]!.sources = sources;
   mockApi((_init, url) => {
     if (url.pathname === `/imports/${importId}`) {
@@ -114,6 +117,7 @@ function mockSources(
       const answer = answers[file];
       sourceRequests += 1;
       sourceNears.push(url.searchParams.get('near'));
+      sourceQuotes.push(url.searchParams.get('quote')!);
       if (!answer || answer === 'missing') {
         return Response.json({ error: 'not_found', message: 'No such file.' }, { status: 404 });
       }
@@ -135,7 +139,8 @@ function mockSources(
         match: answer.match ?? null,
         expiresInSeconds: 300,
       });
-      return sourceGate ? sourceGate.then(() => reply) : reply;
+      const gate = sourceGate ?? quoteGates.get(url.searchParams.get('quote')!);
+      return gate ? gate.then(() => reply) : reply;
     }
     return undefined;
   });
@@ -170,6 +175,7 @@ beforeEach(() => {
   viewers.draw = true;
   viewers.progress = null;
   sourceGate = null;
+  quoteGates.clear();
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -293,7 +299,9 @@ describe('the source dialog', () => {
   });
 
   it('asks for a fresh link to download the original, since the first one expires', async () => {
-    mockSources({ 'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf' } });
+    mockSources({ 'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf' } }, [
+      { file: 'Contract prestari SSM 2019.pdf', quote: 'Telefon: 0269 214 377' },
+    ]);
     const clicked: string[] = [];
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
       this: HTMLAnchorElement
@@ -358,7 +366,41 @@ describe('the source dialog', () => {
     expect((await within(dialog).findByTestId('pdf-view')).dataset.quote).toBe(
       'Telefon: 0269 214 377'
     );
-    expect(sourceRequests).toBe(1);
+    expect(sourceQuotes.filter((quote) => quote === 'Telefon: 0269 214 377')).toHaveLength(1);
+  });
+
+  it('asks for none of the rows a pointer only crosses', async () => {
+    mockSources({ 'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf' } });
+    mountApp(authFixture(makeSession()).client, `/clients/import/${importId}/identity`);
+    const buttons = await screen.findAllByTestId('review-source');
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    for (const button of buttons) {
+      fireEvent.pointerEnter(button);
+      act(() => vi.advanceTimersByTime(60));
+      fireEvent.pointerLeave(button);
+    }
+    act(() => vi.advanceTimersByTime(1000));
+    expect(requestsTo(`/imports/${importId}/source`)).toEqual([]);
+
+    fireEvent.pointerEnter(buttons[0]!);
+    act(() => vi.advanceTimersByTime(150));
+    vi.useRealTimers();
+    await waitFor(() => expect(requestsTo(`/imports/${importId}/source`)).toHaveLength(1));
+  });
+
+  it('asks on hover with the post a passage is for, as the dialog then does', async () => {
+    const proposal = proposalFixture();
+    mockSources({ 'dosar-ssm.zip/Fise post.doc': word }, phoneSources, proposal);
+    mountApp(authFixture(makeSession()).client, `/clients/import/${importId}/job-positions`);
+    const items = await screen.findAllByTestId('review-item');
+    const item = items.find((each) => each.textContent?.includes('Brutar'))!;
+    const button = within(item).getByTestId('review-source');
+
+    await userEvent.hover(button);
+    await waitFor(() => expect(sourceNears).toEqual(['Brutar']));
+    await userEvent.click(button);
+    await within(await screen.findByTestId('import-source-dialog')).findByTestId('word-view');
+    expect(sourceNears).toEqual(['Brutar']);
   });
 
   it('says so when the file cannot be opened', async () => {
@@ -381,20 +423,88 @@ describe('the source dialog', () => {
     const loading = () => within(dialog).queryByTestId('source-loading');
     const download = () => within(dialog).getByTestId('source-download') as HTMLButtonElement;
 
+    const viewer = within(dialog).getByTestId('source-viewer');
     expect(within(loading()!).getByRole('status').textContent).toBe('Se deschide documentul…');
-    expect(loading()!.getAttribute('aria-busy')).toBe('true');
+    expect(viewer.getAttribute('aria-busy')).toBe('true');
     expect(within(dialog).getByRole('heading').textContent).toBe('Sursa: Telefon');
     expect(dialog.textContent).toContain('Decizie 1.docx');
     expect(dialog.textContent).toContain('Document Word');
     expect(download().disabled).toBe(true);
 
     answer();
-    await within(dialog).findByTestId('word-view');
+    const drawn = await within(dialog).findByTestId('word-drawn');
     expect(loading()).toBeTruthy();
+    expect(drawn.closest('[inert]')).toBeTruthy();
     expect(download().disabled).toBe(false);
 
-    await userEvent.click(within(dialog).getByTestId('word-drawn'));
+    fireEvent.click(drawn);
     expect(loading()).toBeNull();
+    expect(viewer.getAttribute('aria-busy')).toBe('false');
+    expect(drawn.closest('[inert]')).toBeNull();
+  });
+
+  it('marks the file busy while the next passage in it is on its way', async () => {
+    let answer: () => void = () => {};
+    quoteGates.set('Fax: 0269 214 377', new Promise<void>((resolve) => (answer = resolve)));
+    mockSources({ 'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf' } }, [
+      { file: 'Contract prestari SSM 2019.pdf', quote: 'Telefon: 0269 214 377' },
+      { file: 'Contract prestari SSM 2019.pdf', quote: 'Fax: 0269 214 377' },
+    ]);
+    const dialog = await openPhoneSource();
+    const viewer = within(dialog).getByTestId('source-viewer');
+    await within(dialog).findByTestId('pdf-view');
+    expect(viewer.getAttribute('aria-busy')).toBe('false');
+
+    await userEvent.click(within(dialog).getByTestId('source-next'));
+    expect(within(dialog).getByTestId('source-position').textContent).toMatch(/^2 din 2/);
+    expect(within(dialog).getByTestId('pdf-view').dataset.quote).toBe('Telefon: 0269 214 377');
+    expect(viewer.getAttribute('aria-busy')).toBe('true');
+    expect(within(dialog).getByTestId('source-switching').textContent).toBe('Se deschide pasajul…');
+    expect(within(dialog).queryByTestId('source-loading')).toBeNull();
+
+    answer();
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('pdf-view').dataset.quote).toBe('Fax: 0269 214 377')
+    );
+    expect(viewer.getAttribute('aria-busy')).toBe('false');
+    expect(within(dialog).queryByTestId('source-switching')).toBeNull();
+  });
+
+  it('asks for the passages on either side once one is shown', async () => {
+    mockSources({
+      'Contract prestari SSM 2019.pdf': { mimeType: 'application/pdf' },
+      'Scanari/Decizie PSI.pdf (pagina 1)': { mimeType: 'application/pdf', page: 1 },
+      'IMG_2041.jpg': { mimeType: 'image/jpeg' },
+      'dosar-ssm.zip/Decizie 1.docx': word,
+    });
+    const dialog = await openPhoneSource();
+    await within(dialog).findByTestId('pdf-view');
+    await waitFor(() =>
+      expect(sourceQuotes).toEqual(['Telefon: 0269 214 377', 'tel. 0269 214 377'])
+    );
+
+    await userEvent.click(within(dialog).getByTestId('source-next'));
+    expect(within(dialog).queryByTestId('source-switching')).toBeNull();
+    await waitFor(() =>
+      expect(sourceQuotes).toEqual(['Telefon: 0269 214 377', 'tel. 0269 214 377', '0269 214 377'])
+    );
+  });
+
+  it('keeps a photo on its first link when stepping between its passages', async () => {
+    mockSources({ 'IMG_2041.jpg': { mimeType: 'image/jpeg' } }, [
+      { file: 'IMG_2041.jpg', quote: 'Telefon: 0269 214 377' },
+      { file: 'IMG_2041.jpg', quote: '0269 214 377' },
+    ]);
+    const dialog = await openPhoneSource();
+    const photo = within(await within(dialog).findByTestId('source-image')).getByRole('img');
+    fireEvent.load(photo);
+    expect(photo.getAttribute('src')).toBe('https://storage.example/object?token=1');
+
+    await userEvent.click(within(dialog).getByTestId('source-next'));
+    await waitFor(() => expect(sourceRequests).toBe(2));
+    await waitFor(() => expect(within(dialog).queryByTestId('source-switching')).toBeNull());
+    expect(within(dialog).getByRole('img')).toBe(photo);
+    expect(photo.getAttribute('src')).toBe('https://storage.example/object?token=1');
   });
 
   it('names a scanned page and what was read on it before the answer comes', async () => {
@@ -426,6 +536,9 @@ describe('the source dialog', () => {
 
     const progress = await within(dialog).findByTestId('source-progress', {}, { timeout: 2000 });
     expect(progress.textContent).toBe('3,1 din 22,6 MB');
+    expect(
+      within(within(dialog).getByTestId('source-loading')).getByRole('status').contains(progress)
+    ).toBe(false);
     expect(within(progress).getByRole('progressbar').getAttribute('aria-valuenow')).toBe('14');
   });
 

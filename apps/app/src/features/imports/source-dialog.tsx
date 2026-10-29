@@ -8,7 +8,15 @@ import {
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
-import { ChevronLeft, ChevronRight, Copy, Download, FileText, ScanText } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Download,
+  FileText,
+  LoaderCircle,
+  ScanText,
+} from 'lucide-react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 
 import { getImportSource, type ImportSourceResponse } from '@/api/generated/api';
@@ -26,7 +34,7 @@ import {
   type SourceKind,
   sourceKind,
 } from './source-match';
-import { sourceParams, sourceQuery, viewerChunks } from './source-query';
+import { sourceParams, sourceQuery, useSourcePrefetch, viewerChunks } from './source-query';
 import { ZoomBar } from './zoom-bar';
 
 const WordSourceView = lazy(viewerChunks.word);
@@ -98,13 +106,23 @@ function SourceContent({
     setViewer((state) =>
       state.key === viewerKey && !state.shown ? { ...state, shown: true } : state
     );
+  // pdf.js tells of every chunk, and each new state draws the dialog again.
   const progressOf = (loaded: number, total: number) =>
     setViewer((state) =>
-      state.key === viewerKey && !state.shown && state.progress?.loaded !== loaded
+      state.key === viewerKey && !state.shown && !sameProgress(state.progress, loaded, total)
         ? { ...state, progress: { loaded, total } }
         : state
     );
   const opening = !query.isError && !(viewer.key === viewerKey && viewer.shown);
+  const switching = viewing !== null && viewing.index !== index && !query.isError;
+  const settled = viewing?.index === index && !opening && !query.isError;
+  const prefetch = useSourcePrefetch(importId);
+  useEffect(() => {
+    if (!settled) return;
+    for (const neighbour of [request.sources[index - 1], request.sources[index + 1]]) {
+      if (neighbour) prefetch(neighbour);
+    }
+  }, [settled, index, request.sources, prefetch]);
   const kind = source ? sourceKind(source) : requestKind(current.file);
   const page = source ? source.page : requestPage(current.file);
   const fileCount = new Set(request.sources.map((each) => each.file)).size;
@@ -210,6 +228,7 @@ function SourceContent({
       <div
         className="relative min-h-0 flex-1 overflow-hidden bg-muted/60"
         data-testid="source-viewer"
+        aria-busy={opening || switching}
       >
         {query.isError && (
           <div className="p-6">
@@ -224,46 +243,67 @@ function SourceContent({
           </div>
         )}
         {viewing && viewed && !query.isError && (
-          <Suspense fallback={null}>
-            {viewedKind === 'word' && (
-              <WordSourceView
-                key={viewing.source.fileId}
-                source={viewing.source}
-                quote={viewed.quote}
-                onShown={shownViewer}
-                onNotFound={() =>
-                  setNotFound(
-                    viewing.source.match
-                      ? unplaced
-                      : 'Nu am găsit pasajul în document, așa că nu e marcat.'
-                  )
-                }
-              />
+          <div
+            className={cn(
+              'h-full transition-opacity motion-reduce:transition-none',
+              switching && !opening && 'opacity-50'
             )}
-            {(viewedKind === 'pdf' || viewedKind === 'scan') && (
-              <PdfSourceView
-                key={viewing.source.fileId}
-                source={viewing.source}
-                quote={viewedKind === 'pdf' ? viewed.quote : null}
-                onShown={shownViewer}
-                onProgress={progressOf}
-                onNotFound={() =>
-                  setNotFound(
-                    viewing.source.match
-                      ? unplaced
-                      : 'Nu am găsit pasajul pe pagină, așa că nu e marcat.'
-                  )
-                }
-              />
-            )}
-            {viewedKind === 'image' && (
-              <ImageSourceView
-                key={viewing.source.fileId}
-                source={viewing.source}
-                onShown={shownViewer}
-              />
-            )}
-          </Suspense>
+            inert={opening}
+          >
+            <Suspense fallback={null}>
+              {viewedKind === 'word' && (
+                <WordSourceView
+                  key={viewing.source.fileId}
+                  source={viewing.source}
+                  quote={viewed.quote}
+                  onShown={shownViewer}
+                  onNotFound={() =>
+                    setNotFound(
+                      viewing.source.match
+                        ? unplaced
+                        : 'Nu am găsit pasajul în document, așa că nu e marcat.'
+                    )
+                  }
+                />
+              )}
+              {(viewedKind === 'pdf' || viewedKind === 'scan') && (
+                <PdfSourceView
+                  key={viewing.source.fileId}
+                  source={viewing.source}
+                  quote={viewedKind === 'pdf' ? viewed.quote : null}
+                  onShown={shownViewer}
+                  onProgress={progressOf}
+                  onNotFound={() =>
+                    setNotFound(
+                      viewing.source.match
+                        ? unplaced
+                        : 'Nu am găsit pasajul pe pagină, așa că nu e marcat.'
+                    )
+                  }
+                />
+              )}
+              {viewedKind === 'image' && (
+                <ImageSourceView
+                  key={viewing.source.fileId}
+                  source={viewing.source}
+                  onShown={shownViewer}
+                />
+              )}
+            </Suspense>
+          </div>
+        )}
+        {switching && !opening && (
+          <div
+            role="status"
+            className="absolute top-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs shadow-sm"
+            data-testid="source-switching"
+          >
+            <LoaderCircle
+              className="size-3.5 animate-spin text-primary motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+            Se deschide pasajul…
+          </div>
         )}
         {opening && <SourcePlaceholder kind={kind} progress={viewer.progress} />}
       </div>
@@ -337,6 +377,8 @@ const megabytes = new Intl.NumberFormat('ro-RO', {
   maximumFractionDigits: 1,
 });
 const inMegabytes = (bytes: number) => megabytes.format(bytes / 1024 / 1024);
+const sameProgress = (shown: ViewerState['progress'], loaded: number, total: number) =>
+  shown !== null && shown.total === total && inMegabytes(shown.loaded) === inMegabytes(loaded);
 
 // One placeholder from the click until the file is drawn, over the answer, the viewer's code and
 // the file itself, so the dialog does not change three times while it opens.
@@ -358,7 +400,6 @@ function SourcePlaceholder({
     <div
       className="absolute inset-0 z-10 overflow-hidden bg-background"
       data-testid="source-loading"
-      aria-busy="true"
     >
       <PagePlaceholder
         className="h-full bg-muted/60"
@@ -401,7 +442,15 @@ function ImageSourceView({
   onShown: () => void;
 }) {
   const [zoom, setZoom] = useState<number | 'fit'>('fit');
-  const url = source.derived?.url ?? source.original.url;
+  const latest = source.derived?.url ?? source.original.url;
+  // Each answer carries a link signed anew, so the photo is held by its first link unless that
+  // one failed.
+  const [url, setUrl] = useState(latest);
+  const [failed, setFailed] = useState(false);
+  if (failed && latest !== url) {
+    setUrl(latest);
+    setFailed(false);
+  }
   return (
     <>
       <div className="h-full overflow-auto p-4" data-testid="source-image">
@@ -409,7 +458,10 @@ function ImageSourceView({
           src={url}
           alt={`Fotografia ${source.fileName}`}
           onLoad={onShown}
-          onError={onShown}
+          onError={() => {
+            setFailed(true);
+            onShown();
+          }}
           className={cn(
             'mx-auto block bg-card shadow-sm',
             zoom === 'fit' && 'max-h-full max-w-full object-contain'

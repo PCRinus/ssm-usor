@@ -48,11 +48,9 @@ export function PagePlaceholder({
         </div>
       </div>
       <div className="absolute inset-0 flex items-center justify-center p-4">
-        <div
-          role="status"
-          className="grid gap-2 rounded-lg border bg-background/95 px-5 py-3 text-sm shadow-sm"
-        >
-          <div className="flex items-center gap-3">
+        <div className="grid gap-2 rounded-lg border bg-background/95 px-5 py-3 text-sm shadow-sm">
+          {/* The detail stays out of the status, which would otherwise be read out at each change. */}
+          <div role="status" className="flex items-center gap-3">
             <LoaderCircle
               data-testid="editor-loading-spinner"
               className="size-5 shrink-0 animate-spin text-primary motion-reduce:animate-none"
