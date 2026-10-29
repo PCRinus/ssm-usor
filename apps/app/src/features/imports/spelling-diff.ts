@@ -5,6 +5,8 @@ type Op = { value: string; written: string; same: boolean };
 export const diffTokens = (text: string) =>
   text.match(/[\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+/gu) ?? [];
 
+const isSeparator = (token: string) => /^[^\p{L}\p{M}\p{N}]+$/u.test(token);
+
 function alignedOps(value: string[], written: string[]): Op[] {
   let start = 0;
   while (start < value.length && start < written.length && value[start] === written[start]) start++;
@@ -57,6 +59,18 @@ function alignedOps(value: string[], written: string[]): Op[] {
   return ops;
 }
 
+// A value whose every word changed reads as one marked span, not as words with gaps.
+function joinChangedWords(ops: Op[]): Op[] {
+  return ops.map((op, index) =>
+    op.same &&
+    isSeparator(op.value) &&
+    ops[index - 1]?.same === false &&
+    ops[index + 1]?.same === false
+      ? { ...op, same: false }
+      : op
+  );
+}
+
 function runs(ops: Op[], side: 'value' | 'written'): DiffRun[] {
   const result: DiffRun[] = [];
   for (const op of ops) {
@@ -70,6 +84,6 @@ function runs(ops: Op[], side: 'value' | 'written'): DiffRun[] {
 }
 
 export function spellingDiff(value: string, written: string) {
-  const ops = alignedOps(diffTokens(value), diffTokens(written));
+  const ops = joinChangedWords(alignedOps(diffTokens(value), diffTokens(written)));
   return { value: runs(ops, 'value'), written: runs(ops, 'written') };
 }

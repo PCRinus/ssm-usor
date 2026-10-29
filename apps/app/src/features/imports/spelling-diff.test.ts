@@ -46,14 +46,38 @@ describe('marking the words the spelling correction changed', () => {
 
   it('marks a word that gained a diacritic, whole', () => {
     const diff = spellingDiff('deșeuri menajere și hârtie', 'deseuri menajere si hartie');
-    expect(marked(diff.value)).toEqual(['deșeuri', 'și', 'hârtie']);
-    expect(marked(diff.written)).toEqual(['deseuri', 'si', 'hartie']);
+    expect(marked(diff.value)).toEqual(['deșeuri', 'și hârtie']);
+    expect(marked(diff.written)).toEqual(['deseuri', 'si hartie']);
   });
 
   it('marks changed separators along with the words around them', () => {
     const diff = spellingDiff('resturi de mâncare, produse', 'resturi de mancare,produse');
     expect(marked(diff.value)).toEqual(['mâncare, ']);
     expect(marked(diff.written)).toEqual(['mancare,']);
+  });
+
+  it('marks a value whose every word changed as one span', () => {
+    const diff = spellingDiff(
+      'Prepararea mâncării, lucrul la cuptor',
+      'PREPARAREA MANCARII, LUCRUL LA CUPTOR'
+    );
+    expect(diff.value).toEqual([{ text: 'Prepararea mâncării, lucrul la cuptor', changed: true }]);
+    expect(diff.written).toEqual([
+      { text: 'PREPARAREA MANCARII, LUCRUL LA CUPTOR', changed: true },
+    ]);
+  });
+
+  it('leaves a separator beside an unchanged word plain', () => {
+    const diff = spellingDiff(
+      'curățenie în camere și spații comune',
+      'curatenie in camere si spatii comune'
+    );
+    expect(marked(diff.value)).toEqual(['curățenie în', 'și spații']);
+    expect(marked(diff.written)).toEqual(['curatenie in', 'si spatii']);
+    expect(diff.value.filter((run) => !run.changed).map((run) => run.text)).toEqual([
+      ' camere ',
+      ' comune',
+    ]);
   });
 
   it('marks nothing in identical values', () => {
