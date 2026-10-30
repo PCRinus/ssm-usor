@@ -1266,7 +1266,7 @@ composite key to `imports (id, organization_id)`, deleted with the import:
 | `document_kind`, `reason`, `company_name`, `company_cui`           | What the sorting took the file for (a key `packages/import` names), why it was set aside or failed (in Romanian), and the company it names.                  |
 | `page_count`, `is_scan`                                            | From the extractor.                                                                                                                                          |
 | `text_path`                                                        | The text taken out of it, beside it as `<id>.txt` or `<id>.json`, by a check.                                                                                |
-| `derived_path`, `derived_size_bytes`, `derived_sha256`             | The `.docx` of a `.doc` or the JPEG of a HEIC, beside it as `<id>.docx` or `<id>.jpg`, by a check; the three together.                                       |
+| `derived_path`, `derived_size_bytes`, `derived_sha256`             | The `.docx` of a `.doc` (`<id>.docx`) or the upright JPEG of a photograph (`<id>.jpg`, a JPEG's `<id>.jpeg`), beside it by a check; the three together.      |
 | `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The requests that read this file on its own, a scan or a photograph; the import's totals include them.                                                       |
 | `client_file_id`                                                   | The client file it became in the import folder; set null if that file is deleted.                                                                            |
 
