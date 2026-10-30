@@ -686,6 +686,7 @@ export type PortalClientEmployeesResponseItemsItemTestsSsmState =
 export const PortalClientEmployeesResponseItemsItemTestsSsmState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -723,6 +724,7 @@ export type PortalClientEmployeesResponseItemsItemTestsPsiState =
 export const PortalClientEmployeesResponseItemsItemTestsPsiState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -808,6 +810,7 @@ export type PortalTestsResponseSsmStatusState =
 export const PortalTestsResponseSsmStatusState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -1020,6 +1023,7 @@ export type PortalTestsResponsePsiStatusState =
 export const PortalTestsResponsePsiStatusState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;

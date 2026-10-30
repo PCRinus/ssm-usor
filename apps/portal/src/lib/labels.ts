@@ -26,6 +26,7 @@ export const trainingStateMessages: Record<TrainingState, MessageDescriptor> = {
 export const testStateMessages: Record<TestState, MessageDescriptor> = {
   none: msg`Fără test`,
   pending: msg`De susținut`,
+  unverified: msg`Neverificat pe fișă`,
   passed: msg`Promovat`,
   annual_due: msg`Anual scadent`,
 };

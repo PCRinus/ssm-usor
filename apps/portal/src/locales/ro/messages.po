@@ -926,6 +926,10 @@ msgstr "Nesemnat"
 msgid "Nestabilită"
 msgstr "Nestabilită"
 
+#: src/lib/labels.ts
+msgid "Neverificat pe fișă"
+msgstr "Neverificat pe fișă"
+
 #: src/features/training/training-records-list.tsx
 msgid "Nicio instruire înregistrată încă."
 msgstr "Nicio instruire înregistrată încă."

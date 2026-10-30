@@ -241,13 +241,14 @@ export const updateTestResultRequestSchema = z.object({
 
 export type UpdateTestResultRequest = z.infer<typeof updateTestResultRequestSchema>;
 
-export const testStates = ['none', 'pending', 'passed', 'annual_due'] as const;
+export const testStates = ['none', 'pending', 'unverified', 'passed', 'annual_due'] as const;
 export const testStateSchema = z.enum(testStates);
 export type TestState = z.infer<typeof testStateSchema>;
 
 export const testStateLabels: Record<TestState, string> = {
   none: 'Fără test',
   pending: 'De susținut',
+  unverified: 'Neverificat pe fișă',
   passed: 'Promovat',
   annual_due: 'Anual scadent',
 };
@@ -273,7 +274,7 @@ export const employeeTestsSchema = z.object({
 export type EmployeeTests = z.infer<typeof employeeTestsSchema>;
 
 /** "La zi" for tests: passed in both domains; any other state in either. */
-export const testStateFilters = ['passed', 'pending', 'annual_due', 'none'] as const;
+export const testStateFilters = ['passed', 'pending', 'annual_due', 'unverified', 'none'] as const;
 export const testStateFilterSchema = z.enum(testStateFilters);
 export type TestStateFilter = z.infer<typeof testStateFilterSchema>;
 

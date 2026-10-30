@@ -46,6 +46,8 @@ function awaitingLine(domain: TrainingDomain, status: TestStatus) {
       return `Testul la angajare apare după ${hiringTrainingOf[domain]}`;
     case 'pending':
       return 'Testul la angajare îl așteaptă în portal';
+    case 'unverified':
+      return 'Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.';
     case 'annual_due':
       return status.dueOn
         ? `Testul anual este scadent din ${formatDate(status.dueOn)}`
@@ -57,11 +59,14 @@ function awaitingLine(domain: TrainingDomain, status: TestStatus) {
   }
 }
 
-// What the API accepts; any other paper result is refused with test_not_awaiting.
+// The API refuses a hiring result once passed or before its training (test_not_awaiting) and
+// takes any annual one (ADR 032). An annual result is offered after a pass, or to a history from
+// paper, whose sheet may record annual tests where the hiring one could not be read.
 function recordableTests(domain: TrainingDomain, status: TestStatus): KnowledgeTest[] {
-  if (status.state === 'pending' && status.awaitingTest === 'hiring') return ['hiring'];
-  if (domain === 'psi' && status.lastPassedOn !== null) return ['annual'];
-  return [];
+  const hiring = status.state === 'pending' || status.state === 'unverified';
+  const annual =
+    domain === 'psi' && (status.lastPassedOn !== null || status.state === 'unverified');
+  return [...(hiring ? (['hiring'] as const) : []), ...(annual ? (['annual'] as const) : [])];
 }
 
 export function EmployeeTestsCard({

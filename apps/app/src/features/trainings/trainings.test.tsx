@@ -949,6 +949,24 @@ describe("an employee's knowledge tests", () => {
     expect(screen.getAllByTestId('training-record').length).toBeGreaterThan(0);
   });
 
+  it('says when a hiring test from paper could not be verified, and takes its result on paper', async () => {
+    mockApi({
+      [`GET ${testsPath}`]: () => Response.json(employeeTests(undefined, testStatus('unverified'))),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePath}/training/psi`);
+    const user = userEvent.setup();
+    const card = within(await screen.findByTestId('employee-tests'));
+    expect((await card.findByTestId('tests-state')).textContent).toBe('Neverificat pe fișă');
+    expect(card.getByTestId('tests-awaiting').textContent).toBe(
+      'Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.'
+    );
+    expect(card.queryByTestId('tests-gap')).toBeNull();
+    await user.click(card.getByTestId('tests-record-paper'));
+    const dialog = within(await screen.findByTestId('test-result-dialog'));
+    const choice = dialog.getByTestId('test-result-test') as HTMLSelectElement;
+    expect([...choice.options].map((option) => option.value)).toEqual(['hiring', 'annual']);
+  });
+
   it('lists the results with their source and examiner, and the attempts with their score', async () => {
     const tests = employeeTests(
       testStatus('passed', null, '2026-09-02'),

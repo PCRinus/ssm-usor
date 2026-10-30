@@ -1280,6 +1280,7 @@ export type EmployeeListResponseItemsItemTestsSsmState =
 export const EmployeeListResponseItemsItemTestsSsmState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -1317,6 +1318,7 @@ export type EmployeeListResponseItemsItemTestsPsiState =
 export const EmployeeListResponseItemsItemTestsPsiState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -1532,6 +1534,7 @@ export type EmployeeResponseEmployeeTestsSsmState =
 export const EmployeeResponseEmployeeTestsSsmState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -1569,6 +1572,7 @@ export type EmployeeResponseEmployeeTestsPsiState =
 export const EmployeeResponseEmployeeTestsPsiState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -2048,6 +2052,7 @@ export type OrganizationEmployeeListResponseItemsItemTestsSsmState =
 export const OrganizationEmployeeListResponseItemsItemTestsSsmState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -2085,6 +2090,7 @@ export type OrganizationEmployeeListResponseItemsItemTestsPsiState =
 export const OrganizationEmployeeListResponseItemsItemTestsPsiState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -2952,6 +2958,7 @@ export type EmployeeTestsResponseSsmStatusState =
 export const EmployeeTestsResponseSsmStatusState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -3118,6 +3125,7 @@ export type EmployeeTestsResponsePsiStatusState =
 export const EmployeeTestsResponsePsiStatusState = {
   none: 'none',
   pending: 'pending',
+  unverified: 'unverified',
   passed: 'passed',
   annual_due: 'annual_due',
 } as const;
@@ -9302,7 +9310,7 @@ export type RegisterImportFilesRequestFilesItem = {
   mimeType: RegisterImportFilesRequestFilesItemMimeType;
   /**
    * @minimum 1
-   * @maximum 20971520
+   * @maximum 26214400
    */
   sizeBytes: number;
   /** @pattern ^[0-9a-f]{64}$ */
@@ -9312,7 +9320,7 @@ export type RegisterImportFilesRequestFilesItem = {
 export interface RegisterImportFilesRequest {
   /**
    * @minItems 1
-   * @maxItems 150
+   * @maxItems 500
    */
   files: RegisterImportFilesRequestFilesItem[];
 }
@@ -11833,6 +11841,7 @@ export const ListEmployeesTestState = {
   passed: 'passed',
   pending: 'pending',
   annual_due: 'annual_due',
+  unverified: 'unverified',
   none: 'none',
 } as const;
 
@@ -11902,6 +11911,7 @@ export const ListOrganizationEmployeesTestState = {
   passed: 'passed',
   pending: 'pending',
   annual_due: 'annual_due',
+  unverified: 'unverified',
   none: 'none',
 } as const;
 

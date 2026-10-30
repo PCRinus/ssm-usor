@@ -8,6 +8,7 @@ import { testStateMessages } from '@/lib/labels';
 const stateClasses: Record<TestState, string> = {
   none: 'border-border bg-card text-muted-foreground',
   pending: 'border-warning-border bg-warning text-warning-foreground',
+  unverified: 'border-border bg-card text-muted-foreground',
   passed: 'border-success-border bg-success text-success-foreground',
   annual_due: 'border-warning-border bg-warning text-warning-foreground',
 };

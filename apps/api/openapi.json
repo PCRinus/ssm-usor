@@ -1736,7 +1736,7 @@
                         "state": {
                           "type": "string",
                           "nullable": true,
-                          "enum": ["none", "pending", "passed", "annual_due", null]
+                          "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                         },
                         "awaitingTest": {
                           "type": "string",
@@ -1762,7 +1762,7 @@
                         "state": {
                           "type": "string",
                           "nullable": true,
-                          "enum": ["none", "pending", "passed", "annual_due", null]
+                          "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                         },
                         "awaitingTest": {
                           "type": "string",
@@ -2055,7 +2055,7 @@
                       "state": {
                         "type": "string",
                         "nullable": true,
-                        "enum": ["none", "pending", "passed", "annual_due", null]
+                        "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                       },
                       "awaitingTest": {
                         "type": "string",
@@ -2081,7 +2081,7 @@
                       "state": {
                         "type": "string",
                         "nullable": true,
-                        "enum": ["none", "pending", "passed", "annual_due", null]
+                        "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                       },
                       "awaitingTest": {
                         "type": "string",
@@ -2611,7 +2611,7 @@
                         "state": {
                           "type": "string",
                           "nullable": true,
-                          "enum": ["none", "pending", "passed", "annual_due", null]
+                          "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                         },
                         "awaitingTest": {
                           "type": "string",
@@ -2637,7 +2637,7 @@
                         "state": {
                           "type": "string",
                           "nullable": true,
-                          "enum": ["none", "pending", "passed", "annual_due", null]
+                          "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                         },
                         "awaitingTest": {
                           "type": "string",
@@ -3849,7 +3849,7 @@
                   "state": {
                     "type": "string",
                     "nullable": true,
-                    "enum": ["none", "pending", "passed", "annual_due", null]
+                    "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                   },
                   "awaitingTest": {
                     "type": "string",
@@ -4036,7 +4036,7 @@
                   "state": {
                     "type": "string",
                     "nullable": true,
-                    "enum": ["none", "pending", "passed", "annual_due", null]
+                    "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                   },
                   "awaitingTest": {
                     "type": "string",
@@ -13829,7 +13829,7 @@
                 "sizeBytes": {
                   "type": "integer",
                   "minimum": 1,
-                  "maximum": 20971520
+                  "maximum": 26214400
                 },
                 "sha256": {
                   "type": "string",
@@ -13839,7 +13839,7 @@
               "required": ["uploadPath", "mimeType", "sizeBytes", "sha256"]
             },
             "minItems": 1,
-            "maxItems": 150
+            "maxItems": 500
           }
         },
         "required": ["files"]
@@ -17104,7 +17104,7 @@
                         "state": {
                           "type": "string",
                           "nullable": true,
-                          "enum": ["none", "pending", "passed", "annual_due", null]
+                          "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                         },
                         "awaitingTest": {
                           "type": "string",
@@ -17130,7 +17130,7 @@
                         "state": {
                           "type": "string",
                           "nullable": true,
-                          "enum": ["none", "pending", "passed", "annual_due", null]
+                          "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                         },
                         "awaitingTest": {
                           "type": "string",
@@ -17230,7 +17230,7 @@
                   "state": {
                     "type": "string",
                     "nullable": true,
-                    "enum": ["none", "pending", "passed", "annual_due", null]
+                    "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                   },
                   "awaitingTest": {
                     "type": "string",
@@ -17481,7 +17481,7 @@
                   "state": {
                     "type": "string",
                     "nullable": true,
-                    "enum": ["none", "pending", "passed", "annual_due", null]
+                    "enum": ["none", "pending", "unverified", "passed", "annual_due", null]
                   },
                   "awaitingTest": {
                     "type": "string",
@@ -21082,7 +21082,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["passed", "pending", "annual_due", "none"]
+              "enum": ["passed", "pending", "annual_due", "unverified", "none"]
             },
             "required": false,
             "name": "testState",
@@ -21819,7 +21819,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["passed", "pending", "annual_due", "none"]
+              "enum": ["passed", "pending", "annual_due", "unverified", "none"]
             },
             "required": false,
             "name": "testState",

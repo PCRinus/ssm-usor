@@ -317,10 +317,6 @@ export const recordPaperTestResult: RouteHandler<
       );
     }
     if (lastPassedOn) throw notAwaiting('Angajatul a promovat deja testul la angajare.');
-  } else if (!lastPassedOn) {
-    throw notAwaiting(
-      'Testul anual urmează unui test promovat în domeniul situațiilor de urgență.'
-    );
   }
   if (body.takenOn > romanianDay(new Date().toISOString())) {
     throw new ApiError('validation_error', 'A test is recorded once it was taken.', [
