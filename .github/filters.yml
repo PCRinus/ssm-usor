@@ -17,7 +17,7 @@ api:
   - 'packages/contracts/**'
   - 'packages/document-engine/**'
   - 'packages/import/**'
-  - 'packages/legislation-check/**'
+  - 'packages/legislation/**'
 app:
   - *shared
   - 'apps/app/**'
@@ -59,7 +59,7 @@ pdf:
 legislation:
   - *shared
   - 'apps/legislation/**'
-  - 'packages/legislation-check/**'
+  - 'packages/legislation/**'
   - 'packages/document-engine/**'
 marketing:
   - *shared
