@@ -191,17 +191,25 @@ const firePath = `/clients/${clientId}/fire-safety-documents`;
 
 const mount = (path = firePath) => mountApp(authFixture(makeSession()).client, path);
 
-async function openSection(user: ReturnType<typeof userEvent.setup>, number: string) {
-  const trigger = (await screen.findAllByTestId('document-section-trigger')).find((item) =>
-    item.textContent?.startsWith(`${number}. `)
+const contentsEntry = async (number: string) =>
+  (await screen.findAllByTestId('pack-contents-entry')).find(
+    (entry) => entry.firstElementChild?.textContent === number
   )!;
-  if (trigger.getAttribute('data-state') !== 'open') await user.click(trigger);
+
+async function openSection(user: ReturnType<typeof userEvent.setup>, number: string) {
+  const entry = await contentsEntry(number);
+  if (entry.getAttribute('aria-current') !== 'true') await user.click(entry);
+  await waitFor(() => expect(entry.getAttribute('aria-current')).toBe('true'));
 }
 
-const sectionOf = (number: string) =>
-  screen
-    .getAllByTestId('document-section')
-    .find((item) => item.textContent?.startsWith(`${number}. `))!;
+const summaryOf = async (number: string) =>
+  [...(await contentsEntry(number)).querySelector('[data-testid="pack-section-caption"]')!.children]
+    .map((part) => part.textContent)
+    .join(' · ');
+
+const shownSection = () => screen.getByTestId('pack-section');
+
+const shownRows = () => within(shownSection()).getAllByRole('row').slice(1);
 
 const allBuilt = [
   ...(
@@ -262,6 +270,11 @@ const allBuilt = [
 beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
+  const media = window.matchMedia;
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn((query: string) => ({ ...media(query), matches: query === '(min-width: 1280px)' }))
+  );
 });
 
 afterEach(() => {
@@ -297,9 +310,9 @@ describe('client fire-safety documents', () => {
     expect(tab.querySelector('svg')!.getAttribute('class')).toContain('lucide-fire-extinguisher');
     expect(screen.getByRole('heading', { name: 'Documentația PSI' })).toBeTruthy();
     expect((await screen.findByTestId('documents-hint')).textContent).toBe(
-      'Generează documentația ca să obții deciziile, instrucțiunile proprii, tematica de instruire, testele, registrele și celelalte documente PSI, completate cu datele clientului.'
+      'Generează documentația ca să obții deciziile, instrucțiunile proprii, tematica de instruire, testele, registrele și celelalte documente PSI, completate cu datele clientului. Cuprinsul din stânga arată ce va conține.'
     );
-    expect(screen.queryByTestId('documents-empty')).toBeNull();
+    expect(screen.getByTestId('documents-empty')).toBeTruthy();
     expect(screen.getByTestId('documents-generate').textContent).toContain(
       'Generează documentația'
     );
@@ -311,29 +324,29 @@ describe('client fire-safety documents', () => {
     mockApi({ ssmItems: [ssmReport], fireItems: [registers] });
     mount(`/clients/${clientId}/documents`);
 
-    await screen.findAllByTestId('document-section');
+    await screen.findAllByTestId('pack-contents-entry');
     expect(screen.getByRole('heading', { name: 'Documentația SSM' })).toBeTruthy();
     expect(screen.queryByText(/Registre și formulare PSI/)).toBeNull();
     expect(requests('/documents').map(({ url }) => url.search)).toEqual(['']);
   });
 
-  it('lists the whole binder before anything is generated, every section closed', async () => {
+  it('lists the whole binder before anything is generated, as what it will hold', async () => {
     mockApi();
     mount();
 
-    const sections = await screen.findAllByTestId('document-section-trigger');
-    expect(sections.map((section) => section.textContent)).toEqual([
-      '1. Decizii internenegenerat',
-      '2. Instrucțiuni proprii în domeniul situațiilor de urgențănegenerat',
-      '3. Tematica de instruirenegenerat',
-      '4. Teste de verificare a cunoștințelornegenerat',
-      '5. Mijloace de apărare și organizarea la locul de muncănegenerat',
-      '6. Registre și formulare PSInegenerat',
-      '7. Documente pentru inspectoratnegenerat',
+    const entries = await screen.findAllByTestId('pack-empty-entry');
+    expect(entries.map((entry) => entry.textContent)).toEqual([
+      '1Decizii interne10 documente, negenerate',
+      '2Instrucțiuni proprii în domeniul situațiilor de urgență2 documente, negenerate',
+      '3Tematica de instruire2 documente, negenerate',
+      '4Teste de verificare a cunoștințelor3 documente, negenerate',
+      '5Mijloace de apărare și organizarea la locul de muncă4 documente, negenerate',
+      '6Registre și formulare PSI5 documente, negenerate',
+      '7Documente pentru inspectorat2 documente, negenerate',
     ]);
-    expect(sections.map((section) => section.getAttribute('data-state'))).toEqual(
-      Array(7).fill('closed')
-    );
+    expect(screen.getByTestId('pack-total').textContent).toBe('28 de documente în 7 secțiuni');
+    expect(screen.queryByTestId('pack-bar')).toBeNull();
+    expect(screen.queryByTestId('pack-section')).toBeNull();
     expect(screen.queryByTestId('document-row')).toBeNull();
   });
 
@@ -343,82 +356,73 @@ describe('client fire-safety documents', () => {
     const user = userEvent.setup();
 
     await openSection(user, '6');
-    const missing = await screen.findAllByTestId('document-not-generated');
+    const missing = within(shownSection()).getAllByTestId('document-missing');
     expect(missing.map((row) => row.textContent)).toEqual([
-      'Copertă – Registrele de evidență în domeniul situațiilor de urgențăNegenerat',
-      'Permis de lucru cu focNegenerat',
-      'Registru de control pentru instalațiile de apărare împotriva incendiilorNegenerat',
-      'Registru de evidență a controlului stingătoarelor de incendiuNegenerat',
+      'Copertă – Registrele de evidență în domeniul situațiilor de urgențăNegenerat—',
+      'Permis de lucru cu focNegenerat—',
+      'Registru de control pentru instalațiile de apărare împotriva incendiilorNegenerat—',
+      'Registru de evidență a controlului stingătoarelor de incendiuNegenerat—',
     ]);
-    const built = sectionOf('6');
-    expect(
-      within(built)
-        .getAllByRole('row')
-        .slice(1)
-        .map((row) => row.getAttribute('data-testid'))
-    ).toEqual([
-      'document-not-generated',
+    expect(shownRows().map((row) => row.getAttribute('data-testid'))).toEqual([
+      'document-missing',
       'document-row',
-      'document-not-generated',
-      'document-not-generated',
-      'document-not-generated',
+      'document-missing',
+      'document-missing',
+      'document-missing',
     ]);
     for (const row of missing) {
       expect(within(row).queryByRole('link')).toBeNull();
       expect(within(row).queryByTestId('document-actions')).toBeNull();
       expect(row.querySelector('td')!.className).toContain('text-muted-foreground');
     }
+    expect(await summaryOf('6')).toBe('0 din 5 emise · 4 negenerate');
 
     await openSection(user, '1');
     expect(
-      within(sectionOf('1'))
-        .getAllByRole('row')
-        .slice(1)
-        .map((row) => [row.getAttribute('data-testid'), row.querySelector('td')!.textContent])
+      shownRows().map((row) => [
+        row.getAttribute('data-testid'),
+        row.querySelector('td')!.textContent,
+      ])
     ).toEqual([
-      ['document-not-generated', 'Copertă – Deciziile interne în domeniul situațiilor de urgență'],
-      ['document-not-generated', 'Decizia privind organizarea apărării împotriva incendiilor'],
-      ['document-not-generated', 'Decizia privind instruirea în domeniul situațiilor de urgență'],
-      ['document-not-generated', 'Decizia privind lucrul cu foc deschis'],
-      ['document-not-generated', 'Decizia privind fumatul'],
-      ['document-not-generated', 'Decizia privind cadrul tehnic PSI'],
-      ['document-not-generated', 'Decizia privind instrucțiunile de apărare împotriva incendiilor'],
-      ['document-not-generated', 'Decizia privind colectarea deșeurilor'],
-      ['document-not-generated', 'Decizia privind perioadele caniculare și sezonul rece'],
-      ['document-not-generated', 'Decizia privind controlul propriu'],
+      ['document-missing', 'Copertă – Deciziile interne în domeniul situațiilor de urgență'],
+      ['document-missing', 'Decizia privind organizarea apărării împotriva incendiilor'],
+      ['document-missing', 'Decizia privind instruirea în domeniul situațiilor de urgență'],
+      ['document-missing', 'Decizia privind lucrul cu foc deschis'],
+      ['document-missing', 'Decizia privind fumatul'],
+      ['document-missing', 'Decizia privind cadrul tehnic PSI'],
+      ['document-missing', 'Decizia privind instrucțiunile de apărare împotriva incendiilor'],
+      ['document-missing', 'Decizia privind colectarea deșeurilor'],
+      ['document-missing', 'Decizia privind perioadele caniculare și sezonul rece'],
+      ['document-missing', 'Decizia privind controlul propriu'],
     ]);
 
     await openSection(user, '2');
     expect(
-      within(sectionOf('2'))
-        .getAllByRole('row')
-        .slice(1)
-        .map((row) => [row.getAttribute('data-testid'), row.querySelector('td')!.textContent])
+      shownRows().map((row) => [
+        row.getAttribute('data-testid'),
+        row.querySelector('td')!.textContent,
+      ])
     ).toEqual([
-      [
-        'document-not-generated',
-        'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență',
-      ],
-      ['document-not-generated', 'Instrucțiuni proprii în domeniul situațiilor de urgență'],
+      ['document-missing', 'Copertă – Instrucțiunile proprii în domeniul situațiilor de urgență'],
+      ['document-missing', 'Instrucțiuni proprii în domeniul situațiilor de urgență'],
     ]);
 
     await openSection(user, '3');
     expect(
-      within(sectionOf('3'))
-        .getAllByTestId('document-not-generated')
+      within(shownSection())
+        .getAllByTestId('document-missing')
         .map((row) => row.querySelector('td')!.textContent)
     ).toEqual([
       'Copertă – Tematica de instruire în domeniul situațiilor de urgență',
       'Tematica de instruire în domeniul situațiilor de urgență',
     ]);
-    expect(screen.queryByTestId('document-planned')).toBeNull();
     expect(screen.queryByTestId('documents-hint')).toBeNull();
     expect(screen.getByTestId('documents-generate').textContent).toContain(
       'Generează documentele lipsă'
     );
   });
 
-  it('shows the documents required from ten employees as not applying to a smaller client', async () => {
+  it("leaves the documents required from ten employees out of a smaller client's binder", async () => {
     mockApi({
       fireItems: [registers],
       currentEmployeeCount: 6,
@@ -434,60 +438,30 @@ describe('client fire-safety documents', () => {
     mount();
     const user = userEvent.setup();
 
+    expect(
+      (await screen.findAllByTestId('pack-contents-entry')).map(
+        (entry) => entry.firstElementChild?.textContent
+      )
+    ).toEqual(['1', '2', '3', '4', '5', '6']);
     await openSection(user, '1');
-    const decisions = within(sectionOf('1')).getAllByRole('row').slice(1);
-    expect(decisions.map((row) => row.getAttribute('data-testid'))).toEqual([
-      ...Array(8).fill('document-not-generated'),
-      'document-not-applicable',
-      'document-not-applicable',
-    ]);
-    const [seasons, control] = within(sectionOf('1')).getAllByTestId('document-not-applicable');
-    expect(seasons!.textContent).toBe(
-      'Decizia privind perioadele caniculare și sezonul receNu se aplicăSub 10 angajați'
+    expect(shownRows().map((row) => row.querySelector('td')!.textContent)).not.toContain(
+      'Decizia privind perioadele caniculare și sezonul rece'
     );
-    expect(control!.textContent).toContain('Decizia privind controlul propriu');
-    expect(within(seasons!).getByText('Nu se aplică').getAttribute('title')).toBe(
-      '6 angajați în lista clientului, așa că decizia privind perioadele caniculare și sezonul rece, decizia privind controlul propriu, graficele de întreținere și verificare, registrul de control pentru instalații, fișa obiectivului și raportul anual de evaluare nu se generează. Se cer de la 10 angajați.'
-    );
+    expect(shownRows()).toHaveLength(8);
 
     await openSection(user, '5');
-    expect(
-      within(sectionOf('5'))
-        .getAllByRole('row')
-        .slice(1)
-        .map((row) => row.getAttribute('data-testid'))
-    ).toEqual([
-      'document-not-generated',
-      'document-not-generated',
-      'document-not-generated',
-      'document-not-applicable',
+    expect(shownRows().map((row) => row.querySelector('td')!.textContent)).toEqual([
+      'Lista mijloacelor de apărare împotriva incendiilor',
+      'Organizarea apărării împotriva incendiilor la locul de muncă',
+      'Lista substanțelor periculoase',
     ]);
-    expect(within(sectionOf('5')).getByTestId('document-not-applicable').textContent).toBe(
-      'Graficele de întreținere și verificareNu se aplicăSub 10 angajați'
-    );
 
     await openSection(user, '6');
-    expect(
-      within(sectionOf('6'))
-        .getAllByRole('row')
-        .slice(1)
-        .map((row) => row.getAttribute('data-testid'))
-    ).toEqual([
-      'document-not-generated',
+    expect(shownRows().map((row) => row.getAttribute('data-testid'))).toEqual([
+      'document-missing',
       'document-row',
-      'document-not-generated',
-      'document-not-applicable',
-      'document-not-generated',
-    ]);
-
-    await openSection(user, '7');
-    expect(
-      within(sectionOf('7'))
-        .getAllByTestId('document-not-applicable')
-        .map((row) => row.textContent)
-    ).toEqual([
-      'Fișa obiectivuluiNu se aplicăSub 10 angajați',
-      `${reportTitle}Nu se aplicăSub 10 angajați`,
+      'document-missing',
+      'document-missing',
     ]);
 
     await user.click(screen.getByTestId('documents-generate'));
@@ -522,25 +496,26 @@ describe('client fire-safety documents', () => {
     );
   });
 
-  it('opens the section named in the address alone', async () => {
-    mockApi();
+  it('opens the section named in the address', async () => {
+    mockApi({ fireItems: [registers] });
     mount(`${firePath}?section=tests`);
 
-    const sections = await screen.findAllByTestId('document-section-trigger');
-    expect(sections.map((section) => section.getAttribute('data-state'))).toEqual([
-      'closed',
-      'closed',
-      'closed',
-      'open',
-      'closed',
-      'closed',
-      'closed',
-    ]);
-    expect(
-      within(sectionOf('4'))
-        .getAllByTestId('document-not-generated')
-        .map((row) => row.querySelector('td')!.textContent)
-    ).toEqual([
+    const entries = await screen.findAllByTestId('pack-contents-entry');
+    await waitFor(() =>
+      expect(entries.map((entry) => entry.getAttribute('aria-current'))).toEqual([
+        null,
+        null,
+        null,
+        'true',
+        null,
+        null,
+        null,
+      ])
+    );
+    expect(screen.getByTestId('pack-section-title').textContent).toBe(
+      'Teste de verificare a cunoștințelor'
+    );
+    expect(shownRows().map((row) => row.querySelector('td')!.textContent)).toEqual([
       'Copertă – Testele de verificare a cunoștințelor',
       'Test la angajare',
       'Test anual',
@@ -553,28 +528,19 @@ describe('client fire-safety documents', () => {
     const user = userEvent.setup();
 
     await openSection(user, '6');
-    expect(await screen.findAllByTestId('document-row')).toHaveLength(5);
-    expect(screen.queryByTestId('document-not-generated')).toBeNull();
+    expect(await within(shownSection()).findAllByTestId('document-row')).toHaveLength(5);
+    expect(screen.queryByTestId('document-missing')).toBeNull();
     expect(screen.getByTestId('documents-generate').textContent).toBe('Generează pentru alt an');
     expect(screen.queryByTestId('documents-hint')).toBeNull();
-    expect(
-      sectionOf('6').querySelector('[data-testid="document-section-summary"]')!.textContent
-    ).toBe('5 ciorne');
-    expect(
-      sectionOf('5').querySelector('[data-testid="document-section-summary"]')!.textContent
-    ).toBe('4 ciorne');
-    expect(
-      sectionOf('1').querySelector('[data-testid="document-section-summary"]')!.textContent
-    ).toBe('10 ciorne');
-    expect(
-      sectionOf('2').querySelector('[data-testid="document-section-summary"]')!.textContent
-    ).toBe('2 ciorne');
-    expect(
-      sectionOf('3').querySelector('[data-testid="document-section-summary"]')!.textContent
-    ).toBe('2 ciorne');
-    expect(
-      sectionOf('4').querySelector('[data-testid="document-section-summary"]')!.textContent
-    ).toBe('3 ciorne');
+    expect(await Promise.all(['1', '2', '3', '4', '5', '6', '7'].map(summaryOf))).toEqual([
+      '0 din 10 emise',
+      '0 din 2 emise',
+      '0 din 2 emise',
+      '0 din 3 emise',
+      '0 din 4 emise',
+      '0 din 5 emise',
+      '0 din 2 emise',
+    ]);
   });
 
   it('lists the registers and forms in the order of the binder, under its number', async () => {
@@ -587,14 +553,14 @@ describe('client fire-safety documents', () => {
     const runtime = mount();
     const user = userEvent.setup();
 
-    const sections = await screen.findAllByTestId('document-section-trigger');
-    expect(sections.map((section) => section.textContent).slice(5)).toEqual([
-      '6. Registre și formulare PSI3 ciorne · 2 negenerate',
-      '7. Documente pentru inspectoratnegenerat',
-      'Alte documente PSI1 ciornă',
+    const entries = await screen.findAllByTestId('pack-contents-entry');
+    expect(entries.map((entry) => entry.textContent).slice(5)).toEqual([
+      '6Registre și formulare PSI0 din 5 emise2 negenerate',
+      '7Documente pentru inspectorat0 din 2 emise2 negenerate',
+      'Alte documente PSICiornă',
     ]);
-    await user.click(sections[5]!);
-    const rows = await screen.findAllByTestId('document-row');
+    await openSection(user, '6');
+    const rows = within(shownSection()).getAllByTestId('document-row');
     expect(rows.map((row) => within(row).getByTestId('document-title').textContent)).toEqual([
       'Copertă registre PSI',
       'Registre PSI',
@@ -808,7 +774,7 @@ describe('client fire-safety documents', () => {
     await screen.findAllByTestId('document-row');
     expect(runtime.router.history.location.pathname).toBe(firePath);
     expect(runtime.router.history.location.search).toBe('?section=registers');
-    expect(runtime.router.history.length).toBe(2);
+    expect(runtime.router.history.length).toBe(3);
   });
 
   it('finds a document opened directly in the PSI list, and links back to its section', async () => {
@@ -834,11 +800,11 @@ describe('client fire-safety documents', () => {
     const user = userEvent.setup();
 
     await openSection(user, '7');
-    const rows = () => within(sectionOf('7')).getAllByTestId('document-row');
+    const rows = () => within(shownSection()).getAllByTestId('document-row');
     expect(rows().map((row) => within(row).getByTestId('document-title').textContent)).toEqual([
       'Raport anual de evaluare 2026',
     ]);
-    const toggle = within(sectionOf('7')).getByTestId('document-earlier-toggle');
+    const toggle = within(shownSection()).getByTestId('document-earlier-toggle');
     expect(toggle.textContent).toBe('Anii anteriori (1)');
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
 
@@ -861,8 +827,8 @@ describe('client fire-safety documents', () => {
     expect((await screen.findByTestId('documents-hint')).textContent).toBe(
       'Clientul este arhivat, așa că nu i se mai generează documente.'
     );
-    expect(await screen.findAllByTestId('document-section')).toHaveLength(7);
-    expect(screen.queryByTestId('documents-empty')).toBeNull();
+    expect(await screen.findAllByTestId('pack-empty-entry')).toHaveLength(7);
+    expect(screen.getByTestId('documents-empty')).toBeTruthy();
     expect(screen.queryByTestId('documents-generate')).toBeNull();
   });
 });

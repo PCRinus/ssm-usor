@@ -1,4 +1,4 @@
-import { createFileRoute, getRouteApi, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import { useAuth } from '@/features/auth/auth-context';
@@ -20,7 +20,6 @@ const clientRoute = getRouteApi('/_authenticated/clients/$clientId');
 function FireSafetyDocumentsPage() {
   const { client } = clientRoute.useLoaderData();
   const { section, focus } = Route.useSearch();
-  const navigate = useNavigate({ from: Route.fullPath });
   const { session } = useAuth();
   // The shell renders this only for a signed-in user.
   if (!session) return null;
@@ -32,11 +31,8 @@ function FireSafetyDocumentsPage() {
         clientId={client.id}
         userId={session.user.id}
         readOnly={client.archivedAt !== null}
-        openSection={section}
+        section={section}
         focus={focus}
-        onOpenSectionChange={(next) =>
-          void navigate({ search: { section: next }, replace: true, resetScroll: false })
-        }
       />
     </div>
   );

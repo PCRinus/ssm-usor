@@ -191,7 +191,7 @@ test('a client gets its whole documentation, numbered and dated, and downloads a
 }) => {
   const rows = await generateDocumentation(page, 'documents-owner', 'CLIENT DOCUMENTE E2E');
 
-  await expect(page.getByTestId('document-section')).toHaveCount(12);
+  await expect(page.getByTestId('pack-contents-entry')).toHaveCount(12);
   await openDocumentSection(page, '6');
   // The equipment list is generated from the positions and their entries (ADR 011).
   await expect(
@@ -200,9 +200,10 @@ test('a client gets its whole documentation, numbered and dated, and downloads a
   // The whole set exists, so there is nothing left to generate.
   await expect(page.getByTestId('documents-generate')).toHaveCount(0);
   await openDocumentSection(page, '1');
-  await expect(page.getByTestId('document-not-applicable')).toContainText(
-    'Decizia privind reprezentanții lucrătorilorNu se aplică'
+  await expect(rows.filter({ hasText: 'Decizia privind reprezentanții lucrătorilor' })).toHaveCount(
+    0
   );
+  await expect(page.getByTestId('document-missing')).toHaveCount(0);
   const firstAid = rows.filter({ hasText: 'Decizia privind responsabilii cu primul ajutor' });
   await expect(firstAid).toContainText('Decizia nr. 5 SSM');
   await expect(firstAid).toContainText('19.01.2026');

@@ -685,13 +685,14 @@ export async function cleanUp() {
   }
 }
 
-// A closed section of the client's documents renders no rows; `number` is the binder's.
+// Only the section on show renders its rows; `number` is the binder's. The flows run at
+// 1280 px, where the contents stand beside the section.
 export async function openDocumentSection(page: Page, number: string) {
-  const trigger = page
-    .getByTestId('document-section-trigger')
-    .filter({ hasText: new RegExp(`^${number}\\. `) });
-  if ((await trigger.getAttribute('data-state')) !== 'open') await trigger.click();
-  await expect(trigger).toHaveAttribute('data-state', 'open');
+  const entry = page
+    .getByTestId('pack-contents-entry')
+    .filter({ has: page.getByText(number, { exact: true }) });
+  if ((await entry.getAttribute('aria-current')) !== 'true') await entry.click();
+  await expect(entry).toHaveAttribute('aria-current', 'true');
 }
 
 // Past the login form, which password.spec.ts and registration.spec.ts test.

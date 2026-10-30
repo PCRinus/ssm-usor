@@ -180,18 +180,21 @@ const requests = (suffix: string, method: string) =>
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clients/${clientId}/documents`);
 
-async function openSection(user: ReturnType<typeof userEvent.setup>, number: string) {
-  const trigger = (await screen.findAllByTestId('document-section-trigger')).find((item) =>
-    item.textContent?.startsWith(`${number}. `)
+const contentsEntry = async (number: string) =>
+  (await screen.findAllByTestId('pack-contents-entry')).find(
+    (entry) => entry.firstElementChild?.textContent === number
   )!;
-  if (trigger.getAttribute('data-state') !== 'open') await user.click(trigger);
+
+async function openSection(user: ReturnType<typeof userEvent.setup>, number: string) {
+  const entry = await contentsEntry(number);
+  if (entry.getAttribute('aria-current') !== 'true') await user.click(entry);
+  await waitFor(() => expect(entry.getAttribute('aria-current')).toBe('true'));
 }
 
-const summaryOf = (number: string) =>
-  screen
-    .getAllByTestId('document-section')
-    .find((item) => item.textContent?.startsWith(`${number}. `))!
-    .querySelector('[data-testid="document-section-summary"]')!.textContent;
+const summaryOf = async (number: string) =>
+  [...(await contentsEntry(number)).querySelector('[data-testid="pack-section-caption"]')!.children]
+    .map((part) => part.textContent)
+    .join(' · ');
 
 async function openMenu(user: ReturnType<typeof userEvent.setup>, title: string, section = '1') {
   await openSection(user, section);
@@ -205,6 +208,11 @@ async function openMenu(user: ReturnType<typeof userEvent.setup>, title: string,
 beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
+  const media = window.matchMedia;
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn((query: string) => ({ ...media(query), matches: query === '(min-width: 1280px)' }))
+  );
 });
 
 afterEach(() => {
@@ -376,17 +384,15 @@ describe('client documents', () => {
     });
     mount();
     await openSection(userEvent.setup(), '1');
-    await screen.findAllByTestId('document-row');
+    expect(await screen.findAllByTestId('document-row')).toHaveLength(5);
     expect(screen.queryByTestId('documents-generate')).toBeNull();
-    const skipped = screen.getByTestId('document-not-applicable');
-    expect(skipped.textContent).toContain('Decizia privind reprezentanții lucrătorilor');
-    expect(skipped.textContent).toContain('Nu se aplică');
-    expect(summaryOf('1')).toBe('5 ciorne');
+    expect(screen.queryByTestId('document-missing')).toBeNull();
+    expect(await summaryOf('1')).toBe('0 din 5 emise');
   });
 
   const sectionNumbers = async () =>
-    (await screen.findAllByTestId('document-section-trigger')).map(
-      (trigger) => trigger.textContent?.split('.')[0]
+    (await screen.findAllByTestId('pack-contents-entry')).map(
+      (entry) => entry.firstElementChild?.textContent
     );
 
   it('leaves the annex on the electronic signature out for a client without participants', async () => {
@@ -401,7 +407,7 @@ describe('client documents', () => {
     mockApi({ items: [report] });
     mount();
     expect(await sectionNumbers()).toContain('13');
-    expect(summaryOf('13')).toBe('negenerat');
+    expect(await summaryOf('13')).toBe('Negenerat');
   });
 
   it.each([
@@ -677,6 +683,39 @@ describe('client documents', () => {
     );
   });
 
+  it('on a narrow screen points to the document the address names, in its section alone', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }))
+    );
+    mockApi({ items: [firstAid, report] });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `/clients/${clientId}/documents?section=decisions&focus=decision_first_aid`
+    );
+    const user = userEvent.setup();
+
+    await waitFor(() =>
+      expect(
+        document.getElementById('document-decision_first_aid')?.hasAttribute('data-pointed')
+      ).toBe(true)
+    );
+    expect(screen.queryByTestId('pack-contents')).toBeNull();
+    expect(screen.queryByTestId('documents-archive')).toBeNull();
+
+    await user.click(screen.getByTestId('pack-back'));
+
+    expect(await screen.findAllByTestId('pack-contents-entry')).toHaveLength(13);
+    expect(screen.queryByTestId('document-row')).toBeNull();
+    expect(screen.getByTestId('documents-archive')).toBeTruthy();
+    expect(runtime.router.state.location.search).toEqual({});
+  });
+
   it('opens the section quietly when the document the address names is not there', async () => {
     mockApi({ items: [firstAid] });
     const runtime = mountApp(
@@ -797,7 +836,7 @@ describe('client documents', () => {
     expect(requests('/documents/behind', 'GET')).toHaveLength(1);
   });
 
-  it('lists documents in the sections of the binder, one section open at a time', async () => {
+  it('lists documents in the sections of the binder, the first one open beside them', async () => {
     mockApi({
       items: [
         {
@@ -811,21 +850,23 @@ describe('client documents', () => {
     const runtime = mount();
     const user = userEvent.setup();
 
-    await screen.findAllByTestId('document-section');
-    expect(screen.queryByTestId('document-row')).toBeNull();
-    expect(summaryOf('1')).toBe('1 emis · 1 ciornă · 1 cu date modificate');
-    expect(summaryOf('2')).toBe('negenerat');
-    expect(summaryOf('8')).toBe('1 ciornă');
-    expect(summaryOf('9')).toBe('negenerat');
+    expect(await summaryOf('1')).toBe('0 din 6 emise · 1 de actualizat · 5 negenerate');
+    expect(await summaryOf('2')).toBe('0 din 2 emise · 2 negenerate');
+    expect(await summaryOf('8')).toBe('Ciornă');
+    expect(await summaryOf('9')).toBe('Negenerat');
+    expect(screen.getByTestId('pack-legend').textContent).toBe(
+      '0 emise1 de actualizat1 ciornă22 de negenerate24 de documente în 13 secțiuni'
+    );
 
-    await openSection(user, '1');
+    expect((await contentsEntry('1')).getAttribute('aria-current')).toBe('true');
     const [decision] = await screen.findAllByTestId('document-row');
+    expect(screen.getAllByTestId('document-missing')).toHaveLength(5);
     expect(decision!.textContent).toContain('Decizia nr. 5 SSM');
     expect(within(decision!).getByTestId('document-issued').textContent).toBe('Emis · rev. 1');
     expect(within(decision!).getByTestId('document-draft').textContent).toBe('Ciornă · rev. 2');
     expect(within(decision!).getByTestId('document-data-changed')).toBeTruthy();
     expect(decision!.textContent).toContain('19.01.2026');
-    expect(runtime.router.history.location.search).toBe('?section=decisions');
+    expect(runtime.router.history.location.search).toBe('');
 
     await openSection(user, '8');
     await waitFor(() => expect(screen.getAllByTestId('document-row')).toHaveLength(1));
@@ -833,7 +874,7 @@ describe('client documents', () => {
     expect(form!.textContent).toContain('Referat de control');
     expect(within(form!).queryByTestId('document-data-changed')).toBeNull();
     expect(runtime.router.history.location.search).toBe('?section=control-report');
-    expect(runtime.router.history.length).toBe(1);
+    expect(runtime.router.history.length).toBe(2);
   });
 
   it('flags a document behind its instructions, saying which module moved and what to regenerate first', async () => {
@@ -1253,8 +1294,11 @@ describe('client documents', () => {
     mount();
     const user = userEvent.setup();
 
-    await screen.findAllByTestId('document-section');
-    expect(['4', '9', '10'].map(summaryOf)).toEqual(Array(3).fill('negenerat'));
+    expect(await Promise.all(['4', '9', '10'].map(summaryOf))).toEqual([
+      '0 din 2 emise · 2 negenerate',
+      'Negenerat',
+      'Negenerat',
+    ]);
 
     await openMenu(user, 'primul ajutor', '1');
     await user.click(screen.getByTestId('document-upload'));
@@ -1403,7 +1447,7 @@ describe('client documents', () => {
     await user.click(screen.getByTestId('editor-back'));
     await screen.findAllByTestId('document-row');
     expect(runtime.router.history.location.pathname).toBe(`/clients/${clientId}/documents`);
-    expect(runtime.router.history.location.search).toBe('?section=decisions');
+    expect(runtime.router.history.location.search).toBe('');
     expect(runtime.router.history.length).toBe(2);
   });
 
