@@ -7618,7 +7618,7 @@ export type Database = {
         | 'changed_procedure'
         | 'new_technology';
       test_result_source: 'portal' | 'paper';
-      test_state: 'none' | 'pending' | 'passed' | 'annual_due';
+      test_state: 'none' | 'pending' | 'unverified' | 'passed' | 'annual_due';
       training_domain: 'ssm' | 'psi';
       training_phase: 'introductory_general' | 'workplace' | 'periodic' | 'supplementary';
       training_source: 'app' | 'paper';
@@ -7831,7 +7831,7 @@ export const Constants = {
         'new_technology',
       ],
       test_result_source: ['portal', 'paper'],
-      test_state: ['none', 'pending', 'passed', 'annual_due'],
+      test_state: ['none', 'pending', 'unverified', 'passed', 'annual_due'],
       training_domain: ['ssm', 'psi'],
       training_phase: ['introductory_general', 'workplace', 'periodic', 'supplementary'],
       training_source: ['app', 'paper'],
