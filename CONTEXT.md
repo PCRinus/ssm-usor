@@ -136,7 +136,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Test sheet** (_fișa de test_): the PDF of a passing attempt, the questions with the answers chosen, the score and the grade, signed by the trainee and the examiner through the signing pipeline and kept with the employee's documents. ADR 024. Avoid: test document, which is the printed test of the set, and certificate.
 
-**Test state** (_starea testării_): per employee and domain, computed, never stored: _fără test_ before a hiring training is recorded, _de susținut_ while a test awaits, _promovat_ once passed, _anual scadent_ once twelve months have passed since the last fire-safety pass; none for a leaver. A test awaits by itself, from a hiring training record held in the app or from the date; after a hiring record from paper, no hiring test awaits. Nothing is sent. ADR 024, ADR 032. Avoid: tested as a yes or no, assignment.
+**Test state** (_starea testării_): per employee and domain, computed, never stored: _fără test_ before a hiring training is recorded, _de susținut_ while a test awaits, _promovat_ once passed, _anual scadent_ once twelve months have passed since the last fire-safety pass, _neverificat pe fișă_ when the newest hiring training record is from paper and no pass is recorded; none for a leaver. A test awaits by itself, from a hiring training record held in the app or from the date; after a hiring record from paper, no hiring test awaits. Nothing is sent. ADR 024, ADR 032. Avoid: tested as a yes or no, assignment.
 
 **Study card** (_ce trebuie să știi_): the screen before a test in the portal: the explanations of the test's questions that have one, and the issued material the test closes. ADR 024. Avoid: course, lesson.
 
