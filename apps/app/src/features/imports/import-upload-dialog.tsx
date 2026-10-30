@@ -183,7 +183,7 @@ function UploadForm({
     ...selection.largeZips.map((name) => ({
       name,
       testId: 'import-zip-large',
-      text: `e prea mare pentru un singur import, care ia cel mult ${importLimits.files} de fișiere și 100 MB. Dezarhivează-l și împarte documentele în mai multe importuri.`,
+      text: `e prea mare pentru un singur import, care ia cel mult ${importLimits.client.files} de fișiere și 100 MB. Dezarhivează-l și împarte documentele în mai multe importuri.`,
     })),
   ].filter((notice) => !dismissed.includes(notice.name));
 
@@ -338,7 +338,7 @@ function UploadForm({
             ))}
             {over && (
               <Notice variant="destructive" data-testid="import-upload-over">
-                Un import ia cel mult {importLimits.files} de fișiere și 100 MB. Ai ales{' '}
+                Un import ia cel mult {importLimits.client.files} de fișiere și 100 MB. Ai ales{' '}
                 {filesLabel(totals.count)}, {formatFileSize(totals.bytes)}. Scoate câteva și încarcă
                 restul într-un import separat.
               </Notice>

@@ -57,7 +57,7 @@ export const emptySelection = nothingFound();
 
 const unopenedArchives = new Set(['7z', 'rar', 'tar', 'gz', 'tgz', 'bz2', 'xz', 'zipx', 'cab']);
 
-const maxZipBytes = 4 * importLimits.totalBytes;
+const maxZipBytes = 4 * importLimits.client.totalBytes;
 
 const maxZipDepth = 3;
 
@@ -114,7 +114,7 @@ function sortOne(path: string, blob: Blob, group: string, into: Selection, zips:
     ? 'unsupported'
     : blob.size === 0
       ? 'empty'
-      : blob.size > importLimits.fileBytes
+      : blob.size > importLimits.client.fileBytes
         ? 'too_large'
         : name.length > 255
           ? 'name_too_long'
@@ -162,7 +162,7 @@ async function openZips(zips: Zip[], into: Selection) {
               reason: 'unsupported',
               group,
             });
-          } else if (extension !== 'zip' && entry.originalSize > importLimits.fileBytes) {
+          } else if (extension !== 'zip' && entry.originalSize > importLimits.client.fileBytes) {
             found.setAside.push({
               key: nextKey(),
               path,
@@ -173,7 +173,10 @@ async function openZips(zips: Zip[], into: Selection) {
           } else {
             budget.bytes += entry.originalSize;
             if (extension !== 'zip') budget.files += 1;
-            if (budget.bytes > importLimits.totalBytes || budget.files > importLimits.files) {
+            if (
+              budget.bytes > importLimits.client.totalBytes ||
+              budget.files > importLimits.client.files
+            ) {
               throw new OverBudget();
             }
             return true;
@@ -266,8 +269,8 @@ export function selectionTotals(selection: Selection) {
   return {
     count: selection.files.length,
     bytes,
-    overFiles: selection.files.length > importLimits.files,
-    overBytes: bytes > importLimits.totalBytes,
+    overFiles: selection.files.length > importLimits.client.files,
+    overBytes: bytes > importLimits.client.totalBytes,
   };
 }
 

@@ -389,6 +389,64 @@ describe('POST /imports/{importId}/files', () => {
     expect(response.status).toBe(422);
     expect(await response.json()).toMatchObject({ reason: 'import_too_large' });
   });
+
+  it('keeps a client import to 20 MiB a file', async () => {
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
+      if (url.pathname === '/rest/v1/import_files' && method === 'GET') return Response.json([]);
+    });
+    const response = await request(`/imports/${importId}/files`, 'POST', {
+      files: [{ ...upload('Dosar/Plan.pdf'), sizeBytes: 20 * 1024 * 1024 + 1 }],
+    });
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({ reason: 'import_too_large' });
+    expect(callsTo('/rest/v1/import_files', 'POST')).toEqual([]);
+  });
+
+  it('holds an employee import to its own caps: 500 files, 25 MiB a file', async () => {
+    const employeeImport = importRow({
+      kind: 'employees',
+      client_id: clientId,
+      into_existing_client: true,
+    });
+    mockUpstream(({ url, method, body }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(employeeImport);
+      if (url.pathname === '/rest/v1/import_files' && method === 'GET') {
+        return Response.json(Array.from({ length: 499 }, (_, index) => fileRow(index + 1)));
+      }
+      if (url.pathname === '/rest/v1/import_files' && method === 'POST') {
+        return Response.json(
+          (body as { upload_path: string }[]).map((row) => ({
+            id: fileId(500),
+            upload_path: row.upload_path,
+            storage_path: storagePath(importId, 500, 'jpg'),
+          })),
+          { status: 201 }
+        );
+      }
+    });
+    const photo = (path: string) => ({
+      ...upload(path, 'image/jpeg'),
+      sizeBytes: 25 * 1024 * 1024,
+    });
+
+    const accepted = await request(`/imports/${importId}/files`, 'POST', {
+      files: [photo('Fise/IMG_0500.jpg')],
+    });
+    expect(accepted.status).toBe(201);
+
+    const past = await request(`/imports/${importId}/files`, 'POST', {
+      files: [photo('Fise/IMG_0501.jpg'), photo('Fise/IMG_0502.jpg')],
+    });
+    expect(past.status).toBe(422);
+    expect(await past.json()).toMatchObject({ reason: 'import_too_large' });
+
+    const larger = await request(`/imports/${importId}/files`, 'POST', {
+      files: [{ ...photo('Fise/IMG_0503.jpg'), sizeBytes: 25 * 1024 * 1024 + 1 }],
+    });
+    expect(larger.status).toBe(400);
+    expect(callsTo('/rest/v1/import_files', 'POST')).toHaveLength(1);
+  });
 });
 
 describe('POST /imports/{importId}/start', () => {

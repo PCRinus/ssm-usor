@@ -33,8 +33,8 @@ export function extractionRefusalOf(error: unknown): ExtractionRefusal | null {
   return extractionRefusals.find((each) => each === reason) ?? null;
 }
 
-/** The largest file the extractor takes, as for a client file. */
-export const extractorFileLimit = 20 * 1024 * 1024;
+/** The largest file the extractor takes: the largest file of an import, an employee import's. */
+export const extractorFileLimit = 25 * 1024 * 1024;
 
 export type PdfPageText = {
   /** From 1. */

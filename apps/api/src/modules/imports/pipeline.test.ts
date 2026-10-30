@@ -1069,7 +1069,7 @@ describe('a file whose upload was not what was declared', () => {
     expect(outcomes.every((outcome) => outcome.outcome === 'ack')).toBe(true);
     expect(world.imports.get(importId)).toMatchObject({
       status: 'failed',
-      failure_reason: importReasons.overLimits,
+      failure_reason: importReasons.overLimits.client,
     });
     expect(modelRequests).toEqual([]);
   });

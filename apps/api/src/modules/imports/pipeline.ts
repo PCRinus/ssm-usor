@@ -3,6 +3,7 @@ import {
   extractionFailed,
   extractionRefusalOf,
   type ExtractorService,
+  importLimits,
   type PdfPageText,
 } from '@ssm-usor/contracts';
 import {
@@ -72,7 +73,6 @@ export interface PipelineDeps {
 // The documents go to the reading model in one request, so this bounds that request's cost and
 // size: about 185,000 tokens at the 3.25 characters a token measured on the reference packs.
 export const maxReadingCharacters = 600_000;
-export const maxScannedPages = 150;
 // The reading's is the one the evaluation used.
 export const sortingOutputTokens = 16_000;
 export const readingOutputTokens = 64_000;
@@ -116,16 +116,24 @@ export const fileReasons = {
 export const importReasons = {
   nothingPrepared: 'Niciun fișier nu a putut fi citit.',
   nothingToRead: 'Niciun document nu conține date despre client.',
-  tooManyScans:
-    'Sunt prea multe pagini scanate pentru un singur import: cel mult 150. Scoate o parte dintre fișierele scanate.',
+  tooManyScans: {
+    client:
+      'Sunt prea multe pagini scanate pentru un singur import: cel mult 150. Scoate o parte dintre fișierele scanate.',
+    employees:
+      'Sunt prea multe fotografii și pagini scanate pentru un singur import: cel mult 500. Împarte fișele în mai multe importuri.',
+  },
   scansUnfinished: 'Citirea fișierelor scanate nu s-a terminat.',
   unavailable: 'Serviciul care citește documentele nu a răspuns.',
   notConfigured: 'Importul din documente nu este disponibil acum.',
   modelRefused: 'Modelul a refuzat să citească documentele.',
   modelFailed: 'Modelul nu a dat un răspuns pe care să-l putem folosi.',
   failed: 'Importul s-a oprit din cauza unei erori.',
-  overLimits:
-    'Fișierele depășesc limitele unui import: cel mult 150 de fișiere și 100 MiB, fiecare fișier de cel mult 20 MiB.',
+  overLimits: {
+    client:
+      'Fișierele depășesc limitele unui import: cel mult 150 de fișiere și 100 MiB, fiecare fișier de cel mult 20 MiB.',
+    employees:
+      'Fișierele depășesc limitele unui import de angajați: cel mult 500 de fișiere și 1 GiB, fiecare fișier de cel mult 25 MiB.',
+  },
   stalled: 'Importul s-a oprit înainte să se termine.',
   left: 'Importul a rămas neterminat 14 zile.',
 } as const;
@@ -345,7 +353,11 @@ export async function prepareFile(deps: PipelineDeps, importId: string, fileId: 
       await deps.store.updateFile(file.id, await prepare(deps, file), 'uploaded');
     } catch (error) {
       if (error instanceof ImportLimitError) {
-        await deps.store.advance(importId, 'preparing', failedPatch(importReasons.overLimits));
+        await deps.store.advance(
+          importId,
+          'preparing',
+          failedPatch(importReasons.overLimits[row.kind])
+        );
         return;
       }
       if (!permanentFileFailure(error)) throw error;
@@ -512,7 +524,9 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
   if (toRead === 0) throw new ImportFailure(importReasons.nothingToRead);
   const overCap = tooMuchText(kept);
   if (overCap) throw new ImportFailure(overCap);
-  if (scannedPages > maxScannedPages) throw new ImportFailure(importReasons.tooManyScans);
+  if (scannedPages > importLimits[row.kind].scannedPages) {
+    throw new ImportFailure(importReasons.tooManyScans[row.kind]);
+  }
 
   const companyName = sorting.company?.name?.trim().slice(0, 200) ?? null;
   await transition(

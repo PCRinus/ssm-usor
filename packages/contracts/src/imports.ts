@@ -53,12 +53,35 @@ export const importFileExtensions = {
   heif: ['image/heic', 'image/heif'],
 } as const satisfies Record<string, readonly ImportFileType[]>;
 
-/** The caps of ADR 030, which the database applies as well. */
+export const importKinds = ['client', 'employees'] as const;
+export type ImportKind = (typeof importKinds)[number];
+
+export type ImportLimits = {
+  files: number;
+  totalBytes: number;
+  fileBytes: number;
+  // Photographs and scanned PDF pages, each read by the model on its own.
+  scannedPages: number;
+};
+
+/** The caps of each kind (ADR 030, ADR 032), which the database applies as well. */
 export const importLimits = {
-  files: 150,
-  totalBytes: 100 * 1024 * 1024,
-  fileBytes: 20 * 1024 * 1024,
-} as const;
+  client: {
+    files: 150,
+    totalBytes: 100 * 1024 * 1024,
+    fileBytes: 20 * 1024 * 1024,
+    scannedPages: 150,
+  },
+  employees: {
+    files: 500,
+    totalBytes: 1024 * 1024 * 1024,
+    fileBytes: 25 * 1024 * 1024,
+    scannedPages: 500,
+  },
+} as const satisfies Record<ImportKind, ImportLimits>;
+
+// What a request may carry before its import's kind is known; the API holds each kind to its own.
+const largestImport = importLimits.employees;
 
 /** `reason` values on import errors, so the SPA can word them itself. */
 export const importErrorReasons = {
@@ -127,12 +150,12 @@ export const registerImportFilesRequestSchema = z.object({
         // last part.
         uploadPath,
         mimeType: z.enum(importFileTypes),
-        sizeBytes: z.int().min(1).max(importLimits.fileBytes),
+        sizeBytes: z.int().min(1).max(largestImport.fileBytes),
         sha256: z.string().regex(/^[0-9a-f]{64}$/),
       })
     )
     .min(1)
-    .max(importLimits.files),
+    .max(largestImport.files),
 });
 
 export type RegisterImportFilesRequest = z.infer<typeof registerImportFilesRequestSchema>;
@@ -158,7 +181,7 @@ const person = z.object({ id: z.uuid(), fullName: z.string().nullable() });
 
 export const importSummarySchema = z.object({
   id: z.uuid(),
-  kind: z.enum(['client', 'employees']),
+  kind: z.enum(importKinds),
   status: z.enum(importStatuses),
   // The client completed, or the one a confirmed import created; null for a new client before.
   client: z.object({ id: z.uuid(), legalName: z.string() }).nullable(),
@@ -361,7 +384,7 @@ export type ConfirmImportResponse = z.infer<typeof confirmImportResponseSchema>;
 
 export const splitImportRequestSchema = z.object({
   // Files of another company, as `otherCompanies` lists them.
-  fileIds: z.array(z.uuid()).min(1).max(importLimits.files),
+  fileIds: z.array(z.uuid()).min(1).max(importLimits.client.files),
 });
 
 export type SplitImportRequest = z.infer<typeof splitImportRequestSchema>;

@@ -7,6 +7,7 @@ import {
   importErrorReasons,
   importFileExtensions,
   type ImportFileType,
+  type ImportLimits,
   importLimits,
   type ImportSourceResponse,
   type ImportSummary,
@@ -38,7 +39,6 @@ import {
   characterCount,
   describe,
   loadPrepared,
-  maxScannedPages,
   type PreparedPages,
   sendAll,
   textPathOf,
@@ -434,10 +434,12 @@ function checkedPaths(files: { uploadPath: string; mimeType: ImportFileType }[])
   }
 }
 
-const tooLarge = () =>
+const mebibytes = (bytes: number) => bytes / (1024 * 1024);
+
+const tooLarge = (limits: ImportLimits) =>
   new ApiError(
     'unprocessable',
-    'An import holds at most 150 files and 100 MiB.',
+    `An import of this kind holds at most ${limits.files} files and ${mebibytes(limits.totalBytes)} MiB, each file at most ${mebibytes(limits.fileBytes)} MiB.`,
     undefined,
     importErrorReasons.tooLarge
   );
@@ -465,8 +467,13 @@ export const registerImportFiles: RouteHandler<typeof registerImportFilesRoute, 
     (total, file) => total + ('sizeBytes' in file ? file.sizeBytes : file.size_bytes),
     0
   );
-  if (known.length + files.length > importLimits.files || bytes > importLimits.totalBytes) {
-    throw tooLarge();
+  const limits = importLimits[row.kind];
+  if (
+    known.length + files.length > limits.files ||
+    bytes > limits.totalBytes ||
+    files.some((file) => file.sizeBytes > limits.fileBytes)
+  ) {
+    throw tooLarge(limits);
   }
   const { data, error } = await admin
     .from('import_files')
@@ -482,7 +489,7 @@ export const registerImportFiles: RouteHandler<typeof registerImportFilesRoute, 
       }))
     )
     .select('id, upload_path, storage_path');
-  if (error?.code === 'IMP05') throw tooLarge();
+  if (error?.code === 'IMP05') throw tooLarge(limits);
   if (error?.code === 'IMP01') throw notUploading();
   if (error) throw fromDatabaseError(error, 'register import files');
   return c.json(
@@ -899,7 +906,7 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
     (sum, entry) => sum + (entry.pages?.pages.filter((page) => page.isScan).length ?? 0),
     0
   );
-  if (scannedPages > maxScannedPages) {
+  if (scannedPages > importLimits[row.kind].scannedPages) {
     throw new ApiError(
       'unprocessable',
       'With this file the documents have more scanned pages than one import reads.',
