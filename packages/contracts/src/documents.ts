@@ -163,6 +163,38 @@ export const fireSafetyTypeKeysFromTenEmployees = [
 export type FireSafetyTypeKeyFromTenEmployees = (typeof fireSafetyTypeKeysFromTenEmployees)[number];
 
 /**
+ * The template titles of the occupational safety set, which name a document before it exists.
+ * Held to the manifest by a test.
+ */
+export const occupationalSafetyDocumentTitles = {
+  cover_decisions: 'Copertă – Deciziile interne',
+  decision_training: 'Decizia privind responsabilii cu instruirea',
+  decision_risk_evaluation_team: 'Decizia privind echipa de evaluare a riscurilor',
+  decision_first_aid: 'Decizia privind responsabilii cu primul ajutor',
+  decision_imminent_danger: 'Decizia privind pericolul grav și iminent',
+  decision_workers_representative: 'Decizia privind reprezentanții lucrătorilor',
+  cover_general_training_material: 'Copertă – Material de instruire introductiv-generală',
+  general_training_material: 'Material de instruire introductiv-generală',
+  cover_own_instructions: 'Copertă – Instrucțiuni proprii',
+  own_instructions: 'Instrucțiuni proprii de securitate și sănătate în muncă',
+  cover_training_themes: 'Copertă – Tematica de instruire',
+  training_themes: 'Tematica și programul de instruire',
+  cover_tests: 'Copertă – Test de verificare a cunoștințelor',
+  test_hiring: 'Test de verificare a cunoștințelor la angajare',
+  protective_equipment_list: 'Lista internă de dotare cu echipament individual de protecție',
+  cover_event_registers: 'Copertă – Registrele de evidență a evenimentelor',
+  event_registers: 'Registrele de evidență a evenimentelor',
+  control_report: 'Referat de control',
+  risk_assessment: 'Evaluarea riscurilor de accidentare și îmbolnăvire profesională',
+  prevention_plan: 'Planul de prevenire și protecție',
+  cover_employer_briefing: 'Copertă – Material de informare a angajatorului',
+  employer_briefing: 'Material de informare a angajatorului',
+  control_regulation: 'Regulament intern privind controlul propriu',
+  signing_regulation_annex:
+    'Anexă la Regulamentul intern privind semnarea electronică a fișelor de instruire',
+} as const satisfies Record<DocumentTypeKey, string>;
+
+/**
  * The template titles of the fire-safety set, which the documents name each other by before
  * they exist. Held to the fire-safety manifest by a test.
  */
