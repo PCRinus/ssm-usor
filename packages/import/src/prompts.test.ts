@@ -84,6 +84,8 @@ describe('readingMessages', () => {
       'a value read from a table row quotes the whole row as written, pipes included',
       'starts with that table\'s heading naming the post, then "…", then the row',
       'A row that repeats under the tables of several posts is one entry for each table',
+      'cu atribuții în domeniul apărării împotriva incendiilor',
+      'never the safety service\'s PSI technician ("cadru tehnic cu atribuții în domeniul prevenirii și stingerii incendiilor")',
     ]) {
       expect(system!.content).toContain(rule);
     }
