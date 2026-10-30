@@ -51,12 +51,25 @@ const yearWord = /\b(?:ani?|years?)\b/;
 // Romanian puts "de" between a number from 20 up and its unit: "24 de luni", "20 de ani".
 const years = /^(\d+(?:[.,]\d+)?|un|one)\s+(?:de\s+)?(?:ani?|years?)(?:\s+de\s+zile)?$/;
 
-function wireMonths(value: unknown) {
+export const intervalWords: Record<string, number> = {
+  lunar: 1,
+  trimestrial: 3,
+  semestrial: 6,
+  anual: 12,
+};
+
+const intervalWord = /^(?:periodicitate\s*:?\s*)?(lunar|trimestrial|semestrial|anual)[ae]?$/;
+
+export function wireMonths(value: unknown) {
   const text = String(value)
     .trim()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
     .toLowerCase()
     .replace(/\s*\([^)]*\)/g, '')
     .replace(/[\s.,;:!]+$/, '');
+  const word = intervalWord.exec(text)?.[1];
+  if (word !== undefined) return intervalWords[word]!;
   if (!yearWord.test(text)) return wireNumber(text, true);
   const match = years.exec(text);
   if (!match) return null;

@@ -144,6 +144,9 @@ export function sortFiles(
     const triage = entry.triage;
     if (triage === null) return { path: entry.path, outcome: 'read' };
     if (triage.kind === 'training_sheet') return { path: entry.path, outcome: 'employee_import' };
+    // The themes give the intervals and categories a training decision often leaves out, and a
+    // sorting that judged them generic would lose them.
+    if (triage.kind === 'training_themes') return { path: entry.path, outcome: 'read' };
     if (setAsideKinds.includes(triage.kind) || !triage.carriesClientData) {
       return { path: entry.path, outcome: 'set_aside', kind: triage.kind };
     }
