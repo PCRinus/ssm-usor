@@ -11,7 +11,7 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import { contained, cuiDigits, foldName, foldText, sameAddress, similar } from './match';
+import { contained, cuiDigits, foldName, foldText, sameAddress, similar, streetKey } from './match';
 import {
   clientFieldNames,
   type Field,
@@ -329,16 +329,41 @@ function mergeSources(into: Source[], from: Source[]) {
   }
 }
 
-function addOption<T extends string | number>(options: Option<T>[], option: Option<T>) {
-  const same = options.find((known) => sameValue(known.value, option.value));
-  if (!same) {
+const phoneDigits = (value: string | number) =>
+  String(value)
+    .replace(/\D/g, '')
+    .replace(/^(0040|40)(?=\d{9}$)/, '0');
+
+const sameBy =
+  (key: (value: string | number) => string) => (a: string | number, b: string | number) =>
+    key(a) === '' || key(b) === '' ? sameValue(a, b) : key(a) === key(b);
+
+const sameFactValue: Record<string, (a: string | number, b: string | number) => boolean> = {
+  'client.legalName': sameBy((value) => foldName(String(value))),
+  'client.addressLine': sameBy((value) => streetKey(String(value))),
+  'client.contactPhone': sameBy(phoneDigits),
+};
+
+function addOption<T extends string | number>(
+  options: Option<T>[],
+  option: Option<T>,
+  same: (a: T, b: T) => boolean = sameValue
+) {
+  const known = options.find((each) => same(each.value, option.value));
+  if (!known) {
     options.push({ ...option, sources: [...option.sources] });
     return;
   }
-  mergeSources(same.sources, option.sources);
-  if (option.otherCompanyName === null) same.otherCompanyName = null;
-  // Of two spellings that differ only in diacritics, the one with them is the correct Romanian.
-  if (nonAsciiCount(option.value) > nonAsciiCount(same.value)) same.value = option.value;
+  mergeSources(known.sources, option.sources);
+  if (option.otherCompanyName === null) known.otherCompanyName = null;
+  // Of two spellings that differ only in diacritics, the one with them is the correct Romanian;
+  // otherwise the first spelling stays.
+  if (
+    sameValue(known.value, option.value) &&
+    nonAsciiCount(option.value) > nonAsciiCount(known.value)
+  ) {
+    known.value = option.value;
+  }
 }
 
 function emptyFields<const K extends string>(names: readonly K[]) {
@@ -403,6 +428,21 @@ const noFireValues = () => ({
   >),
   fieldSources: {} as Record<string, Source[]>,
 });
+
+const readWorkplace = (workplace: Reading['workplaces'][number]) => ({
+  ...traced(workplace),
+  name: workplace.name,
+  countyCode: workplace.county === null ? null : countyCode(workplace.county),
+  locality: workplace.locality,
+  addressLine: workplace.addressLine,
+  isRegisteredOffice: workplace.isRegisteredOffice,
+  activity: workplace.activity,
+  rooms: workplace.rooms,
+  ...noFireValues(),
+  spelling: {} as Record<string, string>,
+});
+
+type ReadWorkplace = ReturnType<typeof readWorkplace>;
 
 interface Valued {
   id: string;
@@ -508,7 +548,7 @@ export function toProposal(...readings: Reading[]): Proposal {
     const value = factValue(fact.field, fact.value);
     if (value === null) continue;
     const [group, name] = fact.field.split('.') as [string, string];
-    addOption(groups[group]![name]!.options, { value, ...traced(fact) });
+    addOption(groups[group]![name]!.options, { value, ...traced(fact) }, sameFactValue[fact.field]);
   }
 
   const list = <T>(pick: (reading: Reading) => T[]) => readings.flatMap(pick);
@@ -516,27 +556,30 @@ export function toProposal(...readings: Reading[]): Proposal {
   // A workplace is an address, so the same address read from a scan joins the documents' one,
   // and the scan's name for it still finds it.
   const aliases = new Map<object, string[]>();
-  const joinedWorkplaces = joined(
+  const otherOfficeAddresses: string[] = [];
+  const joinWorkplace = (into: ReadWorkplace, from: ReadWorkplace) => {
+    fillGaps(into, from);
+    aliases.set(into, [...(aliases.get(into) ?? []), from.name, ...(aliases.get(from) ?? [])]);
+    into.isRegisteredOffice ||= from.isRegisteredOffice;
+    into.rooms = uniqueFolded([...into.rooms, ...from.rooms]);
+  };
+  const atAddresses = joined(
     list((reading) => reading.workplaces)
       .filter((workplace) => named(workplace.name))
-      .map((workplace) => ({
-        ...traced(workplace),
-        name: workplace.name,
-        countyCode: workplace.county === null ? null : countyCode(workplace.county),
-        locality: workplace.locality,
-        addressLine: workplace.addressLine,
-        isRegisteredOffice: workplace.isRegisteredOffice,
-        activity: workplace.activity,
-        rooms: workplace.rooms,
-        ...noFireValues(),
-        spelling: {} as Record<string, string>,
-      })),
+      .map(readWorkplace),
     sameAddress,
+    joinWorkplace
+  );
+  // A client has one registered office, so two that documents place at different addresses are
+  // one, the first kept, with the other address left for the member to check.
+  const joinedWorkplaces = joined(
+    atAddresses,
+    (a, b) => a.isRegisteredOffice && b.isRegisteredOffice,
     (into, from) => {
-      fillGaps(into, from);
-      aliases.set(into, [...(aliases.get(into) ?? []), from.name]);
-      into.isRegisteredOffice ||= from.isRegisteredOffice;
-      into.rooms = uniqueFolded([...into.rooms, ...from.rooms]);
+      if (from.addressLine !== null && into.addressLine !== null) {
+        otherOfficeAddresses.push(from.addressLine);
+      }
+      joinWorkplace(into, from);
     }
   );
   const workplaces = joinedWorkplaces.map((workplace, index) => ({
@@ -711,6 +754,10 @@ export function toProposal(...readings: Reading[]): Proposal {
     ).map((employee, index) => ({ id: `employee-${index + 1}`, ...employee })),
     notes: [
       ...list((reading) => reading.notes).filter((note) => note.trim() !== ''),
+      ...otherOfficeAddresses.map(
+        (address) =>
+          `Documentele dau sediul social și la adresa «${address}», care nu a fost preluată.`
+      ),
       ...unplaced.map(
         (name) =>
           `Datele PSI ale locului de muncă «${name}» nu se potrivesc cu niciun punct de lucru și nu au fost preluate.`

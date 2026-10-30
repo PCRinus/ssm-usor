@@ -805,6 +805,187 @@ describe('a proposal or a scan’s page that predates the fire-safety values and
   });
 });
 
+describe('a value written two ways', () => {
+  const written = (field: string, value: string, file = 'Dosar/Decizia 1.docx') => ({
+    field,
+    value,
+    file,
+    quote: value,
+    otherCompany: '',
+  });
+  const workplace = (
+    name: string,
+    locality: string,
+    addressLine: string,
+    isRegisteredOffice: boolean,
+    file: string,
+    activity = ''
+  ) => ({
+    name,
+    county: 'TM',
+    locality,
+    addressLine,
+    isRegisteredOffice,
+    activity,
+    rooms: [],
+    file,
+    quote: addressLine,
+    otherCompany: '',
+  });
+
+  it('is one option for a company name, a phone number or an address, keeping the first spelling', () => {
+    const answer = wireAnswer();
+    answer.facts = [
+      written('client.legalName', 'S.C. VASILESCU EXEMPLU S.R.L.'),
+      written('client.legalName', 'Vasilescu Exemplu SRL', 'Dosar/Contract.pdf'),
+      written('client.legalName', 'SC VASILESCU EXEMPLU SRL', 'Dosar/PSI/Decizia 1.1.doc'),
+      written('client.contactPhone', '0700 123456'),
+      written('client.contactPhone', '0700 123 456', 'Dosar/Contract.pdf'),
+      written('client.contactPhone', '+40 700 123 456', 'Dosar/PSI/Decizia 1.1.doc'),
+      written('client.addressLine', 'Str. Exemplului , Nr.8 , Camera 2'),
+      written('client.addressLine', 'STR. EXEMPLULUI, NR. 8, CAM. 2', 'Dosar/Contract.pdf'),
+    ];
+
+    const proposal = fromWire(answer);
+
+    expect(proposal.client.legalName.options).toEqual([
+      expect.objectContaining({
+        value: 'S.C. VASILESCU EXEMPLU S.R.L.',
+        sources: [
+          { file: 'Dosar/Decizia 1.docx', quote: 'S.C. VASILESCU EXEMPLU S.R.L.' },
+          { file: 'Dosar/Contract.pdf', quote: 'Vasilescu Exemplu SRL' },
+          { file: 'Dosar/PSI/Decizia 1.1.doc', quote: 'SC VASILESCU EXEMPLU SRL' },
+        ],
+      }),
+    ]);
+    expect(proposal.client.contactPhone.options.map((option) => option.value)).toEqual([
+      '0700 123456',
+    ]);
+    expect(proposal.client.contactPhone.options[0]!.sources).toHaveLength(3);
+    expect(proposal.client.addressLine.options.map((option) => option.value)).toEqual([
+      'Str. Exemplului , Nr.8 , Camera 2',
+    ]);
+  });
+
+  it('stays a choice when the values really differ', () => {
+    const answer = wireAnswer();
+    answer.facts = [
+      written('client.legalName', 'VASILESCU EXEMPLU S.R.L.'),
+      written('client.legalName', 'VASILESCU EXEMPLU CONSTRUCT S.R.L.', 'Dosar/Contract.pdf'),
+      written('client.contactPhone', '0700 123 456'),
+      written('client.contactPhone', '0700 123 457', 'Dosar/Contract.pdf'),
+      written('client.addressLine', 'Str. Exemplului nr. 8'),
+      written('client.addressLine', 'Str. Exemplului nr. 18', 'Dosar/Contract.pdf'),
+    ];
+
+    expect(proposalChoices(fromWire(answer)).map((choice) => choice.path)).toEqual([
+      'client.legalName',
+      'client.addressLine',
+      'client.contactPhone',
+    ]);
+  });
+
+  it('is one workplace for an address written with another street type or abbreviations', () => {
+    const answer = wireAnswer();
+    answer.workplaces = [
+      workplace('Sediu social', 'Dumbravita', 'Str. Exemplului , Nr.8 , Camera 2', true, 'A.doc'),
+      workplace('Punct de lucru Timișoara', 'Timisoara', 'Calea Inventată ,Nr. 6', false, 'A.doc'),
+      workplace(
+        'Punctul de lucru, Timișoara, str. Inventată nr. 6',
+        'Timișoara',
+        'str. Inventată nr. 6',
+        false,
+        'B.doc',
+        'Sertizarea furtunurilor hidraulice'
+      ),
+      workplace('Sediu social', 'DUMBRAVITA', 'STR. EXEMPLULUI, NR. 8, CAM. 2', true, 'C.doc'),
+    ];
+    answer.workplaceFacts = [];
+
+    const { workplaces, notes } = fromWire(answer);
+
+    expect(
+      workplaces.map((each) => [
+        each.name,
+        each.addressLine,
+        each.isRegisteredOffice,
+        each.activity,
+      ])
+    ).toEqual([
+      ['Sediu social', 'Str. Exemplului , Nr.8 , Camera 2', true, null],
+      [
+        'Punct de lucru Timișoara',
+        'Calea Inventată ,Nr. 6',
+        false,
+        'Sertizarea furtunurilor hidraulice',
+      ],
+    ]);
+    expect(workplaces[1]!.sources.map((source) => source.file)).toEqual(['A.doc', 'B.doc']);
+    expect(notes.filter((note) => note.includes('sediul social'))).toEqual([]);
+  });
+
+  it('is one registered office, keeping the first and noting the other address', () => {
+    const answer = wireAnswer();
+    answer.workplaces = [
+      workplace(
+        'Sediu social',
+        'Timișoara',
+        'Str. Exemplului , Nr.19, Sc. B , Ap. 17',
+        true,
+        'A.doc'
+      ),
+      workplace('Punct de lucru', 'Timișoara', 'str. Piața Mică nr. 2', false, 'A.doc'),
+      workplace(
+        'Sediul firmei',
+        'Timișoara',
+        'Str. Vechi nr. 3',
+        true,
+        'B.doc',
+        'Atelier croitorie'
+      ),
+      workplace(
+        'Sediu social',
+        'Timișoara',
+        'Strada EXEMPLULUI, Nr. 19, Scara B, Ap. 17',
+        true,
+        'C.doc'
+      ),
+    ];
+    answer.workplaceFacts = [];
+    const installation = {
+      workplace: 'Sediul firmei',
+      kind: 'detection_alarm',
+      description: '',
+      file: 'B.doc',
+      quote: 'Str. Vechi nr. 3',
+      otherCompany: '',
+    };
+
+    const proposal = fromWire({ ...answer, fireInstallations: [installation] });
+
+    expect(
+      proposal.workplaces.map((each) => [
+        each.name,
+        each.addressLine,
+        each.isRegisteredOffice,
+        each.activity,
+      ])
+    ).toEqual([
+      ['Sediu social', 'Str. Exemplului , Nr.19, Sc. B , Ap. 17', true, 'Atelier croitorie'],
+      ['Punct de lucru', 'str. Piața Mică nr. 2', false, null],
+    ]);
+    expect(proposal.workplaces[0]!.sources.map((source) => source.file)).toEqual([
+      'A.doc',
+      'C.doc',
+      'B.doc',
+    ]);
+    expect(proposal.fireInstallations[0]!.workplace.id).toBe('workplace-1');
+    expect(proposal.notes).toContain(
+      'Documentele dau sediul social și la adresa «Str. Vechi nr. 3», care nu a fost preluată.'
+    );
+  });
+});
+
 describe('proposedIncluded', () => {
   it('proposes the legal representative as an employee unticked, the workers’ one ticked', () => {
     const proposal = fromWire(wireAnswer());

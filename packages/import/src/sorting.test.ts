@@ -101,6 +101,17 @@ describe('sortFiles', () => {
     ]);
   });
 
+  it('knows a sole trader’s files whether its form is written with points or without', () => {
+    const sorting = sortFiles([
+      triage('Decizia 1.docx', 'decision', 'VASILESCU M.ANA P.F.A.', '12345674'),
+      triage('Evaluare.doc', 'risk_assessment', 'VASILESCU M.ANA P.F.A.', null),
+      triage('Tematica control.docx', 'decision', 'VASILESCU M. ANA PFA', null),
+    ]);
+
+    expect(sorting.otherCompanies).toEqual([]);
+    expect(sorting.files.map((file) => file.outcome)).toEqual(['read', 'read', 'read']);
+  });
+
   it('names no company when no file names one', () => {
     const sorting = sortFiles([triage('Decizia.docx', 'decision', null, null)]);
 
