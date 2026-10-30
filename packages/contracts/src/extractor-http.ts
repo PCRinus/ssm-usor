@@ -12,7 +12,7 @@ import {
 // the result as the answer's body. Shared by apps/pdf, which reaches the container, and the API,
 // which reaches an extractor started locally by URL (docs/pdf.md).
 
-export type ExtractorRoute = '/doc-to-docx' | '/pdf-text' | '/pdf-page-image' | '/heic-to-jpeg';
+export type ExtractorRoute = '/doc-to-docx' | '/pdf-text' | '/pdf-page-image' | '/image-to-jpeg';
 
 /** Rejects an answer that is not a 2xx with `extractorAnswerError`, so a refusal keeps its reason. */
 export type ExtractorPost = (
@@ -84,6 +84,6 @@ export function extractorOverHttp(post: ExtractorPost): ExtractorService {
       }
       return expect(await post('/pdf-page-image', withinLimit(pdf), { page: String(page) }), jpeg);
     },
-    heicToJpeg: async (image) => expect(await post('/heic-to-jpeg', withinLimit(image)), jpeg),
+    imageToJpeg: async (image) => expect(await post('/image-to-jpeg', withinLimit(image)), jpeg),
   };
 }

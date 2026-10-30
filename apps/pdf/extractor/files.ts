@@ -136,6 +136,28 @@ export function splitPages(text: string, pageCount: number): PdfPage[] {
 
 export const pageImageDpi = 150;
 export const longestEdgePixels = 2500;
+// A model reads names on a 1200 × 1600 photograph and loses them at 1024 pixels; each pixel
+// past what it needs costs tokens, and a 48-megapixel photograph passes its size limit.
+export const photoLongestEdgePixels = 2000;
+
+// The coder named in front of each path, so ImageMagick never guesses another from the bytes.
+// Stripping drops the camera's metadata, its location included, once the turn is applied.
+export const imageToJpegArgs = (kind: ImageKind, input: string, output: string) => [
+  `${kind}:${input}[0]`,
+  '-auto-orient',
+  '-resize',
+  `${photoLongestEdgePixels}x${photoLongestEdgePixels}>`,
+  '-background',
+  'white',
+  '-alpha',
+  'remove',
+  '-alpha',
+  'off',
+  '-strip',
+  '-quality',
+  '85',
+  `jpeg:${output}`,
+];
 
 export function dpiFor(size: [number, number] | undefined): number {
   if (!size) return pageImageDpi;
