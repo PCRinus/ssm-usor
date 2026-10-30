@@ -328,6 +328,7 @@ export type Database = {
           created_at: string;
           employee_id: string | null;
           id: string;
+          import_file_id: string | null;
           import_id: string | null;
           import_path: string | null;
           mime_type: string;
@@ -347,6 +348,7 @@ export type Database = {
           created_at?: string;
           employee_id?: string | null;
           id?: string;
+          import_file_id?: string | null;
           import_id?: string | null;
           import_path?: string | null;
           mime_type: string;
@@ -366,6 +368,7 @@ export type Database = {
           created_at?: string;
           employee_id?: string | null;
           id?: string;
+          import_file_id?: string | null;
           import_id?: string | null;
           import_path?: string | null;
           mime_type?: string;
@@ -415,6 +418,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'employees';
             referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'client_files_import_file_id_fkey';
+            columns: ['import_file_id'];
+            isOneToOne: false;
+            referencedRelation: 'import_files';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'client_files_import_in_organization';
@@ -6527,6 +6537,14 @@ export type Database = {
         };
       };
       apply_client_import: {
+        Args: {
+          p_expected_version: number;
+          p_import_id: string;
+          p_payload: Json;
+        };
+        Returns: Json;
+      };
+      apply_employee_import: {
         Args: {
           p_expected_version: number;
           p_import_id: string;
