@@ -1868,7 +1868,12 @@ Only the client import is built; the employee import comes later. The module is
 `apply_client_import` takes them), `pipeline.ts` (the queue's steps), `queue.ts` (the consumer)
 and `cleanup.ts` (the cron). The tables, the bucket and the functions are in the
 [data model](data-model.md#imports-from-documents); the proposal's schema, the prompts, the
-sorting, the checks and the gateway client are `packages/import`.
+sorting, the checks and the gateway client are `packages/import`. So is the employee import's
+side ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)), which no
+route uses yet: the sheet page's schema and prompt (`sheetPageAnswer`, `sheetPageMessages`),
+the grouping of pages into people and the proposal built from them (`toEmployeeProposal`), and
+the proposal with the member's changes (`EmployeeImportChanges` in `packages/contracts`) as
+`apply_employee_import` will take it (`toEmployeePayload`).
 
 Members read imports through their own policies. The API writes the rows with the secret key,
 after finding the import under the caller's token; saving, abandoning, splitting and
