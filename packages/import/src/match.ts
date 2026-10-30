@@ -16,6 +16,7 @@ export function foldText(value: string) {
     .trim();
 }
 
+// I.I. and I.F. need their first dot: a bare "II" is the number of a building ("Hala II").
 export function foldName(value: string) {
   return foldText(
     value
@@ -23,7 +24,7 @@ export function foldName(value: string) {
       .replace(marks, '')
       .toLowerCase()
       .replace(
-        /\b(s\.?\s?c\.?|s\.?\s?r\.?\s?l\.?|s\.?a\.?|p\.?\s?f\.?\s?a\.?|i\.?i\.?|i\.?f\.?|d-na|dl\.?|d-l)(?=\s|$|[^\p{L}])/gu,
+        /\b(s\.?\s?c\.?|s\.?\s?r\.?\s?l\.?|s\.?a\.?|p\.?\s?f\.?\s?a\.?|i\.\s?i\.?|i\.\s?f\.?|d-na|dl\.?|d-l)(?=\s|$|[^\p{L}])/gu,
         ' '
       )
   );

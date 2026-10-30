@@ -33,9 +33,14 @@ describe('foldName', () => {
     expect(foldName('VASILESCU M.ANA P.F.A.')).toBe('vasilescu m ana');
     expect(foldName('P.F.A. Vasilescu Ana')).toBe('vasilescu ana');
     expect(foldName('Vasilescu Ana I.I.')).toBe('vasilescu ana');
-    expect(foldName('VASILESCU ANA II')).toBe('vasilescu ana');
+    expect(foldName('Vasilescu Ana I. I.')).toBe('vasilescu ana');
     expect(foldName('Familia Vasilescu I.F.')).toBe('familia vasilescu');
-    expect(foldName('FAMILIA VASILESCU IF')).toBe('familia vasilescu');
+  });
+
+  it('keeps a bare II or IF, which numbers a building or is part of a name', () => {
+    expect(foldName('Hala II')).toBe('hala ii');
+    expect(foldName('Hala II')).not.toBe(foldName('Hala'));
+    expect(foldName('Depozit IF')).toBe('depozit if');
   });
 });
 
