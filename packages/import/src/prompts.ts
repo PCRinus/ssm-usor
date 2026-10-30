@@ -153,3 +153,40 @@ export function readingMessages(input: {
     { role: 'user', content: parts },
   ];
 }
+
+// Evaluated on 2026-10-30 with GPT-6.1 Terra, one request per page (ADR 032); a change to a rule
+// belongs there first.
+export const sheetPageSystemPrompt = `You read ONE photo of a page from a Romanian paper "fișă de instruire individuală" (an individual occupational safety (SSM) or fire safety (PSI, "situații de urgență") training sheet), or a page kept with it, and say what the page is, whom it is about and what it records. Several photos of the same person are read separately; record only what this photo shows, and leave anything it does not show empty, even when you could infer it. ${dataNotInstructions}
+
+pageKind:
+- ssm_sheet_front: the SSM sheet's cover or its first page (personal data, introductory general training, workplace training, admitted to work).
+- ssm_periodic: a page of SSM periodic or supplementary training rows.
+- psi_sheet_front, psi_periodic: the same for the fire safety (PSI/SU) sheet.
+- commute_declaration: the employee's declaration of the route and time to and from work.
+- other: anything else.
+A periodic page often has no title naming its domain: tell SSM from PSI by the material taught (IPSSM, Legea 319/2006 are SSM; IPSU, PSI, Legea 307/2006, situații de urgență are PSI) or the printed header.
+
+Rules:
+- Transcribe what is written by hand; never guess. Placeholders and empty lines are not values.
+- An empty string means unknown. Numbers are written as digits.
+- person: the identifiers written on this page (name, CNP, employee number "marca"). Names in Title Case, split into family name and given names. A CNP digit you cannot read is written as "?", the other digits as written.
+- Dates as YYYY-MM-DD. A date written with only a month and a year is YYYY-MM, never a day you chose, and a note says so.
+- Durations in minutes (hours × 60).
+- fields: hiredAt is the hire date ("data angajării") where the page writes one, else the day the person was admitted to work ("admis la lucru"); leftOn the day employment ended, where the sheet records it; workplace the place of work as written ("locul de muncă"); bloodGroup as written, with its Rh when written together ("A II Rh+"); rhFactor only when written apart.
+- admission: "admis la lucru" on a sheet's first page: the day, and the name and job title of who admitted the person.
+- trainings: one row per training recorded on this page. phase: introductory_general, workplace, periodic, or supplementary (instruire suplimentară, with its reason in supplementaryReason when written). annualTest is true for a row of the fire safety periodic table that records the yearly knowledge test (testare, verificare anuală) rather than a training. verifierName and verifierJobTitle: who verified the knowledge ("verificat"), where the row names them.
+- Signatures, for each box of a row: present when the box is signed, absent when it is empty, unclear when you cannot tell. verifierSignature is no_box when the form has no verifier's box for the row.
+- Filled-in but illegible fields go in unreadable, each named; anything a reviewer should know goes in notes.`;
+
+export function sheetPageMessages(file: { path: string; imageUrl: string }): ChatMessage[] {
+  return [
+    { role: 'system', content: sheetPageSystemPrompt },
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: fileHeader(file.path) },
+        { type: 'image_url', image_url: { url: file.imageUrl } },
+      ],
+    },
+  ];
+}
