@@ -34,9 +34,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
     periodic_training_minutes: null,
   });
   await completeFireSafetyData(organizationId, clientId);
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}`);
+  await signIn(page, owner.email, `/clients/${clientId}`);
   await page.getByRole('link', { name: 'Documente PSI' }).click();
   await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/fire-safety-documents$`));
 

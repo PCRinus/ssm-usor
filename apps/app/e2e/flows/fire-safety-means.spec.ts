@@ -38,10 +38,7 @@ test("a specialist records a client's fire-safety training, smoking rule, workpl
       jobTitle: 'Lucrător comercial',
     });
   }
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-
-  await page.goto(`/clients/${clientId}/training`);
+  await signIn(page, owner.email, `/clients/${clientId}/training`);
   const card = page.getByTestId('fire-safety-card');
   await expect(card.getByTestId('fire-schedule-facts')).toContainText('Necompletat');
   await card.getByTestId('fire-safety-edit').click();

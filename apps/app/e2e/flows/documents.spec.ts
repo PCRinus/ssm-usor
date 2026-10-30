@@ -48,9 +48,7 @@ test('generating waits for the data the documents print, and says where it is fi
   const owner = await createAccount('documents-missing', 'Dana Documente');
   const organizationId = await createOrganization('Documente lipsă E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. FĂRĂ DATE E2E S.R.L.');
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/documents`);
+  await signIn(page, owner.email, `/clients/${clientId}/documents`);
 
   await expect(page.getByTestId('documents-empty')).toBeVisible();
   await page.getByTestId('documents-generate').click();
@@ -107,9 +105,7 @@ test('a row leads to its field, and the toast of the save leads back to generati
   await completeDocumentData(organizationId, owner.id, clientId, {
     legal_representative_role: null,
   });
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/documents`);
+  await signIn(page, owner.email, `/clients/${clientId}/documents`);
 
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-missing-count')).toHaveText('1 dată de completat');
@@ -134,9 +130,7 @@ async function generateDocumentation(page: Page, account: string, client: string
   const organizationId = await createOrganization(`Documente ${client}`, owner.id);
   const clientId = await createClientCompany(organizationId, `S.C. ${client} S.R.L.`);
   await completeDocumentData(organizationId, owner.id, clientId);
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/documents`);
+  await signIn(page, owner.email, `/clients/${clientId}/documents`);
 
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
@@ -473,9 +467,7 @@ test('a draft is corrected in the in-app editor, and the correction is still the
   const organizationId = await createOrganization('Editor E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. CLIENT EDITOR E2E S.R.L.');
   await completeDocumentData(organizationId, owner.id, clientId);
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/documents`);
+  await signIn(page, owner.email, `/clients/${clientId}/documents`);
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-submit').click();
   await openDocumentSection(page, '1');
@@ -559,10 +551,7 @@ test("from 10 employees the set includes the decision on the workers' representa
   });
   await evaluateRisks(organizationId, clientId);
   await createInstructionModule(organizationId, owner.id, 'Lucrul cu foc deschis', 'psi');
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-
-  await page.goto(`/clients/${clientId}/documents`);
+  await signIn(page, owner.email, `/clients/${clientId}/documents`);
   await expect(page.getByTestId('client-employee-count')).toHaveText('10');
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-headcount')).toContainText(

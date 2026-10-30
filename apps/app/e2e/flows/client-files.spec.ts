@@ -15,9 +15,7 @@ test('an owner uploads files to a client, renames one and deletes it', async ({ 
   const owner = await createAccount('files-owner', 'Olga Fișiere');
   const organizationId = await createOrganization('Fisiere E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. FISIERE E2E S.R.L.');
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/details`);
+  await signIn(page, owner.email, `/clients/${clientId}/details`);
   await page.getByRole('link', { name: 'Alte documente' }).click();
   await expect(page.getByTestId('client-files-empty')).toBeVisible();
 
@@ -75,9 +73,7 @@ test('a paper training sheet uploaded on the employee page is listed there and n
     firstName: 'Ion',
     jobTitle: 'Sudor',
   });
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/employees`);
+  await signIn(page, owner.email, `/clients/${clientId}/employees`);
   await page.getByTestId('employees-open').click();
   const card = page.getByTestId('employee-files-card');
   await expect(card.getByTestId('client-files-empty')).toBeVisible();

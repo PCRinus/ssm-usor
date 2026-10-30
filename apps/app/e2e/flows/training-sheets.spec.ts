@@ -90,9 +90,7 @@ test('an employee with a route and a recorded training gets a training sheet as 
   expect(bytes.length).toBeGreaterThan(1000);
   expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-');
 
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/employees/${employee.id}/training/ssm`);
+  await signIn(page, owner.email, `/clients/${clientId}/employees/${employee.id}/training/ssm`);
   const preview = page.getByTestId('training-sheet-ssm-preview');
   await expect(preview).toBeEnabled();
   const [tab] = await Promise.all([context.waitForEvent('page'), preview.click()]);

@@ -19,9 +19,7 @@ test('an owner fills in the company details, and they are still there after a re
 }) => {
   const owner = await createAccount('company-owner', 'Olga Firma');
   await createOrganization('Date firma E2E', owner.id);
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto('/organization');
+  await signIn(page, owner.email, '/organization');
   await expect(page).toHaveURL(/\/organization\/team$/);
   await page.getByRole('link', { name: 'Date firmă' }).click();
 
@@ -57,9 +55,7 @@ test('an owner fills in the authorizations, and they are still there after a rel
 }) => {
   const owner = await createAccount('authorizations-owner', 'Olga Abilitare');
   await createOrganization('Abilitari E2E', owner.id);
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto('/organization/authorizations');
+  await signIn(page, owner.email, '/organization/authorizations');
 
   await page.getByTestId('authorizations-authorizationCertificateNumber').fill('17664');
   await page.getByTestId('authorizations-authorizationCertificateDate').fill('30.09.2022');
@@ -86,9 +82,7 @@ test('an owner fills in the authorizations, and they are still there after a rel
 test('a person sets their professional title on the profile page', async ({ page }) => {
   const specialist = await createAccount('titled', 'Tudor Titlu');
   await createOrganization('Titluri E2E', specialist.id);
-  await signIn(page, specialist.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto('/profile');
+  await signIn(page, specialist.email, '/profile');
 
   await page.getByTestId('profile-professional-title').fill('E');
   await page.getByTestId('profile-save').click();
@@ -111,10 +105,7 @@ test("a specialist sets a client's representative role and training schedule", a
     lastName: 'Popescu',
     jobTitle: 'Tâmplar',
   });
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-
-  await page.goto(`/clients/${clientId}`);
+  await signIn(page, owner.email, `/clients/${clientId}`);
   await expect(page.getByTestId('legal-representative-name')).toHaveText('Maria Popescu');
   await page.getByTestId('legal-representative-edit').click();
   await page.getByTestId('details-representative-is-employee').click();
@@ -173,9 +164,7 @@ test('a client gets a registered office and a point of work, one of which is the
   const owner = await createAccount('workplaces-owner', 'Petra Punct');
   const organizationId = await createOrganization('Puncte de lucru E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'CLIENT PUNCTE E2E SRL');
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/details`);
+  await signIn(page, owner.email, `/clients/${clientId}/details`);
   await expect(page.getByTestId('workplaces-empty')).toBeVisible();
 
   await page.getByTestId('workplace-add').click();
@@ -228,9 +217,7 @@ test('an employee is designated once, and the administrator is added by hand', a
     lastName: 'Luca',
     jobTitle: 'Manager magazin',
   });
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/training`);
+  await signIn(page, owner.email, `/clients/${clientId}/training`);
   await expect(page.getByTestId('responsible-persons-empty')).toBeVisible();
 
   const pickEmployee = async () => {
@@ -299,9 +286,7 @@ test("the workers' representative is an employee other than the legal representa
       jobTitle: 'Ospătar',
     });
   }
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/training`);
+  await signIn(page, owner.email, `/clients/${clientId}/training`);
 
   const designate = async (search: string, name: RegExp) => {
     await page.getByTestId('responsible-add').click();
@@ -337,9 +322,7 @@ test('employee choices scroll with the wheel inside the responsible-person dialo
       jobTitle: 'Electrician',
     });
   }
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/training`);
+  await signIn(page, owner.email, `/clients/${clientId}/training`);
   await page.getByTestId('responsible-add').click();
   await page.getByTestId('responsible-employee').click();
 
@@ -357,9 +340,7 @@ test('the county and locality lists scroll with the wheel inside the workplace d
   const owner = await createAccount('workplace-scroll-owner', 'Lucian Județ');
   const organizationId = await createOrganization('Liste punct de lucru E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'CLIENT LISTE E2E SRL');
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/details`);
+  await signIn(page, owner.email, `/clients/${clientId}/details`);
   await page.getByTestId('workplace-add').click();
 
   const list = page.locator('[data-slot="command-list"]');

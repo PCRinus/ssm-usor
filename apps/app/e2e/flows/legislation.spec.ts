@@ -26,11 +26,9 @@ test('a document behind its template is regenerated for every client from the Le
   await completeDocumentData(organizationId, owner.id, clientId);
   await completeFireSafetyData(organizationId, clientId);
   await nameFireSafetyTechnician(organizationId);
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
   // The fire-safety set, which one other test generates: while this one runs, every document of
   // the type in the stack is behind.
-  await page.goto(`/clients/${clientId}/fire-safety-documents`);
+  await signIn(page, owner.email, `/clients/${clientId}/fire-safety-documents`);
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-submit').click();
@@ -99,9 +97,7 @@ test('a client whose decision prints missing data fails the regeneration with ro
   const clientName = 'S.C. FĂRĂ ZIUA DE SFÂRȘIT A INSTRUIRII PERIODICE E2E S.R.L.';
   const clientId = await createClientCompany(organizationId, clientName);
   await completeDocumentData(organizationId, owner.id, clientId);
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/documents`);
+  await signIn(page, owner.email, `/clients/${clientId}/documents`);
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');

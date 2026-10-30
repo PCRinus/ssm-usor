@@ -24,9 +24,7 @@ test('a lead stays out of the clients, and does not exist for a specialist', asy
   await createClientCompany(organizationId, 'S.C. CLIENT SERVIT E2E S.R.L.');
   const leadId = await createLead(organizationId, 'S.C. CLIENT POTENTIAL E2E S.R.L.', '14399840');
 
-  await signIn(page, specialist.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto('/clients');
+  await signIn(page, specialist.email, '/clients');
   await expect(page.getByTestId('clients-row')).toHaveCount(1);
   await expect(page.getByTestId('clients-row')).toContainText('CLIENT SERVIT');
 
@@ -40,9 +38,7 @@ test('a lead stays out of the clients, and does not exist for a specialist', asy
   await expect(page.getByTestId('cui-error')).toContainText('printre clienții potențiali');
 
   await signOut(page);
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto('/clients');
+  await signIn(page, owner.email, '/clients');
   await expect(page.getByTestId('clients-row')).toHaveCount(1);
   await expect(page.getByTestId('clients-row')).toContainText('CLIENT SERVIT');
 });
@@ -129,9 +125,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   const leadId = await createLead(organizationId, 'S.C. VIITOR CONTRACT E2E S.R.L.', '14399840');
   const contact = addressOf('contract-contact');
 
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/leads/${leadId}`);
+  await signIn(page, owner.email, `/leads/${leadId}`);
 
   // The first contract of the organization: no number to continue from.
   await expect(page.getByTestId('contract-contractNumber')).toHaveValue('');
@@ -313,9 +307,7 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   await expect(page.getByTestId('documents-empty')).toBeVisible();
 
   await signOut(page);
-  await signIn(page, specialist.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${leadId}/contract`);
+  await signIn(page, specialist.email, `/clients/${leadId}/contract`);
   await expect(page).toHaveURL(new RegExp(`/clients/${leadId}/contract$`));
   await expect(page.getByTestId('contract-owners-only')).toBeVisible();
   await expect(page.getByTestId('client-section').filter({ hasText: 'Contract' })).toHaveCount(0);
