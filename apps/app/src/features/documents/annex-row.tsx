@@ -8,10 +8,13 @@ import {
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Download, Eye, MoreHorizontal } from 'lucide-react';
 
 import { formatRoDate } from '@/lib/dates';
+
+import { packCells, warningBadge } from './pack-styles';
 
 const day = (timestamp: string) => formatRoDate(timestamp.slice(0, 10));
 
@@ -29,8 +32,8 @@ export function AnnexRow({
   const code = typeKey === 'fire_own_instructions' ? 'I.P.S.U.' : 'I.P.S.S.M.';
   const label = `Anexa ${annex.number}: ${code} ${annex.title}`;
   return (
-    <TableRow data-testid="document-annex">
-      <TableCell className="pl-8">
+    <TableRow data-testid="document-annex" className={packCells.row}>
+      <TableCell className={cn(packCells.title, 'max-md:pl-4 md:pl-8')}>
         <Link
           to="/instructions/$moduleId"
           params={{ moduleId: annex.moduleId }}
@@ -45,10 +48,11 @@ export function AnnexRow({
           Versiunea {annex.version.number}
         </span>
       </TableCell>
-      <TableCell>
+      <TableCell className={packCells.status}>
         {annex.newerVersion && (
           <Badge
             variant="outline"
+            className={cn(warningBadge, 'whitespace-normal')}
             data-testid="document-annex-newer"
             title={`Biblioteca are versiunea ${annex.newerVersion.number}, din ${day(annex.newerVersion.createdAt)}. Documentul o anexează după ce este generat din nou, iar generarea din nou pierde modificările făcute de mână în instrucțiunile proprii.`}
           >
@@ -56,10 +60,8 @@ export function AnnexRow({
           </Badge>
         )}
       </TableCell>
-      <TableCell className="text-muted-foreground tabular-nums">
-        {day(annex.version.createdAt)}
-      </TableCell>
-      <TableCell>
+      <TableCell className={packCells.date}>{day(annex.version.createdAt)}</TableCell>
+      <TableCell className={packCells.actions}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

@@ -84,7 +84,7 @@ import { isEmptyPack } from './pack-labels';
 import { PackHeader, PackLayout } from './pack-layout';
 import { MissingDocumentRow, PackTable } from './pack-rows';
 import { buildPack, type PackSection } from './pack-status';
-import { packCells } from './pack-styles';
+import { packCells, warningBadge } from './pack-styles';
 import { pdfOfRevision, usePrint } from './print';
 
 type Revision = NonNullable<ClientDocument['draft']>;
@@ -483,6 +483,7 @@ export function DocumentsCard<Set extends DocumentSet>({
               {document.draft?.dataChanged && (
                 <Badge
                   variant="outline"
+                  className={warningBadge}
                   data-testid="document-data-changed"
                   title="Datele clientului s-au schimbat de când a fost generată ciorna. Generează documentul din nou ca să le preia."
                 >
@@ -492,6 +493,7 @@ export function DocumentsCard<Set extends DocumentSet>({
               {behindRow?.client.behindTemplate && (
                 <Badge
                   variant="outline"
+                  className={warningBadge}
                   data-testid="document-behind"
                   title={newerTemplateHint(behindRow.type.newestVersion)}
                 >
@@ -500,7 +502,11 @@ export function DocumentsCard<Set extends DocumentSet>({
               )}
               {behindRow && behindInstructions(behindRow.client) && (
                 <>
-                  <Badge variant="outline" data-testid="document-instructions-behind">
+                  <Badge
+                    variant="outline"
+                    className={warningBadge}
+                    data-testid="document-instructions-behind"
+                  >
                     Instrucțiuni actualizate
                   </Badge>
                   <span

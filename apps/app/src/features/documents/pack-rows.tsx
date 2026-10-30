@@ -15,7 +15,7 @@ import { packCells } from './pack-styles';
 
 export function PackTable({ children }: { children: ReactNode }) {
   return (
-    <Table data-testid="pack-table" className="max-md:block">
+    <Table data-testid="pack-table" className="max-md:block md:table-fixed">
       <TableHeader className="max-md:hidden">
         <TableRow className="hover:bg-transparent">
           <TableHead className="px-3 text-muted-foreground">Document</TableHead>

@@ -69,7 +69,14 @@ export function PackLegend({ pack }: { pack: Pack }) {
           data-status={status}
           className="inline-flex items-center gap-2"
         >
-          <span aria-hidden="true" className={cn('size-2.5 rounded-[3px]', statusTone[status])} />
+          <span
+            aria-hidden="true"
+            className={cn(
+              'size-2.5 rounded-[3px]',
+              statusTone[status],
+              status === 'missing' && 'border border-input'
+            )}
+          />
           <span>
             <b className="text-[0.9375rem] font-semibold tracking-tight tabular-nums">
               {counts[status]}

@@ -7,6 +7,8 @@ export const statusTone: Record<DocumentStatus, string> = {
   missing: 'bg-muted',
 };
 
+export const warningBadge = 'border-warning-border bg-warning text-warning-foreground';
+
 export const packCells = {
   row: 'max-md:grid max-md:grid-cols-[minmax(0,1fr)_auto] max-md:gap-x-2 max-md:gap-y-2 max-md:py-3.5 max-md:pr-1.5 max-md:pl-4',
   title: 'whitespace-normal md:px-3 md:py-3 max-md:col-start-1 max-md:row-start-1 max-md:p-0',
