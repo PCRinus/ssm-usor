@@ -312,6 +312,103 @@ export const importChangesSchema = z.object({
 
 export type ImportChanges = z.infer<typeof importChangesSchema>;
 
+/** What an employee import reads of a person from their sheets (ADR 032), by field. */
+export const employeeImportFieldNames = [
+  'lastName',
+  'firstName',
+  'cnp',
+  'employeeNumber',
+  'birthDate',
+  'birthPlace',
+  'homeAddress',
+  'education',
+  'qualification',
+  'bloodGroup',
+  'rhFactor',
+  'jobTitle',
+  'hiredAt',
+  'leftOn',
+  'workplace',
+  'commuteRoute',
+  'commuteMinutes',
+] as const;
+
+export type EmployeeImportFieldName = (typeof employeeImportFieldNames)[number];
+
+/** De verificat, Verificat, Lăsat deoparte: only a checked person is written. */
+export const employeeImportPersonStates = ['to_check', 'checked', 'set_aside'] as const;
+
+export type EmployeeImportPersonState = (typeof employeeImportPersonStates)[number];
+
+const proposalId = z.string().min(1).max(80);
+
+/**
+ * What the member decided in an employee import's review, by the ids of its proposal
+ * (`@ssm-usor/import`'s `EmployeeImportProposal`). A value is the proposal's unless the member
+ * changed it.
+ */
+export const employeeImportChangesSchema = z.object({
+  people: z
+    .record(
+      proposalId,
+      z
+        .object({
+          // Left out, `to_check`.
+          state: z.enum(employeeImportPersonStates).optional(),
+          // Whether a leaver is imported, as a former employee; by default not.
+          included: z.boolean().optional(),
+          fields: z
+            .partialRecord(
+              z.enum(employeeImportFieldNames),
+              z
+                .object({
+                  // The option chosen among those the sheets gave.
+                  option: z.int().min(0).optional(),
+                  // A value the member wrote instead; null leaves the field empty.
+                  value: z.union([z.string(), z.number(), z.null()]).optional(),
+                  // Into an existing employee: the sheet's value replaces the one the app has.
+                  replace: z.boolean().optional(),
+                })
+                .strict()
+            )
+            .optional(),
+          // The corrected CNP the import offered is taken.
+          cnpCorrection: z.boolean().optional(),
+          // This person's post or workplace, over the one decided for their title or text.
+          jobPositionId: z.uuid().optional(),
+          workplaceId: z.uuid().nullable().optional(),
+        })
+        .strict()
+    )
+    .default({}),
+  // One post for everyone whose sheets give the title, by the title's group id.
+  jobTitles: z.record(proposalId, z.object({ jobPositionId: z.uuid() }).strict()).default({}),
+  // One workplace for everyone whose sheets give the text; null leaves it empty.
+  workplaces: z
+    .record(proposalId, z.object({ workplaceId: z.uuid().nullable() }).strict())
+    .default({}),
+  rows: z
+    .record(
+      proposalId,
+      z
+        .object({
+          // Whether the row is imported; by default unless unsigned or already in the app.
+          included: z.boolean().optional(),
+          // Whether the paper test result the row carries is imported; by default when the
+          // signature that closes the test is seen.
+          test: z.boolean().optional(),
+          // The member's values, by the row's own field names.
+          values: z.record(z.string(), z.union([z.string(), z.number(), z.null()])).optional(),
+        })
+        .strict()
+    )
+    .default({}),
+  // A page given to another person, or null when it is left out.
+  pages: z.record(proposalId, z.object({ personId: proposalId.nullable() }).strict()).default({}),
+});
+
+export type EmployeeImportChanges = z.infer<typeof employeeImportChangesSchema>;
+
 export const importBlockerSchema = z.object({
   // A path of the proposal, as its flags name them.
   path: z.string(),
