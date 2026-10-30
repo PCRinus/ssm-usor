@@ -1,0 +1,133 @@
+# ADR 032: Employees imported from their training sheets
+
+- Status: proposed
+- Date: 2026-10-31
+
+## Context
+
+[ADR 030](adr-030-import-from-documents.md) decided two imports and built the first. The **employee import** (_import din fișe_) had one section there: photographs of the individual training sheets read one by one, pages grouped into people, job titles matched to positions, existing people completed, leavers unticked, rows turned into training records, the photographs kept as the employees' files. That was enough to place it after the client import, not to build it. The packs carry no staff list; the people, their CNPs, their hire dates and the whole history of their trainings are on the sheets, one or two pairs of pages per person, filled by hand over years and photographed with a phone when the provider changes. A client import without its employee import gives a provider its clients with nobody in them.
+
+The screens were settled on the design canvas "Import clienți din documente", page "Import angajați", over five rounds; round 5 was approved on 2026-10-31 with nothing to flag. The canvas is the source of truth for what the screens show; this ADR decides what is behind them and replaces the employee import section of ADR 030 and steps 9 and 10 of its order of work. The decisions come from Mircea in conversation on 2026-10-30 and 2026-10-31.
+
+What the law says of people who are already at work, read on 2026-10-30 in the primary and consolidated texts. They need no new training and no new test. HG 1425/2006 art. 83 gives the introductory general training only at hiring, at a transfer from another unit (_detașare_) and to workers of a temporary agency; art. 89(1) and (2) close it with the test whose result the sheet records; art. 94 has the workplace training verified by the trainer's superior, and art. 96(2) and (4) the periodic one by the superior and, by sampling, the employer or the prevention service, with no periodic occupational safety test. For fire safety, OMAI 712/2005 art. 14, 15 and 20 test the hiring trainings and art. 30 tests everyone in periodic training once a year, the results recorded in the individual sheet; art. 39 lit. c) has a move to another employer count as a new hire. Digitising a sheet, or changing provider, is none of these: no act makes it a hiring. The paper sheet stays the original. HG 1425/2006 art. 81(4) and (5) have it kept at the workplace until employment ends, OMAI 712/2005 art. 50 has the head of the workplace keep it, and no act allows destroying it once digitised. What the app holds of it is therefore a transcription, never a replacement: _transcris de pe fișa pe hârtie_.
+
+Keeping the sheet electronically from now on rests on HG 1425/2006 art. 81(1) to (3³), as amended by HG 259/2022, and on the Labour Code, art. 16(1²), (1⁶) and (1⁷) and art. 17(3) lit. o), (4) and (5), through which an employee already under contract agrees by an addendum: the **signing agreement** of [ADR 023](adr-023-advanced-electronic-signature.md), which stays. OMAI 712/2005 art. 47 still reads "cu pastă sau cu cerneală", which [ADR 021](adr-021-training-records-and-individual-sheets.md) noted and Mircea decided on 2026-10-16 not to follow for the fire-safety sheet either.
+
+The data an import reads is processed under a legal obligation, GDPR art. 6(1) lit. c): the employer must keep the sheet, and the provider keeps it for the employer. The privacy notice informs; it does not ask, and a consent checkbox would misstate the basis (EDPB guidelines 05/2020, ¶21–22). Legea 190/2018 art. 4 is the national rule for processing the CNP. The blood group and Rh are health data under GDPR art. 9, already named in the data processing agreement and the privacy policy (#655).
+
+How large a client is. An employer of up to 49 workers may rely on an external prevention service alone; from 50 to 249 it must also designate workers or have an internal service, and from 250 the internal service is mandatory, with external services as a complement (HG 1425/2006 art. 16 to 19). The provider's typical client has 2 to 30 people: 94.7% of Romanian firms employ 0 to 9 people and 4.4% 10 to 49 (Eurostat, 2024).
+
+A model was evaluated on sheet photographs on 2026-10-30 (14 real photographs of two people, kept outside the repository with their consent for development only; report outside the repository). GPT-6.1 Terra, one request per page, read the page fields 100% right, the training rows 94%, placed 14 pages of 14 with the right person, at $0.0063 a page, about $0.04 a person, in 9.4 seconds a page. Downscaling to 1,024 pixels saved only 14% and misread more names. Gemini 3.1 Flash-Lite read 100% and 92% at $0.0010 a page but got periodic dates and durations wrong; choosing a model per import kind is #703, later. The open-weight models served on Cloudflare could not transcribe handwriting. The 14 photographs carry no CNP, so reading a CNP is untested.
+
+## Decision
+
+### What it takes from ADR 030, and what is new
+
+From ADR 030, unchanged: the import as a proposal nothing of which is written until the member confirms; the upload dialog, with files, a folder or a ZIP in one drop zone; the `imports` bucket; the extractor, through which every photograph is converted to an upright JPEG of at most 2,000 pixels a side with its metadata stripped (done for every import on 2026-10-31); the `ssm-usor-import` queue with its dead-letter consumer and the daily clean-up; the processing page, which counts scanned pages one by one; the model reached through Cloudflare AI Gateway with its cost stored per import and per file; the source dialog showing a photograph with zoom; the existing-client rule of variant E2, under which the app's value is kept unless the member takes the other; the retention of the proposal; and the data protection section. An employee import exists only for a client that exists and starts only from the client's _Angajați_ tab, which the `imports` table already requires of the `employees` kind.
+
+New: the reading of one sheet page per request with a schema of its own, the grouping of pages into people by code, the caps of an employee import, the review by person, the confirm function `apply_employee_import`, the paper test result read from a signature, the change to when a hiring test awaits, and the paper rows' signature line in the app and the portal.
+
+### Reading: one page, one request
+
+Every photograph and every PDF page is read on its own by GPT-6.1 Terra, with medium reasoning, as `scanPages` of the client import reads a scanned page. The page's kind comes from the same answer, so the employee import has no sorting step. The page's schema, held as structured output like the client import's:
+
+- the **page kind**: SSM sheet front, SSM periodic table, PSI sheet front, PSI periodic table, commute declaration, other;
+- the **identifiers** on the page: name, CNP, employee number;
+- the **personal fields**: birth date and place, home address, education, qualification, blood group, contract title, hire date ("admis la lucru"), leave date, commute;
+- the **training rows**: domain, phase, date, duration, trainer, the trainer's function, material, and for each signature box whether it is signed, empty or unclear. A date written as a month and a year only is kept as `YYYY-MM`, never filled in by the model;
+- the **unreadable** fields, each named.
+
+### Grouping pages into people, by code
+
+The model reads pages; code groups them. A page goes to a person by the CNP; without one, by the name folded to plain letters with a near-name rule: the surname within one edit and about two thirds of the name's parts shared, since exact names split one person into two in the evaluation; without any identifier, a periodic continuation page most often, by the order of the upload, after the page before it, and is flagged _Plasată după ordine_. A page code cannot place at all is offered to the member to assign to a person or to leave out; a page left out is no one's file and goes with the import. Pages of one person that disagree, two hire dates or two addresses, give a choice.
+
+### What an employee import can hold
+
+An employee import holds at most 500 photographs or PDF pages, 25 MB a file and 1 GB in all; a client import keeps the caps of ADR 030. A typical import is 50 to 60 people. JPEG and PNG photographs are made smaller in the browser before the upload, to about 2,000 pixels, which every browser can do; HEIC goes up as it is, since Chrome cannot decode it, and is converted by the extractor. A larger client is several imports, each person's photographs best kept in one; a later import completes the employees an earlier one created, by the rule for existing employees below.
+
+### The review: people are the unit
+
+The hub lists people, not sections. A person is **De verificat**, **Verificat** or **Lăsat deoparte**. Opening a person with nothing to decide and moving to the next marks them _Verificat_; a person with a decision is checked once it is made. Every change is saved as it is made, as ADR 030's review saves; an import nobody touches is failed 14 days after its last change and deleted with its files 14 days after that, as every import is. The hub counts "23 din 40 verificați" and opens on the first person still to check; the person page shows the sheet's photographs in the narrow column of variant C (ADR 030). While an import is open, the client's _Angajați_ tab shows it with the day it expires and **Continuă**.
+
+There is **one confirm**, at the end. Confirming while people are still _De verificat_ is allowed after a warning that names them, and they are left out; a new import can bring them. A partial confirm, creating the checked people now and the rest later, was rejected by Mircea: people who are urgent go in a small import of their own.
+
+Per person:
+
+- **To be created**, an employee needs a last name, a first name, a contract title, a hire date and a job position. An email or phone is optional and its absence is a quiet flag, "Fără email sau telefon — îl adaugi când îl inviți în portal", since only the portal invitation needs one.
+- **The job position** is one of the client's, ideally those the client import brought. A contract title that matches a position's name exactly is assigned quietly; a near match is proposed, for the member to confirm; no match blocks, with the closest position suggested, an existing position offered first and **Adaugă un post nou** second, through the app's own position dialog. One unmatched title shared by several people is decided once for all of them. A client with no positions gets a notice suggesting the client import first, and the member may go on. A position is never created silently: the import always names the position, so the `default_employee_job_position` trigger, which creates a position named after the contract title for an employee inserted without one, never fires from it.
+- **The CNP** is checked by its checksum and against the birth date; where one digit is unreadable and the birth date fixes it, the corrected CNP is offered to accept. A blood group written "A II Rh+" is split into the group, `A(II)`, and the Rh, `+`, as the employee's columns hold them.
+- **An employee the client already has**, by the CNP, else by the name and the birth date, is completed, not duplicated: empty fields are filled, and a value that differs from the app's is a choice with the app's value kept by default, as ADR 030's E2. A training already in the app, the same domain, phase and day, is hidden as a duplicate, with a count.
+- **A leaver**, a sheet with a leave date, is proposed unticked, and imported as a former employee if ticked.
+
+**Every training row is imported**, the whole history, which Mircea wants for its legal weight, not only the minimum the due dates need. A month-only date becomes the first of the month, tagged _Doar luna pe fișă_. A missing trainer, trainer's function or material is taken from the client's training themes and trainer, tagged _Din tematica clientului_. A row filled in and not signed is proposed unticked, tagged _Nesemnat pe fișă_. Two checks flag a row and never block it: a periodic duration other than 60, 90 or 120 minutes, and a date before the hire date or after today. "Admis la lucru", its day, name and function, goes on the workplace training record, the only one that holds it.
+
+**Rows become trainings held.** The rows of several people with the same domain, phase, day and trainer become one training held with all of them as participants, as the app records a training held once with its attendees (ADR 021).
+
+### Tests: a verifier's signature on a hiring block is the hiring test, passed on paper
+
+The sheet's hiring block is closed by the test (HG 1425/2006 art. 89; OMAI 712/2005 art. 14 and 20), and the verifier signs it once the test is passed. So a signed verifier box on a hiring block becomes a **test result** from paper ([ADR 024](adr-024-knowledge-tests.md)), marked _Verificat pe fișă_, dated the day of that hiring training, with the verifier as the examiner, else the trainer where the form has no verifier box: the occupational safety result from the SSM block, the fire-safety hiring result from the PSI block.
+
+**When a hiring test awaits changes.** In ADR 024 a hiring test awaits any employee with a hiring training record in the domain and no pass, computed by `employee_test_due` from the introductory general record for occupational safety and the workplace record for fire safety. Now it awaits only when the newest of those records was held in the app (`trainings.source = 'app'`). An employee whose hiring records are all from paper and who has no pass recorded owes nothing: no count on the dashboard, nothing in the portal. Their page shows a quiet line instead, proposed as "Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește." The wording says the signature could not be seen, not that it is missing, since a photograph may simply not show it (Mircea, 2026-10-31). The member can still record a paper result there. The rule follows the training's source, so it applies just as much to trainings typed from a paper sheet by hand.
+
+**The fire-safety annual test** is imported where the sheet records it, as a row of the PSI periodic table, which is where art. 30 has it recorded and where the app prints it: such a row becomes an annual paper result, not a training. The API refuses a paper annual result without an earlier pass today (`apps/api/src/modules/tests/handlers.ts`, `recordPaperTestResult`); that refusal goes, for the import and for a member typing one. Where the sheet records no annual test, it is due twelve months after the last pass and shows as _anual scadent_: a yearly duty the employer really has, shown as it is (agreed by Mircea).
+
+### Confirming, and what follows
+
+Confirming runs `apply_employee_import`, one transaction like `apply_client_import`, which only inserts and refuses any import whose kind is not `client`. It creates or completes the employees; creates the trainings held, source paper, with their records and the admission; inserts the paper test results; and creates the employees' files. Then the API brings the stored signed sheets up to date with the new records (`syncTrainingRows`, which runs in the API, not the database).
+
+**Signatures.** A paper training asks nobody to sign: the signature requests already return early for a training whose source is paper (`apps/api/src/modules/signing/requests.ts`). What is new is that a paper row says so. In the app's training rows and in the portal it reads "Transcris de pe fișa pe hârtie · Semnat pe hârtie", where today the app shows a badge _De pe fișa de hârtie_ and no signature line, and the portal nothing; the signed sheet already prints _semnat pe hârtie_ in a paper row's note.
+
+**Files.** Each photograph's converted copy, upright and about half a megabyte, becomes a client file of the employee it belongs to, in a folder per import, _Fișe importate pe <data>_, on the employee's _Date_ tab, the way ADR 030's import folder groups a client's files. The original goes with the import: removed 14 days after an import is abandoned or failed, and 30 days after it is confirmed, once its proposal is dropped and its files copied, as the clean-up does today (`apps/api/src/modules/imports/cleanup.ts`).
+
+**The signing agreement.** Imported employees are existing employees, so they sign the act adițional of ADR 023 before they sign electronically; the import never marks it `in_contract`, which is for a new hire whose contract holds the clause. **The portal invitation** stays a member's explicit act from the employee's page or the client's Portal tab.
+
+### Usage
+
+The reading is recorded per photograph or page from the first import, with `record_import_usage` against the file, as the client import's scans are. Credits are #640.
+
+### What this changes in earlier ADRs
+
+- **ADR 030**: its employee import section and steps 9 and 10 of its order of work are replaced by this ADR; the caps of its defaults stay the client import's.
+- **ADR 024**: a hiring test awaits only after a hiring training record held in the app; a paper hiring record without a pass leaves the test state without an awaiting test and the page with the quiet line; a verifier's signature on a paper hiring block is a paper result; and a paper annual result may be recorded without an earlier pass.
+- **ADR 021**: training rows from paper show their signature line, _Transcris de pe fișa pe hârtie · Semnat pe hârtie_, in the app and the portal; the extraction its "History kept on paper" section left for later is this import.
+- **ADR 023**: nothing changes. Existing employees keep the act adițional; the open question of a paper agreement without an address is below.
+- **ADR 013**: an employee's files can come from an import, grouped in a folder per import on the employee's page, as the client's are in "Alte documente".
+
+## What is left out
+
+- REGES-Online exports as a source of employees, and spreadsheets.
+- Choosing the reading model per import kind (#703).
+- A partial confirm.
+- Credits and their allowances (#640).
+
+## Consequences
+
+- An import can be of two kinds with two sets of caps: the file trigger, the bucket's size limit, the contracts' limits and the scanned-page cap become per kind.
+- The test state's rule depends on a training's source for the first time, and the dashboard's count of pending tests, which reads the same view, follows it.
+- A paper result can exist with no paper test behind it but a signature on the sheet; support reads the photograph in the employee's files to see why.
+- The employee lists, the dashboard and the portal stop asking imported employees for hiring tests they took on paper years ago, and start showing the annual fire-safety test due for those whose sheet records none.
+- `packages/import` gains a second schema and prompt, and grouping by code, tested on invented sheets and recorded answers; the reference photographs stay outside this public repository.
+- The pull request that completes the import carries its `## Actualizări` block; the help articles on trainings and tests and on the portal and the act adițional change with it.
+
+## Order of work
+
+Each step is a pull request in one stack, on this ADR.
+
+1. This ADR, the notes in ADR 024 and ADR 030, and the glossary in `CONTEXT.md`.
+2. The schema and the test rule: the caps per kind in the `limit_import_files` trigger, the `imports` bucket's size limit, `importLimits` in `packages/contracts` and `maxScannedPages` in the imports pipeline; `employee_test_due` awaiting a hiring test only after a record held in the app; the paper annual result allowed in `apps/api/src/modules/tests`. pgTAP and API tests.
+3. `packages/import`: the sheet page's prompt and schema, the wire form, grouping pages into people with the near-name rule, the checks (CNP, birth date, blood group and Rh, the two plausibility checks), matching contract titles to positions and people to existing employees, and grouping rows into trainings held. Tested on invented sheets.
+4. The confirm function `apply_employee_import` in `supabase/migrations`: employees created or completed, trainings held and records with source paper and the admission, paper test results, the employees' files in their import folders. pgTAP.
+5. The API, `apps/api/src/modules/imports`: creating an employee import from a client, the per-page reading on the queue, the grouping and checks, the review with each person's state and the member's changes, confirm with the signed sheets synced (`apps/api/src/modules/signed-sheets`), the usage per page. On steps 2–4.
+6. The app, `apps/app/src/features/imports` and `employees`: the entry and the open import on the _Angajați_ tab, the upload with the browser downscale and thumbnails, the processing page, the people hub, the person page with the photo column, the position choice through the job position dialog, confirming. On step 5.
+7. After the import: the paper rows' line in `apps/app/src/features/trainings` and `apps/portal/src/features/training`, the quiet test line in `apps/app/src/features/knowledge-tests`, the employee's import folder in `apps/app/src/features/client-files`. On step 2.
+8. The help: the import's article gains the employee import, and `instruire-si-teste` and `portal-si-act-aditional` change; the `## Actualizări` block.
+
+## Open
+
+1. **Sheet photographs inside a documentation pack.** The client import sorts them as `training_sheet` and today copies them into the import folder as plain files. Whether to offer an employee import from them waits for the mockup Mircea asked for, being drawn on the canvas on 2026-10-31.
+2. **The act adițional on paper without an address.** It cannot be downloaded for signing by hand while the employee has no email or phone (`employee_has_no_address`, refused in `apps/api/src/modules/signing/handlers.ts`). Should the paper version be allowed without one?
+3. **Bulk invitation** of the imported people to the portal, typing the missing contacts in the dialog and saving them on the employee (canvas boards 5 to 7): part of this ADR, or one of its own.
+4. **The test state of an employee whose paper hiring was not verified.** Nothing is due, so not _de susținut_; whether it reads _fără test_, whose meaning is "no hiring training recorded" today, or gets a value of its own for the lists and their filter.
+5. **A training held from rows that differ.** Rows of several people with the same domain, phase, day and trainer can carry different durations or materials, as the periodic material differs per position, while a training held has one of each: group only rows that agree, or keep one and flag the rest.
+6. **The workplace** of an imported employee at a client with several, which the sheets need and the sheet's "locul de muncă", a work zone, does not give.
+7. **HG 1425/2006 for exactly 250 workers**: art. 18 covers 50 to 249 and art. 19 more than 250, so 250 falls under neither by the letter. It changes nothing to build.
