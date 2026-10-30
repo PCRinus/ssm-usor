@@ -29,7 +29,7 @@
         },
         {
           "condition": "contract.coversFireSafety",
-          "lead": "În domeniul apărării împotriva incendiilor, contractul se încheie în temeiul Legii 307/2006 privind apărarea împotriva incendiilor, art. 12 alin. (1) și (2) și art. 27, al Normelor generale de apărare împotriva incendiilor, aprobate prin OMAI 163/2007 – art. 6 alin. (2), și al OMAI 106/2007 privind criteriile de stabilire a consiliilor locale și operatorilor economici care au obligația de a angaja cel puțin un cadru tehnic sau personal de specialitate cu atribuții în domeniul apărării împotriva incendiilor."
+          "lead": "În domeniul apărării împotriva incendiilor, contractul se încheie în temeiul Legii 307/2006 privind apărarea împotriva incendiilor, art. 12 alin. (3) și art. 27, al Normelor generale de apărare împotriva incendiilor, aprobate prin OMAI 163/2007 – art. 6 alin. (2), și al OMAI 106/2007 privind criteriile de stabilire a consiliilor locale și operatorilor economici care au obligația de a angaja cel puțin un cadru tehnic sau personal de specialitate cu atribuții în domeniul apărării împotriva incendiilor."
         },
         {
           "condition": "contract.coversFireSafety",
