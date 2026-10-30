@@ -7873,6 +7873,14 @@ export interface ImportUsage {
   bySteps: ImportUsageBySteps;
 }
 
+export type ImportInference = (typeof ImportInference)[keyof typeof ImportInference];
+
+export const ImportInference = {
+  no_posts_in_category: 'no_posts_in_category',
+  ssm_training_schedule: 'ssm_training_schedule',
+  office_work: 'office_work',
+} as const;
+
 export type ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemValue =
   (typeof ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemValue)[keyof typeof ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemValue];
 
@@ -8117,7 +8125,6 @@ export type ImportDetailProposalClientLegalNameOptionsItemSourcesItem = {
 export type ImportDetailProposalClientLegalNameOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalClientLegalNameOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8126,6 +8133,7 @@ export type ImportDetailProposalClientLegalNameOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalClientLegalName = {
@@ -8140,7 +8148,6 @@ export type ImportDetailProposalClientCuiOptionsItemSourcesItem = {
 export type ImportDetailProposalClientCuiOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalClientCuiOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8149,6 +8156,7 @@ export type ImportDetailProposalClientCuiOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalClientCui = {
@@ -8163,7 +8171,6 @@ export type ImportDetailProposalClientTradeRegisterNumberOptionsItemSourcesItem 
 export type ImportDetailProposalClientTradeRegisterNumberOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalClientTradeRegisterNumberOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8172,6 +8179,7 @@ export type ImportDetailProposalClientTradeRegisterNumberOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalClientTradeRegisterNumber = {
@@ -8186,7 +8194,6 @@ export type ImportDetailProposalClientCaenCodeOptionsItemSourcesItem = {
 export type ImportDetailProposalClientCaenCodeOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalClientCaenCodeOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8195,6 +8202,7 @@ export type ImportDetailProposalClientCaenCodeOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalClientCaenCode = {
@@ -8209,7 +8217,6 @@ export type ImportDetailProposalClientCountyCodeOptionsItemSourcesItem = {
 export type ImportDetailProposalClientCountyCodeOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalClientCountyCodeOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8218,6 +8225,7 @@ export type ImportDetailProposalClientCountyCodeOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalClientCountyCode = {
@@ -8232,7 +8240,6 @@ export type ImportDetailProposalClientLocalityOptionsItemSourcesItem = {
 export type ImportDetailProposalClientLocalityOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalClientLocalityOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8241,6 +8248,7 @@ export type ImportDetailProposalClientLocalityOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalClientLocality = {
@@ -8255,7 +8263,6 @@ export type ImportDetailProposalClientAddressLineOptionsItemSourcesItem = {
 export type ImportDetailProposalClientAddressLineOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalClientAddressLineOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8264,6 +8271,7 @@ export type ImportDetailProposalClientAddressLineOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalClientAddressLine = {
@@ -8278,7 +8286,6 @@ export type ImportDetailProposalClientLegalRepresentativeNameOptionsItemSourcesI
 export type ImportDetailProposalClientLegalRepresentativeNameOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalClientLegalRepresentativeNameOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8287,6 +8294,7 @@ export type ImportDetailProposalClientLegalRepresentativeNameOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalClientLegalRepresentativeName = {
@@ -8301,7 +8309,6 @@ export type ImportDetailProposalClientLegalRepresentativeRoleOptionsItemSourcesI
 export type ImportDetailProposalClientLegalRepresentativeRoleOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalClientLegalRepresentativeRoleOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8310,6 +8317,7 @@ export type ImportDetailProposalClientLegalRepresentativeRoleOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalClientLegalRepresentativeRole = {
@@ -8324,7 +8332,6 @@ export type ImportDetailProposalClientContactNameOptionsItemSourcesItem = {
 export type ImportDetailProposalClientContactNameOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalClientContactNameOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8333,6 +8340,7 @@ export type ImportDetailProposalClientContactNameOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalClientContactName = {
@@ -8347,7 +8355,6 @@ export type ImportDetailProposalClientContactPhoneOptionsItemSourcesItem = {
 export type ImportDetailProposalClientContactPhoneOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalClientContactPhoneOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8356,6 +8363,7 @@ export type ImportDetailProposalClientContactPhoneOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalClientContactPhone = {
@@ -8370,7 +8378,6 @@ export type ImportDetailProposalClientContactEmailOptionsItemSourcesItem = {
 export type ImportDetailProposalClientContactEmailOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalClientContactEmailOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8379,6 +8386,7 @@ export type ImportDetailProposalClientContactEmailOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalClientContactEmail = {
@@ -8407,7 +8415,6 @@ export type ImportDetailProposalTrainingSchedulePeriodicTrainingMinutesOptionsIt
 
 export type ImportDetailProposalTrainingSchedulePeriodicTrainingMinutesOptionsItem = {
   value: number;
-  /** @minItems 1 */
   sources: ImportDetailProposalTrainingSchedulePeriodicTrainingMinutesOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8416,6 +8423,7 @@ export type ImportDetailProposalTrainingSchedulePeriodicTrainingMinutesOptionsIt
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalTrainingSchedulePeriodicTrainingMinutes = {
@@ -8430,7 +8438,6 @@ export type ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMo
 
 export type ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMonthsOptionsItem = {
   value: number;
-  /** @minItems 1 */
   sources: ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMonthsOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8439,6 +8446,7 @@ export type ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMo
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalTrainingScheduleAdministrativeTrainingIntervalMonths = {
@@ -8453,7 +8461,6 @@ export type ImportDetailProposalTrainingScheduleWorkerTrainingIntervalMonthsOpti
 
 export type ImportDetailProposalTrainingScheduleWorkerTrainingIntervalMonthsOptionsItem = {
   value: number;
-  /** @minItems 1 */
   sources: ImportDetailProposalTrainingScheduleWorkerTrainingIntervalMonthsOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8462,6 +8469,7 @@ export type ImportDetailProposalTrainingScheduleWorkerTrainingIntervalMonthsOpti
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalTrainingScheduleWorkerTrainingIntervalMonths = {
@@ -8475,7 +8483,6 @@ export type ImportDetailProposalTrainingScheduleTrainingFirstMonthOptionsItemSou
 
 export type ImportDetailProposalTrainingScheduleTrainingFirstMonthOptionsItem = {
   value: number;
-  /** @minItems 1 */
   sources: ImportDetailProposalTrainingScheduleTrainingFirstMonthOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8484,6 +8491,7 @@ export type ImportDetailProposalTrainingScheduleTrainingFirstMonthOptionsItem = 
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalTrainingScheduleTrainingFirstMonth = {
@@ -8497,7 +8505,6 @@ export type ImportDetailProposalTrainingScheduleTrainingDayFromOptionsItemSource
 
 export type ImportDetailProposalTrainingScheduleTrainingDayFromOptionsItem = {
   value: number;
-  /** @minItems 1 */
   sources: ImportDetailProposalTrainingScheduleTrainingDayFromOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8506,6 +8513,7 @@ export type ImportDetailProposalTrainingScheduleTrainingDayFromOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalTrainingScheduleTrainingDayFrom = {
@@ -8519,7 +8527,6 @@ export type ImportDetailProposalTrainingScheduleTrainingDayToOptionsItemSourcesI
 
 export type ImportDetailProposalTrainingScheduleTrainingDayToOptionsItem = {
   value: number;
-  /** @minItems 1 */
   sources: ImportDetailProposalTrainingScheduleTrainingDayToOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8528,6 +8535,7 @@ export type ImportDetailProposalTrainingScheduleTrainingDayToOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalTrainingScheduleTrainingDayTo = {
@@ -8542,7 +8550,6 @@ export type ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplica
 
 export type ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItem = {
   value: ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemValue;
-  /** @minItems 1 */
   sources: ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicableOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8551,6 +8558,7 @@ export type ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplica
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalTrainingScheduleAdministrativeTrainingNotApplicable = {
@@ -8565,7 +8573,6 @@ export type ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptio
 
 export type ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptionsItem = {
   value: ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptionsItemValue;
-  /** @minItems 1 */
   sources: ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8574,6 +8581,7 @@ export type ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicableOptio
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalTrainingScheduleWorkerTrainingNotApplicable = {
@@ -8598,7 +8606,6 @@ export type ImportDetailProposalFireSafetyPeriodicTrainingHoursOptionsItemSource
 
 export type ImportDetailProposalFireSafetyPeriodicTrainingHoursOptionsItem = {
   value: number;
-  /** @minItems 1 */
   sources: ImportDetailProposalFireSafetyPeriodicTrainingHoursOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8607,6 +8614,7 @@ export type ImportDetailProposalFireSafetyPeriodicTrainingHoursOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalFireSafetyPeriodicTrainingHours = {
@@ -8621,7 +8629,6 @@ export type ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonthsOp
 
 export type ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonthsOptionsItem = {
   value: number;
-  /** @minItems 1 */
   sources: ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonthsOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8630,6 +8637,7 @@ export type ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonthsOp
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonths = {
@@ -8643,7 +8651,6 @@ export type ImportDetailProposalFireSafetyWorkerTrainingIntervalMonthsOptionsIte
 
 export type ImportDetailProposalFireSafetyWorkerTrainingIntervalMonthsOptionsItem = {
   value: number;
-  /** @minItems 1 */
   sources: ImportDetailProposalFireSafetyWorkerTrainingIntervalMonthsOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8652,10 +8659,77 @@ export type ImportDetailProposalFireSafetyWorkerTrainingIntervalMonthsOptionsIte
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalFireSafetyWorkerTrainingIntervalMonths = {
   options: ImportDetailProposalFireSafetyWorkerTrainingIntervalMonthsOptionsItem[];
+};
+
+export type ImportDetailProposalFireSafetyTrainingFirstMonthOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireSafetyTrainingFirstMonthOptionsItem = {
+  value: number;
+  sources: ImportDetailProposalFireSafetyTrainingFirstMonthOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
+  inferred?: ImportInference;
+};
+
+export type ImportDetailProposalFireSafetyTrainingFirstMonth = {
+  options: ImportDetailProposalFireSafetyTrainingFirstMonthOptionsItem[];
+};
+
+export type ImportDetailProposalFireSafetyTrainingDayFromOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireSafetyTrainingDayFromOptionsItem = {
+  value: number;
+  sources: ImportDetailProposalFireSafetyTrainingDayFromOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
+  inferred?: ImportInference;
+};
+
+export type ImportDetailProposalFireSafetyTrainingDayFrom = {
+  options: ImportDetailProposalFireSafetyTrainingDayFromOptionsItem[];
+};
+
+export type ImportDetailProposalFireSafetyTrainingDayToOptionsItemSourcesItem = {
+  file: string;
+  quote: string;
+};
+
+export type ImportDetailProposalFireSafetyTrainingDayToOptionsItem = {
+  value: number;
+  sources: ImportDetailProposalFireSafetyTrainingDayToOptionsItemSourcesItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  otherCompanyName: string | null;
+  /** @minLength 1 */
+  spelling?: string;
+  inferred?: ImportInference;
+};
+
+export type ImportDetailProposalFireSafetyTrainingDayTo = {
+  options: ImportDetailProposalFireSafetyTrainingDayToOptionsItem[];
 };
 
 export type ImportDetailProposalFireSafetySmokingPolicyOptionsItemSourcesItem = {
@@ -8666,7 +8740,6 @@ export type ImportDetailProposalFireSafetySmokingPolicyOptionsItemSourcesItem = 
 export type ImportDetailProposalFireSafetySmokingPolicyOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalFireSafetySmokingPolicyOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8675,6 +8748,7 @@ export type ImportDetailProposalFireSafetySmokingPolicyOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalFireSafetySmokingPolicy = {
@@ -8689,7 +8763,6 @@ export type ImportDetailProposalFireSafetySmokingPlaceOptionsItemSourcesItem = {
 export type ImportDetailProposalFireSafetySmokingPlaceOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalFireSafetySmokingPlaceOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8698,6 +8771,7 @@ export type ImportDetailProposalFireSafetySmokingPlaceOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalFireSafetySmokingPlace = {
@@ -8712,7 +8786,6 @@ export type ImportDetailProposalFireSafetyWasteContractorOptionsItemSourcesItem 
 export type ImportDetailProposalFireSafetyWasteContractorOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalFireSafetyWasteContractorOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8721,6 +8794,7 @@ export type ImportDetailProposalFireSafetyWasteContractorOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalFireSafetyWasteContractor = {
@@ -8735,7 +8809,6 @@ export type ImportDetailProposalFireSafetyWasteKindsOptionsItemSourcesItem = {
 export type ImportDetailProposalFireSafetyWasteKindsOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalFireSafetyWasteKindsOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8744,6 +8817,7 @@ export type ImportDetailProposalFireSafetyWasteKindsOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalFireSafetyWasteKinds = {
@@ -8758,7 +8832,6 @@ export type ImportDetailProposalFireSafetyWasteCollectorsOptionsItemSourcesItem 
 export type ImportDetailProposalFireSafetyWasteCollectorsOptionsItem = {
   /** @minLength 1 */
   value: string;
-  /** @minItems 1 */
   sources: ImportDetailProposalFireSafetyWasteCollectorsOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8767,6 +8840,7 @@ export type ImportDetailProposalFireSafetyWasteCollectorsOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalFireSafetyWasteCollectors = {
@@ -8780,7 +8854,6 @@ export type ImportDetailProposalFireSafetyHasThirdPartiesOptionsItemSourcesItem 
 
 export type ImportDetailProposalFireSafetyHasThirdPartiesOptionsItem = {
   value: ImportDetailProposalFireSafetyHasThirdPartiesOptionsItemValue;
-  /** @minItems 1 */
   sources: ImportDetailProposalFireSafetyHasThirdPartiesOptionsItemSourcesItem[];
   /**
    * @minLength 1
@@ -8789,6 +8862,7 @@ export type ImportDetailProposalFireSafetyHasThirdPartiesOptionsItem = {
   otherCompanyName: string | null;
   /** @minLength 1 */
   spelling?: string;
+  inferred?: ImportInference;
 };
 
 export type ImportDetailProposalFireSafetyHasThirdParties = {
@@ -8799,6 +8873,9 @@ export type ImportDetailProposalFireSafety = {
   periodicTrainingHours: ImportDetailProposalFireSafetyPeriodicTrainingHours;
   administrativeTrainingIntervalMonths: ImportDetailProposalFireSafetyAdministrativeTrainingIntervalMonths;
   workerTrainingIntervalMonths: ImportDetailProposalFireSafetyWorkerTrainingIntervalMonths;
+  trainingFirstMonth?: ImportDetailProposalFireSafetyTrainingFirstMonth;
+  trainingDayFrom?: ImportDetailProposalFireSafetyTrainingDayFrom;
+  trainingDayTo?: ImportDetailProposalFireSafetyTrainingDayTo;
   smokingPolicy: ImportDetailProposalFireSafetySmokingPolicy;
   smokingPlace: ImportDetailProposalFireSafetySmokingPlace;
   wasteContractor: ImportDetailProposalFireSafetyWasteContractor;
@@ -8903,6 +8980,8 @@ export type ImportDetailProposalJobPositionsItemFieldSources = {
 
 export type ImportDetailProposalJobPositionsItemSpelling = { [key: string]: string };
 
+export type ImportDetailProposalJobPositionsItemInferred = { [key: string]: ImportInference };
+
 export type ImportDetailProposalJobPositionsItem = {
   /** @minLength 1 */
   id: string;
@@ -8928,6 +9007,7 @@ export type ImportDetailProposalJobPositionsItem = {
   needsProtectiveEquipment?: boolean | null;
   fieldSources?: ImportDetailProposalJobPositionsItemFieldSources;
   spelling?: ImportDetailProposalJobPositionsItemSpelling;
+  inferred?: ImportDetailProposalJobPositionsItemInferred;
 };
 
 export type ImportDetailProposalResponsiblePersonsItemSourcesItem = {

@@ -612,6 +612,40 @@ describe('a post’s category and activities', () => {
     expect(proposal.notes.at(-1)).toContain('«Ospătar»');
   });
 
+  it('place a post under a fire-safety theme’s auxiliary staff with the execution staff', () => {
+    const answer = wireAnswer();
+    answer.jobPositionFacts.push(
+      fact('Vânzător', 'staffCategory', 'Personal auxiliar (vanzator, femeie de serviciu)')
+    );
+
+    expect(fromWire(answer).jobPositions[1]!.staffCategory).toBe('execution');
+  });
+
+  it('read a category’s interval as the training themes write it', () => {
+    const answer = wireAnswer();
+    answer.facts.push(
+      {
+        ...answer.facts[0]!,
+        field: 'trainingSchedule.administrativeTrainingIntervalMonths',
+        value: 'SEMESTRIAL',
+        quote: 'FUNCTIA : CONTABIL … PERIODICITATE : SEMESTRIAL',
+      },
+      {
+        ...answer.facts[0]!,
+        field: 'fireSafety.workerTrainingIntervalMonths',
+        value: '1 an',
+        quote: 'o dată la 1 an',
+      }
+    );
+
+    const proposal = fromWire(answer);
+
+    expect(proposal.trainingSchedule.administrativeTrainingIntervalMonths.options[0]!.value).toBe(
+      6
+    );
+    expect(proposal.fireSafety.workerTrainingIntervalMonths.options[0]!.value).toBe(12);
+  });
+
   it('come with a post that is another company’s as a whole', () => {
     const answer = wireAnswer();
     answer.jobPositions[1]!.otherCompany = 'ATELIERUL INVENTAT';

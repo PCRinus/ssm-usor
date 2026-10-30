@@ -11432,8 +11432,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -11443,6 +11442,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11476,8 +11478,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -11487,6 +11488,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11520,8 +11524,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -11531,6 +11534,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11564,8 +11570,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -11575,6 +11580,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11608,8 +11616,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -11619,6 +11626,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11652,8 +11662,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -11663,6 +11672,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11696,8 +11708,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -11707,6 +11718,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11740,8 +11754,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -11751,6 +11764,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11784,8 +11800,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -11795,6 +11810,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11828,8 +11846,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -11839,6 +11856,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11872,8 +11892,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -11883,6 +11902,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11916,8 +11938,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -11927,6 +11948,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -11978,8 +12002,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -11989,6 +12012,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12021,8 +12047,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12032,6 +12057,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12064,8 +12092,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12075,6 +12102,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12107,8 +12137,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12118,6 +12147,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12150,8 +12182,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12161,6 +12192,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12193,8 +12227,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12204,6 +12237,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12237,8 +12273,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12248,6 +12283,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12284,8 +12322,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12295,6 +12332,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12343,8 +12383,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12354,6 +12393,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12386,8 +12428,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12397,6 +12438,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12429,8 +12473,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12440,11 +12483,158 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
                         }
                       }
+                    },
+                    "required": ["options"]
+                  },
+                  "trainingFirstMonth": {
+                    "type": "object",
+                    "properties": {
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "integer"
+                            },
+                            "sources": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "file": {
+                                    "type": "string"
+                                  },
+                                  "quote": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["file", "quote"]
+                              }
+                            },
+                            "otherCompanyName": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
+                            }
+                          },
+                          "required": ["value", "sources", "otherCompanyName"]
+                        }
+                      }
+                    },
+                    "default": {
+                      "options": []
+                    },
+                    "required": ["options"]
+                  },
+                  "trainingDayFrom": {
+                    "type": "object",
+                    "properties": {
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "integer"
+                            },
+                            "sources": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "file": {
+                                    "type": "string"
+                                  },
+                                  "quote": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["file", "quote"]
+                              }
+                            },
+                            "otherCompanyName": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
+                            }
+                          },
+                          "required": ["value", "sources", "otherCompanyName"]
+                        }
+                      }
+                    },
+                    "default": {
+                      "options": []
+                    },
+                    "required": ["options"]
+                  },
+                  "trainingDayTo": {
+                    "type": "object",
+                    "properties": {
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "integer"
+                            },
+                            "sources": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "file": {
+                                    "type": "string"
+                                  },
+                                  "quote": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["file", "quote"]
+                              }
+                            },
+                            "otherCompanyName": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            },
+                            "spelling": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
+                            }
+                          },
+                          "required": ["value", "sources", "otherCompanyName"]
+                        }
+                      }
+                    },
+                    "default": {
+                      "options": []
                     },
                     "required": ["options"]
                   },
@@ -12473,8 +12663,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12484,6 +12673,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12517,8 +12709,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12528,6 +12719,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12561,8 +12755,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12572,6 +12765,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12605,8 +12801,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12616,6 +12811,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12652,8 +12850,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12663,6 +12860,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12699,8 +12899,7 @@
                                   }
                                 },
                                 "required": ["file", "quote"]
-                              },
-                              "minItems": 1
+                              }
                             },
                             "otherCompanyName": {
                               "type": "string",
@@ -12710,6 +12909,9 @@
                             "spelling": {
                               "type": "string",
                               "minLength": 1
+                            },
+                            "inferred": {
+                              "$ref": "#/components/schemas/ImportInference"
                             }
                           },
                           "required": ["value", "sources", "otherCompanyName"]
@@ -12964,6 +13166,13 @@
                       "additionalProperties": {
                         "type": "string",
                         "minLength": 1
+                      },
+                      "default": {}
+                    },
+                    "inferred": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "$ref": "#/components/schemas/ImportInference"
                       },
                       "default": {}
                     }
@@ -13558,6 +13767,10 @@
           }
         },
         "required": ["costUsd", "inputTokens", "cachedInputTokens", "outputTokens"]
+      },
+      "ImportInference": {
+        "type": "string",
+        "enum": ["no_posts_in_category", "ssm_training_schedule", "office_work"]
       },
       "RegisterImportFilesResponse": {
         "type": "object",

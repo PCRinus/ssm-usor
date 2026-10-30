@@ -17,7 +17,7 @@ import {
   responsiblePersonRoleLabels,
 } from '@ssm-usor/contracts';
 
-import type { ImportDetail } from '@/api/generated/api';
+import type { ImportDetail, ImportInference } from '@/api/generated/api';
 import { allocationLabels } from '@/features/protective-equipment/equipment-schema';
 
 export type Proposal = NonNullable<ImportDetail['proposal']>;
@@ -33,6 +33,7 @@ export type Option = {
   sources: Source[];
   otherCompanyName: string | null;
   spelling?: string;
+  inferred?: ImportInference;
 };
 export type ProposedField = { options: Option[] };
 
@@ -198,6 +199,21 @@ export const fieldInfo: Record<string, FieldInfo> = {
     choose: 'Alege periodicitatea PSI pentru execuție',
     write: 'Scrie periodicitatea PSI pentru execuție',
   },
+  'fireSafety.trainingFirstMonth': {
+    label: 'Prima lună a instruirii PSI',
+    choose: 'Alege prima lună a instruirii PSI',
+    write: 'Scrie prima lună a instruirii PSI',
+  },
+  'fireSafety.trainingDayFrom': {
+    label: 'Din ziua',
+    choose: 'Alege ziua de început a instruirii PSI',
+    write: 'Scrie ziua de început a instruirii PSI',
+  },
+  'fireSafety.trainingDayTo': {
+    label: 'Până în ziua',
+    choose: 'Alege ziua de sfârșit a instruirii PSI',
+    write: 'Scrie ziua de sfârșit a instruirii PSI',
+  },
   'fireSafety.smokingPolicy': {
     label: 'Fumatul',
     choose: 'Alege regula de fumat',
@@ -295,9 +311,18 @@ export const fieldGroups: { section: SectionId; title: string; paths: string[] }
       'fireSafety.wasteKinds',
       'fireSafety.wasteCollectors',
       'fireSafety.hasThirdParties',
+    ],
+  },
+  {
+    section: 'fire-safety',
+    title: 'Programul de instruire PSI',
+    paths: [
       'fireSafety.periodicTrainingHours',
       'fireSafety.workerTrainingIntervalMonths',
       'fireSafety.administrativeTrainingIntervalMonths',
+      'fireSafety.trainingFirstMonth',
+      'fireSafety.trainingDayFrom',
+      'fireSafety.trainingDayTo',
     ],
   },
 ];
@@ -310,9 +335,35 @@ export const integerPaths = new Set(
         'fireSafety.periodicTrainingHours',
         'fireSafety.administrativeTrainingIntervalMonths',
         'fireSafety.workerTrainingIntervalMonths',
+        'fireSafety.trainingFirstMonth',
+        'fireSafety.trainingDayFrom',
+        'fireSafety.trainingDayTo',
       ].includes(path)
   )
 );
+
+const categoryOfNotApplicable: Record<string, string> = {
+  'trainingSchedule.workerTrainingNotApplicable': 'execuție',
+  'trainingSchedule.administrativeTrainingNotApplicable': 'tehnico-administrativ',
+};
+
+export function inferenceNote(path: string, inferred: ImportInference | undefined): string | null {
+  switch (inferred) {
+    case 'no_posts_in_category':
+      return `Niciun post nu este în categoria ${categoryOfNotApplicable[path] ?? 'aceasta'}, așa că instruirea periodică nu se aplică. Poți s-o schimbi.`;
+    case 'ssm_training_schedule':
+      return 'Preluată din programul de instruire SSM, fiindcă documentele PSI nu o dau. Poți s-o schimbi.';
+    case 'office_work':
+      return 'Post de birou fără echipament în documente, așa că nu i-am propus echipament.';
+    default:
+      return null;
+  }
+}
+
+export function itemInferenceNote(state: { item: Record<string, unknown> }, field: string) {
+  const inferred = state.item.inferred as Partial<Record<string, ImportInference>> | undefined;
+  return inferenceNote(field, inferred?.[field]);
+}
 
 export function proposedField(proposal: Proposal, path: string): ProposedField {
   const [group, name] = path.split('.') as [string, string];
@@ -363,6 +414,7 @@ export function formatFieldValue(
     case 'fireSafety.workerTrainingIntervalMonths':
       return Number(text) === 1 ? 'lunar' : `la ${text} luni`;
     case 'trainingSchedule.trainingFirstMonth':
+    case 'fireSafety.trainingFirstMonth':
       return months[Number(text) - 1] ?? text;
     case 'fireSafety.smokingPolicy':
       return fireSmokingPolicyLabels[text as FireSmokingPolicy] ?? text;
