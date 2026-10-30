@@ -16,13 +16,17 @@ export function foldText(value: string) {
     .trim();
 }
 
+// I.I. and I.F. need their first dot: a bare "II" is the number of a building ("Hala II").
 export function foldName(value: string) {
   return foldText(
     value
       .normalize('NFD')
       .replace(marks, '')
       .toLowerCase()
-      .replace(/\b(s\.?\s?c\.?|s\.?\s?r\.?\s?l\.?|d-na|dl\.?|d-l)(?=\s|$|[^\p{L}])/gu, ' ')
+      .replace(
+        /\b(s\.?\s?c\.?|s\.?\s?r\.?\s?l\.?|s\.?a\.?|p\.?\s?f\.?\s?a\.?|i\.\s?i\.?|i\.\s?f\.?|d-na|dl\.?|d-l)(?=\s|$|[^\p{L}])/gu,
+        ' '
+      )
   );
 }
 
@@ -72,13 +76,44 @@ export function cuiDigits(written: string | null) {
   return normalizeCui(unlabelled)?.cui ?? null;
 }
 
-const addressWords = new Set(['str', 'strada', 'nr', 'numar', 'numarul']);
+// A client's documents write one street as "Str." in one place and "Calea" in another, so a
+// street's type is left out of its key, at the cost of joining "Aleea X" with "Strada X".
+const streetTypes = new Set([
+  'str',
+  'strada',
+  'calea',
+  'bd',
+  'bdul',
+  'bulevard',
+  'bulevardul',
+  'sos',
+  'soseaua',
+  'aleea',
+  'piata',
+  'pta',
+]);
+
+const addressAbbreviations: Record<string, string> = {
+  numar: 'nr',
+  numarul: 'nr',
+  scara: 'sc',
+  camera: 'cam',
+  apartament: 'ap',
+  apartamentul: 'ap',
+  etaj: 'et',
+  etajul: 'et',
+  bloc: 'bl',
+  blocul: 'bl',
+};
 
 export function streetKey(addressLine: string | null) {
   if (addressLine === null) return '';
   return foldText(addressLine)
+    .replace(/(\p{N})(?=\p{L})|(\p{L})(?=\p{N})/gu, '$1$2 ')
+    .replace(/(^| )(b dul|p ta)(?= |$)/g, ' ')
     .split(' ')
-    .filter((word) => word !== '' && !addressWords.has(word))
+    .map((word) => addressAbbreviations[word] ?? word)
+    .filter((word) => word !== '' && word !== 'nr' && !streetTypes.has(word))
     .join(' ');
 }
 

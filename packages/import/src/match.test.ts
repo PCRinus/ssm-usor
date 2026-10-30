@@ -8,8 +8,10 @@ import {
   foldName,
   foldText,
   placeQuote,
+  sameAddress,
   sameName,
   similar,
+  streetKey,
 } from './match';
 
 describe('foldText', () => {
@@ -23,6 +25,22 @@ describe('foldName', () => {
   it('drops the company form', () => {
     expect(foldName('S.C. Brutăria Fictivă S.R.L.')).toBe('brutaria fictiva');
     expect(foldName('BRUTARIA FICTIVA SRL')).toBe('brutaria fictiva');
+    expect(foldName('BRUTĂRIA FICTIVĂ S.A.')).toBe('brutaria fictiva');
+  });
+
+  it('drops the form of a sole trader or a family business', () => {
+    expect(foldName('VASILESCU M. ANA PFA')).toBe('vasilescu m ana');
+    expect(foldName('VASILESCU M.ANA P.F.A.')).toBe('vasilescu m ana');
+    expect(foldName('P.F.A. Vasilescu Ana')).toBe('vasilescu ana');
+    expect(foldName('Vasilescu Ana I.I.')).toBe('vasilescu ana');
+    expect(foldName('Vasilescu Ana I. I.')).toBe('vasilescu ana');
+    expect(foldName('Familia Vasilescu I.F.')).toBe('familia vasilescu');
+  });
+
+  it('keeps a bare II or IF, which numbers a building or is part of a name', () => {
+    expect(foldName('Hala II')).toBe('hala ii');
+    expect(foldName('Hala II')).not.toBe(foldName('Hala'));
+    expect(foldName('Depozit IF')).toBe('depozit if');
   });
 });
 
@@ -43,6 +61,40 @@ describe('sameName', () => {
     expect(sameName('S.C. Brutăria Fictivă S.R.L.', 'BRUTARIA FICTIVA SRL')).toBe(true);
     expect(sameName('Protect SRL', 'Protecție Construct SRL')).toBe(false);
     expect(sameName('Alfa SRL', 'Alfa Construct SRL')).toBe(false);
+    expect(sameName('VASILESCU M. ANA PFA', 'VASILESCU M.ANA P.F.A.')).toBe(true);
+  });
+});
+
+describe('streetKey and sameAddress', () => {
+  const at = (addressLine: string, locality: string | null = 'Timișoara') => ({
+    locality,
+    addressLine,
+  });
+
+  it('take a street the same whatever its type, abbreviations, punctuation and case', () => {
+    for (const [a, b] of [
+      ['Str. Exemplului , Nr.8 , Camera 2', 'STR. EXEMPLULUI, NR. 8, CAM. 2'],
+      ['Calea Inventată ,Nr. 6', 'str. Inventata nr. 6'],
+      ['Str. Exemplului , Nr.19, Sc. B , Ap. 17', 'Strada EXEMPLULUI, Nr. 19, Scara B, Ap. 17'],
+      [
+        'Bd. Exemplului nr. 3, bl. A2, et. 1, ap. 4',
+        'B-dul Exemplului, numărul 3, bloc A 2, etaj 1, apartament 4',
+      ],
+      ['Șos. Exemplului 10A', 'Soseaua Exemplului nr. 10 A'],
+      ['Piața Exemplului 1', 'Aleea Exemplului nr. 1'],
+    ]) {
+      expect(streetKey(a!), a).toBe(streetKey(b!));
+      expect(sameAddress(at(a!), at(b!, 'TIMISOARA')), a).toBe(true);
+    }
+  });
+
+  it('keeps apart another number, another staircase or another locality', () => {
+    expect(sameAddress(at('Str. Exemplului nr. 8'), at('Str. Exemplului nr. 9'))).toBe(false);
+    expect(sameAddress(at('Str. Exemplului 19, Sc. B'), at('Strada Exemplului 19, Scara C'))).toBe(
+      false
+    );
+    expect(sameAddress(at('Str. Exemplului 8'), at('Str. Exemplului 8', 'Lugoj'))).toBe(false);
+    expect(streetKey('nr. 5')).toBe('5');
   });
 });
 
