@@ -2,6 +2,7 @@
 
 - Status: proposed
 - Date: 2026-10-24
+- Amended 2026-10-31: the training and test counts are read through a function that checks the caller; see the amendment below.
 
 ## Context
 
@@ -90,3 +91,9 @@ The card counts the signed copies received through the return link ([ADR 007](ad
 1. This ADR; `dashboard_summary`, `clients_missing_basic_data` and `dashboard_employees_at_month_ends` with pgTAP tests; the `domain` parameter of `GET /employees` and of the SPA's employees route.
 2. `GET /dashboard/summary` in a module of its own, with its contract: the row, the bars, the caller's own pending signatures, and the contracts as null for a specialist. On step 1.
 3. The page, from the canvas's boards, for desktop and phone, with its empty rules. On step 2.
+
+## Amendment (2026-10-31): the states of a whole organization
+
+Measured on generated data, one organization with about 21,000 employees, 400 clients and 534,000 training records, the training and test counts took over two seconds of the summary, and the employees list filtered by a state as long: read through the status views as the caller, every employee costs lookups per domain, and under the policies the planner's estimates collapse. Calling `employee_training_due` and `employee_test_due` once per employee as the owner, so with the same rules and no policies, still took over a second for the two counts.
+
+`organization_employee_states(organization)`, security definer, reads the training records, the trainings and the test results once each, grouped by employee, and returns the training state and due date and the test state in both domains of every current employee of the organization's active clients. It answers only for the caller's own organization and returns nothing for another, so it stands in for the policies the views would apply. It repeats the rules of the two functions rather than calling them; a pgTAP test compares it with the views row by row on employees that reach every state, so a rule changed in one place only fails the build. `dashboard_summary` keeps its columns and takes its training counts, its nearest due date and its pending tests from it. `organization_employees_in_state(organization, training state, test state, domain)` returns the employees in those states, with the meaning the list gives them, and `GET /employees` with a state filter pages through it and reads the page's statuses afterwards. On the generated data the two counts take about 170 ms and a filtered page about 200 ms.
