@@ -593,7 +593,7 @@ middle of a string; `employees_employee_number_search_idx` is one on the employe
 the client per term, filtered on `client_search_name` and tested with `not.is.null` inside the
 term's OR, since PostgREST can test an embed in an OR only for whether it found a row.
 `client_search_name` is inlinable too, so the client is joined by its key rather than read by a
-function call per employee; it has no index, as an organization's clients are few hundred at most.
+function call per employee; it has no index, as an organization's clients are a few hundred at most.
 `employee_client_search_name(employees)`, the same name read per employee, is no longer used by
 the API.
 
