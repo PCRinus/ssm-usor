@@ -87,8 +87,9 @@ export default defineConfig({
       },
     },
     {
-      // A production build, so the tests exercise what ships rather than the dev server.
-      command: `pnpm exec vite build --outDir dist-e2e --logLevel warn && pnpm exec vite preview --outDir dist-e2e --port ${APP_PORT} --strictPort`,
+      // A production build, so the tests exercise what ships rather than the dev server. CI
+      // makes it while the local stack starts (.github/workflows/pull-request.yml).
+      command: `${process.env.E2E_PREBUILT ? '' : 'pnpm exec vite build --outDir dist-e2e --logLevel warn && '}pnpm exec vite preview --outDir dist-e2e --port ${APP_PORT} --strictPort`,
       url: `${appUrl}/login`,
       reuseExistingServer: false,
       timeout: 180_000,
