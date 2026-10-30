@@ -653,33 +653,25 @@ describe('toClientPayload', () => {
     ]);
   });
 
-  it('blocks a second registered office until the member unticks one or takes the mark off it', () => {
-    const office = reading().workplaces[0]!;
-    const proposal = proposalOf(
-      reading({
-        workplaces: [
-          { ...office, name: 'Sediu social', addressLine: 'Str. Exemplului nr. 5, Sc. B' },
-          { ...office, name: 'Sediu social', addressLine: 'Strada Exemplului nr. 5, Scara B' },
-          { ...reading().workplaces[1]! },
-        ],
-        fireEquipment: [],
-      })
-    );
-    const blockersWith = (changes: Parameters<typeof toClientPayload>[0]['changes']) =>
-      toClientPayload({ proposal, changes, intoExistingClient: false, existing: noExistingRecords })
-        .blockers;
+  it('blocks a second registered office the member ticks until they untick one or leave one out', () => {
+    const proposal = proposalOf(reading({ fireEquipment: [] }));
     const [first, second] = proposal.workplaces;
+    const blockersWith = (items: Record<string, object>) =>
+      toClientPayload({
+        proposal,
+        changes: {
+          fields: {},
+          items: { [second!.id]: { values: { isRegisteredOffice: true } }, ...items },
+        },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      }).blockers;
 
-    expect(blockersWith(null)).toEqual([
+    expect(blockersWith({})).toEqual([
       { path: 'workplaces.1.isRegisteredOffice', code: 'invalid' },
     ]);
-    expect(blockersWith({ fields: {}, items: { [first!.id]: { included: false } } })).toEqual([]);
-    expect(
-      blockersWith({
-        fields: {},
-        items: { [second!.id]: { values: { isRegisteredOffice: false } } },
-      })
-    ).toEqual([]);
+    expect(blockersWith({ [first!.id]: { included: false } })).toEqual([]);
+    expect(blockersWith({ [first!.id]: { values: { isRegisteredOffice: false } } })).toEqual([]);
   });
 
   it('blocks a fire-safety value the checks found outside what the database takes', () => {
