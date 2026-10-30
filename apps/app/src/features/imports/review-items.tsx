@@ -17,7 +17,7 @@ import {
   workplaceKinds,
 } from '@ssm-usor/contracts';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
-import { Copy, HardHat, UserRound } from 'lucide-react';
+import { CircleMinus, Copy, HardHat, UserRound } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import { WorkplaceDialog, type WorkplaceDraft } from '@/features/clients/workplace-dialog';
@@ -335,6 +335,7 @@ function ListCard({
   render,
   empty,
   untickedBox,
+  leftOutBox,
 }: {
   title: (count: number) => string;
   list: ItemList;
@@ -343,10 +344,12 @@ function ListCard({
   render: (state: ItemState) => ReactNode;
   empty: string;
   untickedBox?: (states: ItemState[]) => ReactNode;
+  leftOutBox?: (states: ItemState[]) => ReactNode;
 }) {
   const states = itemStates(context.proposal, context.changes, list);
   const kept = states.filter(listed);
   const aside = states.filter((state) => !listed(state));
+  const leftOut = aside.filter((state) => state.proposed);
   return (
     <ReviewCard title={title(kept.length)} testId={`review-list-${list}`}>
       {kept.length === 0 ? (
@@ -354,13 +357,14 @@ function ListCard({
       ) : (
         <ul className="divide-y">{kept.map(render)}</ul>
       )}
+      {leftOutBox?.(leftOut)}
       {untickedBox?.(
         aside.filter((state) => !state.proposed && state.untickedReason !== 'other_company')
       )}
       <OtherCompanyBox
         states={aside
           .filter((state) => state.untickedReason === 'other_company')
-          .concat(aside.filter((state) => state.proposed))}
+          .concat(leftOutBox ? [] : leftOut)}
         context={context}
         noun={noun}
       />
@@ -560,6 +564,18 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
         context={context}
         noun={() => 'postul'}
         empty="Documentele nu numesc niciun post de lucru."
+        leftOutBox={(states) => (
+          <OptionalBox
+            states={states}
+            context={context}
+            noun={() => 'postul'}
+            title="Lăsate deoparte"
+            description="Posturi pe care ai ales să nu le preiei. Bifează unul ca să îl preiei totuși."
+            icon={<CircleMinus className="mt-0.5 size-4" aria-hidden="true" />}
+            testId="review-left-out"
+            detail={(state) => text(state.values.activities) ?? ''}
+          />
+        )}
         untickedBox={(states) => (
           <OptionalBox
             states={states}
@@ -584,6 +600,18 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
                 ? staffCategoryShortLabels[state.values.staffCategory as StaffCategory]
                 : 'Categoria de personal lipsește',
               <EquipmentDecision key="equipment" state={state} context={context} />,
+              <LinkButton
+                key="leave-out"
+                className="w-fit text-[13px]"
+                onClick={() =>
+                  context.review.setItem(state.item.id, (current) => ({
+                    ...current,
+                    included: false,
+                  }))
+                }
+              >
+                Nu prelua postul
+              </LinkButton>,
             ]}
             onEdit={() => setEditing(state)}
           />
