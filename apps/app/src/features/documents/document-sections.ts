@@ -1,7 +1,5 @@
 import type { DocumentSet, DocumentTypeKey, FireSafetyDocumentTypeKey } from '@ssm-usor/contracts';
 
-import type { ClientDocument } from './document-labels';
-
 // The chapters of the provider's binder, numbered as the templates are and named after their
 // covers, so the list reads like the printed documentation.
 export const documentSections = [
@@ -197,18 +195,12 @@ type SectionList = readonly {
   typeKeys: readonly string[];
 }[];
 
-// `listsWholePack`: every document of the set is listed, existing or not, and nothing
-// generated yet is no reason for an empty state.
 export const setSections: Record<
   DocumentSet,
-  { sections: SectionList; other: { id: 'other'; title: string }; listsWholePack: boolean }
+  { sections: SectionList; other: { id: 'other'; title: string } }
 > = {
-  occupational_safety: { sections: documentSections, other: otherSection, listsWholePack: false },
-  fire_safety: {
-    sections: fireSafetyDocumentSections,
-    other: fireSafetyOtherSection,
-    listsWholePack: true,
-  },
+  occupational_safety: { sections: documentSections, other: otherSection },
+  fire_safety: { sections: fireSafetyDocumentSections, other: fireSafetyOtherSection },
 };
 
 export function sectionOf<Set extends DocumentSet = 'occupational_safety'>(
@@ -218,42 +210,4 @@ export function sectionOf<Set extends DocumentSet = 'occupational_safety'>(
   const { sections, other } = setSections[set];
   return (sections.find((section) => section.typeKeys.includes(typeKey))?.id ??
     other.id) as SectionIdOf<Set>;
-}
-
-const counted = (count: number, one: string, many: string) =>
-  `${count} ${count === 1 ? one : many}`;
-
-export type SectionRow =
-  | {
-      kind: 'document';
-      key: string;
-      title: string;
-      document: ClientDocument;
-      // A dated type's earlier years, newest first (ADR 020).
-      earlier?: ClientDocument[];
-    }
-  | {
-      kind: 'notApplicable' | 'notGenerated';
-      key: string;
-      title: string;
-      document: null;
-    };
-
-export function sectionSummary(rows: readonly Pick<SectionRow, 'kind' | 'document'>[]) {
-  const documents = rows.flatMap((row) => (row.document ? [row.document] : []));
-  const missing = rows.filter((row) => row.kind === 'notGenerated').length;
-  if (documents.length === 0) {
-    return rows.length === 0 || missing > 0 ? 'negenerat' : 'nu se aplică';
-  }
-  const issued = documents.filter((document) => document.issued).length;
-  const drafts = documents.filter((document) => document.draft).length;
-  const dataChanged = documents.filter((document) => document.draft?.dataChanged).length;
-  return [
-    issued > 0 && counted(issued, 'emis', 'emise'),
-    drafts > 0 && counted(drafts, 'ciornă', 'ciorne'),
-    dataChanged > 0 && `${dataChanged} cu date modificate`,
-    missing > 0 && counted(missing, 'negenerat', 'negenerate'),
-  ]
-    .filter((part) => part !== false)
-    .join(' · ');
 }

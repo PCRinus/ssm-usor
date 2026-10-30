@@ -7,15 +7,9 @@ import {
   type MissingDocumentData,
   unfilledMark,
 } from '@ssm-usor/contracts';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@ssm-usor/ui/components/accordion';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
+import { Card } from '@ssm-usor/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -34,15 +28,9 @@ import {
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ssm-usor/ui/components/table';
+import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
 import {
   ChevronDown,
@@ -51,7 +39,6 @@ import {
   Eye,
   FileDown,
   FilePenLine,
-  FileText,
   MoreHorizontal,
   Printer,
   RefreshCw,
@@ -88,24 +75,16 @@ import { openDownload, saveFile } from '@/lib/save-file';
 
 import { AnnexRow } from './annex-row';
 import { behindInstructions, instructionChangesHint } from './behind-labels';
-import {
-  appliesAt,
-  type ClientDocument,
-  datedTitle,
-  fireSafetyHeadcountRule,
-  notApplicableTitles,
-  notGeneratedTitles,
-  workersRepresentativesRule,
-} from './document-labels';
+import { appliesAt, type ClientDocument, datedTitle } from './document-labels';
 import { DocumentMissingRows } from './document-missing-rows';
-import {
-  type SectionIdOf,
-  type SectionRow,
-  sectionSummary,
-  setSections,
-} from './document-sections';
+import type { SectionIdOf } from './document-sections';
 import { documentLink, documentRowId, documentSetCopy, setParams } from './document-sets';
 import { GenerateDocumentsDialog } from './generate-documents-dialog';
+import { isEmptyPack } from './pack-labels';
+import { PackHeader, PackLayout } from './pack-layout';
+import { MissingDocumentRow, PackTable } from './pack-rows';
+import { buildPack, type PackSection } from './pack-status';
+import { packCells } from './pack-styles';
 import { pdfOfRevision, usePrint } from './print';
 
 type Revision = NonNullable<ClientDocument['draft']>;
@@ -117,7 +96,6 @@ type Confirming = {
 type Refusal = { document: ClientDocument; missing: MissingDocumentData[] };
 
 const menuLabel = 'text-xs text-muted-foreground';
-const archivedHint = 'Clientul este arhivat, așa că nu i se mai generează documente.';
 
 const confirmations = {
   regenerate: {
@@ -188,16 +166,14 @@ export function DocumentsCard<Set extends DocumentSet>({
   clientId,
   userId,
   readOnly,
-  openSection,
-  onOpenSectionChange,
+  section,
   focus,
 }: {
   set: Set;
   clientId: string;
   userId: string;
   readOnly: boolean;
-  openSection: SectionIdOf<Set> | undefined;
-  onOpenSectionChange: (section: SectionIdOf<Set> | undefined) => void;
+  section: SectionIdOf<Set> | undefined;
   focus?: 'generate' | BuiltInDocumentTypeKey;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -272,45 +248,21 @@ export function DocumentsCard<Set extends DocumentSet>({
     ready: !documents.isPending,
     field: focusedType && existing.has(focusedType) ? documentRowId(focusedType) : undefined,
   });
-  const { sections: setSectionList, other, listsWholePack } = setSections[set];
-  const packRows = typeKeys.flatMap((typeKey): SectionRow[] => {
-    // The API lists a dated type's newest year first; the earlier ones fold under it.
-    const [document, ...earlier] = items.filter((item) => item.typeKey === typeKey);
-    if (document && isDatedDocumentType(typeKey)) {
-      return [{ kind: 'document', key: typeKey, title: datedTitle(document), document, earlier }];
-    }
-    if (document) return [{ kind: 'document', key: typeKey, title: document.title, document }];
-    const notApplicableTitle = notApplicableTitles[typeKey];
-    if (notApplicable.has(typeKey) && notApplicableTitle) {
-      return [{ kind: 'notApplicable', key: typeKey, title: notApplicableTitle, document: null }];
-    }
-    const notGeneratedTitle = listsWholePack ? notGeneratedTitles[typeKey] : undefined;
-    return notGeneratedTitle
-      ? [{ kind: 'notGenerated', key: typeKey, title: notGeneratedTitle, document: null }]
-      : [];
-  });
-  const known = new Set<string>(typeKeys);
-  const otherRows = items
-    .filter((item) => !known.has(item.typeKey))
-    .map((document): SectionRow => ({
-      kind: 'document',
-      key: document.typeKey,
-      title: document.title,
-      document,
-    }));
-  const sections = [
-    ...setSectionList
-      .map((section) => ({
-        id: section.id,
-        title: `${section.number}. ${section.title}`,
-        rows: packRows.filter((row) => section.typeKeys.includes(row.key)),
-        applies: !section.typeKeys.every((key) => notApplicable.has(key)),
-      }))
-      // A section with nothing to show for a client it does not apply to, such as the annex on
-      // the electronic signature without participants, is no part of that client's binder.
-      .filter((section) => section.rows.length > 0 || section.applies),
-    ...(otherRows.length > 0 ? [{ ...other, rows: otherRows }] : []),
-  ];
+  const pack = documents.isSuccess
+    ? buildPack({
+        set,
+        items,
+        notApplicable: documents.data.notApplicable,
+        isBehind: (document) => {
+          const behindRow = behindRows.get(document.id);
+          return (
+            behindRow !== undefined &&
+            (behindRow.client.behindTemplate || behindInstructions(behindRow.client))
+          );
+        },
+      })
+    : undefined;
+  const empty = pack !== undefined && isEmptyPack(pack);
 
   function toggleEarlier(typeKey: string) {
     setUnfoldedTypes((current) => {
@@ -479,20 +431,22 @@ export function DocumentsCard<Set extends DocumentSet>({
   function documentRow(document: ClientDocument, title: string, rowId?: string) {
     const current = document.draft ?? document.issued;
     const behindRow = behindRows.get(document.id);
+    const click = rowClickProps(
+      () =>
+        void navigate({
+          ...documentLink(set, clientId, document.id),
+          state: { openedFromList: true },
+        })
+    );
     return (
       <Fragment key={document.id}>
         <TableRow
           id={rowId}
           data-testid="document-row"
-          {...rowClickProps(
-            () =>
-              void navigate({
-                ...documentLink(set, clientId, document.id),
-                state: { openedFromList: true },
-              })
-          )}
+          {...click}
+          className={cn(packCells.row, click.className)}
         >
-          <TableCell>
+          <TableCell className={packCells.title}>
             <Link
               {...documentLink(set, clientId, document.id)}
               state={{ openedFromList: true }}
@@ -507,7 +461,7 @@ export function DocumentsCard<Set extends DocumentSet>({
               </span>
             )}
           </TableCell>
-          <TableCell>
+          <TableCell className={packCells.status}>
             <span className="flex flex-wrap gap-1.5">
               {document.issued && (
                 <Badge data-testid="document-issued">Emis · rev. {document.issued.revision}</Badge>
@@ -559,10 +513,10 @@ export function DocumentsCard<Set extends DocumentSet>({
               )}
             </span>
           </TableCell>
-          <TableCell className="text-muted-foreground tabular-nums">
+          <TableCell className={packCells.date}>
             {current?.issueDate ? formatRoDate(current.issueDate) : '—'}
           </TableCell>
-          <TableCell>
+          <TableCell className={packCells.actions}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -713,236 +667,164 @@ export function DocumentsCard<Set extends DocumentSet>({
       </Fragment>
     );
   }
-  return (
-    <Card data-testid="documents-card">
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
-        <div className="grid gap-1">
-          <h2 className="text-lg font-semibold">{copy.heading}</h2>
-          {listsWholePack && documents.isSuccess && items.length === 0 && (
-            <p data-testid="documents-hint" className="max-w-prose text-sm text-muted-foreground">
-              {readOnly ? archivedHint : copy.emptyHint}
-            </p>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {items.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" data-testid="documents-archive" disabled={archiving}>
-                  <Download aria-hidden="true" />
-                  {archiving ? 'Se pregătește arhiva…' : 'Descarcă documentația'}
-                  <ChevronDown aria-hidden="true" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="max-w-80">
-                <DropdownMenuItem
-                  data-testid="documents-archive-docx"
-                  className="grid gap-0.5"
-                  onSelect={() => void downloadArchive('docx')}
-                >
-                  <span>Arhivă cu fișierele Word</span>
-                  <span className="text-xs text-muted-foreground">
-                    Documentele emise și ciornele celor neemise încă
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  data-testid="documents-archive-pdf"
-                  className="grid gap-0.5"
-                  disabled={issuedPdfs === 0}
-                  onSelect={() => void downloadArchive('pdf')}
-                >
-                  <span>Arhivă cu PDF-urile</span>
-                  <span className="text-xs text-muted-foreground">
-                    {issuedPdfs === 0
-                      ? 'Niciun document emis încă'
-                      : `Doar documentele emise: ${issuedPdfs} din ${items.length}`}
-                  </span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          {canGenerate && (
-            <Button ref={generateRef} data-testid="documents-generate" onClick={openGenerate}>
-              <Sparkles aria-hidden="true" />
-              {items.length === 0
-                ? 'Generează documentația'
-                : lacking > 0
-                  ? 'Generează documentele lipsă'
-                  : 'Generează pentru alt an'}
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {typeof error === 'string' ? (
-          <Notice variant="destructive" data-testid="documents-error">
-            {error}
-          </Notice>
-        ) : (
-          error && (
-            <div data-testid="documents-refused" className="grid gap-4">
-              <Notice variant="destructive" data-testid="documents-error">
-                Nu am putut genera din nou „{error.document.title}”. Completează mai întâi:
-              </Notice>
-              <DocumentMissingRows
-                clientId={clientId}
-                userId={userId}
-                typeKey={error.document.typeKey as BuiltInDocumentTypeKey}
-                missing={error.missing}
-                testId="documents-missing"
-              />
-            </div>
-          )
-        )}
-        {documents.isPending ? (
-          <Skeleton className="h-40 w-full" />
-        ) : documents.isError ? (
-          <Notice
-            variant="destructive"
-            action={
-              <Button
-                variant="outline"
-                disabled={documents.isFetching}
-                onClick={() => void documents.refetch()}
-              >
-                Încearcă din nou
-              </Button>
-            }
-          >
-            Nu am putut încărca documentele.
-          </Notice>
-        ) : items.length === 0 && !listsWholePack ? (
-          <div data-testid="documents-empty" className="grid justify-items-center gap-2 py-10">
-            <FileText className="size-8 text-muted-foreground" aria-hidden="true" />
-            <p className="text-sm font-medium">Niciun document încă</p>
-            <p className="max-w-md text-center text-sm text-muted-foreground">
-              {readOnly ? archivedHint : copy.emptyHint}
-            </p>
-          </div>
-        ) : (
-          <Accordion
-            className="min-w-0"
-            type="single"
-            collapsible
-            value={openSection ?? ''}
-            onValueChange={(value) =>
-              onOpenSectionChange((value || undefined) as SectionIdOf<Set> | undefined)
-            }
-          >
-            {sections.map((section) => (
-              <AccordionItem key={section.id} value={section.id} data-testid="document-section">
-                <AccordionTrigger data-testid="document-section-trigger">
-                  <span className="flex flex-1 flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <span>{section.title}</span>
-                    <span
-                      data-testid="document-section-summary"
-                      className="font-normal text-muted-foreground"
+  function sectionRows(shown: PackSection) {
+    return (
+      <PackTable>
+        {shown.rows.map((row) => {
+          if (row.kind === 'missing') return <MissingDocumentRow key={row.key} row={row} />;
+          const { key, title, document, earlier } = row;
+          const unfolded = earlier !== undefined && unfoldedTypes.has(key);
+          return (
+            <Fragment key={document.id}>
+              {documentRow(document, title, documentRowId(document.typeKey))}
+              {earlier !== undefined && earlier.length > 0 && (
+                <TableRow data-testid="document-earlier">
+                  <TableCell colSpan={4} className="py-1 max-md:block">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      data-testid="document-earlier-toggle"
+                      aria-expanded={unfolded}
+                      onClick={() => toggleEarlier(key)}
                     >
-                      {sectionSummary(section.rows)}
-                    </span>
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent>
-                  {section.rows.length === 0 ? (
-                    <p className="text-muted-foreground">
-                      Documentele acestei secțiuni nu sunt generate încă.
-                    </p>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Document</TableHead>
-                          <TableHead>Stare</TableHead>
-                          <TableHead>Data documentului</TableHead>
-                          <TableHead className="w-12">
-                            <span className="sr-only">Acțiuni</span>
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {section.rows.map((row) => {
-                          const { kind, key, title, document } = row;
-                          const earlier = row.kind === 'document' ? row.earlier : undefined;
-                          if (kind === 'notGenerated') {
-                            return (
-                              <TableRow key={key} data-testid="document-not-generated">
-                                <TableCell className="font-medium text-muted-foreground">
-                                  {title}
-                                </TableCell>
-                                <TableCell className="text-muted-foreground">Negenerat</TableCell>
-                                <TableCell />
-                                <TableCell />
-                              </TableRow>
-                            );
-                          }
-                          if (!document) {
-                            return (
-                              <TableRow key={key} data-testid="document-not-applicable">
-                                <TableCell className="font-medium text-muted-foreground">
-                                  {title}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge
-                                    variant="outline"
-                                    title={
-                                      set === 'fire_safety'
-                                        ? fireSafetyHeadcountRule(
-                                            documents.data?.currentEmployeeCount ?? 0,
-                                            [...existing]
-                                          )
-                                        : workersRepresentativesRule(
-                                            documents.data?.currentEmployeeCount ?? 0,
-                                            false
-                                          )
-                                    }
-                                  >
-                                    Nu se aplică
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-muted-foreground">
-                                  Sub 10 angajați
-                                </TableCell>
-                                <TableCell />
-                              </TableRow>
-                            );
-                          }
-                          const unfolded = earlier !== undefined && unfoldedTypes.has(key);
-                          return (
-                            <Fragment key={document.id}>
-                              {documentRow(document, title, documentRowId(document.typeKey))}
-                              {earlier !== undefined && earlier.length > 0 && (
-                                <TableRow data-testid="document-earlier">
-                                  <TableCell colSpan={4} className="py-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      data-testid="document-earlier-toggle"
-                                      aria-expanded={unfolded}
-                                      onClick={() => toggleEarlier(key)}
-                                    >
-                                      <ChevronRight
-                                        aria-hidden="true"
-                                        className={unfolded ? 'rotate-90' : undefined}
-                                      />
-                                      Anii anteriori ({earlier.length})
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                              {unfolded &&
-                                earlier.map((each) => documentRow(each, datedTitle(each)))}
-                            </Fragment>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        )}
-      </CardContent>
+                      <ChevronRight
+                        aria-hidden="true"
+                        className={unfolded ? 'rotate-90' : undefined}
+                      />
+                      Anii anteriori ({earlier.length})
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )}
+              {unfolded && earlier.map((each) => documentRow(each, datedTitle(each)))}
+            </Fragment>
+          );
+        })}
+      </PackTable>
+    );
+  }
+
+  const generateLabel =
+    items.length === 0
+      ? 'Generează documentația'
+      : lacking > 0
+        ? 'Generează documentele lipsă'
+        : 'Generează pentru alt an';
+  const generateButton = canGenerate && (
+    <Button
+      ref={generateRef}
+      data-testid="documents-generate"
+      size={empty ? 'lg' : 'default'}
+      className={cn(empty && 'max-sm:h-12')}
+      onClick={openGenerate}
+    >
+      <Sparkles aria-hidden="true" />
+      {generateLabel}
+    </Button>
+  );
+  const actions = (items.length > 0 || (canGenerate && !empty)) && (
+    <>
+      {items.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" data-testid="documents-archive" disabled={archiving}>
+              <Download aria-hidden="true" />
+              {archiving ? 'Se pregătește arhiva…' : 'Descarcă documentația'}
+              <ChevronDown aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="max-w-80">
+            <DropdownMenuItem
+              data-testid="documents-archive-docx"
+              className="grid gap-0.5"
+              onSelect={() => void downloadArchive('docx')}
+            >
+              <span>Arhivă cu fișierele Word</span>
+              <span className="text-xs text-muted-foreground">
+                Documentele emise și ciornele celor neemise încă
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              data-testid="documents-archive-pdf"
+              className="grid gap-0.5"
+              disabled={issuedPdfs === 0}
+              onSelect={() => void downloadArchive('pdf')}
+            >
+              <span>Arhivă cu PDF-urile</span>
+              <span className="text-xs text-muted-foreground">
+                {issuedPdfs === 0
+                  ? 'Niciun document emis încă'
+                  : `Doar documentele emise: ${issuedPdfs} din ${items.length}`}
+              </span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+      {!empty && generateButton}
+    </>
+  );
+  const notices =
+    typeof error === 'string' ? (
+      <Notice variant="destructive" data-testid="documents-error">
+        {error}
+      </Notice>
+    ) : (
+      error && (
+        <div data-testid="documents-refused" className="grid gap-4">
+          <Notice variant="destructive" data-testid="documents-error">
+            Nu am putut genera din nou „{error.document.title}”. Completează mai întâi:
+          </Notice>
+          <DocumentMissingRows
+            clientId={clientId}
+            userId={userId}
+            typeKey={error.document.typeKey as BuiltInDocumentTypeKey}
+            missing={error.missing}
+            testId="documents-missing"
+          />
+        </div>
+      )
+    );
+
+  return (
+    <Card data-testid="documents-card" className="gap-0 overflow-hidden py-0">
+      {pack ? (
+        <PackLayout
+          set={set}
+          clientId={clientId}
+          pack={pack}
+          sectionId={section}
+          readOnly={readOnly}
+          actions={actions || undefined}
+          generate={empty ? generateButton : undefined}
+          notices={notices || undefined}
+        >
+          {sectionRows}
+        </PackLayout>
+      ) : (
+        <>
+          <PackHeader set={set} />
+          <div className="px-4 pb-6 sm:px-6">
+            {documents.isError ? (
+              <Notice
+                variant="destructive"
+                action={
+                  <Button
+                    variant="outline"
+                    disabled={documents.isFetching}
+                    onClick={() => void documents.refetch()}
+                  >
+                    Încearcă din nou
+                  </Button>
+                }
+              >
+                Nu am putut încărca documentele.
+              </Notice>
+            ) : (
+              <Skeleton className="h-40 w-full" />
+            )}
+          </div>
+        </>
+      )}
       <input
         ref={fileInput}
         type="file"

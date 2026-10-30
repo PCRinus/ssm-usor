@@ -39,34 +39,14 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/fire-safety-documents$`));
 
   await expect(page.getByTestId('documents-hint')).toBeVisible();
-  await expect(page.getByTestId('documents-empty')).toHaveCount(0);
-  await expect(page.getByTestId('document-section')).toHaveCount(7);
-  await openDocumentSection(page, '1');
-  await expect(page.getByTestId('document-not-generated')).toHaveCount(8);
-  await expect(page.getByTestId('document-not-applicable')).toHaveText([
-    /^Decizia privind perioadele caniculare și sezonul rece/,
-    /^Decizia privind controlul propriu/,
-  ]);
-  await openDocumentSection(page, '2');
-  await expect(page.getByTestId('document-not-generated')).toHaveCount(2);
-  await openDocumentSection(page, '3');
-  await expect(page.getByTestId('document-not-generated')).toHaveCount(2);
-  await openDocumentSection(page, '4');
-  await expect(page.getByTestId('document-not-generated')).toHaveCount(3);
-  await openDocumentSection(page, '5');
-  await expect(page.getByTestId('document-not-generated')).toHaveCount(3);
-  await expect(page.getByTestId('document-not-applicable')).toHaveText([
-    /^Graficele de întreținere și verificare/,
-  ]);
-  await openDocumentSection(page, '6');
-  await expect(page.getByTestId('document-not-generated')).toHaveCount(4);
-  await expect(page.getByTestId('document-not-applicable')).toHaveCount(1);
-  await expect(page.getByTestId('document-row')).toHaveCount(0);
-  await openDocumentSection(page, '7');
-  await expect(page.getByTestId('document-not-generated')).toHaveCount(0);
-  await expect(page.getByTestId('document-not-applicable')).toHaveText([
-    /^Fișa obiectivului/,
-    /^Raportul anual de evaluare/,
+  await expect(page.getByTestId('documents-empty')).toBeVisible();
+  await expect(page.getByTestId('pack-empty-entry')).toHaveText([
+    '1Decizii interne8 documente, negenerate',
+    '2Instrucțiuni proprii în domeniul situațiilor de urgență2 documente, negenerate',
+    '3Tematica de instruire2 documente, negenerate',
+    '4Teste de verificare a cunoștințelor3 documente, negenerate',
+    '5Mijloace de apărare și organizarea la locul de muncă3 documente, negenerate',
+    '6Registre și formulare PSI4 documente, negenerate',
   ]);
   await page.getByTestId('documents-generate').click();
   await expect(page.getByTestId('generate-missing-count')).toHaveText('2 date de completat');
@@ -89,14 +69,13 @@ test('the fire-safety set asks for its own data and the first decision number, i
     timeout: 30_000,
   });
 
-  await expect(page.getByTestId('document-section')).toHaveCount(7);
+  await expect(page.getByTestId('pack-contents-entry')).toHaveCount(6);
   await openDocumentSection(page, '1');
   const decisions = page.getByTestId('document-row');
   await expect(decisions).toHaveCount(8);
   await expect(decisions.nth(1)).toContainText('Decizia nr. 4 PSI');
   await expect(decisions.nth(4)).toContainText('Decizia nr. 7 PSI');
   await expect(decisions.nth(7)).toContainText('Decizia nr. 10 PSI');
-  await expect(page.getByTestId('document-not-applicable')).toHaveCount(2);
   await openDocumentSection(page, '2');
   await expect(page.getByTestId('document-row')).toHaveCount(2);
   await openDocumentSection(page, '3');
@@ -108,20 +87,15 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await expect(page.getByTestId('document-row').nth(2)).toContainText(
     'Lista substanțelor periculoase'
   );
-  await expect(page.getByTestId('document-not-applicable')).toHaveCount(1);
   await openDocumentSection(page, '6');
   const rows = page.getByTestId('document-row');
   await expect(rows).toHaveCount(4);
-  await expect(page.getByTestId('document-not-generated')).toHaveCount(0);
-  await expect(page.getByTestId('document-not-applicable')).toHaveCount(1);
+  await expect(page.getByTestId('document-missing')).toHaveCount(0);
   await expect(page.getByTestId('documents-hint')).toHaveCount(0);
   await expect(rows.nth(0)).toContainText('Copertă – Registrele de evidență');
   await expect(rows.nth(2)).toContainText('Permis de lucru cu foc');
   await expect(rows.nth(3)).toContainText('controlului stingătoarelor de incendiu');
   await expect(page.getByTestId('documents-generate')).toHaveCount(0);
-  await openDocumentSection(page, '7');
-  await expect(page.getByTestId('document-not-applicable')).toHaveCount(2);
-  await openDocumentSection(page, '6');
 
   const permit = rows.filter({ hasText: /^Permis de lucru cu foc/ });
   const download = page.waitForEvent('download');
@@ -162,7 +136,6 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await expect(decisions).toHaveCount(10);
   await expect(decisions.nth(8)).toContainText('Decizia nr. 11 PSI');
   await expect(decisions.nth(9)).toContainText('Decizia nr. 12 PSI');
-  await expect(page.getByTestId('document-not-applicable')).toHaveCount(0);
   await openDocumentSection(page, '5');
   await expect(rows).toHaveCount(4);
   await expect(rows.nth(3)).toContainText('Graficele de întreținere și verificare');
@@ -170,7 +143,6 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await expect(rows).toHaveCount(5);
   await openDocumentSection(page, '7');
   await expect(rows).toHaveText([/^Fișa obiectivului/, /^Raport anual de evaluare 2026/]);
-  await expect(page.getByTestId('document-not-applicable')).toHaveCount(0);
   await expect(page.getByTestId('document-earlier-toggle')).toHaveCount(0);
 
   await expect(page.getByTestId('documents-generate')).toHaveText('Generează pentru alt an');

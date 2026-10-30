@@ -763,8 +763,23 @@ their tab bars read.
   first choice is disabled while the list has entries. `?focus=fire-substances` points at the
   choice while undecided, and opens the add dialog when the list is chosen but empty.
 - `/clients/:clientId/documents`: the "Documente SSM" section of a client (ADR 005), in
-  `src/features/documents/`. The card lists `GET /clients/{clientId}/documents` in the order of the
-  pack: title, the decision's number, badges for the issued revision and the draft, the
+  `src/features/documents/`. The card is the whole pack (`buildPack` in `pack-status.ts`): every
+  document of the set once, in the binder's sections (`documentSections`), under its most
+  pressing state: "de actualizat" (its draft's data changed, or it is behind its template or its
+  instructions), "ciornă", "emis", or "negenerat" for one that does not exist yet, named from
+  `notGeneratedTitles` (held to both manifests by a test). A document the API lists under
+  `notApplicable` is no part of the pack, and a section left with nothing is left out. Under the
+  heading, a bar and a legend count the states over the pack, with "N de documente în M secțiuni"
+  (`pack-labels.ts` holds the wording and the "de" rule). From 1280 px (`useWideLayout`) the
+  card has two panes (`PackLayout`): the contents ("Cuprinsul documentației", one link per
+  section with its number, a small bar of its states and a caption such as "3 din 5 emise · 1 de
+  actualizat") beside the section on show, the first one while the address names none, its
+  table, and "Secțiunea următoare". Below 1280 px the card is the contents alone until a section
+  is chosen, then that section alone, with "Cuprinsul documentației" as the way back; below
+  768 px a row is a card of its own (`packCells`). Until anything is generated the card shows
+  the contents as what the pack will hold beside a panel with "Generează documentația"
+  (`PackEmpty`; on a phone the contents fold under "Ce va cuprinde documentația"), or the
+  archived client's hint without the button. A row lists, in the order of the pack: title, the decision's number, badges for the issued revision and the draft, the
   date the document carries, "Date modificate" on a draft whose printed data has changed
   since, and "Șablon actualizat" on a document that is behind its template (ADR 017), with the
   newest version's note in its tooltip. The card reads `GET /documents/behind` once for the
@@ -809,7 +824,8 @@ their tab bars read.
   "Documentația PSI" to the IPSU's section of the PSI tab). Following a row starts
   the way back with `to: 'document'` and the type key, and the toast of the save offers
   "Înapoi la document", which opens that document's row, pointed at.
-  The open section is the `section` search param. `focus` takes `generate` (open the dialog)
+  The section on show is the `section` search param, set by the contents' links, so the
+  browser's back and forward move between sections. `focus` takes `generate` (open the dialog)
   or a type key of the set, the way the missing-data rows lead to a field
   (`missing-data/focus.ts`): once the list has loaded, the row of that document (its id is
   `document-{typeKey}`) is scrolled to the middle of the window and pointed at with the
@@ -856,25 +872,22 @@ their tab bars read.
   SSM", for every client ([ADR 016](architecture/adr-016-fire-safety-documents.md)). It is the
   same `DocumentsCard`, editor page and generation dialog, given the set: `document-sets.ts`
   holds each set's copy and routes, and `setParams` leaves the occupational safety set's
-  requests and query keys as they were (`?set=fire_safety` for the other). It lists the whole
-  pack at all times, with no empty state: the seven sections of the provider's binder under their
-  numbers (`fireSafetyDocumentSections`, whose ids are the route's `?section=`), each holding
-  its type keys in the binder's order, and "Alte documente PSI" for a type this build does not
-  know. A document the client does not have yet is a muted "Negenerat" row named from
-  `notGeneratedTitles` (held to the fire-safety manifest by a test), with no link or menu. Every
+  requests and query keys as they were (`?set=fire_safety` for the other). Its pack is the
+  seven sections of the provider's binder under their numbers (`fireSafetyDocumentSections`,
+  whose ids are the route's `?section=`), each holding its type keys in the binder's order, and
+  "Alte documente PSI" for a type this build does not know. A document the client does not have
+  yet is a muted "Negenerat" row, with no link or menu. Every
   document of the binder is built since ADR 019, so the tab plans nothing and the "În
   pregătire" rows it showed until then are gone. Section 7, "Documente pentru inspectorat", holds
   the site sheet 7.1 and the annual report 7.2, with no cover. The report is a dated type (ADR
   020): its newest year is the row, titled "Raport anual de evaluare 2026" from `datedTitle`
   with the year from the document (the editor's breadcrumb names it the same way), and the earlier years fold under a "Anii anteriori (n)" row,
   closed until clicked, each year a row of its own with its own menu; an upload from a year's
-  row sends that year as `?period=`. The section's summary counts the newest year only. Under
+  row sends that year as `?period=`. The section's counts take the newest year only. Under
   10 current employees decisions 8 and 9, the schedules 5.4, the installation register, the
   site sheet and the annual report, which the API names under `notApplicable`
-  ([ADR 020](architecture/adr-020-fire-safety-from-ten-employees.md)), are "Nu se aplică" rows
-  with "Sub 10 angajați", titled from `notApplicableTitles`, the badge's tooltip saying the rule
-  (`fireSafetyHeadcountRule`). Until something is generated, a hint under the heading
-  replaces the empty state. Its dialog states the headcount and what it means for those six
+  ([ADR 020](architecture/adr-020-fire-safety-from-ten-employees.md)), are no part of the pack,
+  so section 7 is left out. Its dialog states the headcount and what it means for those six
   documents (`fireSafetyHeadcountRule`: generated from ten, the report for every year asked,
   not generated under ten, kept once they exist), as the SSM dialog does for decision 1.5, and
   asks the date, "Numărul primei decizii PSI" (1 to 9991, the other decisions numbered by their

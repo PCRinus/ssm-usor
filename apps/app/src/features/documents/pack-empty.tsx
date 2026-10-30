@@ -118,7 +118,7 @@ export function PackEmpty({
 
   if (layout === 'wide') {
     return (
-      <div data-testid="pack-empty" className="grid grid-cols-[19rem_minmax(0,1fr)] border-t">
+      <div data-testid="documents-empty" className="grid grid-cols-[19rem_minmax(0,1fr)] border-t">
         <Outline pack={pack} wide />
         <div className="px-7 py-6">
           <EmptyPanel set={set} readOnly={readOnly} action={action} wide />
@@ -127,7 +127,7 @@ export function PackEmpty({
     );
   }
   return (
-    <div data-testid="pack-empty">
+    <div data-testid="documents-empty">
       <div className="p-4">
         <EmptyPanel set={set} readOnly={readOnly} action={action} wide={false} />
       </div>

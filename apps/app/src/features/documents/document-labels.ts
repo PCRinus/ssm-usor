@@ -14,19 +14,6 @@ import { employeeCountLabel } from '@/features/job-positions/job-position-schema
 
 export type ClientDocument = ClientDocumentListResponse['items'][number];
 
-// The API names a document only once it exists; one that does not apply, and one not generated
-// yet, are named here.
-export const notApplicableTitles: Partial<Record<BuiltInDocumentTypeKey, string>> = {
-  decision_workers_representative: 'Decizia privind reprezentanții lucrătorilor',
-  fire_decision_seasons: 'Decizia privind perioadele caniculare și sezonul rece',
-  fire_decision_control: 'Decizia privind controlul propriu',
-  fire_maintenance_schedules: 'Graficele de întreținere și verificare',
-  fire_installation_register:
-    'Registru de control pentru instalațiile de apărare împotriva incendiilor',
-  fire_site_sheet: 'Fișa obiectivului',
-  fire_annual_report: 'Raportul anual de evaluare a capacității de apărare împotriva incendiilor',
-};
-
 // The template titles, held to the manifests by a test.
 export const notGeneratedTitles: Record<BuiltInDocumentTypeKey, string> = {
   ...occupationalSafetyDocumentTitles,
