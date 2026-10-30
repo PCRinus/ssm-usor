@@ -812,4 +812,41 @@ describe('the import folder', () => {
     expect(saved[0]!.type).toBe('application/zip');
     expect(saved[0]!.size).toBeGreaterThan(3 * 4);
   });
+
+  it("shows an employee's sheet photographs from an import as an open folder of their own", async () => {
+    const photo = (id: string, name: string) => ({
+      ...imported(id, name, null),
+      employee: trainingSheet.employee,
+      mimeType: 'image/jpeg',
+      sizeBytes: 500_000,
+    });
+    mockApi({
+      items: [
+        trainingSheet,
+        photo('44444444-4444-4444-8444-444444444444', 'IMG_3110.jpg'),
+        photo('55555555-5555-4555-8555-555555555555', 'IMG_3111.jpg'),
+      ],
+    });
+    mount(employeePath);
+
+    const card = await screen.findByTestId('employee-files-card');
+    const folder = await within(card).findByTestId('client-import-folder');
+    expect(within(folder).getByTestId('client-import-folder-title').textContent).toBe(
+      'Fișe importate pe 27.10.2026 · 2 fotografii'
+    );
+    expect(folder.textContent).toContain(
+      'Fotografiile din care au fost transcrise instruirile. Originalele pe hârtie rămân la client.'
+    );
+    expect(
+      within(folder).getByTestId('client-import-folder-toggle').getAttribute('aria-label')
+    ).toBe('Restrânge fișele importate');
+    expect(within(folder).getByTestId('client-import-folder-zip').textContent).toBe(
+      'Descarcă fișele (ZIP)'
+    );
+    expect(
+      within(card)
+        .getAllByTestId('client-file-row')
+        .map((row) => within(row).getByTestId('client-file-open').textContent)
+    ).toEqual(['Fișă de instruire 2019', 'IMG_3110', 'IMG_3111']);
+  });
 });

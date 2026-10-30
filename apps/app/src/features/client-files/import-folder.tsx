@@ -6,7 +6,7 @@ import { ChevronDown, ChevronRight, Download, FileArchive, Folder } from 'lucide
 import { type ReactNode, useState } from 'react';
 
 import { getClientFileDownload } from '@/api/generated/api';
-import { filesLabel } from '@/features/imports/import-format';
+import { filesLabel, photosLabel } from '@/features/imports/import-format';
 import { saveFile } from '@/lib/save-file';
 
 import { type ClientFile, formatFileSize, formatUploadDate } from './client-file-format';
@@ -29,17 +29,40 @@ const bytesOf = (files: ClientFile[]) => files.reduce((total, file) => total + f
 
 const shownPerFolder = 5;
 
+const kinds = {
+  client: {
+    title: (date: string, count: number) => `Dosar importat pe ${date} · ${filesLabel(count)}`,
+    description: 'Fișierele din care a fost creat clientul, în folderele în care au fost încărcate',
+    toggle: (open: boolean) => (open ? 'Restrânge dosarul importat' : 'Deschide dosarul importat'),
+    zip: 'Descarcă tot dosarul (ZIP)',
+    zipName: (date: string) => `Dosar importat ${date}.zip`,
+    openAtFirst: false,
+  },
+  employee: {
+    title: (date: string, count: number) => `Fișe importate pe ${date} · ${photosLabel(count)}`,
+    description:
+      'Fotografiile din care au fost transcrise instruirile. Originalele pe hârtie rămân la client.',
+    toggle: (open: boolean) => (open ? 'Restrânge fișele importate' : 'Deschide fișele importate'),
+    zip: 'Descarcă fișele (ZIP)',
+    zipName: (date: string) => `Fișe importate ${date}.zip`,
+    openAtFirst: true,
+  },
+} as const;
+
 export function ImportFolderRows({
   clientId,
+  kind,
   files,
   renderFile,
 }: {
   clientId: string;
+  kind: keyof typeof kinds;
   files: ClientFile[];
   renderFile: (file: ClientFile, depth: number) => ReactNode;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const [open, setOpen] = useState(false);
+  const text = kinds[kind];
+  const [open, setOpen] = useState<boolean>(text.openAtFirst);
   const [openFolders, setOpenFolders] = useState<string[]>([]);
   const [showAll, setShowAll] = useState<string[]>([]);
   const [zipping, setZipping] = useState<{ done: number; total: number } | null>(null);
@@ -67,7 +90,7 @@ export function ImportFolderRows({
         })),
         (done) => setZipping({ done, total: files.length })
       );
-      saveFile(blob, `Dosar importat ${date}.zip`);
+      saveFile(blob, text.zipName(date));
     } catch {
       setFailed(true);
     } finally {
@@ -88,7 +111,7 @@ export function ImportFolderRows({
               size="icon-sm"
               className="-my-1 size-7"
               aria-expanded={open}
-              aria-label={open ? 'Restrânge dosarul importat' : 'Deschide dosarul importat'}
+              aria-label={text.toggle(open)}
               data-testid="client-import-folder-toggle"
               onClick={() => setOpen(!open)}
             >
@@ -99,12 +122,10 @@ export function ImportFolderRows({
               aria-hidden="true"
             />
             <div className="grid min-w-0 gap-0.5">
-              <span className="font-medium">
-                Dosar importat pe {date} · {filesLabel(files.length)}
+              <span className="font-medium" data-testid="client-import-folder-title">
+                {text.title(date, files.length)}
               </span>
-              <span className="text-xs text-muted-foreground">
-                Fișierele din care a fost creat clientul, în folderele în care au fost încărcate
-              </span>
+              <span className="text-xs text-muted-foreground">{text.description}</span>
               {failed && (
                 <span role="alert" className="text-xs text-destructive">
                   Arhiva nu a putut fi făcută. Încearcă din nou.
@@ -133,9 +154,7 @@ export function ImportFolderRows({
             onClick={() => void downloadAll()}
           >
             <Download aria-hidden="true" />
-            {zipping
-              ? `Se pregătește: ${zipping.done} din ${zipping.total}`
-              : 'Descarcă tot dosarul (ZIP)'}
+            {zipping ? `Se pregătește: ${zipping.done} din ${zipping.total}` : text.zip}
           </Button>
         </TableCell>
       </TableRow>

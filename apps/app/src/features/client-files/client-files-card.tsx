@@ -228,6 +228,7 @@ export function ClientFilesCard({
                 <ImportFolderRows
                   key={importId}
                   clientId={client.id}
+                  kind={employee ? 'employee' : 'client'}
                   files={folderFiles}
                   renderFile={renderFile}
                 />
