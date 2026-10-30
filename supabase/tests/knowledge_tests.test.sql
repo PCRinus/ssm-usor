@@ -1,5 +1,5 @@
 begin;
-select plan(80);
+select plan(81);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -654,6 +654,12 @@ select is(
   (select count(s.*)::integer from public.employees e cross join lateral public.test_status(e) as s),
   4,
   'the employee lists embed the test state per employee'
+);
+
+select set_eq(
+  $$ select s.* from public.employees e cross join lateral public.test_status(e) as s $$,
+  $$ select * from public.employee_test_status $$,
+  'every employee row computes the test state the view gives it'
 );
 
 select pg_temp.act_as('dddddddd-0000-4000-8000-000000000001');

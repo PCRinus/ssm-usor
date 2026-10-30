@@ -1,5 +1,5 @@
 begin;
-select plan(49);
+select plan(50);
 
 -- Dates are counted back from the Romanian day the view uses, so the states hold on any day.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -279,6 +279,12 @@ select is(
   (select ssm_state::text from public.employees e, public.training_status(e) where e.id = 'e1e1e1e1-0000-4000-8000-000000000003'),
   'overdue',
   'the employee row reaches its status through the computed relationship'
+);
+
+select set_eq(
+  $$ select s.* from public.employees e cross join lateral public.training_status(e) as s $$,
+  $$ select * from public.employee_training_status $$,
+  'every employee row computes the status the view gives it'
 );
 
 select throws_ok(
