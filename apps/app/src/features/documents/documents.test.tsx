@@ -1350,6 +1350,46 @@ describe('client documents', () => {
     expect(await screen.findByTestId('editor-back')).toBeTruthy();
   });
 
+  it('groups the menu by the revision each action works on', async () => {
+    const issued = revision({
+      id: '2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f',
+      revision: 1,
+      status: 'issued',
+      issuedAt: '2026-09-19T11:00:00+00:00',
+      hasPdf: true,
+    });
+    mockApi({
+      items: [
+        { ...firstAid, draft: revision({ revision: 2 }), issued },
+        { ...report, draft: null, issued },
+      ],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await openMenu(user, 'primul ajutor');
+    const draftGroup = await screen.findByRole('group', { name: 'Ciorna · rev. 2' });
+    const issuedGroup = screen.getByRole('group', { name: 'Documentul emis · rev. 1' });
+    expect(within(draftGroup).getByTestId('document-issue').textContent).toBe('Emite');
+    expect(within(draftGroup).getByTestId('document-download-draft').textContent).toBe(
+      'Descarcă Word'
+    );
+    expect(within(issuedGroup).getByTestId('document-download-issued').textContent).toBe(
+      'Descarcă Word'
+    );
+    expect(within(issuedGroup).getByTestId('document-download-pdf').textContent).toBe(
+      'Descarcă PDF'
+    );
+    expect(screen.queryByTestId('document-start-draft')).toBeNull();
+    await user.keyboard('{Escape}');
+
+    await openMenu(user, 'Referat de control', '8');
+    expect((await screen.findByTestId('document-open')).textContent).toBe('Deschide');
+    expect(screen.queryByRole('group', { name: /^Ciorna/ })).toBeNull();
+    expect(screen.getByRole('group', { name: 'Documentul emis · rev. 1' })).toBeTruthy();
+    expect(screen.getByTestId('document-start-draft').textContent).toBe('Modifică documentul emis');
+  });
+
   it('goes back to the list it was opened from, instead of adding the list again', async () => {
     mockApi({ items: [firstAid, report] });
     const runtime = mount();

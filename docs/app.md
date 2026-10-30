@@ -779,18 +779,19 @@ their tab bars read.
   a row per evaluation and per thing it lacks, to the factors of its page, or to the
   positions page's client-level evaluations while the sensitive groups are not started; a
   specialist is told that the owner fills in the organization's details). When ready it asks for the date and the first
-  decision number, filled in from the last generation. A row's menu downloads the draft or
-  the issued file, and offers "Generează din nou", "Emite", and "Șterge ciorna", each behind a
-  confirmation that says what is lost or locked. An issued document without a draft also has
-  "Modifică documentul emis", which asks nothing: it starts a draft from the issued file
+  decision number, filled in from the last generation. A row's menu groups its downloads and
+  printing under a label for each revision ("Ciorna · rev. N", "Documentul emis · rev. N", each
+  the group's accessible name, since both hold a "Descarcă Word"), and offers "Generează din
+  nou", "Emite", and "Șterge ciorna", each behind a confirmation that says what is lost or
+  locked. An issued document without a draft also has "Modifică documentul emis", which asks nothing: it starts a draft from the issued file
   (`POST /documents/{documentId}/draft`) and opens it in the editor. Regenerating such a
   document says that the hand edits of the issued file are not carried over, and names that
   action as the way to keep them. When issuing is refused with the reason
   `unfilled_text`, the same dialog asks a second question, "Documentul mai are text de
   completat", and "Emite oricum" sends `acceptUnfilled`. Every row's menu has "Încarcă un
-  fișier", which asks first when it would replace a draft. One hidden file input
+  fișier Word", which asks first when it would replace a draft. One hidden file input
   serves the card and posts the chosen `.docx` to `POST …/documents/{typeKey}/upload`. An issued
-  revision with `hasPdf` also offers "Descarcă PDF-ul documentului emis"; the issuing dialog
+  revision with `hasPdf` also offers "Descarcă PDF" in its group; the issuing dialog
   says that making the PDF can take a few seconds, and a `503` with `pdf_unavailable` says
   that nothing was issued.
   A `400` says the file is not a `.docx` or is over 15 MB, and how to get one from a `.doc`. A download fetches the signed link and
