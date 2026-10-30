@@ -94,11 +94,11 @@ import { paymentFacts } from './pricing';
 </ul>
 
 <style>
+  /* Mirrors PlanCards' columns, gap, inner padding and 941 px breakpoint, so each fact sits under its card. */
   .payment {
     display: grid;
-    /* The first column holds both payment marks and a sentence on one line. */
-    grid-template-columns: 1.3fr 1fr 1fr;
-    column-gap: 32px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 20px;
     margin: 20px 0 0;
     padding: 0;
     list-style: none;
@@ -109,7 +109,7 @@ import { paymentFacts } from './pricing';
     display: flex;
     align-items: flex-start;
     gap: 14px;
-    padding: 22px 0;
+    padding: 22px 28px;
   }
   .mark {
     display: block;
@@ -154,9 +154,12 @@ import { paymentFacts } from './pricing';
   .wallets span {
     margin-top: 0;
   }
-  @media (max-width: 860px) {
+  @media (max-width: 941px) {
     .payment {
       grid-template-columns: 1fr;
+    }
+    li {
+      padding-inline: 0;
     }
     li + li {
       border-top: 1px solid var(--line);
