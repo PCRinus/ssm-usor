@@ -60,9 +60,11 @@ const organizationRow = {
 
 type Handler = (url: URL) => Response | Promise<Response>;
 
+type Upstream = 'clients' | 'employees' | 'employee_training_status' | 'employee_test_status';
+
 const fetchMock = vi.fn<typeof fetch>();
 
-function mockUpstream(handlers: Partial<Record<'clients' | 'employees', Handler>> = {}) {
+function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
   fetchMock.mockImplementation(async (input) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     if (url.pathname === '/auth/v1/user') return Response.json(user);
@@ -76,16 +78,23 @@ function mockUpstream(handlers: Partial<Record<'clients' | 'employees', Handler>
         Response.json([organizationRow], { headers: { 'Content-Range': '0-0/1' } })
       );
     }
+    if (url.pathname === '/rest/v1/employee_training_status') {
+      return handlers.employee_training_status?.(url) ?? Response.json([]);
+    }
+    if (url.pathname === '/rest/v1/employee_test_status') {
+      return handlers.employee_test_status?.(url) ?? Response.json([]);
+    }
     throw new Error(`Unexpected upstream request: ${url}`);
   });
 }
 
-const employeesQuery = (index = 0) => {
-  const call = fetchMock.mock.calls.filter(
-    ([input]) => new URL(String(input)).pathname === '/rest/v1/employees'
-  )[index];
-  return new URL(String(call![0])).searchParams;
-};
+const upstreamCalls = (table: Upstream) =>
+  fetchMock.mock.calls
+    .map(([input]) => new URL(String(input)))
+    .filter((url) => url.pathname === `/rest/v1/${table}`)
+    .map((url) => url.searchParams);
+
+const employeesQuery = (index = 0) => upstreamCalls('employees')[index]!;
 
 const request = (path: string) =>
   createApp().request(path, { headers: { Authorization: 'Bearer test-access-token' } }, env);
@@ -279,22 +288,186 @@ describe('GET /employees', () => {
     expect(query.get('test_status.or')).toBeNull();
   });
 
-  it('reads the training status without filtering when no state is asked for', async () => {
-    mockUpstream();
-    await request('/employees');
-    const query = employeesQuery();
-    expect(query.get('select')).toContain('training_status(');
-    expect(query.get('select')).not.toContain('training_status!inner');
-    expect(query.get('training_status.or')).toBeNull();
+  it('reads the statuses of the page alone when no state is asked for', async () => {
+    const other = {
+      ...organizationRow,
+      id: '9b2f4c1e-3d5a-4e6f-8a7b-0c1d2e3f4a5b',
+      last_name: 'Popa',
+    };
+    mockUpstream({
+      employees: () =>
+        Response.json([organizationRow, other], { headers: { 'Content-Range': '0-1/2' } }),
+      employee_training_status: () =>
+        Response.json([
+          {
+            employee_id: organizationRow.id,
+            ssm_state: 'due',
+            ssm_due_on: '2026-11-01',
+            ssm_last_periodic_on: '2026-05-01',
+            ssm_interval_months: 6,
+            ssm_interval_source: 'position',
+            psi_state: 'current',
+            psi_due_on: '2027-05-01',
+            psi_last_periodic_on: '2026-05-01',
+            psi_interval_months: 12,
+            psi_interval_source: 'client',
+          },
+        ]),
+      employee_test_status: () =>
+        Response.json([
+          {
+            employee_id: other.id,
+            ssm_state: 'pending',
+            ssm_awaiting_test: 'hiring',
+            ssm_last_passed_on: null,
+            psi_state: 'passed',
+            psi_awaiting_test: null,
+            psi_last_passed_on: '2026-04-01',
+            psi_due_on: '2027-04-01',
+          },
+        ]),
+    });
+    const response = await request('/employees');
+    expect(response.status).toBe(200);
+    const { items } = organizationEmployeeListResponseSchema.parse(await response.json());
+    expect(items.map(({ id, training, tests }) => ({ id, training, tests }))).toEqual([
+      {
+        id: organizationRow.id,
+        training: {
+          ssm: {
+            state: 'due',
+            dueOn: '2026-11-01',
+            lastPeriodicOn: '2026-05-01',
+            intervalMonths: 6,
+            intervalSource: 'position',
+          },
+          psi: {
+            state: 'current',
+            dueOn: '2027-05-01',
+            lastPeriodicOn: '2026-05-01',
+            intervalMonths: 12,
+            intervalSource: 'client',
+          },
+        },
+        tests: {
+          ssm: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
+          psi: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
+        },
+      },
+      {
+        id: other.id,
+        training: {
+          ssm: {
+            state: null,
+            dueOn: null,
+            lastPeriodicOn: null,
+            intervalMonths: null,
+            intervalSource: null,
+          },
+          psi: {
+            state: null,
+            dueOn: null,
+            lastPeriodicOn: null,
+            intervalMonths: null,
+            intervalSource: null,
+          },
+        },
+        tests: {
+          ssm: { state: 'pending', awaitingTest: 'hiring', lastPassedOn: null, dueOn: null },
+          psi: {
+            state: 'passed',
+            awaitingTest: null,
+            lastPassedOn: '2026-04-01',
+            dueOn: '2027-04-01',
+          },
+        },
+      },
+    ]);
+    const select = employeesQuery().get('select');
+    expect(select).not.toContain('training_status');
+    expect(select).not.toContain('test_status');
+    const [training] = upstreamCalls('employee_training_status');
+    expect(training!.get('employee_id')).toBe(`in.(${organizationRow.id},${other.id})`);
+    expect(training!.get('select')).toBe(
+      'employee_id,ssm_state,ssm_due_on,ssm_last_periodic_on,ssm_interval_months,ssm_interval_source,psi_state,psi_due_on,psi_last_periodic_on,psi_interval_months,psi_interval_source'
+    );
+    const [tests] = upstreamCalls('employee_test_status');
+    expect(tests!.get('employee_id')).toBe(`in.(${organizationRow.id},${other.id})`);
+    expect(tests!.get('select')).toBe(
+      'employee_id,ssm_state,ssm_awaiting_test,ssm_last_passed_on,psi_state,psi_awaiting_test,psi_last_passed_on,psi_due_on'
+    );
   });
 
-  it('searches the name, the employee number and the client name', async () => {
+  it('reads no statuses for an empty page', async () => {
+    mockUpstream({
+      employees: () => Response.json([], { headers: { 'Content-Range': '*/0' } }),
+    });
+    const response = await request('/employees?q=nimeni');
+    expect(await response.json()).toEqual({ items: [], page: 1, pageSize: 25, total: 0 });
+    expect(upstreamCalls('employee_training_status')).toHaveLength(0);
+    expect(upstreamCalls('employee_test_status')).toHaveLength(0);
+  });
+
+  it('embeds the statuses when it filters on one', async () => {
+    mockUpstream();
+    await request('/employees?testState=pending');
+    expect(employeesQuery().get('select')).toContain('training_status(');
+    expect(upstreamCalls('employee_training_status')).toHaveLength(0);
+    expect(upstreamCalls('employee_test_status')).toHaveLength(0);
+  });
+
+  it('asks every word for the name, the employee number or the client name', async () => {
     mockUpstream();
     await request(`/employees?q=${encodeURIComponent('Ștefan șantier')}`);
-    expect(employeesQuery().getAll('or')).toEqual([
-      '(employee_search_name.ilike.*stefan*,employee_number.ilike.*stefan*,employee_client_search_name.ilike.*stefan*)',
-      '(employee_search_name.ilike.*santier*,employee_number.ilike.*santier*,employee_client_search_name.ilike.*santier*)',
+    const query = employeesQuery();
+    expect(query.getAll('or')).toEqual([
+      '(employee_search_name.ilike.*stefan*,employee_number.ilike.*stefan*,client_name_match_0.not.is.null)',
+      '(employee_search_name.ilike.*santier*,employee_number.ilike.*santier*,client_name_match_1.not.is.null)',
     ]);
+    expect(query.get('client_name_match_0.client_search_name')).toBe('ilike.*stefan*');
+    expect(query.get('client_name_match_1.client_search_name')).toBe('ilike.*santier*');
+    expect(query.get('select')).toContain(
+      'client_name_match_0:clients!employees_client_id_fkey(),client_name_match_1:clients!employees_client_id_fkey()'
+    );
+  });
+
+  it('matches the client name the same way under a status filter', async () => {
+    mockUpstream();
+    await request(`/employees?trainingState=due&q=pop`);
+    const query = employeesQuery();
+    expect(query.get('select')).toContain('training_status!inner(');
+    expect(query.get('select')).toContain('client_name_match_0:clients!employees_client_id_fkey()');
+    expect(query.get('client_name_match_0.client_search_name')).toBe('ilike.*pop*');
+    expect(query.getAll('or')).toEqual([
+      '(employee_search_name.ilike.*pop*,employee_number.ilike.*pop*,client_name_match_0.not.is.null)',
+    ]);
+  });
+
+  it('embeds no client name match without a search', async () => {
+    mockUpstream();
+    await request('/employees?q=%20');
+    expect(employeesQuery().get('select')).not.toContain('client_name_match');
+  });
+
+  it('matches the client name in the recount of a page past the end', async () => {
+    let call = 0;
+    mockUpstream({
+      employees: () => {
+        call += 1;
+        return call === 1
+          ? Response.json(
+              { code: 'PGRST103', message: 'Requested range not satisfiable', details: null },
+              { status: 416 }
+            )
+          : Response.json([], { headers: { 'Content-Range': '*/0' } });
+      },
+    });
+    await request('/employees?page=9&q=naval');
+    const recount = employeesQuery(1);
+    expect(recount.get('select')).toContain(
+      'client_name_match_0:clients!employees_client_id_fkey()'
+    );
+    expect(recount.get('client_name_match_0.client_search_name')).toBe('ilike.*naval*');
   });
 
   it.each([
@@ -345,5 +518,6 @@ describe('GET /employees', () => {
     });
     const response = await request('/employees?page=9');
     expect(await response.json()).toEqual({ items: [], page: 9, pageSize: 25, total: 3 });
+    expect(upstreamCalls('employee_training_status')).toHaveLength(0);
   });
 });

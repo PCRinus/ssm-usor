@@ -576,7 +576,7 @@ lowercases the query, strips its diacritics, splits it on anything that is not a
 digit, and asks, for every term, `ILIKE '%term%'` on the computed field
 `employee_search_name(employees)` (`lower(unaccent_immutable(last_name || ' ' || first_name))`),
 on `employee_number`, and for the organization-wide list on
-`employee_client_search_name(employees)`, the client's legal name the same way. Every term must
+`client_search_name(clients)`, the client's legal name the same way. Every term must
 match one of them, so `stefan tar` finds "Țăranu Ștefan" and `naval popescu` the Popescu of the
 naval yard. A substring was chosen over a prefix of a word because people type the part they
 remember, the middle of a double name or the digits of an employee number, and a list of a few
@@ -589,8 +589,13 @@ dictionary named with its schema, and the index can use the wrapper. `employees_
 is a GIN trigram index on the same expression, because a btree cannot serve a match in the
 middle of a string; `employees_employee_number_search_idx` is one on the employee number.
 `employee_search_name` must stay inlinable to use the index: a plain SQL function without
-`set search_path`. The client's name is a subquery per row, read as the caller, and
-has no index; the organization's own employees are few enough for it.
+`set search_path`. The organization-wide list reaches the client's name through one empty embed of
+the client per term, filtered on `client_search_name` and tested with `not.is.null` inside the
+term's OR, since PostgREST can test an embed in an OR only for whether it found a row.
+`client_search_name` is inlinable too, so the client is joined by its key rather than read by a
+function call per employee; it has no index, as an organization's clients are a few hundred at most.
+`employee_client_search_name(employees)`, the same name read per employee, is no longer used by
+the API.
 
 The CAEN Rev. 3 class list (651 four-digit codes with Romanian names) also lives in
 `packages/contracts` and feeds the form's combobox and the seed. The county list is a Zod enum in `packages/contracts`. It flows into the OpenAPI document and

@@ -4,6 +4,7 @@ import {
   type Employee,
   type EmployeeListItem,
   type EmployeeSortKey,
+  type ListOrganizationEmployeesQuery,
   normalizeCnp,
   type OrganizationEmployeeListItem,
   type OrganizationEmployeeSortKey,
@@ -19,7 +20,12 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { refuseWorkplaceOfAnotherClient } from '../document-data/handlers';
-import { testStatusColumns, type TestStatusRow, toEmployeeTests } from '../tests/status';
+import {
+  testStatusColumns,
+  testStatusFields,
+  type TestStatusRow,
+  toEmployeeTests,
+} from '../tests/status';
 import { toEmployeeTraining, type TrainingStatusRow } from '../trainings/status';
 import type {
   createEmployeeRoute,
@@ -33,9 +39,15 @@ import type {
 
 type EmployeeRow = Database['public']['Tables']['employees']['Row'];
 
+const trainingStatusFields =
+  'ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, psi_state, psi_due_on, psi_last_periodic_on, psi_interval_months, psi_interval_source';
+
 // The job position rides along by its foreign key: every employee has exactly one.
+const employeeColumnsWithoutStatus =
+  'id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name), workplace_id, client_workplaces!employees_workplace_in_client(id, name)';
+
 export const employeeListColumns =
-  `id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name), workplace_id, client_workplaces!employees_workplace_in_client(id, name), training_status(ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, psi_state, psi_due_on, psi_last_periodic_on, psi_interval_months, psi_interval_source), ${testStatusColumns}` as const;
+  `${employeeColumnsWithoutStatus}, training_status(${trainingStatusFields}), ${testStatusColumns}` as const;
 
 type StateFilters = {
   trainingState?: TrainingStateFilter;
@@ -233,7 +245,6 @@ const sortColumns: Record<EmployeeSortKey, string[]> = {
 // The computed fields hold the name lowercase and without diacritics, as `searchTerms` leaves
 // the terms.
 const employeeSearchFields = ['employee_search_name', 'employee_number'];
-const organizationEmployeeSearchFields = [...employeeSearchFields, 'employee_client_search_name'];
 
 function matchingEveryTerm<Query extends { or: (filters: string) => Query }>(
   query: Query,
@@ -244,6 +255,33 @@ function matchingEveryTerm<Query extends { or: (filters: string) => Query }>(
     (matching, term) => matching.or(fields.map((field) => `${field}.ilike.*${term}*`).join(',')),
     query
   );
+}
+
+// An OR can test an embed only for whether it found a row, so each term gets its own embed of
+// the client, filtered on the name. Empty, it adds nothing to the rows.
+const clientNameMatch = (index: number) => `client_name_match_${index}`;
+
+function withClientNameMatches<Columns extends string>(columns: Columns, q: string | undefined) {
+  return [
+    columns,
+    ...searchTerms(q).map(
+      (_, index) => `${clientNameMatch(index)}:clients!employees_client_id_fkey()`
+    ),
+  ].join(', ') as Columns;
+}
+
+function matchingEveryTermOrClientName<
+  Query extends {
+    or: (filters: string) => Query;
+    ilike: (column: string, pattern: string) => Query;
+  },
+>(query: Query, q: string | undefined) {
+  return searchTerms(q).reduce((matching, term, index) => {
+    const fields = employeeSearchFields.map((field) => `${field}.ilike.*${term}*`);
+    return matching
+      .ilike(`${clientNameMatch(index)}.client_search_name`, `*${term}*`)
+      .or([...fields, `${clientNameMatch(index)}.not.is.null`].join(','));
+  }, query);
 }
 
 export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = async (c) => {
@@ -477,6 +515,73 @@ const organizationSortColumns: Record<OrganizationEmployeeSortKey, string[]> = {
   hiredAt: ['hired_at', 'last_name', 'first_name'],
 };
 
+type OrganizationEmployeePageRow = Omit<
+  OrganizationEmployeeListRow,
+  'training_status' | 'test_status'
+>;
+
+async function withStatuses(
+  db: DataClient,
+  rows: OrganizationEmployeePageRow[]
+): Promise<OrganizationEmployeeListRow[]> {
+  if (rows.length === 0) return [];
+  const ids = rows.map((row) => row.id);
+  const [training, tests] = await Promise.all([
+    db
+      .from('employee_training_status')
+      .select(`employee_id, ${trainingStatusFields}`)
+      .in('employee_id', ids),
+    db
+      .from('employee_test_status')
+      .select(`employee_id, ${testStatusFields}`)
+      .in('employee_id', ids),
+  ]);
+  if (training.error) throw fromDatabaseError(training.error, 'read training status');
+  if (tests.error) throw fromDatabaseError(tests.error, 'read test status');
+  const trainingOf = new Map(training.data.map((row) => [row.employee_id, row]));
+  const testsOf = new Map(tests.data.map((row) => [row.employee_id, row]));
+  return rows.map((row) => ({
+    ...row,
+    training_status: trainingOf.get(row.id) ?? null,
+    test_status: testsOf.get(row.id) ?? null,
+  }));
+}
+
+// The statuses are read for the page only: embedded, the database computes them for every
+// employee of the organization before it sorts and cuts the page.
+async function listOrganizationEmployeePage(
+  db: DataClient,
+  { status, clientId, q, page, pageSize, sort, order }: ListOrganizationEmployeesQuery
+) {
+  const filtered = () => {
+    let query = db
+      .from('employees')
+      .select(withClientNameMatches(`${employeeColumnsWithoutStatus}, ${clientColumns}`, q), {
+        count: 'exact',
+      })
+      .is('archived_at', null)
+      // Only an owner reads leads, and the list should not change with the role.
+      .eq('client.stage', 'client')
+      .is('client.archived_at', null);
+    if (clientId) query = query.eq('client_id', clientId);
+    query = status ? query.eq('status', status) : query.neq('status', 'terminated');
+    return matchingEveryTermOrClientName(query, q).returns<OrganizationEmployeePageRow[]>();
+  };
+  let query = filtered();
+  for (const column of organizationSortColumns[sort])
+    query = query.order(column, { ascending: order === 'asc' });
+  const { from, to } = pageRange(page, pageSize);
+  const { data, error, count } = await query.order('id').range(from, to);
+  if (error?.code === 'PGRST103') {
+    const recount = await filtered().range(0, 0);
+    if (recount.error) throw fromDatabaseError(recount.error, 'count employees');
+    return { items: [], page, pageSize, total: recount.count ?? 0 };
+  }
+  if (error) throw fromDatabaseError(error, 'list organization employees');
+  const rows = await withStatuses(db, data);
+  return { items: rows.map(toOrganizationEmployeeListItem), page, pageSize, total: count ?? 0 };
+}
+
 export const listOrganizationEmployees: RouteHandler<
   typeof listOrganizationEmployeesRoute,
   ApiEnv
@@ -485,10 +590,15 @@ export const listOrganizationEmployees: RouteHandler<
     c.req.valid('query');
   const states = { trainingState, testState, domain };
   const db = createDataClient(c);
+  if (!trainingState && !testState) {
+    return c.json(await listOrganizationEmployeePage(db, c.req.valid('query')), 200);
+  }
   const filtered = () => {
     const base = db
       .from('employees')
-      .select(listColumnsFor(organizationEmployeeListColumns, states), { count: 'exact' });
+      .select(withClientNameMatches(listColumnsFor(organizationEmployeeListColumns, states), q), {
+        count: 'exact',
+      });
     let query = inStates(base, states)
       .is('archived_at', null)
       // Only an owner reads leads, and the list should not change with the role.
@@ -496,9 +606,7 @@ export const listOrganizationEmployees: RouteHandler<
       .is('client.archived_at', null);
     if (clientId) query = query.eq('client_id', clientId);
     query = status ? query.eq('status', status) : query.neq('status', 'terminated');
-    return matchingEveryTerm(query, q, organizationEmployeeSearchFields).returns<
-      OrganizationEmployeeListRow[]
-    >();
+    return matchingEveryTermOrClientName(query, q).returns<OrganizationEmployeeListRow[]>();
   };
   let query = filtered();
   for (const column of organizationSortColumns[sort])

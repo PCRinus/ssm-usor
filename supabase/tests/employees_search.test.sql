@@ -1,5 +1,5 @@
 begin;
-select plan(8);
+select plan(10);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -80,6 +80,18 @@ select is(
   (select public.employee_client_search_name(row(b.*)::public.employees) from b_employee b),
   null,
   'the client''s name of another organization''s employee is not read'
+);
+
+select is(
+  (select proconfig from pg_proc where oid = 'public.client_search_name(public.clients)'::regprocedure),
+  null,
+  'the client''s searchable name sets no search path, so the planner can inline it'
+);
+
+select is(
+  (select public.client_search_name(c) from public.clients c where c.cui = '1590082'),
+  'santierul naval sa',
+  'a client''s searchable name is its legal name, lowercase and without diacritics'
 );
 
 select * from finish();
