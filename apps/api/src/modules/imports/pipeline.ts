@@ -162,7 +162,6 @@ export function tooMuchText(files: TextOfFile[]): string | null {
 
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const wordTypes = new Set(['application/msword', docxType]);
-const heicTypes = new Set(['image/heic', 'image/heif']);
 
 const isWord = (file: Pick<ImportFileRow, 'mime_type'>) => wordTypes.has(file.mime_type);
 const isImage = (file: Pick<ImportFileRow, 'mime_type'>) => file.mime_type.startsWith('image/');
@@ -185,11 +184,14 @@ const pageReadingName = /^[0-9a-f-]{36}\.page-\d+\.json$/;
 const scanClaimPathOf = (file: Pick<ImportFileRow, 'storage_path'>, firstPage: number | null) =>
   `${basePathOf(file)}.${firstPage === null ? 'scan' : `scan-${firstPage}`}.json`;
 
+// A JPEG's own object already ends in .jpg, and a second dot would not pass the bucket's policy.
+const derivedExtension: Record<string, string> = {
+  'application/msword': '.docx',
+  'image/jpeg': '.jpeg',
+};
+
 const derivedPathOf = (file: Pick<ImportFileRow, 'storage_path' | 'mime_type'>) =>
-  file.storage_path.replace(
-    /\.[a-z]+$/,
-    file.mime_type === 'application/msword' ? '.docx' : '.jpg'
-  );
+  file.storage_path.replace(/\.[a-z]+$/, derivedExtension[file.mime_type] ?? '.jpg');
 
 /** A page read as an image is named apart from its file, so its quotes are not searched in the text. */
 export const pageLabel = (file: Pick<ImportFileRow, 'upload_path' | 'mime_type'>, page: number) =>
@@ -403,12 +405,10 @@ async function prepare(deps: PipelineDeps, file: ImportFileRow): Promise<ImportF
     patch.page_count = pdf.pageCount >= 1 ? pdf.pageCount : null;
     patch.is_scan = pdf.pages.some((page) => page.isScan);
   } else {
-    if (heicTypes.has(file.mime_type)) {
-      await keepDerived(
-        new Uint8Array(await requireExtractor(deps).heicToJpeg(arrayBuffer(bytes))),
-        'image/jpeg'
-      );
-    }
+    await keepDerived(
+      new Uint8Array(await requireExtractor(deps).imageToJpeg(arrayBuffer(bytes))),
+      'image/jpeg'
+    );
     await writePages({ pageCount: 1, pages: [{ number: 1, text: '', isScan: true }] });
     patch.page_count = 1;
     patch.is_scan = true;
@@ -560,10 +560,11 @@ async function failScan(deps: PipelineDeps, file: ImportFileRow, error: unknown)
 async function pageImage(deps: PipelineDeps, file: ImportFileRow) {
   let original: Uint8Array | null = null;
   return async (page: number) => {
-    if (heicTypes.has(file.mime_type)) {
-      return { bytes: await deps.objects.read(file.derived_path!), type: 'image/jpeg' };
+    if (file.derived_path && isImage(file)) {
+      return { bytes: await deps.objects.read(file.derived_path), type: 'image/jpeg' };
     }
     original ??= await deps.objects.read(file.storage_path);
+    // A JPEG or PNG prepared before photographs were converted, in an import still running.
     if (isImage(file)) return { bytes: original, type: file.mime_type };
     const jpeg = await requireExtractor(deps).pdfPageImage(arrayBuffer(original), page);
     return { bytes: new Uint8Array(jpeg), type: 'image/jpeg' };
