@@ -352,6 +352,30 @@ describe('POST /imports/{importId}/files', () => {
     expect(callsTo('/rest/v1/import_files', 'POST')).toEqual([]);
   });
 
+  it('refuses the lock files Word leaves and the files macOS adds beside the documents', async () => {
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
+      if (url.pathname === '/rest/v1/import_files') return Response.json([]);
+    });
+    const docx = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    for (const [path, mimeType] of [
+      ['Dosar/~$cizia 1.docx', docx],
+      ['~$Plan.doc', 'application/msword'],
+      ['Dosar/._Decizia 1.pdf', 'application/pdf'],
+      ['__MACOSX/Dosar/Decizia 1.pdf', 'application/pdf'],
+    ] as const) {
+      const response = await request(`/imports/${importId}/files`, 'POST', {
+        files: [upload('Dosar/Decizia 1.pdf'), upload(path, mimeType)],
+      });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({
+        reason: 'import_system_file',
+        issues: [{ path: 'files.1.uploadPath' }],
+      });
+    }
+    expect(callsTo('/rest/v1/import_files', 'POST')).toEqual([]);
+  });
+
   it('answers past the caps as the database does', async () => {
     mockUpstream(({ url, method }) => {
       if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
