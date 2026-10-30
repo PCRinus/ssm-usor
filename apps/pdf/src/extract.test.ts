@@ -51,14 +51,14 @@ describe('the extractor forwarding', () => {
     expect(new Uint8Array(await service.docToDocx(doc))).toEqual(new Uint8Array(docx));
     expect(await service.pdfText(pdf)).toEqual(pdfText);
     expect(new Uint8Array(await service.pdfPageImage(pdf, 2))).toEqual(new Uint8Array(jpeg));
-    expect(new Uint8Array(await service.heicToJpeg(jpeg))).toEqual(new Uint8Array(jpeg));
+    expect(new Uint8Array(await service.imageToJpeg(jpeg))).toEqual(new Uint8Array(jpeg));
 
     const requests = fetcher.mock.calls.map(([request]) => new URL(request.url));
     expect(requests.map((url) => `${url.pathname}${url.search}`)).toEqual([
       '/doc-to-docx',
       '/pdf-text',
       '/pdf-page-image?page=2',
-      '/heic-to-jpeg',
+      '/image-to-jpeg',
     ]);
     const first = fetcher.mock.calls[0]![0];
     expect(first.method).toBe('POST');
@@ -164,7 +164,7 @@ describe('the extractor forwarding', () => {
     const fetcher = vi.fn<Fetcher>();
     const service = extractor(fetcher);
     const large = new ArrayBuffer(extractorFileLimit + 1);
-    await expect(service.heicToJpeg(large)).rejects.toThrow(`${extractionFailed}:too_large`);
+    await expect(service.imageToJpeg(large)).rejects.toThrow(`${extractionFailed}:too_large`);
     await expect(service.pdfPageImage(pdf, 0)).rejects.toThrow(
       `${extractionFailed}:page_out_of_range`
     );

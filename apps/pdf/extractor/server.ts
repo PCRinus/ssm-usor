@@ -6,11 +6,11 @@ import { join } from 'node:path';
 import {
   dpiFor,
   imageKind,
+  imageToJpegArgs,
   isJpeg,
   isPasswordProtectedWord,
   isPdf,
   isWordLike,
-  longestEdgePixels,
   parsePdfInfo,
   splitPages,
 } from './files.ts';
@@ -163,29 +163,10 @@ async function imageToJpeg(image: Uint8Array, signal: AbortSignal): Promise<Buff
     const input = join(dir, `image.${kind}`);
     const output = join(dir, 'image.jpg');
     await writeFile(input, image);
-    // The coder named in front of the path, so ImageMagick never guesses another from the bytes.
-    // Stripping drops the camera's metadata, its location included, once the turn is applied.
-    const result = await run(
-      'magick',
-      [
-        ...imageLimits,
-        `${kind}:${input}[0]`,
-        '-auto-orient',
-        '-resize',
-        `${longestEdgePixels}x${longestEdgePixels}>`,
-        '-background',
-        'white',
-        '-alpha',
-        'remove',
-        '-alpha',
-        'off',
-        '-strip',
-        '-quality',
-        '85',
-        `jpeg:${output}`,
-      ],
-      { timeoutMs: 60_000, signal }
-    );
+    const result = await run('magick', [...imageLimits, ...imageToJpegArgs(kind, input, output)], {
+      timeoutMs: 60_000,
+      signal,
+    });
     const detail = result.stderr.trim().slice(0, 300);
     // Past its time limit ImageMagick still exits 0, with what it had drawn by then.
     if (/time limit exceeded/i.test(result.stderr)) throw new Refused('timeout', detail);
@@ -256,7 +237,7 @@ async function handle(request: IncomingMessage, response: ServerResponse, signal
       const jpeg = await tools(signal, () => pdfPageImage(pdf, page, signal));
       return send(response, 200, 'image/jpeg', jpeg);
     }
-    case '/heic-to-jpeg': {
+    case '/image-to-jpeg': {
       const image = await readBody(request);
       return send(
         response,

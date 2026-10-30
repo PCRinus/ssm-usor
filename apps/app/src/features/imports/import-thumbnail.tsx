@@ -15,8 +15,8 @@ const heic = (mimeType: string) => mimeType === 'image/heic' || mimeType === 'im
 // The links last five minutes; the query is fetched again before they expire.
 const linkLifetimeMs = 4 * 60_000;
 
-// A HEIC photograph is shown only through the JPEG the import makes of it: most browsers cannot
-// draw HEIC.
+// A photograph is shown through the JPEG the import makes of it, a fraction of the original's
+// size. A HEIC only through it: most browsers cannot draw HEIC.
 export function ImportThumbnail({
   importId,
   file,
@@ -39,7 +39,9 @@ export function ImportThumbnail({
       refetchInterval: drawable ? linkLifetimeMs : false,
     },
   });
-  const url = heic(file.mimeType) ? source.data?.derived?.url : source.data?.original.url;
+  const url = heic(file.mimeType)
+    ? source.data?.derived?.url
+    : (source.data?.derived?.url ?? source.data?.original.url);
   if (drawable && url) {
     return (
       <img

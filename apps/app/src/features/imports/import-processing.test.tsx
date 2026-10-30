@@ -98,7 +98,7 @@ function mockImport(detail: ReturnType<typeof importDetail>, read?: () => Respon
         fileName: 'x',
         page: null,
         original: { url: 'https://storage.example/original.jpg', mimeType: 'image/jpeg' },
-        derived: null,
+        derived: { url: 'https://storage.example/upright.jpg', mimeType: 'image/jpeg' },
         text: null,
         pages: null,
         match: null,
@@ -180,6 +180,9 @@ describe('the processing page', () => {
     const employees = screen.getByTestId('import-group-employees');
     await waitFor(() =>
       expect(within(employees).getAllByTestId('import-thumbnail')).toHaveLength(1)
+    );
+    expect(within(employees).getByTestId('import-thumbnail').getAttribute('src')).toBe(
+      'https://storage.example/upright.jpg'
     );
     expect(within(employees).getAllByTestId('import-thumbnail-placeholder')).toHaveLength(1);
     expect(

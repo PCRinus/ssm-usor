@@ -145,8 +145,14 @@ export class Pdf
     return this.extractor().pdfPageImage(pdf, page);
   }
 
+  async imageToJpeg(image: ArrayBuffer): Promise<ArrayBuffer> {
+    return this.extractor().imageToJpeg(image);
+  }
+
+  // The API deploys after this Worker, so the API before it still calls this name for a while.
+  // Remove once that API is gone from both environments.
   async heicToJpeg(image: ArrayBuffer): Promise<ArrayBuffer> {
-    return this.extractor().heicToJpeg(image);
+    return this.imageToJpeg(image);
   }
 }
 

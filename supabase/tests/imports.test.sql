@@ -1,5 +1,5 @@
 begin;
-select plan(104);
+select plan(106);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -125,7 +125,38 @@ select throws_ok(
      where id = 'f0000000-0000-4000-8000-000000000003' $$,
   '23514',
   null,
-  'only a .doc or a HEIC has a converted file'
+  'only a .doc or a photograph has a converted file'
+);
+
+select lives_ok(
+  $$ do $do$ begin
+       insert into public.import_files (id, import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256) values
+         ('f0000000-0000-4000-8000-0000000000a1', '10000000-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001',
+           'Poze/plan.jpg', 'plan.jpg', 'image/jpeg', 4096, repeat('a', 64)),
+         ('f0000000-0000-4000-8000-0000000000a2', '10000000-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001',
+           'Poze/schita.png', 'schita.png', 'image/png', 4096, repeat('a', 64));
+       update public.import_files set derived_path = regexp_replace(storage_path, '\.jpg$', '.jpeg'),
+         derived_size_bytes = 1, derived_sha256 = repeat('3', 64)
+       where id = 'f0000000-0000-4000-8000-0000000000a1';
+       update public.import_files set derived_path = regexp_replace(storage_path, '\.png$', '.jpg'),
+         derived_size_bytes = 1, derived_sha256 = repeat('3', 64)
+       where id = 'f0000000-0000-4000-8000-0000000000a2';
+       delete from public.import_files where id in ('f0000000-0000-4000-8000-0000000000a1', 'f0000000-0000-4000-8000-0000000000a2');
+     end $do$ $$,
+  'a JPEG''s converted file is <id>.jpeg, a PNG''s <id>.jpg'
+);
+
+select throws_ok(
+  $$ do $do$ begin
+       insert into public.import_files (id, import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256) values
+         ('f0000000-0000-4000-8000-0000000000a3', '10000000-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001',
+           'Poze/plan.jpg', 'plan.jpg', 'image/jpeg', 4096, repeat('a', 64));
+       update public.import_files set derived_path = storage_path, derived_size_bytes = 1, derived_sha256 = repeat('3', 64)
+       where id = 'f0000000-0000-4000-8000-0000000000a3';
+     end $do$ $$,
+  '23514',
+  null,
+  'never the original itself'
 );
 
 select throws_ok(

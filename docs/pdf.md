@@ -399,9 +399,10 @@ request workflow runs ruff and the tests whenever `apps/pdf` or the signer's con
 An import ([ADR 030](architecture/adr-030-import-from-documents.md)) reads a client's files as
 text, and some of them need a tool to become text or an image first: a `.doc` becomes a `.docx`,
 whose XML the API reads with its tables; a PDF gives its text page by page, and a scanned page an
-image for the model; a HEIC photograph becomes a JPEG, which the model and the browser read. The
-extractor is a container of its own, `apps/pdf/extractor`, with LibreOffice, poppler and
-ImageMagick behind a small Node server, one file per request.
+image for the model; a photograph, HEIC, JPEG or PNG, becomes an upright JPEG small enough for
+the model, which the model and the browser read. The extractor is a container of its own,
+`apps/pdf/extractor`, with LibreOffice, poppler and ImageMagick behind a small Node server, one
+file per request.
 
 It is not a route added to Gotenberg. Gotenberg's pinned LibreOffice decides where the app's own
 documents break pages, so its image changes only for that, and its routes only make PDFs. The
@@ -415,8 +416,12 @@ extractor's LibreOffice only reads: Debian's version, moved with the base image.
 docToDocx(doc: ArrayBuffer): Promise<ArrayBuffer>;
 pdfText(pdf: ArrayBuffer): Promise<PdfText>; // { pageCount, pages: [{ number, text, isScan }] }
 pdfPageImage(pdf: ArrayBuffer, page: number): Promise<ArrayBuffer>;
-heicToJpeg(image: ArrayBuffer): Promise<ArrayBuffer>;
+imageToJpeg(image: ArrayBuffer): Promise<ArrayBuffer>;
 ```
+
+The entrypoint also answers to `heicToJpeg`, `imageToJpeg`'s earlier name, because the API
+deploys after this Worker and the API before it still calls that name. It goes once that API is
+gone from both environments.
 
 A method rejects with `extraction_failed:<reason>` when the file is refused, and with
 `extraction_failed` alone for anything else: an unreachable container, a 5xx, a timeout, or an
@@ -450,7 +455,7 @@ The file is the request's body, `application/octet-stream`; the result is the an
 | `POST /doc-to-docx`           | Word 97–2003, or RTF, HTML or Office Open XML saved as `.doc` | The `.docx`, from LibreOffice                                                          |
 | `POST /pdf-text`              | A PDF                                                         | `{ "pageCount", "pages": [{ "number", "text", "isScan" }] }`, as JSON                  |
 | `POST /pdf-page-image?page=N` | A PDF                                                         | Page N as a JPEG at 150 dpi, less for a page larger than 2,500 pixels a side           |
-| `POST /heic-to-jpeg`          | A HEIC, JPEG or PNG                                           | A JPEG turned upright, at most 2,500 pixels a side, transparency on white, no metadata |
+| `POST /image-to-jpeg`         | A HEIC, JPEG or PNG                                           | A JPEG turned upright, at most 2,000 pixels a side, transparency on white, no metadata |
 | `GET /health`                 |                                                               | `{ "status": "ok" }`                                                                   |
 
 A refusal is `{ "error": "<reason>", "detail" }`, with 413 for `too_large`, 415 for

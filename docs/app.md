@@ -966,8 +966,8 @@ their tab bars read.
   again or left out. The import's page, `/clients/import/:importId`, polls `GET
 /imports/{id}` every 3 s while it runs and shows the four steps, the documents read together
   ("În lucru") and the scans one by one, then the files grouped as failed, documents, scans,
-  sheets kept for the employee import (thumbnails through `GET …/source`; a HEIC only once its
-  JPEG exists), set aside (with "Citește-l totuși" once the proposal is ready) and another
+  sheets kept for the employee import (thumbnails through `GET …/source`, from the photograph's
+  converted JPEG when there is one; a HEIC only once it exists), set aside (with "Citește-l totuși" once the proposal is ready) and another
   company's, with "Importă-le separat" calling the split. On `/clients`, "Importuri din
   documente" lists the open imports above the table, each row reading its own import for the
   step, the files and what waits for the member, and a toast says when one becomes ready.

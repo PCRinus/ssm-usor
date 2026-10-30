@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   dpiFor,
   imageKind,
+  imageToJpegArgs,
   isPasswordProtectedWord,
   isPdf,
   isWordLike,
@@ -148,5 +149,16 @@ describe('dpiFor', () => {
     expect(dpiFor([595.276, 841.89])).toBe(150);
     expect(dpiFor(undefined)).toBe(150);
     expect(dpiFor([2383.94, 3370.39])).toBe(53);
+  });
+});
+
+describe('imageToJpegArgs', () => {
+  it('turns a photograph upright before shrinking it to 2000 pixels a side, never enlarging it', () => {
+    const args = imageToJpegArgs('png', '/tmp/in.png', '/tmp/out.jpg');
+    expect(args[0]).toBe('png:/tmp/in.png[0]');
+    expect(args.at(-1)).toBe('jpeg:/tmp/out.jpg');
+    expect(args.indexOf('-auto-orient')).toBeLessThan(args.indexOf('-resize'));
+    expect(args[args.indexOf('-resize') + 1]).toBe('2000x2000>');
+    expect(args.indexOf('-strip')).toBeGreaterThan(args.indexOf('-auto-orient'));
   });
 });

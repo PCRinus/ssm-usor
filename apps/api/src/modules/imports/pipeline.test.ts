@@ -96,6 +96,7 @@ const extension: Record<string, string> = {
   'application/pdf': 'pdf',
   'image/heic': 'heic',
   'image/jpeg': 'jpg',
+  'image/png': 'png',
 };
 
 class World {
@@ -245,7 +246,10 @@ const extractor = {
     };
   }),
   pdfPageImage: vi.fn(async () => strToU8('jpeg-page').buffer as ArrayBuffer),
-  heicToJpeg: vi.fn(async () => strToU8('jpeg-heic').buffer as ArrayBuffer),
+  imageToJpeg: vi.fn(
+    async (image: ArrayBuffer) =>
+      strToU8(`upright ${new TextDecoder().decode(image)}`).buffer as ArrayBuffer
+  ),
 } satisfies ExtractorService;
 
 const quoted = (file: string, quote: string) => ({ file, quote, otherCompany: '' });
@@ -625,8 +629,13 @@ describe('the import queue', () => {
     );
     const heic = world.fileAt('Dosar/Poze/IMG_0042.HEIC');
     expect(heic.derived_path).toBe(heic.storage_path.replace(/\.heic$/, '.jpg'));
-    expect(world.fileAt('Dosar/Poze/plan.jpg').derived_path).toBeNull();
-    expect(extractor.heicToJpeg).toHaveBeenCalledTimes(1);
+    const plan = world.fileAt('Dosar/Poze/plan.jpg');
+    expect(plan.derived_path).toBe(plan.storage_path.replace(/\.jpg$/, '.jpeg'));
+    expect(new TextDecoder().decode(world.objects.get(plan.derived_path!))).toBe(
+      'upright jpeg-plan'
+    );
+    expect(new TextDecoder().decode(world.objects.get(plan.storage_path))).toBe('jpeg-plan');
+    expect(extractor.imageToJpeg).toHaveBeenCalledTimes(2);
 
     const stored = row.proposal as { registeredCompany: unknown };
     const proposal = proposalSchema.parse(row.proposal);
@@ -680,11 +689,13 @@ describe('the import queue', () => {
         (request) => request.maxTokens === (request.name === 'import_sorting' ? 16_000 : 64_000)
       )
     ).toBe(true);
-    const photo = modelRequests.find(
-      (request) =>
-        request.name === 'client_import' && request.images[0]?.startsWith('data:image/jpeg;base64,')
-    );
-    expect(photo).toBeDefined();
+    const upright = `data:image/jpeg;base64,${btoa('upright jpeg-plan')}`;
+    expect(
+      modelRequests
+        .filter((request) => request.images.includes(upright))
+        .map((request) => request.name)
+        .sort()
+    ).toEqual(['client_import', 'import_sorting']);
     expect(world.usage).toHaveLength(6);
     expect(world.usage.filter((usage) => usage.fileId === null)).toHaveLength(2);
     expect(world.usage.map((usage) => usage.step).sort()).toEqual([
@@ -724,6 +735,33 @@ describe('the import queue', () => {
     expect(
       world.usage.filter((usage) => usage.fileId === world.fileAt('Dosar/Poze/plan.jpg').id)
     ).toEqual([expect.objectContaining({ input: 1000 }), expect.objectContaining({ input: 2000 })]);
+  });
+
+  it('reads a PNG as the upright JPEG made of it and keeps the original as uploaded', async () => {
+    const png = { path: 'Dosar/Poze/schita.png', mime: 'image/png', bytes: strToU8('png-schita') };
+    startWith([files[0]!, png]);
+    await drain(deps());
+
+    const file = world.fileAt(png.path);
+    expect(file.derived_path).toBe(file.storage_path.replace(/\.png$/, '.jpg'));
+    expect(world.objects.get(file.storage_path)).toEqual(png.bytes);
+    const images = modelRequests.flatMap((request) => request.images);
+    expect(images).toContain(`data:image/jpeg;base64,${btoa('upright png-schita')}`);
+    expect(images.some((image) => image.startsWith('data:image/png'))).toBe(false);
+  });
+
+  it('sends a photograph prepared without a converted JPEG as it was uploaded', async () => {
+    startWith([files[4]!]);
+    await drain(deps(), 1);
+    const file = world.fileAt(files[4]!.path);
+    world.objects.delete(file.derived_path!);
+    Object.assign(file, { derived_path: null });
+    await drain(deps());
+
+    expect(world.fileAt(files[4]!.path).state).toBe('read');
+    expect(modelRequests.flatMap((request) => request.images)).toContain(
+      `data:image/jpeg;base64,${btoa('jpeg-plan')}`
+    );
   });
 
   it('fails the import, without retrying, when the reading is cut off at its output cap', async () => {
