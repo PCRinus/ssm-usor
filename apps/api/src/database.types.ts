@@ -7005,6 +7005,65 @@ export type Database = {
           role: Database['public']['Enums']['organization_role'];
         }[];
       };
+      organization_employee_states: {
+        Args: { p_organization_id: string };
+        Returns: {
+          employee_id: string;
+          psi_test_state: Database['public']['Enums']['test_state'];
+          psi_training_due_on: string;
+          psi_training_state: Database['public']['Enums']['training_state'];
+          ssm_test_state: Database['public']['Enums']['test_state'];
+          ssm_training_due_on: string;
+          ssm_training_state: Database['public']['Enums']['training_state'];
+        }[];
+      };
+      organization_employees_in_state: {
+        Args: {
+          p_domain?: Database['public']['Enums']['training_domain'];
+          p_organization_id: string;
+          p_test_state?: Database['public']['Enums']['test_state'];
+          p_training_state?: Database['public']['Enums']['training_state'];
+        };
+        Returns: {
+          archived_at: string | null;
+          authorizations: string | null;
+          birth_date: string | null;
+          birth_place: string | null;
+          blood_group: string | null;
+          client_id: string;
+          cnp: string | null;
+          commute_minutes: number | null;
+          commute_route: string | null;
+          contract_number: string | null;
+          created_at: string;
+          created_by: string | null;
+          education: string | null;
+          email: string | null;
+          employee_number: string | null;
+          first_name: string;
+          hired_at: string;
+          home_address: string | null;
+          id: string;
+          job_position_id: string;
+          job_title: string;
+          last_name: string;
+          notes: string | null;
+          organization_id: string;
+          phone: string | null;
+          qualification: string | null;
+          rh_factor: string | null;
+          status: Database['public']['Enums']['employee_status'];
+          terminated_at: string | null;
+          updated_at: string;
+          workplace_id: string | null;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'employees';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       organization_invitation_by_token: {
         Args: { invitation_token_hash: string };
         Returns: {

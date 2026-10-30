@@ -11,7 +11,6 @@ import {
   pageRange,
   searchTerms,
   type TestStateFilter,
-  type TrainingDomain,
   type TrainingStateFilter,
 } from '@ssm-usor/contracts';
 
@@ -52,7 +51,6 @@ export const employeeListColumns =
 type StateFilters = {
   trainingState?: TrainingStateFilter;
   testState?: TestStateFilter;
-  domain?: TrainingDomain;
 };
 
 // Inner, so that a filter on a status drops the employees it leaves out.
@@ -65,18 +63,16 @@ function listColumnsFor<Columns extends string>(columns: Columns, filters: State
   return filtered as Columns;
 }
 
-// Without a domain, "La zi" means up to date in both domains, and a passed test passed in both;
-// every other state flags someone the specialist has to see to in either.
+// "La zi" means up to date in both domains, and a passed test passed in both; every other state
+// flags someone the specialist has to see to in either.
 function inStates<Q extends { or(filters: string, options: { referencedTable: string }): Q }>(
   query: Q,
-  { trainingState, testState, domain }: StateFilters
+  { trainingState, testState }: StateFilters
 ) {
-  const matching = (state: string, everywhere: boolean) => {
-    if (domain) return `${domain}_state.eq.${state}`;
-    return everywhere
+  const matching = (state: string, everywhere: boolean) =>
+    everywhere
       ? `and(ssm_state.eq.${state},psi_state.eq.${state})`
       : `ssm_state.eq.${state},psi_state.eq.${state}`;
-  };
   let filtered = query;
   if (trainingState) {
     filtered = filtered.or(matching(trainingState, trainingState === 'current'), {
@@ -498,7 +494,6 @@ export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = 
 
 // Two foreign keys lead to clients, the plain one and the one that pins the organization.
 const clientColumns = 'client:clients!employees_client_id_fkey!inner(id, legal_name)';
-const organizationEmployeeListColumns = `${employeeListColumns}, ${clientColumns}` as const;
 
 type OrganizationEmployeeListRow = EmployeeListRow & { client: { id: string; legal_name: string } };
 
@@ -582,31 +577,44 @@ async function listOrganizationEmployeePage(
   return { items: rows.map(toOrganizationEmployeeListItem), page, pageSize, total: count ?? 0 };
 }
 
-export const listOrganizationEmployees: RouteHandler<
-  typeof listOrganizationEmployeesRoute,
-  ApiEnv
-> = async (c) => {
-  const { status, clientId, trainingState, testState, domain, q, page, pageSize, sort, order } =
-    c.req.valid('query');
-  const states = { trainingState, testState, domain };
-  const db = createDataClient(c);
-  if (!trainingState && !testState) {
-    return c.json(await listOrganizationEmployeePage(db, c.req.valid('query')), 200);
-  }
+// `*`: on the rows of a function, PostgREST sorts by, and filters an embed on, only what the
+// select returns. The function already leaves out archived employees and clients that are not
+// active, so no filter here needs the client.
+const inStatePageColumns =
+  '*, job_positions(id, name), client_workplaces!employees_workplace_in_client(id, name), client:clients!employees_client_id_fkey(id, legal_name)';
+
+async function listOrganizationEmployeesInState(
+  db: DataClient,
+  organizationId: string,
+  {
+    status,
+    clientId,
+    trainingState,
+    testState,
+    domain,
+    q,
+    page,
+    pageSize,
+    sort,
+    order,
+  }: ListOrganizationEmployeesQuery
+) {
   const filtered = () => {
-    const base = db
-      .from('employees')
-      .select(withClientNameMatches(listColumnsFor(organizationEmployeeListColumns, states), q), {
-        count: 'exact',
-      });
-    let query = inStates(base, states)
-      .is('archived_at', null)
-      // Only an owner reads leads, and the list should not change with the role.
-      .eq('client.stage', 'client')
-      .is('client.archived_at', null);
+    let query = db
+      .rpc(
+        'organization_employees_in_state',
+        {
+          p_organization_id: organizationId,
+          p_training_state: trainingState,
+          p_test_state: testState,
+          p_domain: domain,
+        },
+        { count: 'exact' }
+      )
+      .select(withClientNameMatches(inStatePageColumns, q));
     if (clientId) query = query.eq('client_id', clientId);
     query = status ? query.eq('status', status) : query.neq('status', 'terminated');
-    return matchingEveryTermOrClientName(query, q).returns<OrganizationEmployeeListRow[]>();
+    return matchingEveryTermOrClientName(query, q).returns<OrganizationEmployeePageRow[]>();
   };
   let query = filtered();
   for (const column of organizationSortColumns[sort])
@@ -616,11 +624,22 @@ export const listOrganizationEmployees: RouteHandler<
   if (error?.code === 'PGRST103') {
     const recount = await filtered().range(0, 0);
     if (recount.error) throw fromDatabaseError(recount.error, 'count employees');
-    return c.json({ items: [], page, pageSize, total: recount.count ?? 0 }, 200);
+    return { items: [], page, pageSize, total: recount.count ?? 0 };
   }
   if (error) throw fromDatabaseError(error, 'list organization employees');
-  return c.json(
-    { items: data.map(toOrganizationEmployeeListItem), page, pageSize, total: count ?? 0 },
-    200
-  );
+  const rows = await withStatuses(db, data);
+  return { items: rows.map(toOrganizationEmployeeListItem), page, pageSize, total: count ?? 0 };
+}
+
+export const listOrganizationEmployees: RouteHandler<
+  typeof listOrganizationEmployeesRoute,
+  ApiEnv
+> = async (c) => {
+  const query = c.req.valid('query');
+  const db = createDataClient(c);
+  if (query.trainingState || query.testState) {
+    const { organizationId } = c.get('membership');
+    return c.json(await listOrganizationEmployeesInState(db, organizationId, query), 200);
+  }
+  return c.json(await listOrganizationEmployeePage(db, query), 200);
 };

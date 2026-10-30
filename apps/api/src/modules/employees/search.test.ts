@@ -60,7 +60,8 @@ const organizationRow = {
 
 type Handler = (url: URL) => Response | Promise<Response>;
 
-type Upstream = 'clients' | 'employees' | 'employee_training_status' | 'employee_test_status';
+type Upstream =
+  'clients' | 'employees' | 'employee_training_status' | 'employee_test_status' | 'inState';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -69,6 +70,12 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     const url = new URL(input instanceof Request ? input.url : String(input));
     if (url.pathname === '/auth/v1/user') return Response.json(user);
     if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
+    if (url.pathname === '/rest/v1/rpc/organization_employees_in_state') {
+      return (
+        handlers.inState?.(url) ??
+        Response.json([organizationRow], { headers: { 'Content-Range': '0-0/1' } })
+      );
+    }
     if (url.pathname === '/rest/v1/clients') {
       return handlers.clients?.(url) ?? Response.json([{ id: clientId, archived_at: null }]);
     }
@@ -95,6 +102,17 @@ const upstreamCalls = (table: Upstream) =>
     .map((url) => url.searchParams);
 
 const employeesQuery = (index = 0) => upstreamCalls('employees')[index]!;
+
+const inStateCalls = () =>
+  fetchMock.mock.calls
+    .filter(
+      ([input]) =>
+        new URL(String(input)).pathname === '/rest/v1/rpc/organization_employees_in_state'
+    )
+    .map(([input, init]) => ({
+      query: new URL(String(input)).searchParams,
+      args: JSON.parse(String(init?.body)) as Record<string, string>,
+    }));
 
 const request = (path: string) =>
   createApp().request(path, { headers: { Authorization: 'Bearer test-access-token' } }, env);
@@ -228,55 +246,107 @@ describe('GET /employees', () => {
     expect(query.get('client.stage')).toBe('eq.client');
   });
 
-  it('filters by a training state in either domain, leaving out the employees it does not match', async () => {
+  it('pages the employees in a training state through the organization-wide states, then reads their statuses', async () => {
     mockUpstream();
     const response = await request('/employees?trainingState=due');
     expect(response.status).toBe(200);
-    const query = employeesQuery();
-    expect(query.get('select')).toContain('training_status!inner(');
-    expect(query.get('select')).toContain('client:clients!employees_client_id_fkey!inner(');
-    expect(query.get('training_status.or')).toBe('(ssm_state.eq.due,psi_state.eq.due)');
-    expect(query.get('client.archived_at')).toBe('is.null');
-  });
-
-  it('filters by a test state in either domain', async () => {
-    mockUpstream();
-    const response = await request('/employees?testState=pending');
-    expect(response.status).toBe(200);
-    const query = employeesQuery();
-    expect(query.get('select')).toContain('test_status!inner(');
-    expect(query.get('test_status.or')).toBe('(ssm_state.eq.pending,psi_state.eq.pending)');
-    expect(query.get('client.archived_at')).toBe('is.null');
-  });
-
-  it('filters the employees up to date in either domain', async () => {
-    mockUpstream();
-    const response = await request('/employees?trainingState=current');
-    expect(response.status).toBe(200);
-    expect(employeesQuery().get('training_status.or')).toBe(
-      '(and(ssm_state.eq.current,psi_state.eq.current))'
+    const listed = organizationEmployeeListResponseSchema.parse(await response.json());
+    expect(listed.total).toBe(1);
+    expect(listed.items.map((item) => item.client.name)).toEqual(['Șantierul Naval SA']);
+    const [call] = inStateCalls();
+    expect(call!.args).toEqual({
+      p_organization_id: membership.organization_id,
+      p_training_state: 'due',
+    });
+    expect(call!.query.get('select')).toBe(
+      '*,job_positions(id,name),client_workplaces!employees_workplace_in_client(id,name),client:clients!employees_client_id_fkey(id,legal_name)'
+    );
+    expect(call!.query.get('status')).toBe('neq.terminated');
+    expect(call!.query.get('order')).toBe('last_name.asc,first_name.asc,id.asc');
+    expect(call!.query.get('offset')).toBe('0');
+    expect(call!.query.get('limit')).toBe('25');
+    expect(upstreamCalls('employees')).toHaveLength(0);
+    expect(upstreamCalls('employee_training_status')[0]!.get('employee_id')).toBe(
+      `in.(${employeeListRow.id})`
+    );
+    expect(upstreamCalls('employee_test_status')[0]!.get('employee_id')).toBe(
+      `in.(${employeeListRow.id})`
     );
   });
 
-  it('filters by a training state in one domain only', async () => {
+  it.each([
+    ['testState=pending', { p_test_state: 'pending' }],
+    ['trainingState=overdue&domain=ssm', { p_training_state: 'overdue', p_domain: 'ssm' }],
+    [
+      'trainingState=current&testState=passed&domain=psi',
+      { p_training_state: 'current', p_test_state: 'passed', p_domain: 'psi' },
+    ],
+  ])('passes %s to the organization-wide states', async (search, args) => {
     mockUpstream();
-    const response = await request('/employees?trainingState=overdue&domain=ssm');
+    const response = await request(`/employees?${search}`);
     expect(response.status).toBe(200);
-    const query = employeesQuery();
-    expect(query.get('select')).toContain('training_status!inner(');
-    expect(query.get('training_status.or')).toBe('(ssm_state.eq.overdue)');
+    expect(inStateCalls()[0]!.args).toEqual({
+      p_organization_id: membership.organization_id,
+      ...args,
+    });
   });
 
-  it('filters the employees up to date in one domain, whatever the other', async () => {
+  it('keeps the client, status and search filters on the employees in a state', async () => {
     mockUpstream();
-    await request('/employees?trainingState=current&domain=psi');
-    expect(employeesQuery().get('training_status.or')).toBe('(psi_state.eq.current)');
+    await request(
+      `/employees?trainingState=overdue&clientId=${clientId}&status=active&q=${encodeURIComponent('Ștefan pop')}`
+    );
+    const { query } = inStateCalls()[0]!;
+    expect(query.get('client_id')).toBe(`eq.${clientId}`);
+    expect(query.get('status')).toBe('eq.active');
+    expect(query.get('select')).toContain(
+      'client_name_match_0:clients!employees_client_id_fkey(),client_name_match_1:clients!employees_client_id_fkey()'
+    );
+    expect(query.get('client_name_match_0.client_search_name')).toBe('ilike.*stefan*');
+    expect(query.get('client_name_match_1.client_search_name')).toBe('ilike.*pop*');
+    expect(query.getAll('or')).toEqual([
+      '(employee_search_name.ilike.*stefan*,employee_number.ilike.*stefan*,client_name_match_0.not.is.null)',
+      '(employee_search_name.ilike.*pop*,employee_number.ilike.*pop*,client_name_match_1.not.is.null)',
+    ]);
   });
 
-  it('narrows a test state to the domain too', async () => {
+  it('sorts the employees in a state as the list', async () => {
     mockUpstream();
-    await request('/employees?testState=pending&domain=psi');
-    expect(employeesQuery().get('test_status.or')).toBe('(psi_state.eq.pending)');
+    await request('/employees?trainingState=overdue&sort=client&order=desc&page=2');
+    const { query } = inStateCalls()[0]!;
+    expect(query.get('order')).toBe(
+      'client(legal_name).desc,last_name.desc,first_name.desc,id.asc'
+    );
+    expect(query.get('offset')).toBe('25');
+  });
+
+  it('reads no statuses when no one is in the state', async () => {
+    mockUpstream({
+      inState: () => Response.json([], { headers: { 'Content-Range': '*/0' } }),
+    });
+    const response = await request('/employees?testState=annual_due');
+    expect(await response.json()).toEqual({ items: [], page: 1, pageSize: 25, total: 0 });
+    expect(upstreamCalls('employee_training_status')).toHaveLength(0);
+    expect(upstreamCalls('employee_test_status')).toHaveLength(0);
+  });
+
+  it('answers a page past the end of the employees in a state with the real total', async () => {
+    let call = 0;
+    mockUpstream({
+      inState: () => {
+        call += 1;
+        return call === 1
+          ? Response.json(
+              { code: 'PGRST103', message: 'Requested range not satisfiable', details: null },
+              { status: 416 }
+            )
+          : Response.json([], { headers: { 'Content-Range': '*/3' } });
+      },
+    });
+    const response = await request('/employees?trainingState=due&page=9&q=naval');
+    expect(await response.json()).toEqual({ items: [], page: 9, pageSize: 25, total: 3 });
+    const recount = inStateCalls()[1]!.query;
+    expect(recount.get('client_name_match_0.client_search_name')).toBe('ilike.*naval*');
   });
 
   it('ignores a domain when no state is asked for', async () => {
@@ -408,14 +478,6 @@ describe('GET /employees', () => {
     expect(upstreamCalls('employee_test_status')).toHaveLength(0);
   });
 
-  it('embeds the statuses when it filters on one', async () => {
-    mockUpstream();
-    await request('/employees?testState=pending');
-    expect(employeesQuery().get('select')).toContain('training_status(');
-    expect(upstreamCalls('employee_training_status')).toHaveLength(0);
-    expect(upstreamCalls('employee_test_status')).toHaveLength(0);
-  });
-
   it('asks every word for the name, the employee number or the client name', async () => {
     mockUpstream();
     await request(`/employees?q=${encodeURIComponent('Ștefan șantier')}`);
@@ -429,18 +491,6 @@ describe('GET /employees', () => {
     expect(query.get('select')).toContain(
       'client_name_match_0:clients!employees_client_id_fkey(),client_name_match_1:clients!employees_client_id_fkey()'
     );
-  });
-
-  it('matches the client name the same way under a status filter', async () => {
-    mockUpstream();
-    await request(`/employees?trainingState=due&q=pop`);
-    const query = employeesQuery();
-    expect(query.get('select')).toContain('training_status!inner(');
-    expect(query.get('select')).toContain('client_name_match_0:clients!employees_client_id_fkey()');
-    expect(query.get('client_name_match_0.client_search_name')).toBe('ilike.*pop*');
-    expect(query.getAll('or')).toEqual([
-      '(employee_search_name.ilike.*pop*,employee_number.ilike.*pop*,client_name_match_0.not.is.null)',
-    ]);
   });
 
   it('embeds no client name match without a search', async () => {

@@ -699,7 +699,8 @@ each domain, `<domain>_last_periodic_on`, `<domain>_workplace_trained_on`,
 and qualifies every name instead, so that the planner inlines it. The employee lists read the
 view through `training_status(employees)`, a PostgREST computed relationship (to-one, `rows
 1`), embedded as `training_status(...)` and as `training_status!inner(...)` with an `or`
-filter when the list is filtered by a training state. A row costs a few index reads:
+filter when a client's list is filtered by a training state; the organization's list filters
+through `organization_employees_in_state`, under Dashboard. A row costs a few index reads:
 `training_records (employee_id)` and the primary keys; `trainings (client_id, domain, phase,
 held_on)` serves a client's list of trainings.
 
@@ -1972,13 +1973,14 @@ same.
 
 The dashboard's numbers ([ADR 027](architecture/adr-027-dashboard.md)) are read from two views
 and a function, all security invoker, so a count over a table the caller may not read, the
-service contracts and their copies for a specialist, is zero. The employees they count are
+service contracts and their copies for a specialist, is zero. The training and test states come
+from `organization_employee_states`, below, which checks the caller instead. The employees they count are
 those the employees list shows: not archived, `active`, of an active client (stage `client`,
 not archived).
 
 `dashboard_summary` has one row per organization the caller can read: `ssm_overdue`,
 `ssm_due`, `ssm_untrained`, `ssm_current` and the same four for `psi`, from
-`employee_training_status`; `employees`; `next_due_on`, the nearest due date of an employee
+`organization_employee_states`; `employees`; `next_due_on`, the nearest due date of an employee
 current or due in either domain, and `next_due_count`, how many employees it concerns;
 `tests_pending`, employees with a hiring test waiting in either domain; `drafts_to_issue`,
 documents of the two sets whose newest revision is a draft, of the newest period for a dated
@@ -1995,6 +1997,19 @@ that reads their own rows, with `missing`, the codes of `missingDocumentData` in
 the legal representative's name and role, the six responsible roles of the two sets, at least
 one current job position, and the answers of every current position about equipment,
 instruction modules and fire-safety modules.
+
+`organization_employee_states(organization)`, security definer, returns for every current
+employee of the organization's active clients `employee_id`, `<domain>_training_state`,
+`<domain>_training_due_on` and `<domain>_test_state`, the values of `employee_training_status`
+and `employee_test_status`, computed for the whole organization in one pass over
+`training_records`, `trainings` and `test_results` by the organization's indexes. For any
+organization but the caller's it returns nothing. It repeats the rules of
+`employee_training_due` and `employee_test_due`; `organization_statuses.test.sql` compares it
+with the views row by row, so a rule changes in both. `organization_employees_in_state(
+organization, training_state, test_state, domain)` returns the `employees` rows in those
+states, either state optional, with the meaning of the list's filters: in one domain, or
+without one `current` and `passed` in both and any other state in either. `GET /employees`
+with a state filter reads its page through it, and the page's statuses afterwards.
 
 `dashboard_employees_at_month_ends(organization)` returns twelve rows, `month` (its first day)
 and `employees`, oldest first: the employees of the organization's active clients, archived
