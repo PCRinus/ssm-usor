@@ -1350,3 +1350,89 @@ describe('a value proposed with its spelling corrected', () => {
     expect(fireSafety.textContent).toContain('Fumat doar în locurile amenajate: în curte');
   });
 });
+
+describe('a value the import inferred', () => {
+  const ssmMonth = {
+    value: 3,
+    sources: [{ file: 'dosar-ssm.zip/Decizie 1.docx', quote: 'începând cu luna martie' }],
+    otherCompanyName: null,
+  };
+
+  const inferredDetail = () => {
+    const proposal = proposalFixture();
+    Object.assign(proposal.trainingSchedule, {
+      administrativeTrainingIntervalMonths: { options: [] },
+      administrativeTrainingNotApplicable: {
+        options: [
+          { value: 'true', sources: [], otherCompanyName: null, inferred: 'no_posts_in_category' },
+        ],
+      },
+      trainingFirstMonth: { options: [ssmMonth] },
+    });
+    Object.assign(proposal.fireSafety, {
+      trainingFirstMonth: { options: [{ ...ssmMonth, inferred: 'ssm_training_schedule' }] },
+    });
+    Object.assign(proposal.jobPositions[0]!, {
+      name: 'Contabil',
+      workZone: 'Birou',
+      needsProtectiveEquipment: false,
+      inferred: { needsProtectiveEquipment: 'office_work' },
+    });
+    return readyDetail({ proposal });
+  };
+
+  it('says a category none of the posts is in has no periodic training', async () => {
+    mockReview(inferredDetail());
+    mount('/training');
+
+    await screen.findByText('Instruirea periodică, tehnico-administrativ');
+    const row = document.getElementById(
+      'review-trainingSchedule-administrativeTrainingNotApplicable'
+    )!;
+    expect(row.textContent).toContain('Nu se aplică');
+    expect(within(row).getByTestId('review-inferred').textContent).toBe(
+      'Niciun post nu este în categoria tehnico-administrativ, așa că instruirea periodică nu se aplică. Poți s-o schimbi.'
+    );
+    expect(within(row).queryByTestId('review-source')).toBeNull();
+  });
+
+  it('says the fire-safety calendar was taken from the SSM one, until the member writes over it', async () => {
+    mockReview(inferredDetail());
+    mount('/fire-safety');
+
+    await screen.findByText('Prima lună a instruirii PSI');
+    const row = document.getElementById('review-fireSafety-trainingFirstMonth')!;
+    expect(row.textContent).toContain('martie');
+    expect(within(row).getByTestId('review-inferred').textContent).toContain(
+      'Preluată din programul de instruire SSM'
+    );
+
+    await userEvent.click(within(row).getByTestId('review-edit'));
+    const month = await screen.findByTestId('review-input-fireSafety__trainingFirstMonth');
+    await userEvent.clear(month);
+    await userEvent.type(month, '9');
+    await userEvent.click(screen.getByTestId('review-group-save'));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.fields).toEqual({
+      'fireSafety.trainingFirstMonth': { value: 9 },
+    });
+    const edited = document.getElementById('review-fireSafety-trainingFirstMonth')!;
+    expect(edited.textContent).toContain('septembrie');
+    expect(within(edited).queryByTestId('review-inferred')).toBeNull();
+  });
+
+  it('says an office post was proposed without equipment, and leaves it undecided on request', async () => {
+    mockReview(inferredDetail());
+    mount('/job-positions');
+
+    const decision = await screen.findByTestId('review-equipment-decision');
+    expect(within(decision).getByTestId('review-inferred').textContent).toBe(
+      'Post de birou fără echipament în documente, așa că nu i-am propus echipament.'
+    );
+    await userEvent.click(within(decision).getByRole('button', { name: 'Lasă de stabilit' }));
+    await waitFor(() => expect(saves).toBe(1));
+    expect(
+      within(screen.getByTestId('review-equipment-decision')).queryByTestId('review-inferred')
+    ).toBeNull();
+  });
+});

@@ -45,6 +45,9 @@ describe('sortingMessages', () => {
     expect(system!.content).toContain(
       'training_themes: the training themes (tematica de instruire)'
     );
+    expect(system!.content).toContain(
+      'each post\'s periodic training interval ("PERIODICITATE") and the staff categories the posts are grouped under. Training themes always carry client data.'
+    );
   });
 });
 
@@ -94,6 +97,23 @@ describe('readingMessages', () => {
       { type: 'text', text: '=== FILE: Fișă.jpg ===' },
       { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AAAA' } },
     ]);
+  });
+
+  it('reads the intervals and categories the training decision leaves out from the themes', () => {
+    const [system] = readingMessages({ provider, files: [] });
+
+    for (const rule of [
+      'When the decision gives no interval for a category, take it from the SSM training themes',
+      'gives its interval after "PERIODICITATE :" ("3 LUNI", "TRIMESTRIAL", "SEMESTRIAL", "LUNAR", "ANUAL")',
+      '("FUNCTIA : VANZATOR … PERIODICITATE : 3 LUNI")',
+      'or as the post\'s "PERIODICITATE" in the SSM training themes when it differs from its category\'s interval',
+      '("Personal de execuție (…)", "Personal auxiliar (…)", "Personal tehnico-administrativ (…)")',
+      'execution and auxiliary staff are execution',
+      'fireSafety.trainingFirstMonth, fireSafety.trainingDayFrom, fireSafety.trainingDayTo',
+      'never copy it from the SSM documents',
+    ]) {
+      expect(system!.content).toContain(rule);
+    }
   });
 
   it('asks for diacritics in the texts it corrects, and leaves names and quotes as written', () => {

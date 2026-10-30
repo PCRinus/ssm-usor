@@ -44,6 +44,7 @@ import {
   flagNote,
   flagsAt,
   itemFieldLabel,
+  itemInferenceNote,
   type ItemList,
   itemName,
   itemSources,
@@ -631,6 +632,7 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
 function EquipmentDecision({ state, context }: { state: ItemState; context: ItemsContext }) {
   if (state.item.needsProtectiveEquipment !== false) return null;
   const undecided = state.values.needsProtectiveEquipment === null;
+  const inferred = undecided ? null : itemInferenceNote(state, 'needsProtectiveEquipment');
   const decide = (needsProtectiveEquipment: false | null) =>
     context.review.setItem(state.item.id, (current) => {
       const values = { ...current.values };
@@ -646,6 +648,14 @@ function EquipmentDecision({ state, context }: { state: ItemState; context: Item
       <LinkButton className="text-[13px]" onClick={() => decide(undecided ? false : null)}>
         {undecided ? 'Postul nu necesită echipament' : 'Lasă de stabilit'}
       </LinkButton>
+      {inferred && (
+        <span
+          className="basis-full text-[13px] text-muted-foreground"
+          data-testid="review-inferred"
+        >
+          {inferred}
+        </span>
+      )}
     </span>
   );
 }

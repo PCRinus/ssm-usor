@@ -18,6 +18,7 @@ const pack = [
   triage('Coperta.docx', 'cover', 'Brutăria Fictivă', null, false),
   triage('Instructaj.doc', 'generic_text', null, null, false),
   triage('Instructiuni.doc', 'own_instructions', 'Brutăria Fictivă', null),
+  triage('Tematica.doc', 'training_themes', 'Brutăria Fictivă', null, false),
   triage('Fise/Georgescu.jpg', 'training_sheet', 'Brutăria Fictivă', null),
   triage('Contract.docx', 'contract', provider.name, provider.cui),
   triage('Vechi/Decizia 1.doc', 'decision', 'ATELIERUL INVENTAT S.R.L.', '11122232'),
@@ -37,6 +38,7 @@ describe('sortFiles', () => {
       'Coperta.docx': { outcome: 'set_aside', kind: 'cover' },
       'Instructaj.doc': { outcome: 'set_aside', kind: 'generic_text' },
       'Instructiuni.doc': { outcome: 'set_aside', kind: 'own_instructions' },
+      'Tematica.doc': { outcome: 'read' },
       'Fise/Georgescu.jpg': { outcome: 'employee_import' },
       'Contract.docx': { outcome: 'read' },
       'Vechi/Decizia 1.doc': {

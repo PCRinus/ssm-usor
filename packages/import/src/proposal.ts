@@ -26,8 +26,30 @@ const traced = {
 // when the value is as written.
 const spelling = z.string().min(1).optional();
 
+// Why the import proposes a value no passage states: a staff category none of the posts is in
+// has no periodic training, the fire-safety training calendar follows the SSM one where the
+// fire-safety documents give none, and an office post with no equipment entry needs none.
+export const inferenceCodes = [
+  'no_posts_in_category',
+  'ssm_training_schedule',
+  'office_work',
+] as const;
+
+export type InferenceCode = (typeof inferenceCodes)[number];
+
+const inferenceSchema = z.enum(inferenceCodes).meta({ id: 'ImportInference' });
+
+const inferred = inferenceSchema.optional();
+
 export function optionSchema<T extends z.ZodType>(value: T) {
-  return z.object({ value, ...traced, spelling });
+  return z.object({
+    value,
+    // Empty for a value inferred from no passage, such as a category none of the posts is in.
+    sources: z.array(sourceSchema),
+    otherCompanyName: traced.otherCompanyName,
+    spelling,
+    inferred,
+  });
 }
 
 export type Option<T> = {
@@ -35,6 +57,7 @@ export type Option<T> = {
   sources: Source[];
   otherCompanyName: string | null;
   spelling?: string;
+  inferred?: InferenceCode;
 };
 
 // No option is a missing value, one is proposed, several are a choice between documents that disagree.
@@ -89,6 +112,9 @@ export const fireSafetyIntegerFieldNames = [
   'periodicTrainingHours',
   'administrativeTrainingIntervalMonths',
   'workerTrainingIntervalMonths',
+  'trainingFirstMonth',
+  'trainingDayFrom',
+  'trainingDayTo',
 ] as const;
 
 // The waste kinds are one text, the kinds separated by semicolons, as `waste_kinds` lists them.
@@ -114,6 +140,9 @@ function fields<const K extends string, T extends z.ZodType>(names: readonly K[]
 // A proposal stored before these were read has none of them.
 const readSinceFields = new Set<string>([
   ...trainingScheduleYesNoFieldNames,
+  'trainingFirstMonth',
+  'trainingDayFrom',
+  'trainingDayTo',
   'wasteKinds',
   'wasteCollectors',
   ...fireSafetyYesNoFieldNames,
@@ -137,7 +166,7 @@ export const proposedTrainingScheduleSchema = fields(
   integerField
 ).extend(laterFields(trainingScheduleYesNoFieldNames, yesNoField).shape);
 
-export const proposedFireSafetySchema = fields(fireSafetyIntegerFieldNames, integerField)
+export const proposedFireSafetySchema = laterFields(fireSafetyIntegerFieldNames, integerField)
   .extend(laterFields(fireSafetyTextFieldNames, textField).shape)
   .extend(laterFields(fireSafetyYesNoFieldNames, yesNoField).shape);
 
@@ -213,6 +242,8 @@ export const proposedJobPositionSchema = z.object({
   // The sources of the category and the activities by their field, apart from the post's own.
   fieldSources: z.record(z.string(), z.array(sourceSchema)).default({}),
   spelling: spellings,
+  // By field, the values the import inferred rather than read.
+  inferred: z.record(z.string(), inferenceSchema).default({}),
 });
 
 export type ProposedJobPosition = z.infer<typeof proposedJobPositionSchema>;

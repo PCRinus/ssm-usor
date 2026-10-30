@@ -22,6 +22,7 @@ import {
   proposedIncluded,
   type Source,
 } from './proposal';
+import { intervalWords } from './wire';
 
 export interface CheckInput {
   // Null for a file without text to search, such as a photograph.
@@ -92,12 +93,28 @@ const nameFacts = new Set([
   'client.contactName',
 ]);
 
+const holdsIntervalWord =
+  (months: number): Holds =>
+  (quote) =>
+    foldText(quote)
+      .split(' ')
+      .some((word) =>
+        Object.entries(intervalWords).some(
+          ([written, count]) => count === months && word.startsWith(written)
+        )
+      );
+
 function factHolds(field: string, value: string | number): Holds | undefined {
   if (typeof value === 'number') {
     // Durations are often written in hours.
     return field === 'trainingSchedule.periodicTrainingMinutes' && value % 60 === 0
       ? holdsNumber(value, value / 60)
-      : holdsNumber(value);
+      : field.endsWith('IntervalMonths')
+        ? (quote) =>
+            digitRuns(quote).length === 0 ||
+            holdsMonths(value)(quote) ||
+            holdsIntervalWord(value)(quote)
+        : holdsNumber(value);
   }
   if (digitFacts.has(field)) return holdsDigits(value);
   if (nameFacts.has(field)) return holdsName(value);
@@ -250,6 +267,8 @@ const oneOf =
   (value) =>
     values.includes(value);
 
+export const maxFireTrainingIntervalMonths = 6;
+
 // As the database's length checks count them, after trimming.
 const textOf =
   (min: number, max: number): Allowed =>
@@ -293,8 +312,11 @@ const allowedFacts: Record<string, Record<string, Allowed>> = {
   // OMAI 712/2005 art. 21 and 26.
   fireSafety: {
     periodicTrainingHours: between(2, 8),
-    administrativeTrainingIntervalMonths: between(1, 6),
-    workerTrainingIntervalMonths: between(1, 6),
+    administrativeTrainingIntervalMonths: between(1, maxFireTrainingIntervalMonths),
+    workerTrainingIntervalMonths: between(1, maxFireTrainingIntervalMonths),
+    trainingFirstMonth: between(1, 12),
+    trainingDayFrom: between(1, 31),
+    trainingDayTo: between(1, 31),
     smokingPolicy: oneOf(fireSmokingPolicies),
     wasteKinds: wasteKindsAllowed,
     wasteCollectors: textOf(2, 160),

@@ -71,6 +71,24 @@ describe('the wire form', () => {
     expect(restore(z.int().nullable(), '1 an')).toBe(1);
   });
 
+  it('reads the intervals training themes write in words', () => {
+    const interval = months(z.int()).nullable();
+
+    expect(
+      [
+        'TRIMESTRIAL',
+        'Semestrial',
+        'LUNAR',
+        'anual',
+        'la 3 luni',
+        '3 LUNI',
+        'PERIODICITATE : TRIMESTRIAL',
+        'trimestrială',
+        'bianual',
+      ].map((value) => restore(interval, value))
+    ).toEqual([3, 6, 1, 12, 3, 3, 3, 3, null]);
+  });
+
   it('reads the durations of an answer as the documents write them', () => {
     const written = {
       '24 de luni': 24,

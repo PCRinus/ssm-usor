@@ -41,6 +41,7 @@ import {
   flagNote,
   flagsAt,
   formatFieldValue,
+  inferenceNote,
   integerPaths,
   intervalOfNotApplicable,
   type LabelledSource,
@@ -274,6 +275,10 @@ function FieldRow({
     state.value !== null &&
     sameCompanyName(registered.legalName, String(state.value));
   const spelling = fieldSpelling(state);
+  const inferred =
+    state.edited || state.status !== 'value' || state.option === null
+      ? null
+      : inferenceNote(state.path, state.options[state.option]?.inferred);
   const anafCui =
     state.path === 'client.cui' &&
     registered &&
@@ -337,6 +342,7 @@ function FieldRow({
           {state.otherCompanyName && <Tag tone="info">De la {state.otherCompanyName}</Tag>}
         </span>
       )}
+      {inferred && <RowNote testId="review-inferred">{inferred}</RowNote>}
       {spelling !== null && (
         <SpellingPair
           value={String(state.value)}

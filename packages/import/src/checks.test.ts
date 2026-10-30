@@ -125,6 +125,31 @@ describe('checkQuotes', () => {
     expect(checkQuotes(value, { ...files, 'Dosar/Fișa.jpg': null })).toEqual([]);
   });
 
+  it('reads a training interval in years as twelve months each', () => {
+    const value = proposal();
+    value.trainingSchedule.workerTrainingIntervalMonths.options[0]!.value = 12;
+    value.trainingSchedule.workerTrainingIntervalMonths.options[0]!.sources = [
+      { file: 'Dosar/Fișa.jpg', quote: 'personalul de execuție o dată la 1 an' },
+    ];
+
+    expect(checkQuotes(value, { ...files, 'Dosar/Fișa.jpg': null })).toEqual([]);
+
+    value.trainingSchedule.workerTrainingIntervalMonths.options[0]!.value = 1;
+    expect(codes(checkQuotes(value, { ...files, 'Dosar/Fișa.jpg': null }))).toContain(
+      'trainingSchedule.workerTrainingIntervalMonths.options.0.sources.0 value_not_in_quote'
+    );
+  });
+
+  it('takes a training interval the themes write in words beside other numbers', () => {
+    const value = proposal();
+    value.trainingSchedule.workerTrainingIntervalMonths.options[0]!.value = 3;
+    value.trainingSchedule.workerTrainingIntervalMonths.options[0]!.sources = [
+      { file: 'Dosar/Fișa.jpg', quote: 'FUNCTIA : SOFER … 2 ore … PERIODICITATE : TRIMESTRIAL' },
+    ];
+
+    expect(checkQuotes(value, { ...files, 'Dosar/Fișa.jpg': null })).toEqual([]);
+  });
+
   it('flags a file named like an object’s own property as not found', () => {
     const value = proposal();
     value.client.caenCode.options[0]!.sources = [{ file: 'constructor', quote: 'cod CAEN 1071' }];

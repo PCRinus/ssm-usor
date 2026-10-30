@@ -11,6 +11,7 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
+import { inferValues } from './inference';
 import { contained, cuiDigits, foldName, foldText, sameAddress, similar, streetKey } from './match';
 import {
   clientFieldNames,
@@ -34,7 +35,7 @@ import {
   yesNoValues,
 } from './proposal';
 import { correctProposalSpelling } from './spelling';
-import { answerFormat, months } from './wire';
+import { answerFormat, months, wireMonths } from './wire';
 
 export const factFields = [
   ...clientFieldNames.map((name) => `client.${name}`),
@@ -263,6 +264,7 @@ function wasteKinds(written: string) {
 function factValue(field: string, value: string): string | number | null {
   const trimmed = value.trim();
   if (trimmed === '') return null;
+  if (field.endsWith('IntervalMonths')) return wireMonths(trimmed);
   if (integerFacts.has(field)) {
     const digits = trimmed.match(/\d+/)?.[0];
     return digits === undefined ? null : Number(digits);
@@ -303,6 +305,8 @@ function staffCategory(written: string) {
   if ((staffCategories as readonly string[]).includes(written)) return written;
   const folded = foldText(written);
   if (folded.includes('executie') || folded.includes('execution')) return 'execution';
+  // Fire-safety themes add auxiliary staff (cleaning, guarding), whose physical work is execution.
+  if (folded.includes('auxiliar')) return 'execution';
   if (folded.includes('tehnic') || folded.includes('technical')) return 'technical_administrative';
   return null;
 }
@@ -629,6 +633,7 @@ export function toProposal(...readings: Reading[]): Proposal {
               : null,
         fieldSources: {} as Record<string, Source[]>,
         spelling: {} as Record<string, string>,
+        inferred: {} as ProposedJobPosition['inferred'],
       })),
     (a, b) => foldText(a.name) === foldText(b.name),
     (into, from) => {
@@ -769,5 +774,5 @@ export function toProposal(...readings: Reading[]): Proposal {
     ],
     flags: [],
   };
-  return proposalSchema.parse(correctProposalSpelling(proposal));
+  return proposalSchema.parse(correctProposalSpelling(inferValues(proposal)));
 }
