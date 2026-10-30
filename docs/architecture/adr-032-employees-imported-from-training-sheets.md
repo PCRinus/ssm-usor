@@ -25,7 +25,7 @@ A model was evaluated on sheet photographs on 2026-10-30 (14 real photographs of
 
 From ADR 030, unchanged: the import as a proposal nothing of which is written until the member confirms; the upload dialog, with files, a folder or a ZIP in one drop zone; the `imports` bucket; the extractor, through which every photograph is converted to an upright JPEG of at most 2,000 pixels a side with its metadata stripped (done for every import on 2026-10-31); the `ssm-usor-import` queue with its dead-letter consumer and the daily clean-up; the processing page, which counts scanned pages one by one; the model reached through Cloudflare AI Gateway with its cost stored per import and per file; the source dialog showing a photograph with zoom; the existing-client rule of variant E2, under which the app's value is kept unless the member takes the other; the retention of the proposal; and the data protection section. An employee import exists only for a client that exists and starts only from the client's _Angajați_ tab, which the `imports` table already requires of the `employees` kind.
 
-New: the three ways to start on the _Angajați_ tab, with the sheet photographs a client import found; the reading of one sheet page per request with a schema of its own, the grouping of pages into people by code, the caps of an employee import, the review by person, the confirm function `apply_employee_import`, the paper test result read from a signature, the change to when a hiring test awaits and the test state _Neverificat pe fișă_, and the paper rows' signature line in the app and the portal.
+New: the three ways to start on the _Angajați_ tab, with the sheet photographs a client import found; the reading of one sheet page per request with a schema of its own, the grouping of pages into people by code, the caps of an employee import, the review by person, the confirm function `apply_employee_import`, the paper test result read from a signature, the change to when a hiring test awaits and the test state _Neverificat pe fișă_, the paper rows' signature line in the app and the portal, and inviting the imported people to the portal at once.
 
 ### Starting: three ways, and the sheets a client import found
 
@@ -93,7 +93,19 @@ Confirming runs `apply_employee_import`, one transaction like `apply_client_impo
 
 **Files.** Each photograph's converted copy, upright and about half a megabyte, becomes a client file of the employee it belongs to, in a folder per import, _Fișe importate pe <data>_, on the employee's _Date_ tab, the way ADR 030's import folder groups a client's files. The original goes with the import: removed 14 days after an import is abandoned or failed, and 30 days after it is confirmed, once its proposal is dropped and its files copied, as the clean-up does today (`apps/api/src/modules/imports/cleanup.ts`).
 
-**The signing agreement.** Imported employees are existing employees, so they sign the act adițional of ADR 023 before they sign electronically; the import never marks it `in_contract`, which is for a new hire whose contract holds the clause. **The portal invitation** stays a member's explicit act from the employee's page or the client's Portal tab.
+**The signing agreement.** Imported employees are existing employees, so they sign the act adițional of ADR 023 before they sign electronically; the import never marks it `in_contract`, which is for a new hire whose contract holds the clause. Its paper version still needs an email or phone to be downloaded, as today (`employee_has_no_address`): the contacts a sheet lacks are collected after the import, the specialist calling or writing to the employer and filling them in (Mircea, 2026-10-31).
+
+### Inviting the imported people to the portal, at once
+
+Confirming invites nobody: the portal invitation stays a member's explicit act. What is new is that the member can invite the imported people in one act instead of one at a time, which ADR 022 left out until a client wanted it (canvas board EmpInvite, "5-7. Invitare în portal a angajaților din fișe", decided by Mircea on 2026-10-31).
+
+- **Where.** A dialog, **Invită în portal**, offered once the import is confirmed, and again from the notice the client's _Angajați_ tab shows after an import while some of the people it brought are neither invited nor in the portal.
+- **Whom.** It lists the import's employees who are current: leavers imported as former employees are not listed. An employee who is already a participant or has an open invitation is shown as such and not sent anything again; their resend stays on their page and the Portal tab.
+- **The address, typed in place.** Each row holds one field with the employee's email, else their phone, from their row, and takes an email or a phone typed over it or into it where the sheet gave none. What is typed decides the channel: an email address goes by email, a phone number by SMS. The typed address is saved to the employee, by the same rules as editing the employee, the phone normalized to E.164; an address that cannot be saved or normalized is shown on its row and that person is not invited. A row left empty is a person left uninvited, with nothing blocking the others.
+- **One action** sends every invitation. Each is the ADR 022 invitation as it is, through `create_participant_invitation` and the same send: one open invitation per address in a client, valid 30 days, the auth account created at send time, the message by the mail Worker or the SMS Worker, and a send that fails leaving the invitation saved for a resend after 10 minutes. The invitations are independent: one refused, an address already a participant's for another person, say, is named on its row and does not stop the rest, and the dialog ends with how many were sent and which were not.
+- **Costs and caps.** An SMS invitation and its first code cost about $0.16 to a Romanian number (ADR 022), so the dialog says how many go by SMS before sending; an import of 50 people without email is about $8. The invitations themselves go out through the Workers, outside Supabase's limits, but the sign-in codes that follow fall under the project's hourly caps on codes, 100 SMS and 60 emails, sized in ADR 022 for a floor of employees signing in on one afternoon; they stay as they are.
+
+The invited employee meets in the portal what ADR 022 and ADR 023 give any employee: the privacy notice first, then the act adițional to sign, then the trainings to come, which they sign there. Their imported paper rows show as transcribed and signed on paper, with nothing for them to sign.
 
 ### Usage
 
@@ -104,7 +116,8 @@ The reading is recorded per photograph or page from the first import, with `reco
 - **ADR 030**: its employee import section and steps 9 and 10 of its order of work are replaced by this ADR; the caps of its defaults stay the client import's; the sheet photographs a client import sorts as `training_sheet` are offered to an employee import.
 - **ADR 024**: a hiring test awaits only after a hiring training record held in the app; after a paper hiring record without a pass, the test state is a fifth value, _Neverificat pe fișă_, in the lists and their filter but never on the dashboard or in the portal, and the employee's page says why; a verifier's signature on a paper hiring block is a paper result; and a paper annual result may be recorded without an earlier pass.
 - **ADR 021**: training rows from paper show their signature line, _Transcris de pe fișa pe hârtie · Semnat pe hârtie_, in the app and the portal, and their badge reads _De pe fișa pe hârtie_; the extraction its "History kept on paper" section left for later is this import.
-- **ADR 023**: nothing changes. Existing employees keep the act adițional; the open question of a paper agreement without an address is below.
+- **ADR 023**: nothing changes. Existing employees keep the act adițional, and its paper version still needs an email or phone (#712).
+- **ADR 022**: the bulk invitation it left out is built for the people of an employee import: the same invitation, sent to many in one act, with each address typed in place saved to the employee.
 - **ADR 013**: an employee's files can come from an import, grouped in a folder per import on the employee's page, as the client's are in "Alte documente".
 
 ## What is left out
@@ -113,6 +126,8 @@ The reading is recorded per photograph or page from the first import, with `reco
 - Choosing the reading model per import kind (#703).
 - A partial confirm.
 - Credits and their allowances (#640).
+- The act adițional on paper for an employee without email or phone (#712): its download keeps requiring one, and the contacts are collected after the import.
+- Inviting at once employees who did not come from an import.
 
 ## Consequences
 
@@ -121,7 +136,8 @@ The reading is recorded per photograph or page from the first import, with `reco
 - A paper result can exist with no paper test behind it but a signature on the sheet; support reads the photograph in the employee's files to see why.
 - The employee lists, the dashboard and the portal stop asking imported employees for hiring tests they took on paper years ago, and start showing the annual fire-safety test due for those whose sheet records none.
 - `packages/import` gains a second schema and prompt, and grouping by code, tested on invented sheets and recorded answers; the reference photographs stay outside this public repository.
-- The pull request that completes the import carries its `## Actualizări` block; the help articles on trainings and tests and on the portal and the act adițional change with it.
+- The pull request that completes the feature, the bulk invitation, carries its `## Actualizări` block; the help articles on trainings and tests and on the portal and the act adițional change along the stack.
+- A client's portal can fill in one afternoon: an import of 50 people without email is about $8 of SMS invitations and first codes, and the hourly caps on sign-in codes are what a whole floor signing in at once meets first.
 
 ## Order of work
 
@@ -134,10 +150,9 @@ Each step is a pull request in one stack, on this ADR.
 5. The API, `apps/api/src/modules/imports`: creating an employee import from a client, the client's found sheet photographs no employee import has taken and adding them to an import, the per-page reading on the queue, the grouping and checks, the review with each person's state and the member's changes, one workplace answer for everyone with the same text, confirm with the signed sheets synced (`apps/api/src/modules/signed-sheets`), the usage per page. On steps 2–4.
 6. The app, `apps/app/src/features/imports` and `employees`: the _Angajați_ tab's entry with its three ways, the found sheets shown only while some are untaken, and the open import; the upload with the found sheets offered, the browser downscale and thumbnails; the processing page, the people hub, the person page with the photo column, the position choice through the job position dialog, the workplace question, confirming (canvas boards FoundSheetsB, FoundSheetsC and FoundSheetsCPhone for the entry and the upload). On step 5.
 7. After the import: the paper rows' line and the badge renamed _De pe fișa pe hârtie_, with the source label and the dialog's hint, in `apps/app/src/features/trainings` and `apps/portal/src/features/training`; the test state _Neverificat pe fișă_, its label in the lists and its option in the test-state filter, and the sentence on the employee's page, in `apps/app/src/features/knowledge-tests`; the portal treating the new state as nothing awaiting; the employee's import folder in `apps/app/src/features/client-files`. On step 2.
-8. The help: the import's article gains the employee import, with its three ways to start; `instruire-si-teste` gains the new test state and says _fișa pe hârtie_, its heading "Instruirile de pe fișa de hârtie" renamed with the help topics regenerated; `portal-si-act-aditional` changes; the `## Actualizări` block.
+8. The help: the import's article gains the employee import, with its three ways to start; `instruire-si-teste` gains the new test state and says _fișa pe hârtie_, its heading "Instruirile de pe fișa de hârtie" renamed with the help topics regenerated; `portal-si-act-aditional` changes.
+9. The bulk invitation: in `apps/api/src/modules/participants`, a route that invites several employees of a client in one request, saving each typed address to the employee as `apps/api/src/modules/employees` does and creating each invitation through `create_participant_invitation` with its send, and answering per person; in `apps/app/src/features/participants`, the dialog with the address field per row and the count by SMS, opened after confirming in `apps/app/src/features/imports` and from the after-import notice on the _Angajați_ tab in `apps/app/src/features/employees` (canvas board EmpInvite); `portal-si-act-aditional` gains the invitation at once, with the help topics regenerated if it gets a heading of its own. This pull request completes the feature and carries the `## Actualizări` block. On steps 6 and 8.
 
 ## Open
 
-1. **The act adițional on paper without an address.** It cannot be downloaded for signing by hand while the employee has no email or phone (`employee_has_no_address`, refused in `apps/api/src/modules/signing/handlers.ts`). Should the paper version be allowed without one?
-2. **Bulk invitation** of the imported people to the portal, typing the missing contacts in the dialog and saving them on the employee (canvas boards 5 to 7): part of this ADR, or one of its own.
-3. **HG 1425/2006 for exactly 250 workers**: art. 18 covers 50 to 249 and art. 19 more than 250, so 250 falls under neither by the letter. It changes nothing to build.
+1. **HG 1425/2006 for exactly 250 workers**: art. 18 covers 50 to 249 and art. 19 more than 250, so 250 falls under neither by the letter. It changes nothing to build.
