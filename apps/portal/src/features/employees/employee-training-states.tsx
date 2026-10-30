@@ -5,7 +5,7 @@ import type { PortalClientEmployeesResponse } from '@/api/generated/api';
 import { TestStateBadge } from '@/features/tests/test-state-badge';
 import { TrainingStateBadge } from '@/features/training/training-state-badge';
 import { useFormatDate } from '@/lib/format';
-import { trainingDomainMessages } from '@/lib/labels';
+import { portalTestState, trainingDomainMessages } from '@/lib/labels';
 
 type ClientEmployee = PortalClientEmployeesResponse['items'][number];
 
@@ -16,7 +16,7 @@ export function EmployeeTrainingStates({ employee }: { employee: ClientEmployee 
     <span className="grid grid-cols-2 gap-3 sm:flex sm:gap-8">
       {trainingDomains.map((domain) => {
         const { state, dueOn } = employee.training[domain];
-        const testState = employee.tests[domain].state;
+        const testState = portalTestState(employee.tests[domain].state);
         const due = dueOn && formatDate(dueOn);
         return (
           <span key={domain} className="grid content-start gap-1 text-sm">

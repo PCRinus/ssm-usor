@@ -926,10 +926,6 @@ msgstr "Not signed"
 msgid "Nestabilită"
 msgstr "Not set"
 
-#: src/lib/labels.ts
-msgid "Neverificat pe fișă"
-msgstr "Not verified on the sheet"
-
 #: src/features/training/training-records-list.tsx
 msgid "Nicio instruire înregistrată încă."
 msgstr "No training recorded yet."

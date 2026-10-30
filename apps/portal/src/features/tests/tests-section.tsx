@@ -9,6 +9,7 @@ import { Notice } from '@/components/notice';
 import { cardClass, SectionLabel } from '@/components/page';
 import { useFormatDate } from '@/lib/format';
 import {
+  portalTestState,
   testAwaitingMessage,
   testGradeMessages,
   testTitleMessage,
@@ -72,6 +73,7 @@ function DomainTests({
   const label = i18n._(trainingDomainMessages[domain]);
   const { status, results, inProgress } = tests;
   const awaiting = status.awaitingTest;
+  const state = portalTestState(status.state);
   const nextAnnual = status.dueOn && formatDate(status.dueOn, 'short');
 
   return (
@@ -81,9 +83,7 @@ function DomainTests({
     >
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-[0.9375rem] font-semibold">{t`Testare ${label}`}</h3>
-        {status.state && (
-          <TestStateBadge state={status.state} testId={`training-test-state-${domain}`} />
-        )}
+        {state && <TestStateBadge state={state} testId={`training-test-state-${domain}`} />}
       </div>
       {status.state === 'none' && (
         <p className="text-sm leading-relaxed text-foreground/80">

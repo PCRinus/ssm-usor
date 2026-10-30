@@ -267,6 +267,18 @@ describe('Instruiri', () => {
     expect(within(result).queryByTestId('training-test-sheet-sign-hint')).toBeNull();
   });
 
+  it('shows no state and nothing to take for a hiring test from paper that could not be verified', async () => {
+    vi.mocked(useGetPortalTests).mockReturnValue(
+      queryResult(portalTests({ ssm: { status: testStatus({ state: 'unverified' }) } }))
+    );
+    mountPortal(signedIn(), '/instruiri');
+
+    const ssm = await screen.findByTestId('training-tests-ssm');
+    expect(within(ssm).queryByTestId('training-test-state-ssm')).toBeNull();
+    expect(within(ssm).queryByTestId('training-test-open-ssm')).toBeNull();
+    expect(ssm.textContent).not.toContain('Testul la angajare apare');
+  });
+
   it('offers to continue a test in progress', async () => {
     vi.mocked(useGetPortalTests).mockReturnValue(
       queryResult(

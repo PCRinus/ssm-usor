@@ -1,19 +1,17 @@
 import { useLingui } from '@lingui/react/macro';
-import type { TestState } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { cn } from '@ssm-usor/ui/lib/utils';
 
-import { testStateMessages } from '@/lib/labels';
+import { type PortalTestState, testStateMessages } from '@/lib/labels';
 
-const stateClasses: Record<TestState, string> = {
+const stateClasses: Record<PortalTestState, string> = {
   none: 'border-border bg-card text-muted-foreground',
   pending: 'border-warning-border bg-warning text-warning-foreground',
-  unverified: 'border-border bg-card text-muted-foreground',
   passed: 'border-success-border bg-success text-success-foreground',
   annual_due: 'border-warning-border bg-warning text-warning-foreground',
 };
 
-export function TestStateBadge({ state, testId }: { state: TestState; testId?: string }) {
+export function TestStateBadge({ state, testId }: { state: PortalTestState; testId?: string }) {
   const { i18n } = useLingui();
   return (
     <Badge
