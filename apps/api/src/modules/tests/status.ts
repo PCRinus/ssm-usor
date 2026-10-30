@@ -4,8 +4,10 @@ import type { Database } from '../../database.types';
 
 type StatusRow = Database['public']['Views']['employee_test_status']['Row'];
 
-export const testStatusColumns =
-  'test_status(ssm_state, ssm_awaiting_test, ssm_last_passed_on, psi_state, psi_awaiting_test, psi_last_passed_on, psi_due_on)';
+export const testStatusFields =
+  'ssm_state, ssm_awaiting_test, ssm_last_passed_on, psi_state, psi_awaiting_test, psi_last_passed_on, psi_due_on';
+
+export const testStatusColumns = `test_status(${testStatusFields})` as const;
 
 export type TestStatusRow = Pick<
   StatusRow,
