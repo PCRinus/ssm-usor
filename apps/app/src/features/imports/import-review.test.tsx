@@ -926,6 +926,98 @@ describe('a post that is only the running of the firm', () => {
   });
 });
 
+function secondPost(changes: unknown = null) {
+  const proposal = proposalFixture();
+  proposal.jobPositions.push({
+    ...proposal.jobPositions[0]!,
+    id: 'position-3',
+    sources: [{ file: 'dosar-ssm.zip/Fise post.doc', quote: 'Vânzător' }],
+    name: 'Vânzător',
+    workZone: 'Magazin',
+    activities: 'Vânzarea produselor de panificație',
+  } as (typeof proposal.jobPositions)[number]);
+  (proposal as { protectiveEquipment: unknown[] }).protectiveEquipment = [
+    ['equipment-entry-1', 'Mănuși termorezistente', 'Brutar', 'position-1'],
+    ['equipment-entry-2', 'Halat de protecție', 'Vânzător', 'position-3'],
+  ].map(([id, item, name, position]) => ({
+    id,
+    sources: [{ file: 'dosar-ssm.zip/Evaluare riscuri.docx', quote: item }],
+    otherCompanyName: null,
+    jobPosition: { name, id: position },
+    risk: 'Murdărire',
+    item,
+    quantity: 1,
+    durationMonths: 12,
+    allocation: 'personal_inventory',
+  }));
+  return readyDetail({ proposal, blockers: [], changes });
+}
+
+describe('a post the import proposed that the member leaves out', () => {
+  it('moves to a box of its own, and comes back when ticked', async () => {
+    mockReview(secondPost());
+    mount('/job-positions');
+
+    const rowOf = async (name: string) =>
+      (await screen.findAllByTestId('review-item')).find((row) => row.textContent?.includes(name))!;
+    expect(
+      within(await rowOf('Brutar')).getByRole('button', { name: 'Nu prelua postul' })
+    ).toBeTruthy();
+    await userEvent.click(
+      within(await rowOf('Vânzător')).getByRole('button', { name: 'Nu prelua postul' })
+    );
+    await waitFor(() => expect(saves).toBe(1));
+    expect(savedChanges(0).changes.items).toEqual({ 'position-3': { included: false } });
+
+    const aside = await screen.findByTestId('review-left-out');
+    expect(aside.textContent).toContain('Lăsate deoparte');
+    expect(aside.textContent).toContain('Vânzarea produselor de panificație');
+    expect(screen.getByTestId('review-other-company').textContent).not.toContain('Vânzător');
+    expect(screen.getAllByTestId('review-item').map((row) => row.textContent)).toEqual([
+      expect.stringContaining('Brutar'),
+    ]);
+    const tick = within(aside).getByRole('checkbox', { name: 'Preia postul Vânzător' });
+    expect(tick.getAttribute('aria-checked')).toBe('false');
+
+    await userEvent.click(tick);
+    await waitFor(() => expect(saves).toBe(2));
+    expect(savedChanges(1).changes.items).toEqual({ 'position-3': { included: true } });
+    expect(screen.queryByTestId('review-left-out')).toBeNull();
+    expect(await rowOf('Vânzător')).toBeTruthy();
+  });
+
+  it('keeps its equipment with it', async () => {
+    mockReview(secondPost({ fields: {}, items: { 'position-3': { included: false } } }));
+    mount('/equipment');
+
+    const held = await screen.findByTestId('review-position-left-out');
+    expect(held.textContent).toContain('Halat de protecție');
+    expect(held.textContent).toContain('Postul Vânzător');
+    expect(screen.getAllByTestId('review-item').map((row) => row.textContent)).toEqual([
+      expect.stringContaining('Mănuși termorezistente'),
+    ]);
+  });
+
+  it('is left out of the summaries and of what is confirmed', async () => {
+    mockReview(secondPost({ fields: {}, items: { 'position-3': { included: false } } }));
+    mount();
+
+    const hub = await screen.findByTestId('import-review-hub');
+    expect(hub.textContent).toContain('un post.');
+    expect(hub.textContent).toContain(
+      'Un articol pentru un post. Un articol rămâne deoparte cu postul lui.'
+    );
+    await userEvent.click(screen.getByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    expect(
+      within(dialog)
+        .getAllByTestId('confirm-line')
+        .map((line) => line.textContent)
+    ).toContainEqual(expect.stringContaining('1post de lucru'));
+    expect(dialog.textContent).toContain('Nu preluăm un element de la alt client.');
+  });
+});
+
 describe('completing an existing client (E2)', () => {
   const existing = () =>
     readyDetail({

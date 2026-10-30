@@ -502,6 +502,37 @@ describe('toClientPayload', () => {
     ]);
   });
 
+  it('leaves a post the member unticked out with its equipment, unless an entry moves to another post', () => {
+    const proposal = proposalOf(reading());
+    const payloadWith = (items: Record<string, object>) =>
+      toClientPayload({
+        proposal,
+        changes: { fields: {}, items: { 'position-2': { included: false }, ...items } },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+      });
+
+    const leftOut = payloadWith({});
+    expect(leftOut.payload.job_positions.map((row) => row.name)).toEqual(['Brutar']);
+    expect(leftOut.payload.equipment).toEqual([
+      expect.objectContaining({ job_position_key: 'position-1', item: 'Mănuși termorezistente' }),
+    ]);
+    expect(leftOut.blockers).toEqual([]);
+    expect(leftOut.payload.quality.jobPositions).toEqual({ changed: 0, unticked: 1, kept: 0 });
+    expect(leftOut.payload.quality.protectiveEquipment).toEqual({
+      changed: 0,
+      unticked: 0,
+      kept: 0,
+    });
+
+    const moved = payloadWith({ 'equipment-entry-2': { values: { jobPosition: 'position-1' } } });
+    expect(moved.payload.equipment.map((row) => row.job_position_key)).toEqual([
+      'position-1',
+      'position-1',
+    ]);
+    expect(moved.blockers).toEqual([]);
+  });
+
   it('carries the fire-safety sheet, the waste, other firms, a category without training and a post needing no equipment', () => {
     const base = reading();
     const sheet = (workplace: string, field: string, value: string) =>
