@@ -759,6 +759,72 @@ describe('a value the app refuses on confirm', () => {
   });
 });
 
+describe('two workplaces marked as the registered office', () => {
+  function twoOffices() {
+    const proposal = proposalFixture();
+    const office = proposal.workplaces[0]!;
+    proposal.workplaces = [
+      { ...office, name: 'Sediu social', addressLine: 'Str. Morilor nr. 14, Sc. B' },
+      {
+        ...office,
+        id: 'workplace-2',
+        name: 'Sediu social',
+        addressLine: 'Strada Morilor nr. 14, Scara B',
+      },
+    ];
+    return readyDetail({
+      proposal,
+      blockers: [{ path: 'workplaces.1.isRegisteredOffice', code: 'invalid' }],
+    });
+  }
+
+  it('asks to keep one before confirming', async () => {
+    mockReview(twoOffices());
+    mount();
+
+    const blockers = await screen.findByTestId('import-blockers');
+    expect(
+      within(blockers)
+        .getAllByTestId('import-blocker-link')
+        .map((link) => link.textContent)
+    ).toEqual(['Două sedii sociale: păstrează unul']);
+  });
+
+  it('says on the second row how to keep one', async () => {
+    mockReview(twoOffices());
+    mount('/workplaces');
+    const [first, second] = await screen.findAllByTestId('review-item');
+    expect(second!.textContent).toContain(
+      'Două sedii sociale: păstrează unul. Lasă unul nebifat, sau modifică-l și debifează «Este sediul social».'
+    );
+    expect(first!.textContent).not.toContain('Două sedii sociale');
+  });
+
+  it('names the rule when the client already has its registered office', async () => {
+    mockReview(readyDetail({ blockers: [] }), {
+      confirm: () =>
+        Response.json(
+          {
+            error: 'unprocessable',
+            message: 'The client refused a value of the import.',
+            reason: 'import_refused',
+            issues: [{ path: 'workplaces', message: 'client_workplaces_registered_office_key' }],
+          },
+          { status: 422 }
+        ),
+    });
+    mount();
+
+    await userEvent.click(await screen.findByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    await userEvent.click(within(dialog).getByTestId('import-confirm-submit'));
+
+    expect((await within(dialog).findByTestId('import-confirm-error')).textContent).toBe(
+      'Nu am putut salva o valoare din secțiunea «Puncte de lucru»: un client are un singur sediu social. Verifică secțiunea și încearcă din nou.'
+    );
+  });
+});
+
 function administratorPost() {
   const proposal = proposalFixture();
   proposal.jobPositions.push({

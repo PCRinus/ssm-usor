@@ -2004,8 +2004,9 @@ missing, a value the checks flagged that would be written unchanged (`invalid`),
 category given both an interval and "not applicable" (`invalid` on the latter), an employee
 without a name, job title or hire date, equipment without a risk, inventory without a duration
 (`missing` on `durationMonths`) or a consumable with one (`invalid` on it), as
-`job_position_equipment` refuses, a person without a job title,
-and a fire-safety unit, an installation or equipment whose workplace or position is unknown
+`job_position_equipment` refuses, a second workplace taken as the registered office (`invalid`
+on its `isRegisteredOffice`), as `client_workplaces` takes one per client, a person without a
+job title, and a fire-safety unit, an installation or equipment whose workplace or position is unknown
 (`unknown_reference`).
 
 `POST /imports/{importId}/confirm` with `{ version }` maps the proposal and the changes onto
@@ -2014,7 +2015,7 @@ left, then calls `apply_client_import` as the member: `409` with `import_changed
 `import_not_ready`, `import_other_company`, `import_client_exists` or `import_outdated` (a
 workplace or position the review named is no longer the client's), and `422` with
 `import_refused` when a table still refuses a value (a check or not-null violation the blockers
-missed): one issue whose `path` is the proposal's list or group for that table (or the table)
+missed, or a registered office beside the one an existing client has): one issue whose `path` is the proposal's list or group for that table (or the table)
 and whose `message` is the constraint's name, never the refused values. A new client's VAT
 registration is ANAF's. A post's decision that it needs no protective equipment goes into the
 payload only while none of its entries is written, and a smoking place only beside designated

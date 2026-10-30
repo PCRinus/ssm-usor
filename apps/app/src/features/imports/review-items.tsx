@@ -53,6 +53,7 @@ import {
   type LabelledSource,
   roleLabel,
   sameValue,
+  secondRegisteredOfficeNote,
   type Source,
   unprovenRoles,
 } from './review-model';
@@ -200,11 +201,13 @@ function ItemRow({
             <RowNote key={`${blocker.path}-${blocker.code}`} tone="danger">
               {state.list === 'protectiveEquipment' && field === 'durationMonths'
                 ? durationBlockerNote(blocker.code, state.values)
-                : blocker.code === 'unknown_reference'
-                  ? `Alege ${itemFieldLabel(field ?? 'workplace')}.`
-                  : blocker.code === 'invalid'
-                    ? `Corectează ${field ? itemFieldLabel(field) : 'datele'}.`
-                    : `Lipsește ${field ? itemFieldLabel(field) : 'o dată obligatorie'}.`}
+                : state.list === 'workplaces' && field === 'isRegisteredOffice'
+                  ? secondRegisteredOfficeNote
+                  : blocker.code === 'unknown_reference'
+                    ? `Alege ${itemFieldLabel(field ?? 'workplace')}.`
+                    : blocker.code === 'invalid'
+                      ? `Corectează ${field ? itemFieldLabel(field) : 'datele'}.`
+                      : `Lipsește ${field ? itemFieldLabel(field) : 'o dată obligatorie'}.`}
             </RowNote>
           );
         })}

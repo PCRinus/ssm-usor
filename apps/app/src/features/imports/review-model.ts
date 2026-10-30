@@ -678,6 +678,10 @@ export type BlockerLink = {
 
 const durationRange = `între 1 și ${maxEquipmentDurationMonths} de luni`;
 
+export const secondRegisteredOffice = 'Două sedii sociale: păstrează unul';
+
+export const secondRegisteredOfficeNote = `${secondRegisteredOffice}. Lasă unul nebifat, sau modifică-l și debifează «Este sediul social».`;
+
 export function durationBlockerNote(code: Blocker['code'], values: Record<string, unknown>) {
   if (code === 'missing') {
     return 'Lipsește durata de utilizare. Scrie-o, sau alege alocarea Consum dacă articolul se consumă.';
@@ -729,6 +733,8 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
   let text: string;
   if (list === 'protectiveEquipment' && field === 'durationMonths') {
     text = durationBlockerLink(blocker.code, values, name);
+  } else if (list === 'workplaces' && field === 'isRegisteredOffice') {
+    text = secondRegisteredOffice;
   } else if (blocker.code === 'unknown_reference') text = `Alege ${fieldText} pentru ${name}`;
   else if (blocker.code === 'invalid') text = `Corectează ${fieldText} pentru ${name}`;
   else if (list === 'employees') {
@@ -938,6 +944,7 @@ const refusedRules: Record<string, string> = {
     'un articol de inventar are durată de utilizare, unul de consum nu are',
   job_position_equipment_duration_range: `durata de utilizare e ${durationRange}`,
   job_position_equipment_quantity_range: 'cantitatea e între 1 și 999',
+  client_workplaces_registered_office_key: 'un client are un singur sediu social',
 };
 
 export function refusedValueMessage(issue: { path: string; message: string } | undefined) {
