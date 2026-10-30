@@ -42,6 +42,7 @@ sources:
   - docs/architecture/adr-021-training-records-and-individual-sheets.md
   - docs/architecture/adr-023-advanced-electronic-signature.md
   - docs/architecture/adr-024-knowledge-tests.md
+  - docs/architecture/adr-032-employees-imported-from-training-sheets.md
   - packages/contracts/src/trainings.ts
   - packages/contracts/src/tests.ts
   - packages/contracts/src/job-positions.ts
@@ -57,6 +58,7 @@ sources:
   - supabase/migrations/20261016210000_training_records.sql
   - supabase/migrations/20261017100000_training_interval_source.sql
   - supabase/migrations/20261020100000_knowledge_tests.sql
+  - supabase/migrations/20261101100100_hiring_test_after_app_training.sql
 ---
 
 Pe pagina unui angajat, **Instruire SSM** și **Instruire PSI** adună tot ce ține de instruirea lui în acel domeniu: starea și termenul, testele, fiecare instruire la care a participat și fișa individuală.
@@ -124,6 +126,8 @@ Pentru un angajat a cărui instruire s-a ținut până acum pe hârtie, înregis
 
 Ca termenele să fie corecte, sunt de ajuns instruirile la angajare și ultima instruire periodică. Fotografia sau scanul fișei de hârtie îl încarci în **Fișiere**, pe tabul **Date**.
 
+Testul la angajare care a încheiat o instruire de pe hârtie s-a dat tot pe hârtie, așa că aplicația nu i-l mai cere angajatului. Dacă pe fișă testul e consemnat ca promovat, înregistrează-l cu **Înregistrează un rezultat de pe hârtie**: vezi „Când îl așteaptă un test”.
+
 Poți înregistra astfel și instruirile unui fost angajat.
 
 ### Modificarea și ștergerea unei instruiri
@@ -140,11 +144,15 @@ Cardul **Testare** arată starea testării, ce urmează, rezultatele și încerc
 
 Un test nu se trimite. Îl așteaptă pe angajat de la sine, din momentul în care e îndeplinită condiția:
 
-- **Testul la angajare SSM** (TASSM), după ce înregistrezi instruirea introductiv-generală, pe care o încheie (HG 1425/2006, art. 89 alin. (1)).
-- **Testul la angajare PSI** (TASU), după ce înregistrezi instruirea la locul de muncă. OMAI 712/2005 cere câte o verificare pe bază de teste: la sfârșitul instructajului introductiv-general (art. 14) și înainte de admiterea definitivă la lucru, după instructajul la locul de muncă (art. 20). Aplicația le acoperă deocamdată cu un singur test, după instruirea la locul de muncă.
+- **Testul la angajare SSM** (TASSM), după ce înregistrezi instruirea introductiv-generală ținută în aplicație, pe care o încheie (HG 1425/2006, art. 89 alin. (1)).
+- **Testul la angajare PSI** (TASU), după ce înregistrezi instruirea la locul de muncă ținută în aplicație. OMAI 712/2005 cere câte o verificare pe bază de teste: la sfârșitul instructajului introductiv-general (art. 14) și înainte de admiterea definitivă la lucru, după instructajul la locul de muncă (art. 20). Aplicația le acoperă deocamdată cu un singur test, după instruirea la locul de muncă.
 - **Testul anual PSI** (TPSU). OMAI 712/2005 cere o verificare anuală pe bază de test, consemnată în fișa individuală (art. 30); aplicația o cere la 12 luni de la ultimul test PSI promovat, până angajatul îl promovează.
 
 În SSM nu există test periodic.
+
+O instruire la angajare preluată de pe fișa de hârtie s-a încheiat cu testul consemnat pe fișă (HG 1425/2006, art. 89 alin. (2)), așa că testul la angajare nu îl mai așteaptă pe angajat. Dacă cea mai recentă instruire la angajare a domeniului e de pe hârtie și nu e înregistrat niciun test promovat, starea testării e **Neverificat pe fișă**: „Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.” Testul nu apare în portal, nu se numără pe **Dashboard** și nu apare niciun avertisment. Dacă fișa arată testul promovat, înregistrează-l ca rezultat de pe hârtie. Dacă după aceea ții în aplicație o nouă instruire la angajare, testul îl așteaptă din nou ca de obicei.
+
+Testul anual PSI nu depinde de unde vine instruirea: e cerut la 12 luni de la ultimul test promovat.
 
 Cât timp testul la angajare nu e promovat, vezi un avertisment pe tab. Aplicația doar semnalează lipsa: nu blochează nimic. Admiterea la lucru rămâne decizia angajatorului.
 
@@ -158,7 +166,7 @@ La **Încercări în portal** vezi fiecare încercare cu scorul ei și dacă a f
 
 Pentru un angajat fără portal, tipărește testul din documentele clientului. După ce l-a completat și l-a promovat, alege **Înregistrează un rezultat de pe hârtie** și completează testul, ziua în care l-a susținut, examinatorul și funcția lui.
 
-Butonul apare cât timp testul la angajare e de susținut și, în PSI, oricând după primul test promovat, pentru testul anual. Ziua nu poate fi în viitor. Un test nepromovat nu se înregistrează: contează susținerea următoare.
+Butonul apare cât timp testul la angajare e de susținut sau neverificat pe fișă și, în PSI, pentru testul anual: oricând după primul test promovat, iar la un angajat neverificat pe fișă și fără el, pentru testele anuale consemnate pe fișa de hârtie. Ziua nu poate fi în viitor. Un test nepromovat nu se înregistrează: contează susținerea următoare.
 
 ### Examinatorul
 

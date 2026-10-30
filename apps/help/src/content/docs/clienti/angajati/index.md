@@ -48,6 +48,7 @@ sources:
   - docs/architecture/adr-021-training-records-and-individual-sheets.md
   - docs/architecture/adr-024-knowledge-tests.md
   - docs/architecture/adr-027-dashboard.md
+  - docs/architecture/adr-032-employees-imported-from-training-sheets.md
   - packages/contracts/src/employees.ts
   - packages/contracts/src/organization-employees.ts
   - packages/contracts/src/trainings.ts
@@ -142,6 +143,10 @@ Fiecare angajat actual are o stare a testării pentru SSM și una pentru PSI, ca
 ### De susținut
 
 Instruirea e înregistrată, iar testul la angajare nu e promovat încă. Testul îl așteaptă pe angajat în portal sau, dacă nu folosește portalul, pe hârtie.
+
+### Neverificat pe fișă
+
+Instruirea la angajare e preluată de pe fișa de hârtie, iar testul care a încheiat-o nu e înregistrat. Pe hârtie, testul s-a dat odată cu instruirea, așa că nu îl mai așteaptă pe angajat: nu apare în portal și nu se numără pe **Dashboard**. Dacă fișa arată testul promovat, îl înregistrezi ca rezultat de pe hârtie. Vezi [Când îl așteaptă un test](/clienti/angajati/instruire-si-teste/).
 
 ### Promovat
 
