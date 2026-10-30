@@ -5,6 +5,7 @@ import {
   type FireSafetyTypeKeyFromTenEmployees,
   fireSafetyTypeKeysFromTenEmployees,
   isDatedDocumentType,
+  occupationalSafetyDocumentTitles,
   requiredWorkersRepresentatives,
 } from '@ssm-usor/contracts';
 
@@ -13,8 +14,8 @@ import { employeeCountLabel } from '@/features/job-positions/job-position-schema
 
 export type ClientDocument = ClientDocumentListResponse['items'][number];
 
-// The API names a document only once it exists; one that does not apply, and one of a set listed
-// whole that is not generated yet, are named here.
+// The API names a document only once it exists; one that does not apply, and one not generated
+// yet, are named here.
 export const notApplicableTitles: Partial<Record<BuiltInDocumentTypeKey, string>> = {
   decision_workers_representative: 'Decizia privind reprezentanții lucrătorilor',
   fire_decision_seasons: 'Decizia privind perioadele caniculare și sezonul rece',
@@ -26,9 +27,11 @@ export const notApplicableTitles: Partial<Record<BuiltInDocumentTypeKey, string>
   fire_annual_report: 'Raportul anual de evaluare a capacității de apărare împotriva incendiilor',
 };
 
-// The template titles, held to the fire-safety manifest by a test.
-export const notGeneratedTitles: Partial<Record<BuiltInDocumentTypeKey, string>> =
-  fireSafetyDocumentTitles;
+// The template titles, held to the manifests by a test.
+export const notGeneratedTitles: Record<BuiltInDocumentTypeKey, string> = {
+  ...occupationalSafetyDocumentTitles,
+  ...fireSafetyDocumentTitles,
+};
 
 // A dated type's row is named for its year (ADR 020): "Raport anual de evaluare 2026".
 const datedLabels: Record<DatedDocumentTypeKey, string> = {

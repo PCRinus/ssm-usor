@@ -6,6 +6,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import fireManifest from '../../../../../packages/document-engine/templates/fire/manifest.json';
+import manifest from '../../../../../packages/document-engine/templates/manifest.json';
 import { type ClientDocument, notApplicableTitles, notGeneratedTitles } from './document-labels';
 import {
   documentSections,
@@ -61,10 +62,10 @@ describe('document sections', () => {
     ]);
   });
 
-  it('name a fire-safety document not generated yet by its template title', () => {
+  it('name a document not generated yet by its template title', () => {
     expect(notGeneratedTitles).toEqual(
       Object.fromEntries(
-        fireManifest.templates
+        [...manifest.templates, ...fireManifest.templates]
           .filter((template) => !('perEmployee' in template))
           .map((template) => [template.typeKey, template.title])
       )
