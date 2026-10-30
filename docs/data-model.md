@@ -811,13 +811,18 @@ per employee with, for each domain, `<domain>_hiring_trained_on`, `<domain>_last
 `<domain>_state` and `<domain>_awaiting_test`, and `psi_due_on`. Nothing of it is stored.
 
 - The hiring training the test closes is the latest `introductory_general` record for `ssm` and
-  the latest `workplace` record for `psi`, whose one test closes both hiring trainings.
+  the latest `workplace` record for `psi`, whose one test closes both hiring trainings. On a day
+  with records from the app and from paper, the one from the app counts.
 - Any result in the domain is a pass, an annual one included; `psi_due_on` is twelve months
   after the last.
-- The state (`test_state`) is `none` with neither a pass nor a hiring record, `pending` with the
-  record and no pass, `annual_due` for `psi` once `psi_due_on` is today or past, else `passed`. A
-  terminated employee has a null state. `<domain>_awaiting_test` is `hiring` while `pending` and
-  `annual` while `annual_due`.
+- The state (`test_state`) is `none` with neither a pass nor a hiring record; with the record and
+  no pass, `pending` when the record's training was held in the app (`trainings.source = 'app'`)
+  and `unverified` when it came from paper, whose test the sheet closed but the app could not
+  verify ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md));
+  `annual_due` for `psi` once `psi_due_on` is today or past, else `passed`. A terminated
+  employee has a null state. `<domain>_awaiting_test` is `hiring` while `pending` and `annual`
+  while `annual_due`; `unverified` awaits nothing, so no test in the portal and no count on the
+  dashboard.
 
 `employee_test_due(...)` computes one domain for one employee and is inlined, as
 `employee_training_due` is; the employee lists embed the view through `test_status(employees)`,
@@ -1266,7 +1271,7 @@ composite key to `imports (id, organization_id)`, deleted with the import:
 | Column                                                             | Notes                                                                                                                                                        |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `upload_path`, `original_file_name`                                | Where the file sat in the upload, its folders and its name, and the name alone, up to 1024 and 255 characters.                                               |
-| `mime_type`, `size_bytes`, `sha256`                                | PDF, `.doc`, `.docx`, JPEG, PNG or HEIC (`image/heic` or `image/heif`); 1 byte to 20 MiB.                                                                    |
+| `mime_type`, `size_bytes`, `sha256`                                | PDF, `.doc`, `.docx`, JPEG, PNG or HEIC (`image/heic` or `image/heif`); 1 byte to 25 MiB, the trigger holding each kind to its own cap.                      |
 | `storage_path`                                                     | Generated as `<organization>/<import>/<id>.<extension>` from the type; unique.                                                                               |
 | `state`                                                            | `import_file_state`: `uploading` until its object is stored, `uploaded`, `prepared`, then `read`, `set_aside`, `for_employees`, `other_company` or `failed`. |
 | `document_kind`, `reason`, `company_name`, `company_cui`           | What the sorting took the file for (a key `packages/import` names), why it was set aside or failed (in Romanian), and the company it names.                  |
@@ -1277,8 +1282,9 @@ composite key to `imports (id, organization_id)`, deleted with the import:
 | `client_file_id`                                                   | The client file it became in the import folder; set null if that file is deleted.                                                                            |
 
 `limit_import_files` locks the import and refuses a file once the import is past `uploading`
-(`IMP01`), or one that would take it beyond 150 files or 100 MiB, or is over 20 MiB itself
-(`IMP05`). It checks the size again when `size_bytes` grows, since the browser declares it and
+(`IMP01`), or one past the caps of the import's kind (`IMP05`): a client import holds 150 files
+and 100 MiB, each at most 20 MiB; an employee import 500 files and 1 GiB, each at most 25 MiB
+([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)). It checks the size again when `size_bytes` grows, since the browser declares it and
 the API writes the stored object's real size over it. `protect_import`
 refuses an import into an archived client (`CLA01`) or a lead (`CLL01`), for the secret key too,
 since the API writes imports with it, and keeps a confirmed or abandoned import at its step
@@ -1310,7 +1316,8 @@ reading, checking, ready, confirmed or failed (`IMP01`), a file that is not one 
 one and not abandoned (`IMP08`).
 
 **The bucket.** `imports` is private, takes PDF, `.doc`, `.docx`, JPEG, PNG, HEIC, plain text
-and JSON, up to 20 MiB. As for client files, the row comes first: members upload only to the
+and JSON, up to 25 MiB, an employee import's largest file; the trigger keeps a client import's
+files to 20 MiB. As for client files, the row comes first: members upload only to the
 `storage_path` of a row of theirs that is still `uploading`, in an import still `uploading`,
 whose client, if any, is active (`is_uploadable_import_path`); they read any path a row of theirs
 names, the original, its text or its converted file (`is_readable_import_path`, which finds the
