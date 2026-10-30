@@ -18948,6 +18948,10 @@
                     null
                   ]
                 },
+                "source": {
+                  "type": "string",
+                  "enum": ["app", "paper"]
+                },
                 "occupation": {
                   "type": "string"
                 },
@@ -19009,6 +19013,7 @@
                 "trainer",
                 "verifier",
                 "supplementaryReason",
+                "source",
                 "occupation",
                 "admission",
                 "slots"

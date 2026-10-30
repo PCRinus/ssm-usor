@@ -203,6 +203,14 @@ export const PortalTrainingRecordsResponseItemsItemSupplementaryReason = {
   new_technology: 'new_technology',
 } as const;
 
+export type PortalTrainingRecordsResponseItemsItemSource =
+  (typeof PortalTrainingRecordsResponseItemsItemSource)[keyof typeof PortalTrainingRecordsResponseItemsItemSource];
+
+export const PortalTrainingRecordsResponseItemsItemSource = {
+  app: 'app',
+  paper: 'paper',
+} as const;
+
 /**
  * @nullable
  */
@@ -256,6 +264,7 @@ export type PortalTrainingRecordsResponseItemsItem = {
   verifier: PortalTrainingRecordsResponseItemsItemVerifier;
   /** @nullable */
   supplementaryReason: PortalTrainingRecordsResponseItemsItemSupplementaryReason;
+  source: PortalTrainingRecordsResponseItemsItemSource;
   occupation: string;
   /** @nullable */
   admission: PortalTrainingRecordsResponseItemsItemAdmission;

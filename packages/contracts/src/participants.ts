@@ -13,6 +13,7 @@ import {
   trainingAdmissionSchema,
   trainingDomainSchema,
   trainingPhaseSchema,
+  trainingSourceSchema,
 } from './trainings';
 
 export const participantKinds = ['employee', 'client_administrator'] as const;
@@ -218,6 +219,8 @@ export const portalTrainingRecordSchema = z.object({
   trainer: portalPersonSchema,
   verifier: portalPersonSchema.nullable(),
   supplementaryReason: supplementaryTrainingReasonSchema.nullable(),
+  // A training from paper has its signatures on the paper sheet and no slots in the app.
+  source: trainingSourceSchema,
   // The position's name when the record was made.
   occupation: z.string(),
   admission: trainingAdmissionSchema.nullable(),

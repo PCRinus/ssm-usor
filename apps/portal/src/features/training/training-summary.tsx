@@ -1,6 +1,8 @@
+import { plural } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { type TrainingDomain, trainingDomains } from '@ssm-usor/contracts';
 import { Link } from '@tanstack/react-router';
+import { Signature } from 'lucide-react';
 
 import type {
   PortalTrainingRecordsResponse,
@@ -68,6 +70,9 @@ function DomainCard({
   const label = i18n._(trainingDomainMessages[domain]);
   const status = records.training[domain];
   const last = records.items.find((record) => record.domain === domain);
+  const fromPaper = records.items.filter(
+    (record) => record.domain === domain && record.source === 'paper'
+  ).length;
   const sheetReady = sheetAccess.sheets?.[domain].ready === true;
 
   return (
@@ -107,6 +112,21 @@ function DomainCard({
               </dd>
             </div>
           </dl>
+          {fromPaper > 0 && (
+            <p
+              data-testid={`training-summary-paper-${domain}`}
+              className="flex items-start gap-2 text-[0.8125rem] leading-snug text-muted-foreground"
+            >
+              <Signature aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+              {t({
+                message: plural(fromPaper, {
+                  one: 'O instruire de pe fișa pe hârtie, semnată acolo.',
+                  few: '# instruiri de pe fișa pe hârtie, semnate acolo.',
+                  other: '# de instruiri de pe fișa pe hârtie, semnate acolo.',
+                }),
+              })}
+            </p>
+          )}
           {sheetReady && <SheetLink domain={domain} label={label} sheetAccess={sheetAccess} />}
         </>
       ) : (

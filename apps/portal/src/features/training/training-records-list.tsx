@@ -1,6 +1,6 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
-import { GraduationCap, PenLine } from 'lucide-react';
+import { GraduationCap, PenLine, Signature } from 'lucide-react';
 
 import type { PortalTrainingRecordsResponse } from '@/api/generated/api';
 import { cardClass, SectionLabel } from '@/components/page';
@@ -111,7 +111,17 @@ function TrainingRecordRow({
         )}
         <TrainingMaterial text={record.material} />
         <p className="text-[0.8125rem] text-muted-foreground">{trainer}</p>
-        <SignedLines slots={record.slots} />
+        {record.source === 'paper' ? (
+          <p
+            data-testid="training-record-paper"
+            className="flex items-start gap-1.5 text-[0.8125rem] text-muted-foreground"
+          >
+            <Signature aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+            <Trans>Transcris de pe fișa pe hârtie. Semnat pe hârtie.</Trans>
+          </p>
+        ) : (
+          <SignedLines slots={record.slots} />
+        )}
         {pending.length > 0 && <PendingLine pending={pending} />}
       </div>
     </li>
