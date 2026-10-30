@@ -1235,8 +1235,12 @@ A client file can come from an import from documents ([ADR 030](architecture/adr
 inside the upload, with `/` between them, null at the top of the folder and for a file uploaded
 on its own. `client_files_import_idx` on `(import_id, import_path)` lists a folder. `import_id`
 holds to the same organization by the composite key to `imports (id, organization_id)`, and the
-import is kept as long as one of its files is (`on delete restrict`). Only confirming an import
-fills these two columns: the column grants leave them out of a member's insert.
+import is kept as long as one of its files is (`on delete restrict`). An employee's file from
+an employee import ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md))
+also names, in `import_file_id`, the import's file it is a copy of, since one photograph can be
+a file of several employees (`client_files_import_file_idx`; set null if that row goes, and only
+with an `import_id`). Only confirming an import fills these columns: the column grants leave
+them out of a member's insert.
 
 ## Imports from documents
 
@@ -1407,7 +1411,55 @@ and the import is confirmed with its client, `confirmed_by` and `quality`.
 The API then copies each `source_path` in `imports` to its `target_path` in `client-files`,
 treating an object already there as copied, and sets `files_copied_at` with the secret key.
 `import_folder_copies(import)` lists the same copies again, under the caller's policies, for a
-copy that was interrupted.
+copy that was interrupted. For an employee import it lists each employee's file, from the
+photograph's converted JPEG or the PDF as it is.
+
+**Confirming an employee import.** `apply_employee_import(import, expected version, payload)`
+([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)) writes everything
+in one transaction and returns `{"client_id", "employees": {"<key>": id}, "training_record_ids",
+"test_result_ids", "files": [{"client_file_id", "source_path", "target_path"}]}`: the records
+and results whose rows the API brings up to date on stored signed sheets, and the objects it
+copies as for a client import. It refuses an import the caller cannot see (`P0002`), another
+kind (`22023`), one not ready (`IMP01`), a stale version (`IMP02`) and an archived client
+(`CLA01`). The payload is what `toEmployeePayload` in `packages/import` builds, every object
+refusing a field it does not name (`22023`):
+
+```text
+{
+  "employees": [{ "key", "id", "replace", "job_position_id", "workplace_id", "last_name",
+    "first_name", "cnp", "employee_number", "birth_date", "birth_place", "home_address",
+    "education", "qualification", "blood_group", "rh_factor", "job_title", "hired_at",
+    "commute_route", "commute_minutes", "status", "terminated_at" }],
+  "trainings": [{ "key", "domain", "phase", "held_on", "duration_minutes", "material",
+    "trainer_name", "trainer_job_title", "verifier_name", "verifier_job_title",
+    "supplementary_reason", "records": [{ "employee_key", "admitted_on", "admitted_by_name",
+    "admitted_by_job_title" }] }],
+  "test_results": [{ "employee_key", "domain", "test", "taken_on", "material",
+    "examiner_name", "examiner_job_title" }],
+  "files": [{ "employee_key", "import_file_id" }],
+  "quality": { "<section>": { "changed": 0, "unticked": 0, "kept": 0 } }
+}
+```
+
+- An employee without `id` is created on the active position of the client it names; one
+  without a position is refused (`22023`), so `default_employee_job_position` never makes a
+  position from a job title. One with `id` is an active employee of the client (`22023`
+  otherwise), filled as an existing client is: empty columns filled, those in `replace` taken.
+  A workplace is an active one of the client (`22023`).
+- The other lists name an employee by the `key` of one of `employees` (`22023` otherwise).
+- A training is held from paper (`source` `paper`), with one record per attendee, at most one
+  each (`22023`), carrying the name of the attendee's position as the occupation, as the app's
+  own save does; the admission goes on a workplace record. Its duration is a whole number of
+  minutes from 1 to 600 and its day is not after today in Romania: both are refused as checks
+  of `trainings`, `trainings_duration_range` and `trainings_held_on_past` (`23514`).
+- A test result is a paper one, grade `admis`, with its examiner; a day after today is refused as
+  `test_results_taken_on_past`, and a second hiring result of a domain for the same employee as
+  `test_results_hiring_once` (`23514`).
+- A file is one of the import's files, past `uploading`: a client file of the employee in the
+  import's folder, at its top, uploaded by the member who created the import; a photograph as its
+  converted JPEG, a PDF as it is. A file listed for several employees is a file of each, and
+  listed twice for the same employee, one. Its import file's `client_file_id` stays null.
+- The import is confirmed with `confirmed_by` and `quality`.
 
 **Retention.** Functions for the secret key, which a daily job of the API calls. Removing
 objects is in two calls, so that a failed removal leaves the rows to list them again the next
