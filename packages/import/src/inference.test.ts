@@ -246,4 +246,13 @@ describe('describesOfficeWork', () => {
     expect(describesOfficeWork('Birourile clienților')).toBe(false);
     expect(describesOfficeWork(null, null)).toBe(false);
   });
+
+  it('is not office work when a field place is named in any form', () => {
+    expect(describesOfficeWork('Birou, depozitul central')).toBe(false);
+    expect(describesOfficeWork('Birou și ateliere')).toBe(false);
+    expect(describesOfficeWork('Birou', 'Șantierul firmei')).toBe(false);
+    expect(describesOfficeWork('Birou', 'Deplasări la clienți')).toBe(false);
+    expect(describesOfficeWork('Recepție', 'Curățenie în camere')).toBe(false);
+    expect(describesOfficeWork('Birou', 'Activități de birou')).toBe(true);
+  });
 });

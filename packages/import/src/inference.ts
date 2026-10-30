@@ -87,23 +87,31 @@ export const officeWords = [
   'economist',
 ] as const;
 
-// A desk post that also works on the floor, the road or a site may need equipment there.
-const fieldWords = [
+// A desk post that also works on the floor, the road or a site may need equipment there. Matched
+// by stem, so "depozitul", "ateliere", "șantiere" and "deplasări" count; office words stay whole.
+const fieldStems = [
   'teren',
   'santier',
   'depozit',
   'atelier',
   'productie',
   'hala',
+  'hale',
   'sofer',
-  'deplasare',
-  'deplasari',
+  'deplas',
+  'curaten',
+  'livrar',
+  'magazi',
+  'montaj',
+  'manipul',
+  'intretiner',
 ] as const;
 
 const anyWord = (words: readonly string[]) => new RegExp(`(?:^| )(?:${words.join('|')})(?: |$)`);
+const anyStem = (stems: readonly string[]) => new RegExp(`(?:^| )(?:${stems.join('|')})`);
 
 const officePattern = anyWord(officeWords);
-const fieldPattern = anyWord(fieldWords);
+const fieldPattern = anyStem(fieldStems);
 
 export function describesOfficeWork(...texts: (string | null)[]) {
   const folded = foldText(texts.filter((text) => text !== null).join(' '));
