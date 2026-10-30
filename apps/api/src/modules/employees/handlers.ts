@@ -245,7 +245,6 @@ const sortColumns: Record<EmployeeSortKey, string[]> = {
 // The computed fields hold the name lowercase and without diacritics, as `searchTerms` leaves
 // the terms.
 const employeeSearchFields = ['employee_search_name', 'employee_number'];
-const organizationEmployeeSearchFields = [...employeeSearchFields, 'employee_client_search_name'];
 
 function matchingEveryTerm<Query extends { or: (filters: string) => Query }>(
   query: Query,
@@ -256,6 +255,33 @@ function matchingEveryTerm<Query extends { or: (filters: string) => Query }>(
     (matching, term) => matching.or(fields.map((field) => `${field}.ilike.*${term}*`).join(',')),
     query
   );
+}
+
+// An OR can test an embed only for whether it found a row, so each term gets its own embed of
+// the client, filtered on the name. Empty, it adds nothing to the rows.
+const clientNameMatch = (index: number) => `client_name_match_${index}`;
+
+function withClientNameMatches<Columns extends string>(columns: Columns, q: string | undefined) {
+  return [
+    columns,
+    ...searchTerms(q).map(
+      (_, index) => `${clientNameMatch(index)}:clients!employees_client_id_fkey()`
+    ),
+  ].join(', ') as Columns;
+}
+
+function matchingEveryTermOrClientName<
+  Query extends {
+    or: (filters: string) => Query;
+    ilike: (column: string, pattern: string) => Query;
+  },
+>(query: Query, q: string | undefined) {
+  return searchTerms(q).reduce((matching, term, index) => {
+    const fields = employeeSearchFields.map((field) => `${field}.ilike.*${term}*`);
+    return matching
+      .ilike(`${clientNameMatch(index)}.client_search_name`, `*${term}*`)
+      .or([...fields, `${clientNameMatch(index)}.not.is.null`].join(','));
+  }, query);
 }
 
 export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = async (c) => {
@@ -530,16 +556,16 @@ async function listOrganizationEmployeePage(
   const filtered = () => {
     let query = db
       .from('employees')
-      .select(`${employeeColumnsWithoutStatus}, ${clientColumns}`, { count: 'exact' })
+      .select(withClientNameMatches(`${employeeColumnsWithoutStatus}, ${clientColumns}`, q), {
+        count: 'exact',
+      })
       .is('archived_at', null)
       // Only an owner reads leads, and the list should not change with the role.
       .eq('client.stage', 'client')
       .is('client.archived_at', null);
     if (clientId) query = query.eq('client_id', clientId);
     query = status ? query.eq('status', status) : query.neq('status', 'terminated');
-    return matchingEveryTerm(query, q, organizationEmployeeSearchFields).returns<
-      OrganizationEmployeePageRow[]
-    >();
+    return matchingEveryTermOrClientName(query, q).returns<OrganizationEmployeePageRow[]>();
   };
   let query = filtered();
   for (const column of organizationSortColumns[sort])
@@ -570,7 +596,9 @@ export const listOrganizationEmployees: RouteHandler<
   const filtered = () => {
     const base = db
       .from('employees')
-      .select(listColumnsFor(organizationEmployeeListColumns, states), { count: 'exact' });
+      .select(withClientNameMatches(listColumnsFor(organizationEmployeeListColumns, states), q), {
+        count: 'exact',
+      });
     let query = inStates(base, states)
       .is('archived_at', null)
       // Only an owner reads leads, and the list should not change with the role.
@@ -578,9 +606,7 @@ export const listOrganizationEmployees: RouteHandler<
       .is('client.archived_at', null);
     if (clientId) query = query.eq('client_id', clientId);
     query = status ? query.eq('status', status) : query.neq('status', 'terminated');
-    return matchingEveryTerm(query, q, organizationEmployeeSearchFields).returns<
-      OrganizationEmployeeListRow[]
-    >();
+    return matchingEveryTermOrClientName(query, q).returns<OrganizationEmployeeListRow[]>();
   };
   let query = filtered();
   for (const column of organizationSortColumns[sort])

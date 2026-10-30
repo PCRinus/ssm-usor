@@ -986,6 +986,7 @@ export type Database = {
           vat_payer: boolean;
           worker_training_interval_months: number | null;
           worker_training_not_applicable: boolean;
+          client_search_name: string | null;
           current_employee_count: number | null;
         };
         Insert: {
@@ -6557,6 +6558,12 @@ export type Database = {
           p_except_id: string;
         };
         Returns: undefined;
+      };
+      client_search_name: {
+        Args: { '': Database['public']['Tables']['clients']['Row'] };
+        Returns: {
+          error: true;
+        } & 'the function public.client_search_name with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
       copy_risk_factors: {
         Args: { p_evaluation_id: string; p_from_evaluation_id: string };

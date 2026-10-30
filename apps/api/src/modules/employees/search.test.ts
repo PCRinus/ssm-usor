@@ -416,13 +416,58 @@ describe('GET /employees', () => {
     expect(upstreamCalls('employee_test_status')).toHaveLength(0);
   });
 
-  it('searches the name, the employee number and the client name', async () => {
+  it('asks every word for the name, the employee number or the client name', async () => {
     mockUpstream();
     await request(`/employees?q=${encodeURIComponent('Ștefan șantier')}`);
-    expect(employeesQuery().getAll('or')).toEqual([
-      '(employee_search_name.ilike.*stefan*,employee_number.ilike.*stefan*,employee_client_search_name.ilike.*stefan*)',
-      '(employee_search_name.ilike.*santier*,employee_number.ilike.*santier*,employee_client_search_name.ilike.*santier*)',
+    const query = employeesQuery();
+    expect(query.getAll('or')).toEqual([
+      '(employee_search_name.ilike.*stefan*,employee_number.ilike.*stefan*,client_name_match_0.not.is.null)',
+      '(employee_search_name.ilike.*santier*,employee_number.ilike.*santier*,client_name_match_1.not.is.null)',
     ]);
+    expect(query.get('client_name_match_0.client_search_name')).toBe('ilike.*stefan*');
+    expect(query.get('client_name_match_1.client_search_name')).toBe('ilike.*santier*');
+    expect(query.get('select')).toContain(
+      'client_name_match_0:clients!employees_client_id_fkey(),client_name_match_1:clients!employees_client_id_fkey()'
+    );
+  });
+
+  it('matches the client name the same way under a status filter', async () => {
+    mockUpstream();
+    await request(`/employees?trainingState=due&q=pop`);
+    const query = employeesQuery();
+    expect(query.get('select')).toContain('training_status!inner(');
+    expect(query.get('select')).toContain('client_name_match_0:clients!employees_client_id_fkey()');
+    expect(query.get('client_name_match_0.client_search_name')).toBe('ilike.*pop*');
+    expect(query.getAll('or')).toEqual([
+      '(employee_search_name.ilike.*pop*,employee_number.ilike.*pop*,client_name_match_0.not.is.null)',
+    ]);
+  });
+
+  it('embeds no client name match without a search', async () => {
+    mockUpstream();
+    await request('/employees?q=%20');
+    expect(employeesQuery().get('select')).not.toContain('client_name_match');
+  });
+
+  it('matches the client name in the recount of a page past the end', async () => {
+    let call = 0;
+    mockUpstream({
+      employees: () => {
+        call += 1;
+        return call === 1
+          ? Response.json(
+              { code: 'PGRST103', message: 'Requested range not satisfiable', details: null },
+              { status: 416 }
+            )
+          : Response.json([], { headers: { 'Content-Range': '*/0' } });
+      },
+    });
+    await request('/employees?page=9&q=naval');
+    const recount = employeesQuery(1);
+    expect(recount.get('select')).toContain(
+      'client_name_match_0:clients!employees_client_id_fkey()'
+    );
+    expect(recount.get('client_name_match_0.client_search_name')).toBe('ilike.*naval*');
   });
 
   it.each([
