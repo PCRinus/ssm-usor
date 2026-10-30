@@ -27,7 +27,9 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
@@ -46,9 +48,18 @@ import {
   ChevronDown,
   ChevronRight,
   Download,
+  Eye,
+  FileDown,
+  FilePenLine,
   FileText,
   MoreHorizontal,
+  Printer,
+  RefreshCw,
   Sparkles,
+  SquarePen,
+  Stamp,
+  Trash2,
+  Upload,
 } from 'lucide-react';
 import { Fragment, useRef, useState } from 'react';
 
@@ -105,6 +116,7 @@ type Confirming = {
 } | null;
 type Refusal = { document: ClientDocument; missing: MissingDocumentData[] };
 
+const menuLabel = 'text-xs text-muted-foreground';
 const archivedHint = 'Clientul este arhivat, așa că nu i se mai generează documente.';
 
 const confirmations = {
@@ -565,50 +577,80 @@ export function DocumentsCard<Set extends DocumentSet>({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild data-testid="document-open">
                   <Link {...documentLink(set, clientId, document.id)}>
-                    {document.draft && !readOnly ? 'Deschide și modifică' : 'Deschide'}
+                    {document.draft && !readOnly ? (
+                      <>
+                        <SquarePen aria-hidden="true" />
+                        Deschide și modifică
+                      </>
+                    ) : (
+                      <>
+                        <Eye aria-hidden="true" />
+                        Deschide
+                      </>
+                    )}
                   </Link>
                 </DropdownMenuItem>
                 {document.draft && (
-                  <DropdownMenuItem
-                    data-testid="document-download-draft"
-                    onSelect={() => void download(document, document.draft!)}
-                  >
-                    Descarcă ciorna
-                  </DropdownMenuItem>
+                  <DropdownMenuGroup aria-labelledby={`${document.id}-draft-label`}>
+                    <DropdownMenuLabel id={`${document.id}-draft-label`} className={menuLabel}>
+                      Ciorna · rev. {document.draft.revision}
+                    </DropdownMenuLabel>
+                    {!readOnly && (
+                      <DropdownMenuItem
+                        data-testid="document-issue"
+                        onSelect={() => setConfirming({ action: 'issue', document })}
+                      >
+                        <Stamp aria-hidden="true" />
+                        Emite
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      data-testid="document-download-draft"
+                      onSelect={() => void download(document, document.draft!)}
+                    >
+                      <Download aria-hidden="true" />
+                      Descarcă Word
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      data-testid="document-print-draft"
+                      disabled={printing}
+                      onSelect={() => void printRevision(document, document.draft!)}
+                    >
+                      <Printer aria-hidden="true" />
+                      Tipărește
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
                 )}
                 {document.issued && (
-                  <DropdownMenuItem
-                    data-testid="document-download-issued"
-                    onSelect={() => void download(document, document.issued!)}
-                  >
-                    Descarcă documentul emis
-                  </DropdownMenuItem>
-                )}
-                {document.issued?.hasPdf && (
-                  <DropdownMenuItem
-                    data-testid="document-download-pdf"
-                    onSelect={() => void download(document, document.issued!, 'pdf')}
-                  >
-                    Descarcă PDF-ul documentului emis
-                  </DropdownMenuItem>
-                )}
-                {document.draft && (
-                  <DropdownMenuItem
-                    data-testid="document-print-draft"
-                    disabled={printing}
-                    onSelect={() => void printRevision(document, document.draft!)}
-                  >
-                    Tipărește ciorna
-                  </DropdownMenuItem>
-                )}
-                {document.issued && (
-                  <DropdownMenuItem
-                    data-testid="document-print-issued"
-                    disabled={printing}
-                    onSelect={() => void printRevision(document, document.issued!)}
-                  >
-                    Tipărește documentul emis
-                  </DropdownMenuItem>
+                  <DropdownMenuGroup aria-labelledby={`${document.id}-issued-label`}>
+                    <DropdownMenuLabel id={`${document.id}-issued-label`} className={menuLabel}>
+                      Documentul emis · rev. {document.issued.revision}
+                    </DropdownMenuLabel>
+                    <DropdownMenuItem
+                      data-testid="document-download-issued"
+                      onSelect={() => void download(document, document.issued!)}
+                    >
+                      <Download aria-hidden="true" />
+                      Descarcă Word
+                    </DropdownMenuItem>
+                    {document.issued.hasPdf && (
+                      <DropdownMenuItem
+                        data-testid="document-download-pdf"
+                        onSelect={() => void download(document, document.issued!, 'pdf')}
+                      >
+                        <FileDown aria-hidden="true" />
+                        Descarcă PDF
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      data-testid="document-print-issued"
+                      disabled={printing}
+                      onSelect={() => void printRevision(document, document.issued!)}
+                    >
+                      <Printer aria-hidden="true" />
+                      Tipărește
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
                 )}
                 {!readOnly && (
                   <>
@@ -619,6 +661,7 @@ export function DocumentsCard<Set extends DocumentSet>({
                         disabled={busy}
                         onSelect={() => void startDraftFromIssued(document)}
                       >
+                        <FilePenLine aria-hidden="true" />
                         Modifică documentul emis
                       </DropdownMenuItem>
                     )}
@@ -626,6 +669,7 @@ export function DocumentsCard<Set extends DocumentSet>({
                       data-testid="document-regenerate"
                       onSelect={() => setConfirming({ action: 'regenerate', document })}
                     >
+                      <RefreshCw aria-hidden="true" />
                       Generează din nou
                     </DropdownMenuItem>
                     <DropdownMenuItem
@@ -636,22 +680,18 @@ export function DocumentsCard<Set extends DocumentSet>({
                           : chooseFile(document.typeKey, title, document.period)
                       }
                     >
-                      Încarcă un fișier
+                      <Upload aria-hidden="true" />
+                      Încarcă un fișier Word
                     </DropdownMenuItem>
                     {document.draft && (
                       <>
-                        <DropdownMenuItem
-                          data-testid="document-issue"
-                          onSelect={() => setConfirming({ action: 'issue', document })}
-                        >
-                          Emite
-                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           data-testid="document-delete-draft"
                           variant="destructive"
                           onSelect={() => setConfirming({ action: 'delete', document })}
                         >
+                          <Trash2 aria-hidden="true" />
                           Șterge ciorna
                         </DropdownMenuItem>
                       </>

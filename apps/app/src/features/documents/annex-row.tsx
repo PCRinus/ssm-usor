@@ -9,7 +9,7 @@ import {
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
 import { Link } from '@tanstack/react-router';
-import { MoreHorizontal } from 'lucide-react';
+import { Download, Eye, MoreHorizontal } from 'lucide-react';
 
 import { formatRoDate } from '@/lib/dates';
 
@@ -79,11 +79,13 @@ export function AnnexRow({
                 search={{ version: annex.version.id }}
                 state={{ openedFromList: true }}
               >
+                <Eye aria-hidden="true" />
                 Deschide
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem data-testid="document-annex-download" onSelect={onDownload}>
-              Descarcă
+              <Download aria-hidden="true" />
+              Descarcă Word
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
