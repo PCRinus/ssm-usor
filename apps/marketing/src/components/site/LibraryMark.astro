@@ -1,0 +1,125 @@
+---
+import type { LibraryIcon } from './copy';
+
+interface Props {
+  icon: LibraryIcon;
+  class?: string;
+}
+
+const { icon, class: className } = Astro.props;
+
+const risk = [
+  ['#b6d86f', '#18342e', '#18342e'],
+  ['#eaf2d6', '#b6d86f', '#18342e'],
+  ['#eaf2d6', '#eaf2d6', '#b6d86f'],
+];
+---
+
+<svg class={className} viewBox="0 0 68 68" aria-hidden="true">
+  <circle cx="34" cy="34" r="33" fill="#eaf2d6" />
+  {icon === 'instructions' && (
+    <>
+      <rect
+        x="18"
+        y="13"
+        width="32"
+        height="42"
+        rx="4"
+        fill="#ffffff"
+        stroke="#18342e"
+        stroke-width="1.6"
+      />
+      <path
+        d="M24 21h20M24 27h20M24 33h20M24 39h11"
+        stroke="#9fb39c"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
+      <circle cx="49" cy="50" r="9" fill="#18342e" stroke="#eaf2d6" stroke-width="2" />
+      <path d="M44.6 54.4l1.1-3.9 5.9-5.9 2.8 2.8-5.9 5.9z" fill="#b6d86f" />
+    </>
+  )}
+  {icon === 'risk' && (
+    <>
+      <rect
+        x="17"
+        y="13"
+        width="34"
+        height="42"
+        rx="4"
+        fill="#ffffff"
+        stroke="#18342e"
+        stroke-width="1.6"
+      />
+      <path d="M23 20h16" stroke="#9fb39c" stroke-width="2" stroke-linecap="round" />
+      {risk.map((row, r) =>
+        row.map((fill, c) => (
+          <rect x={23 + c * 8} y={26 + r * 8} width="6.5" height="6.5" rx="1.2" fill={fill} />
+        ))
+      )}
+      <circle cx="49" cy="50" r="8" fill="#b6d86f" stroke="#ffffff" stroke-width="2" />
+      <path
+        d="M45.5 50l2.4 2.4 4.4-4.6"
+        fill="none"
+        stroke="#18342e"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </>
+  )}
+  {icon === 'tests' && (
+    <>
+      <rect
+        x="18"
+        y="13"
+        width="32"
+        height="42"
+        rx="4"
+        fill="#ffffff"
+        stroke="#18342e"
+        stroke-width="1.6"
+      />
+      {[20, 29].map((y) => (
+        <>
+          <rect
+            x="23"
+            y={y}
+            width="5"
+            height="5"
+            rx="1.2"
+            fill="#b6d86f"
+            stroke="#18342e"
+            stroke-width="1.2"
+          />
+          <path
+            d={`M24.1 ${y + 2.5}l1.4 1.4 2.5-2.75`}
+            fill="none"
+            stroke="#18342e"
+            stroke-width="1.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </>
+      ))}
+      <rect
+        x="23"
+        y="38"
+        width="5"
+        height="5"
+        rx="1.2"
+        fill="#ffffff"
+        stroke="#18342e"
+        stroke-width="1.2"
+      />
+      <path
+        d="M31.5 22.5h11M31.5 31.5h11M31.5 40.5h11"
+        stroke="#9fb39c"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
+      <circle cx="49" cy="50" r="9" fill="#18342e" stroke="#eaf2d6" stroke-width="2" />
+      <path d="M49 46v8M45 50h8" stroke="#b6d86f" stroke-width="2" stroke-linecap="round" />
+    </>
+  )}
+</svg>

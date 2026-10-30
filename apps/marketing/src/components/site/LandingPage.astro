@@ -17,6 +17,7 @@ import {
 } from './copy';
 import FaqAnswer from './FaqAnswer.astro';
 import IPhone from './IPhone.astro';
+import LibraryMark from './LibraryMark.astro';
 import PaymentFacts from './PaymentFacts.astro';
 import PlanCards from './PlanCards.astro';
 import { pricingLinks, pricingSection } from './pricing';
@@ -153,32 +154,7 @@ const sideShotWidths = [664, 1000, 1328, 1440];
         <ul class="libitems">
           {library.items.map((item) => (
             <li>
-              <span class="ico">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#18342e"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  {item.icon === 'instructions' && (
-                    <path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2zM20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2z" />
-                  )}
-                  {item.icon === 'risk' && (
-                    <path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z" />
-                  )}
-                  {item.icon === 'tests' && (
-                    <>
-                      <rect x="5" y="4" width="14" height="17" rx="2" />
-                      <path d="M9 4V3h6v1M9 12l2 2 4-4" />
-                    </>
-                  )}
-                </svg>
-              </span>
+              <LibraryMark class="libmark" icon={item.icon} />
               <div>
                 <b>{item.title}</b>
                 <span>{item.text}</span>
@@ -443,23 +419,20 @@ const sideShotWidths = [664, 1000, 1328, 1440];
   }
   .libitems li {
     display: grid;
-    grid-template-columns: 44px 1fr;
-    gap: 14px;
-    align-items: start;
+    grid-template-columns: 60px 1fr;
+    gap: 18px;
+    align-items: center;
   }
-  .ico {
-    display: inline-grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    background: var(--lime-soft);
+  .libmark {
+    display: block;
+    width: 60px;
+    height: 60px;
   }
   .libitems b {
     display: block;
     font-size: 17px;
   }
-  .libitems span:not(.ico) {
+  .libitems span {
     color: var(--ink-2);
     font-size: 16px;
   }
@@ -631,6 +604,14 @@ const sideShotWidths = [664, 1000, 1328, 1440];
     }
   }
   @media (max-width: 760px) {
+    .libitems li {
+      grid-template-columns: 52px 1fr;
+      gap: 14px;
+    }
+    .libmark {
+      width: 52px;
+      height: 52px;
+    }
     .hero {
       gap: 36px;
       padding: 40px 0;
