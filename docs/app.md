@@ -1231,14 +1231,15 @@ their tab bars read.
   marked, and under it the explanation as it follows a wrong answer, or that there is none.
 - The employee's "Instruire SSM" and "Instruire PSI" tabs carry a "Testare" card under the
   training state, from `GET …/employees/{employeeId}/tests`: the domain's test state as a badge
-  ("Fără test", "De susținut", "Promovat", "Anual scadent"; a dash for a leaver), what comes next
-  ("Testul la angajare îl așteaptă în portal", "Testul anual este scadent din …", "Testul anual
-  urmează la …", or after which training the hiring test appears), a warning line while the
+  ("Fără test", "De susținut", "Neverificat pe fișă" in grey, "Promovat", "Anual scadent"; a dash
+  for a leaver), what comes next ("Testul la angajare îl așteaptă în portal", "Testul la angajare
+  nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.", "Testul anual este
+  scadent din …", "Testul anual urmează la …", or after which training the hiring test appears), a warning line while the
   hiring test is not passed, which blocks nothing, the results newest first (day, grade, source
   "Din portal" or "De pe hârtie", material, examiner) and the attempts in the portal (day,
   "7/10", "Promovat" or "Nepromovat", "În curs"). "Înregistrează un rezultat de pe hârtie" shows
-  while the API would take one (the hiring test awaiting, or for fire safety the annual test once
-  a pass exists) and posts `POST …/tests/results` with the day, today by default, and the
+  for the hiring test while it awaits or is unverified, and for the fire-safety annual test once
+  a pass exists or while the hiring test is unverified (the API takes any paper annual result) and posts `POST …/tests/results` with the day, today by default, and the
   examiner, proposed from `GET …/trainings/proposal` for the introductory general training: the
   caller as specialist for SSM, the organization's fire-safety technician for PSI. A result's
   "Modifică examinatorul" (or "Numește examinatorul" for a portal pass without one) sends
