@@ -8,9 +8,7 @@ test('a member corrects what was entered about a client, one card at a time', as
   const owner = await createAccount('client-edit', 'Clara Client');
   const organizationId = await createOrganization('Clienți E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. CLIENT GRESIT E2E S.R.L.');
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}`);
+  await signIn(page, owner.email, `/clients/${clientId}`);
   await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/details$`));
 
   await page.getByTestId('company-edit').click();
@@ -41,9 +39,7 @@ test('an owner archives a client, finds it among the archived, and restores it',
   const owner = await createAccount('client-archive', 'Olga Owner');
   const organizationId = await createOrganization('Arhivă E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. CLIENT ARHIVAT E2E S.R.L.');
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto('/clients');
+  await signIn(page, owner.email, '/clients');
   await expect(page.getByTestId('clients-documentation')).toHaveText('Negenerată');
   await expect(page.getByTestId('clients-fire-safety-documentation')).toHaveText('Negenerată');
   // The archive action waits for /me to say this is an owner, and the row menu is rebuilt then,

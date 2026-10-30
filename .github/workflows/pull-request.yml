@@ -128,6 +128,9 @@ jobs:
       needs.changes.outputs.database == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      LOCAL_SUPABASE_URL: http://127.0.0.1:54321
+      LOCAL_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
     steps:
       - uses: actions/checkout@v7
 
@@ -181,6 +184,19 @@ jobs:
       - name: Build the contracts, the document engine and the import package
         run: pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine --filter @ssm-usor/import build
 
+      # The builds the flows serve bake in the local stack's address and publishable key. Both
+      # are the pinned CLI's defaults, so the builds need not wait for the stack, which the step
+      # after it is up checks. The other values are the ports of the playwright.flows.config.ts
+      # files.
+      - name: Build the SPA and the portal while the local stack starts
+        env:
+          VITE_SUPABASE_URL: ${{ env.LOCAL_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.LOCAL_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_API_URL: http://localhost:8797
+        run: |
+          VITE_HELP_URL=http://localhost:4331 pnpm --filter @ssm-usor/app exec vite build --outDir dist-e2e --logLevel warn
+          pnpm --filter @ssm-usor/portal exec vite build --outDir dist-e2e --logLevel warn
+
       - name: Wait for the local Supabase stack
         shell: bash
         run: |
@@ -190,6 +206,18 @@ jobs:
             echo "The local Supabase stack did not start:"
             cat "$RUNNER_TEMP/supabase-start.log" || true
             exit 1
+          fi
+
+      # Without E2E_PREBUILT the flows build again with what the stack reports.
+      - name: Use the early builds if the local stack matches them
+        shell: bash
+        run: |
+          status=$(supabase status --output json | sed -n '/^{/,$p')
+          if [[ "$(jq -r .API_URL <<< "$status")" == "$LOCAL_SUPABASE_URL" &&
+                "$(jq -r .PUBLISHABLE_KEY <<< "$status")" == "$LOCAL_SUPABASE_PUBLISHABLE_KEY" ]]; then
+            echo "E2E_PREBUILT=1" >> "$GITHUB_ENV"
+          else
+            echo "::warning::The local stack's address or publishable key is not the default; the flows build the SPA and the portal again."
           fi
 
       # Generating documents reads the templates from Storage.

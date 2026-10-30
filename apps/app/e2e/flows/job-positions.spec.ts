@@ -31,9 +31,7 @@ test('a client has the posts its employees fill, and a specialist keeps the list
     lastName: 'Sudoru',
     jobTitle: ' sudor ',
   });
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/employees`);
+  await signIn(page, owner.email, `/clients/${clientId}/employees`);
   await page.getByRole('link', { name: 'Posturi de lucru' }).click();
 
   const rows = page.getByTestId('job-position-row');
@@ -143,9 +141,7 @@ test('a new hire goes into a post from the employee form, and can be moved to an
     county_code: 'CJ',
     locality: 'Cluj-Napoca',
   });
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/employees/new`);
+  await signIn(page, owner.email, `/clients/${clientId}/employees/new`);
 
   await page.getByTestId('employee-last-name').fill('Electricu');
   await page.getByTestId('employee-first-name').fill('Dan');

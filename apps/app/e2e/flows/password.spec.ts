@@ -7,7 +7,7 @@ import {
   emailedLink,
   password,
   recoveryTokenHash,
-  signIn,
+  signInThroughForm,
   signOut,
 } from './support';
 
@@ -43,9 +43,9 @@ test('a recovery link sets a new password, which then replaces the old one', asy
   await page.getByTestId('reset-submit').click();
   await expect(page.getByTestId('reset-password-invalid')).toBeVisible();
 
-  await signIn(page, account.email);
+  await signInThroughForm(page, account.email);
   await expect(page.getByTestId('login-auth-error')).toBeVisible();
-  await signIn(page, account.email, newPassword);
+  await signInThroughForm(page, account.email, newPassword);
   await expect(page).toHaveURL(/\/dashboard$/);
 
   // The owner of the account is told, in case it was not them, with the way to a reset.
@@ -56,7 +56,7 @@ test('the profile page changes the password after checking the current one', asy
   const account = await createAccount('careful', 'Corina Atentă');
   await createOrganization('Parole careful E2E', account.id);
 
-  await signIn(page, account.email);
+  await signInThroughForm(page, account.email);
   await page.getByTestId('account-menu').click();
   await page.getByTestId('account-profile').click();
 
@@ -70,7 +70,7 @@ test('the profile page changes the password after checking the current one', asy
   await expect(page.getByText('Parola a fost schimbată.')).toBeVisible();
 
   await signOut(page);
-  await signIn(page, account.email, newPassword);
+  await signInThroughForm(page, account.email, newPassword);
   await expect(page).toHaveURL(/\/dashboard$/);
 });
 

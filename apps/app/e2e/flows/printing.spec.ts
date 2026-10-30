@@ -50,9 +50,7 @@ test('a document is printed as a PDF, from the list and from the editor', async 
   const organizationId = await createOrganization('Tipărire E2E', owner.id);
   const clientId = await createClientCompany(organizationId, 'S.C. CLIENT TIPĂRIRE E2E S.R.L.');
   await completeDocumentData(organizationId, owner.id, clientId);
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/documents`);
+  await signIn(page, owner.email, `/clients/${clientId}/documents`);
   await page.getByTestId('documents-generate').click();
   await page.getByTestId('generate-submit').click();
   await openDocumentSection(page, '1');

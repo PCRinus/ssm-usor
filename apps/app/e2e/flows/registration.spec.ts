@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { addressOf, cleanUp, emailedLink, password, signIn, signOut } from './support';
+import { addressOf, cleanUp, emailedLink, password, signInThroughForm, signOut } from './support';
 
 test.afterAll(cleanUp);
 
@@ -42,7 +42,7 @@ test('a person registers, confirms their address, and sets up their organization
   await page.getByTestId('register-submit').click();
   await expect(page.getByTestId('register-sent')).toContainText(email);
 
-  await signIn(page, email);
+  await signInThroughForm(page, email);
   await expect(page.getByTestId('login-auth-error')).toBeVisible();
 
   // Supabase handed the confirmation to the API's Send Email hook. Opening the link does

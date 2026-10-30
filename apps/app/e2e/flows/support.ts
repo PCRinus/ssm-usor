@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 import { expect, type Page } from '@playwright/test';
@@ -572,13 +572,17 @@ export async function putBehindItsTemplate(clientId: string, typeKey: string) {
   return generatedFrom.data.version;
 }
 
-export async function accessTokenOf(email: string, withPassword = password) {
+async function sessionOf(email: string, withPassword = password) {
   const client = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data, error } = await client.auth.signInWithPassword({ email, password: withPassword });
   if (error) throw error;
-  return data.session.access_token;
+  return data.session;
+}
+
+export async function accessTokenOf(email: string, withPassword = password) {
+  return (await sessionOf(email, withPassword)).access_token;
 }
 
 // What the recovery email would carry, without sending one.
@@ -690,7 +694,23 @@ export async function openDocumentSection(page: Page, number: string) {
   await expect(trigger).toHaveAttribute('data-state', 'open');
 }
 
-export async function signIn(page: Page, email: string, withPassword = password) {
+// Past the login form, which password.spec.ts and registration.spec.ts test.
+export async function signIn(page: Page, email: string, path = '/dashboard') {
+  const session = await sessionOf(email);
+  const host = new URL(process.env.E2E_SUPABASE_URL!).hostname.split('.')[0];
+  await page.addInitScript(
+    ({ key, value, once }) => {
+      // Only on the next page: on a later one it would undo a sign-out.
+      if (sessionStorage.getItem(once)) return;
+      sessionStorage.setItem(once, '1');
+      localStorage.setItem(key, value);
+    },
+    { key: `sb-${host}-auth-token`, value: JSON.stringify(session), once: randomUUID() }
+  );
+  await page.goto(path);
+}
+
+export async function signInThroughForm(page: Page, email: string, withPassword = password) {
   await page.goto('/login');
   await page.getByTestId('login-email').fill(email);
   await page.getByTestId('login-password').fill(withPassword);

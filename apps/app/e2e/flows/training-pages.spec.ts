@@ -63,9 +63,7 @@ test('a specialist records trainings held and follows each employee’s state', 
     });
   }
 
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/employees`);
+  await signIn(page, owner.email, `/clients/${clientId}/employees`);
   const rows = page.getByTestId('employees-row');
   await expect(rows).toHaveCount(3);
   await page.getByTestId('employees-training-filter-overdue').click();

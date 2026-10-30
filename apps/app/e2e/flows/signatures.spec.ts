@@ -34,9 +34,7 @@ test('a specialist records a training with signers, marks a slot on paper and vo
   expect(listed.ok).toBe(true);
   const [employee] = ((await listed.json()) as { items: { id: string }[] }).items;
 
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/employees/${employee!.id}/training/ssm`);
+  await signIn(page, owner.email, `/clients/${clientId}/employees/${employee!.id}/training/ssm`);
   await page.getByTestId('training-record').first().click();
   const dialog = page.getByTestId('training-dialog');
   await dialog.getByTestId('training-phase').selectOption('periodic');

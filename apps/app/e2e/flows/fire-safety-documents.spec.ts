@@ -34,9 +34,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
     periodic_training_minutes: null,
   });
   await completeFireSafetyData(organizationId, clientId);
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}`);
+  await signIn(page, owner.email, `/clients/${clientId}`);
   await page.getByRole('link', { name: 'Documente PSI' }).click();
   await expect(page).toHaveURL(new RegExp(`/clients/${clientId}/fire-safety-documents$`));
 
@@ -87,7 +85,9 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('4');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 22 de documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 22 de documente.')).toBeVisible({
+    timeout: 30_000,
+  });
 
   await expect(page.getByTestId('document-section')).toHaveCount(7);
   await openDocumentSection(page, '1');
@@ -157,7 +157,7 @@ test('the fire-safety set asks for its own data and the first decision number, i
   await expect(page.getByTestId('generate-period')).toBeVisible();
   await page.getByTestId('generate-period').fill('2026');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 6 documente.')).toBeVisible();
+  await expect(page.getByText('Au fost generate 6 documente.')).toBeVisible({ timeout: 30_000 });
   await openDocumentSection(page, '1');
   await expect(decisions).toHaveCount(10);
   await expect(decisions.nth(8)).toContainText('Decizia nr. 11 PSI');

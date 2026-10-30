@@ -35,9 +35,7 @@ test('a member invites an employee to the portal by email and revokes the invita
   expect(created.status).toBe(201);
   const { employee } = (await created.json()) as { employee: { id: string } };
 
-  await signIn(page, owner.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto(`/clients/${clientId}/employees/${employee.id}`);
+  await signIn(page, owner.email, `/clients/${clientId}/employees/${employee.id}`);
   const card = page.getByTestId('employee-portal-card');
   await expect(card.getByTestId('participant-none')).toContainText(email);
 
