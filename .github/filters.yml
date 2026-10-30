@@ -16,6 +16,8 @@ api:
   - 'apps/api/**'
   - 'packages/contracts/**'
   - 'packages/document-engine/**'
+  - 'packages/import/**'
+  - 'packages/legislation/**'
 app:
   - *shared
   - 'apps/app/**'
