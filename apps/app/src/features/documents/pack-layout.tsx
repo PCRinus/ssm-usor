@@ -21,11 +21,12 @@ export function PackHeader({
   actions?: ReactNode;
 }) {
   const empty = pack !== undefined && isEmptyPack(pack);
+  const wide = useWideLayout();
   return (
     <div data-testid="pack-header" className="grid gap-3.5 px-4 pt-5 pb-5 sm:px-6 sm:pt-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <h2 className="text-lg font-semibold tracking-tight">{documentSetCopy[set].heading}</h2>
-        {pack && empty && <PackTotal pack={pack} className="text-[0.8125rem]" />}
+        {pack && empty && wide && <PackTotal pack={pack} className="text-[0.8125rem]" />}
         {actions && <div className="flex flex-wrap gap-2 max-sm:grid max-sm:w-full">{actions}</div>}
       </div>
       {pack && !empty && (
