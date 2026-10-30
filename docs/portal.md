@@ -98,6 +98,11 @@ sheet. Its request is listed and signed with the records' (`SigningItemText`, th
 the client administrator's pending list), named through Lingui from `testSheet` rather than the
 API's Romanian `label`, with the examiner as a slot of its own.
 
+**Trainings from paper.** A record whose `source` is `paper` reads "Transcris de pe fișa pe
+hârtie. Semnat pe hârtie." under _Instruiri_ instead of its slots, and _Acasă_ counts them per
+domain, "N instruiri de pe fișa pe hârtie, semnate acolo."
+([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)).
+
 What the pages call, all in the portal's generated client ([API, Portal](api.md#portal)):
 
 - _Acasă_ lists a test that awaits from `GET …/tests`: per domain `status.awaitingTest`, the

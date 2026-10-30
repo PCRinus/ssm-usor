@@ -560,7 +560,9 @@ their tab bars read.
   field, then the records from `GET …/employees/{employeeId}/training-records?domain=`, newest
   first: phase, day, duration ("120 min (2 h)"), the occupation, the material clamped to two
   lines behind "mai mult", who trained and verified with their functions, the supplementary
-  reason, "Admis la lucru de … la …" and a badge for a record taken from paper. An empty
+  reason, "Admis la lucru de … la …" and, for a record taken from paper, the badge "De pe fișa
+  pe hârtie" and, in place of the signature slots, "Semnat pe hârtie: instruit, instructor",
+  with "verificator" and "admite la lucru" where the record has them. An empty
   `training-tab-actions` container at the top right is kept for the sheet's download.
   "Înregistrează o instruire" opens the recording dialog with the employee as the only
   attendee, proposing the next hiring phase until both are recorded; a record's "Modifică" and
@@ -1044,7 +1046,10 @@ their tab bars read.
   it lists `GET /clients/{clientId}/files?employeeId=`, and its upload dialog names the
   employee and sends every file with `employeeId`; there is no way to choose another
   employee. Renaming, the owners' switch, deleting and an archived client's read-only list
-  work as on the tab.
+  work as on the tab. The photographs an employee import kept of the employee's paper sheets
+  ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)) sit under one
+  row per import, open at first, "Fișe importate pe … · N fotografii", with "Descarcă fișele
+  (ZIP)".
 - The upload dialog (`src/features/client-files/client-file-upload-dialog.tsx`) has a drop zone with
   "Alege fișiere" and the accepted types and the 20 MB limit under it, the list of chosen
   files (name, kind, size, a button to take each out), an owner's "Doar pentru
@@ -1259,7 +1264,7 @@ their tab bars read.
   linking to the employee's tab of its domain; one code signs both kinds.
 - Test state in the lists: after the two training columns, one "Testare" column with the SSM
   and PSI states as badges, each after its domain's name; chips "Toate / La zi / De susținut /
-  Anual scadent / Fără test" beside the training chips set `?testState=` the same way ("La zi"
+  Anual scadent / Neverificat pe fișă / Fără test" beside the training chips set `?testState=` the same way ("La zi"
   is passed in both domains, any other chip that state in either), and are hidden on the former
   employees.
 - `/legislatie`: the "Legislație" page ([ADR 017](architecture/adr-017-legislation-monitoring.md)),

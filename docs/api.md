@@ -1107,7 +1107,8 @@ with the specialist. The request and signature rows come embedded in the records
 the participant: the participants' and the client administrators' policies on
 `signature_requests` and `training_signatures` cover the records they read. The portal says a
 slot that is `signed` or `paper`; a `void` one reads as not signed, and a live request shows
-through the signature requests list.
+through the signature requests list. A record's `source` is its training's: one from `paper`
+has no slots, its signatures being on the paper sheet.
 
 Policies choose the rows a participant reads, not the columns, so every portal query names its
 columns and every response is built field by field into a schema of its own in
