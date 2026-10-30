@@ -341,9 +341,15 @@ describe('POST /imports/{importId}/files', () => {
     expect(await mismatch.json()).toMatchObject({ reason: 'import_type_mismatch' });
 
     const climbing = await request(`/imports/${importId}/files`, 'POST', {
-      files: [upload('../etc/x.pdf')],
+      files: [upload('Dosar/../../etc/x.pdf')],
     });
     expect(climbing.status).toBe(400);
+    expect(await climbing.json()).toEqual({
+      error: 'validation_error',
+      message: expect.any(String),
+      issues: [{ path: 'files.0.uploadPath', message: 'A path does not climb out of its folder.' }],
+    });
+    expect(callsTo('/rest/v1/import_files', 'POST')).toEqual([]);
   });
 
   it('refuses the lock files Word leaves and the files macOS adds beside the documents', async () => {
