@@ -1,4 +1,4 @@
-import type { TestStateFilter as TestStateFilterValue } from '@ssm-usor/contracts';
+import { type TestStateFilter as TestStateFilterValue, testStateLabels } from '@ssm-usor/contracts';
 
 import { FilterChips } from '@/components/filter-chips';
 
@@ -7,6 +7,7 @@ const chips: { value: TestStateFilterValue | undefined; label: string }[] = [
   { value: 'passed', label: 'La zi' },
   { value: 'pending', label: 'De susținut' },
   { value: 'annual_due', label: 'Anual scadent' },
+  { value: 'unverified', label: testStateLabels.unverified },
   { value: 'none', label: 'Fără test' },
 ];
 

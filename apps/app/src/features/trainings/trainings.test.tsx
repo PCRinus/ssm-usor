@@ -331,6 +331,7 @@ describe("an employee's training tabs", () => {
     expect(periodic.getByText('Maria Pop, Șef atelier')).toBeTruthy();
     expect(periodic.getByText('Dan Marin, Inspector SSM')).toBeTruthy();
     expect(periodic.queryByTestId('training-record-paper')).toBeNull();
+    expect(periodic.queryByTestId('training-record-paper-signed')).toBeNull();
     const toggle = periodic.getByTestId('training-material-toggle');
     expect(periodic.getByTestId('training-material-text').className).toContain('line-clamp-2');
     await user.click(toggle);
@@ -338,7 +339,11 @@ describe("an employee's training tabs", () => {
     expect(toggle.textContent).toBe('mai puțin');
 
     const workplace = within(items[1]!);
-    expect(workplace.getByTestId('training-record-paper')).toBeTruthy();
+    expect(workplace.getByTestId('training-record-paper').textContent).toBe('De pe fișa pe hârtie');
+    expect(workplace.getByTestId('training-record-paper-signed').textContent).toBe(
+      'Semnat pe hârtie: instruit, instructor, verificator, admite la lucru'
+    );
+    expect(workplace.queryByTestId('record-signatures')).toBeNull();
     expect(workplace.getByTestId('training-record-duration').textContent).toBe('240 min (4 h)');
     expect(workplace.getByTestId('training-record-admission').textContent).toBe(
       'Admis la lucru de Maria Pop, Șef atelier la 2 mar. 2020'
@@ -553,6 +558,22 @@ describe("an employee's training tabs", () => {
 });
 
 describe("a client's trainings held", () => {
+  it('marks a training typed from a paper sheet', async () => {
+    mockApi({
+      [`GET ${trainingsPath}`]: () =>
+        Response.json({
+          items: [
+            { ...heldWith(popescu), source: 'paper' },
+            { ...heldWith(taranu), id: '6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e' },
+          ],
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPath);
+    const rows = await screen.findAllByTestId('trainings-row');
+    expect(within(rows[0]!).getByText('De pe fișa pe hârtie')).toBeTruthy();
+    expect(within(rows[1]!).queryByText('De pe fișa pe hârtie')).toBeNull();
+  });
+
   it("is a tab of the client's page, filtered by domain and phase in the URL", async () => {
     const held = heldWith(popescu, taranu);
     mockApi({
@@ -1198,7 +1219,14 @@ describe('test state in the employee lists', () => {
       within(screen.getByTestId('employees-test-filter'))
         .getAllByRole('button')
         .map((chip) => chip.textContent)
-    ).toEqual(['Toate', 'La zi', 'De susținut', 'Anual scadent', 'Fără test']);
+    ).toEqual([
+      'Toate',
+      'La zi',
+      'De susținut',
+      'Anual scadent',
+      'Neverificat pe fișă',
+      'Fără test',
+    ]);
     await user.click(screen.getByTestId('employees-test-filter-pending'));
     await waitFor(() =>
       expect(runtime.router.state.location.search).toEqual({ testState: 'pending' })
@@ -1206,6 +1234,12 @@ describe('test state in the employee lists', () => {
     await waitFor(() =>
       expect(requests('GET', employeesPath).at(-1)!.url.searchParams.get('testState')).toBe(
         'pending'
+      )
+    );
+    await user.click(screen.getByTestId('employees-test-filter-unverified'));
+    await waitFor(() =>
+      expect(requests('GET', employeesPath).at(-1)!.url.searchParams.get('testState')).toBe(
+        'unverified'
       )
     );
     await user.click(screen.getByTestId('employees-test-filter-none'));

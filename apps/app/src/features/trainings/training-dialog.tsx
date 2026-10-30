@@ -592,7 +592,7 @@ function TrainingForm({
             id="training-source"
             label="Sursa"
             mark="required"
-            hint="O instruire de pe fișa de hârtie are semnăturile pe hârtie."
+            hint="O instruire de pe fișa pe hârtie are semnăturile pe hârtie."
             error={errors.source}
           >
             <NativeSelect

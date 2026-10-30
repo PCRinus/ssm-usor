@@ -341,7 +341,7 @@ describe('POST /clients/{clientId}/trainings', () => {
       admission: null,
       source: 'paper',
       themesRevisionId: revisionId,
-      notes: 'Copiată de pe fișa de hârtie.',
+      notes: 'Copiată de pe fișa pe hârtie.',
     });
     expect(response.status).toBe(201);
     const revisions = searchOf('/rest/v1/document_revisions');
@@ -353,7 +353,7 @@ describe('POST /clients/{clientId}/trainings', () => {
       p_phase: 'periodic',
       p_source: 'paper',
       p_themes_revision_id: revisionId,
-      p_notes: 'Copiată de pe fișa de hârtie.',
+      p_notes: 'Copiată de pe fișa pe hârtie.',
     });
   });
 
