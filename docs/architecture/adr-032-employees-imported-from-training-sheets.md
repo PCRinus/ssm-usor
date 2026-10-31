@@ -1,6 +1,6 @@
 # ADR 032: Employees imported from their training sheets
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-10-31
 
 ## Context
