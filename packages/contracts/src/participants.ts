@@ -258,7 +258,7 @@ export const portalStandings = ['participant', 'invited'] as const;
 export const portalStandingSchema = z.enum(portalStandings);
 export type PortalStanding = z.infer<typeof portalStandingSchema>;
 
-export const portalInviteeSchema = z.object({
+export const importInviteeSchema = z.object({
   employeeId: z.uuid(),
   lastName: z.string(),
   firstName: z.string(),
@@ -271,14 +271,14 @@ export const portalInviteeSchema = z.object({
   portal: portalStandingSchema.nullable(),
 });
 
-export type PortalInvitee = z.infer<typeof portalInviteeSchema>;
+export type ImportInvitee = z.infer<typeof importInviteeSchema>;
 
 /** The employees an employee import created or completed, by name. */
-export const portalInviteesResponseSchema = z.object({
-  items: z.array(portalInviteeSchema),
+export const importInviteesResponseSchema = z.object({
+  items: z.array(importInviteeSchema),
 });
 
-export type PortalInviteesResponse = z.infer<typeof portalInviteesResponseSchema>;
+export type ImportInviteesResponse = z.infer<typeof importInviteesResponseSchema>;
 
 /** One client the signed-in account is a participant of, from `current_participations()`. */
 export const portalParticipationSchema = z.object({

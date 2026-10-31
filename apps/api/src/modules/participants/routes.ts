@@ -6,9 +6,9 @@ import {
   clientAdministratorInvitationRequestSchema,
   clientParticipantsResponseSchema,
   employeeParticipantStateSchema,
+  importInviteesResponseSchema,
   participantInvitationRequestSchema,
   participantInvitationSchema,
-  portalInviteesResponseSchema,
 } from '@ssm-usor/contracts';
 
 import { allowWhileReadOnly } from '../../lib/access';
@@ -152,7 +152,7 @@ export const listImportPortalInviteesRoute = createRoute({
       description: 'The employees, by last and first name',
       content: {
         'application/json': {
-          schema: portalInviteesResponseSchema.meta({ id: 'PortalInviteesResponse' }),
+          schema: importInviteesResponseSchema.meta({ id: 'ImportInviteesResponse' }),
         },
       },
     },

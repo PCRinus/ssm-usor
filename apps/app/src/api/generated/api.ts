@@ -12358,6 +12358,36 @@ export interface ClientParticipantsResponse {
 /**
  * @nullable
  */
+export type ImportInviteesResponseItemsItemPortal =
+  | (typeof ImportInviteesResponseItemsItemPortal)[keyof typeof ImportInviteesResponseItemsItemPortal]
+  | null;
+
+export const ImportInviteesResponseItemsItemPortal = {
+  participant: 'participant',
+  invited: 'invited',
+} as const;
+
+export type ImportInviteesResponseItemsItem = {
+  employeeId: string;
+  lastName: string;
+  firstName: string;
+  position: string;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  phone: string | null;
+  current: boolean;
+  /** @nullable */
+  portal: ImportInviteesResponseItemsItemPortal;
+};
+
+export interface ImportInviteesResponse {
+  items: ImportInviteesResponseItemsItem[];
+}
+
+/**
+ * @nullable
+ */
 export type TestStudyCardMaterial = {
   revisionId: string;
   title: string;
@@ -37840,8 +37870,8 @@ export const listImportPortalInvitees = async (
   clientId: string,
   importId: string,
   options?: Parameters<typeof apiFetch>[1]
-): Promise<PortalInviteesResponse> => {
-  return apiFetch<PortalInviteesResponse>(getListImportPortalInviteesUrl(clientId, importId), {
+): Promise<ImportInviteesResponse> => {
+  return apiFetch<ImportInviteesResponse>(getListImportPortalInviteesUrl(clientId, importId), {
     ...options,
     method: 'GET',
   });

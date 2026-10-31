@@ -6,12 +6,12 @@ import {
   clientConflictReasons,
   type ClientParticipant,
   type EmployeeStatus,
+  type ImportInvitee,
   type ParticipantChannel,
   participantErrorReasons,
   type ParticipantInvitation,
   type ParticipantInvitationStatus,
   type ParticipantKind,
-  type PortalInvitee,
   type PortalLanguage,
   type PortalStanding,
   typedInvitationAddress,
@@ -481,7 +481,7 @@ export const listImportPortalInvitees: RouteHandler<
   if (!found.data) {
     throw new ApiError('not_found', 'No confirmed employee import of this client has this id.');
   }
-  const items: PortalInvitee[] = (employees.data as unknown as InviteeRow[]).map((row) => ({
+  const items: ImportInvitee[] = (employees.data as unknown as InviteeRow[]).map((row) => ({
     employeeId: row.id,
     lastName: row.last_name,
     firstName: row.first_name,

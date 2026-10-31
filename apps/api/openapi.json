@@ -18948,7 +18948,7 @@
         },
         "required": ["participants", "invitations"]
       },
-      "PortalInviteesResponse": {
+      "ImportInviteesResponse": {
         "type": "object",
         "properties": {
           "items": {
@@ -43053,7 +43053,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PortalInviteesResponse"
+                  "$ref": "#/components/schemas/ImportInviteesResponse"
                 }
               }
             }
