@@ -1,12 +1,9 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useNavigate, useParams, useRouteContext } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
 import { useEffect, useRef } from 'react';
 
-import { getListImportsQueryKey, useListImports } from '@/api/generated/api';
-import { useAuth } from '@/features/auth/auth-context';
-
-import { importListPollMs } from './import-format';
-import { importReadyNotices, isMineRunning } from './import-ready-notices';
+import { importReadyNotices } from './import-ready-notices';
+import { useMyImports } from './use-my-imports';
 
 const announcedKey = (importId: string) => `ssm-usor:import-announced:${importId}`;
 
@@ -37,28 +34,13 @@ const noticeLayout = {
   actionButton: '!mt-1',
 };
 
-const params = { kind: 'all' } as const;
-
 export function ImportReadyWatcher() {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
-  const userId = session?.user.id;
+  const { items, userId } = useMyImports();
   const navigate = useNavigate();
   const watching = useParams({ strict: false, select: (each) => each.importId ?? null });
-  const imports = useListImports(params, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getListImportsQueryKey(params), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
-      refetchOnWindowFocus: 'always',
-      refetchInterval: (query) =>
-        userId && isMineRunning(query.state.data?.items ?? [], userId) ? importListPollMs : false,
-    },
-  });
   const seen = useRef(new Map<string, string>());
 
   useEffect(() => {
-    const items = imports.data?.items;
     if (!items || !userId) return;
     const { shown, quiet } = importReadyNotices({
       previous: seen.current,
@@ -80,7 +62,7 @@ export function ImportReadyWatcher() {
         classNames: noticeLayout,
       });
     }
-  }, [imports.data, userId, watching, navigate]);
+  }, [items, userId, watching, navigate]);
 
   useEffect(() => {
     if (watching) toast.dismiss(toastId(watching));

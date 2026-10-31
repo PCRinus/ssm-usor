@@ -1,3 +1,4 @@
+import type { SubscriptionSummary } from '@ssm-usor/contracts';
 import { Avatar, AvatarFallback } from '@ssm-usor/ui/components/avatar';
 import {
   Breadcrumb,
@@ -32,6 +33,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@ssm-usor/ui/components/sidebar';
+import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { useSidebar } from '@ssm-usor/ui/hooks/use-sidebar';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, Outlet, useLocation, useMatches, useNavigate } from '@tanstack/react-router';
@@ -41,6 +43,7 @@ import {
   Building2,
   ChevronsUpDown,
   ClipboardCheck,
+  CreditCard,
   Handshake,
   LayoutDashboard,
   LifeBuoy,
@@ -69,13 +72,16 @@ import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
 import { ImportReadyWatcher } from '@/features/imports/import-ready-watcher';
+import { ImportsHeaderButton } from '@/features/imports/imports-header-button';
+import { MyImportsProvider } from '@/features/imports/my-imports';
 import { instructionSections } from '@/features/instructions/instruction-sections';
 import { testBankSections } from '@/features/knowledge-tests/test-bank-sections';
 import { legislationSections } from '@/features/legislation/legislation-sections';
 import { SetupGuideHeaderButton, SetupGuidePanel } from '@/features/setup-guide/setup-guide-panel';
 import { SetupGuideProvider } from '@/features/setup-guide/setup-guide-provider';
-import { SubscriptionBadge } from '@/features/subscription/subscription-badge';
+import { SubscriptionBadge, SubscriptionSeal } from '@/features/subscription/subscription-badge';
 import { SubscriptionBar } from '@/features/subscription/subscription-bar';
+import { subscriptionPath } from '@/features/subscription/subscription-copy';
 import { newCount } from '@/features/updates/release-format';
 import { useReleases } from '@/features/updates/use-releases';
 import { useUpdateDialogOpen } from '@/features/updates/use-update-dialog-open';
@@ -170,6 +176,7 @@ function AppNavigation({
   onReportProblem,
   unreadCount,
   unreadReleases,
+  subscription,
 }: {
   email: string;
   // Both are missing while the account loads, and for an account that has neither.
@@ -181,6 +188,7 @@ function AppNavigation({
   onReportProblem: () => Promise<void>;
   unreadCount: number;
   unreadReleases: number;
+  subscription: SubscriptionSummary | null;
 }) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { isMobile, setOpenMobile } = useSidebar();
@@ -318,6 +326,17 @@ function AppNavigation({
               )}
             </SidebarMenuButton>
           </SidebarMenuItem>
+          {isMobile && subscription && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={within(subscriptionPath)} className="h-11">
+                <Link to={subscriptionPath} data-testid="nav-subscription" onClick={closeOnMobile}>
+                  <CreditCard aria-hidden="true" />
+                  <span>Abonament</span>
+                  <SubscriptionSeal subscription={subscription} className="ml-auto" />
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -429,6 +448,7 @@ export function AppShell() {
   const releases = useReleases();
   const updateDialogOpen = useUpdateDialogOpen();
   const shippedTag = releaseTag();
+  const phone = useIsMobile();
 
   async function reportProblem() {
     if (await openSupport()) return;
@@ -458,132 +478,134 @@ export function AppShell() {
         editorPage={editorPage}
         holdBack={releases.query.isPending || updateDialogOpen}
       >
-        <a
-          href="#main-content"
-          className="sr-only z-50 rounded-md bg-card p-3 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
-        >
-          Sari la conținut
-        </a>
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-6">
-          <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-            <SidebarTrigger data-testid="sidebar-toggle" aria-label="Comută meniul lateral" />
-            <Separator orientation="vertical" className="!h-6" />
-            <Link to="/dashboard" aria-label="SSM Ușor — pagina principală">
-              <img
-                data-testid="app-logo"
-                src="/brand/logo.png"
-                alt="SSM Ușor"
-                width={2172}
-                height={724}
-                className="h-auto w-28 sm:w-36"
-              />
-            </Link>
-            {me.data?.subscription && (
-              <SubscriptionBadge
-                subscription={me.data.subscription}
-                isOwner={me.data.membership?.role === 'owner'}
-                impersonating={Boolean(me.data.impersonation)}
-                className="ml-auto sm:ml-0"
-              />
+        <MyImportsProvider>
+          <a
+            href="#main-content"
+            className="sr-only z-50 rounded-md bg-card p-3 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+          >
+            Sari la conținut
+          </a>
+          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-6">
+            <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+              <SidebarTrigger data-testid="sidebar-toggle" aria-label="Comută meniul lateral" />
+              <Separator orientation="vertical" className="!h-6" />
+              <Link to="/dashboard" aria-label="SSM Ușor — pagina principală">
+                <img
+                  data-testid="app-logo"
+                  src="/brand/logo.png"
+                  alt="SSM Ușor"
+                  width={2172}
+                  height={724}
+                  className="h-auto w-28 sm:w-36"
+                />
+              </Link>
+              {!phone && me.data?.subscription && (
+                <SubscriptionBadge
+                  subscription={me.data.subscription}
+                  isOwner={me.data.membership?.role === 'owner'}
+                  impersonating={Boolean(me.data.impersonation)}
+                />
+              )}
+            </div>
+            <div className="flex shrink-0 items-center gap-3 md:gap-2">
+              <ImportsHeaderButton />
+              <SetupGuideHeaderButton variant="ring" />
+              <SetupGuideHeaderButton variant="pill" />
+            </div>
+          </header>
+          <div
+            className={cn(
+              'flex flex-1',
+              editorPage ? 'min-h-0 overflow-hidden' : 'min-h-[calc(100svh-4rem)]'
             )}
-            <SetupGuideHeaderButton
-              variant="ring"
-              className={me.data?.subscription ? undefined : 'ml-auto'}
+          >
+            <AppNavigation
+              email={email}
+              name={me.data?.profile?.fullName}
+              organizationName={me.data?.membership?.organization.name}
+              isOwner={me.data?.membership?.role === 'owner'}
+              pending={pending}
+              onSignOut={signOut}
+              onReportProblem={reportProblem}
+              unreadCount={unreadCount}
+              unreadReleases={releases.unreadCount}
+              subscription={me.data?.subscription ?? null}
             />
-          </div>
-          <SetupGuideHeaderButton variant="pill" />
-        </header>
-        <div
-          className={cn(
-            'flex flex-1',
-            editorPage ? 'min-h-0 overflow-hidden' : 'min-h-[calc(100svh-4rem)]'
-          )}
-        >
-          <AppNavigation
-            email={email}
-            name={me.data?.profile?.fullName}
-            organizationName={me.data?.membership?.organization.name}
-            isOwner={me.data?.membership?.role === 'owner'}
-            pending={pending}
-            onSignOut={signOut}
-            onReportProblem={reportProblem}
-            unreadCount={unreadCount}
-            unreadReleases={releases.unreadCount}
-          />
-          <div className={cn('flex min-w-0 flex-1 flex-col', editorPage && 'min-h-0')}>
-            {me.data?.subscription && !editorPage && (
-              <SubscriptionBar
-                subscription={me.data.subscription}
-                canAct={me.data.membership?.role === 'owner' && !me.data.impersonation}
-              />
-            )}
-            <main
-              id="main-content"
-              tabIndex={-1}
-              className={cn(
-                'mx-auto w-full flex-1 outline-none',
-                editorPage
-                  ? 'flex min-h-0 max-w-none flex-col overflow-hidden px-3 py-3 sm:px-5'
-                  : 'max-w-7xl px-5 py-6 sm:px-8 lg:px-10'
+            <div className={cn('flex min-w-0 flex-1 flex-col', editorPage && 'min-h-0')}>
+              {me.data?.subscription && !editorPage && (
+                <SubscriptionBar
+                  subscription={me.data.subscription}
+                  canAct={me.data.membership?.role === 'owner' && !me.data.impersonation}
+                />
               )}
-            >
+              <main
+                id="main-content"
+                tabIndex={-1}
+                className={cn(
+                  'mx-auto w-full flex-1 outline-none',
+                  editorPage
+                    ? 'flex min-h-0 max-w-none flex-col overflow-hidden px-3 py-3 sm:px-5'
+                    : 'max-w-7xl px-5 py-6 sm:px-8 lg:px-10'
+                )}
+              >
+                {!editorPage && (
+                  <Breadcrumb className="mb-7">
+                    <BreadcrumbList>
+                      {trail.map((crumb, index) => (
+                        <Fragment key={crumb.to}>
+                          {index > 0 && <BreadcrumbSeparator />}
+                          <BreadcrumbItem>
+                            {index === trail.length - 1 ? (
+                              <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                            ) : (
+                              <BreadcrumbLink asChild>
+                                <Link to={crumb.to}>{crumb.label}</Link>
+                              </BreadcrumbLink>
+                            )}
+                          </BreadcrumbItem>
+                        </Fragment>
+                      ))}
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                )}
+                {error && (
+                  <Notice
+                    variant="destructive"
+                    data-testid="sign-out-error"
+                    className="mb-6"
+                    action={
+                      <Button
+                        data-testid="sign-out-retry"
+                        variant="outline"
+                        disabled={pending}
+                        onClick={() => void signOut()}
+                      >
+                        Reîncearcă deconectarea
+                      </Button>
+                    }
+                  >
+                    {error}
+                  </Notice>
+                )}
+                <Outlet />
+              </main>
               {!editorPage && (
-                <Breadcrumb className="mb-7">
-                  <BreadcrumbList>
-                    {trail.map((crumb, index) => (
-                      <Fragment key={crumb.to}>
-                        {index > 0 && <BreadcrumbSeparator />}
-                        <BreadcrumbItem>
-                          {index === trail.length - 1 ? (
-                            <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                          ) : (
-                            <BreadcrumbLink asChild>
-                              <Link to={crumb.to}>{crumb.label}</Link>
-                            </BreadcrumbLink>
-                          )}
-                        </BreadcrumbItem>
-                      </Fragment>
-                    ))}
-                  </BreadcrumbList>
-                </Breadcrumb>
+                <footer className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-4 text-xs text-muted-foreground sm:px-8 lg:px-10">
+                  <span>© {new Date().getFullYear()} SSM Ușor</span>
+                  <CommitVersion linked={Boolean(shippedTag && releases.find(shippedTag))} />
+                </footer>
               )}
-              {error && (
-                <Notice
-                  variant="destructive"
-                  data-testid="sign-out-error"
-                  className="mb-6"
-                  action={
-                    <Button
-                      data-testid="sign-out-retry"
-                      variant="outline"
-                      disabled={pending}
-                      onClick={() => void signOut()}
-                    >
-                      Reîncearcă deconectarea
-                    </Button>
-                  }
-                >
-                  {error}
-                </Notice>
-              )}
-              <Outlet />
-            </main>
-            {!editorPage && (
-              <footer className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-4 text-xs text-muted-foreground sm:px-8 lg:px-10">
-                <span>© {new Date().getFullYear()} SSM Ușor</span>
-                <CommitVersion linked={Boolean(shippedTag && releases.find(shippedTag))} />
-              </footer>
-            )}
+            </div>
           </div>
-        </div>
-        <SetupGuidePanel />
-        <ImportReadyWatcher />
-        <ReportProblemDialog open={reportingByEmail} onClose={() => setReportingByEmail(false)} />
-        {releases.newestUnread && (
-          <Suspense fallback={null}>
-            <UpdateDialog />
-          </Suspense>
-        )}
+          <SetupGuidePanel />
+          <ImportReadyWatcher />
+          <ReportProblemDialog open={reportingByEmail} onClose={() => setReportingByEmail(false)} />
+          {releases.newestUnread && (
+            <Suspense fallback={null}>
+              <UpdateDialog />
+            </Suspense>
+          )}
+        </MyImportsProvider>
       </SetupGuideProvider>
     </SidebarProvider>
   );

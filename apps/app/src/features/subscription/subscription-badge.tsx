@@ -17,6 +17,43 @@ import {
   subscriptionPath,
 } from './subscription-copy';
 
+const chip =
+  'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold whitespace-nowrap';
+
+function SealParts({ subscription }: { subscription: SubscriptionSummary }) {
+  const seal = sealFor(subscription);
+  const look = sealLooks[seal.kind];
+  const Icon = look.icon;
+  return (
+    <>
+      <Icon aria-hidden="true" className={cn('size-3.5', look.iconClassName)} />
+      {seal.label}
+      {seal.attention && (
+        <span aria-hidden="true" className="size-2 rounded-full bg-warning-border" />
+      )}
+    </>
+  );
+}
+
+export function SubscriptionSeal({
+  subscription,
+  className,
+}: {
+  subscription: SubscriptionSummary;
+  className?: string;
+}) {
+  const seal = sealFor(subscription);
+  return (
+    <span
+      data-testid="subscription-seal"
+      data-seal={seal.kind}
+      className={cn(chip, 'h-7', sealLooks[seal.kind].className, className)}
+    >
+      <SealParts subscription={subscription} />
+    </span>
+  );
+}
+
 export function SubscriptionBadge({
   subscription,
   isOwner,
@@ -31,8 +68,6 @@ export function SubscriptionBadge({
 }) {
   const [open, setOpen] = useState(false);
   const seal = sealFor(subscription);
-  const look = sealLooks[seal.kind];
-  const Icon = look.icon;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -43,16 +78,13 @@ export function SubscriptionBadge({
           data-seal={seal.kind}
           aria-label={`${seal.label}: detaliile abonamentului`}
           className={cn(
-            'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold whitespace-nowrap outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:px-3 sm:text-[13px]',
-            look.className,
+            chip,
+            'h-8 cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:px-3 sm:text-[13px]',
+            sealLooks[seal.kind].className,
             className
           )}
         >
-          <Icon aria-hidden="true" className={cn('size-3.5', look.iconClassName)} />
-          {seal.label}
-          {seal.attention && (
-            <span aria-hidden="true" className="size-2 rounded-full bg-warning-border" />
-          )}
+          <SealParts subscription={subscription} />
         </button>
       </PopoverTrigger>
       <PopoverContent
