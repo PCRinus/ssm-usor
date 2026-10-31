@@ -446,7 +446,9 @@ describe('GET /clients/{clientId}/found-sheets', () => {
 });
 
 describe('found sheets taken into an employee import', () => {
-  function adding(options: { failCopy?: boolean; status?: string } = {}): Handler {
+  function adding(
+    options: { failCopy?: boolean; status?: string; startedMeanwhile?: boolean } = {}
+  ): Handler {
     const found = foundSheets([foundRow(1), foundRow(2)], []);
     return (call) => {
       const { url, method } = call;
@@ -484,6 +486,11 @@ describe('found sheets taken into an employee import', () => {
       }
       if (url.pathname === '/storage/v1/object/imports' && method === 'DELETE') {
         return Response.json([]);
+      }
+      if (url.pathname === '/rest/v1/rpc/mark_found_sheets_uploaded') {
+        return options.startedMeanwhile
+          ? Response.json({ code: 'IMP01', message: 'not uploading' }, { status: 400 })
+          : new Response(null, { status: 204 });
       }
       return undefined;
     };
@@ -525,9 +532,10 @@ describe('found sheets taken into an employee import', () => {
       },
       expect.objectContaining({ destinationKey: storagePath(importId, 11, 'jpg') }),
     ]);
-    const marked = callsTo('/rest/v1/import_files', 'PATCH')[0]!;
-    expect(marked.body).toEqual({ state: 'uploaded' });
-    expect(marked.url.searchParams.get('id')).toBe(`in.(${fileId(10)},${fileId(11)})`);
+    const marked = callsTo('/rest/v1/rpc/mark_found_sheets_uploaded')[0]!;
+    expect(marked.admin).toBe(true);
+    expect(marked.body).toEqual({ p_import_id: importId, p_file_ids: [fileId(10), fileId(11)] });
+    expect(callsTo('/rest/v1/import_files', 'PATCH')).toEqual([]);
   });
 
   it('numbers the copies of two photographs that would land on one path', async () => {
@@ -591,6 +599,20 @@ describe('found sheets taken into an employee import', () => {
     );
     expect(callsTo('/rest/v1/imports', 'DELETE')[0]!.url.searchParams.get('id')).toBe(
       `eq.${importId}`
+    );
+  });
+
+  it('takes the copies back when the reading started while they were copied', async () => {
+    mockUpstream(adding({ startedMeanwhile: true }));
+    const response = await request(`/imports/${importId}/found-sheets`, 'POST', {});
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ reason: 'import_not_uploading' });
+    expect(callsTo('/storage/v1/object/imports', 'DELETE')[0]!.body).toEqual({
+      prefixes: [storagePath(importId, 10, 'jpg'), storagePath(importId, 11, 'jpg')],
+    });
+    expect(callsTo('/rest/v1/import_files', 'DELETE')[0]!.url.searchParams.get('id')).toBe(
+      `in.(${fileId(10)},${fileId(11)})`
     );
   });
 

@@ -1389,14 +1389,7 @@ async function copyFoundSheets(
   if (error) throw fromDatabaseError(error, 'add found sheets');
   const objects = createAdminFileStore(c);
   const copied: string[] = [];
-  try {
-    for (const file of data) {
-      const sheet = sheets.find((each) => each.id === file.source_file_id)!;
-      copied.push(file.storage_path);
-      await objects.copyClientFileToImports(sheet.clientFile.storage_path, file.storage_path);
-    }
-  } catch (failure) {
-    console.error(`Found sheets of import ${importId} were not copied: ${describe(failure)}`);
+  const takeBack = async () => {
     await objects.removeImportObjects(copied).catch(() => undefined);
     await admin
       .from('import_files')
@@ -1405,15 +1398,26 @@ async function copyFoundSheets(
         'id',
         data.map((file) => file.id)
       );
+  };
+  try {
+    for (const file of data) {
+      const sheet = sheets.find((each) => each.id === file.source_file_id)!;
+      copied.push(file.storage_path);
+      await objects.copyClientFileToImports(sheet.clientFile.storage_path, file.storage_path);
+    }
+  } catch (failure) {
+    console.error(`Found sheets of import ${importId} were not copied: ${describe(failure)}`);
+    await takeBack();
     throw unavailable();
   }
-  const marked = await admin
-    .from('import_files')
-    .update({ state: 'uploaded' })
-    .in(
-      'id',
-      data.map((file) => file.id)
-    );
+  const marked = await admin.rpc('mark_found_sheets_uploaded', {
+    p_import_id: importId,
+    p_file_ids: data.map((file) => file.id),
+  });
+  if (marked.error?.code === 'IMP01') {
+    await takeBack();
+    throw notUploading();
+  }
   if (marked.error) throw fromDatabaseError(marked.error, 'mark found sheets uploaded');
 }
 

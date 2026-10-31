@@ -6941,6 +6941,10 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      mark_found_sheets_uploaded: {
+        Args: { p_file_ids: string[]; p_import_id: string };
+        Returns: undefined;
+      };
       mark_import_objects_removed: {
         Args: { p_import_ids: string[] };
         Returns: string[];
