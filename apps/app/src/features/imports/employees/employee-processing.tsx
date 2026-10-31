@@ -12,6 +12,7 @@ import { Notice } from '@/components/notice';
 import { AbandonImportDialog } from '../abandon-import-dialog';
 import { isRunning, uploadedWhen } from '../import-format';
 import { ImportThumbnail } from '../import-thumbnail';
+import { ImportFileView, PhotoPreviewDialog } from '../photo-preview-dialog';
 import { useUploadStalled } from '../use-upload-stalled';
 import { onlyPhotos, sheetFilesLabel } from './review-format';
 
@@ -57,6 +58,15 @@ const fileState = (file: ImportFile) =>
       ? 'failed'
       : 'waiting';
 
+const stateLabel = (file: ImportFile) => {
+  const state = fileState(file);
+  return state === 'read'
+    ? 'Citită'
+    : state === 'failed'
+      ? (file.reason ?? 'Nu se poate citi')
+      : 'Urmează';
+};
+
 export function EmployeeProcessing({
   detail,
   clientId,
@@ -67,6 +77,7 @@ export function EmployeeProcessing({
   const navigate = useNavigate();
   const [abandoning, setAbandoning] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [previewing, setPreviewing] = useState<string | null>(null);
   const running = isRunning(detail.status);
   const stalled = useUploadStalled(detail);
   const reached = reachedStep(detail);
@@ -233,7 +244,14 @@ export function EmployeeProcessing({
               const state = fileState(file);
               return (
                 <li key={file.id} className="grid gap-1" data-testid="employee-processing-photo">
-                  <ImportThumbnail importId={detail.id} file={file} className="h-28 w-full" />
+                  <button
+                    type="button"
+                    aria-label={`Deschide ${file.fileName}`}
+                    onClick={() => setPreviewing(file.id)}
+                    className="flex w-full rounded-md outline-none hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  >
+                    <ImportThumbnail importId={detail.id} file={file} className="h-28 w-full" />
+                  </button>
                   <span className="truncate text-xs font-medium">{file.fileName}</span>
                   <span
                     className={cn(
@@ -243,11 +261,7 @@ export function EmployeeProcessing({
                       state === 'waiting' && 'text-muted-foreground'
                     )}
                   >
-                    {state === 'read'
-                      ? 'Citită'
-                      : state === 'failed'
-                        ? (file.reason ?? 'Nu se poate citi')
-                        : 'Urmează'}
+                    {stateLabel(file)}
                   </span>
                 </li>
               );
@@ -258,6 +272,17 @@ export function EmployeeProcessing({
               Arată toate cele {files.length}
             </Button>
           )}
+          <PhotoPreviewDialog
+            photos={files.map((file) => ({
+              key: file.id,
+              name: file.fileName,
+              detail: stateLabel(file),
+              view: <ImportFileView importId={detail.id} file={file} />,
+            }))}
+            current={previewing}
+            onCurrent={setPreviewing}
+            onClose={() => setPreviewing(null)}
+          />
         </Card>
       )}
       {detail.status === 'confirmed' && (

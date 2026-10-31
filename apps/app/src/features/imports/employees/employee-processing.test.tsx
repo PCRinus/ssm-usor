@@ -1,4 +1,5 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ImportDetail } from '@/api/generated/api';
@@ -33,6 +34,21 @@ const client = {
 function mount(detail: ImportDetail, path = '') {
   mockApi((_init, url) => {
     if (url.pathname === `/imports/${importId}`) return Response.json({ import: detail });
+    if (url.pathname === `/imports/${importId}/source`) {
+      const file = url.searchParams.get('file')!;
+      return Response.json({
+        fileId: file,
+        uploadPath: file,
+        fileName: file,
+        page: null,
+        original: { url: `https://storage.test/${file}` },
+        derived: { url: `https://storage.test/derived/${file}` },
+        text: null,
+        pages: null,
+        match: null,
+        expiresInSeconds: 300,
+      });
+    }
     if (url.pathname === `/clients/${clientId}`) {
       return Response.json({ client, canDelete: false });
     }
@@ -77,6 +93,30 @@ describe('the page of an employee import that is not ready', () => {
       timeout: 10_000,
     });
   }, 15_000);
+
+  it('opens an uploaded photograph large, with how far its reading got', async () => {
+    const detail = employeeDetail({ status: 'reading', employees: null, people: null });
+    mount({
+      ...detail,
+      files: detail.files.map((file, index) =>
+        index === 0 ? file : { ...file, state: 'prepared' }
+      ),
+    });
+    await heading();
+    await userEvent.click(screen.getByRole('button', { name: 'Deschide IMG_p2.jpg' }));
+    const preview = await screen.findByTestId('photo-preview');
+    expect(within(preview).getByRole('heading').textContent).toBe('IMG_p2.jpg');
+    expect(preview.textContent).toContain('Urmează');
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 5');
+    expect((await within(preview).findByTestId<HTMLImageElement>('photo-preview-image')).src).toBe(
+      'https://storage.test/derived/IMG_p2.jpg'
+    );
+    expect(within(preview).queryByTestId('photo-preview-remove')).toBeNull();
+
+    await userEvent.click(within(preview).getByTestId('photo-preview-previous'));
+    expect(within(preview).getByRole('heading').textContent).toBe('IMG_p1.jpg');
+    expect(preview.textContent).toContain('Citită');
+  });
 
   it('calls a confirmed import confirmed', async () => {
     mount(employeeDetail({ status: 'confirmed', confirmedAt: '2026-10-31T10:00:00+00:00' }));
