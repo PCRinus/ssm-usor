@@ -7,11 +7,15 @@ import {
   type SubscriptionSummary,
   type SupportIdentity,
 } from '@ssm-usor/contracts';
+import type { Context } from 'hono';
 
 import type { Database } from '../../database.types';
+import { createAdminClient } from '../../lib/admin-db';
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { smsUsageStore } from '../sms-usage/store';
+import { smsUsageOf } from '../sms-usage/usage';
 import type {
   listMyInvitationsRoute,
   meRoute,
@@ -62,6 +66,19 @@ function toSubscription(
   };
 }
 
+// The log of sends is the secret key's alone. Every page waits for /me, so a failed count leaves
+// the bar out instead of the app.
+async function smsThisMonthOf(c: Context<ApiEnv>, organizationId: string) {
+  try {
+    const store = smsUsageStore(createAdminClient(c));
+    const row = await store.subscription(organizationId);
+    return row ? await smsUsageOf(store, organizationId, row, new Date()) : null;
+  } catch (error) {
+    console.error('SMS usage for /me failed:', error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
 export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
   const user = c.get('user');
   const db = createDataClient(c);
@@ -91,6 +108,10 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
       ];
   if (organization.error) throw fromDatabaseError(organization.error, 'me organization');
   if (subscription.error) throw fromDatabaseError(subscription.error, 'me subscription');
+  const smsThisMonth =
+    organizationId && subscription.data && membership.data[0]?.access === 'full'
+      ? await smsThisMonthOf(c, organizationId)
+      : null;
 
   const role = membership.data[0]?.role;
   return c.json(
@@ -112,6 +133,7 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
         subscription.data && membership.data[0]
           ? toSubscription(subscription.data, membership.data[0].access)
           : null,
+      smsThisMonth,
     } satisfies MeResponse,
     200
   );

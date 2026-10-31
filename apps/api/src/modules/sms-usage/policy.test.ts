@@ -1,13 +1,7 @@
+import { isRomanianNumber } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
-import {
-  addMonths,
-  isRomanianNumber,
-  monthAround,
-  smsPolicy,
-  smsState,
-  type SmsSubscription,
-} from './policy';
+import { addMonths, monthAround, smsPolicy, smsState, type SmsSubscription } from './policy';
 
 const at = (iso: string) => new Date(iso);
 const iso = (period: { start: Date; end: Date }) => [

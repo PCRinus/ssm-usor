@@ -49,7 +49,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /waitlist/confirm`                                                | Public, by emailed token              | `303` to the marketing site's confirmed or invalid-link page                                                                                                                                       |
 | `POST /hooks/supabase/send-email`                                      | Supabase Auth, by signature           | `200 {}` after handing the recovery, signup, password-changed or sign-in code email to the mail Worker                                                                                             |
 | `POST /hooks/supabase/send-sms`                                        | Supabase Auth, by signature           | `200 {}` after handing the portal's sign-in code to the SMS Worker                                                                                                                                 |
-| `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership", "subscription" }`; null when absent                                                                                                                            |
+| `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership", "subscription", "smsThisMonth" }`; null when absent                                                                                                            |
 | `PATCH /me/profile`                                                    | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                                                                                                                            |
 | `GET /me/invitations`                                                  | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token                                                                                                               |
 | `GET /me/setup`                                                        | Verified user with a membership       | The caller's setup guide: the fifteen steps with their state, lock and missing fields, `next`, `clientId`, `ownerName`, `closed`, `finished`                                                       |
@@ -830,7 +830,10 @@ no id and no token; only the emailed link accepts an invitation.
 [ADR 029](architecture/adr-029-billing-plans-and-trials.md). `GET /me` carries the
 organization's `subscription`: `{ plan, planChosen, status, trialEndsAt, accessUntil, access, deletesAt }`,
 or null for an organization without one, which has full access. `access` is `full` or
-`read_only`; `deletesAt` is 30 days after `accessUntil` once read-only.
+`read_only`; `deletesAt` is 30 days after `accessUntil` once read-only. It also carries
+`smsThisMonth`, the same shape as `usage.smsThisMonth` on `GET /billing`, for the bar from 80 %
+and the plan badge; null without a subscription, while read-only, or when the count could not be
+read, which never fails the request.
 
 While the organization is read-only, every member request that changes something (`POST`,
 `PUT`, `PATCH`, `DELETE`) answers `403` with `reason: read_only` from the membership middleware,
