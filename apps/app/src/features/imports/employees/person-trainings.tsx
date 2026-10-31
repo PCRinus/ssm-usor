@@ -25,6 +25,7 @@ import { type FormEvent, type ReactNode, useState } from 'react';
 
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
+import { roCount } from '@/features/employees/employee-format';
 
 import { Tag } from '../review-parts';
 import {
@@ -386,7 +387,9 @@ function DomainSection({
           <h3 className="text-sm font-semibold">
             Instruire periodică{' '}
             <span className="font-normal text-muted-foreground tabular-nums">
-              {domain.periodic.length === 1 ? 'un rând' : `${domain.periodic.length} rânduri`}
+              {domain.periodic.length === 1
+                ? 'un rând'
+                : roCount(domain.periodic.length, 'rând', 'rânduri')}
             </span>
           </h3>
           <ul className="divide-y">
@@ -437,7 +440,7 @@ function DomainSection({
             <span>
               {domain.inApp.length === 1
                 ? 'O instruire de pe fișă e deja în aplicație'
-                : `${domain.inApp.length} instruiri de pe fișă sunt deja în aplicație`}
+                : `${roCount(domain.inApp.length, 'instruire', 'instruiri')} de pe fișă sunt deja în aplicație`}
             </span>
             <span className="text-muted-foreground">
               cu aceeași dată și același fel. Nu le adăugăm a doua oară.
@@ -590,9 +593,11 @@ function AfterImport({
         <p className="text-sm text-muted-foreground" data-testid="person-after-held">
           Instruirea {trainingPhaseLabels[latest.row.phase].toLowerCase()}{' '}
           {trainingDomainLabels[latest.row.domain]} din {dateLabel(latest.heldOn)} o{' '}
-          {together === 1 ? 'mai are pe fișă un coleg' : `au pe fișe încă ${together} colegi`}, cu
-          același instructor. În Instruiri ținute devine o singură instruire, cu {together + 1}{' '}
-          participanți.
+          {together === 1
+            ? 'mai are pe fișă un coleg'
+            : `au pe fișe încă ${roCount(together, 'coleg', 'colegi')}`}
+          , cu același instructor. În Instruiri ținute devine o singură instruire, cu{' '}
+          {roCount(together + 1, 'participant', 'participanți')}.
         </p>
       )}
     </section>

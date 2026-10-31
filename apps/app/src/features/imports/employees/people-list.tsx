@@ -20,7 +20,7 @@ import {
   toCheckGroups,
 } from './employee-review-model';
 import { PageThumb } from './page-thumb';
-import { dateLabel, pagesPhotosLabel } from './review-format';
+import { dateLabel, pagesPhotosLabel, trainingsLabel } from './review-format';
 import { type Position, positionName } from './use-review-context';
 
 const tabs = [
@@ -220,9 +220,7 @@ function PersonRow({
       </span>
       <span className="hidden text-sm tabular-nums md:block">
         {hiredAt ? dateLabel(String(hiredAt)) : <span className="text-destructive">Lipsește</span>}
-        <span className="block text-[13px] text-muted-foreground">
-          {rows === 1 ? 'o instruire' : `${rows} instruiri`}
-        </span>
+        <span className="block text-[13px] text-muted-foreground">{trainingsLabel(rows)}</span>
       </span>
       <span className="col-start-2 flex flex-wrap gap-1.5 md:col-start-auto">
         {view.state !== 'to_check' && (

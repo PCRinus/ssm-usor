@@ -12,6 +12,7 @@ import type {
   EmployeeImportReviewChangesPeople,
   EmployeeImportReviewChangesPeopleFields,
 } from '@/api/generated/api';
+import { roCount } from '@/features/employees/employee-format';
 import { formatRoDate } from '@/lib/dates';
 
 import { foldText } from '../review-model';
@@ -331,7 +332,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
         anchor: 'post',
         label:
           group.personIds.length > 1
-            ? `Alege postul, pentru toate cele ${group.personIds.length} persoane`
+            ? `Alege postul, pentru toate cele ${roCount(group.personIds.length, 'persoană', 'persoane')}`
             : 'Alege postul',
         tag: 'Post de hotărât',
         tone: 'destructive',

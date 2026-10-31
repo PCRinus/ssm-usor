@@ -194,7 +194,7 @@ export function EmployeeConfirmDialog({
         <DialogHeader>
           <DialogTitle>
             {left.length > 0
-              ? `Creezi angajații fără ${left.length === 1 ? 'cel neverificat' : `cei ${left.length} neverificați`}?`
+              ? `Creezi angajații fără ${left.length === 1 ? 'cel neverificat' : `cei ${roCount(left.length, 'neverificat', 'neverificați')}`}?`
               : `Creezi angajații clientului ${clientName}?`}
           </DialogTitle>
           <DialogDescription>
@@ -213,7 +213,7 @@ export function EmployeeConfirmDialog({
               title={
                 left.length === 1
                   ? 'O persoană nu e verificată'
-                  : `${left.length} persoane nu sunt verificate`
+                  : `${roCount(left.length, 'persoană', 'persoane')} nu sunt verificate`
               }
               data-testid="employee-confirm-left"
             >

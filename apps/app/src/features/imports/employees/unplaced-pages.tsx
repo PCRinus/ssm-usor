@@ -14,6 +14,7 @@ import { useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 
+import { photosLabel } from '../import-format';
 import {
   type Changes,
   ownerOf,
@@ -58,7 +59,7 @@ export function UnplacedPages({
         <h2 className="text-lg font-semibold">
           {pages.length === 1
             ? 'O fotografie neatribuită'
-            : `${pages.length} fotografii neatribuite`}
+            : `${photosLabel(pages.length)} neatribuite`}
         </h2>
         <p className="text-sm text-muted-foreground">
           Nu le-am putut lega de nicio persoană. Dacă nu le atribui, le lăsăm deoparte.

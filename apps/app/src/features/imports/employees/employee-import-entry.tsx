@@ -223,7 +223,7 @@ function OpenImportCard({
         <Progress
           value={people.total ? ((people.checked + people.setAside) / people.total) * 100 : 0}
           className="h-1.5 max-w-md"
-          aria-label={`${people.checked} din ${people.total} de persoane verificate`}
+          aria-label={`${people.checked} din ${roCount(people.total, 'persoană', 'persoane')} verificate`}
         />
         <p className="text-sm text-muted-foreground">
           Din {photosLabel(item.fileCount)}. Ce ai verificat e salvat; angajații se creează când

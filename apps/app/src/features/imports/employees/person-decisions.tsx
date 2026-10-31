@@ -4,6 +4,7 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { type ReactNode, useState } from 'react';
 
+import { roCount } from '@/features/employees/employee-format';
 import { JobPositionDialog } from '@/features/job-positions/job-position-dialog';
 import { staffCategoryLabels } from '@/features/job-positions/job-position-schema';
 import { formatRoDate } from '@/lib/dates';
@@ -97,7 +98,7 @@ function Option({
 
 const positionDetail = (position: Position) =>
   [
-    position.employeeCount === 1 ? '1 angajat' : `${position.employeeCount} angajați`,
+    roCount(position.employeeCount, 'angajat', 'angajați'),
     staffCategoryLabels[position.staffCategory],
     position.trainingIntervalMonths
       ? `instruire periodică la ${position.trainingIntervalMonths} luni`
@@ -154,16 +155,19 @@ export function PostDecision({
         <>
           {heading}
           {count > 1 && (
-            <span className="font-normal text-muted-foreground"> · {count} persoane</span>
+            <span className="font-normal text-muted-foreground">
+              {' '}
+              · {roCount(count, 'persoană', 'persoane')}
+            </span>
           )}
         </>
       }
     >
       {count > 1 && (
         <p className="text-sm">
-          Același post e scris pe fișele a {count} persoane: {personName(context, person)},{' '}
-          {names.join(', ')}. Ce alegi aici se aplică tuturor celor {count}. Funcția de pe fișă se
-          păstrează oricum la fiecare.
+          Același post e scris pe fișele a {roCount(count, 'persoană', 'persoane')}:{' '}
+          {personName(context, person)}, {names.join(', ')}. Ce alegi aici se aplică tuturor celor{' '}
+          {count}. Funcția de pe fișă se păstrează oricum la fiecare.
         </p>
       )}
       {decided && <Tag tone="success">Ales</Tag>}
@@ -368,7 +372,7 @@ export function WorkplaceDecision({
           {group.personIds.length > 1 && (
             <span className="font-normal text-muted-foreground">
               {' '}
-              · {group.personIds.length} persoane
+              · {roCount(group.personIds.length, 'persoană', 'persoane')}
             </span>
           )}
         </>

@@ -22,12 +22,12 @@ export function formatDate(isoDate: string) {
   return dateFormat.format(new Date(`${isoDate}T00:00:00Z`));
 }
 
-// Romanian counted nouns: "1 an", "2 ani", "20 de ani" (from 20 up, except 101–119 style
-// endings, the noun takes "de").
+// Romanian counted nouns: "0 ani", "1 an", "2 ani", "20 de ani" (from 20 up, except 101–119
+// style endings, the noun takes "de").
 export function roCount(value: number, one: string, many: string) {
   if (value === 1) return `1 ${one}`;
   const tail = value % 100;
-  return tail === 0 || tail >= 20 ? `${value} de ${many}` : `${value} ${many}`;
+  return value !== 0 && (tail === 0 || tail >= 20) ? `${value} de ${many}` : `${value} ${many}`;
 }
 
 export function formatTenure(fromIso: string, toIso: string) {

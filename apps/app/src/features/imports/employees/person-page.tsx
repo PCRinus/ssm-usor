@@ -7,6 +7,7 @@ import { useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
+import { roCount } from '@/features/employees/employee-format';
 
 import { Tag } from '../review-parts';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
@@ -207,7 +208,7 @@ export function EmployeePersonPage({
                   <CircleAlert className="size-4" aria-hidden="true" />
                   {decisions.length === 1
                     ? 'Un lucru de rezolvat aici'
-                    : `${decisions.length} lucruri de rezolvat aici`}
+                    : `${roCount(decisions.length, 'lucru', 'lucruri')} de rezolvat aici`}
                 </h2>
                 <ul className="grid list-disc gap-1 pl-6 text-sm">
                   {decisions.map((decision) => (
@@ -371,7 +372,7 @@ function statusSentence(context: ReviewContext, person: Person, name: string, op
   const state = context.states[person.id] ?? 'to_check';
   if (state === 'set_aside') return `${name} e lăsat deoparte. Ce ai schimbat se salvează pe loc.`;
   if (open > 0) {
-    return `${name} rămâne de verificat până rezolvi ${open === 1 ? 'ce e semnalat' : `cele ${open} lucruri`}. Ce ai completat se salvează pe loc.`;
+    return `${name} rămâne de verificat până rezolvi ${open === 1 ? 'ce e semnalat' : `cele ${roCount(open, 'lucru', 'lucruri')}`}. Ce ai completat se salvează pe loc.`;
   }
   if (state === 'checked') return `${name} e verificat. Ce schimbi se salvează pe loc.`;
   return `Când treci la următoarea, ${name} e marcat verificat, cu alegerile de acum. Ce ai schimbat se salvează pe loc.`;
