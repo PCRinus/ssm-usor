@@ -784,6 +784,32 @@ describe('GET /imports for employee imports', () => {
     expect(callsTo('/rest/v1/imports')[0]!.url.searchParams.get('kind')).toBe('eq.client');
   });
 
+  it('lists the open imports of both kinds with `all`, an employee one with its people', async () => {
+    const clientImportId = '8c3a4b5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d';
+    mockUpstream(({ url }) => {
+      if (url.pathname !== '/rest/v1/imports') return undefined;
+      if (url.searchParams.get('select')?.startsWith('id,people')) {
+        return Response.json([{ id: importId, people: proposal.people, changes: null }]);
+      }
+      return Response.json([
+        importRow(),
+        importRow({ id: clientImportId, kind: 'client', status: 'reading', proposal: null }),
+      ]);
+    });
+    const response = await request('/imports?kind=all');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      items: [
+        { id: importId, kind: 'employees', people: { total: 2, toCheck: 2 } },
+        { id: clientImportId, kind: 'client', people: null },
+      ],
+    });
+    const [list] = callsTo('/rest/v1/imports');
+    expect(list!.url.searchParams.has('kind')).toBe(false);
+    expect(list!.url.searchParams.get('status')).toMatch(/^in\./);
+  });
+
   it("keeps an import's expiry from the last change to its files", async () => {
     mockUpstream(({ url }) =>
       url.pathname === '/rest/v1/imports'

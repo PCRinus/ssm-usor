@@ -255,9 +255,12 @@ export const listImportsQuerySchema = z.object({
   clientId: z.uuid().optional().meta({
     description: 'Only the imports into this client; without it, every open import.',
   }),
-  kind: z.enum(importKinds).optional().meta({
-    description: 'The imports of this kind; client imports when left out.',
-  }),
+  kind: z
+    .enum([...importKinds, 'all'])
+    .optional()
+    .meta({
+      description: 'The imports of this kind, or `all` of both; client imports when left out.',
+    }),
   status: z
     .enum(['open', 'confirmed'])
     .optional()

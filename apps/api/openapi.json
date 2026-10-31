@@ -38440,7 +38440,7 @@
       "get": {
         "operationId": "listImports",
         "summary": "List the organization's open or last confirmed imports",
-        "description": "Every import of `kind` (client imports when left out) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.",
+        "description": "Every import of `kind` (client imports when left out, both kinds with `all`) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, with `all` those the app watches to say when a member's import finishes reading, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first; with `kind` `employees` and `clientId` each counts in `uninvited` the current employees it brought who are neither participants nor invited, and the Angajați tab offers to invite the people of the latest with someone left.",
         "security": [
           {
             "bearerAuth": []
@@ -38461,11 +38461,11 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["client", "employees"],
-              "description": "The imports of this kind; client imports when left out."
+              "enum": ["client", "employees", "all"],
+              "description": "The imports of this kind, or `all` of both; client imports when left out."
             },
             "required": false,
-            "description": "The imports of this kind; client imports when left out.",
+            "description": "The imports of this kind, or `all` of both; client imports when left out.",
             "name": "kind",
             "in": "query"
           },

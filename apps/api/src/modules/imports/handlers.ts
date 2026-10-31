@@ -434,7 +434,8 @@ export const createImport: RouteHandler<typeof createImportRoute, ApiEnv> = asyn
 export const listImports: RouteHandler<typeof listImportsRoute, ApiEnv> = async (c) => {
   const { clientId, kind = 'client', status = 'open' } = c.req.valid('query');
   const db = createDataClient(c);
-  const selected = db.from('imports').select(summaryColumns).eq('kind', kind);
+  const everyKind = db.from('imports').select(summaryColumns);
+  const selected = kind === 'all' ? everyKind : everyKind.eq('kind', kind);
   const query = (
     status === 'confirmed'
       ? selected
