@@ -92,6 +92,7 @@ describe('API routes', () => {
         membership: null,
         impersonation: null,
         subscription: null,
+        smsThisMonth: null,
       })
     );
     expect(response.headers.get('Set-Cookie')).toBeNull();
