@@ -4,7 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { clientId, importId, positions, workplaces } from '@/test/employee-import-fixture';
-import { billingResponse, bodyOf, fetchMock, mockApi, requestsTo } from '@/test/import-fixture';
+import {
+  bodyOf,
+  fetchMock,
+  meResponse,
+  meWithCredits,
+  mockApi,
+  requestsTo,
+} from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
 const client = {
@@ -77,18 +84,18 @@ function mockUpload({
   create = () => Response.json({ import: uploading }, { status: 201 }),
   addFound = () => Response.json({ files: [] }, { status: 201 }),
   abandon = () => Response.json({ import: { ...uploading, status: 'abandoned' } }),
-  billing = billingResponse(),
+  me = meResponse,
 }: {
   found?: () => ReturnType<typeof foundOf>;
   jobPositions?: unknown[];
   create?: Answer;
   addFound?: Answer;
   abandon?: Answer;
-  billing?: unknown;
+  me?: unknown;
 } = {}) {
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
-    if (url.pathname === '/billing') return Response.json(billing);
+    if (url.pathname === '/me') return Response.json(me);
     if (url.pathname === '/imports' && method === 'POST') return create();
     if (url.pathname === '/imports') return Response.json({ items: [] });
     if (url.pathname === `/imports/${importId}/found-sheets`) return addFound();
@@ -363,7 +370,7 @@ describe('the chosen photographs', () => {
 
 describe('the credits an employee import uses', () => {
   it('counts one for each photograph and says what is left', async () => {
-    mockUpload();
+    mockUpload({ me: meWithCredits() });
     const dialog = await openDialog('employees-import-found');
     await waitFor(() =>
       expect(within(dialog).getByTestId('import-credits-line').textContent).toBe(
@@ -373,7 +380,7 @@ describe('the credits an employee import uses', () => {
   });
 
   it('keeps the button off while the photographs need more than is left, until some come out', async () => {
-    mockUpload({ billing: billingResponse({ left: 1, giftLeft: 0, state: 'near' }) });
+    mockUpload({ me: meWithCredits({ left: 1, giftLeft: 0, state: 'near' }) });
     const dialog = await openDialog('employees-import-found');
 
     const short = await within(dialog).findByTestId('import-credits-short');

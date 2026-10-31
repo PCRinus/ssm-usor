@@ -5,9 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { uploadImportObject } from '@/features/imports/import-storage';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { overviewWith, trialSubscription } from '@/test/billing-fixture';
+import { summaryOf as subscriptionSummaryOf, trialSubscription } from '@/test/billing-fixture';
 import {
-  billingResponse,
   bodyOf,
   clientId,
   fetchMock,
@@ -15,6 +14,7 @@ import {
   importFile,
   importId,
   meResponse,
+  meWithCredits,
   mockApi,
   requestsTo,
   summaryOf,
@@ -54,12 +54,10 @@ const started = importDetail({ status: 'preparing', files: [importFile({ state: 
 function mockImportApi(
   listed: unknown[] = [],
   start: () => Response = () => Response.json({ import: summaryOf(started) }),
-  billing: unknown = billingResponse(),
   me: unknown = meResponse
 ) {
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
-    if (url.pathname === '/billing') return Response.json(billing);
     if (url.pathname === '/me') return Response.json(me);
     if (url.pathname === '/clients' && method === 'GET') {
       return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
@@ -543,7 +541,7 @@ const creditsLine = () =>
 
 describe('the credits an import uses', () => {
   it('says what the reading uses and what is left this month and of the gift', async () => {
-    mockImportApi();
+    mockImportApi([], undefined, meWithCredits());
     await openDialog();
 
     expect((await creditsLine()).textContent).toBe(
@@ -553,10 +551,14 @@ describe('the credits an import uses', () => {
   });
 
   it("names the trial's 300 and the welcome credits the first payment brings", async () => {
-    const trial = overviewWith({ subscription: trialSubscription() });
-    trial.usage.creditsThisMonth.left = 266;
-    trial.usage.creditsThisMonth.used = 34;
-    mockImportApi([], undefined, trial);
+    mockImportApi(
+      [],
+      undefined,
+      meWithCredits(
+        { used: 34, included: 300, allowance: 300, left: 266, giftLeft: 0, period: 'trial' },
+        subscriptionSummaryOf(trialSubscription())
+      )
+    );
     const dialog = await openDialog();
 
     expect((await creditsLine()).textContent).toBe(
@@ -568,7 +570,7 @@ describe('the credits an import uses', () => {
   });
 
   it('keeps the button off under 25 left, says when they renew and offers Abonament to the owner', async () => {
-    mockImportApi([], undefined, billingResponse({ left: 18, giftLeft: 0, state: 'near' }));
+    mockImportApi([], undefined, meWithCredits({ left: 18, giftLeft: 0, state: 'near' }));
     await openDialog();
     choose([word()]);
     await screen.findByTestId('import-chosen');
@@ -591,8 +593,8 @@ describe('the credits an import uses', () => {
   });
 
   it('shows no Abonament link to a member who is not the owner', async () => {
-    mockImportApi([], undefined, billingResponse({ left: 18, giftLeft: 0 }), {
-      ...meResponse,
+    mockImportApi([], undefined, {
+      ...meWithCredits({ left: 18, giftLeft: 0 }),
       membership: { ...meResponse.membership, role: 'specialist' },
     });
     await openDialog();
@@ -602,7 +604,7 @@ describe('the credits an import uses', () => {
   });
 
   it('says nothing is left, and only closes, when the credits are gone', async () => {
-    mockImportApi([], undefined, billingResponse({ left: 0, giftLeft: 0, state: 'out' }));
+    mockImportApi([], undefined, meWithCredits({ left: 0, giftLeft: 0, state: 'out' }));
     const dialog = await openDialog();
 
     const none = await screen.findByTestId('import-credits-none');

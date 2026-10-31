@@ -1,7 +1,7 @@
 import type { BillingCreditsUsage } from '@ssm-usor/contracts';
 import { vi } from 'vitest';
 
-import { activeSubscription, overviewWith } from './billing-fixture';
+import { activeSubscription, summaryOf as subscriptionSummaryOf } from './billing-fixture';
 
 export const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
 export const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
@@ -91,9 +91,13 @@ export const meResponse = {
   },
 };
 
-export const billingResponse = (credits: Partial<BillingCreditsUsage> = {}) => {
-  const overview = overviewWith({ subscription: activeSubscription({ interval: 'month' }) });
-  overview.usage.creditsThisMonth = {
+export const meWithCredits = (
+  credits: Partial<BillingCreditsUsage> = {},
+  subscription = subscriptionSummaryOf(activeSubscription({ interval: 'month' }))
+) => ({
+  ...meResponse,
+  subscription,
+  creditsThisMonth: {
     used: 230,
     included: 1500,
     allowance: 1500,
@@ -105,11 +109,10 @@ export const billingResponse = (credits: Partial<BillingCreditsUsage> = {}) => {
     period: 'month',
     periodStart: '2026-10-14T08:00:00.000Z',
     periodEnd: '2026-11-14T08:00:00.000Z',
-    state: 'ok',
+    state: 'ok' as BillingCreditsUsage['state'],
     ...credits,
-  };
-  return overview;
-};
+  },
+});
 
 export type Route = (
   init: RequestInit | undefined,
@@ -124,7 +127,6 @@ export function mockApi(route: Route) {
     const answer = route(init, url);
     if (answer) return answer;
     if (url.pathname === '/me') return Response.json(meResponse);
-    if (url.pathname === '/billing') return Response.json(billingResponse());
     throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url.pathname}`);
   });
 }

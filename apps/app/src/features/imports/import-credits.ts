@@ -1,9 +1,10 @@
 import {
   type BillingCreditsUsage,
-  type BillingOverview,
+  billingPlans,
   type CreditsShort,
   importCredits,
   type ImportKind,
+  type SubscriptionSummary,
 } from '@ssm-usor/contracts';
 
 import type { ImportCredits } from '@/api/generated/api';
@@ -33,8 +34,6 @@ export function startCreditsOf(kind: ImportKind, files: { photos: number; pages:
     : files.pages * importCredits.perPage;
 }
 
-type Subscription = BillingOverview['subscription'];
-
 export interface CreditsBalance {
   // The month's credits and the gift's together; below zero after a reading that found more
   // scanned pages than were left.
@@ -46,33 +45,41 @@ export interface CreditsBalance {
   hadGift: boolean;
 }
 
-/** Null when nothing limits the credits, or before the billing answers. */
-export function creditsBalance(overview: BillingOverview | undefined): CreditsBalance | null {
-  const usage = overview?.usage.creditsThisMonth;
-  if (!overview || !usage || usage.left === null || usage.state === 'unlimited') return null;
+type Account = {
+  subscription?: SubscriptionSummary | null;
+  creditsThisMonth?: BillingCreditsUsage | null;
+};
+
+/** Null when nothing limits the credits, or before the account answers. */
+export function creditsBalance(account: Account | undefined): CreditsBalance | null {
+  const usage = account?.creditsThisMonth;
+  if (!usage || usage.left === null || usage.state === 'unlimited') return null;
+  const subscription = account.subscription ?? null;
   return {
     available: usage.left + usage.giftLeft,
     usage,
-    renewal: renewalOf(usage, overview.subscription, overview.catalogue),
+    renewal: renewalOf(usage, subscription),
     trial: usage.period === 'trial',
-    hadGift: overview.subscription?.status !== 'trialing',
+    hadGift: subscription?.status !== 'trialing',
   };
 }
 
 function renewalOf(
   usage: BillingCreditsUsage,
-  subscription: Subscription,
-  catalogue: BillingOverview['catalogue']
+  subscription: SubscriptionSummary | null
 ): CreditsBalance['renewal'] {
-  if (!subscription || subscription.cancelsAt) return null;
+  if (!subscription) return null;
   if (usage.period === 'month') {
+    // A paid subscription with an end in sight is cancelled: its month does not come again.
+    if (subscription.status !== 'trialing' && subscription.accessUntil) return null;
     return { at: usage.periodEnd, monthly: usage.allowance ?? 0, gift: 0 };
   }
-  if (!subscription.planChosen) return null;
-  const plan = catalogue.plans.find((each) => each.key === subscription.plan);
-  return plan
-    ? { at: usage.periodEnd, monthly: plan.monthlyCredits, gift: usage.giftPending }
-    : null;
+  if (!subscription.planChosen || subscription.plan === 'enterprise') return null;
+  return {
+    at: usage.periodEnd,
+    monthly: billingPlans[subscription.plan].monthlyCredits,
+    gift: usage.giftPending,
+  };
 }
 
 export type CreditsRefusal =

@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   activeSubscription,
-  overviewWith,
+  summaryOf,
   trialChosenSubscription,
   trialSubscription,
 } from '@/test/billing-fixture';
-import { billingResponse } from '@/test/import-fixture';
+import { meWithCredits } from '@/test/import-fixture';
 
 import {
   creditsBalance,
@@ -21,19 +21,24 @@ import {
   usesSentence,
 } from './import-credits';
 
-const paid = (credits = {}) => creditsBalance(billingResponse(credits))!;
+const paid = (credits = {}) => creditsBalance(meWithCredits(credits))!;
 
-function trial(credits = {}, subscription = trialSubscription()) {
-  const overview = overviewWith({ subscription });
-  overview.usage.creditsThisMonth = {
-    ...overview.usage.creditsThisMonth,
-    used: 34,
-    left: 266,
-    periodEnd: '2026-11-08T08:00:00.000Z',
-    ...credits,
-  };
-  return creditsBalance(overview)!;
-}
+const trial = (credits = {}, subscription = trialSubscription()) =>
+  creditsBalance(
+    meWithCredits(
+      {
+        used: 34,
+        included: 300,
+        allowance: 300,
+        left: 266,
+        giftLeft: 0,
+        period: 'trial',
+        periodEnd: '2026-11-08T08:00:00.000Z',
+        ...credits,
+      },
+      summaryOf(subscription)
+    )
+  )!;
 
 describe('counting credits in Romanian', () => {
   it('writes "de" from twenty on and groups thousands', () => {
@@ -91,7 +96,7 @@ describe('what is left before it starts', () => {
   });
 
   it('leaves the line out when nothing limits the credits', () => {
-    expect(creditsBalance(billingResponse({ left: null, state: 'unlimited' }))).toBeNull();
+    expect(creditsBalance(meWithCredits({ left: null, state: 'unlimited' }))).toBeNull();
     expect(creditsBalance(undefined)).toBeNull();
   });
 });
@@ -161,9 +166,10 @@ describe('refusing an import the credits do not cover', () => {
   });
 
   it('renews nothing on a subscription that is ending', () => {
-    const overview = billingResponse({ left: 0, giftLeft: 0 });
-    overview.subscription = activeSubscription({ cancelsAt: '2026-11-14T08:00:00.000Z' });
-    expect(creditsBalance(overview)!.renewal).toBeNull();
+    const ending = summaryOf(
+      activeSubscription({ interval: 'month', accessUntil: '2026-11-14T08:00:00.000Z' })
+    );
+    expect(creditsBalance(meWithCredits({ left: 0, giftLeft: 0 }, ending))!.renewal).toBeNull();
   });
 });
 

@@ -4,12 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import {
-  billingResponse,
   bodyOf,
   clientId,
   fetchMock,
   importFile,
   importId,
+  meWithCredits,
   mockApi,
   proposalFixture,
   readyDetail,
@@ -49,13 +49,13 @@ function mockReview(
   {
     save,
     confirm,
-    billing,
-  }: { save?: (body: unknown) => Response; confirm?: () => Response; billing?: unknown } = {}
+    me,
+  }: { save?: (body: unknown) => Response; confirm?: () => Response; me?: unknown } = {}
 ) {
   saves = 0;
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
-    if (url.pathname === '/billing' && billing) return Response.json(billing);
+    if (url.pathname === '/me' && me) return Response.json(me);
     if (url.pathname === `/imports/${importId}` && method === 'GET') {
       return Response.json({ import: detail });
     }
@@ -1461,7 +1461,7 @@ describe('the credits the import used', () => {
 
   it('says how far below zero the balance went and that it comes off next month', async () => {
     mockReview(readyDetail({ blockers: [], credits }), {
-      billing: billingResponse({ left: -4, giftLeft: 0, state: 'negative' }),
+      me: meWithCredits({ left: -4, giftLeft: 0, state: 'negative' }),
     });
     mount();
 
