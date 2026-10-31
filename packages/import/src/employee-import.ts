@@ -32,6 +32,7 @@ import {
 import { foldText, sameName } from './match';
 import { sheetDate, type SheetPage, type SheetPageKind, type SheetRow } from './sheet-page';
 import { compactCnp, placePages } from './sheet-people';
+import { allCapitals, sentenceCase } from './spelling';
 
 export interface SheetPageInput {
   id: string;
@@ -105,11 +106,34 @@ type FieldValue = string | number;
 const nonAscii = (value: FieldValue) =>
   typeof value === 'number' ? 0 : (value.match(/[^\p{ASCII}]/gu)?.length ?? 0);
 
-const sameValue = (a: FieldValue, b: FieldValue) =>
-  typeof a === 'number' || typeof b === 'number' ? a === b : foldText(a) === foldText(b);
+const placeLabels =
+  /^(?:loc|localitatea|mun|municipiul|oras|orasul|com|comuna|jud|judetul|str|strada) /;
 
-function addOption(field: PersonField<FieldValue>, value: FieldValue, pageId: string) {
-  const known = field.options.find((option) => sameValue(option.value, value));
+// The cover and the commute declaration write one address in another order ("Loc. Dumbrăvița,
+// jud. Timiș, str. Florilor, nr. 12" and "str. Florilor, nr. 12, Dumbrăvița, Timiș"): the same
+// parts between commas are the same address. A part keeps its own label and number, so "bl. 3,
+// ap. 5" is never "bl. 5, ap. 3".
+const addressParts = (value: string) =>
+  value
+    .split(/[,;]/)
+    .map((part) => `${foldText(part)} `.replace(placeLabels, '').trim())
+    .filter((part) => part !== '')
+    .sort()
+    .join('|');
+
+const sameValue = (name: EmployeeImportFieldName, a: FieldValue, b: FieldValue) =>
+  typeof a === 'number' || typeof b === 'number'
+    ? a === b
+    : foldText(a) === foldText(b) ||
+      (name === 'homeAddress' && addressParts(a) === addressParts(b));
+
+function addOption(
+  name: EmployeeImportFieldName,
+  field: PersonField<FieldValue>,
+  value: FieldValue,
+  pageId: string
+) {
+  const known = field.options.find((option) => sameValue(name, option.value, value));
   if (!known) {
     field.options.push({ value, pageIds: [pageId] });
     return;
@@ -122,6 +146,16 @@ const text = (value: string | null) => {
   const trimmed = value?.trim() ?? '';
   return trimmed === '' ? null : trimmed;
 };
+
+// A post read as "SUDOR" or "sudor" would be added to the client as written.
+const titled = (value: string | null) => {
+  const cleaned = text(value);
+  if (cleaned === null) return null;
+  const cased = allCapitals(cleaned) ? sentenceCase(cleaned) : cleaned;
+  return cased.charAt(0).toLocaleUpperCase('ro') + cased.slice(1);
+};
+
+const titledFields = new Set<EmployeeImportFieldName>(['jobTitle', 'qualification', 'workplace']);
 
 const emptyFields = () =>
   Object.fromEntries(
@@ -154,7 +188,7 @@ function personFields(pages: readonly ReadPage[], today: string) {
       if (value === null) continue;
       if (typeof value === 'number') {
         if (name === 'commuteMinutes' && Number.isInteger(value) && value >= 1 && value <= 600) {
-          addOption(fields[name], value, input.id);
+          addOption(name, fields[name], value, input.id);
         }
         continue;
       }
@@ -167,12 +201,13 @@ function personFields(pages: readonly ReadPage[], today: string) {
         ) {
           flags.push({ code: 'month_only', field: name });
         }
-        addOption(fields[name], date.date, input.id);
+        addOption(name, fields[name], date.date, input.id);
         continue;
       }
-      const cleaned = text(value);
+      const cleaned = titledFields.has(name) ? titled(value) : text(value);
       if (cleaned === null) continue;
       addOption(
+        name,
         fields[name],
         name === 'cnp' ? (compactCnp(cleaned) ?? cleaned) : cleaned,
         input.id
@@ -183,8 +218,8 @@ function personFields(pages: readonly ReadPage[], today: string) {
     const { bloodGroup, rhFactor } = reading.fields;
     if (text(bloodGroup) === null && text(rhFactor) === null) continue;
     const parsed = parseBloodType(bloodGroup, rhFactor);
-    if (parsed.group) addOption(fields.bloodGroup, parsed.group, input.id);
-    if (parsed.rh) addOption(fields.rhFactor, parsed.rh, input.id);
+    if (parsed.group) addOption('bloodGroup', fields.bloodGroup, parsed.group, input.id);
+    if (parsed.rh) addOption('rhFactor', fields.rhFactor, parsed.rh, input.id);
     if (text(bloodGroup) !== null && parsed.group === null) {
       flags.push({ code: 'blood_group_not_read', detail: bloodGroup!.trim() });
     }
@@ -270,9 +305,9 @@ function readRow(
     durationMinutes:
       row.durationMinutes !== null && row.durationMinutes > 0 ? row.durationMinutes : null,
     trainerName: text(row.trainerName),
-    trainerJobTitle: text(row.trainerJobTitle),
+    trainerJobTitle: titled(row.trainerJobTitle),
     verifierName: text(row.verifierName),
-    verifierJobTitle: text(row.verifierJobTitle),
+    verifierJobTitle: titled(row.verifierJobTitle),
     material: text(row.material),
     supplementaryReason: row.phase === 'supplementary' ? row.supplementaryReason : null,
     signatures: {
@@ -294,7 +329,11 @@ function readRow(
   if (proposed.phase === 'workplace' && (pageIsOf === null || pageIsOf === row.domain)) {
     const admission = page.reading.admission;
     const admittedOn = sheetDate(admission.admittedOn, builder.today)?.date ?? null;
-    const parts = [admittedOn, text(admission.admittedByName), text(admission.admittedByJobTitle)];
+    const parts = [
+      admittedOn,
+      text(admission.admittedByName),
+      titled(admission.admittedByJobTitle),
+    ];
     if (parts.some((part) => part !== null)) {
       proposed.admission = {
         admittedOn: parts[0]!,

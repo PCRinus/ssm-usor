@@ -234,6 +234,75 @@ describe('toEmployeeProposal', () => {
     expect(rusu.fields.rhFactor.options[0]!.value).toBe('-');
   });
 
+  it('writes a post, a workplace and a job title in sentence case, however the sheet capitalizes', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'ssm_sheet_front',
+          person: { lastName: 'Ionescu', firstName: 'Mihai' },
+          fields: {
+            jobTitle: 'SUDOR',
+            workplace: 'ATELIER, BENEFICIARI',
+            qualification: 'lăcătuș',
+          },
+          admission: { admittedOn: '2026-06-05', admittedByJobTitle: 'conducător loc muncă' },
+          trainings: [
+            row({ phase: 'workplace', heldOn: '2026-06-05', trainerJobTitle: 'șef echipă' }),
+          ],
+        })
+      ),
+      client,
+      themes,
+      today,
+    });
+    const [person] = proposal.people;
+    const [workplace] = proposal.pages[0]!.rows;
+
+    expect(person!.fields.jobTitle.options[0]!.value).toBe('Sudor');
+    expect(person!.fields.workplace.options[0]!.value).toBe('Atelier, beneficiari');
+    expect(person!.fields.qualification.options[0]!.value).toBe('Lăcătuș');
+    expect(proposal.jobTitles.map((group) => group.title)).toEqual(['Sudor']);
+    expect(workplace).toMatchObject({
+      trainerJobTitle: 'Șef echipă',
+      admission: { admittedByJobTitle: 'Conducător loc muncă' },
+    });
+  });
+
+  it('takes one address written in another order for the same, but not another flat', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'ssm_sheet_front',
+          person: { lastName: 'Marin', firstName: 'Ioana' },
+          fields: {
+            homeAddress: 'Loc. Dumbrăvița, jud. Timiș, str. Florilor, nr. 12, bl. 3, ap. 5',
+          },
+        }),
+        page({
+          pageKind: 'commute_declaration',
+          person: { lastName: 'Marin', firstName: 'Ioana' },
+          fields: { homeAddress: 'Str. Florilor, nr. 12, bl. 3, ap. 5, Dumbrăvița, Timis' },
+        }),
+        page({
+          pageKind: 'psi_sheet_front',
+          person: { lastName: 'Marin', firstName: 'Ioana' },
+          fields: { homeAddress: 'Str. Florilor, nr. 12, bl. 5, ap. 3, Dumbrăvița, Timiș' },
+        })
+      ),
+      client,
+      themes,
+      today,
+    });
+
+    expect(proposal.people[0]!.fields.homeAddress.options).toEqual([
+      {
+        value: 'Loc. Dumbrăvița, jud. Timiș, str. Florilor, nr. 12, bl. 3, ap. 5',
+        pageIds: ['page-1', 'page-2'],
+      },
+      { value: 'Str. Florilor, nr. 12, bl. 5, ap. 3, Dumbrăvița, Timiș', pageIds: ['page-3'] },
+    ]);
+  });
+
   it('groups a name written surname last with the same person, matched once', () => {
     const proposal = toEmployeeProposal({
       pages: pagesOf(
