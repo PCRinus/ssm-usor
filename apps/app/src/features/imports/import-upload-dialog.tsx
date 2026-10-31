@@ -461,10 +461,12 @@ function ChosenList({
   const totals = selectionTotals(selection);
   const rows = selectionRows(selection.files);
   return (
+    // Clip, not hidden: a hidden card is a scroll container, so the dialog body's grid squeezes
+    // it below its content and cuts off the list instead of letting the body scroll.
     <section
       aria-labelledby="import-chosen-heading"
       data-testid="import-chosen"
-      className="overflow-hidden rounded-lg border"
+      className="overflow-clip rounded-lg border"
     >
       <div className="flex justify-between gap-3 border-b bg-muted/40 px-3 py-2.5 text-sm">
         <span id="import-chosen-heading" className="font-medium">

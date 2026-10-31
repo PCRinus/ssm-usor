@@ -564,10 +564,12 @@ function ChosenPhotos({
     ),
   ];
   return (
+    // Clip, not hidden: a hidden card is a scroll container, so the dialog body's grid squeezes
+    // it below its content and cuts off the photos instead of letting the body scroll.
     <section
       aria-labelledby="employee-upload-chosen"
       data-testid="employee-upload-chosen"
-      className="overflow-hidden rounded-lg border"
+      className="overflow-clip rounded-lg border"
     >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/40 px-3 py-2.5 text-sm">
         <span className="grid">
