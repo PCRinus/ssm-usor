@@ -85,11 +85,23 @@ describe('rowFlags', () => {
     }
   });
 
-  it('flags a fire-safety training under a quarter of an hour, which no act sets a floor for', () => {
-    const psi = { ...base, domain: 'psi' as const, phase: 'workplace' as const };
+  it('flags a fire-safety training under the hours of O.M.A.I. 712/2005', () => {
+    const psi = { ...base, domain: 'psi' as const };
 
-    expect(rowFlags({ ...psi, durationMinutes: 8 }, context)).toEqual(['unusual_duration']);
-    expect(rowFlags({ ...psi, durationMinutes: 30 }, context)).toEqual([]);
+    for (const phase of ['introductory_general', 'workplace'] as const) {
+      expect(rowFlags({ ...psi, phase, durationMinutes: 240 }, context)).toEqual([
+        'unusual_duration',
+      ]);
+      expect(rowFlags({ ...psi, phase, durationMinutes: 480 }, context)).toEqual([]);
+    }
+    expect(rowFlags({ ...psi, phase: 'periodic', durationMinutes: 60 }, context)).toEqual([
+      'unusual_duration',
+    ]);
+    expect(rowFlags({ ...psi, phase: 'periodic', durationMinutes: 120 }, context)).toEqual([]);
+    expect(rowFlags({ ...psi, phase: 'supplementary', durationMinutes: 8 }, context)).toEqual([
+      'unusual_duration',
+    ]);
+    expect(rowFlags({ ...psi, phase: 'supplementary', durationMinutes: 30 }, context)).toEqual([]);
   });
 
   it('flags a date before the hire date or after today, but not a hiring training', () => {

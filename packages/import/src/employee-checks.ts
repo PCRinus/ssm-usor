@@ -117,18 +117,25 @@ export interface RowCheckContext {
 
 const hiringPhases = new Set(['introductory_general', 'workplace']);
 
-// H.G. 1425/2006 art. 80¹ gives every occupational safety phase at least an hour. No act sets one
-// for fire safety, where a quarter of an hour still catches "8 ore" read as eight minutes.
-const shortestMinutes: Record<ProposedSheetRow['domain'], number> = { ssm: 60, psi: 15 };
+// H.G. 1425/2006 art. 80¹ gives every occupational safety phase at least an hour. O.M.A.I. 712/2005
+// gives the fire-safety hiring phases eight hours (art. 13 and 18) and a periodic training two
+// (art. 21); a quarter of an hour still catches "8 ore" read as eight minutes on the rest.
+const shortestFireMinutes: Record<ProposedSheetRow['phase'], number> = {
+  introductory_general: 480,
+  workplace: 480,
+  periodic: 120,
+  supplementary: 15,
+};
 
 function unusualDuration(
   row: Pick<ProposedSheetRow, 'domain' | 'phase' | 'durationMinutes' | 'testOnly'>
 ) {
   if (row.testOnly || row.durationMinutes === null) return false;
+  if (row.domain === 'psi') return row.durationMinutes < shortestFireMinutes[row.phase];
   if (row.phase === 'periodic') {
     return !(periodicTrainingMinutesOptions as readonly number[]).includes(row.durationMinutes);
   }
-  return row.durationMinutes < shortestMinutes[row.domain];
+  return row.durationMinutes < 60;
 }
 
 export function rowFlags(
