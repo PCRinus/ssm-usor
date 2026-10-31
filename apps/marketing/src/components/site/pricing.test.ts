@@ -67,6 +67,11 @@ describe('the published prices match the plan catalogue Stripe is set up from', 
       `${start.monthlySms}, apoi ${sms} fiecare`,
       `${profesional.monthlySms}, apoi ${sms} fiecare`,
     ]);
+    const grouped = (value: number) => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    expect(cells('Credite pentru importul din documente și fișe')).toEqual([
+      `${grouped(start.monthlyCredits)} pe lună + ${grouped(start.welcomeCredits)} la prima plată`,
+      `${grouped(profesional.monthlyCredits)} pe lună + ${grouped(profesional.welcomeCredits)} la prima plată`,
+    ]);
     expect(cells('Angajați la clienții tăi')).toEqual([
       `Până la ${start.includedEmployees.toLocaleString('ro-RO')}`,
       `Până la ${profesional.includedEmployees.toLocaleString('ro-RO')}`,
