@@ -178,7 +178,9 @@ can create users and "send" email and codes without touching production. No depl
 
 Browser tests run in their own job, **Verify deployed SPA**, after the SPA deployment has
 finished and been reported, and remain advisory. They run against the environment just
-deployed with a real account of its own (`E2E_EMAIL`, `E2E_PASSWORD`), so they stay small; flows that create users or send email are tested against a
+deployed with a real account of its own (`E2E_EMAIL`), so they stay small. The login form needs a
+Turnstile token that a browser on a runner is not given, so the account's session comes from a
+magic link the Auth Admin API makes with `SUPABASE_SECRET_KEY`, which only that step receives; flows that create users or send email are tested against a
 local stack on pull requests instead. The job caches the Chromium download by Playwright
 version and installs only its system packages on a cache hit. API smoke-test failures block
 an accompanying SPA release. The portal has the same pair of jobs, **Deploy portal** and

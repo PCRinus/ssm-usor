@@ -572,11 +572,19 @@ export async function putBehindItsTemplate(clientId: string, typeKey: string) {
   return generatedFrom.data.version;
 }
 
+// Turnstile's dummy token, the only one the local stack's test secret accepts
+// (supabase/config.toml).
+const captchaToken = 'XXXX.DUMMY.TOKEN.XXXX';
+
 async function sessionOf(email: string, withPassword = password) {
   const client = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABASE_SECRET_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data, error } = await client.auth.signInWithPassword({ email, password: withPassword });
+  const { data, error } = await client.auth.signInWithPassword({
+    email,
+    password: withPassword,
+    options: { captchaToken },
+  });
   if (error) throw error;
   return data.session;
 }

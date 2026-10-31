@@ -10,6 +10,7 @@ import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useAuth } from '@/features/auth/auth-context';
 import { forgotPasswordErrorMessage } from '@/features/auth/auth-errors';
+import { useCaptcha } from '@/features/auth/captcha';
 import { forgotPasswordSchema, type ForgotPasswordValues } from '@/features/auth/password-schema';
 
 export const Route = createFileRoute('/forgot-password')({
@@ -24,6 +25,7 @@ export const Route = createFileRoute('/forgot-password')({
 
 function ForgotPasswordPage() {
   const { auth } = useAuth();
+  const { ref: captchaRef, withToken } = useCaptcha();
   const [sentTo, setSentTo] = useState<string | null>(null);
   const form = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -34,7 +36,7 @@ function ForgotPasswordPage() {
 
   const onSubmit = form.handleSubmit(async ({ email }) => {
     try {
-      await auth.requestPasswordReset(email);
+      await withToken((token) => auth.requestPasswordReset(email, token));
       setSentTo(email);
     } catch (cause) {
       form.setError('root.auth', { message: forgotPasswordErrorMessage(cause) });
@@ -91,6 +93,7 @@ function ForgotPasswordPage() {
             {...form.register('email')}
           />
         </Field>
+        <div ref={captchaRef} />
         {errors.root?.auth && (
           <Notice variant="destructive" data-testid="forgot-error">
             {errors.root.auth.message}

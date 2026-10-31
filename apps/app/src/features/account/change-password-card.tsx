@@ -11,6 +11,7 @@ import { PasswordInput } from '@/components/password-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useAuth } from '@/features/auth/auth-context';
 import { newPasswordErrorMessage } from '@/features/auth/auth-errors';
+import { useCaptcha } from '@/features/auth/captcha';
 import {
   changePasswordSchema,
   type ChangePasswordValues,
@@ -24,6 +25,7 @@ const codeOf = (error: unknown) =>
 // the account.
 export function ChangePasswordCard({ email }: { email: string }) {
   const { auth, session } = useAuth();
+  const { ref: captchaRef, withToken } = useCaptcha();
   // An account made with Google has no password, so it cannot pass the check below; the reset
   // email sets a first one. Supabase does not say whether one was set since, so the offer stays.
   const madeWithGoogle = !(session?.user.app_metadata.providers ?? ['email']).includes('email');
@@ -37,7 +39,7 @@ export function ChangePasswordCard({ email }: { email: string }) {
 
   const onSubmit = form.handleSubmit(async ({ currentPassword, newPassword }) => {
     try {
-      await auth.changePassword(email, currentPassword, newPassword);
+      await withToken((token) => auth.changePassword(email, currentPassword, newPassword, token));
       form.reset();
       toast.success('Parola a fost schimbată.');
     } catch (cause) {
@@ -52,7 +54,7 @@ export function ChangePasswordCard({ email }: { email: string }) {
   async function sendSetPasswordLink() {
     setLinkState('sending');
     try {
-      await auth.requestPasswordReset(email);
+      await withToken((token) => auth.requestPasswordReset(email, token));
       setLinkState('sent');
     } catch {
       setLinkState('idle');
@@ -126,6 +128,7 @@ export function ChangePasswordCard({ email }: { email: string }) {
               {...form.register('newPassword')}
             />
           </Field>
+          <div ref={captchaRef} />
           <div>
             <Button type="submit" data-testid="change-password-save" disabled={isSubmitting}>
               {isSubmitting ? 'Se schimbă…' : 'Schimbă parola'}

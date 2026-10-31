@@ -98,6 +98,8 @@ export default defineConfig({
         VITE_API_URL: apiUrl,
         VITE_SUPABASE_URL: supabase.url,
         VITE_SUPABASE_PUBLISHABLE_KEY: supabase.publishableKey,
+        // Cloudflare's test key, which always passes, for the local stack's test secret.
+        VITE_TURNSTILE_SITE_KEY: '1x00000000000000000000AA',
       },
     },
   ],

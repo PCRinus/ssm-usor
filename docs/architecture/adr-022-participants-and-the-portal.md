@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-10-17
+- Amended 2026-10-31: CAPTCHA is on for the portal's code requests; see the amendment below.
 
 ## Context
 
@@ -109,4 +110,8 @@ A participant whose employee is terminated keeps the portal: the records stay, a
 1. Both channels are offered and neither is proposed first; the member picks when the employee has both.
 2. A terminated employee keeps the portal until a member revokes them.
 3. Invitations expire after 30 days, a resend renews them.
-4. CAPTCHA stays off on the auth endpoints, with the SMS cap as the bound.
+4. CAPTCHA stays off on the auth endpoints, with the SMS cap as the bound. (Changed 2026-10-31; see the amendment below.)
+
+## Amendment (2026-10-31): CAPTCHA on the code requests
+
+Default 4 kept CAPTCHA off because it would also gate the app's password sign-in and registration. Registration is now to be made public, and [ADR 004](adr-004-registration-and-onboarding.md) requires a CAPTCHA before it is, so Supabase's CAPTCHA is on for every auth call it gates (see ADR 004's amendment of the same day). For the portal that is the request for a code, by email or SMS, and a resend; entering the code is not gated. The page renders the Turnstile widget invisibly and shows it only when Turnstile wants a click. The SMS cap stays as the bound on spend; the CAPTCHA now also stands between a script and that cap. A refused token is the one refusal the page names, since it says nothing about whether the address is known.

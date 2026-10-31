@@ -27,7 +27,7 @@ export const Route = createFileRoute('/login')({
 
 function LoginPage() {
   const { invitation } = Route.useSearch();
-  const { form, onSubmit } = useLoginForm(invitation);
+  const { form, onSubmit, captchaRef } = useLoginForm(invitation);
   const formRef = useRevealErrors(form);
   const { errors, isSubmitting } = form.formState;
 
@@ -121,6 +121,7 @@ function LoginPage() {
             </p>
           )}
         </div>
+        <div ref={captchaRef} />
         {errors.root?.auth && (
           <Notice variant="destructive" id="login-error" data-testid="login-auth-error">
             {errors.root.auth.message}

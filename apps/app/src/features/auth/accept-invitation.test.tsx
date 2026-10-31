@@ -120,6 +120,7 @@ describe('accept invitation: a person without an account', () => {
     expect(auth.client.signInWithPassword).toHaveBeenCalledWith({
       email: 'ion@example.test',
       password: 'Parola123',
+      options: { captchaToken: 'turnstile-token-1' },
     });
   });
 

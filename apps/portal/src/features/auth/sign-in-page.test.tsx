@@ -46,7 +46,7 @@ describe('signing in with a code', () => {
     expect(screen.getByTestId('sign-in-code-target').textContent).toBe('ana@example.ro');
     expect(client.signInWithOtp).toHaveBeenCalledWith({
       email: 'ana@example.ro',
-      options: { shouldCreateUser: false },
+      options: { shouldCreateUser: false, captchaToken: 'turnstile-token-1' },
     });
   });
 
@@ -57,7 +57,7 @@ describe('signing in with a code', () => {
     expect((await screen.findByTestId('sign-in-code-target')).textContent).toBe('+40721234567');
     expect(client.signInWithOtp).toHaveBeenCalledWith({
       phone: '+40721234567',
-      options: { shouldCreateUser: false },
+      options: { shouldCreateUser: false, captchaToken: 'turnstile-token-1' },
     });
   });
 
@@ -68,7 +68,7 @@ describe('signing in with a code', () => {
     expect(await screen.findByTestId('sign-in-code-sent')).toBeTruthy();
     expect(client.signInWithOtp).toHaveBeenCalledWith({
       phone: '+37369123456',
-      options: { shouldCreateUser: false },
+      options: { shouldCreateUser: false, captchaToken: 'turnstile-token-1' },
     });
   });
 
@@ -108,6 +108,23 @@ describe('signing in with a code', () => {
     expect(screen.queryByTestId('sign-in-code')).toBeNull();
   });
 
+  it('says the security check failed when Supabase refuses the Turnstile token', async () => {
+    const client = fakeAuthClient();
+    client.signInWithOtp.mockResolvedValue({
+      error: {
+        message: 'captcha protection: request disallowed',
+        code: 'captcha_failed',
+        status: 400,
+      },
+    } as never);
+    await requestCode(client, 'ana@example.ro');
+
+    expect((await screen.findByTestId('sign-in-address-error')).textContent).toContain(
+      'Verificarea de securitate nu a reușit'
+    );
+    expect(screen.queryByTestId('sign-in-code')).toBeNull();
+  });
+
   it('refuses an address that is neither an email nor a phone number', async () => {
     const client = fakeAuthClient();
     await requestCode(client, '12');
@@ -130,6 +147,11 @@ describe('signing in with a code', () => {
 
     await person.click(resend);
     expect(client.signInWithOtp).toHaveBeenCalledTimes(2);
+    const [first, second] = client.signInWithOtp.mock.calls.map(
+      ([call]) => call.options.captchaToken
+    );
+    expect(second).toMatch(/^turnstile-token-/);
+    expect(second).not.toBe(first);
     expect(await screen.findByTestId('sign-in-code-resent')).toBeTruthy();
     expect(screen.getByTestId('sign-in-resend').textContent).toBe('Trimite alt cod în 60 s');
   });

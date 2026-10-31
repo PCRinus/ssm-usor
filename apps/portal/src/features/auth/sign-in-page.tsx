@@ -5,7 +5,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { useNavigate } from '@tanstack/react-router';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { type FormEvent, type Ref, useEffect, useRef, useState } from 'react';
 
 import { PublicFrame } from '@/app/public-frame';
 import { CodeInput } from '@/components/code-input';
@@ -13,7 +13,8 @@ import { Notice } from '@/components/notice';
 import { deviceLocale, useActiveLocale } from '@/features/language/locale';
 
 import { useAuth } from './auth-context';
-import type { CodeVerificationResult, SignInAddress } from './auth-store';
+import type { CodeRequestResult, CodeVerificationResult, SignInAddress } from './auth-store';
+import { useCaptcha } from './captcha';
 import { parseSignInAddress } from './sign-in-address';
 
 // Supabase sends one code per address per minute and refuses a second request before.
@@ -21,6 +22,11 @@ const resendDelayMs = 60_000;
 const codeLength = { min: 6, max: 8 };
 
 const unreachableMessage = msg`Cererea nu a putut fi trimisă. Verifică conexiunea la internet și încearcă din nou.`;
+
+const requestFailures: Record<Exclude<CodeRequestResult, 'requested'>, MessageDescriptor> = {
+  unreachable: unreachableMessage,
+  'challenge-failed': msg`Verificarea de securitate nu a reușit. Reîncarcă pagina și încearcă din nou.`,
+};
 
 type Target = { address: SignInAddress; shown: string };
 
@@ -48,6 +54,7 @@ export function SignInPage() {
   const { t, i18n } = useLingui();
   const { auth } = useAuth();
   const navigate = useNavigate();
+  const { ref: captchaRef, withToken } = useCaptcha();
   const [input, setInput] = useState('');
   const [target, setTarget] = useState<Target | null>(null);
   const [addressError, setAddressError] = useState<MessageDescriptor | null>(null);
@@ -57,11 +64,11 @@ export function SignInPage() {
 
   async function request(next: Target) {
     setRequesting(true);
-    const result = await auth.requestCode(next.address);
+    const result = await withToken((token) => auth.requestCode(next.address, token));
     setRequesting(false);
-    if (result === 'unreachable') return false;
+    if (result !== 'requested') return requestFailures[result];
     restartCountdown();
-    return true;
+    return null;
   }
 
   async function submitAddress(event: FormEvent<HTMLFormElement>) {
@@ -78,8 +85,9 @@ export function SignInPage() {
     }
     setAddressError(null);
     const next = { address: parsed.address, shown: parsed.shown };
-    if (await request(next)) setTarget(next);
-    else setAddressError(unreachableMessage);
+    const failure = await request(next);
+    if (failure) setAddressError(failure);
+    else setTarget(next);
   }
 
   if (target) {
@@ -105,6 +113,7 @@ export function SignInPage() {
           key={target.shown}
           secondsLeft={secondsLeft}
           requesting={requesting}
+          captchaRef={captchaRef}
           onResend={() => request(target)}
           onChangeAddress={() => {
             setTarget(null);
@@ -156,6 +165,7 @@ export function SignInPage() {
             </p>
           )}
         </div>
+        <div ref={captchaRef} />
         <Button
           type="submit"
           data-testid="sign-in-request"
@@ -172,6 +182,7 @@ export function SignInPage() {
 function CodeStep({
   secondsLeft,
   requesting,
+  captchaRef,
   onResend,
   onChangeAddress,
   onVerify,
@@ -179,7 +190,8 @@ function CodeStep({
 }: {
   secondsLeft: number;
   requesting: boolean;
-  onResend: () => Promise<boolean>;
+  captchaRef: Ref<HTMLDivElement>;
+  onResend: () => Promise<MessageDescriptor | null>;
   onChangeAddress: () => void;
   onVerify: (code: string) => Promise<CodeVerificationResult>;
   onSignedIn: () => Promise<void>;
@@ -220,12 +232,13 @@ function CodeStep({
   async function resend() {
     setResent(false);
     setError(null);
-    if (await onResend()) {
+    const failure = await onResend();
+    if (failure) {
+      setError(failure);
+    } else {
       setCode('');
       setResent(true);
       codeInput.current?.focus();
-    } else {
-      setError(unreachableMessage);
     }
   }
 
@@ -279,6 +292,7 @@ function CodeStep({
           <Trans>Am cerut un cod nou. Folosește-l pe cel mai recent.</Trans>
         </Notice>
       )}
+      <div ref={captchaRef} />
       <div className="grid gap-1">
         <Button
           type="button"

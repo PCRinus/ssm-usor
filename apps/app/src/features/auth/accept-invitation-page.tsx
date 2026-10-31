@@ -30,6 +30,7 @@ import {
   type JoinValues,
 } from './accept-schema';
 import { useAuth } from './auth-context';
+import { useCaptcha } from './captcha';
 import { newPasswordHint } from './password-schema';
 
 const invitationRoute = getRouteApi('/accept-invitation');
@@ -231,6 +232,7 @@ interface AcceptFormProps {
 function CreateAccountForm({ token, invitation, description }: AcceptFormProps) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const { auth } = useAuth();
+  const { ref: captchaRef, withToken } = useCaptcha();
   const navigate = useNavigate();
   const accept = useAcceptInvitation({ request: apiRequest });
   const form = useForm<CreateAccountValues>({
@@ -257,7 +259,7 @@ function CreateAccountForm({ token, invitation, description }: AcceptFormProps) 
       return;
     }
     try {
-      await auth.signIn(invitation.email, password);
+      await withToken((token) => auth.signIn(invitation.email, password, token));
       await navigate({ to: '/dashboard', replace: true });
     } catch {
       // The account exists; only the automatic sign-in failed.
@@ -317,6 +319,7 @@ function CreateAccountForm({ token, invitation, description }: AcceptFormProps) 
             {...form.register('password')}
           />
         </Field>
+        <div ref={captchaRef} />
         <FormError message={errors.root?.server?.message} />
         <PublicFrameAction data-testid="accept-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Se creează contul…' : 'Creează contul și acceptă'}

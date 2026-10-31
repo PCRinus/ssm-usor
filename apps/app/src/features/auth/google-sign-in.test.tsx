@@ -203,7 +203,9 @@ describe('password card for an account made with Google', () => {
     await user.click(await screen.findByTestId('set-password-send'));
 
     expect(await screen.findByTestId('set-password-sent')).toBeTruthy();
-    expect(auth.client.resetPasswordForEmail).toHaveBeenCalledWith('review@example.test');
+    expect(auth.client.resetPasswordForEmail).toHaveBeenCalledWith('review@example.test', {
+      captchaToken: 'turnstile-token-1',
+    });
   });
 
   it('is not offered to an account with a password', async () => {

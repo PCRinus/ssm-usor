@@ -3,6 +3,9 @@ import type { QueryClient } from '@tanstack/react-query';
 
 type AuthError = { message: string; code?: string };
 
+// Supabase Auth refuses a gated call without a Turnstile token once CAPTCHA is on (ADR 004).
+type CaptchaOptions = { captchaToken?: string };
+
 // A small SDK boundary keeps session behavior testable without network requests.
 export interface AuthClient {
   getSession(): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
@@ -12,10 +15,14 @@ export interface AuthClient {
   signInWithPassword(credentials: {
     email: string;
     password: string;
+    options: CaptchaOptions;
   }): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
   signOut(options: { scope: 'local' | 'others' }): Promise<{ error: AuthError | null }>;
-  resetPasswordForEmail(email: string): Promise<{ error: AuthError | null }>;
-  signUp(credentials: { email: string; password: string }): Promise<{
+  resetPasswordForEmail(
+    email: string,
+    options: CaptchaOptions
+  ): Promise<{ error: AuthError | null }>;
+  signUp(credentials: { email: string; password: string; options: CaptchaOptions }): Promise<{
     data: { session: Session | null; user: { id: string } | null };
     error: AuthError | null;
   }>;
@@ -113,10 +120,14 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
         listeners.delete(listener);
       };
     },
-    async signIn(email: string, password: string) {
+    async signIn(email: string, password: string, captchaToken?: string) {
       if (!client) throw new Error('Authentication is not configured.');
       await ready;
-      const { data, error } = await client.signInWithPassword({ email, password });
+      const { data, error } = await client.signInWithPassword({
+        email,
+        password,
+        options: { captchaToken },
+      });
       if (error) throw error;
       if (!data.session) throw new Error('No session was returned.');
       publish(data.session);
@@ -130,9 +141,9 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
     // Supabase answers the same for an address that already has an account, and sends the
     // confirmation email through the API's hook. A session comes back only where
     // confirmations are off.
-    async signUp(email: string, password: string) {
+    async signUp(email: string, password: string, captchaToken?: string) {
       if (!client) throw new Error('Authentication is not configured.');
-      const { data, error } = await client.signUp({ email, password });
+      const { data, error } = await client.signUp({ email, password, options: { captchaToken } });
       if (error) throw error;
       if (data.session) publish(data.session);
       // For an address that already has an account, Supabase answers with a made-up user id.
@@ -149,9 +160,9 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       publish(data.session);
     },
     // Supabase answers the same whether or not the address has an account.
-    async requestPasswordReset(email: string) {
+    async requestPasswordReset(email: string, captchaToken?: string) {
       if (!client) throw new Error('Authentication is not configured.');
-      const { error } = await client.resetPasswordForEmail(email);
+      const { error } = await client.resetPasswordForEmail(email, { captchaToken });
       if (error) throw error;
     },
     // Uses up the token from a recovery email and signs its owner in. Call it only when
@@ -190,9 +201,18 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       return exchange;
     },
     // Proves the person at the keyboard knows the current password before changing it.
-    async changePassword(email: string, currentPassword: string, newPassword: string) {
+    async changePassword(
+      email: string,
+      currentPassword: string,
+      newPassword: string,
+      captchaToken?: string
+    ) {
       if (!client) throw new Error('Authentication is not configured.');
-      const { data, error } = await client.signInWithPassword({ email, password: currentPassword });
+      const { data, error } = await client.signInWithPassword({
+        email,
+        password: currentPassword,
+        options: { captchaToken },
+      });
       if (error) throw error;
       if (data.session) publish(data.session);
       await updatePassword(newPassword);

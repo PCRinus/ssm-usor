@@ -40,7 +40,7 @@ export function fakeAuthClient(session: Session | null = null) {
     getSession: vi.fn(async () => ({ data: { session }, error: null })),
     onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
     signOut: vi.fn(async () => ({ error: null })),
-    signInWithOtp: vi.fn(async () => ({ error: null })),
+    signInWithOtp: vi.fn<AuthClient['signInWithOtp']>(async () => ({ error: null })),
     verifyOtp: vi.fn(async () => ({ data: { session: fakeSession() }, error: null })),
   } satisfies AuthClient;
 }

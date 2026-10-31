@@ -140,7 +140,7 @@ The seller's identity (name, CUI, registry number, invoice series, Stripe accoun
 12. "Exportă tot", the per-client handover link, "Anunță participanții", and the deletion job.
 13. The two Profesional lines already sold: "Fiecare coleg își vede clienții lui" and "Documente fără marca SSM Ușor".
 14. The site: the FAQ and table changes above, the pricing buttons turned to sign-up (`pricingCta` in `pricing.ts`), the header's "Creează un cont" linked, Stripe and Oblio named in the privacy policy.
-15. Registration made public: the CAPTCHA ADR 004 requires before the page is linked, and the answers to #628 and #629. Stripe's live verification, the Stripe and Oblio credentials in both environments, and the dashboard settings above were done on 2026-10-27; the webhook secrets follow the setup script.
+15. Registration made public: the CAPTCHA ADR 004 requires before the page is linked (on since 2026-10-31, see ADR 004's amendment), and the answers to #628 and #629. Stripe's live verification, the Stripe and Oblio credentials in both environments, and the dashboard settings above were done on 2026-10-27; the webhook secrets follow the setup script.
 
 The testers' round comes between the phases; the waitlist hears only after it.
 

@@ -2,6 +2,8 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 
+import { fakeTurnstile } from './turnstile';
+
 afterEach(cleanup);
 
 afterEach(() => {
@@ -57,3 +59,6 @@ beforeEach(() => {
 beforeEach(() => {
   Object.defineProperty(navigator, 'pdfViewerEnabled', { value: true, configurable: true });
 });
+
+// jsdom loads no external script, so the widget is a fake that hands out tokens at once.
+beforeEach(() => vi.stubGlobal('turnstile', fakeTurnstile()));

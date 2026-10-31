@@ -13,6 +13,7 @@ import { PasswordStrengthIndicator } from '@/components/password-strength-indica
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useAuth } from '@/features/auth/auth-context';
 import { registerErrorMessage } from '@/features/auth/auth-errors';
+import { useCaptcha } from '@/features/auth/captcha';
 import { GoogleSignIn } from '@/features/auth/google-sign-in';
 import {
   newPasswordHint,
@@ -34,6 +35,7 @@ export const Route = createFileRoute('/register')({
 function RegisterPage() {
   const { auth } = useAuth();
   const navigate = useNavigate();
+  const { ref: captchaRef, withToken } = useCaptcha();
   const [sentTo, setSentTo] = useState<string | null>(null);
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -47,7 +49,7 @@ function RegisterPage() {
   const onSubmit = form.handleSubmit(async ({ email, password }) => {
     let userId: string | null;
     try {
-      userId = await auth.signUp(email, password);
+      userId = await withToken((token) => auth.signUp(email, password, token));
     } catch (cause) {
       form.setError('root.auth', { message: registerErrorMessage(cause) });
       return;
@@ -125,6 +127,7 @@ function RegisterPage() {
             email={email}
           />
         </Field>
+        <div ref={captchaRef} />
         {errors.root?.auth && (
           <Notice variant="destructive" data-testid="register-error">
             {errors.root.auth.message}

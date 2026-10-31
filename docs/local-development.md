@@ -113,6 +113,20 @@ Restart existing servers after changing environment files. Open the SPA login pa
 use the seeded credentials. Login and the dashboard's `/me` request now use local Auth.
 The marketing site does not need Supabase settings.
 
+### CAPTCHA
+
+Supabase Auth asks for a Cloudflare Turnstile token on every password sign-in, signup,
+reset-link request and portal code request (ADR 004). The local stack has Cloudflare's test
+secret in `supabase/config.toml`, and a development build of the SPA or the portal uses the
+matching test site key when `VITE_TURNSTILE_SITE_KEY` is unset, so sign-in works as before. The
+stack checks each token with Cloudflare, so signing in needs an internet connection. A stack
+started before this setting was added keeps CAPTCHA off until it is restarted, which the
+test token does not disturb. Scripts that sign in with the JavaScript client pass
+`XXXX.DUMMY.TOKEN.XXXX`, the only token the test secret accepts.
+
+A local SPA cannot sign in to a hosted project: the hosted secret refuses the test token, and
+the real widget answers only on the environments' domains.
+
 | Service           | URL                    |
 | ----------------- | ---------------------- |
 | React SPA         | http://localhost:5173  |
