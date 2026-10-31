@@ -134,8 +134,9 @@ enabled = false
 
 [storage]
 enabled = true
-# Generated documents are Word files; the largest sample is under 1 MiB, a PDF a few more.
-file_size_limit = "20MiB"
+# Storage refuses an upload over the lower of this and the bucket's own limit, so this is the
+# largest bucket limit (an employee import's sheet scan); every bucket sets its own.
+file_size_limit = "25MiB"
 
 [edge_runtime]
 enabled = false
