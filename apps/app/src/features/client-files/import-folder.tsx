@@ -14,6 +14,8 @@ import { zipFiles } from './zip-files';
 
 type Folder = { path: string; files: ClientFile[] };
 
+const byName = new Intl.Collator('ro', { numeric: true });
+
 function foldersOf(files: ClientFile[]) {
   const folders = new Map<string, ClientFile[]>();
   for (const file of files) {
@@ -21,8 +23,11 @@ function foldersOf(files: ClientFile[]) {
     folders.set(path, [...(folders.get(path) ?? []), file]);
   }
   return [...folders.entries()]
-    .map(([path, list]): Folder => ({ path, files: list }))
-    .sort((a, b) => a.path.localeCompare(b.path, 'ro'));
+    .map(([path, list]): Folder => ({
+      path,
+      files: list.sort((a, b) => byName.compare(a.name, b.name)),
+    }))
+    .sort((a, b) => byName.compare(a.path, b.path));
 }
 
 const bytesOf = (files: ClientFile[]) => files.reduce((total, file) => total + file.sizeBytes, 0);

@@ -873,4 +873,28 @@ describe('the import folder', () => {
         .map((row) => within(row).getByTestId('client-file-open').textContent)
     ).toEqual(['Fișă de instruire 2019', 'IMG_3110', 'IMG_3111']);
   });
+
+  it("lists an employee's pages of a scanned PDF in the order of the pages", async () => {
+    const page = (n: number) => ({
+      ...imported(
+        `${n}${n}${n}${n}${n}${n}${n}${n}-0000-4000-8000-00000000000${n}`,
+        `Fise — pagina ${n}.jpg`,
+        null
+      ),
+      employee: trainingSheet.employee,
+      mimeType: 'image/jpeg',
+      sizeBytes: 300_000,
+    });
+    const pages = [5, 3, 10, 4, 1, 7, 2, 6].map(page);
+    mockApi({ items: pages });
+    mount(employeePath);
+
+    const card = await screen.findByTestId('employee-files-card');
+    await within(card).findByTestId('client-import-folder');
+    expect(
+      within(card)
+        .getAllByTestId('client-file-row')
+        .map((row) => within(row).getByTestId('client-file-open').textContent)
+    ).toEqual([1, 2, 3, 4, 5].map((n) => `Fise — pagina ${n}`));
+  });
 });
