@@ -371,7 +371,7 @@ function GiftPanelView({ gift }: { gift: GiftPanel }) {
       data-testid="credits-gift"
       data-look={gift.look}
       className={cn(
-        'flex flex-wrap items-center gap-x-3.5 gap-y-3 rounded-xl border px-3.5 py-3 sm:px-4 sm:py-3.5',
+        'flex items-center gap-3 rounded-xl border px-3.5 py-3 sm:gap-3.5 sm:px-4 sm:py-3.5',
         look.panel
       )}
     >
@@ -381,7 +381,7 @@ function GiftPanelView({ gift }: { gift: GiftPanel }) {
       >
         <Gift className="size-[18px]" />
       </span>
-      <div className="grid min-w-0 flex-[1_1_220px] gap-0.5">
+      <div className="grid min-w-0 flex-1 gap-0.5">
         <span className="text-sm font-semibold">{gift.title}</span>
         <span className="text-[13px] leading-relaxed text-pretty text-muted-foreground">
           {gift.text}
@@ -389,7 +389,10 @@ function GiftPanelView({ gift }: { gift: GiftPanel }) {
       </div>
       {gift.value !== null && (
         <strong
-          className={cn('text-2xl leading-none font-bold tracking-tight tabular-nums', look.value)}
+          className={cn(
+            'shrink-0 text-xl leading-none font-bold tracking-tight tabular-nums sm:text-2xl',
+            look.value
+          )}
         >
           {gift.value}
         </strong>
