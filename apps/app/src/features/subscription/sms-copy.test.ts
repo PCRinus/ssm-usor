@@ -24,7 +24,7 @@ describe('the SMS meter', () => {
     expect(forOwner).toMatchObject({ value: '142 din 300', tone: 'normal', raiseCap: false });
     expect(forOwner.hint).toContain('Se numără doar codurile de semnare');
     expect(forOwner.hint).toContain(
-      `fiecare cod costă 0,10 € și apare pe factura din ${roDate(sms.periodEnd!)}`
+      `fiecare cod costă 0,10\u00a0€ și apare pe factura din ${roDate(sms.periodEnd!)}`
     );
     expect(smsMeterFor(sms, member).hint).not.toContain('€');
   });
@@ -40,7 +40,7 @@ describe('the SMS meter', () => {
     const sms = smsUsage({ used: 342, overage: 42, state: 'over' });
     expect(smsMeterFor(sms, owner)).toMatchObject({ value: '342 din 300', tone: 'over' });
     expect(smsMeterFor(sms, owner).hint).toMatch(
-      /^\+42 peste cele incluse, 0,10 € fiecare, pe factura din \d\d\.\d\d\.\d{4}\./
+      /^\+42 peste cele incluse, 0,10\u00a0€ fiecare, pe factura din \d\d\.\d\d\.\d{4}\./
     );
     const forMember = smsMeterFor(sms, member).hint;
     expect(forMember).toBe(
@@ -80,13 +80,13 @@ describe('the SMS meter', () => {
     });
     const forOwner = smsMeterFor(chosen, { owner: true, stop: 'firstPayment' });
     expect(forOwner.hint).toMatch(/^Ai folosit cele 50 de până la prima plată\./);
-    expect(forOwner.hint).toContain('După prima plată, cele în plus costă 0,10 € fiecare.');
+    expect(forOwner.hint).toContain('După prima plată, cele în plus costă 0,10\u00a0€ fiecare.');
     expect(smsMeterFor(chosen, { owner: false, stop: 'firstPayment' }).hint).not.toContain('€');
 
     expect(
       smsMeterFor({ ...chosen, used: 4, state: 'ok' }, { owner: true, stop: 'firstPayment' }).hint
     ).toBe(
-      'Până la prima plată, codurile se opresc la 50; după ea, cele în plus costă 0,10 € fiecare.'
+      'Până la prima plată, codurile se opresc la 50; după ea, cele în plus costă 0,10\u00a0€ fiecare.'
     );
   });
 
@@ -117,7 +117,7 @@ describe('the SMS bar', () => {
     expect(near.lead).toBe('Ai folosit 252 din cele 300 de coduri de semnare prin SMS.');
     expect(near.short).toBe('252 din 300 de coduri SMS.');
     expect(near.detail).toMatch(
-      /^Se reînnoiesc pe \d\d\.\d\d\. Peste 300, fiecare cod costă 0,10 €\.$/
+      /^Se reînnoiesc pe \d\d\.\d\d\. Peste 300, fiecare cod costă 0,10\u00a0€\.$/
     );
     expect(
       smsBarFor(smsUsage({ used: 252, state: 'near' }), { ...member, canAct: false })!.detail

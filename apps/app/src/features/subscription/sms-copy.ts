@@ -24,7 +24,8 @@ export interface SmsMeter {
   raiseCap: boolean;
 }
 
-export const smsPrice = formatEuro(smsOverage.price.unitAmount);
+// Kept on one line with its euro sign, which the bar and the hints otherwise wrap alone.
+export const smsPrice = formatEuro(smsOverage.price.unitAmount).replace(' ', '\u00a0');
 
 export const trialSmsNote =
   'În perioada de probă nu trimitem SMS: invitațiile, codurile de conectare și cele de semnare pleacă pe email. SMS-urile pornesc când alegi un plan.';

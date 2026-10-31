@@ -632,7 +632,7 @@ describe('the signing codes by SMS on the Abonament tab', () => {
     const meter = await screen.findByTestId('meter-sms');
     expect(meter.textContent).toContain('342 din 300');
     expect(within(meter).getByTestId('meter-sms-hint').textContent).toContain(
-      '+42 peste cele incluse, 0,10 € fiecare, pe factura din'
+      '+42 peste cele incluse, 0,10\u00a0€ fiecare, pe factura din'
     );
     expect(within(meter).getByRole('meter').firstElementChild!.className).toContain('bg-chart-3');
     cleanup();
