@@ -4,17 +4,45 @@ import type { SelectedFile } from '../upload-selection';
 export const maxPhotoEdge = 2000;
 const jpegQuality = 0.85;
 
-async function encode(bitmap: ImageBitmap, width: number, height: number): Promise<Blob | null> {
+type Context = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+
+// iOS Safari gives no context past its canvas memory cap, and the blank canvas would still encode
+// as a black JPEG smaller than the photograph. Freeing each canvas keeps under that cap.
+async function paintAndEncode(
+  canvas: HTMLCanvasElement | OffscreenCanvas,
+  context: Context | null,
+  bitmap: ImageBitmap,
+  encodeJpeg: () => Promise<Blob | null>
+) {
+  try {
+    if (!context) return null;
+    // A JPEG has no transparency: a PNG's transparent pixels would turn black.
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    return await encodeJpeg();
+  } finally {
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+}
+
+function encode(bitmap: ImageBitmap, width: number, height: number): Promise<Blob | null> {
   if (typeof OffscreenCanvas === 'function') {
     const canvas = new OffscreenCanvas(width, height);
-    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, width, height);
-    return canvas.convertToBlob({ type: 'image/jpeg', quality: jpegQuality });
+    return paintAndEncode(canvas, canvas.getContext('2d'), bitmap, () =>
+      canvas.convertToBlob({ type: 'image/jpeg', quality: jpegQuality })
+    );
   }
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
-  canvas.getContext('2d')?.drawImage(bitmap, 0, 0, width, height);
-  return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', jpegQuality));
+  return paintAndEncode(
+    canvas,
+    canvas.getContext('2d'),
+    bitmap,
+    () => new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', jpegQuality))
+  );
 }
 
 /**

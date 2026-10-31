@@ -4,8 +4,14 @@ import type { SelectedFile } from '../upload-selection';
 import { maxPhotoEdge, shrinkPhoto, shrinkSelected } from './shrink-photo';
 
 const drawn: { width: number; height: number }[] = [];
+const painted: string[] = [];
+const canvases: { width: number; height: number }[] = [];
 
-function stubCanvas(bitmap: { width: number; height: number } | Error, outputBytes = 100) {
+function stubCanvas(
+  bitmap: { width: number; height: number } | Error,
+  outputBytes = 100,
+  withContext = true
+) {
   vi.stubGlobal(
     'createImageBitmap',
     vi.fn(async (_blob: Blob, options: ImageBitmapOptions) => {
@@ -22,9 +28,17 @@ function stubCanvas(bitmap: { width: number; height: number } | Error, outputByt
         public height: number
       ) {
         drawn.push({ width, height });
+        canvases.push(this);
       }
       getContext() {
-        return { drawImage: vi.fn() };
+        if (!withContext) return null;
+        return {
+          set fillStyle(color: string) {
+            painted.push(`fill ${color}`);
+          },
+          fillRect: () => painted.push('fillRect'),
+          drawImage: () => painted.push('drawImage'),
+        };
       }
       convertToBlob(options: ImageEncodeOptions) {
         expect(options).toEqual({ type: 'image/jpeg', quality: 0.85 });
@@ -39,6 +53,8 @@ const photo = (bytes: number, type = 'image/jpeg') => new Blob([new Uint8Array(b
 afterEach(() => {
   vi.unstubAllGlobals();
   drawn.length = 0;
+  painted.length = 0;
+  canvases.length = 0;
 });
 
 describe('shrinking a photograph before it is uploaded', () => {
@@ -57,6 +73,19 @@ describe('shrinking a photograph before it is uploaded', () => {
     expect(await shrinkPhoto(photo(5000), 'image/jpeg')).toBeNull();
     stubCanvas({ width: 4000, height: 3000 }, 9000);
     expect(await shrinkPhoto(photo(5000), 'image/jpeg')).toBeNull();
+  });
+
+  it('keeps the original where the browser gives no canvas to draw on', async () => {
+    stubCanvas({ width: 3000, height: 4000 }, 100, false);
+    expect(await shrinkPhoto(photo(5000), 'image/jpeg')).toBeNull();
+    expect(canvases).toEqual([{ width: 0, height: 0 }]);
+  });
+
+  it('paints a transparent PNG on white, and frees the canvas once encoded', async () => {
+    stubCanvas({ width: 1200, height: 900 });
+    expect(await shrinkPhoto(photo(5000, 'image/png'), 'image/png')).not.toBeNull();
+    expect(painted).toEqual(['fill #fff', 'fillRect', 'drawImage']);
+    expect(canvases).toEqual([{ width: 0, height: 0 }]);
   });
 
   it('turns a PNG into a JPEG under a name of its own', async () => {
