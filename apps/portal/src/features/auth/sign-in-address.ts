@@ -20,12 +20,18 @@ export async function parseSignInAddress(input: string): Promise<ParsedAddress> 
   }
   // The contracts carry the phone metadata (about 30 kB gzip); importing them only for a phone
   // keeps the sign-in page light.
-  const { normalizePhone } = await import('@ssm-usor/contracts');
+  const { isRomanianNumber, normalizePhone } = await import('@ssm-usor/contracts');
   const phone = normalizePhone(value);
   if (!phone) {
     return {
       ok: false,
       message: msg`Numărul nu pare scris corect. Scrie-l cu 0 în față, de exemplu 0721 234 567.`,
+    };
+  }
+  if (!isRomanianNumber(phone)) {
+    return {
+      ok: false,
+      message: msg`Codurile prin SMS pleacă doar spre numere din România (+40). Intră cu adresa de email la care ai primit invitația sau spune-i specialistului SSM să-ți adauge una.`,
     };
   }
   return { ok: true, address: { phone }, shown: phone };

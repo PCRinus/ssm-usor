@@ -480,7 +480,7 @@ msgstr "Codul vine prin SMS, iar SMS-urile sunt oprite deocamdată."
 msgid "Codul vine prin SMS, iar SMS-urile sunt oprite până pe {resumes}."
 msgstr "Codul vine prin SMS, iar SMS-urile sunt oprite până pe {resumes}."
 
-#: src/features/auth/sign-in-page.tsx
+#: src/features/auth/sign-in-address.ts
 msgid "Codurile prin SMS pleacă doar spre numere din România (+40). Intră cu adresa de email la care ai primit invitația sau spune-i specialistului SSM să-ți adauge una."
 msgstr "Codurile prin SMS pleacă doar spre numere din România (+40). Intră cu adresa de email la care ai primit invitația sau spune-i specialistului SSM să-ți adauge una."
 

@@ -28,8 +28,6 @@ const requestFailures: Record<Exclude<CodeRequestResult, 'requested'>, MessageDe
   'challenge-failed': msg`Verificarea de securitate nu a reușit. Reîncarcă pagina și încearcă din nou.`,
 };
 
-const foreignNumberMessage = msg`Codurile prin SMS pleacă doar spre numere din România (+40). Intră cu adresa de email la care ai primit invitația sau spune-i specialistului SSM să-ți adauge una.`;
-
 type Target = { address: SignInAddress; shown: string };
 
 function useResendCountdown() {
@@ -83,11 +81,6 @@ export function SignInPage() {
     if (!parsed.ok) {
       setRequesting(false);
       setAddressError(parsed.message);
-      return;
-    }
-    if ('phone' in parsed.address && !parsed.address.phone.startsWith('+40')) {
-      setRequesting(false);
-      setAddressError(foreignNumberMessage);
       return;
     }
     setAddressError(null);
