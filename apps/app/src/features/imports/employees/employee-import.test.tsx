@@ -264,6 +264,26 @@ describe('the people hub', () => {
     });
   });
 
+  it('shows the cost of reading the photographs when the API serves it', async () => {
+    const scanning = { costUsd: 0.1, inputTokens: 41000, cachedInputTokens: 0, outputTokens: 9800 };
+    mockEmployeeImport({
+      detail: employeeDetail({
+        usage: { ...scanning, readCharacters: null, bySteps: { scanning } },
+      }),
+    });
+    mount(importPath);
+    expect((await screen.findByTestId('import-usage')).textContent).toBe(
+      'Depanare: cost 0,10\u00a0$ · 41.000 tokeni intrare (0 din cache) · 9.800 ieșire · scanare 0,10\u00a0$'
+    );
+  });
+
+  it('shows no cost when the API serves none', async () => {
+    mockEmployeeImport();
+    mount(importPath);
+    await screen.findByTestId('employee-hub');
+    expect(screen.queryByTestId('import-usage')).toBeNull();
+  });
+
   it('lists those with something to decide before those not yet opened', async () => {
     mockEmployeeImport();
     mount(importPath);

@@ -8,6 +8,7 @@ import type { ImportDetail } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
+import { usageLine } from '../import-format';
 import { EmployeeConfirmDialog } from './employee-confirm-dialog';
 import { nextToCheck, peopleCounts, peopleViews } from './employee-review-model';
 import { PeopleList } from './people-list';
@@ -155,6 +156,11 @@ export function EmployeeHub({
           Creează angajații…
         </Button>
       </Card>
+      {detail.usage && (
+        <p className="text-xs text-muted-foreground tabular-nums" data-testid="import-usage">
+          {usageLine(detail.usage)}
+        </p>
+      )}
       <EmployeeConfirmDialog
         open={confirming}
         detail={detail}

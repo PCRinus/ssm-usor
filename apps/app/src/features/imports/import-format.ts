@@ -166,7 +166,7 @@ const stepLabels = { sorting: 'sortare', reading: 'citire', scanning: 'scanare' 
 
 export function usageLine(usage: ImportUsage) {
   const parts = [
-    `Depanare: cost citire ${cost(usage.costUsd)}`,
+    `Depanare: cost ${cost(usage.costUsd)}`,
     `${count.format(usage.inputTokens)} tokeni intrare (${count.format(usage.cachedInputTokens)} din cache)`,
     `${count.format(usage.outputTokens)} ieșire`,
   ];
