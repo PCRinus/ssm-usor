@@ -855,8 +855,8 @@ Every billing route stays open while the organization is read-only. Only the own
 calls the owner routes: a specialist and an admin impersonating the owner get `403`.
 `GET /billing` answers every member; its `owner` part (next payment, extra SMS so far, card,
 email for invoices, a change set for the renewal, the fewest packs and members each plan needs,
-the invoices) only the owner in person. `usage.smsThisMonth.used` is null: SMS are not counted
-per organization yet (step 10).
+the invoices) only the owner in person. `usage.smsThisMonth` counts the signing codes sent by SMS
+in the subscription's month (see SMS below).
 
 A choice is `{ plan: start | profesional, interval: month | year, employeePacks, extraMembers }`.
 It cannot go below the packs today's employees need or the extra members today's members need,
@@ -919,6 +919,46 @@ issues nothing twice. Lines are named from the catalogue (Stripe's descriptions 
 a prorated credit is a negative quantity. `charge.refunded` for a whole charge issues a storno
 of the original invoice, stored as a negative row keyed by the refund id with `storno_of`, or
 cancels the proforma outside production; a partial refund is left alone.
+
+## SMS
+
+[ADR 029](architecture/adr-029-billing-plans-and-trials.md), "Limits and usage". Every SMS the API
+sends goes through one sender (`modules/sms-usage`), which logs it in `sms_sends`: participant
+invitations, signature-request notices, signing codes and, through the Send SMS hook, portal
+sign-in codes. It refuses with a `reason`:
+
+- `sms_trial`: a trial without a chosen plan and without the tester switch, or one that has ended;
+- `sms_foreign_number`: a number that is not Romanian (`+40`);
+- `sms_allowance_reached`: a signing code past the month's allowance where nothing past it can be
+  billed: a tester's trial, or a plan chosen during the trial before its first payment;
+- `sms_cap_reached`: a signing code at the safety cap.
+
+Only signing codes count. The month is the subscription's: from Stripe's billing anchor once the
+first invoice is paid, monthly on an annual plan too; before that, months from the trial's start,
+the month of a plan chosen during the trial ending at the trial's end. Without a subscription, or
+on Enterprise, nothing limits the codes and the month is the calendar's. The allowance is the
+plan's (Start 50, Profesional 300; a tester's trial 300) plus the codes granted by hand; past it,
+after the first payment, a code goes out as overage up to `sms_cap_factor` times the allowance,
+and is reported to Stripe as one `sms_overage` meter event (value 1, the log row's id as
+identifier, the subscription's customer) right after the send, and again by the daily cron when
+that failed.
+
+What each caller does with a refusal: an SMS invitation answers `409` (`422` for
+`sms_foreign_number`) before anything is saved, and the bulk invitation reports the reason on the
+person's row; a signature-request notice by SMS is skipped and the request stays without
+`notified_at`; a signing session answers `409` with the reason and keeps no session (a signer
+with an email always gets the code by email, so a texted code has no email to fall back on). The
+Send SMS hook texts a sign-in code when any organization the participant belongs to, or that
+invited the number, may text, logs it against the most recent invitation's organization among
+those, and otherwise answers `403` with a message.
+
+`GET /billing` answers `usage.smsThisMonth`: `used`, `included` (allowance plus `granted`),
+`allowance`, `granted`, `cap` (null for a hard stop or no limit, grants included), `capFactor`,
+`overage`, `periodStart`, `periodEnd` (null while no SMS goes) and `state`: `none` (no SMS goes),
+`ok`, `near` (from 80 %), `over` (past `included`, billed), `capped`, `stopped` (a hard stop
+reached). `PUT /billing/sms-cap { factor }`, owner only, sets the cap from 3 to 20 times the
+allowance on a chosen plan (`409 no_subscription` without one, `enterprise_plan` on Enterprise),
+logged as `sms_cap` in `subscription_changes`.
 
 ## Members
 

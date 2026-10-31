@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
+import { createSmsUpstream, plainTrial, type SmsUpstream } from '../sms-usage/upstream.fixture';
 
 const sendPasswordReset = vi.fn<MailService['sendPasswordReset']>();
 const sendSignupConfirmation = vi.fn<MailService['sendSignupConfirmation']>();
@@ -14,6 +15,9 @@ const base64 = (text: string) => btoa(text);
 const key = base64('a-hook-signing-key-of-32-bytes!!');
 const smsKey = base64('the-sms-hook-signing-key-32-byte');
 const env: ApiEnv['Bindings'] = {
+  SUPABASE_URL: 'https://example.supabase.co',
+  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
+  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
   SUPABASE_AUTH_HOOK_SECRET: `v1,whsec_${key}`,
   SUPABASE_AUTH_SMS_HOOK_SECRET: `v1,whsec_${smsKey}`,
   APP_ORIGIN: 'https://app.example.ro',
@@ -302,6 +306,20 @@ const smsPayload = (appMetadata: Record<string, unknown> = { participant: true }
   sms: { otp: '493027', phone: '40722123456' },
 });
 
+const organizationA = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
+const organizationB = '5e2d3b0f-8c4a-4f9b-8d6e-3a7c9b1f2d4e';
+let sms: SmsUpstream;
+let invitedBy: { organization_id: string; last_sent_at: string }[];
+let participatesIn: { organization_id: string; created_at: string }[];
+const smsFetch = vi.fn<typeof fetch>(async (input, init) => {
+  const url = new URL(input instanceof Request ? input.url : String(input));
+  const answer = sms.handle(url, init);
+  if (answer) return answer;
+  if (url.pathname === '/rest/v1/participant_invitations') return Response.json(invitedBy);
+  if (url.pathname === '/rest/v1/client_participants') return Response.json(participatesIn);
+  throw new Error(`Unexpected upstream request: ${url}`);
+});
+
 const postSms = (body: string, headers: Record<string, string>, targetEnv = env) =>
   createApp().request(
     '/hooks/supabase/send-sms',
@@ -310,6 +328,18 @@ const postSms = (body: string, headers: Record<string, string>, targetEnv = env)
   );
 
 describe('POST /hooks/supabase/send-sms', () => {
+  beforeEach(() => {
+    sms = createSmsUpstream();
+    invitedBy = [{ organization_id: organizationA, last_sent_at: '2026-10-30T10:00:00Z' }];
+    participatesIn = [];
+    smsFetch.mockClear();
+    vi.stubGlobal('fetch', smsFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('hands the code to the SMS Worker with the number in E.164', async () => {
     const body = JSON.stringify(smsPayload());
 
@@ -325,11 +355,90 @@ describe('POST /hooks/supabase/send-sms', () => {
   });
 
   it("texts the number the code is for, which differs from the account's during a phone change", async () => {
-    const body = JSON.stringify({ ...smsPayload(), sms: { otp: '493027', phone: '447700900123' } });
+    invitedBy = [{ organization_id: organizationA, last_sent_at: '2026-10-30T10:00:00Z' }];
+    const body = JSON.stringify({ ...smsPayload(), sms: { otp: '493027', phone: '40733000111' } });
 
     await postSms(body, await sign(body, { withKey: smsKey }));
 
-    expect(sendSignInCodeSms.mock.calls[0]![0].to).toBe('+447700900123');
+    expect(sendSignInCodeSms.mock.calls[0]![0].to).toBe('+40733000111');
+  });
+
+  it('logs the code against the organization that invited the number, uncounted', async () => {
+    const body = JSON.stringify(smsPayload());
+
+    await postSms(body, await sign(body, { withKey: smsKey }));
+
+    expect(sms.claims).toEqual([
+      expect.objectContaining({
+        p_organization_id: organizationA,
+        p_kind: 'sign_in_code',
+        p_allowance: null,
+      }),
+    ]);
+    expect(sms.updates).toEqual([expect.objectContaining({ provider_id: 'SM1' })]);
+  });
+
+  it('refuses a number outside Romania with a message Supabase shows', async () => {
+    const body = JSON.stringify({ ...smsPayload(), sms: { otp: '493027', phone: '33612345678' } });
+
+    const response = await postSms(body, await sign(body, { withKey: smsKey }));
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: { http_code: 403, message: expect.stringContaining('+40') },
+    });
+    expect(sendSignInCodeSms).not.toHaveBeenCalled();
+  });
+
+  it('refuses a code when every organization of the participant is in a trial without a plan', async () => {
+    sms.subscriptions.push(plainTrial(organizationA));
+    const body = JSON.stringify(smsPayload());
+
+    const response = await postSms(body, await sign(body, { withKey: smsKey }));
+
+    expect(response.status).toBe(403);
+    expect(sendSignInCodeSms).not.toHaveBeenCalled();
+    expect(sms.claims).toEqual([]);
+  });
+
+  it('texts the code when another organization of the participant may, and logs it there', async () => {
+    sms.subscriptions.push(plainTrial(organizationA));
+    participatesIn = [{ organization_id: organizationB, created_at: '2026-09-01T10:00:00Z' }];
+    const body = JSON.stringify(smsPayload());
+
+    const response = await postSms(body, await sign(body, { withKey: smsKey }));
+
+    expect(response.status).toBe(200);
+    expect(sms.claims[0]).toMatchObject({ p_organization_id: organizationB });
+    const participantsQuery = smsFetch.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .find((url) => url.pathname === '/rest/v1/client_participants')!;
+    expect(participantsQuery.searchParams.get('user_id')).toBe(
+      'eq.0f7c8d96-479c-47b3-b49e-01f4555a0221'
+    );
+  });
+
+  it('logs against the most recent invitation when several organizations may text', async () => {
+    invitedBy = [
+      { organization_id: organizationB, last_sent_at: '2026-10-30T10:00:00Z' },
+      { organization_id: organizationA, last_sent_at: '2026-10-01T10:00:00Z' },
+    ];
+    participatesIn = [{ organization_id: organizationA, created_at: '2026-10-02T10:00:00Z' }];
+    const body = JSON.stringify(smsPayload());
+
+    await postSms(body, await sign(body, { withKey: smsKey }));
+
+    expect(sms.claims[0]).toMatchObject({ p_organization_id: organizationB });
+  });
+
+  it('refuses a code for an account no organization invited or keeps', async () => {
+    invitedBy = [];
+    const body = JSON.stringify(smsPayload());
+
+    const response = await postSms(body, await sign(body, { withKey: smsKey }));
+
+    expect(response.status).toBe(403);
+    expect(sendSignInCodeSms).not.toHaveBeenCalled();
   });
 
   it("falls back to the account's number when the payload names none", async () => {
@@ -392,6 +501,7 @@ describe('POST /hooks/supabase/send-sms', () => {
     const response = await postSms(body, await sign(body, { withKey: smsKey }));
 
     expect(response.status).toBe(500);
+    expect(sms.deletes).toEqual(['eq.sms-1']);
   });
 
   it.each(['SUPABASE_AUTH_SMS_HOOK_SECRET', 'SMS'] as const)(

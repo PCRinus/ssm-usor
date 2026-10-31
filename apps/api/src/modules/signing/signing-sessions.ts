@@ -1,9 +1,14 @@
-import { type ParticipantChannel, signatureErrorReasons } from '@ssm-usor/contracts';
+import {
+  type MailService,
+  type ParticipantChannel,
+  signatureErrorReasons,
+} from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
 import { type AdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { type SmsSender, smsSenderOf } from '../sms-usage/sender';
 
 // The API's own code, not Supabase's one-time passcode (ADR 023).
 export const SIGNING_CODE_MINUTES = 10;
@@ -52,6 +57,7 @@ export interface SigningSessionStore {
 }
 
 export type SigningCodeMessage = {
+  organizationId: string;
   channel: ParticipantChannel;
   to: string;
   code: string;
@@ -62,6 +68,13 @@ export type SigningCodeSender = (message: SigningCodeMessage) => Promise<unknown
 
 const refused = (reason: string, message: string) =>
   new ApiError('conflict', message, undefined, reason);
+
+export class SigningCodeRefused extends Error {
+  constructor(readonly reason: string) {
+    super(`The signing code was refused: ${reason}`);
+    this.name = 'SigningCodeRefused';
+  }
+}
 
 const notSent = () =>
   new ApiError(
@@ -111,6 +124,7 @@ export async function createSigningSession(
   deps: { store: SigningSessionStore; send: SigningCodeSender },
   input: {
     accountId: string;
+    organizationId: string;
     place: 'app' | 'portal';
     participantId: string | null;
     channel: ParticipantChannel;
@@ -161,12 +175,22 @@ export async function createSigningSession(
   }
   try {
     await deps.send({
+      organizationId: input.organizationId,
       channel: input.channel,
       to: address,
       code,
       expiresInMinutes: SIGNING_CODE_MINUTES,
     });
   } catch (error) {
+    if (error instanceof SigningCodeRefused) {
+      await deps.store.remove(id).catch(() => undefined);
+      throw new ApiError(
+        'conflict',
+        'The signing code cannot be texted now; ask your specialist.',
+        undefined,
+        error.reason
+      );
+    }
     console.error(
       `Signing code ${input.channel} failed: ${error instanceof Error ? error.name : 'unknown'}`
     );
@@ -341,14 +365,24 @@ export function signingSessionStore(admin: AdminClient): SigningSessionStore {
   };
 }
 
-export function signingCodeSender(env: ApiEnv['Bindings']): SigningCodeSender {
-  return async ({ channel, ...message }) => {
+// Email whenever the signer has one (signers.ts), so a refused SMS has no email to fall back on.
+export function signingCodeSender(deps: {
+  mail: MailService | undefined;
+  sms: Pick<SmsSender, 'send'>;
+}): SigningCodeSender {
+  return async ({ channel, organizationId, ...message }) => {
     if (channel === 'email') {
-      if (!env.MAIL) throw new Error('No MAIL binding');
-      return env.MAIL.sendSigningCode(message);
+      if (!deps.mail) throw new Error('No MAIL binding');
+      return deps.mail.sendSigningCode(message);
     }
-    if (!env.SMS) throw new Error('No SMS binding');
-    return env.SMS.sendSigningCode(message);
+    const outcome = await deps.sms.send({
+      organizationId,
+      kind: 'signing_code',
+      to: message.to,
+      deliver: (sms) => sms.sendSigningCode(message),
+    });
+    if (!outcome.sent) throw new SigningCodeRefused(outcome.reason);
+    return outcome.receipt;
   };
 }
 
@@ -359,7 +393,12 @@ export function signingSessionsOf(c: Context<ApiEnv>) {
       input: Parameters<typeof createSigningSession>[1],
       onCreated?: (sessionId: string) => Promise<void>
     ) =>
-      createSigningSession({ store, send: signingCodeSender(c.env) }, input, new Date(), onCreated),
+      createSigningSession(
+        { store, send: signingCodeSender({ mail: c.env.MAIL, sms: smsSenderOf(c) }) },
+        input,
+        new Date(),
+        onCreated
+      ),
     verify: (input: Parameters<typeof verifySigningCode>[1]) => verifySigningCode(store, input),
   };
 }

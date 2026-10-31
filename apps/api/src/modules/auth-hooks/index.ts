@@ -2,9 +2,14 @@ import type { MailService } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 import { z } from 'zod';
 
+import { adminClient } from '../../lib/admin-db';
 import { appOrigin } from '../../lib/env';
+import { ApiError } from '../../lib/errors';
 import { isParticipantAccount } from '../../lib/participant-account';
 import { createRouter } from '../../router';
+import { smsSenderOf } from '../sms-usage/sender';
+import { signInOrganization } from '../sms-usage/sign-in';
+import { smsUsageStore } from '../sms-usage/store';
 import { verifyWebhookSignature } from './signature';
 
 // Supabase Auth calls these instead of sending its own email (ADR 002) and SMS (ADR 022). They
@@ -33,7 +38,11 @@ const sendEmailPayloadSchema = z.object({
 });
 
 const sendSmsPayloadSchema = z.object({
-  user: z.object({ phone: z.string().optional(), app_metadata: appMetadataSchema }),
+  user: z.object({
+    id: z.uuid().optional(),
+    phone: z.string().optional(),
+    app_metadata: appMetadataSchema,
+  }),
   // `phone` is where the code goes; `user.phone` differs from it only during a phone change.
   sms: z.object({ otp: codeSchema, phone: z.string().optional() }),
 });
@@ -65,6 +74,13 @@ const notifications: Record<
     path: '/forgot-password',
     send: (mail, to, forgotPasswordUrl) => mail.sendPasswordChanged({ to, forgotPasswordUrl }),
   },
+};
+
+// Supabase hands the message to the portal, which shows every refusal as a code on its way.
+const signInRefusals: Record<string, string> = {
+  sms_trial: 'Codes are not texted during a trial; sign in with your email.',
+  sms_foreign_number: 'Codes are texted to Romanian numbers (+40) only; sign in with your email.',
+  no_organization: 'This number cannot receive a code.',
 };
 
 // The shape Supabase Auth expects from a failing hook.
@@ -173,7 +189,44 @@ export const authHooksRouter = createRouter()
       return hookError(403, 'This number cannot receive a code.');
     }
 
-    return handOver('SMS', () =>
-      sms.sendSignInCode({ to, code: message.otp, expiresInMinutes: SMS_OTP_EXPIRY_MINUTES })
-    );
+    let db;
+    try {
+      db = adminClient(c.env);
+    } catch (error) {
+      if (error instanceof ApiError) return hookError(503, 'The SMS hook is not configured.');
+      throw error;
+    }
+    const sender = smsSenderOf(c);
+    let found;
+    try {
+      found = await signInOrganization(
+        { db, store: smsUsageStore(db) },
+        { userId: user.id ?? null, phone: to }
+      );
+    } catch {
+      return hookError(503, 'The code could not be sent now; try again in a minute.');
+    }
+    if ('refusal' in found) return hookError(403, signInRefusals[found.refusal]!);
+    const { organizationId, subscription } = found;
+
+    const refused: { reason?: string } = {};
+    const handed = await handOver('SMS', async () => {
+      const outcome = await sender.send(
+        {
+          organizationId,
+          kind: 'sign_in_code',
+          to,
+          deliver: (binding) =>
+            binding.sendSignInCode({
+              to,
+              code: message.otp,
+              expiresInMinutes: SMS_OTP_EXPIRY_MINUTES,
+            }),
+        },
+        subscription
+      );
+      if (!outcome.sent) refused.reason = outcome.reason;
+    });
+    if (!refused.reason) return handed;
+    return hookError(403, signInRefusals[refused.reason] ?? 'This number cannot receive a code.');
   });

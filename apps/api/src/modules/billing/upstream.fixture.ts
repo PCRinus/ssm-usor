@@ -44,6 +44,7 @@ export type Fake = {
   oblio: Record<string, (call: Call) => unknown>;
   calls: Call[];
   uploads: { path: string; bytes: number }[];
+  smsUsage: { used: number; overage: number; granted: number };
 };
 
 export const priceIdOf = (lookupKey: string) => `price_${lookupKey}`;
@@ -68,6 +69,7 @@ export function stripeSubscription(options: {
   choice: BillingChoice;
   periodEnd?: number;
   trialEnd?: number | null;
+  anchor?: number | null;
   cancelAt?: number | null;
   endedAt?: number | null;
   schedule?: unknown;
@@ -88,6 +90,7 @@ export function stripeSubscription(options: {
     livemode: false,
     metadata: options.metadata ?? { organization_id: organizationId },
     trial_end: options.trialEnd ?? null,
+    billing_cycle_anchor: options.anchor ?? null,
     cancel_at: options.cancelAt ?? null,
     cancel_at_period_end: false,
     canceled_at: options.endedAt ?? null,
@@ -122,7 +125,11 @@ export function subscriptionRow(overrides: Row = {}): Row {
     status: 'trialing',
     trial_ends_at: new Date(Date.now() + 20 * day * 1000).toISOString(),
     access_until: new Date(Date.now() + 20 * day * 1000).toISOString(),
-    trial_sms: false,
+    created_at: new Date(Date.now() - 10 * day * 1000).toISOString(),
+    tester_allowances: false,
+    first_paid_at: null,
+    billing_anchor_at: null,
+    sms_cap_factor: 3,
     stripe_account: null,
     stripe_customer_id: null,
     stripe_subscription_id: null,
@@ -146,6 +153,7 @@ export function paidRow(choice: BillingChoice, overrides: Row = {}): Row {
     stripe_subscription_id: 'sub_1Test',
     billing_interval: choice.interval,
     price_version: 'v1',
+    first_paid_at: new Date(Date.now() - 40 * day * 1000).toISOString(),
     employee_packs: choice.employeePacks,
     extra_members: choice.extraMembers,
     ...overrides,
@@ -246,6 +254,7 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
     oblio: {},
     calls: [],
     uploads: [],
+    smsUsage: { used: 0, overage: 0, granted: 0 },
     ...overrides,
   };
 
@@ -343,6 +352,7 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
       fake.uploads.push({ path, bytes: 0 });
       return json({ Key: `billing-invoices/${path}` });
     }
+    if (url.pathname === '/rest/v1/rpc/sms_period_usage') return json(fake.smsUsage);
     if (url.pathname.startsWith('/rest/v1/')) return database(fake, call, headers);
     throw new Error(`Unexpected upstream request: ${method} ${url}`);
   });

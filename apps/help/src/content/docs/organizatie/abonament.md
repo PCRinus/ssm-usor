@@ -54,7 +54,7 @@ Un cont nou începe cu 30 de zile de probă, fără card. În acest timp ai tot 
 
 Insigna planului arată câte zile mai ai. În ultima săptămână apare și o bandă deasupra paginii, pe care o poți închide până a doua zi; în ultima zi nu se mai închide.
 
-Poți alege un plan oricând în perioada de probă, fără să pierzi zilele rămase: cardul se salvează atunci, dar prima plată se face abia în ziua în care s-ar fi încheiat proba. Până atunci lucrezi exact ca înainte, cu limitele probei, iar SMS-urile pornesc din ziua în care ai ales planul. Din acel moment insigna arată numele planului ales, iar banda nu mai apare. Dacă alegi în ultima oră a probei, prima plată se face pe loc.
+Poți alege un plan oricând în perioada de probă, fără să pierzi zilele rămase: cardul se salvează atunci, dar prima plată se face abia în ziua în care s-ar fi încheiat proba. Până atunci lucrezi exact ca înainte, cu limitele probei, iar SMS-urile pornesc din ziua în care ai ales planul. Până la prima plată, codurile de semnare prin SMS se opresc la cât include planul ales, 50 pe Start și 300 pe Profesional; cele în plus pornesc abia după prima plată. Din acel moment insigna arată numele planului ales, iar banda nu mai apare. Dacă alegi în ultima oră a probei, prima plată se face pe loc.
 
 Dacă banca nu a confirmat cardul, pagina **Abonament** îți spune că nu e salvat: fără card, prima plată nu reușește. **Adaugă cardul** deschide din nou formularul cardului, cu planul ales.
 
@@ -93,9 +93,11 @@ Se numără:
 
 - **angajații la clienți**: angajații actuali ai clienților activi. Foștii angajați, clienții potențiali și clienții arhivați nu intră în număr. Liniile albe din bară arată unde se termină ce include planul și fiecare pachet;
 - **utilizatorii**: membrii organizației, cu tine cu tot;
-- **SMS-urile**: câte include planul pe lună. Numărul celor trimise luna aceasta va apărea aici în curând.
+- **codurile de semnare prin SMS**: câte au plecat luna aceasta, față de cât include planul: 50 pe Start, 300 pe Profesional. Luna e a abonamentului: începe în ziua în care se reînnoiește, de exemplu de pe 14.10 până pe 13.11, și pe un plan anual. Invitațiile în portal, codurile de conectare și anunțurile că sunt instruiri de semnat pleacă și ele prin SMS, dar nu se numără.
 
-Dacă treci de limita de angajați, lucrezi mai departe cu tot ce ai. Pagina îți spune cu câți ai trecut și îți propune pachetul care îți lipsește. SMS-urile peste cele incluse nu se opresc: fiecare costă 0,10 € și apare pe factura următoare. Pe un plan anual, SMS-urile în plus se plătesc lunar.
+Dacă treci de limita de angajați, lucrezi mai departe cu tot ce ai. Pagina îți spune cu câți ai trecut și îți propune pachetul care îți lipsește. Peste cele incluse, codurile de semnare prin SMS pleacă mai departe: fiecare costă 0,10 € și apare pe factura următoare; pe un plan anual, se plătesc lunar. Ca factura să nu crească fără margini, se opresc la de trei ori cât include planul, adică 150 pe Start și 900 pe Profesional. De acolo, până la luna următoare, un angajat fără email nu mai primește codul de semnare prin SMS.
+
+SMS-urile pleacă doar la numere din România (+40). Un angajat cu un număr din altă țară se invită pe email.
 
 ## Schimbarea planului
 

@@ -54,7 +54,7 @@ Cardul arată dacă angajatul are acces, cu ce adresă și din ce zi, și în ce
 
 ### Invitația
 
-**Invită în portal** trimite adresa portalului la emailul sau la telefonul din datele angajatului. Dacă are ambele, alegi unde; emailul e ales din start, pentru că fiecare cod trimis prin SMS costă. Angajatul intră apoi cu un cod primit la aceeași adresă: adresa la care l-ai invitat e cea cu care intră.
+**Invită în portal** trimite adresa portalului la emailul sau la telefonul din datele angajatului. Dacă are ambele, alegi unde; emailul e ales din start, pentru că fiecare cod trimis prin SMS costă. SMS-urile pleacă doar la numere din România (+40) și nu pleacă deloc în perioada de probă, înainte să alegi un plan. Angajatul intră apoi cu un cod primit la aceeași adresă: adresa la care l-ai invitat e cea cu care intră.
 
 Invitația e valabilă 30 de zile. Până o acceptă, vezi **Invitat**, cu data trimiterii și data la care expiră; după 30 de zile, **Invitație expirată**. **Retrimite** reînnoiește invitația și retrimite mesajul, cel mult o dată la 10 minute.
 

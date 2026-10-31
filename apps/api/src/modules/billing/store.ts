@@ -63,6 +63,8 @@ const tracked = [
   'extra_members',
   'current_period_end',
   'invoice_email',
+  'billing_anchor_at',
+  'sms_cap_factor',
 ] as const satisfies (keyof SubscriptionRow)[];
 
 const sameInstant = (a: unknown, b: unknown) =>
@@ -114,6 +116,19 @@ export async function saveSubscription(
     details: { ...record.details, ...changed },
   });
   return data;
+}
+
+// The first paid invoice ends the hard stop on signing codes that a plan chosen during the trial
+// has (ADR 029); later payments leave it as it is.
+export async function markFirstPayment(db: AdminClient, organizationId: string, paidAt: Date) {
+  const { data, error } = await db
+    .from('subscriptions')
+    .update({ first_paid_at: paidAt.toISOString() })
+    .eq('organization_id', organizationId)
+    .is('first_paid_at', null)
+    .select('organization_id');
+  if (error) throw fromDatabaseError(error, 'billing first payment');
+  return data.length > 0;
 }
 
 export async function countUsage(db: AdminClient, organizationId: string): Promise<Usage> {

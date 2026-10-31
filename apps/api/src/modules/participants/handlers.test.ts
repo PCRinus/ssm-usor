@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
+import { createSmsUpstream, plainTrial, type SmsUpstream } from '../sms-usage/upstream.fixture';
 
 const sendInvitationEmail = vi.fn<MailService['sendParticipantInvitation']>();
 const sendInvitationSms = vi.fn<SmsService['sendParticipantInvitation']>();
@@ -113,12 +114,15 @@ const upstreamDefaults = {
 };
 
 const fetchMock = vi.fn<typeof fetch>();
+let sms: SmsUpstream;
 
 function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
   const upstream = { ...upstreamDefaults, ...overrides };
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     const method = init?.method ?? 'GET';
+    const smsAnswer = sms.handle(url, init);
+    if (smsAnswer) return smsAnswer;
     switch (url.pathname) {
       case '/auth/v1/user':
         return Response.json({ ...user, is_anonymous: false });
@@ -197,6 +201,7 @@ const reasonOf = async (response: Response) =>
 const employeeInvitations = `/clients/${clientId}/employees/${employeeId}/participant-invitations`;
 
 beforeEach(() => {
+  sms = createSmsUpstream();
   vi.stubGlobal('fetch', fetchMock);
   fetchMock.mockReset();
   sendInvitationEmail.mockReset().mockResolvedValue({ id: 'msg_1' });
@@ -294,6 +299,67 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
       portalUrl: 'https://portal.example.ro',
     });
     expect(sendInvitationEmail).not.toHaveBeenCalled();
+  });
+
+  it('logs the SMS invitation against the organization, uncounted', async () => {
+    const smsRow = { ...invitationRow, channel: 'sms', address: '+40721000002' };
+    mockUpstream({
+      create: () => Response.json(smsRow),
+      invitations: () => Response.json([smsRow]),
+    });
+
+    await request(employeeInvitations, { channel: 'sms', address: '0721 000 002' });
+
+    expect(sms.claims).toEqual([
+      expect.objectContaining({
+        p_organization_id: organizationId,
+        p_kind: 'participant_invitation',
+        p_allowance: null,
+        p_cap: null,
+      }),
+    ]);
+    expect(sms.updates).toEqual([expect.objectContaining({ provider_id: 'sms_1' })]);
+  });
+
+  it('refuses an SMS invitation during a trial without a plan before saving anything', async () => {
+    sms.subscriptions.push(plainTrial(organizationId));
+    mockUpstream();
+
+    const response = await request(employeeInvitations, {
+      channel: 'sms',
+      address: '0721 000 002',
+    });
+
+    expect(response.status).toBe(409);
+    expect(await reasonOf(response)).toBe('sms_trial');
+    expect(calls('/rest/v1/rpc/create_participant_invitation')).toEqual([]);
+    expect(sendInvitationSms).not.toHaveBeenCalled();
+  });
+
+  it('still invites by email during a trial', async () => {
+    sms.subscriptions.push(plainTrial(organizationId));
+    mockUpstream();
+
+    const response = await request(employeeInvitations, {
+      channel: 'email',
+      address: 'ion@example.ro',
+    });
+
+    expect(response.status).toBe(201);
+    expect(sendInvitationEmail).toHaveBeenCalledOnce();
+  });
+
+  it('refuses a number outside Romania with 422', async () => {
+    mockUpstream();
+
+    const response = await request(employeeInvitations, {
+      channel: 'sms',
+      address: '+33612345678',
+    });
+
+    expect(response.status).toBe(422);
+    expect(await reasonOf(response)).toBe('sms_foreign_number');
+    expect(calls('/rest/v1/rpc/create_participant_invitation')).toEqual([]);
   });
 
   it("reuses the address's account and adds the flag beside what its metadata holds", async () => {
@@ -530,6 +596,19 @@ describe('POST /participant-invitations/{invitationId}/resend', () => {
     expect(sendInvitationEmail).toHaveBeenCalledOnce();
   });
 
+  it('refuses to resend an SMS invitation during a trial', async () => {
+    const smsRow = { ...invitationRow, channel: 'sms', address: '+40721000002' };
+    sms.subscriptions.push(plainTrial(organizationId));
+    mockUpstream({ invitations: () => Response.json(smsRow) });
+
+    const response = await request(`/participant-invitations/${invitationId}/resend`, {});
+
+    expect(response.status).toBe(409);
+    expect(await reasonOf(response)).toBe('sms_trial');
+    expect(calls('/rest/v1/rpc/resend_participant_invitation')).toEqual([]);
+    expect(sendInvitationSms).not.toHaveBeenCalled();
+  });
+
   it('answers 404 for an invitation the member cannot see', async () => {
     mockUpstream({ invitations: () => Response.json([]) });
 
@@ -729,6 +808,44 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
     expect(sendInvitationSms).toHaveBeenCalledWith(
       expect.objectContaining({ to: '+40742115980', clientName: 'S.C. CLIENT DEMO S.R.L.' })
     );
+  });
+
+  it('names an SMS the plan refuses on its row, saves nothing for it, and invites the rest', async () => {
+    sms.subscriptions.push(plainTrial(organizationId));
+    mockUpstream({
+      employees: () => Response.json([employeeRow(employeeId), employeeRow(newcomerId)]),
+      createAtAddress: () => Response.json({ id: invitationId }),
+      invitations: () => Response.json(invitationRow),
+    });
+
+    const response = await request(bulk, {
+      invitations: [
+        { employeeId, address: 'ion@example.ro' },
+        { employeeId: newcomerId, address: '0742 115 980' },
+      ],
+    });
+
+    const { results } = (await response.json()) as {
+      results: { employeeId: string; outcome: string; reason: string | null }[];
+    };
+    expect(results.map((row) => [row.employeeId, row.outcome, row.reason])).toEqual([
+      [employeeId, 'invited', null],
+      [newcomerId, 'failed', 'sms_trial'],
+    ]);
+    expect(calls('/rest/v1/rpc/create_employee_invitation_at_address')).toHaveLength(1);
+    expect(sendInvitationSms).not.toHaveBeenCalled();
+  });
+
+  it('names a foreign number on its row', async () => {
+    mockUpstream({ employees: () => Response.json([employeeRow(newcomerId)]) });
+
+    const response = await request(bulk, {
+      invitations: [{ employeeId: newcomerId, address: '+33612345678' }],
+    });
+
+    const { results } = (await response.json()) as { results: { reason: string | null }[] };
+    expect(results[0]?.reason).toBe('sms_foreign_number');
+    expect(calls('/rest/v1/rpc/create_employee_invitation_at_address')).toEqual([]);
   });
 
   it('skips a former employee, a participant and one invited, and names an address that is neither', async () => {

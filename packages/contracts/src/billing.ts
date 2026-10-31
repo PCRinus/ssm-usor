@@ -313,6 +313,65 @@ export const billingUsageMeterSchema = z.object({
 });
 export type BillingUsageMeter = z.infer<typeof billingUsageMeterSchema>;
 
+/** A tester's trial sends Profesional's signing codes a month, with a hard stop (ADR 029). */
+export const testerMonthlySms = billingPlans.profesional.monthlySms;
+
+/** The safety cap on signing codes, as a multiple of the plan's allowance (ADR 029). */
+export const smsCapFactor = { default: 3, max: 20 } as const;
+
+/** Why an SMS was not sent, as `reason` carries it on the refusal. */
+export const smsRefusalReasons = [
+  // A trial without a chosen plan or the tester switch, or one that has ended.
+  'sms_trial',
+  // SMS go to Romanian numbers (+40) only.
+  'sms_foreign_number',
+  // The month's signing codes are used up where nothing past them can be billed: a tester's
+  // trial, or a plan chosen during the trial before its first payment.
+  'sms_allowance_reached',
+  // The safety cap is reached; the owner can raise it.
+  'sms_cap_reached',
+] as const;
+export const smsRefusalReasonSchema = z.enum(smsRefusalReasons);
+export type SmsRefusalReason = z.infer<typeof smsRefusalReasonSchema>;
+
+/**
+ * `none`: no SMS goes at all; `near`: from 80 % of what is included; `over`: past it, billed;
+ * `capped`: at the safety cap; `stopped`: at a hard stop, where nothing past it is billed.
+ */
+export const smsUsageStateSchema = z.enum(['ok', 'near', 'over', 'capped', 'stopped', 'none']);
+export type SmsUsageState = z.infer<typeof smsUsageStateSchema>;
+
+export const billingSmsUsageSchema = z.object({
+  // Signing codes sent by SMS this month; the other kinds are not counted.
+  used: z.int().min(0),
+  // The plan's codes plus those granted by hand; null where nothing limits them.
+  included: z.int().min(0).nullable(),
+  allowance: z.int().min(0).nullable(),
+  granted: z.int().min(0),
+  // Null where nothing past `included` is sent: a hard stop, or no limit. Grants raise it too.
+  cap: z.int().min(0).nullable(),
+  capFactor: z.int().min(1).nullable(),
+  // Codes past `included` this month, billed on the next invoice.
+  overage: z.int().min(0),
+  // Null while no SMS goes.
+  periodStart: timestamp.nullable(),
+  periodEnd: timestamp.nullable(),
+  state: smsUsageStateSchema,
+});
+export type BillingSmsUsage = z.infer<typeof billingSmsUsageSchema>;
+
+export const smsCapRequestSchema = z.object({
+  factor: z.int().min(smsCapFactor.default).max(smsCapFactor.max),
+});
+export type SmsCapRequest = z.infer<typeof smsCapRequestSchema>;
+
+export const smsCapSchema = z.object({
+  factor: z.int(),
+  // The plan's allowance times the factor, before any codes granted by hand.
+  cap: z.int(),
+});
+export type SmsCap = z.infer<typeof smsCapSchema>;
+
 export const billingInvoiceSchema = z.object({
   stripeInvoiceId: z.string(),
   kind: z.enum(['invoice', 'proforma']),
@@ -388,8 +447,8 @@ export const billingOverviewSchema = z.object({
     // chosen during it or not.
     employees: billingUsageMeterSchema,
     members: billingUsageMeterSchema,
-    // `used` is null: SMS are not counted per organization yet.
-    smsThisMonth: billingUsageMeterSchema,
+    // The subscription's month, from the day it renews (ADR 029).
+    smsThisMonth: billingSmsUsageSchema,
   }),
   catalogue: billingCatalogueSchema,
   // The owner's alone (ADR 029): null for the other members and for an impersonating admin.

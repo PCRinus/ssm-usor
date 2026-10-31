@@ -9,6 +9,8 @@ import {
   cancelSubscriptionRequestSchema,
   changeSubscriptionRequestSchema,
   invoiceEmailSchema,
+  smsCapRequestSchema,
+  smsCapSchema,
 } from '@ssm-usor/contracts';
 
 import { allowWhileReadOnly } from '../../lib/access';
@@ -249,6 +251,38 @@ export const getInvoicePdfRoute = createRoute({
     400: { description: 'Invalid path', content: errorContent },
     404: { description: 'No such invoice in the organization', content: errorContent },
     409: { description: 'The PDF is not stored yet; see `reason`', content: errorContent },
+    ...ownerOnlyErrors,
+  },
+});
+
+export const updateSmsCapRoute = createRoute({
+  method: 'put',
+  path: '/billing/sms-cap',
+  operationId: 'updateSmsCap',
+  summary: "The safety cap on the month's signing codes by SMS",
+  description:
+    "A multiple of the plan's allowance, from 3 (the default) to 20; codes granted by hand come on top. Past the cap no signing code goes by SMS. Recorded in the subscription's change log.",
+  security: bearerSecurity,
+  middleware: ownerMiddleware,
+  request: {
+    body: {
+      required: true,
+      content: {
+        'application/json': { schema: smsCapRequestSchema.meta({ id: 'SmsCapRequest' }) },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'The saved cap',
+      content: { 'application/json': { schema: smsCapSchema.meta({ id: 'SmsCap' }) } },
+    },
+    400: { description: 'Invalid request body', content: errorContent },
+    409: {
+      description:
+        'No plan is chosen (`no_subscription`) or the plan is Enterprise (`enterprise_plan`)',
+      content: errorContent,
+    },
     ...ownerOnlyErrors,
   },
 });

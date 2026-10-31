@@ -71,7 +71,8 @@
       },
     ],
   },
-  // The daily clean-up of imports (ADR 030). 02:41 UTC, away from the legislation check.
+  // The daily clean-up of imports (ADR 030) and retry of the SMS overage not reported to Stripe
+  // (ADR 029). 02:41 UTC, away from the legislation check.
   "triggers": {
     "crons": ["41 2 * * *"],
   },

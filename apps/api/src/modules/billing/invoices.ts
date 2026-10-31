@@ -21,8 +21,10 @@ import {
   loadCompany,
   loadInvoice,
   loadSubscription,
+  markFirstPayment,
   organizationExists,
   ownerEmail,
+  recordChange,
   updateInvoice,
 } from './store';
 import { idOf, type StripeAccess, type StripeCatalogue } from './stripe';
@@ -160,6 +162,14 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
     return null;
   }
   const subscription = byCustomer ?? (await loadSubscription(deps.db, organizationId));
+  const paidAt = new Date((invoice.status_transitions.paid_at ?? invoice.created) * 1000);
+  if (subscription && (await markFirstPayment(deps.db, organizationId, paidAt))) {
+    await recordChange(deps.db, organizationId, {
+      source: 'stripe',
+      change: 'first_payment',
+      details: { stripe_invoice: invoice.id },
+    });
+  }
 
   let row =
     (await loadInvoice(deps.db, invoice.id)) ??
@@ -190,7 +200,7 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
         lines: toPaidLines(lines, deps.catalogue),
         total: invoice.total,
         paymentReference: paymentReference(invoice),
-        paidAt: new Date((invoice.status_transitions.paid_at ?? invoice.created) * 1000),
+        paidAt,
       }
     );
     const document = await oblioFor(deps).issue(request);

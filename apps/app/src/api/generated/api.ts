@@ -11218,17 +11218,50 @@ export type BillingOverviewUsageMembers = {
   limit: number | null;
 };
 
+export type BillingOverviewUsageSmsThisMonthState =
+  (typeof BillingOverviewUsageSmsThisMonthState)[keyof typeof BillingOverviewUsageSmsThisMonthState];
+
+export const BillingOverviewUsageSmsThisMonthState = {
+  ok: 'ok',
+  near: 'near',
+  over: 'over',
+  capped: 'capped',
+  stopped: 'stopped',
+  none: 'none',
+} as const;
+
 export type BillingOverviewUsageSmsThisMonth = {
+  /** @minimum 0 */
+  used: number;
   /**
    * @minimum 0
    * @nullable
    */
-  used: number | null;
+  included: number | null;
   /**
    * @minimum 0
    * @nullable
    */
-  limit: number | null;
+  allowance: number | null;
+  /** @minimum 0 */
+  granted: number;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  cap: number | null;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  capFactor: number | null;
+  /** @minimum 0 */
+  overage: number;
+  /** @nullable */
+  periodStart: string | null;
+  /** @nullable */
+  periodEnd: string | null;
+  state: BillingOverviewUsageSmsThisMonthState;
 };
 
 export type BillingOverviewUsage = {
@@ -11733,6 +11766,19 @@ export interface InvoiceEmail {
    * @nullable
    */
   email: string | null;
+}
+
+export interface SmsCap {
+  factor: number;
+  cap: number;
+}
+
+export interface SmsCapRequest {
+  /**
+   * @minimum 3
+   * @maximum 20
+   */
+  factor: number;
 }
 
 export interface BillingInvoiceLink {
@@ -36078,6 +36124,111 @@ export const useUpdateInvoiceEmail = <TError = ErrorType<ApiErrorResponse>, TCon
   TContext
 > => {
   return useMutation(getUpdateInvoiceEmailMutationOptions(options), queryClient);
+};
+
+export const getUpdateSmsCapUrl = () => {
+  return `/billing/sms-cap`;
+};
+
+/**
+ * A multiple of the plan's allowance, from 3 (the default) to 20; codes granted by hand come on top. Past the cap no signing code goes by SMS. Recorded in the subscription's change log.
+ * @summary The safety cap on the month's signing codes by SMS
+ */
+export const updateSmsCap = async (
+  smsCapRequest: SmsCapRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SmsCap> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<SmsCap>(getUpdateSmsCapUrl(), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(smsCapRequest),
+  });
+};
+
+export const getUpdateSmsCapMutationKey = () => ['updateSmsCap'] as const;
+
+export const getUpdateSmsCapMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSmsCap>>,
+    TError,
+    UpdateSmsCapMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSmsCap>>,
+  TError,
+  UpdateSmsCapMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateSmsCapMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSmsCap>>,
+    UpdateSmsCapMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateSmsCap(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSmsCapMutationResult = NonNullable<Awaited<ReturnType<typeof updateSmsCap>>>;
+export type UpdateSmsCapMutationBody = SmsCapRequest;
+export type UpdateSmsCapMutationError = ErrorType<ApiErrorResponse>;
+export type UpdateSmsCapMutationVariables = { data: SmsCapRequest };
+
+/**
+ * @summary The safety cap on the month's signing codes by SMS
+ */
+export const useUpdateSmsCap = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateSmsCap>>,
+      TError,
+      UpdateSmsCapMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateSmsCap>>,
+  TError,
+  UpdateSmsCapMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateSmsCapMutationOptions(options), queryClient);
 };
 
 export const getGetBillingInvoicePdfUrl = (stripeInvoiceId: string) => {

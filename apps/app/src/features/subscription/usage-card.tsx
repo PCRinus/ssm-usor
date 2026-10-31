@@ -132,10 +132,9 @@ export function UsageCard({
         : `${base} Start are cel mult 2 utilizatori.`;
   }
 
-  const smsLimit = planLimits
-    ? billingPlans[choice.plan].monthlySms
-    : overview.usage.smsThisMonth.limit;
-  const smsUsed = overview.usage.smsThisMonth.used;
+  const sms = overview.usage.smsThisMonth;
+  const smsLimit = planLimits ? billingPlans[choice.plan].monthlySms : sms.included;
+  const smsUsed = sms.used;
   let smsHint: string;
   if (view === 'readOnly') {
     smsHint = 'Cât contul e doar pentru citire, nu se mai trimit SMS-uri.';
@@ -145,12 +144,12 @@ export function UsageCard({
     smsHint =
       'Codurile de conectare și de semnare pleacă pe email. SMS-urile pornesc când alegi un plan.';
   } else {
-    const after = `Peste ${formatCount(smsLimit)}, fiecare SMS costă ${smsPrice} și apare pe factura următoare; SMS-urile nu se opresc.`;
-    const counting = smsUsed === null ? 'Numărul SMS-urilor trimise apare aici în curând. ' : '';
+    const after =
+      sms.cap === null
+        ? `Se numără doar codurile de semnare. Peste ${formatCount(smsLimit)}, codul pleacă pe email, iar cine nu are email îl cere specialistului.`
+        : `Se numără doar codurile de semnare. Peste ${formatCount(smsLimit)}, fiecare costă ${smsPrice} și apare pe factura următoare, până la ${formatCount(sms.cap)} pe lună.`;
     smsHint =
-      view === 'trialChosen'
-        ? `SMS-urile au pornit odată cu alegerea planului. ${counting}${after}`
-        : `${counting}${after}`;
+      view === 'trialChosen' ? `SMS-urile au pornit odată cu alegerea planului. ${after}` : after;
   }
 
   const meters: Meter[] = [
@@ -188,15 +187,9 @@ export function UsageCard({
     },
     {
       key: 'sms',
-      label: smsUsed === null ? 'SMS pe lună' : 'SMS luna aceasta',
+      label: 'Coduri de semnare prin SMS',
       used: view === 'readOnly' || smsLimit === 0 ? null : smsUsed,
       limit: view === 'readOnly' || smsLimit === 0 ? null : smsLimit,
-      value:
-        view === 'readOnly' || smsLimit === 0 || smsLimit === null
-          ? undefined
-          : smsUsed === null
-            ? `${formatCount(smsLimit)} incluse`
-            : undefined,
       hint: smsHint,
     },
   ];

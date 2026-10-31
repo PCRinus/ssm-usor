@@ -196,6 +196,18 @@ describe('POST /billing/stripe-webhook', () => {
       ]);
     });
 
+    it("keeps Stripe's billing anchor, which starts the SMS month", async () => {
+      const fake = createFake();
+      const trialEnd = now() + 12 * day;
+      fake.tables.subscriptions!.push(subscriptionRow());
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({ status: 'trialing', choice: start, trialEnd, anchor: trialEnd });
+
+      await deliver(subscriptionEvent('customer.subscription.created'));
+
+      expect(row(fake).billing_anchor_at).toBe(new Date(trialEnd * 1000).toISOString());
+    });
+
     it('ignores a subscription of an organization this database does not have', async () => {
       const fake = createFake();
       fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
@@ -371,6 +383,20 @@ describe('POST /billing/stripe-webhook', () => {
       expect(fake.uploads.map((upload) => upload.path)).toEqual([
         `${organizationId}/SSMUSOR-0001.pdf`,
       ]);
+    });
+
+    it('records the first payment once, which ends the hard stop on signing codes', async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow(pro, { first_paid_at: null }));
+      fake.stripe['GET /v1/invoices/in_1Paid'] = () => paidInvoice();
+
+      await deliver(paidEvent);
+      const first = row(fake).first_paid_at;
+      await deliver({ ...paidEvent, id: 'evt_paid_again' });
+
+      expect(first).toEqual(expect.any(String));
+      expect(row(fake).first_paid_at).toBe(first);
+      expect(changes(fake).filter((change) => change.change === 'first_payment')).toHaveLength(1);
     });
 
     it('issues the first invoice paid before the checkout saved the customer', async () => {

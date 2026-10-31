@@ -11,6 +11,7 @@ import { createAdminClient } from '../../lib/admin-db';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { type SmsSender, smsSenderOf } from '../sms-usage/sender';
 import { notifySigner } from './notify';
 import { placeOf, type Signer, signersOfClient, traineeSignerOf } from './signers';
 
@@ -222,14 +223,21 @@ async function notifySigners(
   }
 
   const notified: string[] = [];
+  let sms: SmsSender | null = null;
   for (const { signer, place, ids } of groups.values()) {
     try {
-      await notifySigner(
-        c.env,
+      sms ??= smsSenderOf(c);
+      const outcome = await notifySigner(
+        { env: c.env, sms },
         { contact: signer.contact!, place },
-        { count: ids.length, organizationName: organization.data.name }
+        {
+          count: ids.length,
+          organizationId: c.get('membership').organizationId,
+          organizationName: organization.data.name,
+        }
       );
-      notified.push(...ids);
+      if (outcome.sent) notified.push(...ids);
+      else console.warn(`Signature request SMS skipped: ${outcome.reason}`);
     } catch (error) {
       console.error(
         `Signature request ${signer.contact!.channel} failed: ${error instanceof Error ? error.name : 'unknown'}`

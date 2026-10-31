@@ -162,12 +162,21 @@ async function awaitedAgreements(
 async function createSession(
   c: Context<ApiEnv>,
   items: Item[],
-  signer: { clientId: string; place: SigningPlace; participantId: string | null }
+  signer: {
+    clientId: string;
+    organizationId: string;
+    place: SigningPlace;
+    participantId: string | null;
+  }
 ) {
   const accountId = c.get('user').id;
   await createSigningIdentities(c);
   const admin = createLastingAdminClient(c);
-  const contact = await signerContact(admin, { accountId, ...signer });
+  const contact = await signerContact(admin, {
+    accountId,
+    clientId: signer.clientId,
+    place: signer.place,
+  });
   if (!contact) {
     throw new ApiError(
       'conflict',
@@ -179,6 +188,7 @@ async function createSession(
   const { sessionId, expiresAt } = await signingSessionsOf(c).create(
     {
       accountId,
+      organizationId: signer.organizationId,
       place: signer.place,
       participantId: signer.participantId,
       channel: contact.channel,
@@ -234,7 +244,12 @@ export const createMySigningSession: RouteHandler<
   });
   const items: Item[] = requestIds.map((requestId) => ({ kind: 'request', requestId }));
   return c.json(
-    await createSession(c, items, { clientId: '', place: 'app', participantId: null }),
+    await createSession(c, items, {
+      clientId: '',
+      organizationId: c.get('membership').organizationId,
+      place: 'app',
+      participantId: null,
+    }),
     201
   );
 };
@@ -262,6 +277,7 @@ export const createPortalSigningSession: RouteHandler<
   return c.json(
     await createSession(c, items, {
       clientId: participation.clientId,
+      organizationId: participation.organizationId,
       place: 'portal',
       participantId,
     }),

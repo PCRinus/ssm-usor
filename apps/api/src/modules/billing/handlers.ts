@@ -12,7 +12,9 @@ import {
   employeePacks,
   extraMember,
   type InvoiceEmail,
+  type PaidPlan,
   readOnlyDays,
+  type SmsCap,
   smsOverage,
   vatPercent,
 } from '@ssm-usor/contracts';
@@ -24,6 +26,8 @@ import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
 import { isOwnerInPerson } from '../../lib/membership';
+import { smsUsageStore } from '../sms-usage/store';
+import { smsUsageOf } from '../sms-usage/usage';
 import type {
   cancelSubscriptionRoute,
   changeSubscriptionRoute,
@@ -34,6 +38,7 @@ import type {
   previewBillingRoute,
   resumeSubscriptionRoute,
   updateInvoiceEmailRoute,
+  updateSmsCapRoute,
 } from './routes';
 import { minimumsFor, problemsWith, usageLimits } from './rules';
 import {
@@ -215,6 +220,7 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
     countUsage(billing.db, billing.organizationId),
   ]);
   const limits = usageLimits(row, billing.now);
+  const sms = await smsUsageOf(smsUsageStore(billing.db), billing.organizationId, row, billing.now);
 
   let owner: BillingOverview['owner'] = null;
   let stripeCancelAt: string | null = null;
@@ -250,7 +256,7 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
       usage: {
         employees: { used: usage.employees, limit: limits.employees },
         members: { used: usage.members, limit: limits.members },
-        smsThisMonth: { used: null, limit: limits.sms },
+        smsThisMonth: sms,
       },
       catalogue,
       owner,
@@ -420,6 +426,43 @@ export const getInvoicePdf: RouteHandler<typeof getInvoicePdfRoute, ApiEnv> = as
       fileName,
       expiresAt: new Date(Date.now() + expiresInSeconds * 1000).toISOString(),
     } satisfies BillingInvoiceLink,
+    200
+  );
+};
+
+export const updateSmsCap: RouteHandler<typeof updateSmsCapRoute, ApiEnv> = async (c) => {
+  const billing = billingOf(c);
+  const { factor } = c.req.valid('json');
+  const row = await loadSubscription(billing.db, billing.organizationId);
+  if (row?.plan === 'enterprise') {
+    throw new ApiError(
+      'conflict',
+      'An Enterprise subscription is changed by email.',
+      undefined,
+      'enterprise_plan'
+    );
+  }
+  if (!row?.stripe_subscription_id) {
+    throw new ApiError(
+      'conflict',
+      'The safety cap belongs to a chosen plan.',
+      undefined,
+      'no_subscription'
+    );
+  }
+  const saved = await saveSubscription(
+    billing.db,
+    billing.organizationId,
+    row,
+    { sms_cap_factor: factor },
+    { source: 'owner', change: 'sms_cap', details: { actor: billing.userId } }
+  );
+  const savedFactor = saved?.sms_cap_factor ?? factor;
+  return c.json(
+    {
+      factor: savedFactor,
+      cap: billingPlans[row.plan as PaidPlan].monthlySms * savedFactor,
+    } satisfies SmsCap,
     200
   );
 };

@@ -239,7 +239,8 @@ export type BulkInvitationOutcome = z.infer<typeof bulkInvitationOutcomeSchema>;
 export const bulkInvitationResultSchema = z.object({
   employeeId: z.uuid(),
   outcome: bulkInvitationOutcomeSchema,
-  // Null when invited; else a skip reason, a failure reason or a participant error reason.
+  // Null when invited; else a skip reason, a failure reason, a participant error reason or one of
+  // `smsRefusalReasons`.
   reason: z.string().nullable(),
   // Set when invited, and when only the message failed: the invitation is saved for a resend.
   invitation: participantInvitationSchema.nullable(),

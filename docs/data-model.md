@@ -48,13 +48,14 @@ keeps an owner. Removal deletes the membership only.
 `subscriptions` holds one row per paying or trialing organization
 ([ADR 029](architecture/adr-029-billing-plans-and-trials.md)): the `plan` (`start`,
 `profesional`, `enterprise`), the `status` (`trialing`, `active`, `past_due`, `canceled`), the
-`trial_ends_at`, `access_until`, when full access ends, and `trial_sms`: a trial sends no SMS, except a tester's
-trial given SMS, which sends them at the full allowance of its plan. An organization without a row has
+`trial_ends_at`, `access_until`, when full access ends, and `tester_allowances`, the tester
+switch: a trial sends no SMS, except a tester's, which sends 300 signing codes a month with a hard
+stop (and, once credits exist, gets 1,500 credits a month). An organization without a row has
 full access indefinitely: the seeded ones, the end-to-end accounts and every organization
 created before billing. Members read their own organization's row; nobody writes it through the
 data API.
 
-`create_organization` starts a 30-day `profesional` trial. `extend_trial(owner email, until, reason, actor, with SMS)`, for the secret key only, moves a trial's end later, or starts a trial for an
+`create_organization` starts a 30-day `profesional` trial. `extend_trial(owner email, until, reason, actor, tester)`, for the secret key only, moves a trial's end later, or starts a trial for an
 organization without a row and returns `started` to say so. It refuses an unknown owner
 (`TRL01`), a subscription past its trial (`TRL02`), an end in the past (`TRL03`), an end not
 later than the current one (`TRL04`), an email that matches more than one owner (`TRL05`), and a
@@ -72,7 +73,10 @@ customer lives in, which a move from the PFA to an SRL may change), `stripe_cust
 `stripe_subscription_id` (unique), `billing_interval` (`month` or `year`), `price_version` (the
 catalogue version of its prices, such as `v1`), the quantities `employee_packs` and
 `extra_members` (both 0 by default), `invoice_email`, where Oblio sends the invoices instead of
-the owner, and `current_period_end`. A trial with no plan chosen has packs and members at 0 and
+the owner, `current_period_end`, `billing_anchor_at` (Stripe's billing cycle anchor, the day the
+SMS month starts on), `first_paid_at` (the first invoice with an amount, which ends the hard stop
+on signing codes of a plan chosen during the trial) and `sms_cap_factor`, the safety cap as a
+multiple of the plan's SMS allowance (3 by default, 3 to 20, raised by the owner). A trial with no plan chosen has packs and members at 0 and
 no Stripe subscription; a trial with a plan chosen carries all of Stripe's side, and a trial whose
 plan was cancelled keeps its customer. A Stripe customer needs its
 account, and a Stripe subscription its customer, interval and price version. Members read every
@@ -80,6 +84,22 @@ column but `invoice_email`, `stripe_customer_id` and `stripe_account`, which are
 reach them through the API. The plans, prices
 and Stripe lookup keys themselves live in the plan catalogue in `packages/contracts`, not in the
 database.
+
+`sms_sends` logs every SMS the API sends ([ADR 029](architecture/adr-029-billing-plans-and-trials.md),
+"Limits and usage"): the organization, the `kind` (`participant_invitation`, `sign_in_code`,
+`signing_code`, `signature_request`), whether it is `counted` (signing codes only), whether it is
+`overage` (past the allowance, billed), the month it fell in (`period_start`, `period_end`), the
+provider's id, `sent_at` (null while the message is on its way) and `reported_at`, when its meter
+event went to Stripe. No phone number is kept. `claim_sms_send(organization, kind, month,
+allowance, cap)` decides and records a send under a lock per organization, so two codes asked
+for at once cannot both take the last one: below the allowance plus the codes granted by hand it
+records a send, past it a billed one while a cap is given and not reached, and otherwise answers
+`sms_allowance_reached` (a hard stop, no cap) or `sms_cap_reached` and records nothing.
+`sms_period_usage(organization, month)` answers the counts. `sms_code_grants` holds the codes
+added by hand to a month (codes, reason, actor), written by `grant_signing_codes`, which also logs
+`signing_codes_granted` in `subscription_changes`. `usage_notices` records which usage warning
+(`sms_80`, `sms_100`, `sms_cap`, later `credits_*`) went to an organization in which month, once
+each. All four are the secret key's alone.
 
 `stripe_events` records every webhook event by its Stripe id (`type`, `received_at`,
 `processed_at`, and the `error` of a failed attempt), so an event delivered twice is handled

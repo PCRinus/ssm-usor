@@ -197,9 +197,9 @@ select results_eq(
 );
 
 select is(
-  (select trial_sms from public.subscriptions where organization_id = pg_temp.tester_organization()),
+  (select tester_allowances from public.subscriptions where organization_id = pg_temp.tester_organization()),
   false,
-  'a trial sends no SMS unless asked'
+  'a trial is no tester''s unless asked'
 );
 
 select results_eq(
@@ -222,14 +222,14 @@ select results_eq(
 );
 
 select is(
-  (select trial_sms from public.subscriptions where organization_id = '11111111-0000-4000-8000-000000000001'),
+  (select tester_allowances from public.subscriptions where organization_id = '11111111-0000-4000-8000-000000000001'),
   true,
-  'and a tester''s trial may include SMS'
+  'and the tester switch is set when asked'
 );
 
 select results_eq(
-  $$ select change from public.subscription_changes where organization_id = '11111111-0000-4000-8000-000000000001' $$,
-  $$ values ('trial_started') $$,
+  $$ select change, details ->> 'tester' from public.subscription_changes where organization_id = '11111111-0000-4000-8000-000000000001' $$,
+  $$ values ('trial_started', 'true') $$,
   'and logs a start, not an extension'
 );
 

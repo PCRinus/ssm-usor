@@ -4909,6 +4909,111 @@ export type Database = {
           },
         ];
       };
+      sms_code_grants: {
+        Row: {
+          actor: string;
+          codes: number;
+          created_at: string;
+          id: number;
+          organization_id: string;
+          period_end: string;
+          period_start: string;
+          reason: string;
+        };
+        Insert: {
+          actor: string;
+          codes: number;
+          created_at?: string;
+          id?: never;
+          organization_id: string;
+          period_end: string;
+          period_start: string;
+          reason: string;
+        };
+        Update: {
+          actor?: string;
+          codes?: number;
+          created_at?: string;
+          id?: never;
+          organization_id?: string;
+          period_end?: string;
+          period_start?: string;
+          reason?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'sms_code_grants_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'sms_code_grants_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      sms_sends: {
+        Row: {
+          counted: boolean;
+          created_at: string;
+          id: string;
+          kind: Database['public']['Enums']['sms_kind'];
+          organization_id: string;
+          overage: boolean;
+          period_end: string;
+          period_start: string;
+          provider_id: string | null;
+          reported_at: string | null;
+          sent_at: string | null;
+        };
+        Insert: {
+          counted: boolean;
+          created_at?: string;
+          id?: string;
+          kind: Database['public']['Enums']['sms_kind'];
+          organization_id: string;
+          overage?: boolean;
+          period_end: string;
+          period_start: string;
+          provider_id?: string | null;
+          reported_at?: string | null;
+          sent_at?: string | null;
+        };
+        Update: {
+          counted?: boolean;
+          created_at?: string;
+          id?: string;
+          kind?: Database['public']['Enums']['sms_kind'];
+          organization_id?: string;
+          overage?: boolean;
+          period_end?: string;
+          period_start?: string;
+          provider_id?: string | null;
+          reported_at?: string | null;
+          sent_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'sms_sends_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'sms_sends_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       stripe_events: {
         Row: {
           error: string | null;
@@ -4981,59 +5086,68 @@ export type Database = {
       subscriptions: {
         Row: {
           access_until: string | null;
+          billing_anchor_at: string | null;
           billing_interval: Database['public']['Enums']['billing_interval'] | null;
           created_at: string;
           current_period_end: string | null;
           employee_packs: number;
           extra_members: number;
+          first_paid_at: string | null;
           invoice_email: string | null;
           organization_id: string;
           plan: Database['public']['Enums']['subscription_plan'];
           price_version: string | null;
+          sms_cap_factor: number;
           status: Database['public']['Enums']['subscription_status'];
           stripe_account: string | null;
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
+          tester_allowances: boolean;
           trial_ends_at: string | null;
-          trial_sms: boolean;
           updated_at: string;
         };
         Insert: {
           access_until?: string | null;
+          billing_anchor_at?: string | null;
           billing_interval?: Database['public']['Enums']['billing_interval'] | null;
           created_at?: string;
           current_period_end?: string | null;
           employee_packs?: number;
           extra_members?: number;
+          first_paid_at?: string | null;
           invoice_email?: string | null;
           organization_id: string;
           plan: Database['public']['Enums']['subscription_plan'];
           price_version?: string | null;
+          sms_cap_factor?: number;
           status: Database['public']['Enums']['subscription_status'];
           stripe_account?: string | null;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
+          tester_allowances?: boolean;
           trial_ends_at?: string | null;
-          trial_sms?: boolean;
           updated_at?: string;
         };
         Update: {
           access_until?: string | null;
+          billing_anchor_at?: string | null;
           billing_interval?: Database['public']['Enums']['billing_interval'] | null;
           created_at?: string;
           current_period_end?: string | null;
           employee_packs?: number;
           extra_members?: number;
+          first_paid_at?: string | null;
           invoice_email?: string | null;
           organization_id?: string;
           plan?: Database['public']['Enums']['subscription_plan'];
           price_version?: string | null;
+          sms_cap_factor?: number;
           status?: Database['public']['Enums']['subscription_status'];
           stripe_account?: string | null;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
+          tester_allowances?: boolean;
           trial_ends_at?: string | null;
-          trial_sms?: boolean;
           updated_at?: string;
         };
         Relationships: [
@@ -6156,6 +6270,42 @@ export type Database = {
           },
         ];
       };
+      usage_notices: {
+        Row: {
+          kind: string;
+          organization_id: string;
+          period_start: string;
+          sent_at: string;
+        };
+        Insert: {
+          kind: string;
+          organization_id: string;
+          period_start: string;
+          sent_at?: string;
+        };
+        Update: {
+          kind?: string;
+          organization_id?: string;
+          period_start?: string;
+          sent_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'usage_notices_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'usage_notices_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       waitlist_subscribers: {
         Row: {
           confirmation_sent_at: string | null;
@@ -6621,6 +6771,21 @@ export type Database = {
         };
         Returns: undefined;
       };
+      claim_sms_send: {
+        Args: {
+          p_allowance: number;
+          p_cap: number;
+          p_kind: Database['public']['Enums']['sms_kind'];
+          p_organization_id: string;
+          p_period_end: string;
+          p_period_start: string;
+        };
+        Returns: {
+          id: string;
+          overage: boolean;
+          refusal: string;
+        }[];
+      };
       client_search_name: {
         Args: { '': Database['public']['Tables']['clients']['Row'] };
         Returns: {
@@ -6840,8 +7005,8 @@ export type Database = {
           p_actor: string;
           p_owner_email: string;
           p_reason: string;
+          p_tester: boolean;
           p_until: string;
-          p_with_sms: boolean;
         };
         Returns: {
           organization_id: string;
@@ -6886,6 +7051,17 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      grant_signing_codes: {
+        Args: {
+          p_actor: string;
+          p_codes: number;
+          p_organization_id: string;
+          p_period_end: string;
+          p_period_start: string;
+          p_reason: string;
+        };
+        Returns: number;
       };
       import_add_key: {
         Args: { p_id: string; p_item: Json; p_keys: Json; p_what: string };
@@ -7435,6 +7611,18 @@ export type Database = {
         };
         Returns: boolean;
       };
+      sms_period_usage: {
+        Args: {
+          p_organization_id: string;
+          p_period_end: string;
+          p_period_start: string;
+        };
+        Returns: {
+          granted: number;
+          overage: number;
+          used: number;
+        }[];
+      };
       split_import: {
         Args: { p_file_ids: string[]; p_import_id: string };
         Returns: Json;
@@ -7698,6 +7886,7 @@ export type Database = {
       risk_evaluation_kind: 'job_position' | 'sensitive_groups' | 'other';
       sensitive_groups_state: 'undecided' | 'none' | 'evaluated';
       signer_slot: 'trainee' | 'trainer' | 'verifier' | 'admitter' | 'examiner';
+      sms_kind: 'participant_invitation' | 'sign_in_code' | 'signing_code' | 'signature_request';
       staff_category: 'technical_administrative' | 'execution';
       subscription_plan: 'start' | 'profesional' | 'enterprise';
       subscription_status: 'trialing' | 'active' | 'past_due' | 'canceled';
@@ -7910,6 +8099,7 @@ export const Constants = {
       risk_evaluation_kind: ['job_position', 'sensitive_groups', 'other'],
       sensitive_groups_state: ['undecided', 'none', 'evaluated'],
       signer_slot: ['trainee', 'trainer', 'verifier', 'admitter', 'examiner'],
+      sms_kind: ['participant_invitation', 'sign_in_code', 'signing_code', 'signature_request'],
       staff_category: ['technical_administrative', 'execution'],
       subscription_plan: ['start', 'profesional', 'enterprise'],
       subscription_status: ['trialing', 'active', 'past_due', 'canceled'],
