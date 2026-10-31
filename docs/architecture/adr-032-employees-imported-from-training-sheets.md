@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-10-31
+- Amended 2026-10-31: credits decided in ADR 030 (#640); SMS invitations and sign-in codes are not counted against the SMS allowance (ADR 029).
 
 ## Context
 
@@ -106,7 +107,7 @@ Confirming invites nobody: the portal invitation stays a member's explicit act. 
 - **Whom.** It lists the import's employees who are current: leavers imported as former employees are not listed. An employee who is already a participant or has an open invitation is shown as such and not sent anything again; their resend stays on their page and the Portal tab.
 - **The address, typed in place.** Each row holds one field with the employee's email, else their phone, from their row, and takes an email or a phone typed over it or into it where the sheet gave none. What is typed decides the channel: an email address goes by email, a phone number by SMS. The typed address is saved to the employee, by the same rules as editing the employee, the phone normalized to E.164, in one transaction with the invitation: an invitation refused leaves the employee unchanged. An address that cannot be saved or normalized is shown on its row and that person is not invited. A row left empty is a person left uninvited, with nothing blocking the others.
 - **One action** sends every invitation. Each is the ADR 022 invitation as it is, through `create_participant_invitation` and the same send: one open invitation per address in a client, valid 30 days, the auth account created at send time, the message by the mail Worker or the SMS Worker, and a send that fails leaving the invitation saved for a resend after 10 minutes. The invitations are independent: one refused, an address already a participant's for another person, say, is named on its row and does not stop the rest, and the dialog ends with how many were sent and which were not.
-- **Costs and caps.** An SMS invitation and its first code cost about $0.16 to a Romanian number (ADR 022), so the dialog says how many go by SMS before sending; an import of 50 people without email is about $8. The invitations themselves go out through the Workers, outside Supabase's limits, but the sign-in codes that follow fall under the project's hourly caps on codes, 100 SMS and 60 emails, sized in ADR 022 for a floor of employees signing in on one afternoon; they stay as they are.
+- **Costs and caps.** An SMS invitation and its first code cost about $0.16 to a Romanian number (ADR 022), so the dialog says how many go by SMS before sending; an import of 50 people without email is about $8. (Amended 2026-10-31. The invitations and their sign-in codes are not counted against the organization's SMS allowance, which counts signing codes only ([ADR 029](adr-029-billing-plans-and-trials.md#limits-and-usage)); the cost is ours, and the count before sending stays.) The invitations themselves go out through the Workers, outside Supabase's limits, but the sign-in codes that follow fall under the project's hourly caps on codes, 100 SMS and 60 emails, sized in ADR 022 for a floor of employees signing in on one afternoon; they stay as they are.
 
 The invited employee meets in the portal what ADR 022 and ADR 023 give any employee: the privacy notice first, then the act adițional to sign, then the trainings to come, which they sign there. Their imported paper rows show as transcribed and signed on paper, with nothing for them to sign.
 
@@ -123,7 +124,7 @@ These differences in behaviour were accepted when the screens were built (Mircea
 
 ### Usage
 
-The reading is recorded per photograph or page from the first import, with `record_import_usage` against the file, as the client import's scans are. Credits are #640.
+The reading is recorded per photograph or page from the first import, with `record_import_usage` against the file, as the client import's scans are. Each photograph or page read is one credit, reserved when the reading starts and returned when unused, under [ADR 030's rule](adr-030-import-from-documents.md#usage-is-counted-in-credits). (Amended 2026-10-31: credits were left to #640.)
 
 ### What this changes in earlier ADRs
 
@@ -139,7 +140,6 @@ The reading is recorded per photograph or page from the first import, with `reco
 - REGES-Online exports as a source of employees, and spreadsheets.
 - Choosing the reading model per import kind (#703).
 - A partial confirm.
-- Credits and their allowances (#640).
 - The act adițional on paper for an employee without email or phone (#712): its download keeps requiring one, and the contacts are collected after the import.
 - Inviting at once employees who did not come from an import.
 - A mark on the trainings, test results and employee data an import read, telling what a model read from what a member typed (#715): today both read _Transcris de pe fișa pe hârtie_.

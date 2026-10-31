@@ -246,15 +246,15 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Import folder** (_dosar importat_): the files of a confirmed import in "Alte documente", grouped under the day of the import with the upload's folders. ADR 030. Avoid: archive, which is what an archived client is.
 
-**Credit** (_credit_): the unit an import's reading will be counted in, one for both imports, with an allowance per plan or trial. Not built yet: amounts and allowances are #640. ADR 030. Avoid: token, which is the model's unit, and import as a unit.
+**Credit** (_credit_, plural _credite_): the unit an import's reading is counted in, one for both imports: one photograph or scanned page read, and 25 for reading a client's documents. Reserved when the reading starts and returned when unused. Each plan has a monthly allowance and the trial one allowance for its whole length; and the first payment brings a one-time **welcome gift** that never expires. ADR 030, ADR 029. Avoid: token, which is the model's unit, and import as a unit.
 
 ## Billing
 
-**Plan** (_plan_): what an organization pays for: **Start**, **Profesional** or **Enterprise**. A plan sets scale and team (employees, members, SMS codes), never which documents, trainings or signatures exist. ADR 029. Avoid: tier, package, which is an add-on.
+**Plan** (_plan_): what an organization pays for: **Start**, **Profesional** or **Enterprise**. A plan sets scale and team (employees, members, signing codes by SMS, credits), never which documents, trainings or signatures exist. ADR 029. Avoid: tier, package, which is an add-on.
 
 **Pack** (_pachet_): an add-on bought on top of a plan: 50 or 500 more employees, or one more member. Never added on the owner's behalf. ADR 029. Avoid: add-on in the interface, upgrade.
 
-**Trial** (_perioadă de probă_): the first 30 days of a new organization, with what Profesional includes except SMS, and no card. A tester's is extended, never discounted, and may include SMS. ADR 029. Avoid: free plan, demo.
+**Trial** (_perioadă de probă_): the first 30 days of a new organization, with what Profesional includes except SMS and with 300 credits, and no card. A tester's is extended, never discounted, and its tester switch adds SMS and Profesional's monthly credits, with a hard stop at both. ADR 029. Avoid: free plan, demo.
 
 **Subscription** (_abonament_): an organization's plan, billing interval, status and dates, kept in our database and mirrored by Stripe once a plan is chosen. An organization without one has full access indefinitely. ADR 029. Avoid: account, license.
 
