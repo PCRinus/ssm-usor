@@ -147,14 +147,17 @@ function TrainingRow({
       data-testid="person-training-row"
       data-included={included}
     >
-      <div className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[1.25rem_7rem_5rem_minmax(0,1fr)_minmax(0,1.2fr)_auto]">
+      <div className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[1.25rem_1.5rem_6.5rem_5rem_minmax(0,1fr)_auto]">
         <IncludeBox
           row={row}
           included={included}
           label={`Preia instruirea ${trainingPhaseLabels[row.phase].toLowerCase()} din ${date ?? 'data necitită'}`}
           onChange={onChange}
         />
-        <span className="flex flex-wrap items-center gap-1.5 text-sm tabular-nums">
+        <span className="col-start-3 row-start-1 flex sm:col-start-auto sm:row-start-auto">
+          <PageButton pages={pages} pageId={page.id} />
+        </span>
+        <span className="col-start-2 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-start-auto">
           {date ?? missing(null, 'Data nu se citește')}
           <span className="sm:hidden">
             {row.phase !== 'periodic' && ` · ${trainingPhaseLabels[row.phase]}`}
@@ -162,25 +165,11 @@ function TrainingRow({
         </span>
         <span className="col-start-2 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-start-auto">
           {durationLabel(values.durationMinutes) ?? missing(null, 'Durata nu se citește')}
-          {row.flags.includes('unusual_duration') && included && (
-            <Tag tone="warning">Verifică pe fotografie</Tag>
-          )}
         </span>
         <span className="col-start-2 text-sm sm:col-start-auto">
           {trainerText(values) || missing(null, 'Instructorul nu se citește')}
         </span>
-        <span className="col-start-2 grid gap-1 text-sm sm:col-start-auto">
-          <span className="line-clamp-2">
-            {row.phase === 'supplementary' && values.supplementaryReason
-              ? `${supplementaryTrainingReasonLabels[values.supplementaryReason as SupplementaryTrainingReason] ?? ''}. `
-              : ''}
-            {values.material ?? missing(null, 'Materialul lipsește')}
-          </span>
-          <span className="flex flex-wrap gap-1">
-            <RowTags row={row} included={included} />
-          </span>
-        </span>
-        <span className="col-start-3 row-start-1 flex items-center gap-1 sm:col-start-auto">
+        <span className="col-start-4 row-start-1 flex sm:col-start-auto sm:row-start-auto">
           <Button
             type="button"
             variant="link"
@@ -190,10 +179,23 @@ function TrainingRow({
           >
             Schimbă<span className="sr-only"> instruirea din {date ?? 'data necitită'}</span>
           </Button>
-          <PageButton pages={pages} pageId={page.id} />
+        </span>
+        <span className="col-span-3 col-start-2 grid gap-1 text-sm sm:col-start-3">
+          <span className="line-clamp-2">
+            {row.phase === 'supplementary' && values.supplementaryReason
+              ? `${supplementaryTrainingReasonLabels[values.supplementaryReason as SupplementaryTrainingReason] ?? ''}. `
+              : ''}
+            {values.material ?? missing(null, 'Materialul lipsește')}
+          </span>
+          <span className="flex flex-wrap gap-1 empty:hidden">
+            {row.flags.includes('unusual_duration') && included && (
+              <Tag tone="warning">Verifică pe fotografie</Tag>
+            )}
+            <RowTags row={row} included={included} />
+          </span>
         </span>
       </div>
-      {note && <p className="pl-8 text-[13px] text-muted-foreground">{note}</p>}
+      {note && <p className="pl-8 text-[13px] text-muted-foreground sm:pl-17">{note}</p>}
     </li>
   );
 }
