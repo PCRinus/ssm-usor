@@ -10,6 +10,7 @@ import type { ImportDetail } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
+import { refundedSentence } from '../import-credits';
 import { isRunning, uploadedWhen } from '../import-format';
 import { ImportThumbnail } from '../import-thumbnail';
 import { ImportFileView, PhotoPreviewDialog } from '../photo-preview-dialog';
@@ -134,8 +135,9 @@ export function EmployeeProcessing({
       )}
       {detail.status === 'failed' && (
         <Notice variant="destructive" data-testid="employee-processing-failed">
-          {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'} Renunță la import și
-          încearcă din nou.
+          {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'}
+          {detail.credits?.refunded && ` ${refundedSentence}`} Renunță la import și încearcă din
+          nou.
         </Notice>
       )}
       {detail.status !== 'abandoned' && (

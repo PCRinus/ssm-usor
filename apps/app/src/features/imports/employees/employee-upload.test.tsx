@@ -4,7 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { clientId, importId, positions, workplaces } from '@/test/employee-import-fixture';
-import { bodyOf, fetchMock, mockApi, requestsTo } from '@/test/import-fixture';
+import {
+  bodyOf,
+  fetchMock,
+  meResponse,
+  meWithCredits,
+  mockApi,
+  requestsTo,
+} from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
 const client = {
@@ -77,15 +84,18 @@ function mockUpload({
   create = () => Response.json({ import: uploading }, { status: 201 }),
   addFound = () => Response.json({ files: [] }, { status: 201 }),
   abandon = () => Response.json({ import: { ...uploading, status: 'abandoned' } }),
+  me = meResponse,
 }: {
   found?: () => ReturnType<typeof foundOf>;
   jobPositions?: unknown[];
   create?: Answer;
   addFound?: Answer;
   abandon?: Answer;
+  me?: unknown;
 } = {}) {
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
+    if (url.pathname === '/me') return Response.json(me);
     if (url.pathname === '/imports' && method === 'POST') return create();
     if (url.pathname === '/imports') return Response.json({ items: [] });
     if (url.pathname === `/imports/${importId}/found-sheets`) return addFound();
@@ -355,5 +365,56 @@ describe('the chosen photographs', () => {
     expect(within(dialog).getByTestId('employee-upload-found').textContent).toContain(
       'o fotografie'
     );
+  });
+});
+
+describe('the credits an employee import uses', () => {
+  it('counts one for each photograph and says what is left', async () => {
+    mockUpload({ me: meWithCredits() });
+    const dialog = await openDialog('employees-import-found');
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('import-credits-line').textContent).toBe(
+        'Folosește 2 credite, unul pe fotografie. Îți mai rămân 1.270 din 1.500 luna aceasta și 7.840 din cadoul de bun venit.'
+      )
+    );
+  });
+
+  it('keeps the button off while the photographs need more than is left, until some come out', async () => {
+    mockUpload({ me: meWithCredits({ left: 1, giftLeft: 0, state: 'near' }) });
+    const dialog = await openDialog('employees-import-found');
+
+    const short = await within(dialog).findByTestId('import-credits-short');
+    expect(short.textContent).toContain('Nu ajung creditele pentru toate fotografiile');
+    expect(short.textContent).toContain(
+      'Cele 2 fotografii folosesc 2 credite, iar ție îți mai rămâne 1 până pe 14 noiembrie. Scoate o parte și păstreaz-o pentru un import după reînnoire, cu toate fotografiile unei persoane în același import.'
+    );
+    expect(within(dialog).getByTestId('employee-upload-submit')).toHaveProperty('disabled', true);
+
+    await userEvent.click(within(dialog).getAllByRole('button', { name: /^Scoate IMG_/ })[0]!);
+    await waitFor(() => expect(within(dialog).queryByTestId('import-credits-short')).toBeNull());
+    expect(within(dialog).getByTestId('employee-upload-submit')).toHaveProperty('disabled', false);
+  });
+
+  it("sends a PDF's pages as the browser counted them, which the start is charged for", async () => {
+    mockUpload({ found: () => foundOf([]) });
+    const dialog = await openDialog('employees-import');
+    const pdf = new File(
+      ['%PDF-1.4 /Type /Page /Type /Page /Type /Page /Type /Pages /Count 3'],
+      'fise scanate.pdf',
+      { type: 'application/pdf' }
+    );
+    fireEvent.change(within(dialog).getByTestId('employee-upload-files-input'), {
+      target: { files: [pdf] },
+    });
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('import-credits-line').textContent).toContain(
+        'Folosește 3 credite, unul pe fotografie sau pagină.'
+      )
+    );
+    await userEvent.click(within(dialog).getByTestId('employee-upload-submit'));
+    await waitFor(() => expect(requestsTo(`/imports/${importId}/files`, 'POST')).toHaveLength(1));
+    expect(bodyOf(`/imports/${importId}/files`, 'POST')).toMatchObject({
+      files: [{ uploadPath: 'fise scanate.pdf', mimeType: 'application/pdf', pages: 3 }],
+    });
   });
 });

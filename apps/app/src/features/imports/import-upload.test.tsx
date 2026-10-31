@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { uploadImportObject } from '@/features/imports/import-storage';
 import { authFixture, makeSession } from '@/test/auth-fixture';
+import { summaryOf as subscriptionSummaryOf, trialSubscription } from '@/test/billing-fixture';
 import {
   bodyOf,
   clientId,
@@ -12,6 +13,8 @@ import {
   importDetail,
   importFile,
   importId,
+  meResponse,
+  meWithCredits,
   mockApi,
   requestsTo,
   summaryOf,
@@ -50,10 +53,12 @@ const started = importDetail({ status: 'preparing', files: [importFile({ state: 
 
 function mockImportApi(
   listed: unknown[] = [],
-  start: () => Response = () => Response.json({ import: summaryOf(started) })
+  start: () => Response = () => Response.json({ import: summaryOf(started) }),
+  me: unknown = meResponse
 ) {
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
+    if (url.pathname === '/me') return Response.json(me);
     if (url.pathname === '/clients' && method === 'GET') {
       return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
     }
@@ -513,5 +518,135 @@ describe('the imports on the client list', () => {
     expect(within(rows[0]!).getByRole('link', { name: 'Verifică propunerea' })).toBeTruthy();
     await waitFor(() => expect(rows[1]!.textContent).toContain('dosar-ssm.zip'));
     expect(rows[1]!.textContent).toContain('Pas 1 din 4: 1 din 3 fișiere pregătite');
+  });
+});
+
+async function openDialog() {
+  mountApp(authFixture(makeSession()).client, '/clients');
+  await userEvent.click(await screen.findByTestId('clients-import'));
+  return screen.findByTestId('import-upload-dialog');
+}
+
+const word = () =>
+  new File(['decizie'], 'Decizie 1 organizare SSM 2024.docx', {
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+
+const creditsLine = () =>
+  waitFor(() => {
+    const line = screen.getByTestId('import-credits-line');
+    expect(line.textContent).toContain('Îți mai');
+    return line;
+  });
+
+describe('the credits an import uses', () => {
+  it('says what the reading uses and what is left this month and of the gift', async () => {
+    mockImportApi([], undefined, meWithCredits());
+    await openDialog();
+
+    expect((await creditsLine()).textContent).toBe(
+      'Folosește 25 de credite, plus 1 pentru fiecare pagină scanată. Îți mai rămân 1.270 din 1.500 luna aceasta și 7.840 din cadoul de bun venit.'
+    );
+    expect(screen.queryByTestId('import-credits-short')).toBeNull();
+  });
+
+  it("names the trial's 300 and the welcome credits the first payment brings", async () => {
+    mockImportApi(
+      [],
+      undefined,
+      meWithCredits(
+        { used: 34, included: 300, allowance: 300, left: 266, giftLeft: 0, period: 'trial' },
+        subscriptionSummaryOf(trialSubscription())
+      )
+    );
+    const dialog = await openDialog();
+
+    expect((await creditsLine()).textContent).toBe(
+      'Folosește 25 de credite, plus 1 pentru fiecare pagină scanată. Îți mai rămân 266 din cele 300 ale perioadei de probă.'
+    );
+    expect(dialog.textContent).toContain(
+      'La prima plată primești și creditele de bun venit, ca să-ți aduci toți clienții în aplicație: 2.500 cu Start sau 10.000 cu Profesional. Nu expiră.'
+    );
+  });
+
+  it('keeps the button off under 25 left, says when they renew and offers Abonament to the owner', async () => {
+    mockImportApi([], undefined, meWithCredits({ left: 18, giftLeft: 0, state: 'near' }));
+    await openDialog();
+    choose([word()]);
+    await screen.findByTestId('import-chosen');
+
+    const short = await screen.findByTestId('import-credits-short');
+    expect(short.textContent).toContain('Nu ajung creditele pentru acest import');
+    expect(short.textContent).toContain(
+      'Citirea documentelor unui client folosește 25 de credite, iar ție îți mai rămân 18. Pe 14 noiembrie primești alte 1.500 și poți porni importul.'
+    );
+    expect(screen.getByTestId('import-upload-dialog').textContent).toContain(
+      'Scrie-ne la contact@ssmusor.ro și îți adăugăm credite.'
+    );
+    expect(within(short).getByTestId('import-credits-subscription').getAttribute('href')).toBe(
+      '/organization/subscription'
+    );
+    const line = screen.getByTestId('import-credits-line');
+    expect(line.dataset.short).toBe('true');
+    expect(line.textContent).toContain('Îți mai rămân 18 până pe 14 noiembrie.');
+    expect((screen.getByTestId('import-upload-submit') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('shows no Abonament link to a member who is not the owner', async () => {
+    mockImportApi([], undefined, {
+      ...meWithCredits({ left: 18, giftLeft: 0 }),
+      membership: { ...meResponse.membership, role: 'specialist' },
+    });
+    await openDialog();
+
+    const short = await screen.findByTestId('import-credits-short');
+    expect(within(short).queryByTestId('import-credits-subscription')).toBeNull();
+  });
+
+  it('says nothing is left, and only closes, when the credits are gone', async () => {
+    mockImportApi([], undefined, meWithCredits({ left: 0, giftLeft: 0, state: 'out' }));
+    const dialog = await openDialog();
+
+    const none = await screen.findByTestId('import-credits-none');
+    expect(none.textContent).toContain('Nu mai ai credite pentru importuri');
+    expect(none.textContent).toContain(
+      'Ai folosit cele 1.500 de credite ale lunii și pe cele de bun venit. Pe 14 noiembrie primești alte 1.500'
+    );
+    expect(dialog.textContent).toContain(
+      'Importurile pornite deja merg până la capăt. Dacă găsesc mai multe pagini scanate decât credite, diferența se scade din creditele lunii viitoare.'
+    );
+    expect(screen.queryByTestId('import-upload-drop')).toBeNull();
+    expect(screen.queryByTestId('import-upload-submit')).toBeNull();
+    expect(screen.getByTestId('import-credits-subscription').textContent).toBe(
+      'Deschide Abonament'
+    );
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Închide' }));
+    await waitFor(() => expect(screen.queryByTestId('import-upload-dialog')).toBeNull());
+  });
+
+  it("shows the API's refusal when the balance changed after the dialog opened, and lets the import go", async () => {
+    mockImportApi([], () =>
+      Response.json(
+        {
+          error: 'conflict',
+          message: 'The import needs 25 credits to start, and 12 are left.',
+          reason: 'credits_insufficient',
+          credits: { needed: 25, left: 12, renewsAt: '2026-11-14T08:00:00.000Z' },
+        },
+        { status: 409 }
+      )
+    );
+    const runtime = await uploadFrom('/clients', [word()]);
+
+    const short = await screen.findByTestId('import-credits-short');
+    expect(short.textContent).toContain(
+      'Citirea documentelor unui client folosește 25 de credite, iar ție îți mai rămân 12.'
+    );
+    expect(screen.queryByTestId('import-upload-stalled')).toBeNull();
+    expect(screen.queryByTestId('import-upload-error')).toBeNull();
+    await waitFor(() => expect(requestsTo(`/imports/${importId}/abandon`, 'POST')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/me').length).toBeGreaterThan(1));
+    expect((screen.getByTestId('import-upload-submit') as HTMLButtonElement).disabled).toBe(true);
+    expect(runtime.router.state.location.pathname).toBe('/clients');
   });
 });

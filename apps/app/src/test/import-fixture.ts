@@ -1,4 +1,7 @@
+import type { BillingCreditsUsage } from '@ssm-usor/contracts';
 import { vi } from 'vitest';
+
+import { activeSubscription, summaryOf as subscriptionSummaryOf } from './billing-fixture';
 
 export const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
 export const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
@@ -87,6 +90,28 @@ export const meResponse = {
     role: 'owner',
   },
 };
+
+export function meWithCredits(
+  credits: Partial<BillingCreditsUsage> = {},
+  subscription = subscriptionSummaryOf(activeSubscription({ interval: 'month' }))
+) {
+  const creditsThisMonth: BillingCreditsUsage = {
+    used: 230,
+    included: 1500,
+    allowance: 1500,
+    granted: 0,
+    shortfall: 0,
+    left: 1270,
+    giftLeft: 7840,
+    giftPending: 0,
+    period: 'month',
+    periodStart: '2026-10-14T08:00:00.000Z',
+    periodEnd: '2026-11-14T08:00:00.000Z',
+    state: 'ok',
+    ...credits,
+  };
+  return { ...meResponse, subscription, creditsThisMonth };
+}
 
 export type Route = (
   init: RequestInit | undefined,

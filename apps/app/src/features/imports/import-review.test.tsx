@@ -9,6 +9,7 @@ import {
   fetchMock,
   importFile,
   importId,
+  meWithCredits,
   mockApi,
   proposalFixture,
   readyDetail,
@@ -45,11 +46,16 @@ let saves: number;
 
 function mockReview(
   detail: Detail,
-  { save, confirm }: { save?: (body: unknown) => Response; confirm?: () => Response } = {}
+  {
+    save,
+    confirm,
+    me,
+  }: { save?: (body: unknown) => Response; confirm?: () => Response; me?: unknown } = {}
 ) {
   saves = 0;
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
+    if (url.pathname === '/me' && me) return Response.json(me);
     if (url.pathname === `/imports/${importId}` && method === 'GET') {
       return Response.json({ import: detail });
     }
@@ -1434,5 +1440,46 @@ describe('a value the import inferred', () => {
     expect(
       within(screen.getByTestId('review-equipment-decision')).queryByTestId('review-inferred')
     ).toBeNull();
+  });
+});
+
+describe('the credits the import used', () => {
+  const credits = { used: 34, atStart: 25, scannedPages: 9, refunded: false };
+
+  it('says them quietly before the client is created', async () => {
+    mockReview(readyDetail({ blockers: [], credits }));
+    mount();
+
+    await userEvent.click(await screen.findByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('import-credits-used').textContent).toBe(
+        'Importul a folosit 34 de credite (25 + 9 pagini scanate).'
+      )
+    );
+  });
+
+  it('says how far below zero the balance went and that it comes off next month', async () => {
+    mockReview(readyDetail({ blockers: [], credits }), {
+      me: meWithCredits({ left: -4, giftLeft: 0, state: 'negative' }),
+    });
+    mount();
+
+    await userEvent.click(await screen.findByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('import-credits-used').textContent).toBe(
+        'Importul a folosit 34 de credite (25 + 9 pagini scanate). Ai trecut cu 4 peste cele rămase; le scădem din creditele lunii viitoare.'
+      )
+    );
+  });
+
+  it('says nothing about credits before the import has any', async () => {
+    mockReview(readyDetail({ blockers: [], credits: null }));
+    mount();
+
+    await userEvent.click(await screen.findByTestId('import-confirm'));
+    const dialog = await screen.findByTestId('import-confirm-dialog');
+    expect(within(dialog).queryByTestId('import-credits-used')).toBeNull();
   });
 });

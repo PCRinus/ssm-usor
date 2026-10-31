@@ -37,6 +37,7 @@ import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 import { roCount } from '@/features/employees/employee-format';
 
+import { CreditsUsedLine } from '../credits-notices';
 import { importErrorMessage, photosLabel } from '../import-format';
 import { confirmIssueLines, createLabel } from './confirm-messages';
 import {
@@ -376,10 +377,13 @@ export function EmployeeConfirmDialog({
               )}
             </Group>
           )}
-          <p className="border-t pt-4 text-sm">
-            Fișele pe hârtie rămân originalul semnat. Se păstrează la client, la locul de muncă,
-            până la încetarea contractului fiecăruia.
-          </p>
+          <div className="grid gap-1 border-t pt-4 text-sm">
+            <p>
+              Fișele pe hârtie rămân originalul semnat. Se păstrează la client, la locul de muncă,
+              până la încetarea contractului fiecăruia.
+            </p>
+            <CreditsUsedLine detail={detail} kind="employees" />
+          </div>
           {error && (
             <Notice variant="destructive" data-testid="employee-confirm-error">
               {error}

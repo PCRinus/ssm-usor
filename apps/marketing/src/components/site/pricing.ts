@@ -142,7 +142,6 @@ export const paymentFacts = {
 export const comingSoon = {
   title: 'În curând',
   items: [
-    'Preluarea automată a dosarelor existente ale clienților',
     'Completarea automată a documentelor, cu inteligență artificială',
     'Semnătură electronică calificată, plătită doar când o folosești',
   ],
@@ -202,6 +201,14 @@ export const compare = {
           label: 'Coduri de semnare prin SMS, pe lună',
           cells: ['50, apoi 0,10 € fiecare', '300, apoi 0,10 € fiecare', 'După nevoie'],
         },
+        {
+          label: 'Credite pentru importul din documente și fișe',
+          cells: [
+            '300 pe lună + 2.500 la prima plată',
+            '1.500 pe lună + 10.000 la prima plată',
+            'După nevoie',
+          ],
+        },
         { label: 'Clientul vede instruirile și fișele angajaților', cells: [true, true, true] },
       ],
     },
@@ -247,7 +254,11 @@ export const pricingPage = {
     },
     {
       q: 'Pot încerca înainte să plătesc?',
-      a: 'Da. Ai 30 de zile cu tot ce include Profesional, fără card; în această perioadă codurile se trimit pe email, iar SMS-urile pornesc când alegi un plan. Dacă nu alegi un plan, contul rămâne încă 30 de zile doar pentru citire: vezi și descarci tot, apoi datele se șterg.',
+      a: 'Da. Ai 30 de zile cu tot ce include Profesional, fără card; în această perioadă codurile se trimit pe email, iar SMS-urile pornesc când alegi un plan. Pentru import ai 300 de credite pe toată perioada, iar creditele de bun venit vin la prima plată. Dacă nu alegi un plan, contul rămâne încă 30 de zile doar pentru citire: vezi și descarci tot, apoi datele se șterg.',
+    },
+    {
+      q: 'Ce sunt creditele pentru import?',
+      a: 'Cu ele aduci clienții și angajații în aplicație din documentația și fișele pe care le ai deja. Documentele unui client folosesc 25 de credite, plus unul pentru fiecare pagină scanată; fiecare fotografie a unei fișe folosește unul. Creditele lunii nu trec în luna următoare. Creditele de bun venit, 2.500 pe Start și 10.000 pe Profesional, le primești o dată, la prima plată, și nu expiră. Dacă ai nevoie de mai multe, ne scrii și ți le adăugăm.',
     },
     {
       q: 'Pot renunța oricând?',

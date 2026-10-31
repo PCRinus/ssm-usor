@@ -32,10 +32,20 @@ import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
 
+import {
+  ContactHint,
+  CreditsLine,
+  CreditsShortNotice,
+  GiftHint,
+  NoCreditsFooter,
+  NoCreditsNotices,
+} from './credits-notices';
+import { creditsRefusal, refusalFromApi, startCreditsOf, usesSentence } from './import-credits';
 import { filesLabel, formatFileSize, photosLabel } from './import-format';
 import { pickedFromInput } from './picked-files';
 import {
   emptySelection,
+  isPhoto,
   mergeSelection,
   openPicked,
   type PickedFile,
@@ -48,8 +58,15 @@ import {
   selectionTotals,
   type SetAsideFile,
 } from './upload-selection';
+import { useCreditsBalance } from './use-credits-balance';
 import { useImportDrop } from './use-import-drop';
-import { busySteps, heldSteps, type UploadPhase, useImportUpload } from './use-import-upload';
+import {
+  busySteps,
+  choosingSteps,
+  heldSteps,
+  type UploadPhase,
+  useImportUpload,
+} from './use-import-upload';
 
 export type ImportClient = { id: string; legalName: string; cui: string; vatPayer: boolean };
 
@@ -85,14 +102,25 @@ function UploadForm({
   const filesInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
   const openingImport = useRef(false);
-  const { phase, upload, retry, continueWithout, abandon } = useImportUpload(client?.id, (id) => {
-    openingImport.current = true;
-    onStarted(id);
-  });
+  const { phase, upload, retry, continueWithout, abandon, forgetShort } = useImportUpload(
+    client?.id,
+    (id) => {
+      openingImport.current = true;
+      onStarted(id);
+    }
+  );
   const busy = busySteps.has(phase.step);
-  const choosing = phase.step === 'choosing' || phase.step === 'failed';
+  const choosing = choosingSteps.has(phase.step);
   const totals = selectionTotals(selection);
   const over = totals.overFiles || totals.overBytes;
+  const { balance, isOwner } = useCreditsBalance();
+  const photos = selection.files.filter(isPhoto).length;
+  const refusal =
+    phase.step === 'short'
+      ? refusalFromApi(phase.credits)
+      : choosing
+        ? creditsRefusal(balance, startCreditsOf('client', { photos, pages: 0 }))
+        : null;
   useRefuseStrayDrops();
 
   async function add(picked: Promise<PickedFile[]> | PickedFile[]) {
@@ -100,6 +128,7 @@ function UploadForm({
     setUnreadable(false);
     try {
       const added = await openPicked(await picked);
+      forgetShort();
       setSelection((current) => mergeSelection(current, added));
     } catch {
       setUnreadable(true);
@@ -114,7 +143,7 @@ function UploadForm({
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (totals.count === 0 || over || opening) return;
+    if (totals.count === 0 || over || opening || refusal) return;
     void upload(selection.files);
   }
 
@@ -186,163 +215,204 @@ function UploadForm({
               </span>
             </DialogDescription>
           </DialogHeader>
-          <DialogBody className="mt-4 grid gap-4">
-            <Notice variant="info" data-testid="import-upload-one-client">
-              {client ? (
-                <>
-                  <strong className="font-semibold">
-                    Documentele trebuie să fie ale firmei {client.legalName} (CUI{' '}
-                    {formatCui(client.cui, client.vatPayer)}).
-                  </strong>{' '}
-                  Dacă sunt ale altei firme, nu le citim.
-                </>
-              ) : (
-                <>
-                  <strong className="font-semibold">Un import creează un singur client.</strong>{' '}
-                  Dacă printre documente apare și altă firmă, îți spunem, iar documentele ei le
-                  încarci separat.
-                </>
-              )}
-            </Notice>
-            {choosing && (
-              <div
-                data-testid="import-upload-drop"
-                className={cn(
-                  'grid justify-items-center gap-2.5 rounded-lg border-[1.5px] border-dashed border-info-border bg-muted/30 p-5 text-center transition-colors',
-                  dragging && 'border-primary bg-primary/5'
-                )}
-                {...dropHandlers}
-              >
-                {opening ? (
-                  <LoaderCircle
-                    className="size-6 animate-spin text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <FileUp className="size-6 text-muted-foreground" aria-hidden="true" />
-                )}
-                <p className="text-sm font-medium">
-                  {opening
-                    ? 'Deschidem fișierele…'
-                    : 'Trage aici fișierele, un folder sau o arhivă ZIP'}
-                </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={opening}
-                    data-testid="import-choose-files"
-                    onClick={() => filesInput.current?.click()}
+          {refusal?.kind === 'none' ? (
+            <>
+              <DialogBody className="mt-4 grid gap-3.5">
+                <NoCreditsNotices kind="client" balance={balance} />
+              </DialogBody>
+              <DialogFooter className="mt-6">
+                <NoCreditsFooter isOwner={isOwner} onClose={leave} />
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogBody className="mt-4 grid gap-4">
+                <Notice variant="info" data-testid="import-upload-one-client">
+                  {client ? (
+                    <>
+                      <strong className="font-semibold">
+                        Documentele trebuie să fie ale firmei {client.legalName} (CUI{' '}
+                        {formatCui(client.cui, client.vatPayer)}).
+                      </strong>{' '}
+                      Dacă sunt ale altei firme, nu le citim.
+                    </>
+                  ) : (
+                    <>
+                      <strong className="font-semibold">Un import creează un singur client.</strong>{' '}
+                      Dacă printre documente apare și altă firmă, îți spunem, iar documentele ei le
+                      încarci separat.
+                    </>
+                  )}
+                </Notice>
+                {choosing && (
+                  <div
+                    data-testid="import-upload-drop"
+                    className={cn(
+                      'grid justify-items-center gap-2.5 rounded-lg border-[1.5px] border-dashed border-info-border bg-muted/30 p-5 text-center transition-colors',
+                      dragging && 'border-primary bg-primary/5'
+                    )}
+                    {...dropHandlers}
                   >
-                    <Upload aria-hidden="true" />
-                    Alege fișiere
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={opening}
-                    data-testid="import-choose-folder"
-                    onClick={() => folderInput.current?.click()}
-                  >
-                    <FolderUp aria-hidden="true" />
-                    Alege un folder
-                  </Button>
-                </div>
-                <div
-                  className="flex flex-wrap justify-center gap-1.5"
-                  aria-label="Fișiere pe care le citim"
-                >
-                  {formats.map((format) => (
-                    <span
-                      key={format}
-                      className="rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                    {opening ? (
+                      <LoaderCircle
+                        className="size-6 animate-spin text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <FileUp className="size-6 text-muted-foreground" aria-hidden="true" />
+                    )}
+                    <p className="text-sm font-medium">
+                      {opening
+                        ? 'Deschidem fișierele…'
+                        : 'Trage aici fișierele, un folder sau o arhivă ZIP'}
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={opening}
+                        data-testid="import-choose-files"
+                        onClick={() => filesInput.current?.click()}
+                      >
+                        <Upload aria-hidden="true" />
+                        Alege fișiere
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={opening}
+                        data-testid="import-choose-folder"
+                        onClick={() => folderInput.current?.click()}
+                      >
+                        <FolderUp aria-hidden="true" />
+                        Alege un folder
+                      </Button>
+                    </div>
+                    <div
+                      className="flex flex-wrap justify-center gap-1.5"
+                      aria-label="Fișiere pe care le citim"
                     >
-                      {format}
-                    </span>
-                  ))}
-                </div>
-                <input
-                  ref={filesInput}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  data-testid="import-files-input"
-                  onChange={(event) => {
-                    void add(pickedFromInput(event.target.files ?? []));
-                    event.target.value = '';
-                  }}
-                />
-                <input
-                  ref={folderInput}
-                  type="file"
-                  className="hidden"
-                  data-testid="import-folder-input"
-                  {...{ webkitdirectory: '' }}
-                  onChange={(event) => {
-                    void add(pickedFromInput(event.target.files ?? []));
-                    event.target.value = '';
-                  }}
-                />
-              </div>
-            )}
-            {unreadable && (
-              <Notice variant="warning" data-testid="import-unreadable">
-                Nu am putut deschide fișierele alese. Încearcă din nou sau alege-le cu „Alege
-                fișiere” ori „Alege un folder”.
-              </Notice>
-            )}
-            {zipNotices.map((notice) => (
-              <Notice
-                key={`${notice.testId}:${notice.name}`}
-                variant="warning"
-                data-testid={notice.testId}
-                action={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Închide mesajul"
-                    onClick={() => setDismissed((current) => [...current, notice.name])}
+                      {formats.map((format) => (
+                        <span
+                          key={format}
+                          className="rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                        >
+                          {format}
+                        </span>
+                      ))}
+                    </div>
+                    <input
+                      ref={filesInput}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      data-testid="import-files-input"
+                      onChange={(event) => {
+                        void add(pickedFromInput(event.target.files ?? []));
+                        event.target.value = '';
+                      }}
+                    />
+                    <input
+                      ref={folderInput}
+                      type="file"
+                      className="hidden"
+                      data-testid="import-folder-input"
+                      {...{ webkitdirectory: '' }}
+                      onChange={(event) => {
+                        void add(pickedFromInput(event.target.files ?? []));
+                        event.target.value = '';
+                      }}
+                    />
+                  </div>
+                )}
+                {refusal?.kind === 'short' && (
+                  <>
+                    <CreditsShortNotice
+                      kind="client"
+                      refusal={refusal}
+                      balance={balance}
+                      isOwner={isOwner}
+                    />
+                    <ContactHint />
+                  </>
+                )}
+                {unreadable && (
+                  <Notice variant="warning" data-testid="import-unreadable">
+                    Nu am putut deschide fișierele alese. Încearcă din nou sau alege-le cu „Alege
+                    fișiere” ori „Alege un folder”.
+                  </Notice>
+                )}
+                {zipNotices.map((notice) => (
+                  <Notice
+                    key={`${notice.testId}:${notice.name}`}
+                    variant="warning"
+                    data-testid={notice.testId}
+                    action={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Închide mesajul"
+                        onClick={() => setDismissed((current) => [...current, notice.name])}
+                      >
+                        <X aria-hidden="true" />
+                      </Button>
+                    }
                   >
-                    <X aria-hidden="true" />
+                    <strong className="font-semibold">{notice.name}</strong> {notice.text}
+                  </Notice>
+                ))}
+                {over && (
+                  <Notice variant="destructive" data-testid="import-upload-over">
+                    Un import ia cel mult {importLimits.client.files} de fișiere și 100 MB. Ai ales{' '}
+                    {filesLabel(totals.count)}, {formatFileSize(totals.bytes)}. Scoate câteva și
+                    încarcă restul într-un import separat.
+                  </Notice>
+                )}
+                {totals.count > 0 && (
+                  <ChosenList
+                    selection={selection}
+                    removable={choosing}
+                    onRemoveGroup={(group) => {
+                      forgetShort();
+                      setSelection((current) => removeGroup(current, group));
+                    }}
+                    onRemoveFiles={(keys) => {
+                      forgetShort();
+                      setSelection((current) => removeFiles(current, keys));
+                    }}
+                  />
+                )}
+                <SetAsideList setAside={selection.setAside} systemFiles={selection.systemFiles} />
+                <UploadProgress phase={phase} onRetry={retry} onContinue={continueWithout} />
+                {!refusal && <GiftHint balance={balance} />}
+              </DialogBody>
+              <DialogFooter className="mt-6 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                <CreditsLine
+                  className="sm:flex-1"
+                  uses={usesSentence('client', { photos, pages: 0, pdfs: 0 })}
+                  balance={balance}
+                  short={refusal !== null}
+                />
+                <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                  <Button type="button" variant="outline" disabled={busy} onClick={leave}>
+                    Renunță
                   </Button>
-                }
-              >
-                <strong className="font-semibold">{notice.name}</strong> {notice.text}
-              </Notice>
-            ))}
-            {over && (
-              <Notice variant="destructive" data-testid="import-upload-over">
-                Un import ia cel mult {importLimits.client.files} de fișiere și 100 MB. Ai ales{' '}
-                {filesLabel(totals.count)}, {formatFileSize(totals.bytes)}. Scoate câteva și încarcă
-                restul într-un import separat.
-              </Notice>
-            )}
-            {totals.count > 0 && (
-              <ChosenList
-                selection={selection}
-                removable={choosing}
-                onRemoveGroup={(group) => setSelection((current) => removeGroup(current, group))}
-                onRemoveFiles={(keys) => setSelection((current) => removeFiles(current, keys))}
-              />
-            )}
-            <SetAsideList setAside={selection.setAside} systemFiles={selection.systemFiles} />
-            <UploadProgress phase={phase} onRetry={retry} onContinue={continueWithout} />
-          </DialogBody>
-          <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" disabled={busy} onClick={leave}>
-              Renunță
-            </Button>
-            <Button
-              type="submit"
-              data-testid="import-upload-submit"
-              disabled={!choosing || totals.count === 0 || over || opening}
-            >
-              {busy ? 'Se încarcă…' : 'Încarcă și citește'}
-            </Button>
-          </DialogFooter>
+                  <Button
+                    type="submit"
+                    data-testid="import-upload-submit"
+                    disabled={
+                      !choosing || totals.count === 0 || over || opening || refusal !== null
+                    }
+                  >
+                    {busy ? 'Se încarcă…' : 'Încarcă și citește'}
+                  </Button>
+                </div>
+              </DialogFooter>
+            </>
+          )}
         </form>
       </DialogContent>
     </Dialog>
@@ -414,7 +484,7 @@ export function UploadProgress({
       </Notice>
     );
   }
-  if (phase.step === 'choosing') return null;
+  if (phase.step === 'choosing' || phase.step === 'short') return null;
   const [label, value] =
     phase.step === 'shrinking'
       ? [

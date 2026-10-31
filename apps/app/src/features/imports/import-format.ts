@@ -4,6 +4,8 @@ import type { ApiErrorResponse, ImportUsage } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { roCount } from '@/features/employees/employee-format';
 
+import { refusalSentence } from './import-credits';
+
 export { formatFileSize } from '@/features/client-files/client-file-format';
 
 export const filesLabel = (count: number) =>
@@ -70,6 +72,10 @@ export const importErrorReason = (cause: unknown) =>
 export function importErrorMessage(cause: unknown, fallback: string, kind: ImportKind = 'client') {
   if (!(cause instanceof ApiHttpError)) return fallback;
   const reason = importErrorReason(cause);
+  const credits = (cause.body as Partial<ApiErrorResponse> | undefined)?.credits;
+  if (reason === importErrorReasons.creditsInsufficient && credits) {
+    return refusalSentence(credits);
+  }
   if (kind === 'employees' && reason && Object.hasOwn(employeeReasonMessages, reason)) {
     return employeeReasonMessages[reason]!;
   }

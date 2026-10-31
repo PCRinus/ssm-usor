@@ -34,6 +34,7 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 
+import { CreditsUsedLine } from './credits-notices';
 import { importErrorMessage } from './import-format';
 import { leaveImportNotice } from './import-notice';
 import {
@@ -252,6 +253,7 @@ export function ConfirmImportDialog({
                 Nu preluăm {left === 1 ? 'un element' : `cele ${left} elemente`} de la alt client.
               </p>
             )}
+            <CreditsUsedLine detail={detail} kind="client" />
           </div>
           {error && (
             <Notice variant="destructive" data-testid="import-confirm-error">
