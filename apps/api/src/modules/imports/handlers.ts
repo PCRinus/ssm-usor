@@ -1280,7 +1280,8 @@ const foundSheetTypes = sheetFileTypes.filter((type) => !type.startsWith('image/
 
 type OfferedSheet = Awaited<ReturnType<typeof offeredSheets>>[number];
 
-// Under the caller's policies, so a file only owners see is offered to owners only.
+// A file only owners see is never offered, even to an owner: its copy would be an import file,
+// which every member reads, and would become the employee's file for every member to see.
 async function offeredSheets(db: DataClient, clientId: string) {
   const [found, taken] = await Promise.all([
     db
@@ -1294,6 +1295,7 @@ async function offeredSheets(db: DataClient, clientId: string) {
       .eq('imports.client_id', clientId)
       .not('imports.files_copied_at', 'is', null)
       .in('client_file.mime_type', foundSheetTypes)
+      .eq('client_file.owners_only', false)
       .order('upload_path')
       .order('id'),
     db

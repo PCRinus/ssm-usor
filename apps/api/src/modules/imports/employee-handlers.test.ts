@@ -405,6 +405,7 @@ describe('GET /clients/{clientId}/found-sheets', () => {
     expect(found!.url.searchParams.get('client_file.mime_type')).toBe(
       'in.(application/pdf,image/jpeg,image/png)'
     );
+    expect(found!.url.searchParams.get('client_file.owners_only')).toBe('eq.false');
     expect(taken!.url.searchParams.get('imports.kind')).toBe('eq.employees');
     expect(taken!.url.searchParams.get('imports.status')).toBe('not.in.(abandoned,failed)');
   });
