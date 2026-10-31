@@ -50,7 +50,7 @@ keeps an owner. Removal deletes the membership only.
 `profesional`, `enterprise`), the `status` (`trialing`, `active`, `past_due`, `canceled`), the
 `trial_ends_at`, `access_until`, when full access ends, and `tester_allowances`, the tester
 switch: a trial sends no SMS, except a tester's, which sends 300 signing codes a month with a hard
-stop (and, once credits exist, gets 1,500 credits a month). An organization without a row has
+stop, and 1,500 import credits a month. An organization without a row has
 full access indefinitely: the seeded ones, the end-to-end accounts and every organization
 created before billing. Members read their own organization's row; nobody writes it through the
 data API.
@@ -100,6 +100,35 @@ added by hand to a month (codes, reason, actor), written by `grant_signing_codes
 `signing_codes_granted` in `subscription_changes`. `usage_notices` records which usage warning
 (`sms_80`, `sms_100`, `sms_cap`, later `credits_*`) went to an organization in which month, once
 each. All four are the secret key's alone.
+
+`credit_entries` is the ledger of import credits ([ADR 030](architecture/adr-030-import-from-documents.md),
+"Usage is counted in credits"; `20261102110000_import_credits`): the organization, the `kind`
+(`import_start`, an import's known part; `import_pages`, an employee import's pages settled on
+the extractor's count; `scanned_page`; `refund`; `grant`; `gift`), `credits` (negative for what
+an import used, positive for what is given back or added), `gift_credits`, the part of it taken
+from or added to the welcome gift, the `import_id`, `import_file_id` and `page` it concerns (set
+null when the import is deleted: the credits stay used), a unique `key` per import step,
+scanned page, refund or gift, so a step delivered twice is counted once, and the `reason` and
+`actor` a grant needs. A charge is never below what the floor allows: a scanned page found past
+150 below zero is recorded at nothing. `credit_periods` holds each month that saw a charge or a
+grant, by `(organization, period_start)`: its `period_end`, the largest `allowance` it had (a
+downgrade at the renewal would otherwise hide it) and the `shortfall` carried in from the month
+before, fixed when the month opens, at most 150. The allowance itself is computed by the API from
+the plan, which passes the months in.
+
+`credit_balance(organization, month, allowance, month before, its allowance)` answers the month's
+`granted`, `used` (charges net of refunds, the gift's part left out), `shortfall`, `balance` and
+`gift_left`; `charge_credits(…)` charges under a lock per organization, the month's credits
+first, then the gift, then below zero down to 150, and with `p_require` refuses, recording
+nothing, unless the balance and the gift cover it all; a key already recorded answers what it
+charged, and an import already refunded is charged nothing more. `give_back_import_credits`
+returns an employee import's pages it did not have, to the gift first. `refund_import_credits`
+gives back once everything an import was charged; the trigger `imports_refund_credits` runs it
+when an import fails from any status but `ready` (left after its reading), or is abandoned while
+uploading. `grant_credits` adds credits to a month and logs `credits_granted`;
+`grant_welcome_gift(organization, credits)` brings the gift up to the plan's once and logs
+`welcome_gift`. The migration granted the gift to the organizations already paying. Both tables
+and every function are the secret key's alone.
 
 `stripe_events` records every webhook event by its Stripe id (`type`, `received_at`,
 `processed_at`, and the `error` of a failed attempt), so an event delivered twice is handled
@@ -1342,6 +1371,7 @@ composite key to `imports (id, organization_id)`, deleted with the import:
 | `state`                                                            | `import_file_state`: `uploading` until its object is stored, `uploaded`, `prepared`, then `read`, `set_aside`, `for_employees`, `other_company` or `failed`. |
 | `document_kind`, `reason`, `company_name`, `company_cui`           | What the sorting took the file for (a key `packages/import` names), why it was set aside or failed (in Romanian), and the company it names.                  |
 | `page_count`, `is_scan`                                            | From the extractor.                                                                                                                                          |
+| `declared_pages`                                                   | A PDF's pages as the browser counted them for an employee import, which its start is charged for; null for a photograph or when not counted.                 |
 | `text_path`                                                        | The text taken out of it, beside it as `<id>.txt` or `<id>.json`, by a check.                                                                                |
 | `derived_path`, `derived_size_bytes`, `derived_sha256`             | The `.docx` of a `.doc` (`<id>.docx`) or the upright JPEG of a photograph (`<id>.jpg`, a JPEG's `<id>.jpeg`), beside it by a check; the three together.      |
 | `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The requests that read this file on its own, a scan or a photograph; the import's totals include them.                                                       |
