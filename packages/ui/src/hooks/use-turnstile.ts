@@ -7,6 +7,7 @@ export interface TurnstileOptions {
   callback(token: string): void;
   'expired-callback'(): void;
   'error-callback'(): void;
+  'before-interactive-callback'(): void;
 }
 
 export interface Turnstile {
@@ -45,14 +46,17 @@ function loadTurnstile() {
 // Without a site key there is no widget and every token is undefined, which an auth server
 // with CAPTCHA off accepts.
 export function useTurnstile(siteKey: string | undefined) {
-  const widget = useRef<{ turnstile: Turnstile; id: string } | null>(null);
+  const widget = useRef<{ turnstile: Turnstile; id: string; element: HTMLElement } | null>(null);
   const token = useRef<string | undefined>(undefined);
   const failed = useRef(false);
   const waiting = useRef<((token: string | undefined) => void)[]>([]);
 
   const ref = useCallback(
     (element: HTMLDivElement | null) => {
-      if (!element || !siteKey) return;
+      if (!element) return;
+      // Out of the flow until Turnstile asks for a click: an empty grid item still takes a gap.
+      element.style.position = 'absolute';
+      if (!siteKey) return;
       let removed = false;
       const settle = (value: string | undefined) => {
         token.current = value;
@@ -71,8 +75,11 @@ export function useTurnstile(siteKey: string | undefined) {
               token.current = undefined;
             },
             'error-callback': () => settle(undefined),
+            'before-interactive-callback': () => {
+              element.style.position = '';
+            },
           });
-          widget.current = { turnstile, id };
+          widget.current = { turnstile, id, element };
         },
         () => {
           failed.current = true;
@@ -102,7 +109,10 @@ export function useTurnstile(siteKey: string | undefined) {
     try {
       return await run(captchaToken);
     } finally {
-      if (widget.current) widget.current.turnstile.reset(widget.current.id);
+      if (widget.current) {
+        widget.current.element.style.position = 'absolute';
+        widget.current.turnstile.reset(widget.current.id);
+      }
     }
   }
 
