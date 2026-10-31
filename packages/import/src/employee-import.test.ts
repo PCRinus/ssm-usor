@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type EmployeeImportClient, toEmployeeProposal } from './employee-import';
+import { type EmployeeImportClient, hiringTestRowIds, toEmployeeProposal } from './employee-import';
 import {
   cnps,
   comanFire,
@@ -8,9 +8,11 @@ import {
   comanPeriodic,
   existingPop,
   otherPhoto,
+  page,
   pagesOf,
   popFront,
   positions,
+  row,
   rusuFront,
   themes,
   today,
@@ -131,9 +133,25 @@ describe('toEmployeeProposal', () => {
       inApp: false,
     });
     expect(psi.test).toMatchObject({ examinerName: 'Barbu Ionuț', verified: true });
-    expect(
-      rows.find((row) => row.domain === 'psi' && row.phase === 'introductory_general')!.test
-    ).toBeNull();
+    expect(hiringTestRowIds(rows)).toEqual(new Set([ssm.id, psi.id]));
+  });
+
+  it('keeps the verifier box on a page it could not place, for the member to move', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'ssm_sheet_front',
+          trainings: [row({ phase: 'introductory_general', verifierSignature: 'present' })],
+        }),
+        comanFront
+      ),
+      client,
+      themes,
+      today,
+    });
+
+    expect(proposal.pages[0]!.placement).toBe('unplaced');
+    expect(proposal.pages[0]!.rows[0]!.test).toMatchObject({ test: 'hiring', verified: true });
   });
 
   it('puts the admission on the workplace row of its sheet', () => {

@@ -152,6 +152,72 @@ describe('toEmployeePayload', () => {
     ]);
   });
 
+  it('dates a hiring test by its row as the member corrected it', () => {
+    const { proposal, changes, check, map } = setUp(comanFront, comanPeriodic, comanFire);
+    check(idOf(proposal, 'Coman'));
+    const intro = proposal.pages[0]!.rows.find((each) => each.phase === 'introductory_general')!;
+    changes.rows[intro.id] = { values: { heldOn: '2021-01-15' } };
+
+    expect(map().payload.test_results[0]).toMatchObject({
+      domain: 'ssm',
+      test: 'hiring',
+      taken_on: '2021-01-15',
+    });
+
+    changes.rows[intro.id] = { included: false, values: { heldOn: '2026-12-01' } };
+    expect(map().blockers).toEqual([{ path: `rows.${intro.id}.test.takenOn`, code: 'invalid' }]);
+  });
+
+  it('chooses the row of the hiring test again once pages move', () => {
+    const later = page({
+      pageKind: 'ssm_sheet_front',
+      person: { lastName: 'Coman', firstName: 'Daniela' },
+      trainings: [
+        row({ phase: 'introductory_general', heldOn: '2022-03-01', verifierSignature: 'absent' }),
+      ],
+    });
+    const { proposal, changes, check, map } = setUp(comanFront, later);
+    const coman = idOf(proposal, 'Coman');
+    check(coman);
+
+    expect(map().payload.test_results).toEqual([]);
+
+    changes.pages['page-2'] = { personId: null };
+    expect(map().payload.test_results).toEqual([
+      expect.objectContaining({ domain: 'ssm', test: 'hiring', taken_on: '2021-01-18' }),
+    ]);
+  });
+
+  it('brings the verifier’s signature with a page the member moves to its person', () => {
+    const loose = page({
+      pageKind: 'ssm_sheet_front',
+      trainings: [
+        row({
+          phase: 'introductory_general',
+          heldOn: '2023-05-10',
+          verifierName: 'Mureșan Ioana',
+          verifierJobTitle: 'Administrator',
+          verifierSignature: 'present',
+        }),
+      ],
+    });
+    const { proposal, changes, check, map } = setUp(loose, tomaFront);
+    const toma = idOf(proposal, 'Toma');
+    check(toma);
+    changes.jobTitles[proposal.jobTitles[0]!.id] = { jobPositionId: positions[2]!.id };
+
+    expect(map().payload.test_results).toEqual([]);
+
+    changes.pages['page-1'] = { personId: toma };
+    expect(map().payload.test_results).toEqual([
+      expect.objectContaining({
+        test: 'hiring',
+        taken_on: '2023-05-10',
+        examiner_name: 'Mureșan Ioana',
+      }),
+    ]);
+  });
+
   it('makes one training held of the same periodic training on two people’s sheets', () => {
     const shared = page({
       pageKind: 'ssm_periodic',

@@ -113,6 +113,7 @@ export type ThemeFillableField = (typeof themeFillableFields)[number];
 
 export const paperTestSchema = z.object({
   test: z.enum(knowledgeTests),
+  // The row's date as read: a sheet dates its test only by the row it signs.
   takenOn: z.iso.date().nullable(),
   examinerName: z.string().nullable(),
   examinerJobTitle: z.string().nullable(),
@@ -153,7 +154,8 @@ export const proposedSheetRowSchema = z.object({
   fromThemes: z.array(z.enum(themeFillableFields)),
   // A row that records a test and no training: the fire-safety annual test.
   testOnly: z.boolean(),
-  // The hiring or annual test result the row stands for, from a hiring block's verifier.
+  // The paper test the row records: the annual one, or the hiring test on every row of a phase
+  // the test closes, of which `hiringTestRowIds` picks the one written.
   test: paperTestSchema.nullable(),
   flags: z.array(z.enum(rowFlagCodes)),
   proposedIncluded: z.boolean(),

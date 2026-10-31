@@ -19,7 +19,6 @@ import {
   type EmployeeImportProposal,
   employeeImportProposalSchema,
   type JobTitleGroup,
-  type PaperTest,
   type PersonField,
   type PersonFlag,
   type ProposedSheetPage,
@@ -336,6 +335,20 @@ function readRow(
   proposed.flags = flags;
   proposed.proposedIncluded = !flags.includes('unsigned');
 
+  // Every row of a phase the hiring test closes keeps what its verifier box shows, so the row
+  // that carries the test can be chosen again once pages move between people.
+  if (!testOnly && testPhases[proposed.domain].includes(proposed.phase)) {
+    proposed.test = {
+      test: 'hiring',
+      takenOn: proposed.heldOn,
+      ...examinerOf(proposed),
+      verified: closesTest(proposed),
+      inApp:
+        person.existing?.testResults.some(
+          (result) => result.domain === proposed.domain && result.test === 'hiring'
+        ) ?? false,
+    };
+  }
   if (testOnly) {
     proposed.test = {
       test: 'annual',
@@ -381,34 +394,33 @@ function markRepeats(rows: ProposedSheetRow[], existing: ExistingEmployee | null
   return inApp;
 }
 
-function addHiringTests(rows: ProposedSheetRow[], existing: ExistingEmployee | null) {
+/**
+ * The rows whose paper hiring test is written, one a domain: the newest of the phase the test
+ * closes, among the rows the person's pages now hold, with the dates as the member left them.
+ */
+export function hiringTestRowIds(
+  rows: readonly Pick<
+    ProposedSheetRow,
+    'id' | 'domain' | 'phase' | 'heldOn' | 'testOnly' | 'test'
+  >[]
+): Set<string> {
+  const ids = new Set<string>();
   for (const domain of ['ssm', 'psi'] as const) {
     const phase = testPhases[domain].find((each) =>
       rows.some((row) => row.domain === domain && row.phase === each && !row.testOnly)
     );
-    const candidates = rows
+    const newest = rows
       .filter(
         (row) =>
           row.domain === domain &&
           row.phase === phase &&
           !row.testOnly &&
-          !row.flags.includes('repeated')
+          row.test?.test === 'hiring'
       )
-      .sort((a, b) => (b.heldOn ?? '').localeCompare(a.heldOn ?? ''));
-    const row = candidates[0];
-    if (!row) continue;
-    const test: PaperTest = {
-      test: 'hiring',
-      takenOn: row.heldOn,
-      ...examinerOf(row),
-      verified: closesTest(row),
-      inApp:
-        existing?.testResults.some(
-          (result) => result.domain === domain && result.test === 'hiring'
-        ) ?? false,
-    };
-    row.test = test;
+      .sort((a, b) => (b.heldOn ?? '').localeCompare(a.heldOn ?? ''))[0];
+    if (newest) ids.add(newest.id);
   }
+  return ids;
 }
 
 function referenceGroups<G extends { id: string; personIds: string[] }>(
@@ -558,7 +570,6 @@ export function toEmployeeProposal(input: EmployeeImportInput): EmployeeImportPr
       return pageRows;
     });
     person.rowsInApp = markRepeats(rows, context.existing);
-    addHiringTests(rows, context.existing);
   }
 
   const pages: ProposedSheetPage[] = input.pages.map((page) => {

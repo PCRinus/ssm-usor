@@ -15,6 +15,7 @@ import {
   type TrainingPhase,
 } from '@ssm-usor/contracts';
 
+import { hiringTestRowIds } from './employee-import';
 import type { ExistingEmployee } from './employee-match';
 import type {
   EmployeeImportProposal,
@@ -431,9 +432,12 @@ export function toEmployeePayload(input: {
     );
     for (const fileId of fileIds) files.push({ employee_key: person.id, import_file_id: fileId });
 
+    const hiringTests = hiringTestRowIds(
+      rows.map((each) => ({ ...each, heldOn: rowValue(each, changes.rows[each.id], 'heldOn') }))
+    );
     const seen = new Set<string>();
     for (const sheetRow of rows) {
-      addRow(sheetRow, person, existing, seen);
+      addRow(sheetRow, person, existing, seen, hiringTests);
     }
   }
 
@@ -441,7 +445,8 @@ export function toEmployeePayload(input: {
     sheetRow: ProposedSheetRow,
     person: ProposedSheetPerson,
     existing: ExistingEmployee | undefined,
-    seen: Set<string>
+    seen: Set<string>,
+    hiringTests: ReadonlySet<string>
   ) {
     const change = changes.rows[sheetRow.id];
     const path = `rows.${sheetRow.id}`;
@@ -461,7 +466,7 @@ export function toEmployeePayload(input: {
     const proposedIncluded =
       !sheetRow.flags.includes('unsigned') && !sheetRow.flags.includes('repeated') && !inApp;
 
-    const test = sheetRow.test;
+    const test = sheetRow.testOnly || hiringTests.has(sheetRow.id) ? sheetRow.test : null;
     if (test) {
       const testInApp = existing?.testResults.some(
         (result) =>
@@ -478,16 +483,20 @@ export function toEmployeePayload(input: {
         const examinerName = (change?.values?.examinerName ?? test.examinerName) as string | null;
         const examinerJobTitle = (change?.values?.examinerJobTitle ?? test.examinerJobTitle) as
           string | null;
-        const takenOn = sheetRow.testOnly ? heldOn : (test.takenOn ?? heldOn);
-        if (!filled(takenOn)) block(`${path}.test.takenOn`, 'missing');
+        // A sheet dates its test only by the row it signs, so the row's date as the member left
+        // it is the test's.
+        const takenOn = filled(heldOn) ? String(heldOn) : null;
+        const pastDay = takenOn !== null && isoDate.test(takenOn) && takenOn <= today;
+        if (takenOn === null) block(`${path}.test.takenOn`, 'missing');
+        else if (!pastDay) block(`${path}.test.takenOn`, 'invalid');
         if (!filled(examinerName)) block(`${path}.test.examinerName`, 'missing');
         if (!filled(examinerJobTitle)) block(`${path}.test.examinerJobTitle`, 'missing');
-        if (filled(takenOn) && filled(examinerName) && filled(examinerJobTitle)) {
+        if (pastDay && filled(examinerName) && filled(examinerJobTitle)) {
           testResults.push({
             employee_key: person.id,
             domain: sheetRow.domain,
             test: test.test,
-            taken_on: String(takenOn),
+            taken_on: takenOn,
             material: testResultMaterial(sheetRow.domain, test.test),
             examiner_name: String(examinerName).trim(),
             examiner_job_title: String(examinerJobTitle).trim(),
