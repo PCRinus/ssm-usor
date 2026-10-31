@@ -38,7 +38,7 @@ Abonamentul e al organizației, nu al unei persoane. Îl alege, îl schimbă și
 
 ## Pagina Abonament
 
-O găsești în **Organizație**, la tabul **Abonament**, după **Abilitări**. Ajungi tot aici din insigna planului, de lângă sigla din capul paginii, și din banda care apare deasupra paginii când perioada de probă se apropie de sfârșit sau când o plată nu a reușit.
+O găsești în **Organizație**, la tabul **Abonament**, după **Abilitări**. Ajungi tot aici din insigna planului, de lângă sigla din capul paginii (pe telefon, din meniu, la **Abonament**, deasupra contului tău), și din banda care apare deasupra paginii când perioada de probă se apropie de sfârșit sau când o plată nu a reușit.
 
 Pagina are trei părți:
 
@@ -52,7 +52,7 @@ Prețurile din aplicație sunt fără TVA, la care se adaugă TVA de 21 %. Total
 
 Un cont nou începe cu 30 de zile de probă, fără card. În acest timp ai tot ce include **Profesional**: 1.500 de angajați la clienți și 3 utilizatori. Singura diferență: în perioada de probă nu se trimit SMS-uri. Codurile de conectare și de semnare pleacă pe email, iar un angajat fără adresă de email nu poate fi invitat până alegi un plan.
 
-Insigna din capul paginii arată câte zile mai ai. În ultima săptămână apare și o bandă deasupra paginii, pe care o poți închide până a doua zi; în ultima zi nu se mai închide.
+Insigna planului arată câte zile mai ai. În ultima săptămână apare și o bandă deasupra paginii, pe care o poți închide până a doua zi; în ultima zi nu se mai închide.
 
 Poți alege un plan oricând în perioada de probă, fără să pierzi zilele rămase: cardul se salvează atunci, dar prima plată se face abia în ziua în care s-ar fi încheiat proba. Până atunci lucrezi exact ca înainte, cu limitele probei, iar SMS-urile pornesc din ziua în care ai ales planul. Din acel moment insigna arată numele planului ales, iar banda nu mai apare. Dacă alegi în ultima oră a probei, prima plată se face pe loc.
 
