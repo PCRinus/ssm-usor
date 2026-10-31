@@ -49,7 +49,7 @@ Din ziua în care marchezi plecarea:
 - nu mai intră în numărul de angajați al clientului, după care se decide ce documente îi trebuie (vezi [Angajați](/clienti/angajati/));
 - nu mai ocupă postul: un post ocupat doar de foști angajați poate fi arhivat.
 
-Rămân neschimbate instruirile înregistrate, rezultatele testelor, fișierele și cele două fișe individuale de instruire, pe care le poți descărca oricând de la **Foști angajați**, cât timp clientul există. Poți corecta în continuare datele lui și poți înregistra o instruire de pe o fișă de hârtie mai veche.
+Rămân neschimbate instruirile înregistrate, rezultatele testelor, fișierele și cele două fișe individuale de instruire, pe care le poți descărca oricând de la **Foști angajați**, cât timp clientul există. Poți corecta în continuare datele lui și poți înregistra o instruire de pe o fișă pe hârtie mai veche.
 
 Accesul la portal rămâne: angajatul își poate vedea în continuare instruirile și fișele. Dacă angajatorul cere, revocă-l din **Acces la portal**, pe pagina angajatului (vezi [Portalul și actul adițional](/clienti/angajati/portal-si-act-aditional/)).
 
