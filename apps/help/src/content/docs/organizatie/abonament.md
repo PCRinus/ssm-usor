@@ -34,6 +34,8 @@ sources:
   - packages/contracts/src/subscriptions.ts
   - apps/api/src/modules/billing/service.ts
   - apps/api/src/modules/billing/rules.ts
+  - apps/api/src/modules/sms-usage/notices.ts
+  - apps/mail/src/emails/sms-usage-notice.tsx
   - apps/app/src/features/subscription/*.tsx
   - apps/app/src/features/subscription/sms-copy.ts
   - apps/api/src/modules/sms-usage/policy.ts
@@ -105,6 +107,8 @@ Se numără:
 - **codurile de semnare prin SMS**: câte au plecat luna aceasta, față de cât include planul: 50 pe Start, 300 pe Profesional, de exemplu „252 din 300”. Luna e a abonamentului: începe în ziua în care se reînnoiește, de exemplu de pe 14.10 până pe 13.11, și pe un plan anual. Invitațiile în portal, codurile de conectare și anunțurile că sunt instruiri de semnat pleacă și ele prin SMS, dar nu se numără. În perioada de probă, fără un plan ales, rândul nu are bară: spune doar că totul pleacă pe email.
 
 Dacă treci de limita de angajați, lucrezi mai departe cu tot ce ai. Pagina îți spune cu câți ai trecut și îți propune pachetul care îți lipsește. Peste cele incluse, codurile de semnare prin SMS pleacă mai departe: fiecare costă 0,10 € și apare pe factura următoare; pe un plan anual, se plătesc lunar. Ca factura să nu crească fără margini, se opresc la de trei ori cât include planul, adică 150 pe Start și 900 pe Profesional. De acolo, până la luna următoare, un angajat fără email nu mai primește codul de semnare prin SMS.
+
+Administratorul organizației primește un email când au plecat 80 % din codurile incluse în lună, când au plecat toate și când se ajunge la limita de siguranță, fiecare o singură dată pe lună. Până la prima plată, emailul de la 100 % spune că, până la luna următoare, codurile nu mai pleacă prin SMS. Un angajat fără email care cere atunci un cod de semnare vede în portal că trebuie să vorbească cu specialistul SSM; dacă îi adaugi o adresă de email, codul îi vine pe email și semnează pe loc.
 
 SMS-urile pleacă doar la numere din România (+40). Un angajat cu un număr din altă țară se invită pe email.
 
