@@ -1,4 +1,4 @@
-import { importErrorReasons } from '@ssm-usor/contracts';
+import { importErrorReasons, type ImportKind } from '@ssm-usor/contracts';
 
 import type { ApiErrorResponse, ImportUsage } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
@@ -48,6 +48,18 @@ const reasonMessages: Record<string, string> = {
     'Cu acest fișier, documentele au prea mult text pentru un singur import.',
   [importErrorReasons.tooManyScans]:
     'Cu acest fișier, sunt prea multe pagini scanate pentru un singur import: cel mult 150.',
+  [importErrorReasons.photosOnly]:
+    'Importul angajaților citește doar fotografii și PDF-uri ale fișelor de instruire.',
+  [importErrorReasons.noFoundSheets]:
+    'Fotografiile găsite în documentație nu mai sunt disponibile: le-a luat între timp alt import.',
+  [importErrorReasons.wrongKind]: 'Importul este de alt fel. Reîncarcă pagina.',
+};
+
+const employeeReasonMessages: Record<string, string> = {
+  [importErrorReasons.tooLarge]:
+    'Într-un import de angajați intră cel mult 500 de fotografii sau pagini PDF și 1 GB în total, cel mult 25 MB un fișier.',
+  [importErrorReasons.tooManyScans]:
+    'Sunt prea multe fotografii și pagini pentru un singur import: cel mult 500.',
 };
 
 export const importErrorReason = (cause: unknown) =>
@@ -55,9 +67,12 @@ export const importErrorReason = (cause: unknown) =>
     ? (cause.body as Partial<ApiErrorResponse> | undefined)?.reason
     : undefined;
 
-export function importErrorMessage(cause: unknown, fallback: string) {
+export function importErrorMessage(cause: unknown, fallback: string, kind: ImportKind = 'client') {
   if (!(cause instanceof ApiHttpError)) return fallback;
   const reason = importErrorReason(cause);
+  if (kind === 'employees' && reason && Object.hasOwn(employeeReasonMessages, reason)) {
+    return employeeReasonMessages[reason]!;
+  }
   if (reason && Object.hasOwn(reasonMessages, reason)) return reasonMessages[reason]!;
   if (cause.status === 401) {
     return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';

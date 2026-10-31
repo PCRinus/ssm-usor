@@ -26,13 +26,13 @@ import {
   Upload,
   X,
 } from 'lucide-react';
-import { type DragEvent, type FormEvent, type ReactNode, useRef, useState } from 'react';
+import { type FormEvent, type ReactNode, useRef, useState } from 'react';
 
 import { Notice } from '@/components/notice';
-import { hasFiles, useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
+import { useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
 
 import { filesLabel, formatFileSize, photosLabel } from './import-format';
-import { pickedFromDrop, pickedFromInput } from './picked-files';
+import { pickedFromInput } from './picked-files';
 import {
   emptySelection,
   mergeSelection,
@@ -47,7 +47,8 @@ import {
   selectionTotals,
   type SetAsideFile,
 } from './upload-selection';
-import { type UploadPhase, useImportUpload } from './use-import-upload';
+import { useImportDrop } from './use-import-drop';
+import { busySteps, heldSteps, type UploadPhase, useImportUpload } from './use-import-upload';
 
 export type ImportClient = { id: string; legalName: string; cui: string; vatPayer: boolean };
 
@@ -67,10 +68,6 @@ export function ImportUploadDialog({
 
 const formats = ['PDF', 'DOC', 'DOCX', 'JPG', 'PNG', 'HEIC'];
 
-const busySteps = new Set<UploadPhase['step']>(['hashing', 'uploading', 'starting']);
-
-const heldSteps = new Set<UploadPhase['step']>(['stalled', 'unstarted', 'empty']);
-
 function UploadForm({
   client,
   onClose,
@@ -84,8 +81,6 @@ function UploadForm({
   const [opening, setOpening] = useState(false);
   const [unreadable, setUnreadable] = useState(false);
   const [dismissed, setDismissed] = useState<string[]>([]);
-  const [dragging, setDragging] = useState(false);
-  const depth = useRef(0);
   const filesInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
   const openingImport = useRef(false);
@@ -112,30 +107,9 @@ function UploadForm({
     }
   }
 
-  const dropHandlers = {
-    onDragEnter: (event: DragEvent<HTMLElement>) => {
-      if (!hasFiles(event)) return;
-      depth.current += 1;
-      setDragging(true);
-    },
-    onDragLeave: (event: DragEvent<HTMLElement>) => {
-      if (!hasFiles(event)) return;
-      depth.current = Math.max(0, depth.current - 1);
-      if (depth.current === 0) setDragging(false);
-    },
-    onDragOver: (event: DragEvent<HTMLElement>) => {
-      if (!hasFiles(event)) return;
-      event.preventDefault();
-      event.dataTransfer.dropEffect = 'copy';
-    },
-    onDrop: (event: DragEvent<HTMLElement>) => {
-      if (!hasFiles(event)) return;
-      event.preventDefault();
-      depth.current = 0;
-      setDragging(false);
-      if (!opening) void add(pickedFromDrop(event.dataTransfer));
-    },
-  };
+  const { dragging, handlers: dropHandlers } = useImportDrop((picked) => {
+    if (!opening) void add(picked);
+  });
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -372,7 +346,7 @@ function UploadForm({
   );
 }
 
-function UploadProgress({
+export function UploadProgress({
   phase,
   onRetry,
   onContinue,
@@ -439,14 +413,19 @@ function UploadProgress({
   }
   if (phase.step === 'choosing') return null;
   const [label, value] =
-    phase.step === 'hashing'
-      ? [`Pregătim fișierele: ${phase.done} din ${phase.total}`, (phase.done / phase.total) * 100]
-      : phase.step === 'uploading'
-        ? [
-            `Se încarcă: ${formatFileSize(phase.sentBytes)} din ${formatFileSize(phase.totalBytes)}`,
-            (phase.sentBytes / Math.max(1, phase.totalBytes)) * 100,
-          ]
-        : ['Pornim citirea…', 100];
+    phase.step === 'shrinking'
+      ? [
+          `Micșorăm fotografiile: ${phase.done} din ${phase.total}`,
+          (phase.done / phase.total) * 100,
+        ]
+      : phase.step === 'hashing'
+        ? [`Pregătim fișierele: ${phase.done} din ${phase.total}`, (phase.done / phase.total) * 100]
+        : phase.step === 'uploading'
+          ? [
+              `Se încarcă: ${formatFileSize(phase.sentBytes)} din ${formatFileSize(phase.totalBytes)}`,
+              (phase.sentBytes / Math.max(1, phase.totalBytes)) * 100,
+            ]
+          : ['Pornim citirea…', 100];
   return (
     <div className="grid gap-2" data-testid="import-upload-progress" role="status">
       <p className="text-sm tabular-nums">{label}</p>
@@ -654,7 +633,7 @@ function ChosenRow({
 }
 
 // A HEIC photograph has no preview in most browsers until the import turns it into a JPEG.
-function LocalThumb({ file, className }: { file: SelectedFile; className: string }) {
+export function LocalThumb({ file, className }: { file: SelectedFile; className: string }) {
   const previewable = file.mimeType === 'image/jpeg' || file.mimeType === 'image/png';
   if (previewable) {
     return (
@@ -687,12 +666,16 @@ const setAsideReasons: Record<SetAsideFile['reason'], string> = {
   name_too_long: 'numele are peste 255 de caractere',
 };
 
-function SetAsideList({
+export function SetAsideList({
   setAside,
   systemFiles,
+  reasons = setAsideReasons,
+  title = 'Puse deoparte, nu se încarcă',
 }: {
   setAside: SetAsideFile[];
   systemFiles: string[];
+  reasons?: Record<SetAsideFile['reason'], string>;
+  title?: string;
 }) {
   if (setAside.length === 0 && systemFiles.length === 0) return null;
   const systemNames = [
@@ -709,7 +692,7 @@ function SetAsideList({
       className="grid gap-1.5 rounded-lg border-[1.5px] border-dashed bg-muted/30 px-3 py-2.5"
     >
       <h3 id="import-set-aside-heading" className="text-sm font-medium">
-        Puse deoparte, nu se încarcă
+        {title}
       </h3>
       <ul className="grid gap-1.5">
         {setAside.map((file) => (
@@ -721,7 +704,7 @@ function SetAsideList({
             <FileX className="mt-0.5 size-4" aria-hidden="true" />
             <span className="wrap-anywhere">
               <span className="font-medium text-foreground">{file.path}</span>,{' '}
-              {setAsideReasons[file.reason]}
+              {reasons[file.reason]}
             </span>
           </li>
         ))}

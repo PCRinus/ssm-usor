@@ -1,10 +1,11 @@
-import { importErrorReasons } from '@ssm-usor/contracts';
+import { importErrorReasons, type ImportKind } from '@ssm-usor/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 
 import {
   abandonImport,
+  addFoundSheets,
   createImport,
   getGetImportQueryKey,
   getListImportsQueryKey,
@@ -12,12 +13,14 @@ import {
   startImport,
 } from '@/api/generated/api';
 
+import { shrinkSelected } from './employees/shrink-photo';
 import { importErrorMessage, importErrorReason } from './import-format';
 import { sha256Of, uploadImportObject } from './import-storage';
 import type { SelectedFile } from './upload-selection';
 
 export type UploadPhase =
   | { step: 'choosing' }
+  | { step: 'shrinking'; done: number; total: number }
   | { step: 'hashing'; done: number; total: number }
   | { step: 'uploading'; sentBytes: number; totalBytes: number }
   | { step: 'starting' }
@@ -25,6 +28,15 @@ export type UploadPhase =
   | { step: 'unstarted'; error: string }
   | { step: 'empty' }
   | { step: 'failed'; error: string };
+
+export const busySteps = new Set<UploadPhase['step']>([
+  'shrinking',
+  'hashing',
+  'uploading',
+  'starting',
+]);
+
+export const heldSteps = new Set<UploadPhase['step']>(['stalled', 'unstarted', 'empty']);
 
 const registerBatch = 50;
 const maxConcurrent = 3;
@@ -54,7 +66,11 @@ async function withRetry(work: () => Promise<void>) {
   }
 }
 
-export function useImportUpload(clientId: string | undefined, onStarted: (id: string) => void) {
+export function useImportUpload(
+  clientId: string | undefined,
+  onStarted: (id: string) => void,
+  kind: ImportKind = 'client'
+) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const queryClient = useQueryClient();
   const [phase, setPhase] = useState<UploadPhase>({ step: 'choosing' });
@@ -85,7 +101,7 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
       else {
         setPhase({
           step: 'unstarted',
-          error: importErrorMessage(cause, 'Citirea nu a putut porni. Încearcă din nou.'),
+          error: importErrorMessage(cause, 'Citirea nu a putut porni. Încearcă din nou.', kind),
         });
       }
       return;
@@ -127,11 +143,32 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
     await start(id);
   }
 
-  async function upload(files: SelectedFile[]) {
+  async function shrink(chosen: SelectedFile[]) {
+    const photos = chosen.filter(
+      (file) => file.mimeType === 'image/jpeg' || file.mimeType === 'image/png'
+    );
+    if (photos.length === 0) return chosen;
+    const taken = new Set(chosen.map((file) => file.path));
+    const shrunk = new Map<string, SelectedFile>();
+    let done = 0;
+    setPhase({ step: 'shrinking', done, total: photos.length });
+    await inParallel(photos, 2, async (file) => {
+      shrunk.set(file.key, await shrinkSelected(file, taken));
+      done += 1;
+      setPhase({ step: 'shrinking', done, total: photos.length });
+    });
+    return chosen.map((file) => shrunk.get(file.key) ?? file);
+  }
+
+  // `foundSheetIds`: an employee import's sheets found in the client's documentation, copied
+  // server side rather than uploaded.
+  async function upload(chosen: SelectedFile[], foundSheetIds: string[] = []) {
     if (phase.step !== 'choosing' && phase.step !== 'failed') return;
     abandoned.current = false;
-    fileCount.current = files.length;
+    fileCount.current = chosen.length;
     try {
+      const files = kind === 'employees' ? await shrink(chosen) : chosen;
+      if (abandoned.current) return;
       setPhase({ step: 'hashing', done: 0, total: files.length });
       const hashes = new Map<string, string>();
       let hashed = 0;
@@ -141,11 +178,15 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
         setPhase({ step: 'hashing', done: hashed, total: files.length });
       });
       if (abandoned.current) return;
-      const id = (await createImport(clientId ? { clientId } : {}, apiRequest)).import.id;
+      const body = kind === 'employees' ? { clientId, kind } : clientId ? { clientId } : {};
+      const id = (await createImport(body, apiRequest)).import.id;
       importId.current = id;
       if (abandoned.current) {
         abandon();
         return;
+      }
+      if (foundSheetIds.length > 0) {
+        await addFoundSheets(id, { fileIds: foundSheetIds }, apiRequest);
       }
       const jobs: { file: SelectedFile; storagePath: string }[] = [];
       for (let first = 0; first < files.length; first += registerBatch) {
@@ -166,7 +207,8 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
         for (const file of batch) jobs.push({ file, storagePath: byPath.get(file.path)! });
       }
       void queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() });
-      await send(id, jobs);
+      if (jobs.length === 0) await start(id);
+      else await send(id, jobs);
     } catch (cause) {
       if (abandoned.current) return;
       // Its files are half registered, so trying again starts a new import.
@@ -176,7 +218,8 @@ export function useImportUpload(clientId: string | undefined, onStarted: (id: st
         step: 'failed',
         error: importErrorMessage(
           cause,
-          'Fișierele nu au putut fi încărcate. Verifică conexiunea și încearcă din nou.'
+          'Fișierele nu au putut fi încărcate. Verifică conexiunea și încearcă din nou.',
+          kind
         ),
       });
     }

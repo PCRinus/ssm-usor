@@ -1,8 +1,10 @@
 import {
   importFileExtensions,
   type ImportFileType,
+  type ImportKind,
   importLimits,
   isSystemPath,
+  sheetFileTypes,
 } from '@ssm-usor/contracts';
 import { unzipSync } from 'fflate';
 
@@ -23,6 +25,8 @@ export type SelectedFile = {
   mimeType: ImportFileType;
   // The zip, the folder or the loose file it came with, which the list groups by.
   group: string;
+  // The pages a PDF holds, each read on its own in an employee import; 1 for a photograph.
+  pages: number;
 };
 
 export type SetAsideFile = {
@@ -57,16 +61,27 @@ export const emptySelection = nothingFound();
 
 const unopenedArchives = new Set(['7z', 'rar', 'tar', 'gz', 'tgz', 'bz2', 'xz', 'zipx', 'cab']);
 
-const maxZipBytes = 4 * importLimits.client.totalBytes;
+const maxZipBytes: Record<ImportKind, number> = {
+  client: 4 * importLimits.client.totalBytes,
+  employees: importLimits.employees.totalBytes,
+};
+
+// An employee import reads only photographs and PDFs of the training sheets.
+const acceptedTypes: Record<ImportKind, readonly ImportFileType[] | null> = {
+  client: null,
+  employees: sheetFileTypes,
+};
 
 const maxZipDepth = 3;
 
 const extensionOf = (name: string) => /\.([^./]+)$/.exec(name)?.[1]?.toLowerCase() ?? '';
 
-export function importTypeOf(name: string): ImportFileType | null {
+export function importTypeOf(name: string, kind: ImportKind = 'client'): ImportFileType | null {
   const extension = extensionOf(name);
   if (!Object.hasOwn(importFileExtensions, extension)) return null;
-  return importFileExtensions[extension as keyof typeof importFileExtensions][0];
+  const type = importFileExtensions[extension as keyof typeof importFileExtensions][0];
+  const accepted = acceptedTypes[kind];
+  return accepted && !accepted.includes(type) ? null : type;
 }
 
 // Zip entries may carry backslashes, "./" and "../"; none of them may leave the upload's folder.
@@ -94,7 +109,14 @@ type Zip = PickedFile & { depth: number; budget: Budget };
 
 class OverBudget extends Error {}
 
-function sortOne(path: string, blob: Blob, group: string, into: Selection, zips: PickedFile[]) {
+function sortOne(
+  kind: ImportKind,
+  path: string,
+  blob: Blob,
+  group: string,
+  into: Selection,
+  zips: PickedFile[]
+) {
   const name = path.split('/').at(-1)!;
   if (isSystemPath(path)) {
     into.systemFiles.push(path);
@@ -109,12 +131,12 @@ function sortOne(path: string, blob: Blob, group: string, into: Selection, zips:
     zips.push({ path, blob });
     return;
   }
-  const mimeType = importTypeOf(name);
+  const mimeType = importTypeOf(name, kind);
   const reason = !mimeType
     ? 'unsupported'
     : blob.size === 0
       ? 'empty'
-      : blob.size > importLimits.client.fileBytes
+      : blob.size > importLimits[kind].fileBytes
         ? 'too_large'
         : name.length > 255
           ? 'name_too_long'
@@ -123,10 +145,11 @@ function sortOne(path: string, blob: Blob, group: string, into: Selection, zips:
     into.setAside.push({ key: nextKey(), path, name, reason: reason ?? 'unsupported', group });
     return;
   }
-  into.files.push({ key: nextKey(), path, name, blob, size: blob.size, mimeType, group });
+  into.files.push({ key: nextKey(), path, name, blob, size: blob.size, mimeType, group, pages: 1 });
 }
 
-async function openZips(zips: Zip[], into: Selection) {
+async function openZips(kind: ImportKind, zips: Zip[], into: Selection) {
+  const limits = importLimits[kind];
   while (zips.length > 0) {
     const zip = zips.shift()!;
     const name = zip.path.split('/').at(-1)!;
@@ -136,7 +159,7 @@ async function openZips(zips: Zip[], into: Selection) {
     const found = nothingFound();
     const inner: PickedFile[] = [];
     try {
-      if (zip.blob.size > maxZipBytes) throw new OverBudget();
+      if (zip.blob.size > maxZipBytes[kind]) throw new OverBudget();
       const bytes = new Uint8Array(await zip.blob.arrayBuffer());
       const fixes = zipNameFixes(bytes);
       const named = (entry: string) => fixes.get(entry) ?? entry;
@@ -154,7 +177,7 @@ async function openZips(zips: Zip[], into: Selection) {
             (extension === 'zip' && zip.depth + 1 >= maxZipDepth)
           ) {
             found.archives.push(entryName);
-          } else if (extension !== 'zip' && !importTypeOf(entryName)) {
+          } else if (extension !== 'zip' && !importTypeOf(entryName, kind)) {
             found.setAside.push({
               key: nextKey(),
               path,
@@ -162,7 +185,7 @@ async function openZips(zips: Zip[], into: Selection) {
               reason: 'unsupported',
               group,
             });
-          } else if (extension !== 'zip' && entry.originalSize > importLimits.client.fileBytes) {
+          } else if (extension !== 'zip' && entry.originalSize > limits.fileBytes) {
             found.setAside.push({
               key: nextKey(),
               path,
@@ -173,10 +196,7 @@ async function openZips(zips: Zip[], into: Selection) {
           } else {
             budget.bytes += entry.originalSize;
             if (extension !== 'zip') budget.files += 1;
-            if (
-              budget.bytes > importLimits.client.totalBytes ||
-              budget.files > importLimits.client.files
-            ) {
+            if (budget.bytes > limits.totalBytes || budget.files > limits.files) {
               throw new OverBudget();
             }
             return true;
@@ -188,7 +208,7 @@ async function openZips(zips: Zip[], into: Selection) {
         const path = cleanPath(`${zip.path}/${named(entry)}`);
         if (!path) continue;
         const type = importTypeOf(path) ?? undefined;
-        sortOne(path, new Blob([content as BlobPart], { type }), group, found, inner);
+        sortOne(kind, path, new Blob([content as BlobPart], { type }), group, found, inner);
       }
     } catch (cause) {
       Object.assign(budget, spent);
@@ -218,18 +238,36 @@ function uniquePath(path: string, taken: Set<string>) {
   }
 }
 
-export async function openPicked(picked: PickedFile[]) {
+export async function openPicked(picked: PickedFile[], kind: ImportKind = 'client') {
   const added = nothingFound();
   for (const { path, blob } of picked) {
     const clean = cleanPath(path);
     const zips: PickedFile[] = [];
-    if (clean) sortOne(clean, blob, topGroup(clean), added, zips);
+    if (clean) sortOne(kind, clean, blob, topGroup(clean), added, zips);
     await openZips(
+      kind,
       zips.map((zip) => ({ ...zip, depth: 0, budget: { bytes: 0, files: 0 } })),
       added
     );
   }
+  if (kind === 'employees') {
+    for (const file of added.files) {
+      if (file.mimeType === 'application/pdf') file.pages = await countPdfPages(file.blob);
+    }
+  }
   return added;
+}
+
+const pageObject = /\/Type\s*\/Page(?![A-Za-z])/g;
+const pageCount = /\/Type\s*\/Pages\b[^>]*?\/Count\s+(\d+)/g;
+
+// An estimate for the counter only: a PDF whose pages sit in compressed object streams shows
+// neither, and counts as one until the import reads it.
+export async function countPdfPages(blob: Blob) {
+  const text = new TextDecoder('latin1').decode(await blob.arrayBuffer());
+  const objects = text.match(pageObject)?.length ?? 0;
+  const declared = Math.max(0, ...[...text.matchAll(pageCount)].map((match) => Number(match[1])));
+  return Math.max(1, objects, declared);
 }
 
 export function mergeSelection(current: Selection, added: Selection): Selection {
@@ -250,8 +288,11 @@ export function mergeSelection(current: Selection, added: Selection): Selection 
   };
 }
 
-export const addToSelection = async (current: Selection, picked: PickedFile[]) =>
-  mergeSelection(current, await openPicked(picked));
+export const addToSelection = async (
+  current: Selection,
+  picked: PickedFile[],
+  kind: ImportKind = 'client'
+) => mergeSelection(current, await openPicked(picked, kind));
 
 export const removeGroup = (selection: Selection, group: string): Selection => ({
   ...selection,
@@ -264,13 +305,22 @@ export const removeFiles = (selection: Selection, keys: string[]): Selection => 
   files: selection.files.filter((file) => !keys.includes(file.key)),
 });
 
-export function selectionTotals(selection: Selection) {
-  const bytes = selection.files.reduce((total, file) => total + file.size, 0);
+export function selectionTotals(
+  selection: Selection,
+  kind: ImportKind = 'client',
+  // Photographs and pages added from elsewhere, as the documentation's found sheets.
+  extra: { count: number; pages: number; bytes: number } = { count: 0, pages: 0, bytes: 0 }
+) {
+  const bytes = selection.files.reduce((total, file) => total + file.size, extra.bytes);
+  const pages = selection.files.reduce((total, file) => total + file.pages, extra.pages);
+  const count = selection.files.length + extra.count;
+  const limits = importLimits[kind];
   return {
-    count: selection.files.length,
+    count,
     bytes,
-    overFiles: selection.files.length > importLimits.client.files,
-    overBytes: bytes > importLimits.client.totalBytes,
+    pages,
+    overFiles: kind === 'employees' ? pages > limits.scannedPages : count > limits.files,
+    overBytes: bytes > limits.totalBytes,
   };
 }
 
