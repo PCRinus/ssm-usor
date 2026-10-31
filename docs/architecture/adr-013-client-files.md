@@ -34,7 +34,7 @@ No versions. A file is replaced by uploading the new one and deleting the old on
 
 ### What can be uploaded
 
-PDF, JPEG and PNG images, Word (`.docx`, `.doc`) and Excel (`.xlsx`, `.xls`), up to 20 MiB each, which is the limit Storage already applies. The type is checked by the API against the content's first bytes and by the bucket against the declared type. Executables, archives, HTML and SVG are refused: the last two run script when opened from the app's own origin. HEIC, which phones produce, is left out until someone asks: browsers do not show it.
+PDF, JPEG and PNG images, Word (`.docx`, `.doc`) and Excel (`.xlsx`, `.xls`), up to 20 MiB each, which is the limit Storage already applies. The type is checked by the API against the content's first bytes and by the bucket against the declared type. Executables, archives, HTML and SVG are refused: the last two run script when opened from the app's own origin. HEIC, which phones produce, is left out until someone asks: browsers do not show it. (Amended 2026-10-31 by [ADR 032](adr-032-employees-imported-from-training-sheets.md): up to 25 MiB each, the limit of an employee import's files, so a scanned PDF of a client's training sheets is kept whole; the table and the bucket take the same.)
 
 Several files can be sent at once, by dropping them on the list or by picking them; each is its own request, with its own progress and its own refusal.
 

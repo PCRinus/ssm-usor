@@ -52,7 +52,7 @@ The model reads pages; code groups them. A page goes to a person by the CNP; wit
 
 ### What an employee import can hold
 
-An employee import holds at most 500 photographs or PDF pages, 25 MB a file and 1 GB in all; a client import keeps the caps of ADR 030. A typical import is 50 to 60 people. JPEG and PNG photographs are made smaller in the browser before the upload, to about 2,000 pixels, which every browser can do; HEIC goes up as it is, since Chrome cannot decode it, and is converted by the extractor. A larger client is several imports, each person's photographs best kept in one; a later import completes the employees an earlier one created, by the rule for existing employees below.
+An employee import holds at most 500 photographs or PDF pages, 25 MiB a file and 1 GiB in all; a client import keeps the caps of ADR 030. A typical import is 50 to 60 people. JPEG and PNG photographs are made smaller in the browser before the upload, to about 2,000 pixels, which every browser can do; HEIC goes up as it is, since Chrome cannot decode it, and is converted by the extractor. A larger client is several imports, each person's photographs best kept in one; a later import completes the employees an earlier one created, by the rule for existing employees below.
 
 ### The review: people are the unit
 
@@ -89,9 +89,9 @@ Confirming runs `apply_employee_import`, one transaction like `apply_client_impo
 
 **Signatures.** A paper training asks nobody to sign: the signature requests already return early for a training whose source is paper (`apps/api/src/modules/signing/requests.ts`). What is new is that a paper row says so. In the app's training rows and in the portal it reads "Transcris de pe fișa pe hârtie · Semnat pe hârtie", where today the app shows a badge _De pe fișa de hârtie_ and no signature line, and the portal nothing; the signed sheet already prints _semnat pe hârtie_ in a paper row's note.
 
-**"Pe hârtie", everywhere.** The app says _fișa pe hârtie_, never _fișa de hârtie_ (Mircea, 2026-10-31): the badge becomes _De pe fișa pe hârtie_, the training's source _Preluată de pe fișa pe hârtie_, and the training dialog's hint and the help follow.
+**"Pe hârtie", everywhere.** The app says _fișa pe hârtie_, never _fișa de hârtie_ (Mircea, 2026-10-31): the badge becomes _Transcris de pe fișa pe hârtie_, the training's source _Preluată de pe fișa pe hârtie_, and the training dialog's hint and the help follow.
 
-**Files.** Each photograph's converted copy, upright and about half a megabyte, becomes a client file of the employee it belongs to, in a folder per import, _Fișe importate pe <data>_, on the employee's _Date_ tab, the way ADR 030's import folder groups a client's files. The original goes with the import: removed 14 days after an import is abandoned or failed, and 30 days after it is confirmed, once its proposal is dropped and its files copied, as the clean-up does today (`apps/api/src/modules/imports/cleanup.ts`).
+**Files.** Each photograph's converted copy, upright and about half a megabyte, becomes a client file of the employee it belongs to, in a folder per import, _Fișe importate pe <data>_, on the employee's _Date_ tab, the way ADR 030's import folder groups a client's files. The original goes with the import: removed 14 days after an import is abandoned or failed, and 30 days after it is confirmed, once its proposal is dropped and its files copied, as the clean-up does today (`apps/api/src/modules/imports/cleanup.ts`). A scanned PDF holding several people's sheets gives each employee only their own pages, as the JPEGs the import read them from, _<name> — pagina N.jpg_, in their folder; the PDF itself stays once among the client's files, in the import's folder in _Alte documente_, unless it came from the client's documentation pack, where it already is. A PDF holding one person's sheets follows the same rule. Client files take up to 25 MiB, as an employee import's files do.
 
 **The signing agreement.** Imported employees are existing employees, so they sign the act adițional of ADR 023 before they sign electronically; the import never marks it `in_contract`, which is for a new hire whose contract holds the clause. Its paper version still needs an email or phone to be downloaded, as today (`employee_has_no_address`): the contacts a sheet lacks are collected after the import, the specialist calling or writing to the employer and filling them in (Mircea, 2026-10-31).
 
@@ -107,6 +107,14 @@ Confirming invites nobody: the portal invitation stays a member's explicit act. 
 
 The invited employee meets in the portal what ADR 022 and ADR 023 give any employee: the privacy notice first, then the act adițional to sign, then the trainings to come, which they sign there. Their imported paper rows show as transcribed and signed on paper, with nothing for them to sign.
 
+### Where the build departs from the canvas
+
+Three differences in behaviour were accepted when the screens were built (Mircea, 2026-10-31):
+
+- **Adaugă un post nou** creates the position at once, through the app's position dialog, and assigns it; it is not held in the proposal until confirming.
+- An import whose people are read and ready takes no more photographs. Sheets that turn up later go in a new import, which completes the same employees by the rule for existing employees.
+- A near match between a contract title and a position keeps the person _De verificat_ until the member confirms the proposed position.
+
 ### Usage
 
 The reading is recorded per photograph or page from the first import, with `record_import_usage` against the file, as the client import's scans are. Credits are #640.
@@ -115,10 +123,10 @@ The reading is recorded per photograph or page from the first import, with `reco
 
 - **ADR 030**: its employee import section and steps 9 and 10 of its order of work are replaced by this ADR; the caps of its defaults stay the client import's; the sheet photographs a client import sorts as `training_sheet` are offered to an employee import.
 - **ADR 024**: a hiring test awaits only after a hiring training record held in the app; after a paper hiring record without a pass, the test state is a fifth value, _Neverificat pe fișă_, in the lists and their filter but never on the dashboard or in the portal, and the employee's page says why; a verifier's signature on a paper hiring block is a paper result; and a paper annual result may be recorded without an earlier pass.
-- **ADR 021**: training rows from paper show their signature line, _Transcris de pe fișa pe hârtie · Semnat pe hârtie_, in the app and the portal, and their badge reads _De pe fișa pe hârtie_; the extraction its "History kept on paper" section left for later is this import.
+- **ADR 021**: training rows from paper show their signature line, _Transcris de pe fișa pe hârtie · Semnat pe hârtie_, in the app and the portal, and their badge reads _Transcris de pe fișa pe hârtie_; the extraction its "History kept on paper" section left for later is this import.
 - **ADR 023**: nothing changes. Existing employees keep the act adițional, and its paper version still needs an email or phone (#712).
 - **ADR 022**: the bulk invitation it left out is built for the people of an employee import: the same invitation, sent to many in one act, with each address typed in place saved to the employee.
-- **ADR 013**: an employee's files can come from an import, grouped in a folder per import on the employee's page, as the client's are in "Alte documente".
+- **ADR 013**: an employee's files can come from an import, grouped in a folder per import on the employee's page, as the client's are in "Alte documente"; a client file takes up to 25 MiB instead of 20 MiB, one limit with an employee import's files.
 
 ## What is left out
 
@@ -128,6 +136,7 @@ The reading is recorded per photograph or page from the first import, with `reco
 - Credits and their allowances (#640).
 - The act adițional on paper for an employee without email or phone (#712): its download keeps requiring one, and the contacts are collected after the import.
 - Inviting at once employees who did not come from an import.
+- A mark on the trainings, test results and employee data an import read, telling what a model read from what a member typed (#715): today both read _Transcris de pe fișa pe hârtie_.
 
 ## Consequences
 
@@ -141,17 +150,18 @@ The reading is recorded per photograph or page from the first import, with `reco
 
 ## Order of work
 
-Each step is a pull request in one stack, on this ADR.
+Each step is a pull request in one stack, on this ADR, in the order below. As first planned, the app came sixth, before the after-import displays, and the sheet files, decided on 2026-10-31 while the stack was being built, were not a step; they sit before the app, which shows them.
 
 1. This ADR, the notes in ADR 024 and ADR 030, and the glossary in `CONTEXT.md`.
 2. The schema and the test rule: the caps per kind in the `limit_import_files` trigger, the `imports` bucket's size limit, `importLimits` in `packages/contracts` and `maxScannedPages` in the imports pipeline; `employee_test_due` awaiting a hiring test only after a record held in the app and returning the new `unverified` value of the `test_state` enum after a paper hiring record without a pass, with `testStates` and `testStateFilters` in `packages/contracts` and the dashboard's count leaving it out; the paper annual result allowed in `apps/api/src/modules/tests`. pgTAP and API tests.
 3. `packages/import`: the sheet page's prompt and schema, the wire form, grouping pages into people with the near-name rule, the checks (CNP, birth date, blood group and Rh, the two plausibility checks), matching contract titles to positions, the sheet's workplace text to the client's workplaces and people to existing employees, and grouping rows into trainings held only when domain, phase, date, trainer, duration and material all match. Tested on invented sheets.
 4. The confirm function `apply_employee_import` in `supabase/migrations`: employees created or completed with their position and workplace, trainings held by the grouping rule and records with source paper and the admission, paper test results, the employees' files in their import folders. pgTAP.
 5. The API, `apps/api/src/modules/imports`: creating an employee import from a client, the client's found sheet photographs no employee import has taken and adding them to an import, the per-page reading on the queue, the grouping and checks, the review with each person's state and the member's changes, one workplace answer for everyone with the same text, confirm with the signed sheets synced (`apps/api/src/modules/signed-sheets`), the usage per page. On steps 2–4.
-6. The app, `apps/app/src/features/imports` and `employees`: the _Angajați_ tab's entry with its three ways, the found sheets shown only while some are untaken, and the open import; the upload with the found sheets offered, the browser downscale and thumbnails; the processing page, the people hub, the person page with the photo column, the position choice through the job position dialog, the workplace question, confirming (canvas boards FoundSheetsB, FoundSheetsC and FoundSheetsCPhone for the entry and the upload). On step 5.
-7. After the import: the paper rows' line and the badge renamed _De pe fișa pe hârtie_, with the source label and the dialog's hint, in `apps/app/src/features/trainings` and `apps/portal/src/features/training`; the test state _Neverificat pe fișă_, its label in the lists and its option in the test-state filter, and the sentence on the employee's page, in `apps/app/src/features/knowledge-tests`; the portal treating the new state as nothing awaiting; the employee's import folder in `apps/app/src/features/client-files`. On step 2.
-8. The help: the import's article gains the employee import, with its three ways to start; `instruire-si-teste` gains the new test state and says _fișa pe hârtie_, its heading "Instruirile de pe fișa de hârtie" renamed with the help topics regenerated; `portal-si-act-aditional` changes.
-9. The bulk invitation: in `apps/api/src/modules/participants`, a route that invites several employees of a client in one request, saving each typed address to the employee as `apps/api/src/modules/employees` does and creating each invitation through `create_participant_invitation` with its send, and answering per person; in `apps/app/src/features/participants`, the dialog with the address field per row and the count by SMS, opened after confirming in `apps/app/src/features/imports` and from the after-import notice on the _Angajați_ tab in `apps/app/src/features/employees` (canvas board EmpInvite); `portal-si-act-aditional` gains the invitation at once, with the help topics regenerated if it gets a heading of its own. This pull request completes the feature and carries the `## Actualizări` block. On steps 6 and 8.
+6. After the import: the paper rows' line and the badge renamed _Transcris de pe fișa pe hârtie_, with the source label and the dialog's hint, in `apps/app/src/features/trainings` and `apps/portal/src/features/training`; the test state _Neverificat pe fișă_, its label in the lists and its option in the test-state filter, and the sentence on the employee's page, in `apps/app/src/features/knowledge-tests`; the portal treating the new state as nothing awaiting; the employee's import folder in `apps/app/src/features/client-files`. On step 2.
+7. The sheet files: a scanned PDF of several people split so that each employee gets only the images of their own pages, the PDF kept once among the client's files, and client files raised to 25 MiB.
+8. The app, `apps/app/src/features/imports` and `employees`: the _Angajați_ tab's entry with its three ways, the found sheets shown only while some are untaken, and the open import; the upload with the found sheets offered, the browser downscale and thumbnails; the processing page, the people hub, the person page with the photo column, the position choice through the job position dialog, the workplace question, confirming (canvas boards FoundSheetsB, FoundSheetsC and FoundSheetsCPhone for the entry and the upload). On step 5.
+9. The help: the import's article gains the employee import, with its three ways to start; `instruire-si-teste` gains the new test state and says _fișa pe hârtie_, its heading "Instruirile de pe fișa de hârtie" renamed with the help topics regenerated; `portal-si-act-aditional` changes.
+10. The bulk invitation, after the help: in `apps/api/src/modules/participants`, a route that invites several employees of a client in one request, saving each typed address to the employee as `apps/api/src/modules/employees` does and creating each invitation through `create_participant_invitation` with its send, and answering per person; in `apps/app/src/features/participants`, the dialog with the address field per row and the count by SMS, opened after confirming in `apps/app/src/features/imports` and from the after-import notice on the _Angajați_ tab in `apps/app/src/features/employees` (canvas board EmpInvite); `portal-si-act-aditional` gains the invitation at once, with the help topics regenerated if it gets a heading of its own. This pull request completes the feature and carries the `## Actualizări` block. On steps 8 and 9.
 
 ## Open
 
