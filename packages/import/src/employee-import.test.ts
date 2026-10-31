@@ -234,7 +234,7 @@ describe('toEmployeeProposal', () => {
     expect(rusu.fields.rhFactor.options[0]!.value).toBe('-');
   });
 
-  it('writes a post, a workplace and a job title in sentence case, however the sheet capitalizes', () => {
+  it('writes a post and a workplace in sentence case, a job title from a capital, an acronym kept', () => {
     const proposal = toEmployeeProposal({
       pages: pagesOf(
         page({
@@ -247,6 +247,7 @@ describe('toEmployeeProposal', () => {
           },
           admission: { admittedOn: '2026-06-05', admittedByJobTitle: 'conducător loc muncă' },
           trainings: [
+            row({ phase: 'introductory_general', heldOn: '2026-06-05', trainerJobTitle: 'SEPP' }),
             row({ phase: 'workplace', heldOn: '2026-06-05', trainerJobTitle: 'șef echipă' }),
           ],
         })
@@ -256,12 +257,13 @@ describe('toEmployeeProposal', () => {
       today,
     });
     const [person] = proposal.people;
-    const [workplace] = proposal.pages[0]!.rows;
+    const [general, workplace] = proposal.pages[0]!.rows;
 
     expect(person!.fields.jobTitle.options[0]!.value).toBe('Sudor');
     expect(person!.fields.workplace.options[0]!.value).toBe('Atelier, beneficiari');
     expect(person!.fields.qualification.options[0]!.value).toBe('Lăcătuș');
     expect(proposal.jobTitles.map((group) => group.title)).toEqual(['Sudor']);
+    expect(general!.trainerJobTitle).toBe('SEPP');
     expect(workplace).toMatchObject({
       trainerJobTitle: 'Șef echipă',
       admission: { admittedByJobTitle: 'Conducător loc muncă' },
