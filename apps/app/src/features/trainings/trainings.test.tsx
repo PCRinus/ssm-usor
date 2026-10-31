@@ -151,6 +151,7 @@ const workplaceRecord = {
   }),
   signed: false,
   hasSignatures: false,
+  printed: false,
 };
 
 const periodicRecord = {
@@ -160,6 +161,7 @@ const periodicRecord = {
   training: training(),
   signed: false,
   hasSignatures: false,
+  printed: false,
 };
 
 const detailOf = (attendees: { id: string; lastName: string; firstName: string }[]) => ({
@@ -731,6 +733,11 @@ describe("a client's trainings held", () => {
       { signed: false, hasSignatures: true },
       false,
       'Instruirea are semnături, chiar anulate sau pe hârtie, care rămân în evidență, așa că nu se mai poate șterge.',
+    ],
+    [
+      { source: 'paper', signed: false, hasSignatures: true, printed: true },
+      true,
+      'Instruirea este trecută pe o fișă individuală semnată electronic, care nu se mai schimbă, așa că nu se mai poate modifica sau șterge.',
     ],
   ])('locks a training by its signatures, %o', async (signing, editLocked, lock) => {
     mockApi({

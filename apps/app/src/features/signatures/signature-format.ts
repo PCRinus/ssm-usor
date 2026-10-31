@@ -11,6 +11,7 @@ import {
   type TrainingDomain,
   type TrainingPhase,
   trainingPhaseLabels,
+  type TrainingSource,
 } from '@ssm-usor/contracts';
 
 import type { SignSessionResponseFailedItemReason } from '@/api/generated/api';
@@ -130,9 +131,19 @@ const signingMessages: Partial<Record<string, string>> = {
     'Clientul este arhivat; semnăturile lui nu se mai schimbă.',
 };
 
-// Null for a refusal the caller words itself.
-export function signingMessage(cause: unknown): string | null {
+export const printedTrainingMessage =
+  'Instruirea este trecută pe o fișă individuală semnată electronic, care nu se mai schimbă, așa că nu se mai poate modifica sau șterge.';
+
+// Null for a refusal the caller words itself. A training from paper has no electronic signatures
+// to cancel: it is refused as signed because a certified sheet prints it.
+export function signingMessage(
+  cause: unknown,
+  training?: { source: TrainingSource } | null
+): string | null {
   const reason = reasonOf(cause);
+  if (reason === signatureErrorReasons.recordSigned && training?.source === 'paper') {
+    return printedTrainingMessage;
+  }
   return (reason && signingMessages[reason]) || null;
 }
 

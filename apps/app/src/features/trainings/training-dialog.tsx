@@ -493,14 +493,14 @@ function TrainingForm({
                 ? 'Un participant nu mai este angajat al clientului. Reîncarcă lista și alege din nou.'
                 : field === 'heldOn'
                   ? 'O instruire se înregistrează după ce a avut loc.'
-                  : (signingMessage(cause) ?? message),
+                  : (signingMessage(cause, training) ?? message),
           });
         }
         return;
       }
       form.setError('root.server', {
         message:
-          signingMessage(cause) ??
+          signingMessage(cause, training) ??
           (status === 409
             ? 'Clientul este arhivat; instruirile lui nu mai pot fi modificate.'
             : status === 404
