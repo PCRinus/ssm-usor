@@ -613,6 +613,39 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
     });
   });
 
+  it('takes a fire-safety hiring result after an annual pass, as a sheet transcribes them', async () => {
+    mockUpstream({
+      employees: () =>
+        Response.json(
+          standing({
+            psi_state: 'passed',
+            psi_last_passed_on: '2025-03-04',
+            psi_hiring_trained_on: '2019-03-05',
+          })
+        ),
+      results: (init, url) =>
+        init?.method === 'POST'
+          ? Response.json({ ...resultRow, domain: 'psi' }, { status: 201 })
+          : url.searchParams.get('test') === 'eq.hiring'
+            ? Response.json([])
+            : undefined,
+    });
+    const response = await request(`${testsPath}/results`, 'POST', {
+      ...paper,
+      domain: 'psi',
+      takenOn: '2019-03-05',
+    });
+    expect(response.status).toBe(201);
+    const lookup = new URL(String(calls('/rest/v1/test_results')[0]![0])).searchParams;
+    expect(lookup.get('employee_id')).toBe(`eq.${employeeId}`);
+    expect(lookup.get('domain')).toBe('eq.psi');
+    expect(sent('/rest/v1/test_results', 'POST')).toMatchObject({
+      domain: 'psi',
+      test: 'hiring',
+      taken_on: '2019-03-05',
+    });
+  });
+
   it('refuses a day in the future and an annual occupational safety test', async () => {
     mockUpstream();
     expect(
