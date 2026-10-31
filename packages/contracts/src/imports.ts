@@ -105,7 +105,18 @@ export const importErrorReasons = {
   notSetAside: 'import_file_not_set_aside',
   tooMuchText: 'import_too_much_text',
   tooManyScans: 'import_too_many_scans',
+  wrongKind: 'import_wrong_kind',
+  photosOnly: 'import_photos_only',
+  noFoundSheets: 'import_no_found_sheets',
 } as const;
+
+export const sheetFileTypes = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/heic',
+  'image/heif',
+] as const satisfies readonly ImportFileType[];
 
 // What macOS, Windows and Word leave beside the documents. A Word lock file (~$name.docx) keeps
 // the document's extension but holds no document, so the extension alone does not keep it out.
@@ -136,9 +147,23 @@ const uploadPath = z
     message: 'A file name has at most 255 characters.',
   });
 
-export const createImportRequestSchema = z.object({
-  clientId: z.uuid().optional(),
-});
+export const createImportRequestSchema = z
+  .object({
+    clientId: z.uuid().optional(),
+    // A client import when left out. An employee import is for an existing client.
+    kind: z.enum(importKinds).optional(),
+    // An employee import: start it with every sheet photograph the client's documentation pack
+    // held that no employee import has taken.
+    addFoundSheets: z.boolean().optional(),
+  })
+  .refine((body) => body.kind !== 'employees' || body.clientId !== undefined, {
+    message: 'An employee import is for an existing client.',
+    path: ['clientId'],
+  })
+  .refine((body) => !body.addFoundSheets || body.kind === 'employees', {
+    message: 'Only an employee import takes the sheets found in the documentation.',
+    path: ['addFoundSheets'],
+  });
 
 export type CreateImportRequest = z.infer<typeof createImportRequestSchema>;
 
@@ -179,6 +204,20 @@ export type RegisterImportFilesResponse = z.infer<typeof registerImportFilesResp
 
 const person = z.object({ id: z.uuid(), fullName: z.string().nullable() });
 
+/** De verificat, Verificat, Lăsat deoparte: only a checked person is written. */
+export const employeeImportPersonStates = ['to_check', 'checked', 'set_aside'] as const;
+
+export type EmployeeImportPersonState = (typeof employeeImportPersonStates)[number];
+
+export const employeeImportPeopleSchema = z.object({
+  total: z.int().min(0),
+  toCheck: z.int().min(0),
+  checked: z.int().min(0),
+  setAside: z.int().min(0),
+});
+
+export type EmployeeImportPeople = z.infer<typeof employeeImportPeopleSchema>;
+
 export const importSummarySchema = z.object({
   id: z.uuid(),
   kind: z.enum(importKinds),
@@ -198,6 +237,11 @@ export const importSummarySchema = z.object({
   readyAt: z.iso.datetime({ offset: true }).nullable(),
   failedAt: z.iso.datetime({ offset: true }).nullable(),
   confirmedAt: z.iso.datetime({ offset: true }).nullable(),
+  // While uploading or ready for review: when the import fails if nobody changes it, 14 days
+  // after its last change. Null at the other steps.
+  expiresAt: z.iso.datetime({ offset: true }).nullable(),
+  // An employee import ready for review: its people by state. Null otherwise.
+  people: employeeImportPeopleSchema.nullable(),
 });
 
 export type ImportSummary = z.infer<typeof importSummarySchema>;
@@ -205,6 +249,9 @@ export type ImportSummary = z.infer<typeof importSummarySchema>;
 export const listImportsQuerySchema = z.object({
   clientId: z.uuid().optional().meta({
     description: 'Only the imports into this client; without it, every open import.',
+  }),
+  kind: z.enum(importKinds).optional().meta({
+    description: 'The imports of this kind; client imports when left out.',
   }),
 });
 
@@ -335,11 +382,6 @@ export const employeeImportFieldNames = [
 
 export type EmployeeImportFieldName = (typeof employeeImportFieldNames)[number];
 
-/** De verificat, Verificat, Lăsat deoparte: only a checked person is written. */
-export const employeeImportPersonStates = ['to_check', 'checked', 'set_aside'] as const;
-
-export type EmployeeImportPersonState = (typeof employeeImportPersonStates)[number];
-
 const proposalId = z.string().min(1).max(80);
 
 /**
@@ -444,6 +486,16 @@ export const importUsageSchema = modelUsageSchema
 
 export type ImportUsage = z.infer<typeof importUsageSchema>;
 
+/**
+ * An employee import's review besides its proposal (`@ssm-usor/import`'s
+ * `EmployeeImportProposal`, which the API adds): the member's changes and each person's state.
+ */
+export const employeeReviewSchema = z.object({
+  changes: employeeImportChangesSchema.nullable(),
+  // By the proposal's person ids: `to_check` unless the member checked or set them aside.
+  states: z.record(z.string(), z.enum(employeeImportPersonStates)),
+});
+
 export const importDetailSchema = importSummarySchema.extend({
   version: z.int().min(0),
   files: z.array(importFileSchema),
@@ -457,6 +509,9 @@ export const importDetailSchema = importSummarySchema.extend({
   proposalDroppedAt: z.iso.datetime({ offset: true }).nullable(),
   // A debugging aid, served outside production and to platform admins only.
   usage: importUsageSchema.optional(),
+  // An employee import from `ready` on; null otherwise. `changes`, `registeredCompany` and
+  // `otherCompanies` are a client import's.
+  employees: employeeReviewSchema.nullable(),
 });
 
 export type ImportDetail = z.infer<typeof importDetailSchema>;
@@ -470,6 +525,15 @@ export type SaveImportChangesRequest = z.infer<typeof saveImportChangesRequestSc
 
 export const saveImportChangesResponseSchema = z.object({ version: z.int().min(0) });
 
+export const saveEmployeeImportChangesRequestSchema = z.object({
+  version: z.int().min(0),
+  changes: employeeImportChangesSchema,
+});
+
+export type SaveEmployeeImportChangesRequest = z.infer<
+  typeof saveEmployeeImportChangesRequestSchema
+>;
+
 export const confirmImportRequestSchema = z.object({ version: z.int().min(0) });
 
 export type ConfirmImportRequest = z.infer<typeof confirmImportRequestSchema>;
@@ -478,6 +542,8 @@ export const confirmImportResponseSchema = z.object({
   clientId: z.uuid(),
   // The import folder's files are copied into the client's files after the answer.
   fileCount: z.int().min(0),
+  // An employee import: the employees it created or completed.
+  employeeIds: z.array(z.uuid()).optional(),
 });
 
 export type ConfirmImportResponse = z.infer<typeof confirmImportResponseSchema>;
@@ -488,6 +554,40 @@ export const splitImportRequestSchema = z.object({
 });
 
 export type SplitImportRequest = z.infer<typeof splitImportRequestSchema>;
+
+export const foundSheetSchema = z.object({
+  // The client import's file, which an employee import takes by this id.
+  id: z.uuid(),
+  // The client file it became in the client's import folder, which shows it.
+  clientFileId: z.uuid(),
+  uploadPath: z.string(),
+  fileName: z.string(),
+  mimeType: z.enum(sheetFileTypes),
+  sizeBytes: z.int().min(1),
+});
+
+export type FoundSheet = z.infer<typeof foundSheetSchema>;
+
+export const foundSheetsResponseSchema = z.object({
+  // By the client import that found them, newest first.
+  items: z.array(
+    z.object({
+      importId: z.uuid(),
+      confirmedAt: z.iso.datetime({ offset: true }),
+      sheets: z.array(foundSheetSchema),
+    })
+  ),
+  total: z.int().min(0),
+});
+
+export type FoundSheetsResponse = z.infer<typeof foundSheetsResponseSchema>;
+
+export const addFoundSheetsRequestSchema = z.object({
+  // The found sheets to add, as the list names them; every one offered when left out.
+  fileIds: z.array(z.uuid()).min(1).max(importLimits.employees.files).optional(),
+});
+
+export type AddFoundSheetsRequest = z.infer<typeof addFoundSheetsRequestSchema>;
 
 export const importSourceQuerySchema = z.object({
   // A source's `file`, exactly as the proposal names it.

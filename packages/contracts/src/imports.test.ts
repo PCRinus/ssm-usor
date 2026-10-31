@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { employeeImportChangesSchema } from './imports';
+import { createImportRequestSchema, employeeImportChangesSchema } from './imports';
 
 describe('employeeImportChangesSchema', () => {
   it('defaults every part to nothing changed', () => {
@@ -44,6 +44,27 @@ describe('employeeImportChangesSchema', () => {
 
     for (const changes of refused) {
       expect(employeeImportChangesSchema.safeParse(changes).success).toBe(false);
+    }
+  });
+});
+
+describe('createImportRequestSchema', () => {
+  const clientId = '00000000-0000-4000-8000-000000000101';
+
+  it('takes a client import with or without its client, and an employee import with its own', () => {
+    for (const body of [
+      {},
+      { clientId },
+      { clientId, kind: 'employees' },
+      { clientId, kind: 'employees', addFoundSheets: true },
+    ]) {
+      expect(createImportRequestSchema.safeParse(body).success).toBe(true);
+    }
+  });
+
+  it('refuses an employee import without a client, and found sheets for a client import', () => {
+    for (const body of [{ kind: 'employees' }, { clientId, addFoundSheets: true }]) {
+      expect(createImportRequestSchema.safeParse(body).success).toBe(false);
     }
   });
 });
