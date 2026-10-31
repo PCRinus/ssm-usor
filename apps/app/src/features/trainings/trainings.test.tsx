@@ -339,7 +339,9 @@ describe("an employee's training tabs", () => {
     expect(toggle.textContent).toBe('mai puțin');
 
     const workplace = within(items[1]!);
-    expect(workplace.getByTestId('training-record-paper').textContent).toBe('De pe fișa pe hârtie');
+    expect(workplace.getByTestId('training-record-paper').textContent).toBe(
+      'Transcris de pe fișa pe hârtie'
+    );
     expect(workplace.getByTestId('training-record-paper-signed').textContent).toBe(
       'Semnat pe hârtie: instruit, instructor, verificator, admite la lucru'
     );
@@ -570,8 +572,8 @@ describe("a client's trainings held", () => {
     });
     mountApp(authFixture(makeSession()).client, trainingsPath);
     const rows = await screen.findAllByTestId('trainings-row');
-    expect(within(rows[0]!).getByText('De pe fișa pe hârtie')).toBeTruthy();
-    expect(within(rows[1]!).queryByText('De pe fișa pe hârtie')).toBeNull();
+    expect(within(rows[0]!).getByText('Transcris de pe fișa pe hârtie')).toBeTruthy();
+    expect(within(rows[1]!).queryByText('Transcris de pe fișa pe hârtie')).toBeNull();
   });
 
   it("is a tab of the client's page, filtered by domain and phase in the URL", async () => {

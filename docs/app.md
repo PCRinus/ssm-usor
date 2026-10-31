@@ -560,8 +560,8 @@ their tab bars read.
   field, then the records from `GET …/employees/{employeeId}/training-records?domain=`, newest
   first: phase, day, duration ("120 min (2 h)"), the occupation, the material clamped to two
   lines behind "mai mult", who trained and verified with their functions, the supplementary
-  reason, "Admis la lucru de … la …" and, for a record taken from paper, the badge "De pe fișa
-  pe hârtie" and, in place of the signature slots, "Semnat pe hârtie: instruit, instructor",
+  reason, "Admis la lucru de … la …" and, for a record taken from paper, the badge "Transcris de
+  pe fișa pe hârtie" and, in place of the signature slots, "Semnat pe hârtie: instruit, instructor",
   with "verificator" and "admite la lucru" where the record has them. An empty
   `training-tab-actions` container at the top right is kept for the sheet's download.
   "Înregistrează o instruire" opens the recording dialog with the employee as the only

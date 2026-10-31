@@ -9,7 +9,7 @@ export const trainingSourceLabels: Record<TrainingSource, string> = {
   paper: 'Preluată de pe fișa pe hârtie',
 };
 
-export const paperTrainingBadge = 'De pe fișa pe hârtie';
+export const paperTrainingBadge = 'Transcris de pe fișa pe hârtie';
 
 // The slots `recordSlots` in the API gives a record held in the app.
 export function paperSignedLine(record: { verifier: unknown; admission: unknown }) {
