@@ -77,22 +77,25 @@ afterEach(() => {
 
 describe('the page of an employee import that is not ready', () => {
   it('says the upload did not finish once its time runs out, on a page left open', async () => {
-    mount(
-      employeeDetail({
-        status: 'uploading',
-        employees: null,
-        people: null,
-        startedAt: null,
-        createdAt: new Date(Date.now() - 15 * 60_000 + 3000).toISOString(),
-      })
-    );
-    expect(await heading()).toBe('Se încarcă fotografiile');
-    // The stall is three seconds away on the real clock, and a loaded CI runner takes most of the
-    // default five seconds to render the page before that.
-    await waitFor(async () => expect(await heading()).toBe('Încărcarea nu s-a terminat'), {
-      timeout: 10_000,
-    });
-  }, 15_000);
+    // The clock still moves with real time, so the page loads as usual; only the stall is jumped to.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      mount(
+        employeeDetail({
+          status: 'uploading',
+          employees: null,
+          people: null,
+          startedAt: null,
+          createdAt: new Date(Date.now() - 15 * 60_000 + 60_000).toISOString(),
+        })
+      );
+      expect(await heading()).toBe('Se încarcă fotografiile');
+      await vi.advanceTimersByTimeAsync(60_000);
+      await waitFor(async () => expect(await heading()).toBe('Încărcarea nu s-a terminat'));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 
   it('opens an uploaded photograph large, with how far its reading got', async () => {
     const detail = employeeDetail({ status: 'reading', employees: null, people: null });
