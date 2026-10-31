@@ -29,6 +29,7 @@ import {
 } from './administrator-invite-schema';
 import type { ParticipantMessage } from './participant-actions';
 import { participantFailure } from './participant-errors';
+import { romanianOnlyHint, smsBlockLabels, useSmsOff } from './sms-rules';
 import { useRefreshParticipants } from './use-refresh-participants';
 
 export function InviteAdministratorDialog({
@@ -78,6 +79,7 @@ function InviteAdministratorForm({
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const invite = useInviteClientAdministrator({ request: apiRequest });
   const refresh = useRefreshParticipants(client.id);
+  const smsOff = useSmsOff();
   const form = useForm<AdministratorInviteFormValues>({
     resolver: zodResolver(administratorInviteFormSchema),
     defaultValues: {
@@ -219,25 +221,37 @@ function InviteAdministratorForm({
               <span className="sr-only">(obligatoriu)</span>
             </legend>
             <div className="flex flex-wrap gap-2">
-              {channelOptions.map((option) => (
-                <label
-                  key={option.channel}
-                  data-testid="administrator-channel-option"
-                  className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-muted/50"
-                >
-                  <input
-                    type="radio"
-                    value={option.channel}
-                    disabled={busy}
-                    aria-invalid={Boolean(errors.channel)}
-                    className="size-4 shrink-0 accent-primary"
-                    {...form.register('channel')}
-                  />
-                  {option.label}
-                </label>
-              ))}
+              {channelOptions.map((option) => {
+                const off = option.channel === 'sms' && smsOff;
+                return (
+                  <label
+                    key={option.channel}
+                    data-testid="administrator-channel-option"
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-muted/50 has-disabled:cursor-not-allowed has-disabled:text-muted-foreground"
+                  >
+                    <input
+                      type="radio"
+                      value={option.channel}
+                      disabled={busy || off}
+                      aria-invalid={Boolean(errors.channel)}
+                      className="size-4 shrink-0 accent-primary"
+                      {...form.register('channel')}
+                    />
+                    {off ? smsBlockLabels.trial : option.label}
+                  </label>
+                );
+              })}
             </div>
             <FieldMessage id="administrator-channel-error" error={errors.channel} />
+            {smsOff && (
+              <p
+                data-testid="administrator-sms-trial"
+                className="text-[13px] leading-relaxed text-muted-foreground"
+              >
+                În perioada de probă nu trimitem SMS: invitația și codurile de conectare pleacă pe
+                email. SMS-urile pornesc când alegi un plan.
+              </p>
+            )}
           </fieldset>
           {channel === 'email' && (
             <Field
@@ -263,6 +277,7 @@ function InviteAdministratorForm({
               id="administrator-phone"
               label="Numărul de telefon"
               mark="required"
+              hint={romanianOnlyHint}
               error={errors.phone}
             >
               <Controller
@@ -280,7 +295,9 @@ function InviteAdministratorForm({
                     autoComplete="off"
                     disabled={busy}
                     aria-invalid={Boolean(errors.phone)}
-                    aria-describedby={errors.phone ? 'administrator-phone-error' : undefined}
+                    aria-describedby={
+                      errors.phone ? 'administrator-phone-error' : 'administrator-phone-hint'
+                    }
                   />
                 )}
               />

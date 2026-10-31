@@ -8,6 +8,7 @@ import {
 import { roCount } from '@/features/employees/employee-format';
 
 import { participantReasonMessage } from './participant-errors';
+import type { SmsBlock } from './sms-rules';
 
 /** "0 invitații", "o invitație", "3 invitații", "20 de invitații". */
 export function invitationCount(count: number) {
@@ -55,7 +56,14 @@ export function formerEmployeesSentence(formers: ImportInvitee[]) {
   return `${roCount(formers.length, 'fost angajat', 'foști angajați')} nu apar.`;
 }
 
+export const bulkSmsBlockMessages: Record<SmsBlock, string> = {
+  trial: 'În perioada de probă nu trimitem SMS; scrie un email.',
+  foreign: 'SMS trimitem doar spre numere din România (+40); scrie un email.',
+};
+
 const rowReasons: Record<string, string> = {
+  sms_trial: bulkSmsBlockMessages.trial,
+  sms_foreign_number: bulkSmsBlockMessages.foreign,
   [bulkInvitationSkipReasons.formerEmployee]: 'E fost angajat; nu primește invitație.',
   [bulkInvitationSkipReasons.employeeHasParticipant]: 'Are deja acces la portal.',
   [bulkInvitationSkipReasons.employeeInvited]: 'Are deja o invitație deschisă.',

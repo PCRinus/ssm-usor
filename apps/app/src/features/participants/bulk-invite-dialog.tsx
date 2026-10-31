@@ -31,6 +31,7 @@ import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 
 import {
+  bulkSmsBlockMessages,
   capitalized,
   formerEmployeesSentence,
   invitationCount,
@@ -41,6 +42,7 @@ import {
   sentSummary,
 } from './bulk-invite-format';
 import { participantFailure } from './participant-errors';
+import { romanianOnlyHint, smsBlockOf, useSmsOff } from './sms-rules';
 import { useImportInvitees } from './use-import-invitees';
 
 // Each request is short enough to answer well inside a Worker's time, and the count moves.
@@ -109,6 +111,7 @@ function BulkInviteForm({
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [results, setResults] = useState<Record<string, RowResult>>({});
   const [phase, setPhase] = useState<Phase>({ step: 'editing' });
+  const smsOff = useSmsOff();
 
   const items = rows ?? [];
   const candidates = items.filter((invitee) => invitee.current && !invitee.portal);
@@ -127,6 +130,12 @@ function BulkInviteForm({
     const address = typedInvitationAddress(text);
     if (!address) {
       errors.set(invitee.employeeId, 'Scrie un email sau un număr de telefon valid.');
+      plans.set(invitee.employeeId, { address: text, channel: null });
+      continue;
+    }
+    const smsBlock = address.channel === 'sms' ? smsBlockOf(address.address, smsOff) : null;
+    if (smsBlock) {
+      errors.set(invitee.employeeId, bulkSmsBlockMessages[smsBlock]);
       plans.set(invitee.employeeId, { address: text, channel: null });
       continue;
     }
@@ -308,18 +317,19 @@ function BulkInviteForm({
                     {formers.length > 0 && ` ${formerEmployeesSentence(formers)}`}
                   </span>
                 </p>
-                {bySms.length > 0 && (
-                  <p
-                    data-testid="bulk-invite-sms"
-                    className="grid grid-cols-[1rem_minmax(0,1fr)] gap-2.5"
-                  >
-                    <Smartphone className="mt-0.5 size-4" aria-hidden="true" />
-                    <span>
-                      {capitalized(invitationCount(bySms.length))} pleacă prin SMS. Fiecare SMS
-                      costă, ca și codurile de intrare trimise după aceea; emailul nu costă.
-                    </span>
-                  </p>
-                )}
+                <p
+                  data-testid="bulk-invite-sms"
+                  className="grid grid-cols-[1rem_minmax(0,1fr)] gap-2.5"
+                >
+                  <Smartphone className="mt-0.5 size-4" aria-hidden="true" />
+                  <span>
+                    {smsOff
+                      ? 'În perioada de probă nu trimitem SMS: invitațiile pleacă doar pe email. SMS-urile pornesc când alegi un plan.'
+                      : bySms.length > 0
+                        ? `${capitalized(invitationCount(bySms.length))} pleacă prin SMS. ${romanianOnlyHint}`
+                        : romanianOnlyHint}
+                  </span>
+                </p>
               </div>
             </>
           )}
