@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { missingDocumentDataSchema } from './documents';
+import { creditsShortSchema } from './imports';
 import { membershipSchema } from './organizations';
 import { profileSchema } from './profile';
 import { subscriptionSummarySchema } from './subscriptions';
@@ -127,6 +128,8 @@ export const apiErrorResponseSchema = z.object({
   attemptsLeft: z.int().min(0).optional(),
   // With `code_rate_limited`: how long until another code may be asked for.
   retryAfterSeconds: z.int().min(1).optional(),
+  // With `credits_insufficient`: what an import needs and what is left.
+  credits: creditsShortSchema.optional(),
 });
 
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;

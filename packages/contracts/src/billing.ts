@@ -138,6 +138,10 @@ export interface PlanTerms {
   /** Members in all, extra ones included; null where any number may be bought. */
   maxMembers: number | null;
   monthlySms: number;
+  /** Import credits a month (ADR 030); they do not carry over. */
+  monthlyCredits: number;
+  /** Credits granted once, at the first payment, that never expire (ADR 030). */
+  welcomeCredits: number;
   employeePack: EmployeePackKey;
   /** Null where any number may be bought. */
   maxEmployeePacks: number | null;
@@ -152,6 +156,8 @@ export const billingPlans: Record<PaidPlan, PlanTerms> = {
     includedMembers: 1,
     maxMembers: 2,
     monthlySms: 50,
+    monthlyCredits: 300,
+    welcomeCredits: 2500,
     employeePack: 'employees50',
     // 600 employees: past that, Start with packs costs more than Profesional.
     maxEmployeePacks: 7,
@@ -164,6 +170,8 @@ export const billingPlans: Record<PaidPlan, PlanTerms> = {
     includedMembers: 3,
     maxMembers: null,
     monthlySms: 300,
+    monthlyCredits: 1500,
+    welcomeCredits: 10000,
     employeePack: 'employees500',
     maxEmployeePacks: null,
   },
@@ -360,6 +368,56 @@ export const billingSmsUsageSchema = z.object({
 });
 export type BillingSmsUsage = z.infer<typeof billingSmsUsageSchema>;
 
+/** A trial's credits for the whole trial, without a monthly reset (ADR 030). */
+export const trialCredits = 300;
+
+/** A tester's trial reads Profesional's credits a month, with a hard stop and no gift (ADR 029). */
+export const testerMonthlyCredits = billingPlans.profesional.monthlyCredits;
+
+/** What an import uses (ADR 030): one credit per photograph or page read. */
+export const importCredits = {
+  // Reading a client's documents, whatever their length.
+  clientReading: 25,
+  perPage: 1,
+} as const;
+
+/**
+ * How far below zero a balance may go: the scanned pages one client import reads at most. The
+ * database applies it too.
+ */
+export const maxCreditShortfall = 150;
+
+/**
+ * `unlimited`: nothing limits the credits; `near`: what is left, the gift included, is under a
+ * fifth of the month's; `out`: nothing is left; `negative`: the balance is below zero, and the
+ * shortfall comes off the next month.
+ */
+export const creditsUsageStateSchema = z.enum(['ok', 'near', 'out', 'negative', 'unlimited']);
+export type CreditsUsageState = z.infer<typeof creditsUsageStateSchema>;
+
+export const billingCreditsUsageSchema = z.object({
+  // The month's credits used, net of refunds; what the gift paid for is not in it.
+  used: z.int().min(0),
+  // The allowance plus the credits added by hand; null where nothing limits them.
+  included: z.int().min(0).nullable(),
+  allowance: z.int().min(0).nullable(),
+  granted: z.int().min(0),
+  // Taken off this month because the month before ended below zero.
+  shortfall: z.int().min(0),
+  // `included` less `shortfall` and `used`; below zero by at most 150. Null where nothing limits.
+  left: z.int().nullable(),
+  // The welcome gift's credits left; used once the month's are gone.
+  giftLeft: z.int().min(0),
+  // What the first payment will bring: the chosen plan's gift, during the trial.
+  giftPending: z.int().min(0),
+  // `trial`: one allowance for the whole trial, which does not renew; `month`: renews at the end.
+  period: z.enum(['trial', 'month']),
+  periodStart: timestamp,
+  periodEnd: timestamp,
+  state: creditsUsageStateSchema,
+});
+export type BillingCreditsUsage = z.infer<typeof billingCreditsUsageSchema>;
+
 export const smsCapRequestSchema = z.object({
   factor: z.int().min(smsCapFactor.default).max(smsCapFactor.max),
 });
@@ -400,6 +458,8 @@ export const billingCatalogueSchema = z.object({
       includedMembers: z.int(),
       maxMembers: z.int().nullable(),
       monthlySms: z.int(),
+      monthlyCredits: z.int(),
+      welcomeCredits: z.int(),
       employeePack: billingProductKeySchema,
       maxEmployeePacks: z.int().nullable(),
     })
@@ -449,6 +509,8 @@ export const billingOverviewSchema = z.object({
     members: billingUsageMeterSchema,
     // The subscription's month, from the day it renews (ADR 029).
     smsThisMonth: billingSmsUsageSchema,
+    // Import credits, on the same month (ADR 030); a trial's last the whole trial.
+    creditsThisMonth: billingCreditsUsageSchema,
   }),
   catalogue: billingCatalogueSchema,
   // The owner's alone (ADR 029): null for the other members and for an impersonating admin.

@@ -856,7 +856,8 @@ calls the owner routes: a specialist and an admin impersonating the owner get `4
 `GET /billing` answers every member; its `owner` part (next payment, extra SMS so far, card,
 email for invoices, a change set for the renewal, the fewest packs and members each plan needs,
 the invoices) only the owner in person. `usage.smsThisMonth` counts the signing codes sent by SMS
-in the subscription's month (see SMS below).
+in the subscription's month (see SMS below), and `usage.creditsThisMonth` the import credits (see
+Import credits below). The catalogue's plans carry `monthlyCredits` and `welcomeCredits`.
 
 A choice is `{ plan: start | profesional, interval: month | year, employeePacks, extraMembers }`.
 It cannot go below the packs today's employees need or the extra members today's members need,
@@ -959,6 +960,61 @@ those, and otherwise answers `403` with a message.
 reached). `PUT /billing/sms-cap { factor }`, owner only, sets the cap from 3 to 20 times the
 allowance on a chosen plan (`409 no_subscription` without one, `enterprise_plan` on Enterprise),
 logged as `sms_cap` in `subscription_changes`.
+
+## Import credits
+
+[ADR 030](architecture/adr-030-import-from-documents.md), "Usage is counted in credits". What an
+import's reading uses is counted in credits in the ledger `credit_entries` (`modules/credits`).
+The month's allowance is computed from the plan, never stored: Start 300 and Profesional 1,500 a
+month (`monthlyCredits`), so moving up to Profesional raises the month at once. An ordinary
+trial, a plan chosen during it included, has 300 for its whole length, from the trial's start to
+its end, without a monthly reset; a tester's trial (the tester switch) 1,500 a month on the
+months the SMS follow, with no gift. After the first payment the month is the subscription's, as
+for SMS. Without a subscription, or on Enterprise, nothing limits the credits; they are still
+recorded. The month's balance is the allowance plus the credits added by hand that month, less
+the month's charges net of refunds, less the shortfall of the month before when it ended below
+zero. The **welcome gift** is a balance of its own that never expires, used once the month's
+credits are gone: 2,500 on Start, 10,000 on Profesional (`welcomeCredits`), granted by the first
+paid invoice (`invoice.paid`, the same step that sets `first_paid_at`), and brought up to
+Profesional's, once, when a paid Start moves up (every subscription write once paid). A plan
+chosen during the trial brings it only with that first payment.
+
+- **Starting.** `POST /imports/{importId}/start` (and the import a split starts) charges the
+  import's known part before it moves to `preparing`: 25 for a client import plus one per
+  photograph; for an employee import one per photograph and one per PDF page the browser counted,
+  sent as `pages` with each PDF when the files are registered (a PDF without it counts one).
+  When the month's credits and the gift together do not cover it, the answer is `409` with
+  `reason: credits_insufficient` and `credits: { needed, left, renewsAt }` (`left` the month's and
+  the gift's together, which may be negative; `renewsAt` null in a trial without a plan), and
+  nothing is charged or started. When the messages cannot be queued the charge is taken back.
+- **Scanned pages.** Each scanned page of a client import's PDF is charged one credit as the
+  pipeline reads it, once per page whatever the queue delivers again. It is never refused: the
+  balance may go below zero, at most 150, and the next month starts short by as much.
+- **An employee import's pages.** When its files are prepared, the extractor's page count settles
+  the start: pages the browser did not count are charged if the credits left cover them, else the
+  import fails before any page is read (_Fișierele au mai multe pagini…_) and gets its start back;
+  pages it counted that are not there are given back. An employee import never goes below zero.
+- **Refunds.** An import that fails while running (`preparing` to `checking`), whichever way it
+  fails (the pipeline, the queue's dead letters, the daily clean-up), gets back everything it was
+  charged, the gift's part to the gift, by a trigger on `imports`. One that fails from `ready`, left
+  after its reading, is not refunded, nor is one the member abandons once started.
+
+`GET /billing` answers `usage.creditsThisMonth` to every member: `used` (the month's credits
+used, net of refunds), `included` (allowance plus `granted`; null where nothing limits them),
+`allowance`, `granted`, `shortfall`, `left` (may be negative, by 150 at most; null where nothing
+limits), `giftLeft`, `giftPending` (the gift a plan chosen during the trial will bring with its
+first payment), `period` (`trial`, one allowance that does not renew, or `month`), `periodStart`,
+`periodEnd` and `state`: `ok`, `near` (what is left, the gift included, under a fifth of
+`included`), `out` (nothing left), `negative` (below zero) or `unlimited`. No amounts in euros.
+
+`GET /imports/{importId}` answers `credits`, null before the import started: `used` (net of what
+was given back), `atStart` (the known part, settled for an employee import), `scannedPages` (a
+client import's scanned pages charged) and `refunded`.
+
+The workflow **Adaugă credite** (`pnpm grant-credits --email --credits --reason --actor`) adds
+credits to the current month of the organization whose owner has the email, through
+`grant_credits`, which logs `credits_granted` with the reason and the GitHub account in
+`subscription_changes`; it refuses an organization with no limit.
 
 ## Members
 
@@ -1988,10 +2044,11 @@ batches.
 
 `POST /imports/{importId}/start` lists the import's folder in Storage, drops the rows whose
 object never arrived or is not the size the browser declared (removing that object, since the
-caps counted the declared sizes), marks the others `uploaded`, moves the import to `preparing` and sends one
+caps counted the declared sizes), charges the import's known part in credits, marks the others `uploaded`, moves the import to `preparing` and sends one
 `prepare` message per file. Nothing arrived is `422` (`import_empty`); a started import `409`
-(`import_not_uploading`). When the messages cannot be sent the import goes back to `uploading`
-and the answer is `503`.
+(`import_not_uploading`); credits that do not cover the known part `409`
+(`credits_insufficient`, see Import credits). When the messages cannot be sent the import goes back to `uploading`,
+the charge is taken back, and the answer is `503`.
 
 ### Sheet photographs a client import found
 

@@ -3,6 +3,8 @@ import {
   extractionFailed,
   extractionRefusalOf,
   type ExtractorService,
+  importCredits,
+  type ImportKind,
   importLimits,
   type PdfPageText,
 } from '@ssm-usor/contracts';
@@ -146,6 +148,8 @@ export const importReasons = {
     employees:
       'Fișierele depășesc limitele unui import de angajați: cel mult 500 de fișiere și 1 GiB, fiecare fișier de cel mult 25 MiB.',
   },
+  creditsShort:
+    'Fișierele au mai multe pagini decât s-au numărat la încărcare, iar creditele rămase nu ajung pentru toate. Creditele importului au fost date înapoi.',
   stalled: 'Importul s-a oprit înainte să se termine.',
   left: 'Importul a rămas neterminat 14 zile.',
 } as const;
@@ -185,6 +189,20 @@ const wordTypes = new Set(['application/msword', docxType]);
 
 const isWord = (file: Pick<ImportFileRow, 'mime_type'>) => wordTypes.has(file.mime_type);
 const isImage = (file: Pick<ImportFileRow, 'mime_type'>) => file.mime_type.startsWith('image/');
+/**
+ * What starting an import charges for a file it holds (ADR 030): a photograph is always read, and
+ * an employee import reads every page of a PDF, as many as the browser counted. A client's PDF
+ * is covered by the reading's 25 until its scanned pages are found.
+ */
+export function startCreditsOf(
+  file: Pick<ImportFileRow, 'mime_type' | 'declared_pages'>,
+  kind: ImportKind = 'employees'
+) {
+  if (isImage(file)) return importCredits.perPage;
+  if (kind === 'client' || file.mime_type !== 'application/pdf') return 0;
+  return (file.declared_pages ?? 1) * importCredits.perPage;
+}
+
 const isSheetFile = (file: Pick<ImportFileRow, 'mime_type'>) =>
   isImage(file) || file.mime_type === 'application/pdf';
 
@@ -590,6 +608,13 @@ async function keepSheets(deps: PipelineDeps, row: ImportRow) {
   if (pages > importLimits.employees.scannedPages) {
     throw new ImportFailure(importReasons.tooManyScans.employees);
   }
+  const charged = (await deps.store.listFiles(row.id)).reduce(
+    (total, file) => total + startCreditsOf(file),
+    0
+  );
+  if (!(await deps.store.settleSheetPages(row, pages - charged))) {
+    throw new ImportFailure(importReasons.creditsShort);
+  }
   await transition(deps, row.id, 'sorting', { status: 'reading' }, [
     ...sheets.map((file): ImportMessage => ({ type: 'scan', importId: row.id, fileId: file.id })),
     { type: 'read', importId: row.id, waits: 0 },
@@ -756,6 +781,9 @@ export async function scanPages(
         : await documentPageReader(deps, row, file);
     for (const page of pages) {
       if (read.has(page)) continue;
+      if (row.kind === 'client' && !isImage(file)) {
+        await deps.store.chargeScannedPage(row, file.id, page);
+      }
       const picture = await image(page);
       if (row.kind === 'employees' && !isImage(file)) {
         await keepPageImage(deps, file, page, picture.bytes);

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
 import type { ApiEnv, ImportMessage } from '../../lib/env';
+import { creditsUpstream } from '../credits/upstream.fixture';
 import { syncResultRows, syncTrainingRows } from '../signed-sheets/signed-sheets';
 
 vi.mock('../signed-sheets/signed-sheets', async (importOriginal) => ({
@@ -247,6 +248,8 @@ function mockUpstream(handler: Handler = () => undefined) {
       return Response.json([{ id: positionId, name: 'Vânzător' }]);
     }
     if (emptyClientTables.has(url.pathname)) return Response.json([]);
+    const credits = creditsUpstream(call);
+    if (credits) return credits;
     throw new Error(`Unexpected upstream request: ${method} ${url}`);
   });
 }
@@ -521,6 +524,7 @@ describe('found sheets taken into an employee import', () => {
         mime_type: 'image/jpeg',
         size_bytes: 2001,
         sha256: '1'.repeat(64),
+        declared_pages: null,
         source_file_id: fileId(1),
       },
       expect.objectContaining({
@@ -683,6 +687,126 @@ describe('POST /imports/{importId}/files for an employee import', () => {
       issues: [{ path: 'files.1.mimeType' }],
     });
     expect(callsTo('/rest/v1/import_files', 'POST')).toEqual([]);
+  });
+
+  it("keeps the pages the browser counted in each PDF, which the start's credits count", async () => {
+    mockUpstream(({ url, method, body }) => {
+      if (url.pathname === '/rest/v1/imports') {
+        return Response.json(importRow({ status: 'uploading', proposal: null, changes: null }));
+      }
+      if (url.pathname === '/rest/v1/import_files' && method === 'GET') return Response.json([]);
+      if (url.pathname === '/rest/v1/import_files' && method === 'POST') {
+        return Response.json(
+          (body as { upload_path: string }[]).map((row, index) => ({
+            id: fileId(index + 1),
+            upload_path: row.upload_path,
+            storage_path: storagePath(importId, index + 1, 'pdf'),
+          })),
+          { status: 201 }
+        );
+      }
+    });
+    const sheet = { sizeBytes: 10, sha256: 'a'.repeat(64) };
+    const response = await request(`/imports/${importId}/files`, 'POST', {
+      files: [
+        { uploadPath: 'Fise/toate.pdf', mimeType: 'application/pdf', pages: 14, ...sheet },
+        { uploadPath: 'Fise/1.jpg', mimeType: 'image/jpeg', pages: 3, ...sheet },
+      ],
+    });
+
+    expect(response.status).toBe(201);
+    expect(callsTo('/rest/v1/import_files', 'POST')[0]!.body).toEqual([
+      expect.objectContaining({ upload_path: 'Fise/toate.pdf', declared_pages: 14 }),
+      expect.objectContaining({ upload_path: 'Fise/1.jpg', declared_pages: null }),
+    ]);
+  });
+});
+
+describe('starting an employee import', () => {
+  const files = [
+    fileRow(1, { state: 'uploading' }),
+    fileRow(2, { state: 'uploading' }),
+    fileRow(3, {
+      state: 'uploading',
+      mime_type: 'application/pdf',
+      upload_path: 'Fise/toate.pdf',
+      storage_path: storagePath(importId, 3, 'pdf'),
+      declared_pages: 12,
+    }),
+    fileRow(4, {
+      state: 'uploading',
+      mime_type: 'application/pdf',
+      upload_path: 'Fise/necunoscut.pdf',
+      storage_path: storagePath(importId, 4, 'pdf'),
+      declared_pages: null,
+    }),
+  ];
+
+  const trial = {
+    organization_id: organizationId,
+    plan: 'profesional',
+    status: 'trialing',
+    created_at: new Date(Date.now() - 10 * 86_400_000).toISOString(),
+    trial_ends_at: new Date(Date.now() + 20 * 86_400_000).toISOString(),
+    stripe_subscription_id: null,
+    stripe_customer_id: null,
+    tester_allowances: false,
+    first_paid_at: null,
+    billing_anchor_at: null,
+    current_period_end: null,
+    sms_cap_factor: 3,
+  };
+
+  function starting(charge: Record<string, unknown>) {
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/subscriptions') return Response.json([trial]);
+      if (url.pathname === '/rest/v1/rpc/charge_credits') return Response.json(charge);
+      if (url.pathname === '/rest/v1/imports' && method === 'PATCH') {
+        return Response.json([{ id: importId }]);
+      }
+      if (url.pathname === '/rest/v1/imports') {
+        return Response.json(importRow({ status: 'uploading', proposal: null, changes: null }));
+      }
+      if (url.pathname === '/rest/v1/import_files' && method === 'GET') return Response.json(files);
+      if (url.pathname === '/rest/v1/import_files') return new Response(null, { status: 204 });
+      if (url.pathname === '/storage/v1/object/list/imports') {
+        return Response.json(
+          files.map((file) => ({
+            name: (file.storage_path as string).split('/').at(-1),
+            metadata: { size: 1000 },
+          }))
+        );
+      }
+    });
+  }
+
+  it('charges every photograph and every PDF page the browser counted, one a PDF it could not count', async () => {
+    starting({ charged: 15, refused: false, balance: null, gift_left: 0 });
+
+    const response = await request(`/imports/${importId}/start`, 'POST');
+
+    expect(response.status).toBe(200);
+    expect(callsTo('/rest/v1/rpc/charge_credits')[0]!.body).toMatchObject({
+      p_kind: 'import_start',
+      p_credits: 15,
+      p_require: true,
+      p_period_start: trial.created_at,
+      p_period_end: trial.trial_ends_at,
+      p_allowance: 300,
+      p_previous_start: null,
+    });
+  });
+
+  it('refuses to start an import its credits do not cover, a trial without a plan never renewing', async () => {
+    starting({ charged: 0, refused: true, balance: 10, gift_left: 0 });
+
+    const response = await request(`/imports/${importId}/start`, 'POST');
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      reason: 'credits_insufficient',
+      credits: { needed: 15, left: 10, renewsAt: null },
+    });
   });
 });
 

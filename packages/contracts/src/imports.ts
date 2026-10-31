@@ -108,7 +108,20 @@ export const importErrorReasons = {
   wrongKind: 'import_wrong_kind',
   photosOnly: 'import_photos_only',
   noFoundSheets: 'import_no_found_sheets',
+  creditsInsufficient: 'credits_insufficient',
 } as const;
+
+/** With `credits_insufficient`: what the import needs to start, and what is left. */
+export const creditsShortSchema = z.object({
+  needed: z.int().min(0),
+  // The month's credits and the gift's together; below zero after a reading that found more
+  // scanned pages than were left.
+  left: z.int(),
+  // When the month's credits come again; null in a trial without a plan, which does not renew.
+  renewsAt: z.iso.datetime({ offset: true }).nullable(),
+});
+
+export type CreditsShort = z.infer<typeof creditsShortSchema>;
 
 export const sheetFileTypes = [
   'application/pdf',
@@ -177,6 +190,9 @@ export const registerImportFilesRequestSchema = z.object({
         mimeType: z.enum(importFileTypes),
         sizeBytes: z.int().min(1).max(largestImport.fileBytes),
         sha256: z.string().regex(/^[0-9a-f]{64}$/),
+        // A PDF's pages as the browser counted them, which an employee import's start is charged
+        // for; the extractor's count settles it once the file is prepared.
+        pages: z.int().min(1).max(1000).optional(),
       })
     )
     .min(1)
@@ -502,6 +518,21 @@ export const importUsageSchema = modelUsageSchema
 
 export type ImportUsage = z.infer<typeof importUsageSchema>;
 
+export const importCreditsSchema = z
+  .object({
+    // Net of what was given back.
+    used: z.int().min(0),
+    // What its start was charged, settled for an employee import once its pages were counted.
+    atStart: z.int().min(0),
+    // A client import's scanned pages found and charged, one credit each.
+    scannedPages: z.int().min(0),
+    // Everything given back, after a failure on our side.
+    refunded: z.boolean(),
+  })
+  .meta({ id: 'ImportCredits' });
+
+export type ImportCredits = z.infer<typeof importCreditsSchema>;
+
 /**
  * An employee import's review besides its proposal (`@ssm-usor/import`'s
  * `EmployeeImportProposal`, which the API adds): the member's changes and each person's state.
@@ -525,6 +556,8 @@ export const importDetailSchema = importSummarySchema.extend({
   proposalDroppedAt: z.iso.datetime({ offset: true }).nullable(),
   // A debugging aid, served outside production and to platform admins only.
   usage: importUsageSchema.optional(),
+  // What the import used so far; null before it started.
+  credits: importCreditsSchema.nullable(),
   // An employee import from `ready` on; null otherwise. `changes`, `registeredCompany` and
   // `otherCompanies` are a client import's.
   employees: employeeReviewSchema.nullable(),

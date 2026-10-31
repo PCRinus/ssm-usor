@@ -1,6 +1,8 @@
 import type { Database, Json } from '../../database.types';
 import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
+import { creditsStore } from '../credits/store';
+import { grantWelcomeGift } from '../credits/usage';
 import type { BillingOrganization } from './oblio-documents';
 import type { Usage } from './rules';
 
@@ -111,6 +113,7 @@ export async function saveSubscription(
       });
   const { data, error } = await write.select('*').single();
   if (error) throw fromDatabaseError(error, 'billing subscription write');
+  await grantWelcomeGift(creditsStore(db), data);
   await recordChange(db, organizationId, {
     ...record,
     details: { ...record.details, ...changed },

@@ -64,21 +64,21 @@ export function monthAround(anchor: Date, now: Date): Period {
   return { start: addMonths(anchor, months), end: addMonths(anchor, months + 1) };
 }
 
-function calendarMonth(now: Date): Period {
+export function calendarMonth(now: Date): Period {
   return {
     start: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)),
     end: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)),
   };
 }
 
-const dateOf = (value: string | null) => (value ? new Date(value) : null);
+export const dateOf = (value: string | null) => (value ? new Date(value) : null);
 
 /**
  * Before the first payment the months run from the trial's start, which stays put when a tester's
  * trial is extended or a plan is chosen, so neither starts the count again. A chosen plan's month
  * ends at the trial's end, the first charge, where Stripe's own months begin.
  */
-function trialMonth(row: SmsSubscription, now: Date): Period {
+export function trialMonth(row: SmsSubscription, now: Date): Period {
   const month = monthAround(new Date(row.created_at), now);
   const trialEnd = dateOf(row.trial_ends_at);
   if (row.stripe_subscription_id && trialEnd && trialEnd > now && trialEnd < month.end) {
@@ -86,6 +86,17 @@ function trialMonth(row: SmsSubscription, now: Date): Period {
   }
   return month;
 }
+
+// Stripe calls a subscription active only once an invoice is paid; the status also covers a
+// first payment whose webhook came before the organization's row existed.
+export const isPaid = (row: SmsSubscription) =>
+  row.stripe_subscription_id !== null && (row.first_paid_at !== null || row.status === 'active');
+
+export const billingAnchor = (row: SmsSubscription) =>
+  dateOf(row.billing_anchor_at) ??
+  dateOf(row.current_period_end) ??
+  dateOf(row.first_paid_at) ??
+  new Date(row.created_at);
 
 export function smsPolicy(row: SmsSubscription | null, now: Date): SmsPolicy {
   if (!row || row.plan === 'enterprise') {
@@ -113,10 +124,7 @@ export function smsPolicy(row: SmsSubscription | null, now: Date): SmsPolicy {
     };
   }
   const allowance = billingPlans[row.plan as PaidPlan].monthlySms;
-  // Stripe calls a subscription active only once an invoice is paid; the status also covers a
-  // first payment whose webhook came before the organization's row existed.
-  const paid = row.first_paid_at !== null || row.status === 'active';
-  if (!paid) {
+  if (!isPaid(row)) {
     return {
       sends: true,
       period: trialMonth(row, now),
@@ -126,15 +134,10 @@ export function smsPolicy(row: SmsSubscription | null, now: Date): SmsPolicy {
       bills: false,
     };
   }
-  const anchor =
-    dateOf(row.billing_anchor_at) ??
-    dateOf(row.current_period_end) ??
-    dateOf(row.first_paid_at) ??
-    new Date(row.created_at);
   const capFactor = row.sms_cap_factor ?? smsCapFactor.default;
   return {
     sends: true,
-    period: monthAround(anchor, now),
+    period: monthAround(billingAnchor(row), now),
     allowance,
     cap: allowance * capFactor,
     capFactor,

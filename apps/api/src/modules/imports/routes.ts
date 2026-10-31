@@ -182,7 +182,7 @@ export const startImportRoute = createRoute({
   operationId: 'startImport',
   summary: 'Start reading the uploaded files',
   description:
-    'Files whose upload never arrived are dropped; with none left the answer is `422` with `import_empty`. The import moves to `preparing` and one message per file goes to the import queue. `409` with `import_not_uploading` once started; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.',
+    "Files whose upload never arrived are dropped; with none left the answer is `422` with `import_empty`. The import's known part is charged in credits (ADR 030): 25 for a client import and one per photograph, every photograph and PDF page the browser counted for an employee import. When what is left does not cover it, `409` with `credits_insufficient` and `credits` (`needed`, `left`, `renewsAt`), and nothing starts. The import moves to `preparing` and one message per file goes to the import queue. `409` with `import_not_uploading` once started; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: importParams },
@@ -190,7 +190,10 @@ export const startImportRoute = createRoute({
     200: { description: 'The import, preparing', content: summaryContent },
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchImport,
-    409: { description: 'The import has started already', content: errorContent },
+    409: {
+      description: 'The import has started already, or the credits left do not cover it',
+      content: errorContent,
+    },
     422: { description: 'No file arrived', content: errorContent },
     ...membershipErrors,
     503: unavailable,
@@ -335,7 +338,7 @@ export const splitImportRoute = createRoute({
   operationId: 'splitImport',
   summary: "Import another company's files on their own",
   description:
-    'Takes files the sorting found to be about another company, as `otherCompanies` lists them, into a new import for a new client, without uploading them again, and starts reading it. Every file must be `other_company` (else `422` with `import_not_other_company`), and none already split from this import into one not abandoned (`409` with `import_already_split`).',
+    'Takes files the sorting found to be about another company, as `otherCompanies` lists them, into a new import for a new client, without uploading them again, and starts reading it. Every file must be `other_company` (else `422` with `import_not_other_company`), and none already split from this import into one not abandoned (`409` with `import_already_split`). The new import is a client import of its own and starts on 25 credits and one per photograph, refused as the start is with `409` and `credits_insufficient`.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -346,7 +349,10 @@ export const splitImportRoute = createRoute({
     201: { description: 'The new import, preparing', content: summaryContent },
     400: { description: 'Invalid path or body', content: errorContent },
     404: noSuchImport,
-    409: { description: 'Split already, or the import is abandoned', content: errorContent },
+    409: {
+      description: 'Split already, the import is abandoned, or the credits left do not cover it',
+      content: errorContent,
+    },
     422: { description: "A file is not another company's", content: errorContent },
     ...membershipErrors,
     503: unavailable,

@@ -122,6 +122,9 @@ class World {
   calls: string[] = [];
   nextMessage = 0;
   sheetClient: EmployeeImportClient = { jobPositions: [], workplaces: [], employees: [] };
+  scanCharges: string[] = [];
+  settled: number[] = [];
+  creditsCoverPages = true;
   themeDefaults: ThemeDefaults | null = null;
 
   send(body: ImportMessage, delaySeconds?: number) {
@@ -166,6 +169,7 @@ class World {
       is_scan: null,
       text_path: null,
       derived_path: null,
+      declared_pages: null,
     });
     this.objects.set(storage, spec.bytes);
     return id;
@@ -199,6 +203,14 @@ class World {
       },
       recordUsage: async (_importId, fileId, step, usage, cost) => {
         this.usage.push({ fileId, step, input: usage.input, cost });
+      },
+      chargeScannedPage: async (_row, fileId, page) => {
+        const key = `${fileId}:${page}`;
+        if (!this.scanCharges.includes(key)) this.scanCharges.push(key);
+      },
+      settleSheetPages: async (_row, extra) => {
+        this.settled.push(extra);
+        return extra <= 0 || this.creditsCoverPages;
       },
       provider: async () => ({
         name: 'SERVICIUL EXTERN EXEMPLU S.R.L.',
@@ -736,6 +748,10 @@ describe('the import queue', () => {
       return sum + (path.endsWith('.pdf') ? scannedFirstPage.length : stored.length);
     }, 0);
     expect(row.read_characters).toBe(keptText);
+    expect(world.scanCharges).toEqual([
+      `${world.fileAt('Dosar/Scanate/Decizie semnata.pdf').id}:2`,
+    ]);
+    expect(world.settled).toEqual([]);
   });
 
   it('fails a file the model cannot read and still reads the others', async () => {
@@ -1024,6 +1040,9 @@ describe('a scan', () => {
     expect(Object.keys(prepared.readings)).toHaveLength(11);
     expect(prepared.readings[`${longScan.path} (pagina 12)`]).toBeDefined();
     expect(world.pageImages.size).toBe(0);
+    expect(world.scanCharges).toEqual(
+      Array.from({ length: 11 }, (_, index) => `${file.id}:${index + 2}`)
+    );
   });
 
   it('reads the pages of a scan whose step was sent twice only once', async () => {
@@ -1042,6 +1061,7 @@ describe('a scan', () => {
 
     expect(world.fileAt(longScan.path).state).toBe('read');
     expect(modelRequests.filter((request) => request.images.length > 0)).toHaveLength(6);
+    expect(world.scanCharges).toHaveLength(6);
   });
 
   it('gives up on the scans only after half an hour in which no page was read', async () => {
@@ -1515,6 +1535,39 @@ describe('an employee import', () => {
     expect(outcomes.some((outcome) => outcome.outcome === 'retry')).toBe(true);
     const proposal = employeeImportProposalSchema.parse(world.imports.get(importId)!.proposal);
     expect(proposal.pages[3]!.kind).toBe('ssm_periodic');
+  });
+
+  it('settles the start on the pages the extractor counted: one more than the browser for a PDF it could not count', async () => {
+    model = sheetModel(sheetAnswers);
+    startEmployees(sheetFiles);
+    await drain(deps());
+
+    expect(world.settled).toEqual([1]);
+    expect(world.imports.get(importId)!.status).toBe('ready');
+    expect(world.scanCharges).toEqual([]);
+  });
+
+  it('gives back the pages the browser counted that the PDF does not have', async () => {
+    model = sheetModel(sheetAnswers);
+    startEmployees(sheetFiles);
+    world.fileAt('Fise/Ionescu.pdf').declared_pages = 5;
+    await drain(deps());
+
+    expect(world.settled).toEqual([-3]);
+    expect(world.imports.get(importId)!.status).toBe('ready');
+  });
+
+  it('fails the import before any page is read when the credits do not cover the pages counted past the start', async () => {
+    model = sheetModel(sheetAnswers);
+    world.creditsCoverPages = false;
+    startEmployees(sheetFiles);
+    await drain(deps());
+
+    expect(world.imports.get(importId)).toMatchObject({
+      status: 'failed',
+      failure_reason: importReasons.creditsShort,
+    });
+    expect(modelRequests).toHaveLength(0);
   });
 
   it('fails the import past 500 pages, before any page is read', async () => {

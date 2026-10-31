@@ -45,6 +45,7 @@ const subscriptionEvent = (type: string, id = 'evt_1') => ({
 
 const row = (fake: Fake) => fake.tables.subscriptions![0]!;
 const changes = (fake: Fake) => fake.tables.subscription_changes!;
+const gifts = (fake: Fake) => fake.tables['rpc/grant_welcome_gift'] ?? [];
 
 function paidInvoice(overrides: Record<string, unknown> = {}) {
   const paidAt = now();
@@ -193,6 +194,20 @@ describe('POST /billing/stripe-webhook', () => {
       ]);
       expect(fake.tables.stripe_events).toEqual([
         expect.objectContaining({ id: 'evt_1', processed_at: expect.any(String), error: null }),
+      ]);
+      expect(gifts(fake)).toEqual([]);
+    });
+
+    it("brings the welcome gift up to Profesional's on moving up from Start after the first payment", async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow(start));
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: pro });
+
+      await deliver(subscriptionEvent('customer.subscription.updated'));
+
+      expect(row(fake).plan).toBe('profesional');
+      expect(gifts(fake)).toEqual([
+        expect.objectContaining({ p_organization_id: organizationId, p_credits: 10000 }),
       ]);
     });
 
@@ -397,6 +412,28 @@ describe('POST /billing/stripe-webhook', () => {
       expect(first).toEqual(expect.any(String));
       expect(row(fake).first_paid_at).toBe(first);
       expect(changes(fake).filter((change) => change.change === 'first_payment')).toHaveLength(1);
+    });
+
+    it("grants the plan's welcome gift with the first payment, asking again on a retry, which the database grants once", async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow(start, { first_paid_at: null }));
+      fake.stripe['GET /v1/invoices/in_1Paid'] = () => paidInvoice();
+
+      await deliver(paidEvent);
+      await deliver({ ...paidEvent, id: 'evt_paid_again' });
+
+      const gift = expect.objectContaining({ p_organization_id: organizationId, p_credits: 2500 });
+      expect(gifts(fake)).toEqual([gift, gift]);
+    });
+
+    it('grants no gift for an invoice of zero', async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow(start, { first_paid_at: null }));
+      fake.stripe['GET /v1/invoices/in_1Paid'] = () => paidInvoice({ total: 0, subtotal: 0 });
+
+      await deliver(paidEvent);
+
+      expect(gifts(fake)).toEqual([]);
     });
 
     it('issues the first invoice paid before the checkout saved the customer', async () => {

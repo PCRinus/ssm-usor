@@ -100,6 +100,14 @@ export const ApiErrorResponseMissingItem = {
   documentsfire_own_instructions: 'documents.fire_own_instructions',
 } as const;
 
+export type ApiErrorResponseCredits = {
+  /** @minimum 0 */
+  needed: number;
+  left: number;
+  /** @nullable */
+  renewsAt: string | null;
+};
+
 export interface ApiErrorResponse {
   error: ApiErrorResponseError;
   message: string;
@@ -110,6 +118,7 @@ export interface ApiErrorResponse {
   attemptsLeft?: number;
   /** @minimum 1 */
   retryAfterSeconds?: number;
+  credits?: ApiErrorResponseCredits;
 }
 
 export type MeResponseUser = {
@@ -7999,6 +8008,19 @@ export interface ImportUsage {
   bySteps: ImportUsageBySteps;
 }
 
+/**
+ * @nullable
+ */
+export type ImportCredits = {
+  /** @minimum 0 */
+  used: number;
+  /** @minimum 0 */
+  atStart: number;
+  /** @minimum 0 */
+  scannedPages: number;
+  refunded: boolean;
+} | null;
+
 export type EmployeeImportReviewChangesPeopleState =
   (typeof EmployeeImportReviewChangesPeopleState)[keyof typeof EmployeeImportReviewChangesPeopleState];
 
@@ -10252,6 +10274,7 @@ export interface ImportDetail {
   /** @nullable */
   proposalDroppedAt: string | null;
   usage?: ImportUsage;
+  credits: ImportCredits | null;
   employees: EmployeeImportReview | null;
   /** @nullable */
   proposal: ImportDetailProposal;
@@ -10307,6 +10330,11 @@ export type RegisterImportFilesRequestFilesItem = {
   sizeBytes: number;
   /** @pattern ^[0-9a-f]{64}$ */
   sha256: string;
+  /**
+   * @minimum 1
+   * @maximum 1000
+   */
+  pages?: number;
 };
 
 export interface RegisterImportFilesRequest {
@@ -11264,10 +11292,59 @@ export type BillingOverviewUsageSmsThisMonth = {
   state: BillingOverviewUsageSmsThisMonthState;
 };
 
+export type BillingOverviewUsageCreditsThisMonthPeriod =
+  (typeof BillingOverviewUsageCreditsThisMonthPeriod)[keyof typeof BillingOverviewUsageCreditsThisMonthPeriod];
+
+export const BillingOverviewUsageCreditsThisMonthPeriod = {
+  trial: 'trial',
+  month: 'month',
+} as const;
+
+export type BillingOverviewUsageCreditsThisMonthState =
+  (typeof BillingOverviewUsageCreditsThisMonthState)[keyof typeof BillingOverviewUsageCreditsThisMonthState];
+
+export const BillingOverviewUsageCreditsThisMonthState = {
+  ok: 'ok',
+  near: 'near',
+  out: 'out',
+  negative: 'negative',
+  unlimited: 'unlimited',
+} as const;
+
+export type BillingOverviewUsageCreditsThisMonth = {
+  /** @minimum 0 */
+  used: number;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  included: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  allowance: number | null;
+  /** @minimum 0 */
+  granted: number;
+  /** @minimum 0 */
+  shortfall: number;
+  /** @nullable */
+  left: number | null;
+  /** @minimum 0 */
+  giftLeft: number;
+  /** @minimum 0 */
+  giftPending: number;
+  period: BillingOverviewUsageCreditsThisMonthPeriod;
+  periodStart: string;
+  periodEnd: string;
+  state: BillingOverviewUsageCreditsThisMonthState;
+};
+
 export type BillingOverviewUsage = {
   employees: BillingOverviewUsageEmployees;
   members: BillingOverviewUsageMembers;
   smsThisMonth: BillingOverviewUsageSmsThisMonth;
+  creditsThisMonth: BillingOverviewUsageCreditsThisMonth;
 };
 
 export type BillingOverviewCataloguePlansItemKey =
@@ -11304,6 +11381,8 @@ export type BillingOverviewCataloguePlansItem = {
   /** @nullable */
   maxMembers: number | null;
   monthlySms: number;
+  monthlyCredits: number;
+  welcomeCredits: number;
   employeePack: BillingOverviewCataloguePlansItemEmployeePack;
   /** @nullable */
   maxEmployeePacks: number | null;
@@ -33095,7 +33174,7 @@ export const getStartImportUrl = (importId: string) => {
 };
 
 /**
- * Files whose upload never arrived are dropped; with none left the answer is `422` with `import_empty`. The import moves to `preparing` and one message per file goes to the import queue. `409` with `import_not_uploading` once started; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.
+ * Files whose upload never arrived are dropped; with none left the answer is `422` with `import_empty`. The import's known part is charged in credits (ADR 030): 25 for a client import and one per photograph, every photograph and PDF page the browser counted for an employee import. When what is left does not cover it, `409` with `credits_insufficient` and `credits` (`needed`, `left`, `renewsAt`), and nothing starts. The import moves to `preparing` and one message per file goes to the import queue. `409` with `import_not_uploading` once started; `503` with `import_unavailable` where the gateway, the extractor or the queue is missing.
  * @summary Start reading the uploaded files
  */
 export const startImport = async (
@@ -33623,7 +33702,7 @@ export const getSplitImportUrl = (importId: string) => {
 };
 
 /**
- * Takes files the sorting found to be about another company, as `otherCompanies` lists them, into a new import for a new client, without uploading them again, and starts reading it. Every file must be `other_company` (else `422` with `import_not_other_company`), and none already split from this import into one not abandoned (`409` with `import_already_split`).
+ * Takes files the sorting found to be about another company, as `otherCompanies` lists them, into a new import for a new client, without uploading them again, and starts reading it. Every file must be `other_company` (else `422` with `import_not_other_company`), and none already split from this import into one not abandoned (`409` with `import_already_split`). The new import is a client import of its own and starts on 25 credits and one per photograph, refused as the start is with `409` and `credits_insufficient`.
  * @summary Import another company's files on their own
  */
 export const splitImport = async (

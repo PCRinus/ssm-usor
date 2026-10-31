@@ -26,6 +26,8 @@ import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
 import { isOwnerInPerson } from '../../lib/membership';
+import { creditsStore } from '../credits/store';
+import { creditsUsageOf } from '../credits/usage';
 import { smsUsageStore } from '../sms-usage/store';
 import { smsUsageOf } from '../sms-usage/usage';
 import type {
@@ -95,6 +97,8 @@ const catalogue: BillingCatalogue = {
     includedMembers: plan.includedMembers,
     maxMembers: plan.maxMembers,
     monthlySms: plan.monthlySms,
+    monthlyCredits: plan.monthlyCredits,
+    welcomeCredits: plan.welcomeCredits,
     employeePack: plan.employeePack,
     maxEmployeePacks: plan.maxEmployeePacks,
   })),
@@ -220,7 +224,10 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
     countUsage(billing.db, billing.organizationId),
   ]);
   const limits = usageLimits(row, billing.now);
-  const sms = await smsUsageOf(smsUsageStore(billing.db), billing.organizationId, row, billing.now);
+  const [sms, credits] = await Promise.all([
+    smsUsageOf(smsUsageStore(billing.db), billing.organizationId, row, billing.now),
+    creditsUsageOf(creditsStore(billing.db), billing.organizationId, row, billing.now),
+  ]);
 
   let owner: BillingOverview['owner'] = null;
   let stripeCancelAt: string | null = null;
@@ -257,6 +264,7 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
         employees: { used: usage.employees, limit: limits.employees },
         members: { used: usage.members, limit: limits.members },
         smsThisMonth: sms,
+        creditsThisMonth: credits,
       },
       catalogue,
       owner,
