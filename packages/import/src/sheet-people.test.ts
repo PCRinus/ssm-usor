@@ -87,4 +87,15 @@ describe('placePages', () => {
 
     expect(placed.groups).toEqual([['page-1', 'page-2']]);
   });
+
+  it('takes a CNP whose control digit fails for no CNP, so a misread digit splits nobody', () => {
+    const misread = page({
+      pageKind: 'psi_sheet_front',
+      person: { lastName: 'Coman', firstName: 'Daniela', cnp: `${cnps.coman.slice(0, 12)}4` },
+    });
+    const placed = placePages(pagesOf(comanFront, misread));
+
+    expect(placed.groups).toEqual([['page-1', 'page-2']]);
+    expect(placed.placements.get('page-2')!.placement).toBe('name');
+  });
 });

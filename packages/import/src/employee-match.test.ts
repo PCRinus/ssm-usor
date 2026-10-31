@@ -70,6 +70,20 @@ describe('findExistingEmployee', () => {
     ).toBe('name_birth_date');
   });
 
+  it('matches by name and birth date past a CNP whose control digit fails', () => {
+    expect(
+      findExistingEmployee(
+        {
+          cnp: `${cnps.pop.slice(0, 12)}9`,
+          lastName: 'Pop',
+          firstName: 'Elena',
+          birthDate: '1990-07-20',
+        },
+        [existingPop]
+      )?.matchedBy
+    ).toBe('name_birth_date');
+  });
+
   it('takes nobody for the name alone, or for another CNP', () => {
     expect(
       findExistingEmployee({ cnp: null, lastName: 'Pop', firstName: 'Elena', birthDate: null }, [

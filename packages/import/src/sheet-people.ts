@@ -1,3 +1,5 @@
+import { isValidCnp } from '@ssm-usor/contracts';
+
 import type { PagePlacement } from './employee-proposal';
 import { editDistance, foldName } from './match';
 import type { SheetPage } from './sheet-page';
@@ -23,9 +25,15 @@ export interface PlacedPages {
 export const pageName = (page: SheetPage) =>
   foldName(`${page.person.lastName ?? ''} ${page.person.firstName ?? ''}`);
 
-export function pageCnp(page: SheetPage) {
-  const digits = (page.person.cnp ?? '').replace(/[\s.-]/g, '');
+export function compactCnp(written: string) {
+  const digits = written.replace(/[\s.-]/g, '');
   return /^\d{13}$/.test(digits) ? digits : null;
+}
+
+// A code whose control digit fails is one digit misread: grouping by it would split the person.
+export function pageCnp(page: SheetPage) {
+  const digits = compactCnp(page.person.cnp ?? '');
+  return digits !== null && isValidCnp(digits) ? digits : null;
 }
 
 const pageEmployeeNumber = (page: SheetPage) => (page.person.employeeNumber ?? '').trim() || null;

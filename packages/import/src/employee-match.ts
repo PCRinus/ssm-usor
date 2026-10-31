@@ -1,3 +1,5 @@
+import { isValidCnp } from '@ssm-usor/contracts';
+
 import type { ReferenceMatch } from './employee-proposal';
 import { contained, editDistance, foldName, foldText, sameName, similar, streetKey } from './match';
 
@@ -111,8 +113,10 @@ export function findExistingEmployee<E extends ExistingEmployee>(
   person: PersonKey,
   employees: readonly E[]
 ): { employee: E; matchedBy: 'cnp' | 'name_birth_date' } | null {
-  if (person.cnp !== null) {
-    const byCnp = employees.find((employee) => employee.cnp === person.cnp);
+  // A code whose control digit fails is a misread one, which must not hide the name and birth date.
+  const cnp = person.cnp !== null && isValidCnp(person.cnp) ? person.cnp : null;
+  if (cnp !== null) {
+    const byCnp = employees.find((employee) => employee.cnp === cnp);
     if (byCnp) return { employee: byCnp, matchedBy: 'cnp' };
   }
   if (person.lastName === null || person.birthDate === null) return null;
@@ -120,7 +124,7 @@ export function findExistingEmployee<E extends ExistingEmployee>(
   const byName = employees.find(
     (employee) =>
       employee.birthDate === person.birthDate &&
-      (person.cnp === null || employee.cnp === null) &&
+      (cnp === null || employee.cnp === null) &&
       sameName(`${employee.lastName} ${employee.firstName}`, name)
   );
   return byName ? { employee: byName, matchedBy: 'name_birth_date' } : null;

@@ -1,6 +1,7 @@
 import {
   type EmployeeImportFieldName,
   employeeImportFieldNames,
+  isValidCnp,
   type TrainingDomain,
   type TrainingPhase,
 } from '@ssm-usor/contracts';
@@ -31,7 +32,7 @@ import {
 } from './employee-proposal';
 import { foldText, sameName } from './match';
 import { sheetDate, type SheetPage, type SheetPageKind, type SheetRow } from './sheet-page';
-import { pageCnp, placePages } from './sheet-people';
+import { compactCnp, placePages } from './sheet-people';
 
 export interface SheetPageInput {
   id: string;
@@ -163,7 +164,11 @@ function personFields(pages: readonly ReadPage[], today: string) {
       }
       const cleaned = text(value);
       if (cleaned === null) continue;
-      addOption(fields[name], name === 'cnp' ? (pageCnp(reading) ?? cleaned) : cleaned, input.id);
+      addOption(
+        fields[name],
+        name === 'cnp' ? (compactCnp(cleaned) ?? cleaned) : cleaned,
+        input.id
+      );
     }
   }
   for (const { input, reading } of ordered(priority)) {
@@ -448,8 +453,7 @@ export function toEmployeeProposal(input: EmployeeImportInput): EmployeeImportPr
       }
     }
     const key = {
-      cnp:
-        cnpCorrection ?? (writtenCnp !== null && /^\d{13}$/.test(writtenCnp) ? writtenCnp : null),
+      cnp: cnpCorrection ?? (writtenCnp !== null && isValidCnp(writtenCnp) ? writtenCnp : null),
       lastName: first(fields.lastName) as string | null,
       firstName: first(fields.firstName) as string | null,
       birthDate,
