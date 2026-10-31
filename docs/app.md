@@ -1083,6 +1083,23 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   linking the record's training tab, or "Nicio semnătură în așteptare.". An archived client
   gets no invite or resend. The employee page keeps its own "Acces la portal" card for that
   one employee; nothing else of the client's page names the portal.
+- "Invită în portal angajații din fișe" (`BulkInviteDialog` in `src/features/participants/`,
+  [ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md), canvas board
+  EmpInvite) invites the people of a confirmed employee import at once. `useBulkInvite(clientId)`
+  gives `openBulkInvite(importId)` and the dialog to render; `useImportInvitees` and
+  `uninvitedOf` tell an after-import notice whether anyone is left to invite. The dialog reads
+  `GET /clients/{clientId}/imports/{importId}/portal-invitees` once and keeps those rows while
+  open: three cards of what the person meets in the portal (the privacy notice, the act
+  adițional, the trainings to come), then "Primesc invitația" (an email or phone on their row),
+  "Fără email sau telefon pe fișă" (eight shown, "Arată încă N" for the rest) and "Au deja acces
+  sau invitație". Each invitable row is one field, its stored email else phone, and what is
+  typed decides the channel (`typedInvitationAddress`), shown beside it; an address that is
+  neither, or one typed on two rows, is named under the row on blur and that person is not
+  sent. Former employees are only named in the note that the typed addresses are saved to the
+  employees; a line counts the invitations going by SMS. "Trimite N invitații" posts to
+  `POST /clients/{clientId}/employee-participant-invitations` ten rows at a time, each row then
+  showing "Trimisă" or its reason, and a request refused as a whole marks the rest not sent.
+  Sending refreshes the participants and the client's employees; closing, the list.
 - The employee page ends with "Fișiere", the same card for that employee's files
   (`EmployeeFilesCard` in `src/features/client-files/`, [ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)):
   it lists `GET /clients/{clientId}/files?employeeId=`, and its upload dialog names the
