@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { Database } from '../../src/database.types';
-import { smsPolicy, smsSubscriptionColumns } from '../../src/modules/sms-usage/policy';
+import { smsPolicy } from '../../src/modules/sms-usage/policy';
+import { ownerOrganization } from './owner-organization';
 
 export type GrantInput = { email: string; codes: number; reason: string; actor: string };
 
@@ -25,34 +26,11 @@ export async function grantSigningCodes(
     throw new Error('Give a reason of at least three characters, and who runs this.');
   }
 
-  const user = await client.rpc('auth_user_id_by_address', {
-    p_channel: 'email',
-    p_address: input.email,
-  });
-  if (user.error) throw new Error(`${user.error.code}: ${user.error.message}`);
-  const membership = user.data
-    ? await client
-        .from('organization_members')
-        .select('organization_id, organizations(name)')
-        .eq('user_id', user.data)
-        .eq('role', 'owner')
-        .maybeSingle()
-    : null;
-  if (membership?.error) throw new Error(`${membership.error.code}: ${membership.error.message}`);
-  if (!membership?.data) {
-    throw new Error(`No organization has an owner with the email ${input.email}.`);
-  }
-  const organizationId = membership.data.organization_id;
-
-  const subscription = await client
-    .from('subscriptions')
-    .select(smsSubscriptionColumns)
-    .eq('organization_id', organizationId)
-    .maybeSingle();
-  if (subscription.error) {
-    throw new Error(`${subscription.error.code}: ${subscription.error.message}`);
-  }
-  const policy = smsPolicy(subscription.data, now);
+  const { organizationId, organizationName, subscription } = await ownerOrganization(
+    client,
+    input.email
+  );
+  const policy = smsPolicy(subscription, now);
   if (!policy.sends) {
     throw new Error(
       'That organization sends no SMS: a trial needs the tester switch ("Extinde perioada de probă") first.'
@@ -78,7 +56,7 @@ export async function grantSigningCodes(
   }
   return {
     organizationId,
-    organizationName: membership.data.organizations?.name ?? organizationId,
+    organizationName,
     periodStart: policy.period.start,
     periodEnd: policy.period.end,
     granted: granted.data,

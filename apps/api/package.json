@@ -16,6 +16,7 @@
     "seed:local": "node --env-file-if-exists=.env.seed --import tsx scripts/seed.ts --local",
     "extend-trial": "node --import tsx scripts/extend-trial.ts",
     "grant-signing-codes": "node --import tsx scripts/grant-signing-codes.ts",
+    "grant-credits": "node --import tsx scripts/grant-credits.ts",
     "dev:stripe": "node --import tsx scripts/dev-stripe.ts",
     "stripe:setup": "node --import tsx scripts/stripe-setup.ts",
     "templates:register": "node --env-file-if-exists=.env.seed --import tsx scripts/register-templates.ts",

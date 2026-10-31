@@ -1,0 +1,71 @@
+name: Adaugă credite
+
+# Operator action, run by hand: adds import credits to an organization's current month, for
+# anyone who runs out, a tester included, until credits can be bought (ADR 030). Replaced by the
+# admin area (#611). The credits, the reason and the GitHub account that ran it go to the ledger
+# and the subscription's change log.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: The environment whose organization to change
+        type: choice
+        options:
+          - non-prod
+          - production
+        default: non-prod
+      email:
+        description: The email of the organization's owner
+        type: string
+        required: true
+      credits:
+        description: How many credits to add to the current month
+        type: string
+        required: true
+      reason:
+        description: Why, for example "Tester, runda 1"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: grant-credits-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  grant:
+    name: Add the credits
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ inputs.environment }}
+    env:
+      SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      EMAIL: ${{ inputs.email }}
+      CREDITS: ${{ inputs.credits }}
+      REASON: ${{ inputs.reason }}
+      ACTOR: ${{ github.actor }}
+    steps:
+      - name: Check the branch
+        if: inputs.environment == 'production'
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "::error::Change production from main only, not from $GITHUB_REF."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Build the API's workspace packages
+        run: pnpm --filter "@ssm-usor/api^..." build
+
+      # The inputs reach the script as environment variables, never spliced into the command.
+      - name: Add the credits
+        shell: bash
+        run: |
+          pnpm --filter @ssm-usor/api grant-credits \
+            --email="$EMAIL" --credits="$CREDITS" --reason="$REASON" --actor="$ACTOR"
