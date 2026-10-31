@@ -304,6 +304,22 @@ describe('the person page', () => {
     expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1);
   });
 
+  it('chooses a post on Enter, not on an arrow key moving through the options', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const card = await screen.findByTestId('person-decide-post');
+    const [first] = await within(card).findAllByTestId('person-post-option');
+    first!.focus();
+    await user.keyboard('{ArrowDown}{ArrowUp}');
+    expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(0);
+    await user.keyboard('{Enter}');
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
+    );
+    expect(saved(0).changes.jobTitles).toEqual({ 'title-helper': { jobPositionId: bakerId } });
+  });
+
   it("compares an existing employee's data with the app and keeps the app's by default", async () => {
     mockEmployeeImport();
     const user = userEvent.setup();

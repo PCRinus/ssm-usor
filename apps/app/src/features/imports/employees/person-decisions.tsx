@@ -63,8 +63,9 @@ export function DecideCard({
   );
 }
 
+// A button, not a radio: arrow keys move a radio's choice, and a choice here is saved at once,
+// for every person of a title, and closes its card.
 function Option({
-  name,
   checked,
   onSelect,
   label,
@@ -72,7 +73,6 @@ function Option({
   detail,
   testId,
 }: {
-  name: string;
   checked: boolean;
   onSelect: () => void;
   label: ReactNode;
@@ -81,18 +81,33 @@ function Option({
   testId?: string;
 }) {
   return (
-    <label
+    <div
       className={cn(
-        'grid cursor-pointer grid-cols-[1rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-0.5 rounded-lg border px-3 py-2.5 text-sm',
+        'relative grid grid-cols-[1rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-0.5 rounded-lg border px-3 py-2.5 text-sm has-[>button:focus-visible]:ring-[3px] has-[>button:focus-visible]:ring-ring/50',
         checked && 'border-primary bg-primary/5'
       )}
-      data-testid={testId}
     >
-      <input type="radio" name={name} checked={checked} onChange={onSelect} className="mt-0.5" />
-      <span className="font-medium">{label}</span>
-      <span>{tag}</span>
+      <span
+        aria-hidden="true"
+        className={cn(
+          'mt-0.5 grid size-4 place-items-center rounded-full border',
+          checked ? 'border-primary' : 'border-input'
+        )}
+      >
+        {checked && <span className="size-2 rounded-full bg-primary" />}
+      </span>
+      <button
+        type="button"
+        aria-pressed={checked}
+        onClick={onSelect}
+        className="cursor-pointer text-left font-medium outline-none after:absolute after:inset-0 after:rounded-lg after:content-['']"
+        data-testid={testId}
+      >
+        {label}
+      </button>
+      <span className="relative">{tag}</span>
       {detail && <span className="col-start-2 col-end-4 text-muted-foreground">{detail}</span>}
-    </label>
+    </div>
   );
 }
 
@@ -172,12 +187,11 @@ export function PostDecision({
       )}
       {decided && <Tag tone="success">Ales</Tag>}
       <p className="text-sm font-medium">Alege un post existent</p>
-      <div role="radiogroup" aria-labelledby="post-title" className="grid gap-2">
+      <div role="group" aria-labelledby="post-title" className="grid gap-2">
         {orderedByClosest(positions, group?.closestId ?? group?.proposedId ?? null).map(
           (position) => (
             <Option
               key={position.id}
-              name={`post-${person.id}`}
               checked={decided && chosen === position.id}
               onSelect={() => choose(position.id)}
               label={position.name}
@@ -192,7 +206,6 @@ export function PostDecision({
           )
         )}
         <Option
-          name={`post-${person.id}`}
           checked={false}
           onSelect={() => setAdding(true)}
           label={title ? `Adaugă un post nou: ${title}` : 'Adaugă un post nou'}
@@ -288,10 +301,9 @@ export function CnpDecision({
           {person.cnpCorrection}. Cu el, CNP-ul e valid.
         </p>
       )}
-      <div role="radiogroup" aria-labelledby="cnp-title" className="grid gap-2">
+      <div role="group" aria-labelledby="cnp-title" className="grid gap-2">
         {person.cnpCorrection && (
           <Option
-            name={`cnp-${person.id}`}
             checked={mode === 'correction'}
             onSelect={() => setMode('correction')}
             label={<span className="tabular-nums">Folosește {person.cnpCorrection}</span>}
@@ -300,12 +312,11 @@ export function CnpDecision({
           />
         )}
         <Option
-          name={`cnp-${person.id}`}
           checked={mode === 'own'}
           onSelect={() => ownValid && setMode('own', own)}
           label="Scrie alt CNP"
           detail={
-            <span className="flex flex-wrap items-center gap-2">
+            <span className="relative flex flex-wrap items-center gap-2">
               <Input
                 aria-label="CNP"
                 inputMode="numeric"
@@ -332,7 +343,6 @@ export function CnpDecision({
           testId="person-cnp-own"
         />
         <Option
-          name={`cnp-${person.id}`}
           checked={mode === 'none'}
           onSelect={() => setMode('none')}
           label="Lasă fără CNP"
@@ -384,11 +394,10 @@ export function WorkplaceDecision({
           : 'Alege unul dintre locurile de muncă ale clientului.'}{' '}
         Fără el, angajatul se creează, iar locul îl completezi după.
       </p>
-      <div role="radiogroup" aria-labelledby="workplace-title" className="grid gap-2">
+      <div role="group" aria-labelledby="workplace-title" className="grid gap-2">
         {workplaces.map((workplace) => (
           <Option
             key={workplace.id}
-            name={`workplace-${person.id}`}
             checked={decided && chosen === workplace.id}
             onSelect={() => choose(workplace.id)}
             label={workplace.name}
@@ -400,7 +409,6 @@ export function WorkplaceDecision({
           />
         ))}
         <Option
-          name={`workplace-${person.id}`}
           checked={decided && chosen === null}
           onSelect={() => choose(null)}
           label="Fără loc de muncă deocamdată"
@@ -432,11 +440,10 @@ export function FieldChoice({
       : String(value);
   return (
     <DecideCard id={`choice-${name}`} title={`${fieldLabels[name]}: fișele scriu valori diferite`}>
-      <div role="radiogroup" aria-labelledby={`choice-${name}-title`} className="grid gap-2">
+      <div role="group" aria-labelledby={`choice-${name}-title`} className="grid gap-2">
         {field.options.map((option) => (
           <Option
             key={option.index}
-            name={`choice-${person.id}-${name}`}
             checked={chosen === option.index}
             onSelect={() =>
               onChange((current) => withField(current, person.id, name, { option: option.index }))
