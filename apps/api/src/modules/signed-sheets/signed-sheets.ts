@@ -152,11 +152,11 @@ export function rowDigest(values: Record<string, string>) {
 // A version gets a path of its own, so that a write that loses the race never overwrites the
 // bytes the row points to, and every version stays for the evidence's digests.
 function storagePathOf(
-  sheet: Pick<StoredSheet, 'clientId' | 'employeeId' | 'domain' | 'sequence'>,
+  sheet: Pick<StoredSheet, 'organizationId' | 'clientId' | 'employeeId' | 'domain' | 'sequence'>,
   version: number
 ) {
   const nonce = crypto.randomUUID().slice(0, 8);
-  return `signed-sheets/${sheet.clientId}/${sheet.employeeId}/${sheet.domain}-${sheet.sequence}/v${version}-${nonce}.pdf`;
+  return `${sheet.organizationId}/signed-sheets/${sheet.clientId}/${sheet.employeeId}/${sheet.domain}-${sheet.sequence}/v${version}-${nonce}.pdf`;
 }
 
 const sheetBusy = () =>

@@ -70,7 +70,7 @@ returns void language sql as $$
   select
     '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', employee::uuid, party,
     account::uuid, 'Popescu Ion', s.channel, s.address, now(), now(), 'a', 'b', '01', s.id,
-    'v-' || party || '.pdf'
+    '11111111-0000-4000-8000-000000000001/v-' || party || '.pdf'
   from public.signing_sessions s where s.id = session::uuid;
 $$;
 

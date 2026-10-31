@@ -1,5 +1,5 @@
 begin;
-select plan(83);
+select plan(84);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -411,8 +411,8 @@ insert into public.client_files (id, organization_id, client_id, name, original_
   ('cfcfcfcf-0000-4000-8000-000000000002', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', 'Scan', 'scan.pdf', 'application/pdf', 10, repeat('c', 64));
 
 insert into public.signed_sheets (id, organization_id, client_id, employee_id, domain, storage_path, digest, row_capacity) values
-  ('5d5d5d5d-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'ssm', 'sheets/ion-ssm-1.pdf', repeat('d', 64), 8),
-  ('5d5d5d5d-0000-4000-8000-000000000002', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', 'e2e2e2e2-0000-4000-8000-000000000001', 'ssm', 'sheets/bogdan-ssm-1.pdf', repeat('d', 64), 8);
+  ('5d5d5d5d-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'ssm', '11111111-0000-4000-8000-000000000001/sheets/ion-ssm-1.pdf', repeat('d', 64), 8),
+  ('5d5d5d5d-0000-4000-8000-000000000002', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', 'e2e2e2e2-0000-4000-8000-000000000001', 'ssm', '22222222-0000-4000-8000-000000000002/sheets/bogdan-ssm-1.pdf', repeat('d', 64), 8);
 
 select lives_ok(
   $$ insert into public.signed_sheet_rows (signed_sheet_id, client_id, row_key, training_record_id)
@@ -437,8 +437,15 @@ select lives_ok(
 delete from public.signed_sheet_rows where row_key = 's1';
 select throws_ok(
   $$ insert into public.signed_sheets (organization_id, client_id, employee_id, domain, storage_path, digest, row_capacity)
-     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'ssm', 'sheets/again.pdf', repeat('d', 64), 8) $$,
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'ssm', '11111111-0000-4000-8000-000000000001/sheets/again.pdf', repeat('d', 64), 8) $$,
   '23505', null, 'an employee has one sheet per domain and sequence'
+);
+select throws_ok(
+  $$ insert into public.signed_sheets (organization_id, client_id, employee_id, domain, sequence, storage_path, digest, row_capacity)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'psi', 1,
+       'signed-sheets/c1c1c1c1-0000-4000-8000-000000000001/e1e1e1e1-0000-4000-8000-000000000001/psi-1/v1-abcd1234.pdf', repeat('d', 64), 8) $$,
+  '23514', 'new row for relation "signed_sheets" violates check constraint "signed_sheets_path_in_organization"',
+  'a sheet''s file is under its organization'
 );
 
 
@@ -488,7 +495,7 @@ select throws_ok(
 );
 select throws_ok(
   $$ insert into public.signed_sheets (organization_id, client_id, employee_id, domain, sequence, storage_path, digest, row_capacity)
-     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'ssm', 2, 'sheets/x.pdf', repeat('d', 64), 8) $$,
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', 'ssm', 2, '11111111-0000-4000-8000-000000000001/sheets/x.pdf', repeat('d', 64), 8) $$,
   '42501', null, 'nor writes a signed sheet'
 );
 select throws_ok(

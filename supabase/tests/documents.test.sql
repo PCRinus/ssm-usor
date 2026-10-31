@@ -1,5 +1,5 @@
 begin;
-select plan(38);
+select plan(39);
 
 -- Fixtures: organizations A and B with one member and one client each, an archived client
 -- in A, a document in each organization, and a draft revision in each.
@@ -105,6 +105,15 @@ select throws_ok(
   '23514',
   null,
   'a revision''s file lives under its own organization'
+);
+
+select throws_ok(
+  $$ insert into public.document_revisions (organization_id, document_id, revision, docx_path)
+     values ('11111111-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000001', 2,
+       '11111111-0000-4000-8000-000000000001/signed-sheets/c1c1c1c1-0000-4000-8000-000000000001/e1e1e1e1-0000-4000-8000-000000000001/ssm-1/v1-abcd1234.docx') $$,
+  '23514',
+  'new row for relation "document_revisions" violates check constraint "document_revisions_path_not_evidence"',
+  'a revision''s file is never in the folders of the signing evidence, whose files a draft''s would open to members'
 );
 
 select throws_ok(

@@ -182,8 +182,8 @@ async function removeSignatures() {
     { auth: { persistSession: false, autoRefreshToken: false } }
   ).storage.from('documents');
   for (const prefix of [
-    `signed-sheets/${made.clientId}/${made.employeeId}`,
-    `signing-agreements/${made.clientId}/${made.employeeId}`,
+    `${made.organizationId}/signed-sheets/${made.clientId}/${made.employeeId}`,
+    `${made.organizationId}/signing-agreements/${made.clientId}/${made.employeeId}`,
   ]) {
     await removeFolder(storage, prefix);
   }

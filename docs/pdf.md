@@ -108,7 +108,7 @@ Once signing starts, an employee's sheet of a domain is a stored PDF form
 
 `signedSheetContext(c)` gives them the secret key's database client and documents bucket, the
 converter and the signer: the caller decides who may act before calling. Every version of a
-sheet is a file of its own, `signed-sheets/{clientId}/{employeeId}/{domain}-{sequence}/v{version}-{nonce}.pdf`
+sheet is a file of its own, `{organizationId}/signed-sheets/{clientId}/{employeeId}/{domain}-{sequence}/v{version}-{nonce}.pdf`
 in the `documents` bucket, and the row's `storage_path` and `digest` point at the current one. A
 write reads the current version, checks its bytes against the digest, makes the next one and
 moves the row on only where `version` is still the one it read; when another write got there
@@ -147,7 +147,7 @@ the second document signed on the same pipeline, made and signed by
 `apps/api/src/modules/test-sheets` ([API](api.md#the-test-sheet)): the template merged
 ([document engine](document-engine.md#the-test-sheet)), `convertForm`, `prepareSheet` with
 `test_sig_trainee` and `test_sig_examiner`, `fillFields` with the examiner's name and function,
-and stored at `test-sheets/{clientId}/{employeeId}/{resultId}/v1-{nonce}.pdf` in the documents
+and stored at `{organizationId}/test-sheets/{clientId}/{employeeId}/{resultId}/v1-{nonce}.pdf` in the documents
 bucket, beside the signed sheets and the signing agreements. Every later write is the next
 version, a file of its own, `v{version}-{nonce}.pdf`, made from the current bytes after checking
 them against the row's digest and moved on by compare-and-set on `version`, as a signed sheet's

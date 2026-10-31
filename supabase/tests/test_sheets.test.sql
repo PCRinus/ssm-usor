@@ -1,5 +1,5 @@
 begin;
-select plan(38);
+select plan(40);
 
 -- Accounts: 1 the specialist, 2 a member of another organization, 3 Ion's participant, 4 Ana's
 -- participant, 5 the client administrator.
@@ -57,33 +57,47 @@ returns void language sql as $$
 $$;
 
 
+select throws_ok(
+  $$ insert into public.test_sheets (organization_id, client_id, employee_id, test_result_id, storage_path, digest)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', '7e7e7e7e-0000-4000-8000-000000000001', 'test-sheets/ion/v1.pdf', repeat('a', 64)) $$,
+  '23514', 'new row for relation "test_sheets" violates check constraint "test_sheets_path_in_organization"',
+  'a test sheet''s file is under its organization'
+);
+
 select lives_ok(
   $$ insert into public.test_sheets (id, organization_id, client_id, employee_id, test_result_id, storage_path, digest) values
-       ('75757575-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', '7e7e7e7e-0000-4000-8000-000000000001', 'test-sheets/ion/v1.pdf', repeat('a', 64)),
-       ('75757575-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000002', '7e7e7e7e-0000-4000-8000-000000000002', 'test-sheets/ana/v1.pdf', repeat('a', 64)) $$,
+       ('75757575-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', '7e7e7e7e-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001/test-sheets/ion/v1.pdf', repeat('a', 64)),
+       ('75757575-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000002', '7e7e7e7e-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001/test-sheets/ana/v1.pdf', repeat('a', 64)) $$,
   'a portal pass gets its test sheet'
 );
 
 select throws_ok(
   $$ insert into public.test_sheets (organization_id, client_id, employee_id, test_result_id, storage_path, digest)
-     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', '7e7e7e7e-0000-4000-8000-000000000003', 'test-sheets/paper.pdf', repeat('a', 64)) $$,
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', '7e7e7e7e-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001/test-sheets/paper.pdf', repeat('a', 64)) $$,
   '23514', 'test_sheet_not_of_attempt', 'a paper result has no test sheet'
 );
 
 select throws_ok(
   $$ insert into public.test_sheets (organization_id, client_id, employee_id, test_result_id, storage_path, digest)
-     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', '7e7e7e7e-0000-4000-8000-000000000001', 'test-sheets/other.pdf', repeat('a', 64)) $$,
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001', '7e7e7e7e-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001/test-sheets/other.pdf', repeat('a', 64)) $$,
   '23505', null, 'a result has one test sheet'
 );
 
 select lives_ok(
-  $$ update public.test_sheets set storage_path = 'test-sheets/ion/v2.pdf', digest = repeat('b', 64), version = 2
+  $$ update public.test_sheets set storage_path = '11111111-0000-4000-8000-000000000001/test-sheets/ion/v2.pdf', digest = repeat('b', 64), version = 2
      where id = '75757575-0000-4000-8000-000000000001' $$,
   'a write moves the sheet to its next version'
 );
 
 select throws_ok(
-  $$ update public.test_sheets set storage_path = 'test-sheets/ion/v9.pdf', version = 9
+  $$ update public.test_sheets set storage_path = 'test-sheets/ion/v3.pdf', digest = repeat('c', 64), version = 3
+     where id = '75757575-0000-4000-8000-000000000001' $$,
+  '23514', 'new row for relation "test_sheets" violates check constraint "test_sheets_path_in_organization"',
+  'and its next version is under its organization too'
+);
+
+select throws_ok(
+  $$ update public.test_sheets set storage_path = '11111111-0000-4000-8000-000000000001/test-sheets/ion/v9.pdf', version = 9
      where id = '75757575-0000-4000-8000-000000000001' $$,
   'TST08', 'test_sheet_kept', 'a version is never skipped'
 );

@@ -180,8 +180,10 @@ service contracts, and the client. The guards that keep evidence for good
 again before it returns; the foreign keys stay on, so a table it forgets fails the call. It
 returns the objects to remove as `(bucket, path)`: those its rows name, and every object under the
 client's prefixes (`<organization>/<client>/` in `documents` and `client-files`,
-`signed-sheets/<client>/`, `test-sheets/<client>/` and `signing-agreements/<client>/` in
-`documents`, `<organization>/<import>/` in `imports`), since a sheet's earlier versions are kept
+`<organization>/signed-sheets/<client>/`, `<organization>/test-sheets/<client>/` and
+`<organization>/signing-agreements/<client>/` in `documents`, with `signed-sheets/<client>/`,
+`test-sheets/<client>/` and `signing-agreements/<client>/` for the evidence stored before it moved
+under the organization, `<organization>/<import>/` in `imports`), since a sheet's earlier versions are kept
 and no row names them. The objects themselves are the API's to remove, through Storage.
 
 ### Leads
@@ -1069,8 +1071,12 @@ the secret key. In `documents`, a member reads everything under their organizati
 and can upload, replace, or delete a file only where a draft revision of their organization
 says it lives (`is_draft_document_path`). Issuing a revision therefore locks its file as
 well as its row, and tenancy and impersonation apply to files exactly as they do to rows,
-because the policies use `current_organization_id()`. Supabase's database backups cover these
-rows but not the files (issue #77).
+because the policies use `current_organization_id()`. Every file of `documents` is under its
+organization, the signing evidence too (`<organization>/signed-sheets/…`, `…/test-sheets/…`,
+`…/signing-agreements/…`); since a member chooses a draft's path and the policies open the files
+it names, no revision's path may have one of those folders second
+(`document_revisions_path_not_evidence`). Supabase's database backups cover these rows but not
+the files (issue #77).
 
 ### Documents behind and regeneration jobs
 
@@ -1829,7 +1835,9 @@ change allowed is `withdrawn` (`20261018150000_agreement_withdrawal.sql`), which
 `employer`, one row each by a unique key), the signer's account and printed name, the code's
 `channel`, `address`, `code_sent_at` and `code_verified_at`, `signed_at`, both digests of the file,
 the certificate serial, `client_ip`, `user_agent`, the `signing_session_id` and `storage_path`, the
-file this signature produced, all required but the client's. Before the insert a trigger locks the
+file this signature produced, all required but the client's. The path starts with the
+organization (`agreement_signatures_path_in_organization`, not valid: older rows name files under
+`signing-agreements/`, as do the agreements they settled). Before the insert a trigger locks the
 agreement and requires it `generated` and awaiting this party, the employee's evidence existing
 before the employer's (`SIG10`, `agreement_not_awaiting`); the signer to be the employee's own
 active participant for `employee` and an active client administrator of the client for `employer`
@@ -1857,8 +1865,9 @@ typed.
 
 `signed_sheets` is an individual training sheet stored as a PDF form for signing: one per
 `employee_id`, `domain` and `sequence`, the continuation sheets counting up, with its
-`storage_path`, the `digest` (SHA-256, hex) and `version` of the current bytes, the `row_capacity`
-of periodic rows and the `rows_used`, the highest `p` row taken (a voided row's key is never
+`storage_path` (starting with the organization, `signed_sheets_path_in_organization`, not valid
+for the older sheets stored under `signed-sheets/`), the `digest` (SHA-256, hex) and
+`version` of the current bytes, the `row_capacity` of periodic rows and the `rows_used`, the highest `p` row taken (a voided row's key is never
 reused), and `certified_at` from its first signature. `signed_sheet_rows` says which
 `training_record_id` fills which `row_key` of a sheet: `h1` and `h2` for the hiring trainings, `adm`
 for the admission, `p1` and onward for the periodic rows, and `s1` and onward for the occupational
@@ -1886,8 +1895,9 @@ the freeze below concerns records only. A result with a row is not deleted (`235
 
 `test_sheets` is the **test sheet** of one passing attempt (ADR 024), stored as a PDF form for the
 trainee's and the examiner's signatures: `test_result_id` (unique, by `(test_result_id,
-client_id)`), the `employee_id` of the result by `(employee_id, client_id)`, the `storage_path`,
-`digest` (SHA-256, hex) and `version` of the current file, `generated_at`, and `certified_at` from
+client_id)`), the `employee_id` of the result by `(employee_id, client_id)`, the `storage_path`
+(starting with the organization, `test_sheets_path_in_organization`, not valid for the older
+sheets stored under `test-sheets/`), `digest` (SHA-256, hex) and `version` of the current file, `generated_at`, and `certified_at` from
 its first signature. A trigger requires the result to be a portal one of the same employee
 (`23514`, `test_sheet_not_of_attempt`): a paper result has no test sheet, its test being signed on
 the printed test. A table of its own rather than columns on `test_results`: the sheet is a file

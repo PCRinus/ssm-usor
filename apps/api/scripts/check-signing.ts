@@ -222,8 +222,8 @@ async function cleanUp() {
   const accounts = made.accounts.map((id) => `'${id}'`).join(',') || 'null';
   if (employee) {
     for (const prefix of [
-      `signed-sheets/${employee.client_id}/${employee.id}/ssm-1`,
-      `signing-agreements/${employee.client_id}/${employee.id}`,
+      `${employee.organization_id}/signed-sheets/${employee.client_id}/${employee.id}/ssm-1`,
+      `${employee.organization_id}/signing-agreements/${employee.client_id}/${employee.id}`,
     ]) {
       const listed = await admin.storage.from('documents').list(prefix);
       const paths = (listed.data ?? []).map((file) => `${prefix}/${file.name}`);

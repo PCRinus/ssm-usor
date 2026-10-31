@@ -1287,7 +1287,7 @@ the options chosen, the score and total), the employee's name and position, the 
 code and title and the day, converts it with `convertForm`, makes `test_sig_trainee` and
 `test_sig_examiner` signature fields with `prepareSheet`, fills `test_examiner_name` and
 `test_examiner_job_title` from the result, and stores it at
-`test-sheets/{clientId}/{employeeId}/{resultId}/v1-{nonce}.pdf` in the documents bucket with its
+`{organizationId}/test-sheets/{clientId}/{employeeId}/{resultId}/v1-{nonce}.pdf` in the documents bucket with its
 `test_sheets` row; two calls racing keep one sheet. Then `issueTestSheetRequests` asks the
 trainee, the employee's own active participant (none while their agreement is `withdrawn`), and
 the examiner: the member whose profile name is the result's examiner by `samePerson`, as a slot's
@@ -1562,7 +1562,7 @@ it is given (a paper copy keeps them blank). The employee signs first: the agree
 as on demand, its digest compared with the one the session item kept (`agreement_changed` when
 it differs), converted with `convertForm`, the two fields made signature fields by
 `prepareSheet`, and `sig_employee` signed with `certify: true` and nothing locked; the file is stored at
-`signing-agreements/{clientId}/{employeeId}/v1-{nonce}.pdf` in the documents bucket and the
+`{organizationId}/signing-agreements/{clientId}/{employeeId}/v1-{nonce}.pdf` in the documents bucket and the
 `agreement_signatures` row written with it as `storage_path`, which moves the agreement on in the
 database. The administrator then signs `sig_employer` on that file, whose digest must match the
 employee's evidence and the session item, without certifying, into `v2-{nonce}.pdf`; the evidence

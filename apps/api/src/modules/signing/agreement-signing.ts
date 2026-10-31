@@ -213,7 +213,7 @@ export async function signAgreement(
   );
 
   const version = party === 'employee' ? 1 : 2;
-  const path = `signing-agreements/${clientId}/${employeeId}/v${version}-${crypto.randomUUID().slice(0, 8)}.pdf`;
+  const path = `${client.organization_id}/signing-agreements/${clientId}/${employeeId}/v${version}-${crypto.randomUUID().slice(0, 8)}.pdf`;
   await ctx.files.writeDocument(path, signed, { replace: false });
 
   if (!row) {

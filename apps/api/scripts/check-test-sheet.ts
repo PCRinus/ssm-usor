@@ -219,8 +219,12 @@ async function cleanUp() {
   const employee = made.employee;
   const accounts = made.accounts.map((id) => `'${id}'`).join(',') || 'null';
   if (employee) {
-    await removeFolder(`test-sheets/${employee.client_id}/${employee.id}`);
-    await removeFolder(`signed-sheets/${employee.client_id}/${employee.id}`);
+    await removeFolder(
+      `${employee.organization_id}/test-sheets/${employee.client_id}/${employee.id}`
+    );
+    await removeFolder(
+      `${employee.organization_id}/signed-sheets/${employee.client_id}/${employee.id}`
+    );
   }
   const of = employee ? `'${employee.id}'` : 'null';
   // Replica mode skips the triggers that keep the evidence, and with them the cascades, so every
