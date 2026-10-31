@@ -146,7 +146,8 @@ without it the job only leaves a notice, and `POST /run` answers `404`.
 
 When `supabase/config.toml` or a migration changes, a last job applies the file to the
 environment's project with `supabase config push`, after the API, because the Send Email hook it declares
-must not point at an endpoint that is not deployed yet. Only properties the file declares are
+must not point at an endpoint that is not deployed yet, and after the SPA and the portal, because
+the CAPTCHA it turns on refuses a sign-in without the Turnstile token only the new pages send. Only properties the file declares are
 written; `[remotes.production]` and `[remotes.non-prod]` hold the values that differ from the
 local stack, and the CLI picks the block whose `project_id` is the project's. The push does not
 ask for confirmation in CI, so the job prints `supabase config diff` first. It and the
@@ -154,7 +155,7 @@ migrations job refuse to run unless `SUPABASE_PROJECT_ID` is the `project_id` of
 `[remotes.<environment>]` block, so a project id set in the wrong GitHub environment cannot
 reach the other environment's database. It needs
 `SUPABASE_AUTH_HOOK_SECRET` and `SUPABASE_AUTH_SMS_HOOK_SECRET`, which the API deployment uploads
-too, and so does the migrations job, whose `supabase link` reads the file. After the push it
+too, and `TURNSTILE_SECRET_KEY`, and so does the migrations job, whose `supabase link` reads the file. After the push it
 sets through the Management API the three sign-in settings the file cannot hold: the texted
 code's expiry, phone confirmation, which the CLI pushes inverted
 ([supabase/cli#6997](https://github.com/supabase/cli/issues/6997)), and the cap of 60 auth

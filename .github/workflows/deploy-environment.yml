@@ -892,18 +892,24 @@ jobs:
 
   deploy-auth-config:
     name: Deploy Supabase configuration
-    needs: [changes, validate, test, deploy-api]
+    needs: [changes, validate, test, deploy-api, deploy-app, deploy-portal]
     # After the API: the Send Email and Send SMS hooks must not point at an endpoint that is not
-    # deployed yet.
-    # A skipped API deployment is fine only when the API was not selected; when it was selected
-    # and skipped, something before it failed and the endpoint may be missing.
+    # deployed yet. After the SPA and the portal too: Supabase Auth's CAPTCHA refuses a sign-in
+    # without a Turnstile token, and ignores one while it is off, so the pages that send it go
+    # first.
+    # A skipped deployment is fine only when its application was not selected; when it was
+    # selected and skipped, something before it failed.
     if: >-
       !cancelled() &&
       needs.changes.outputs.database == 'true' &&
       needs.validate.result == 'success' &&
       needs.test.result == 'success' &&
       (needs.deploy-api.result == 'success' ||
-        (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true'))
+        (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true')) &&
+      (needs.deploy-app.result == 'success' ||
+        (needs.deploy-app.result == 'skipped' && needs.changes.outputs.app != 'true')) &&
+      (needs.deploy-portal.result == 'success' ||
+        (needs.deploy-portal.result == 'skipped' && needs.changes.outputs.portal != 'true'))
     runs-on: ubuntu-latest
     # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
     # waits its turn.
