@@ -279,6 +279,22 @@ describe('the processing page', () => {
     expect(screen.getByTestId('import-abandon').textContent).toBe('Renunță la import');
   });
 
+  it('says the credits were given back after a failure on our side', async () => {
+    mockImport(
+      readingDetail({
+        status: 'failed',
+        failedAt: '2026-10-28T09:05:00+00:00',
+        failureReason: 'Importul s-a oprit din cauza unei erori.',
+        credits: { used: 0, atStart: 25, scannedPages: 0, refunded: true },
+      })
+    );
+    mount();
+
+    expect((await screen.findByTestId('import-failed')).textContent).toBe(
+      'Importul s-a oprit din cauza unei erori. Creditele ți-au fost returnate. Renunță la import și încearcă din nou.'
+    );
+  });
+
   it('follows an import whose files are still uploading until its reading starts', async () => {
     let status = 'uploading';
     mockApi((init, url) => {

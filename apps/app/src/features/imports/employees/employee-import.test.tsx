@@ -445,6 +445,19 @@ describe('confirming', () => {
       },
     });
 
+  it('says what the reading used', async () => {
+    mockEmployeeImport({
+      detail: { ...partly(), credits: { used: 98, atStart: 98, scannedPages: 0, refunded: false } },
+    });
+    const user = userEvent.setup();
+    mount(importPath);
+    await user.click(await screen.findByTestId('employee-hub-confirm'));
+    const dialog = await screen.findByTestId('employee-confirm-dialog');
+    expect(within(dialog).getByTestId('import-credits-used').textContent).toBe(
+      'Importul a folosit 98 de credite.'
+    );
+  });
+
   it('names the people left out and creates the checked ones, then shows them on the tab', async () => {
     mockEmployeeImport({ detail: partly() });
     const user = userEvent.setup();

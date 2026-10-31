@@ -118,6 +118,20 @@ describe('the page of an employee import that is not ready', () => {
     expect(preview.textContent).toContain('Citită');
   });
 
+  it('says the credits were given back after a failure on our side', async () => {
+    mount(
+      employeeDetail({
+        status: 'failed',
+        failedAt: '2026-10-31T10:00:00+00:00',
+        failureReason: 'Serviciul care citește documentele nu a răspuns.',
+        credits: { used: 0, atStart: 5, scannedPages: 0, refunded: true },
+      })
+    );
+    expect((await screen.findByTestId('employee-processing-failed')).textContent).toBe(
+      'Serviciul care citește documentele nu a răspuns. Creditele ți-au fost returnate. Renunță la import și încearcă din nou.'
+    );
+  });
+
   it('calls a confirmed import confirmed', async () => {
     mount(employeeDetail({ status: 'confirmed', confirmedAt: '2026-10-31T10:00:00+00:00' }));
     expect(await heading()).toBe('Import confirmat');

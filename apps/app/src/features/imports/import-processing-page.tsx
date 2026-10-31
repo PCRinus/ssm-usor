@@ -27,6 +27,7 @@ import {
 import { Notice } from '@/components/notice';
 
 import { AbandonImportDialog } from './abandon-import-dialog';
+import { refundedSentence } from './import-credits';
 import {
   documentKindLabels,
   documentsLabel,
@@ -195,8 +196,9 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
       )}
       {detail.status === 'failed' && (
         <Notice variant="destructive" data-testid="import-failed">
-          {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'} Renunță la import și
-          încearcă din nou.
+          {detail.failureReason ?? 'Importul s-a oprit din cauza unei erori.'}
+          {detail.credits?.refunded && ` ${refundedSentence}`} Renunță la import și încearcă din
+          nou.
         </Notice>
       )}
       {detail.status === 'confirmed' && detail.client && (
