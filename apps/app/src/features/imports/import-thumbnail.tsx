@@ -1,47 +1,18 @@
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 import { FileText, Image as ImageIcon } from 'lucide-react';
 
-import { getGetImportSourceQueryKey, useGetImportSource } from '@/api/generated/api';
+import { type ImportImageFile, useImportImage } from './use-import-image';
 
-type ThumbnailFile = {
-  uploadPath: string;
-  mimeType: string;
-  hasDerived: boolean;
-};
-
-const heic = (mimeType: string) => mimeType === 'image/heic' || mimeType === 'image/heif';
-
-// The links last five minutes; the query is fetched again before they expire.
-const linkLifetimeMs = 4 * 60_000;
-
-// A photograph is shown through the JPEG the import makes of it, a fraction of the original's
-// size. A HEIC only through it: most browsers cannot draw HEIC.
 export function ImportThumbnail({
   importId,
   file,
   className,
 }: {
   importId: string;
-  file: ThumbnailFile;
+  file: ImportImageFile;
   className: string;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const image = file.mimeType.startsWith('image/');
-  const drawable = image && (!heic(file.mimeType) || file.hasDerived);
-  const params = { file: file.uploadPath };
-  const source = useGetImportSource(importId, params, {
-    request: apiRequest,
-    query: {
-      queryKey: getGetImportSourceQueryKey(importId, params),
-      enabled: drawable,
-      staleTime: linkLifetimeMs,
-      refetchInterval: drawable ? linkLifetimeMs : false,
-    },
-  });
-  const url = heic(file.mimeType)
-    ? source.data?.derived?.url
-    : (source.data?.derived?.url ?? source.data?.original.url);
+  const { image, drawable, url } = useImportImage(importId, file);
   if (drawable && url) {
     return (
       <img

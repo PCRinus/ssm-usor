@@ -22,6 +22,7 @@ import {
   Plus,
   Upload,
   UsersRound,
+  X,
 } from 'lucide-react';
 import { type FormEvent, type ReactNode, useRef, useState } from 'react';
 
@@ -33,12 +34,14 @@ import { useJobPositionOptions } from '@/features/job-positions/use-job-position
 
 import { formatFileSize, photosLabel } from '../import-format';
 import { LocalThumb, SetAsideList, UploadProgress } from '../import-upload-dialog';
+import { LocalPhotoView, PhotoPreviewDialog, type PreviewPhoto } from '../photo-preview-dialog';
 import { pickedFromInput } from '../picked-files';
 import {
   emptySelection,
   mergeSelection,
   openPicked,
   type PickedFile,
+  removeFiles,
   type SelectedFile,
   type Selection,
   selectionTotals,
@@ -47,7 +50,7 @@ import {
 import { useImportDrop } from '../use-import-drop';
 import { busySteps, heldSteps, useImportUpload } from '../use-import-upload';
 import { type FoundBatch, foundIn, foundOn, useFoundSheets } from './found-sheets';
-import { FoundStrip } from './found-strip';
+import { FoundSheetView, FoundStrip, FoundThumb } from './found-strip';
 
 const limits = importLimits.employees;
 const formats = ['JPG', 'PNG', 'HEIC', 'PDF scanat'];
@@ -392,6 +395,8 @@ function UploadForm({
                 onlyPhotos={selection.files.every((file) => file.mimeType !== 'application/pdf')}
                 bytes={bytesLabel}
                 removable={choosing}
+                onRemoveFile={(key) => setSelection((current) => removeFiles(current, [key]))}
+                onRemoveFound={(id) => setAdded(addedIds.filter((each) => each !== id))}
                 onClear={() => {
                   setSelection((current) => ({ ...current, files: [] }));
                   setAdded([]);
@@ -543,6 +548,8 @@ function ChosenPhotos({
   onlyPhotos,
   bytes,
   removable,
+  onRemoveFile,
+  onRemoveFound,
   onClear,
 }: {
   files: SelectedFile[];
@@ -552,10 +559,32 @@ function ChosenPhotos({
   onlyPhotos: boolean;
   bytes: string;
   removable: boolean;
+  onRemoveFile: (key: string) => void;
+  onRemoveFound: (sheetId: string) => void;
   onClear: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [previewing, setPreviewing] = useState<string | null>(null);
   const shown = expanded ? files : files.slice(0, shownThumbs);
+  const foundSheets = found.flatMap(({ batch, sheets }) =>
+    sheets.map((sheet) => ({ batch, sheet }))
+  );
+  const photos: PreviewPhoto[] = [
+    ...foundSheets.map(({ batch, sheet }) => ({
+      key: foundKey(sheet.id),
+      name: sheet.fileName,
+      detail: `Din documentația importată pe ${foundOn(batch)}`,
+      view: <FoundSheetView clientId={clientId} sheet={sheet} />,
+    })),
+    ...files.map((file) => ({
+      key: file.key,
+      name: file.name,
+      detail: localDetail(file),
+      view: <LocalPhotoView file={file} />,
+    })),
+  ];
+  const remove = (key: string) =>
+    key.startsWith(foundPrefix) ? onRemoveFound(key.slice(foundPrefix.length)) : onRemoveFile(key);
   const sources = [
     ...(files.length > 0 ? [`${files.length} alese de tine`] : []),
     ...found.map(
@@ -595,18 +624,27 @@ function ChosenPhotos({
         className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-3 px-3 pt-3.5 pb-3"
         aria-label="Fotografiile alese"
       >
-        {found.flatMap(({ sheets }) =>
-          sheets.map((sheet) => (
-            <li key={sheet.id} className="grid justify-items-center gap-1">
-              <FoundStrip clientId={clientId} sheets={[sheet]} shown={1} />
-              <span className="max-w-full truncate text-[11.5px] text-muted-foreground">
-                {sheet.fileName}
-              </span>
-            </li>
-          ))
-        )}
+        {foundSheets.map(({ sheet }) => (
+          <ChosenThumb
+            key={sheet.id}
+            name={sheet.fileName}
+            label={sheet.fileName}
+            removable={removable}
+            onOpen={() => setPreviewing(foundKey(sheet.id))}
+            onRemove={() => onRemoveFound(sheet.id)}
+          >
+            <FoundThumb clientId={clientId} sheet={sheet} />
+          </ChosenThumb>
+        ))}
         {shown.map((file) => (
-          <li key={file.key} className="grid justify-items-center gap-1">
+          <ChosenThumb
+            key={file.key}
+            name={file.name}
+            label={file.name.replace(/\.[^.]+$/, '')}
+            removable={removable}
+            onOpen={() => setPreviewing(file.key)}
+            onRemove={() => onRemoveFile(file.key)}
+          >
             {file.mimeType === 'application/pdf' ? (
               <span className="grid h-[51px] w-10 place-items-center rounded-sm bg-secondary">
                 <FileText className="size-4 text-muted-foreground" aria-hidden="true" />
@@ -614,10 +652,7 @@ function ChosenPhotos({
             ) : (
               <LocalThumb file={file} className="h-[51px] w-10 rounded-sm" />
             )}
-            <span className="max-w-full truncate text-[11.5px] text-muted-foreground">
-              {file.name.replace(/\.[^.]+$/, '')}
-            </span>
-          </li>
+          </ChosenThumb>
         ))}
         {files.length > shownThumbs && !expanded && (
           <li className="grid justify-items-center gap-1">
@@ -641,6 +676,65 @@ function ChosenPhotos({
           verso și continuare, în orice ordine. Ține fotografiile unei persoane în același import.
         </span>
       </p>
+      <PhotoPreviewDialog
+        photos={photos}
+        current={previewing}
+        onCurrent={setPreviewing}
+        onClose={() => setPreviewing(null)}
+        onRemove={removable ? remove : undefined}
+      />
     </section>
+  );
+}
+
+const foundPrefix = 'found:';
+const foundKey = (sheetId: string) => `${foundPrefix}${sheetId}`;
+
+function localDetail(file: SelectedFile) {
+  const folder = file.path.slice(0, -file.name.length - 1);
+  return [folder && `Din ${folder}`, formatFileSize(file.size)].filter(Boolean).join(' · ');
+}
+
+function ChosenThumb({
+  name,
+  label,
+  removable,
+  onOpen,
+  onRemove,
+  children,
+}: {
+  name: string;
+  label: string;
+  removable: boolean;
+  onOpen: () => void;
+  onRemove: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <li className="grid justify-items-center gap-1" data-testid="employee-upload-thumb">
+      <span className="group relative">
+        <button
+          type="button"
+          aria-label={`Deschide ${name}`}
+          title={name}
+          onClick={onOpen}
+          className="flex rounded-sm outline-none hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          {children}
+        </button>
+        {removable && (
+          // A touch screen has no hover to reveal it, so there it always shows.
+          <button
+            type="button"
+            aria-label={`Scoate ${name}`}
+            onClick={onRemove}
+            className="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full border bg-card text-muted-foreground opacity-0 shadow-sm outline-none transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 before:absolute before:-inset-1.5 before:content-[''] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none pointer-coarse:opacity-100 [@media(hover:none)]:opacity-100"
+          >
+            <X className="size-3" aria-hidden="true" />
+          </button>
+        )}
+      </span>
+      <span className="max-w-full truncate text-[11.5px] text-muted-foreground">{label}</span>
+    </li>
   );
 }

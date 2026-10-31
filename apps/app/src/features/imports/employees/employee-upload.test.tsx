@@ -239,3 +239,92 @@ describe('a client without job positions', () => {
     await within(dialog).findByTestId('import-upload-error');
   });
 });
+
+describe('the chosen photographs', () => {
+  const photo = (name: string, type = 'image/jpeg') =>
+    new File([new Uint8Array(2000)], name, { type });
+
+  async function choose(files: File[]) {
+    mockUpload({ found: () => foundOf([]) });
+    const dialog = await openDialog('employees-import');
+    fireEvent.change(within(dialog).getByTestId('employee-upload-files-input'), {
+      target: { files },
+    });
+    await within(dialog).findByTestId('employee-upload-chosen');
+    return dialog;
+  }
+
+  const chosenTitle = (dialog: HTMLElement) =>
+    within(dialog).queryByTestId('employee-upload-chosen')?.querySelector('#employee-upload-chosen')
+      ?.textContent;
+
+  it('opens a photograph large, steps through them, and lets its object URL go', async () => {
+    let made = 0;
+    const revoked: string[] = [];
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(() => `blob:photo-${(made += 1)}`);
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation((url) => void revoked.push(url));
+    const dialog = await choose([
+      photo('WhatsApp Image 2026-10-30 at 09.12.01.jpeg'),
+      photo('IMG_2.jpg'),
+      photo('IMG_3.HEIC', 'image/heic'),
+    ]);
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Deschide IMG_2.jpg' }));
+    const preview = await screen.findByTestId('photo-preview');
+    expect(within(preview).getByRole('heading').textContent).toBe('IMG_2.jpg');
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 3');
+    const shown = within(preview).getByTestId<HTMLImageElement>('photo-preview-image').src;
+    expect(shown).toMatch(/^blob:photo-/);
+
+    await userEvent.click(within(preview).getByTestId('photo-preview-next'));
+    expect(within(preview).getByRole('heading').textContent).toBe('IMG_3.HEIC');
+    expect(within(preview).getByTestId('photo-preview-next')).toHaveProperty('disabled', true);
+    expect(revoked).toContain(shown);
+    fireEvent.error(within(preview).getByTestId('photo-preview-image'));
+    expect(within(preview).getByTestId('photo-preview-note').textContent).toContain('HEIC');
+
+    await userEvent.keyboard('{ArrowLeft}{ArrowLeft}');
+    expect(within(preview).getByRole('heading').textContent).toBe(
+      'WhatsApp Image 2026-10-30 at 09.12.01.jpeg'
+    );
+    expect(within(preview).getByTestId('photo-preview-previous')).toHaveProperty('disabled', true);
+
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+    expect(screen.getByTestId('employee-upload-dialog')).toBeTruthy();
+    vi.restoreAllMocks();
+  });
+
+  it('takes one out from its corner or from the preview, and counts again', async () => {
+    const dialog = await choose([photo('IMG_1.jpg'), photo('IMG_2.jpg'), photo('IMG_3.jpg')]);
+    expect(chosenTitle(dialog)).toBe('3 fotografii de citit');
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Scoate IMG_1.jpg' }));
+    expect(chosenTitle(dialog)).toBe('2 fotografii de citit');
+    expect(within(dialog).getByTestId('employee-upload-limits').textContent).toMatch(/^2 din/);
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Deschide IMG_2.jpg' }));
+    const preview = await screen.findByTestId('photo-preview');
+    await userEvent.click(within(preview).getByTestId('photo-preview-remove'));
+    expect(chosenTitle(dialog)).toBe('O fotografie de citit');
+    expect(within(preview).getByRole('heading').textContent).toBe('IMG_3.jpg');
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('1 din 1');
+
+    await userEvent.click(within(preview).getByTestId('photo-preview-remove'));
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+    expect(within(dialog).queryByTestId('employee-upload-chosen')).toBeNull();
+  });
+
+  it('gives a sheet from the documentation back to the offer it came from', async () => {
+    mockUpload();
+    const dialog = await openDialog('employees-import-found');
+    await waitFor(() => expect(chosenTitle(dialog)).toBe('2 fotografii de citit'));
+    expect(within(dialog).queryByTestId('employee-upload-found')).toBeNull();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Scoate IMG_1.HEIC' }));
+    expect(chosenTitle(dialog)).toBe('O fotografie de citit');
+    expect(within(dialog).getByTestId('employee-upload-found').textContent).toContain(
+      'o fotografie'
+    );
+  });
+});
