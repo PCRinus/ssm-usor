@@ -154,8 +154,9 @@ export function readingMessages(input: {
   ];
 }
 
-// Evaluated on 2026-10-30 with GPT-6.1 Terra, one request per page (ADR 032); a change to a rule
-// belongs there first.
+// Evaluated on 2026-10-30 with GPT-6.1 Terra, one request per page (ADR 032), and its route,
+// post, qualification and unreadable rules on 2026-10-31 against the same photos; a change to a
+// rule belongs there first.
 export const sheetPageSystemPrompt = `You read ONE photo of a page from a Romanian paper "fișă de instruire individuală" (an individual occupational safety (SSM) or fire safety (PSI, "situații de urgență") training sheet), or a page kept with it, and say what the page is, whom it is about and what it records. Several photos of the same person are read separately; record only what this photo shows, and leave anything it does not show empty, even when you could infer it. ${dataNotInstructions}
 
 pageKind:
@@ -173,10 +174,12 @@ Rules:
 - Dates as YYYY-MM-DD. A date written with only a month and a year is YYYY-MM, never a day you chose, and a note says so.
 - Durations in minutes (hours × 60).
 - fields: hiredAt is the hire date ("data angajării") where the page writes one, else the day the person was admitted to work ("admis la lucru"); leftOn the day employment ended, where the sheet records it; workplace the place of work as written ("locul de muncă"); bloodGroup as written, with its Rh when written together ("A II Rh+"); rhFactor only when written apart.
+- jobTitle is the post ("funcția"), and a periodic table's "Specialitatea" column too; qualification only what is written under "calificarea". Posts, qualifications, workplaces and job titles are written in sentence case with Romanian diacritics ("Sudor", "Consilier juridic"), whatever the capitals on paper.
+- commuteRoute: the route as the declaration writes it, after the means of transport where it names one ("Autobuz 33: Piața Unirii - Calea Aradului - poarta fabricii").
 - admission: "admis la lucru" on a sheet's first page: the day, and the name and job title of who admitted the person.
 - trainings: one row per training recorded on this page. phase: introductory_general, workplace, periodic, or supplementary (instruire suplimentară, with its reason in supplementaryReason when written). annualTest is true for a row of the fire safety periodic table that records the yearly knowledge test (testare, verificare anuală) rather than a training. verifierName and verifierJobTitle: who verified the knowledge ("verificat"), where the row names them.
 - Signatures, for each box of a row: present when the box is signed, absent when it is empty, unclear when you cannot tell. verifierSignature is no_box when the form has no verifier's box for the row.
-- Filled-in but illegible fields go in unreadable, each named; anything a reviewer should know goes in notes.`;
+- Filled-in but illegible fields go in unreadable, each named in Romanian as the sheet's reader would ("numele de familie al instructorului, la instruirea introductiv-generală PSI"); anything a reviewer should know goes in notes, short and in Romanian. Neither names a field of this answer (never "trainings[0].heldOn" or "hiredAt").`;
 
 export function sheetPageMessages(file: { path: string; imageUrl: string }): ChatMessage[] {
   return [
