@@ -68,6 +68,7 @@ import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
+import { ImportReadyWatcher } from '@/features/imports/import-ready-watcher';
 import { instructionSections } from '@/features/instructions/instruction-sections';
 import { testBankSections } from '@/features/knowledge-tests/test-bank-sections';
 import { legislationSections } from '@/features/legislation/legislation-sections';
@@ -576,6 +577,7 @@ export function AppShell() {
           </div>
         </div>
         <SetupGuidePanel />
+        <ImportReadyWatcher />
         <ReportProblemDialog open={reportingByEmail} onClose={() => setReportingByEmail(false)} />
         {releases.newestUnread && (
           <Suspense fallback={null}>

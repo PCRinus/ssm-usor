@@ -26,7 +26,7 @@ import { useBulkInvite } from '@/features/participants/use-bulk-invite';
 import { uninvitedOf, useImportInvitees } from '@/features/participants/use-import-invitees';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
-import { isRunning, isUploadUnderway, photosLabel } from '../import-format';
+import { importListPollMs, isRunning, isUploadUnderway, photosLabel } from '../import-format';
 import {
   type EmployeesImported,
   forgetEmployeesImported,
@@ -184,7 +184,7 @@ export function OpenEmployeeImports({ clientId }: { clientId: string }) {
       enabled: Boolean(session && apiRequest.baseUrl),
       refetchInterval: (query) =>
         query.state.data?.items.some((item) => isRunning(item.status) || isUploadUnderway(item))
-          ? 5000
+          ? importListPollMs
           : false,
     },
   });
