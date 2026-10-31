@@ -136,7 +136,7 @@ Poți înregistra astfel și instruirile unui fost angajat.
 
 O instruire semnată electronic nu se mai poate modifica și nici șterge: sub butoane vezi de ce. Ca s-o corectezi, anulează întâi semnăturile, cu un motiv. O instruire care are orice semnătură, chiar anulată sau pe hârtie, nu se mai poate șterge, pentru că semnăturile rămân în evidență.
 
-O instruire de pe fișa de hârtie nu are semnături electronice de anulat. La prima semnătură electronică pe fișa SSM sau PSI a unui angajat, fișa lui tipărește ca text instruirile de pe hârtie ale domeniului, iar o fișă semnată nu se mai schimbă. De atunci, acele instruiri nu se mai pot nici modifica, nici șterge. Verifică deci instruirile preluate de pe hârtie înainte ca angajatul să semneze electronic prima instruire ținută în aplicație.
+O instruire de pe fișa pe hârtie nu are semnături electronice de anulat. La prima semnătură electronică pe fișa SSM sau PSI a unui angajat, fișa lui tipărește ca text instruirile de pe hârtie ale domeniului, iar o fișă semnată nu se mai schimbă. De atunci, acele instruiri nu se mai pot nici modifica, nici șterge. Verifică deci instruirile preluate de pe hârtie înainte ca angajatul să semneze electronic prima instruire ținută în aplicație.
 
 ## Testarea
 
