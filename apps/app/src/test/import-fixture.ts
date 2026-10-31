@@ -91,13 +91,11 @@ export const meResponse = {
   },
 };
 
-export const meWithCredits = (
+export function meWithCredits(
   credits: Partial<BillingCreditsUsage> = {},
   subscription = subscriptionSummaryOf(activeSubscription({ interval: 'month' }))
-) => ({
-  ...meResponse,
-  subscription,
-  creditsThisMonth: {
+) {
+  const creditsThisMonth: BillingCreditsUsage = {
     used: 230,
     included: 1500,
     allowance: 1500,
@@ -109,10 +107,11 @@ export const meWithCredits = (
     period: 'month',
     periodStart: '2026-10-14T08:00:00.000Z',
     periodEnd: '2026-11-14T08:00:00.000Z',
-    state: 'ok' as BillingCreditsUsage['state'],
+    state: 'ok',
     ...credits,
-  },
-});
+  };
+  return { ...meResponse, subscription, creditsThisMonth };
+}
 
 export type Route = (
   init: RequestInit | undefined,

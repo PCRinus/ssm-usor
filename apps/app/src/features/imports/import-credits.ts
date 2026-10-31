@@ -2,12 +2,12 @@ import {
   type BillingCreditsUsage,
   billingPlans,
   type CreditsShort,
+  type ImportCredits,
   importCredits,
   type ImportKind,
   type SubscriptionSummary,
 } from '@ssm-usor/contracts';
 
-import type { ImportCredits } from '@/api/generated/api';
 import { formatCount } from '@/features/subscription/billing-format';
 
 const takesDe = (value: number) => {
