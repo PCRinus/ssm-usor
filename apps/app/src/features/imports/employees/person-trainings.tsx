@@ -151,7 +151,7 @@ function TrainingRow({
       data-testid="person-training-row"
       data-included={included}
     >
-      <div className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[1.25rem_1.5rem_6.5rem_5rem_minmax(0,1fr)_auto]">
+      <div className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-1 sm:grid-cols-[1.25rem_1.5rem_7.5rem_5rem_minmax(0,1fr)_auto]">
         <IncludeBox
           row={row}
           included={included}

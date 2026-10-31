@@ -390,6 +390,21 @@ export type Note = { key: string; tag: string };
 const rowDate = (row: SheetRow, values: RowValues) =>
   values.heldOn ? formatRoDate(values.heldOn) : trainingPhaseLabels[row.phase].toLowerCase();
 
+const phaseGenitives: Record<TrainingPhase, string> = {
+  introductory_general: 'introductiv-generale',
+  workplace: 'la locul de muncă',
+  periodic: 'periodice',
+  supplementary: 'periodice suplimentare',
+};
+
+function missingLabel(row: SheetRow, values: RowValues, missing: string[]) {
+  if (values.heldOn)
+    return `Completează ${missing.join(', ')} la instruirea din ${rowDate(row, values)}`;
+  return missing.length === 1
+    ? `Completează data instruirii ${phaseGenitives[row.phase]}`
+    : `Completează ${missing.join(', ')} la instruirea ${rowDate(row, values)}`;
+}
+
 const rowFieldLabels: Partial<Record<keyof RowValues, string>> = {
   heldOn: 'data',
   durationMinutes: 'durata',
@@ -769,16 +784,22 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
   const tested = testedRows(context, person.id);
   for (const { row } of ownRows(context, person.id)) {
     const values = rowValues(changes, row);
+    let dateAsked = false;
     if (!row.testOnly && rowIncluded(changes, row, matched)) {
       const missing = (Object.keys(rowFieldLabels) as (keyof RowValues)[]).filter(
         (name) =>
           (name !== 'supplementaryReason' || row.phase === 'supplementary') && !filled(values[name])
       );
       if (missing.length > 0) {
+        dateAsked = missing.includes('heldOn');
         decisions.push({
           key: `row-${row.id}`,
           anchor: 'trainings',
-          label: `Completează ${missing.map((name) => rowFieldLabels[name]).join(', ')} la instruirea din ${rowDate(row, values)}`,
+          label: missingLabel(
+            row,
+            values,
+            missing.map((name) => rowFieldLabels[name]!)
+          ),
           tag: `Lipsește ${rowFieldLabels[missing[0]!]} la o instruire`,
           tone: 'destructive',
         });
@@ -791,6 +812,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
           tone: 'destructive',
         });
       } else if (values.heldOn !== null && values.heldOn > context.today) {
+        dateAsked = true;
         decisions.push({
           key: `row-${row.id}`,
           anchor: 'trainings',
@@ -803,22 +825,25 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
     if (row.test && tested.has(row.id) && testIncluded(changes, row, matched)) {
       const own = changes.rows[row.id]?.values ?? {};
       const takenOn = values.heldOn;
-      if (takenOn === null || !filled(takenOn)) {
-        decisions.push({
-          key: `test-date-${row.id}`,
-          anchor: 'trainings',
-          label: `Completează data ${testName(row)}`,
-          tag: 'Lipsește data unui test',
-          tone: 'destructive',
-        });
-      } else if (!isoDate.test(takenOn) || takenOn > context.today) {
-        decisions.push({
-          key: `test-date-${row.id}`,
-          anchor: 'trainings',
-          label: `Corectează data ${testName(row)}, care e în viitor`,
-          tag: 'Un test cu data în viitor',
-          tone: 'destructive',
-        });
+      // A test on a training row takes the row's date, so the row's own decision answers both.
+      if (!dateAsked) {
+        if (takenOn === null || !filled(takenOn)) {
+          decisions.push({
+            key: `test-date-${row.id}`,
+            anchor: 'trainings',
+            label: `Completează data ${testName(row)}`,
+            tag: 'Lipsește data unui test',
+            tone: 'destructive',
+          });
+        } else if (!isoDate.test(takenOn) || takenOn > context.today) {
+          decisions.push({
+            key: `test-date-${row.id}`,
+            anchor: 'trainings',
+            label: `Corectează data ${testName(row)}, care e în viitor`,
+            tag: 'Un test cu data în viitor',
+            tone: 'destructive',
+          });
+        }
       }
       const name = 'examinerName' in own ? own.examinerName : row.test.examinerName;
       const title = 'examinerJobTitle' in own ? own.examinerJobTitle : row.test.examinerJobTitle;

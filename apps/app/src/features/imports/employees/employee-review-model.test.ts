@@ -494,9 +494,34 @@ describe('the hiring test confirming writes', () => {
     );
   });
 
-  it('wants a test date that is not in the future', () => {
+  it('asks for the date once, on the row, while the row is taken', () => {
+    const undated = withRow(emptyChanges(), 'r1', () => ({ values: { heldOn: null } }));
+    const labels = decisionsOf(contextOf(undated), person('toma')).map(
+      (decision) => decision.label
+    );
+    expect(labels).toContain('Completează data instruirii introductiv-generale');
+    expect(labels).not.toContain('Completează data testului la angajare');
     const future = withRow(emptyChanges(), 'r1', () => ({ values: { heldOn: '2026-11-02' } }));
-    expect(tags(contextOf(future), 'toma')).toContain('Un test cu data în viitor');
+    expect(tags(contextOf(future), 'toma')).toContain('O instruire cu data în viitor');
+    expect(tags(contextOf(future), 'toma')).not.toContain('Un test cu data în viitor');
+  });
+
+  it('wants the test date itself when only the test is taken', () => {
+    const untaken = (heldOn: string | null) =>
+      withRow(emptyChanges(), 'r1', () => ({ included: false, values: { heldOn } }));
+    expect(tags(contextOf(untaken(null)), 'toma')).toEqual(
+      expect.arrayContaining(['Lipsește data unui test'])
+    );
+    expect(tags(contextOf(untaken('2026-11-02')), 'toma')).toContain('Un test cu data în viitor');
+  });
+
+  it('names a row without a date by its phase', () => {
+    const undated = withRow(emptyChanges(), 'r1', () => ({
+      values: { heldOn: null, material: null },
+    }));
+    expect(decisionsOf(contextOf(undated), person('toma')).map((each) => each.label)).toContain(
+      'Completează data, materialul la instruirea introductiv-generală'
+    );
   });
 });
 
