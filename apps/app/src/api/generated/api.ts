@@ -33674,7 +33674,7 @@ export const getListFoundSheetsUrl = (clientId: string) => {
 };
 
 /**
- * The training sheet photographs and PDFs a confirmed client import of the client set aside for the employee import (ADR 032), once they are in the client's files, that no employee import not abandoned or failed has taken: one taken by an import that is abandoned or fails is offered again. By the client import that found them, newest first. A file only owners see is listed to owners only.
+ * The training sheet photographs and PDFs a confirmed client import of the client set aside for the employee import (ADR 032), once they are in the client's files, that no employee import not abandoned or failed has taken: one taken by an import that is abandoned or fails is offered again. By the client import that found them, newest first. A photograph found twice, or one an import holds a copy of, is listed once or not at all. A file only owners see is never listed, since its copy would be an import file every member reads.
  * @summary The sheet photographs a client's documentation pack held
  */
 export const listFoundSheets = async (

@@ -1492,7 +1492,11 @@ key, each a row like an uploaded file's with `source_file_id` naming the client 
 (`20261101140000_import_found_sheets`, [ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)).
 A copy rather than a reference keeps the bucket's policies, the caps and the clean-up those of an
 upload, and the client's files whatever becomes of the import. A found photograph is offered
-while no employee import that is not abandoned or failed holds a copy of it.
+while no employee import that is not abandoned or failed holds a copy of it, or of a photograph
+with its SHA-256, and never when it is for owners only. The API marks the copies `uploaded` with
+`mark_found_sheets_uploaded(import, files)` (`20261101180000_mark_found_sheets_uploaded`), which
+locks the import's row and refuses (`IMP01`) once the import is no longer `uploading`, or a copy
+was dropped or moved on by the start.
 
 ## Profiles
 
