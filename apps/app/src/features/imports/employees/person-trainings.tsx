@@ -163,10 +163,10 @@ function TrainingRow({
             {row.phase !== 'periodic' && ` · ${trainingPhaseLabels[row.phase]}`}
           </span>
         </span>
-        <span className="col-start-2 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-start-auto">
+        <span className="col-span-3 col-start-2 flex flex-wrap items-center gap-1.5 text-sm tabular-nums sm:col-span-1 sm:col-start-auto">
           {durationLabel(values.durationMinutes) ?? missing(null, 'Durata nu se citește')}
         </span>
-        <span className="col-start-2 text-sm sm:col-start-auto">
+        <span className="col-span-3 col-start-2 text-sm sm:col-span-1 sm:col-start-auto">
           {trainerText(values) || missing(null, 'Instructorul nu se citește')}
         </span>
         <span className="col-start-4 row-start-1 flex sm:col-start-auto sm:row-start-auto">
