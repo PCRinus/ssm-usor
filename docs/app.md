@@ -999,7 +999,9 @@ their tab bars read.
   so. Both viewers load lazily. "Descarcă originalul" asks Storage for the file under its name.
 - In "Alte documente", the files of an import (`importId`) sit under one collapsed row, "Dosar
   importat pe … · N fișiere", with their folders beneath it and "Necitit" on the files the
-  import did not read. "Descarcă tot dosarul (ZIP)" fetches them one by one and stores them in a
+  import did not read; the scanned PDFs of an employee import (`importKind` `employees`) under
+  "Fișe importate pe … · N fișiere", "Fișele scanate din care au fost transcrise instruirile.
+  Fiecare angajat are la fișierele sale doar paginile lui." "Descarcă tot dosarul (ZIP)" fetches them one by one and stores them in a
   ZIP built in the browser with `fflate`, uncompressed.
 - The editor is one view for both kinds of document. `DocumentEditorView` takes a
   `DocumentSource` (the document, the state of its query, how to refetch and invalidate, and

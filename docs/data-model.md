@@ -1240,8 +1240,9 @@ import is kept as long as one of its files is (`on delete restrict`). An employe
 an employee import ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md))
 also names, in `import_file_id`, the import's file it is a copy of, since one photograph can be
 a file of several employees (`client_files_import_file_idx`; set null if that row goes, and only
-with an `import_id`). Only confirming an import fills these columns: the column grants leave
-them out of a member's insert.
+with an `import_id`), and in `import_page` the page of a PDF whose image it is (1 to 10,000, only
+with an `import_file_id`). Only confirming an import fills these columns: the column grants
+leave them out of a member's insert.
 
 ## Imports from documents
 
@@ -1286,6 +1287,12 @@ composite key to `imports (id, organization_id)`, deleted with the import:
 | `input_tokens`, `cached_input_tokens`, `output_tokens`, `cost_usd` | The requests that read this file on its own, a scan or a photograph; the import's totals include them.                                                       |
 | `client_file_id`                                                   | The client file it became in the import folder; set null if that file is deleted.                                                                            |
 | `source_file_id`                                                   | An employee import's copy of a sheet photograph a confirmed client import found (`for_employees`): that client import's file; set null if that row goes.     |
+
+`import_page_images` (`20261101170000_employee_sheet_pages`) holds, per `(import_file_id,
+page)`, the `size_bytes` (up to 25 MiB) and `sha256` of the JPEG of a PDF's page an employee
+import read, which the pipeline keeps beside the PDF at `<id>.page-<n>.jpg` before reading the
+page: what becomes the file of the page's employee. Its rows go with their file; only the secret
+key reads and writes them, and `apply_employee_import` reads them as its owner.
 
 `limit_import_files` locks the import and refuses a file once the import is past `uploading`
 (`IMP01`), or one past the caps of the import's kind (`IMP05`): a client import holds 150 files
@@ -1413,8 +1420,8 @@ and the import is confirmed with its client, `confirmed_by` and `quality`.
 The API then copies each `source_path` in `imports` to its `target_path` in `client-files`,
 treating an object already there as copied, and sets `files_copied_at` with the secret key.
 `import_folder_copies(import)` lists the same copies again, under the caller's policies, for a
-copy that was interrupted. For an employee import it lists each employee's file, from the
-photograph's converted JPEG or the PDF as it is.
+copy that was interrupted. For an employee import it lists each file it made, from the
+photograph's converted JPEG, the page's image (`<id>.page-<n>.jpg`) or the PDF as it is.
 
 **Confirming an employee import.** `apply_employee_import(import, expected version, payload)`
 ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)) writes everything
@@ -1438,7 +1445,7 @@ refusing a field it does not name (`22023`):
     "admitted_by_job_title" }] }],
   "test_results": [{ "employee_key", "domain", "test", "taken_on", "material",
     "examiner_name", "examiner_job_title" }],
-  "files": [{ "employee_key", "import_file_id" }],
+  "files": [{ "employee_key", "import_file_id", "page" }],
   "quality": { "<section>": { "changed": 0, "unticked": 0, "kept": 0 } }
 }
 ```
@@ -1459,7 +1466,13 @@ refusing a field it does not name (`22023`):
   `test_results_hiring_once` (`23514`).
 - A file is one of the import's files, past `uploading`: a client file of the employee in the
   import's folder, at its top, uploaded by the member who created the import; a photograph as its
-  converted JPEG, a PDF as it is. A file listed for several employees is a file of each, and
+  converted JPEG. A PDF goes page by page: `page` names one whose image `import_page_images`
+  holds (`22023` without it, for a page with no image, or for `page` on a photograph), and the
+  employee's file is that JPEG, `<name> — pagina <n>.jpg`, so a PDF holding several people's
+  sheets gives each only their own pages. The PDF itself becomes, once, a client file of the
+  client (no employee) in the import's folder, in the folders of its `upload_path`, unless it is
+  a copy of a sheet found in the client's documentation pack (`source_file_id`), which is among
+  the client's files already. A file or page listed for several employees is a file of each, and
   listed twice for the same employee, one. Its import file's `client_file_id` stays null.
 - The import is confirmed with `confirmed_by` and `quality`.
 
