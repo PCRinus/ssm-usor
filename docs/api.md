@@ -102,7 +102,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /clients/{clientId}/files/{fileId}/download`                      | Verified user with a membership       | `{ "url", "fileName", "disposition", "expiresInSeconds" }`, a link valid for a minute                                                                                                              |
 | `DELETE /clients/{clientId}/files/{fileId}`                            | Uploader or owner                     | `204` after deleting the stored file and the row                                                                                                                                                   |
 | `POST /imports`                                                        | Verified user with a membership       | `201 { "import": { … } }`, an import from documents `uploading`, for a new client or `{ clientId }`; `{ clientId, kind: "employees", addFoundSheets? }` for an employee import                     |
-| `GET /imports`                                                         | Verified user with a membership       | `{ "items": [ … ] }`, the open imports of `?kind=` (client imports by default), failed ones included, newest first; `?clientId=` for one client's                                                  |
+| `GET /imports`                                                         | Verified user with a membership       | `{ "items": [ … ] }`, the open imports of `?kind=` (client imports by default), failed ones included, newest first; `?clientId=` for one client's; `?status=confirmed` the last ten confirmed      |
 | `GET /imports/{importId}`                                              | Verified user with a membership       | `{ "import": { … } }` with its files, progress, other companies, and from `ready` its proposal, changes and blockers                                                                               |
 | `POST /imports/{importId}/files`                                       | Verified user with a membership       | `201 { "files": [ … ] }`, the bucket and path each file is uploaded to, after registering `{ files }`                                                                                              |
 | `POST /imports/{importId}/start`                                       | Verified user with a membership       | `{ "import": { … } }`, `preparing`, after dropping files never uploaded and queueing the rest                                                                                                      |
@@ -2022,7 +2022,8 @@ empty, and `blockers` are `toEmployeePayload`'s for the people marked checked.
 import's. Each refuses the other kind with `409` and `import_wrong_kind`, as sending a set-aside
 file back to be read does for an employee import. `GET /imports?kind=employees&clientId=` lists a
 client's open employee imports, the Angajați tab's; without `kind` the list holds client imports
-only. Every summary carries `expiresAt`, when an import `uploading` or `ready` fails untouched,
+only. `?status=confirmed` lists the last ten confirmed instead, latest confirmation first: the
+Angajați tab offers to invite the people of the first to the portal. Every summary carries `expiresAt`, when an import `uploading` or `ready` fails untouched,
 14 days after the last change to it or its files, and `people`, an employee import's
 `{ total, toCheck, checked, setAside }` once ready.
 

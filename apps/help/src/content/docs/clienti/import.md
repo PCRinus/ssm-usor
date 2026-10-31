@@ -273,6 +273,6 @@ Termenul următoarei instruiri periodice se socotește de la datele de pe fișe.
 
 ### Portalul și actul adițional după import
 
-Importul nu invită pe nimeni în portal: invitația rămâne o acțiune a ta. După confirmare, tabul **Angajați** îți arată **Invită în portal angajații din fișe**, cu care îi inviți pe toți odată; emailurile și telefoanele pe care fișele nu le au le scrii acolo.
+Importul nu invită pe nimeni în portal: invitația rămâne o acțiune a ta. După confirmare, tabul **Angajați** îți arată **Invită în portal angajații din fișe**, cu care îi inviți pe toți odată; emailurile și telefoanele pe care fișele nu le au le scrii acolo. Cardul rămâne pe tab și la vizitele următoare, cu data importului și câți angajați mai ai de invitat, până când toți sunt invitați sau în portal ori până alegi **Ascunde**. Ascuns, nu mai apare pentru acel import în browserul în care lucrezi.
 
 Angajații importați sunt angajați existenți, cu contractul de muncă încheiat înainte. Ca să semneze instruirile în portal, semnează întâi actul adițional privind semnarea electronică. Instruirile de pe fișe rămân semnate pe hârtie: în portal apar ca transcrise de pe fișa pe hârtie, fără nimic de semnat. Vezi [Portalul și actul adițional](/clienti/angajati/portal-si-act-aditional/).

@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -77,12 +77,15 @@ const openImport = {
   people: { total: 40, toCheck: 16, checked: 23, setAside: 1 },
 };
 
+const confirmedAt = '2026-10-30T09:15:00+00:00';
+
 type Options = {
   detail?: ImportDetail;
   found?: typeof foundSheets;
   open?: unknown[];
   confirm?: () => Response;
   invitees?: unknown[];
+  confirmed?: unknown[];
 };
 
 function mockEmployeeImport({
@@ -91,9 +94,10 @@ function mockEmployeeImport({
   open = [],
   confirm,
   invitees = [],
+  confirmed,
 }: Options = {}) {
   let version = detail.version;
-  let confirmed = false;
+  let confirmedHere: unknown[] = [];
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
     if (url.pathname === `/imports/${importId}` && method === 'GET') {
@@ -104,15 +108,22 @@ function mockEmployeeImport({
       return Response.json({ version });
     }
     if (url.pathname === `/imports/${importId}/confirm`) {
-      confirmed = true;
-      return confirm?.() ?? Response.json({ clientId, fileCount: 0, employeeIds: [] });
+      const response = confirm?.() ?? Response.json({ clientId, fileCount: 0, employeeIds: [] });
+      if (response.ok) {
+        confirmedHere = [{ ...openImport, status: 'confirmed', confirmedAt, expiresAt: null }];
+      }
+      return response;
     }
     if (url.pathname === `/imports/${importId}/source`) {
       return Response.json({}, { status: 404 });
     }
-    if (url.pathname === '/imports') return Response.json({ items: open });
+    if (url.pathname === '/imports') {
+      return Response.json({
+        items: url.searchParams.get('status') === 'confirmed' ? (confirmed ?? confirmedHere) : open,
+      });
+    }
     if (url.pathname === `/clients/${clientId}`) {
-      const currentEmployeeCount = confirmed ? 1 : client.currentEmployeeCount;
+      const currentEmployeeCount = confirmedHere.length > 0 ? 1 : client.currentEmployeeCount;
       return Response.json({ client: { ...client, currentEmployeeCount }, canDelete: false });
     }
     if (url.pathname === `/clients/${clientId}/job-positions`) {
@@ -493,6 +504,68 @@ describe('confirming', () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(within(card).queryByTestId('employees-imported-invite')).toBeNull();
     expect(card.textContent).toContain('Ce urmează: invită-i în portal');
+  });
+
+  const confirmedImport = { ...openImport, status: 'confirmed', confirmedAt, expiresAt: null };
+
+  it('keeps offering the invitation on a later visit, with the day of the import and who is left', async () => {
+    mockEmployeeImport({
+      confirmed: [confirmedImport],
+      invitees: [
+        invitee(1, 'Lazăr'),
+        { ...invitee(2, 'Pop'), email: 'elena.pop@spiculauriu.ro' },
+        invitee(3, 'Toma', 'participant'),
+      ],
+    });
+    const user = userEvent.setup();
+    mount(`/clients/${clientId}/employees`);
+    const card = await screen.findByTestId('employees-imported');
+    expect(within(card).getByRole('heading', { level: 3 }).textContent).toBe(
+      'Angajați importați din fișe pe 30 oct.'
+    );
+    expect(card.textContent).toContain(
+      '2 angajați aduși de import nu sunt încă invitați în portal.'
+    );
+    expect(card.textContent).toContain(
+      '1 angajat nu are email sau telefon: le scrii în dialogul de invitare.'
+    );
+    await user.click(within(card).getByTestId('employees-imported-invite'));
+    expect(await screen.findByTestId('bulk-invite-dialog')).toBeTruthy();
+  });
+
+  it('shows nothing on a later visit once nobody the import brought is left to invite', async () => {
+    mockEmployeeImport({
+      confirmed: [confirmedImport],
+      invitees: [invitee(1, 'Lazăr', 'invited'), invitee(2, 'Pop', null, false)],
+    });
+    mount(`/clients/${clientId}/employees`);
+    await waitFor(() =>
+      expect(requestsTo(`/clients/${clientId}/imports/${importId}/portal-invitees`)).toHaveLength(1)
+    );
+    await screen.findByTestId('employees-page');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByTestId('employees-imported')).toBeNull();
+  });
+
+  it('stays hidden for the import the member hid', async () => {
+    mockEmployeeImport({ confirmed: [confirmedImport], invitees: [invitee(1, 'Lazăr')] });
+    const user = userEvent.setup();
+    mount(`/clients/${clientId}/employees`);
+    await user.click(
+      within(await screen.findByTestId('employees-imported')).getByTestId('employees-imported-hide')
+    );
+    expect(screen.queryByTestId('employees-imported')).toBeNull();
+    cleanup();
+    fetchMock.mockClear();
+    mount(`/clients/${clientId}/employees`);
+    await screen.findByTestId('employees-page');
+    await waitFor(() =>
+      expect(
+        requestsTo('/imports').some(([input]) => String(input).includes('status=confirmed'))
+      ).toBe(true)
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByTestId('employees-imported')).toBeNull();
   });
 
   it('names every value the confirm refused, as the review names them', async () => {

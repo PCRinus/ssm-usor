@@ -86,15 +86,15 @@ export const listImportsRoute = createRoute({
   method: 'get',
   path: '/imports',
   operationId: 'listImports',
-  summary: "List the organization's open imports",
+  summary: "List the organization's open or last confirmed imports",
   description:
-    "Every import of `kind` (client imports when left out) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time.",
+    "Every import of `kind` (client imports when left out) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first: with `kind` `employees` and `clientId`, the import whose people the Angajați tab offers to invite to the portal.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { query: listImportsQuerySchema },
   responses: {
     200: {
-      description: 'The open imports',
+      description: 'The open imports, or the last confirmed',
       content: {
         'application/json': {
           schema: importListResponseSchema.meta({ id: 'ImportListResponse' }),

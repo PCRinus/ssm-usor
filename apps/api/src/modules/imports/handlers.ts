@@ -1,6 +1,7 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
   clientConflictReasons,
+  confirmedListed,
   type EmployeeImportPeople,
   type FoundSheet,
   type ImportChanges,
@@ -428,14 +429,17 @@ export const createImport: RouteHandler<typeof createImportRoute, ApiEnv> = asyn
 };
 
 export const listImports: RouteHandler<typeof listImportsRoute, ApiEnv> = async (c) => {
-  const { clientId, kind = 'client' } = c.req.valid('query');
+  const { clientId, kind = 'client', status = 'open' } = c.req.valid('query');
   const db = createDataClient(c);
-  const query = db
-    .from('imports')
-    .select(summaryColumns)
-    .eq('kind', kind)
-    .in('status', [...openStatuses])
-    .order('created_at', { ascending: false })
+  const selected = db.from('imports').select(summaryColumns).eq('kind', kind);
+  const query = (
+    status === 'confirmed'
+      ? selected
+          .eq('status', 'confirmed')
+          .order('confirmed_at', { ascending: false })
+          .limit(confirmedListed)
+      : selected.in('status', [...openStatuses]).order('created_at', { ascending: false })
+  )
     .order('updated_at', { referencedTable: 'last_file', ascending: false })
     .limit(1, { referencedTable: 'last_file' });
   const { data, error } = await (clientId ? query.eq('client_id', clientId) : query);

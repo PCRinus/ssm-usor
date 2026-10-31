@@ -5,8 +5,9 @@ import { joinNames } from './review-format';
 
 export { joinNames };
 
-// In memory, for the client's Angajați tab until it is hidden or the page reloads: the
-// employees are saved either way, and their pages say where they came from.
+// In memory, for the first visit to the client's Angajați tab after the confirm: the import
+// keeps no record of who it created and who it completed, so a later visit shows only its date
+// and who is left to invite.
 export type EmployeesImported = {
   importId: string;
   created: number;
@@ -28,6 +29,25 @@ export const readEmployeesImported = (clientId: string) => notices.get(clientId)
 
 export function forgetEmployeesImported(clientId: string) {
   notices.delete(clientId);
+}
+
+const hiddenKey = (importId: string) => `ssm-usor:employees-imported-hidden:${importId}`;
+
+// Storage throws in some private windows; the card then comes back on the next visit.
+export function wasHiddenHere(importId: string) {
+  try {
+    return localStorage.getItem(hiddenKey(importId)) !== null;
+  } catch {
+    return false;
+  }
+}
+
+export function hideHere(importId: string) {
+  try {
+    localStorage.setItem(hiddenKey(importId), new Date().toISOString());
+  } catch {
+    return;
+  }
 }
 
 export function importedSentence(notice: EmployeesImported) {

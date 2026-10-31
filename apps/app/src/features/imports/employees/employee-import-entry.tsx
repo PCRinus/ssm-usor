@@ -30,9 +30,11 @@ import { isRunning, isUploadUnderway, photosLabel } from '../import-format';
 import {
   type EmployeesImported,
   forgetEmployeesImported,
+  hideHere,
   importedSentence,
   joinNames,
   readEmployeesImported,
+  wasHiddenHere,
 } from './employees-imported-notice';
 import { type FoundBatch, foundOn, useFoundSheets } from './found-sheets';
 import { FoundStrip } from './found-strip';
@@ -315,27 +317,59 @@ function OpenImportCard({
 }
 
 export function EmployeesImportedCard({ clientId }: { clientId: string }) {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { session } = useAuth();
+  const params = { clientId, kind: 'employees' as const, status: 'confirmed' as const };
+  const confirmed = useListImports(params, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getListImportsQueryKey(params), session?.user.id],
+      enabled: Boolean(session && apiRequest.baseUrl),
+    },
+  });
   // Read in the initializer and dropped in an effect: development mode calls an initializer
   // twice, and a read that also deleted would leave the second call with nothing.
-  const [notice, setNotice] = useState(() => readEmployeesImported(clientId));
+  const [notice] = useState(() => readEmployeesImported(clientId));
   useEffect(() => forgetEmployeesImported(clientId), [clientId]);
-  if (!notice) return null;
-  return <ImportedNoticeCard clientId={clientId} notice={notice} onHide={() => setNotice(null)} />;
+  const [hidden, setHidden] = useState<string | null>(null);
+  const latest = confirmed.data?.items[0];
+  if (!latest || hidden === latest.id || wasHiddenHere(latest.id)) return null;
+  return (
+    <ImportedNoticeCard
+      key={latest.id}
+      clientId={clientId}
+      item={latest}
+      notice={notice?.importId === latest.id ? notice : null}
+      onHide={() => {
+        hideHere(latest.id);
+        setHidden(latest.id);
+      }}
+    />
+  );
 }
 
 function ImportedNoticeCard({
   clientId,
+  item,
   notice,
   onHide,
 }: {
   clientId: string;
-  notice: EmployeesImported;
+  item: ImportListResponseItemsItem;
+  notice: EmployeesImported | null;
   onHide: () => void;
 }) {
   const { openBulkInvite, bulkInviteDialog } = useBulkInvite(clientId);
-  const invitees = useImportInvitees(clientId, notice.importId);
-  const uninvited = uninvitedOf(invitees.data?.items ?? []);
-  const created = notice.created;
+  const invitees = useImportInvitees(clientId, item.id);
+  const items = invitees.data?.items;
+  const uninvited = uninvitedOf(items ?? []);
+  if (!notice && uninvited === 0) return null;
+  const noContact =
+    notice?.noContact ??
+    (items ?? []).filter(
+      (invitee) => invitee.current && !invitee.portal && !invitee.email && !invitee.phone
+    ).length;
+  const allWithoutContact = noContact === (notice ? notice.created : uninvited);
   return (
     <Card
       className="grid gap-4 px-5 py-4"
@@ -348,13 +382,21 @@ function ImportedNoticeCard({
         </span>
         <div className="grid gap-1">
           <h3 id="employees-imported-title" className="font-semibold">
-            {created === 1
-              ? 'Un angajat creat din fișe'
-              : `${roCount(created, 'angajat creat', 'angajați creați')} din fișe`}
+            {notice
+              ? notice.created === 1
+                ? 'Un angajat creat din fișe'
+                : `${roCount(notice.created, 'angajat creat', 'angajați creați')} din fișe`
+              : `Angajați importați din fișe pe ${dayMonth.format(new Date(item.confirmedAt ?? item.createdAt))}`}
           </h3>
-          <p className="text-sm text-muted-foreground">{importedSentence(notice)}</p>
+          <p className="text-sm text-muted-foreground">
+            {notice
+              ? importedSentence(notice)
+              : uninvited === 1
+                ? 'Un angajat adus de import nu e încă invitat în portal.'
+                : `${roCount(uninvited, 'angajat', 'angajați')} aduși de import nu sunt încă invitați în portal.`}
+          </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={onHide}>
+        <Button variant="ghost" size="sm" data-testid="employees-imported-hide" onClick={onHide}>
           Ascunde
         </Button>
       </div>
@@ -366,23 +408,20 @@ function ImportedNoticeCard({
             instruirile pe telefon. Ce e pe fișe rămâne semnat pe hârtie.
           </p>
           <ul className="grid list-disc gap-1 pl-5 text-muted-foreground">
-            {notice.noContact > 0 && (
+            {noContact > 0 && (
               <li>
-                {notice.noContact === notice.created
+                {allWithoutContact
                   ? 'Fișele nu au email sau telefon: le scrii în dialogul de invitare.'
-                  : `${roCount(notice.noContact, 'angajat nu are', 'angajați nu au')} email sau telefon: le scrii în dialogul de invitare.`}
+                  : `${roCount(noContact, 'angajat nu are', 'angajați nu au')} email sau telefon: le scrii în dialogul de invitare.`}
               </li>
             )}
-            {notice.noCommute.length > 0 && (
+            {notice && notice.noCommute.length > 0 && (
               <li>Mai lipsește traseul de deplasare la {joinNames(notice.noCommute)}.</li>
             )}
           </ul>
         </div>
         {uninvited > 0 && (
-          <Button
-            data-testid="employees-imported-invite"
-            onClick={() => openBulkInvite(notice.importId)}
-          >
+          <Button data-testid="employees-imported-invite" onClick={() => openBulkInvite(item.id)}>
             <Send aria-hidden="true" />
             Invită în portal angajații din fișe
           </Button>

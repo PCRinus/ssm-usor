@@ -13566,6 +13566,10 @@ export type ListImportsParams = {
    * The imports of this kind; client imports when left out.
    */
   kind?: ListImportsKind;
+  /**
+   * The open imports when left out; `confirmed` the 10 confirmed last.
+   */
+  status?: ListImportsStatus;
 };
 
 export type ListImportsKind = (typeof ListImportsKind)[keyof typeof ListImportsKind];
@@ -13573,6 +13577,13 @@ export type ListImportsKind = (typeof ListImportsKind)[keyof typeof ListImportsK
 export const ListImportsKind = {
   client: 'client',
   employees: 'employees',
+} as const;
+
+export type ListImportsStatus = (typeof ListImportsStatus)[keyof typeof ListImportsStatus];
+
+export const ListImportsStatus = {
+  open: 'open',
+  confirmed: 'confirmed',
 } as const;
 
 export type GetImportSourceParams = {
@@ -32632,8 +32643,8 @@ export const getListImportsUrl = (params?: ListImportsParams) => {
 };
 
 /**
- * Every import of `kind` (client imports when left out) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time.
- * @summary List the organization's open imports
+ * Every import of `kind` (client imports when left out) neither confirmed nor abandoned, failed ones included, newest first: the rows the client list and a client's page show, or with `kind` `employees` and `clientId` the open import a client's Angajați tab shows. `expiresAt` is when an import uploading or ready for review fails if nobody changes it, and `people` an employee import's people by state once it is ready. Not paginated; an organization has a handful at a time. With `status` `confirmed`, the last ones confirmed instead, latest first: with `kind` `employees` and `clientId`, the import whose people the Angajați tab offers to invite to the portal.
+ * @summary List the organization's open or last confirmed imports
  */
 export const listImports = async (
   params?: ListImportsParams,
@@ -32726,7 +32737,7 @@ export function useListImports<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List the organization's open imports
+ * @summary List the organization's open or last confirmed imports
  */
 
 export function useListImports<

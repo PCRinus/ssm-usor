@@ -715,6 +715,35 @@ describe('GET /imports for employee imports', () => {
     expect(people!.url.searchParams.get('id')).toBe(`in.(${importId})`);
   });
 
+  it("lists a client's last confirmed employee imports, latest confirmation first", async () => {
+    mockUpstream(({ url }) =>
+      url.pathname === '/rest/v1/imports'
+        ? Response.json([
+            importRow({ status: 'confirmed', confirmed_at: '2026-10-30T09:15:00+00:00' }),
+          ])
+        : undefined
+    );
+    const response = await request(`/imports?clientId=${clientId}&kind=employees&status=confirmed`);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      items: [
+        {
+          id: importId,
+          status: 'confirmed',
+          confirmedAt: '2026-10-30T09:15:00+00:00',
+          expiresAt: null,
+          people: null,
+        },
+      ],
+    });
+    const [list] = callsTo('/rest/v1/imports');
+    expect(list!.url.searchParams.get('status')).toBe('eq.confirmed');
+    expect(list!.url.searchParams.get('order')).toBe('confirmed_at.desc');
+    expect(list!.url.searchParams.get('limit')).toBe('10');
+    expect(list!.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+  });
+
   it('lists client imports only when no kind is named', async () => {
     mockUpstream(({ url }) =>
       url.pathname === '/rest/v1/imports' ? Response.json([]) : undefined

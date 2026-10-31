@@ -246,6 +246,8 @@ export const importSummarySchema = z.object({
 
 export type ImportSummary = z.infer<typeof importSummarySchema>;
 
+export const confirmedListed = 10;
+
 export const listImportsQuerySchema = z.object({
   clientId: z.uuid().optional().meta({
     description: 'Only the imports into this client; without it, every open import.',
@@ -253,6 +255,12 @@ export const listImportsQuerySchema = z.object({
   kind: z.enum(importKinds).optional().meta({
     description: 'The imports of this kind; client imports when left out.',
   }),
+  status: z
+    .enum(['open', 'confirmed'])
+    .optional()
+    .meta({
+      description: `The open imports when left out; \`confirmed\` the ${confirmedListed} confirmed last.`,
+    }),
 });
 
 export type ListImportsQuery = z.infer<typeof listImportsQuerySchema>;
