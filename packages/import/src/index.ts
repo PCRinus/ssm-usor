@@ -26,6 +26,8 @@ export {
 export {
   type EmployeeImportClient,
   type EmployeeImportInput,
+  hiringTestRowIds,
+  includedByDefault,
   type SheetPageInput,
   type ThemeDefaults,
   type ThemeQuery,

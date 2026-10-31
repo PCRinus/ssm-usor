@@ -271,6 +271,25 @@ describe('toEmployeePayload', () => {
     expect(map().blockers).toContainEqual({ path: `people.${rusu}.fields.cnp`, code: 'invalid' });
   });
 
+  it('decides whether a person is written by the leave date as the member left it', () => {
+    const { proposal, changes, check, map } = setUp(rusuFront, comanFront);
+    const rusu = idOf(proposal, 'Rusu');
+    const coman = idOf(proposal, 'Coman');
+    check(rusu, coman);
+    changes.people[rusu]!.cnpCorrection = true;
+    changes.jobTitles[proposal.jobTitles[0]!.id] = { jobPositionId: positions[1]!.id };
+    changes.people[rusu]!.fields = { leftOn: { value: null } };
+    changes.people[coman]!.fields = { leftOn: { value: '2025-03-31' } };
+
+    expect(map().payload.employees.map((employee) => employee.key)).toEqual([rusu]);
+
+    changes.people[coman]!.included = true;
+    expect(map().payload.employees.find((employee) => employee.key === coman)).toMatchObject({
+      status: 'terminated',
+      terminated_at: '2025-03-31',
+    });
+  });
+
   it('blocks a choice between pages until made', () => {
     const { proposal, changes, check, map } = setUp(tomaFront, tomaPeriodic);
     const toma = idOf(proposal, 'Toma');

@@ -15,7 +15,7 @@ import {
   type TrainingPhase,
 } from '@ssm-usor/contracts';
 
-import { hiringTestRowIds } from './employee-import';
+import { hiringTestRowIds, includedByDefault } from './employee-import';
 import type { ExistingEmployee } from './employee-match';
 import type {
   EmployeeImportProposal,
@@ -307,7 +307,16 @@ export function toEmployeePayload(input: {
     const change = changes.people[person.id];
     const state = change?.state ?? 'to_check';
     if (state === 'to_check') toCheck.push(person.id);
-    const included = state === 'checked' && (change?.included ?? person.proposedIncluded);
+    const leftOn = resolveField(
+      person.fields.leftOn,
+      change?.fields?.leftOn,
+      new Set(pagesOf.get(person.id) ?? []),
+      () => {}
+    ).value;
+    const included =
+      state === 'checked' &&
+      (change?.included ??
+        includedByDefault(typeof leftOn === 'string' ? leftOn : null, person.existing !== null));
     if (!included) quality.people.unticked++;
     return included;
   });

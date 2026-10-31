@@ -76,6 +76,15 @@ export interface EmployeeImportInput {
   today: string;
 }
 
+/**
+ * Whether a person is written unless the member decides otherwise: a leaver is proposed unticked,
+ * by the leave date as the member left it.
+ */
+export function includedByDefault(leftOn: string | null, existing: boolean) {
+  // An existing employee is completed either way; leaving is then a choice on the leave date.
+  return leftOn === null || existing;
+}
+
 const priority: SheetPageKind[] = [
   'ssm_sheet_front',
   'psi_sheet_front',
@@ -499,8 +508,7 @@ export function toEmployeeProposal(input: EmployeeImportInput): EmployeeImportPr
       workplaceId: null,
       rowsInApp: 0,
       flags,
-      // An existing employee is completed either way; leaving is then a choice on the leave date.
-      proposedIncluded: leftOn === null || existing !== null,
+      proposedIncluded: includedByDefault(leftOn as string | null, existing !== null),
     });
     contexts.set(id, {
       hiredAt: (first(fields.hiredAt) as string | null) ?? existing?.hiredAt ?? null,
