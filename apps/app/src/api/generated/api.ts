@@ -12147,6 +12147,90 @@ export interface ParticipantInvitationRequest {
   address: string;
 }
 
+export type BulkEmployeeInvitationResponseResultsItemOutcome =
+  (typeof BulkEmployeeInvitationResponseResultsItemOutcome)[keyof typeof BulkEmployeeInvitationResponseResultsItemOutcome];
+
+export const BulkEmployeeInvitationResponseResultsItemOutcome = {
+  invited: 'invited',
+  skipped: 'skipped',
+  failed: 'failed',
+} as const;
+
+export type BulkEmployeeInvitationResponseResultsItemInvitationKind =
+  (typeof BulkEmployeeInvitationResponseResultsItemInvitationKind)[keyof typeof BulkEmployeeInvitationResponseResultsItemInvitationKind];
+
+export const BulkEmployeeInvitationResponseResultsItemInvitationKind = {
+  employee: 'employee',
+  client_administrator: 'client_administrator',
+} as const;
+
+export type BulkEmployeeInvitationResponseResultsItemInvitationChannel =
+  (typeof BulkEmployeeInvitationResponseResultsItemInvitationChannel)[keyof typeof BulkEmployeeInvitationResponseResultsItemInvitationChannel];
+
+export const BulkEmployeeInvitationResponseResultsItemInvitationChannel = {
+  email: 'email',
+  sms: 'sms',
+} as const;
+
+export type BulkEmployeeInvitationResponseResultsItemInvitationStatus =
+  (typeof BulkEmployeeInvitationResponseResultsItemInvitationStatus)[keyof typeof BulkEmployeeInvitationResponseResultsItemInvitationStatus];
+
+export const BulkEmployeeInvitationResponseResultsItemInvitationStatus = {
+  open: 'open',
+  expired: 'expired',
+  accepted: 'accepted',
+  revoked: 'revoked',
+} as const;
+
+/**
+ * @nullable
+ */
+export type BulkEmployeeInvitationResponseResultsItemInvitation = {
+  id: string;
+  clientId: string;
+  kind: BulkEmployeeInvitationResponseResultsItemInvitationKind;
+  /** @nullable */
+  employeeId: string | null;
+  fullName: string;
+  channel: BulkEmployeeInvitationResponseResultsItemInvitationChannel;
+  address: string;
+  status: BulkEmployeeInvitationResponseResultsItemInvitationStatus;
+  lastSentAt: string;
+  resendableAt: string;
+  expiresAt: string;
+  createdAt: string;
+} | null;
+
+export type BulkEmployeeInvitationResponseResultsItem = {
+  employeeId: string;
+  outcome: BulkEmployeeInvitationResponseResultsItemOutcome;
+  /** @nullable */
+  reason: string | null;
+  /** @nullable */
+  invitation: BulkEmployeeInvitationResponseResultsItemInvitation;
+};
+
+export interface BulkEmployeeInvitationResponse {
+  results: BulkEmployeeInvitationResponseResultsItem[];
+}
+
+export type BulkEmployeeInvitationRequestInvitationsItem = {
+  employeeId: string;
+  /**
+   * @minLength 1
+   * @maxLength 254
+   */
+  address: string;
+};
+
+export interface BulkEmployeeInvitationRequest {
+  /**
+   * @minItems 1
+   * @maxItems 25
+   */
+  invitations: BulkEmployeeInvitationRequestInvitationsItem[];
+}
+
 export type ClientAdministratorInvitationRequestChannel =
   (typeof ClientAdministratorInvitationRequestChannel)[keyof typeof ClientAdministratorInvitationRequestChannel];
 
@@ -37378,6 +37462,121 @@ export const useInviteEmployeeParticipant = <
   return useMutation(getInviteEmployeeParticipantMutationOptions(options), queryClient);
 };
 
+export const getInviteEmployeeParticipantsUrl = (clientId: string) => {
+  return `/clients/${clientId}/employee-participant-invitations`;
+};
+
+/**
+ * Up to 25 employees, one after the other (ADR 032). An address with `@` goes by email, any other as a phone by SMS, normalized to E.164 with Romania as the default country. A typed address the employee's row does not hold is saved to it first, as editing the employee does. Each invitation is then the one `inviteEmployeeParticipant` sends, under the same rules. A former employee, a participant and an employee with an open invitation are skipped with nothing saved or sent. One result per row, in order: `invited`, `skipped` or `failed` with its `reason`; a row failing never stops the next. A failed message leaves the invitation saved, in `invitation`, for a resend 10 minutes after it.
+ * @summary Invite several employees to the portal, each at an address typed for them
+ */
+export const inviteEmployeeParticipants = async (
+  clientId: string,
+  bulkEmployeeInvitationRequest: BulkEmployeeInvitationRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<BulkEmployeeInvitationResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<BulkEmployeeInvitationResponse>(getInviteEmployeeParticipantsUrl(clientId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bulkEmployeeInvitationRequest),
+  });
+};
+
+export const getInviteEmployeeParticipantsMutationKey = () =>
+  ['inviteEmployeeParticipants'] as const;
+
+export const getInviteEmployeeParticipantsMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof inviteEmployeeParticipants>>,
+    TError,
+    InviteEmployeeParticipantsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof inviteEmployeeParticipants>>,
+  TError,
+  InviteEmployeeParticipantsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getInviteEmployeeParticipantsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof inviteEmployeeParticipants>>,
+    InviteEmployeeParticipantsMutationVariables
+  > = (props) => {
+    const { clientId, data } = props ?? {};
+
+    return inviteEmployeeParticipants(clientId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InviteEmployeeParticipantsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof inviteEmployeeParticipants>>
+>;
+export type InviteEmployeeParticipantsMutationBody = BulkEmployeeInvitationRequest;
+export type InviteEmployeeParticipantsMutationError = ErrorType<ApiErrorResponse>;
+export type InviteEmployeeParticipantsMutationVariables = {
+  clientId: string;
+  data: BulkEmployeeInvitationRequest;
+};
+
+/**
+ * @summary Invite several employees to the portal, each at an address typed for them
+ */
+export const useInviteEmployeeParticipants = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof inviteEmployeeParticipants>>,
+      TError,
+      InviteEmployeeParticipantsMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof inviteEmployeeParticipants>>,
+  TError,
+  InviteEmployeeParticipantsMutationVariables,
+  TContext
+> => {
+  return useMutation(getInviteEmployeeParticipantsMutationOptions(options), queryClient);
+};
+
 export const getInviteClientAdministratorUrl = (clientId: string) => {
   return `/clients/${clientId}/participant-invitations`;
 };
@@ -37621,6 +37820,152 @@ export function useListClientParticipants<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getListClientParticipantsQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListImportPortalInviteesUrl = (clientId: string, importId: string) => {
+  return `/clients/${clientId}/imports/${importId}/portal-invitees`;
+};
+
+/**
+ * Every employee a confirmed employee import of the client created or completed (ADR 032), the ones whose sheets it filed among the employee's files, by name: their email and phone as their row holds them, whether they are current, and whether they are a participant or hold an invitation neither accepted, revoked nor expired.
+ * @summary The employees a confirmed employee import brought, with their standing on the portal
+ */
+export const listImportPortalInvitees = async (
+  clientId: string,
+  importId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<PortalInviteesResponse> => {
+  return apiFetch<PortalInviteesResponse>(getListImportPortalInviteesUrl(clientId, importId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListImportPortalInviteesQueryKey = (clientId: string, importId: string) => {
+  return [`/clients/${clientId}/imports/${importId}/portal-invitees`] as const;
+};
+
+export const getListImportPortalInviteesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listImportPortalInvitees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  importId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listImportPortalInvitees>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListImportPortalInviteesQueryKey(clientId, importId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listImportPortalInvitees>>> = ({
+    signal,
+  }) => listImportPortalInvitees(clientId, importId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled:
+      clientId !== null && clientId !== undefined && importId !== null && importId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listImportPortalInvitees>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListImportPortalInviteesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listImportPortalInvitees>>
+>;
+export type ListImportPortalInviteesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListImportPortalInvitees<
+  TData = Awaited<ReturnType<typeof listImportPortalInvitees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  importId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listImportPortalInvitees>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listImportPortalInvitees>>,
+          TError,
+          Awaited<ReturnType<typeof listImportPortalInvitees>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListImportPortalInvitees<
+  TData = Awaited<ReturnType<typeof listImportPortalInvitees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  importId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listImportPortalInvitees>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listImportPortalInvitees>>,
+          TError,
+          Awaited<ReturnType<typeof listImportPortalInvitees>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListImportPortalInvitees<
+  TData = Awaited<ReturnType<typeof listImportPortalInvitees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  importId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listImportPortalInvitees>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The employees a confirmed employee import brought, with their standing on the portal
+ */
+
+export function useListImportPortalInvitees<
+  TData = Awaited<ReturnType<typeof listImportPortalInvitees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  importId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listImportPortalInvitees>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListImportPortalInviteesQueryOptions(clientId, importId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

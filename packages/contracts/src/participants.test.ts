@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  bulkEmployeeInvitationRequestSchema,
   clientAdministratorInvitationRequestSchema,
   participantInvitationRequestSchema,
+  typedInvitationAddress,
 } from './participants';
 
 describe('participantInvitationRequestSchema', () => {
@@ -56,5 +58,49 @@ describe('clientAdministratorInvitationRequestSchema', () => {
       address: 'hr@client.ro',
     });
     expect(parsed.error?.issues.map((issue) => issue.path)).toEqual([['fullName']]);
+  });
+});
+
+describe('typedInvitationAddress', () => {
+  it('goes by email when an email is typed', () => {
+    expect(typedInvitationAddress(' Daniela.Coman@Yahoo.com ')).toEqual({
+      channel: 'email',
+      address: 'daniela.coman@yahoo.com',
+    });
+  });
+
+  it('goes by SMS when a phone is typed, in E.164', () => {
+    expect(typedInvitationAddress('0742 115 980')).toEqual({
+      channel: 'sms',
+      address: '+40742115980',
+    });
+  });
+
+  it.each(['ion@', '0742', 'tel 0742 115 980', ''])('takes neither from %j', (text) => {
+    expect(typedInvitationAddress(text)).toBeNull();
+  });
+});
+
+describe('bulkEmployeeInvitationRequestSchema', () => {
+  const employeeId = 'e1e1e1e1-0000-4000-8000-000000000001';
+
+  it('keeps an address that is neither email nor phone for its own row', () => {
+    expect(
+      bulkEmployeeInvitationRequestSchema.safeParse({
+        invitations: [{ employeeId, address: 'nu știu' }],
+      }).success
+    ).toBe(true);
+  });
+
+  it('invites an employee once per request', () => {
+    const parsed = bulkEmployeeInvitationRequestSchema.safeParse({
+      invitations: [
+        { employeeId, address: 'ion@example.ro' },
+        { employeeId, address: '0721000002' },
+      ],
+    });
+    expect(parsed.error?.issues.map((issue) => issue.path)).toEqual([
+      ['invitations', 1, 'employeeId'],
+    ]);
   });
 });

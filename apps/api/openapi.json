@@ -18659,6 +18659,126 @@
         },
         "required": ["channel", "address"]
       },
+      "BulkEmployeeInvitationResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "employeeId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "outcome": {
+                  "type": "string",
+                  "enum": ["invited", "skipped", "failed"]
+                },
+                "reason": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "invitation": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "clientId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": ["employee", "client_administrator"]
+                    },
+                    "employeeId": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    },
+                    "fullName": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": ["email", "sms"]
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["open", "expired", "accepted", "revoked"]
+                    },
+                    "lastSentAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "resendableAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "clientId",
+                    "kind",
+                    "employeeId",
+                    "fullName",
+                    "channel",
+                    "address",
+                    "status",
+                    "lastSentAt",
+                    "resendableAt",
+                    "expiresAt",
+                    "createdAt"
+                  ]
+                }
+              },
+              "required": ["employeeId", "outcome", "reason", "invitation"]
+            }
+          }
+        },
+        "required": ["results"]
+      },
+      "BulkEmployeeInvitationRequest": {
+        "type": "object",
+        "properties": {
+          "invitations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "employeeId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "address": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 254
+                }
+              },
+              "required": ["employeeId", "address"]
+            },
+            "minItems": 1,
+            "maxItems": 25
+          }
+        },
+        "required": ["invitations"]
+      },
       "ClientAdministratorInvitationRequest": {
         "type": "object",
         "properties": {
@@ -18827,6 +18947,59 @@
           }
         },
         "required": ["participants", "invitations"]
+      },
+      "PortalInviteesResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "employeeId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "lastName": {
+                  "type": "string"
+                },
+                "firstName": {
+                  "type": "string"
+                },
+                "position": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "phone": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "current": {
+                  "type": "boolean"
+                },
+                "portal": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["participant", "invited", null]
+                }
+              },
+              "required": [
+                "employeeId",
+                "lastName",
+                "firstName",
+                "position",
+                "email",
+                "phone",
+                "current",
+                "portal"
+              ]
+            }
+          }
+        },
+        "required": ["items"]
       },
       "PortalMeResponse": {
         "type": "object",
@@ -42519,6 +42692,121 @@
         }
       }
     },
+    "/clients/{clientId}/employee-participant-invitations": {
+      "post": {
+        "operationId": "inviteEmployeeParticipants",
+        "summary": "Invite several employees to the portal, each at an address typed for them",
+        "description": "Up to 25 employees, one after the other (ADR 032). An address with `@` goes by email, any other as a phone by SMS, normalized to E.164 with Romania as the default country. A typed address the employee's row does not hold is saved to it first, as editing the employee does. Each invitation is then the one `inviteEmployeeParticipant` sends, under the same rules. A former employee, a participant and an employee with an open invitation are skipped with nothing saved or sent. One result per row, in order: `invited`, `skipped` or `failed` with its `reason`; a row failing never stops the next. A failed message leaves the invitation saved, in `invitation`, for a resend 10 minutes after it.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkEmployeeInvitationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "One result per invitation asked for",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkEmployeeInvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived or a lead; see `reason`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clients/{clientId}/participant-invitations": {
       "post": {
         "operationId": "inviteClientAdministrator",
@@ -42698,6 +42986,110 @@
           },
           "404": {
             "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/imports/{importId}/portal-invitees": {
+      "get": {
+        "operationId": "listImportPortalInvitees",
+        "summary": "The employees a confirmed employee import brought, with their standing on the portal",
+        "description": "Every employee a confirmed employee import of the client created or completed (ADR 032), the ones whose sheets it filed among the employee's files, by name: their email and phone as their row holds them, whether they are current, and whether they are a participant or hold an invitation neither accepted, revoked nor expired.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "importId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The employees, by last and first name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalInviteesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No confirmed employee import of this client has this id",
             "content": {
               "application/json": {
                 "schema": {

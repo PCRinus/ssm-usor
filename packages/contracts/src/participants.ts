@@ -170,6 +170,116 @@ export const participantErrorReasons = {
 export type ParticipantErrorReason =
   (typeof participantErrorReasons)[keyof typeof participantErrorReasons];
 
+/**
+ * An address typed for a bulk invitation (ADR 032): what is typed decides the channel, an email
+ * by email, anything else as a phone by SMS, normalized as the employee's own fields are. Null
+ * when it is neither a valid email nor a valid phone.
+ */
+export function typedInvitationAddress(
+  text: string
+): { channel: ParticipantChannel; address: string } | null {
+  const trimmed = text.trim();
+  if (trimmed.includes('@')) {
+    const email = invitedEmailSchema.safeParse(trimmed).data;
+    return email ? { channel: 'email', address: email } : null;
+  }
+  const phone = normalizePhone(trimmed);
+  return phone ? { channel: 'sms', address: phone } : null;
+}
+
+// The most invitations one request sends; the app sends a longer list in turns.
+export const bulkInvitationLimit = 25;
+
+export const bulkEmployeeInvitationRequestSchema = z
+  .object({
+    invitations: z
+      .array(
+        z.object({
+          employeeId: z.uuid(),
+          // An email or a phone as typed; one that is neither is answered on its own row.
+          address: z.string().trim().min(1).max(254),
+        })
+      )
+      .min(1)
+      .max(bulkInvitationLimit),
+  })
+  .superRefine((body, ctx) => {
+    const seen = new Set<string>();
+    body.invitations.forEach((invitation, index) => {
+      if (seen.has(invitation.employeeId)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['invitations', index, 'employeeId'],
+          message: 'An employee is invited once per request.',
+        });
+      }
+      seen.add(invitation.employeeId);
+    });
+  });
+
+export type BulkEmployeeInvitationRequest = z.input<typeof bulkEmployeeInvitationRequestSchema>;
+
+/** Why a bulk invitation left a person out without trying: nothing was sent or saved. */
+export const bulkInvitationSkipReasons = {
+  formerEmployee: 'former_employee',
+  employeeHasParticipant: participantErrorReasons.employeeHasParticipant,
+  employeeInvited: 'employee_invited',
+} as const;
+
+export const bulkInvitationFailureReasons = {
+  employeeNotFound: 'employee_not_found',
+  contactNotSaved: 'contact_not_saved',
+  invitationFailed: 'invitation_failed',
+} as const;
+
+export const bulkInvitationOutcomes = ['invited', 'skipped', 'failed'] as const;
+export const bulkInvitationOutcomeSchema = z.enum(bulkInvitationOutcomes);
+export type BulkInvitationOutcome = z.infer<typeof bulkInvitationOutcomeSchema>;
+
+export const bulkInvitationResultSchema = z.object({
+  employeeId: z.uuid(),
+  outcome: bulkInvitationOutcomeSchema,
+  // Null when invited; else a skip reason, a failure reason or a participant error reason.
+  reason: z.string().nullable(),
+  // Set when invited, and when only the message failed: the invitation is saved for a resend.
+  invitation: participantInvitationSchema.nullable(),
+});
+
+export type BulkInvitationResult = z.infer<typeof bulkInvitationResultSchema>;
+
+/** One result per requested invitation, in the request's order. */
+export const bulkEmployeeInvitationResponseSchema = z.object({
+  results: z.array(bulkInvitationResultSchema),
+});
+
+export type BulkEmployeeInvitationResponse = z.infer<typeof bulkEmployeeInvitationResponseSchema>;
+
+export const portalStandings = ['participant', 'invited'] as const;
+export const portalStandingSchema = z.enum(portalStandings);
+export type PortalStanding = z.infer<typeof portalStandingSchema>;
+
+export const portalInviteeSchema = z.object({
+  employeeId: z.uuid(),
+  lastName: z.string(),
+  firstName: z.string(),
+  position: z.string(),
+  email: z.string().nullable(),
+  phone: z.string().nullable(),
+  // False for a former employee, who is not invited.
+  current: z.boolean(),
+  // `invited`: an invitation neither accepted, revoked nor expired. Null: neither.
+  portal: portalStandingSchema.nullable(),
+});
+
+export type PortalInvitee = z.infer<typeof portalInviteeSchema>;
+
+/** The employees an employee import created or completed, by name. */
+export const portalInviteesResponseSchema = z.object({
+  items: z.array(portalInviteeSchema),
+});
+
+export type PortalInviteesResponse = z.infer<typeof portalInviteesResponseSchema>;
+
 /** One client the signed-in account is a participant of, from `current_participations()`. */
 export const portalParticipationSchema = z.object({
   participantId: z.uuid(),

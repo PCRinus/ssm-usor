@@ -1011,6 +1011,8 @@ portal's client.
 | `POST /participant-invitations/{invitationId}/resend`                     | The invitation renewed for 30 days, after sending its message again         |
 | `POST /participant-invitations/{invitationId}/revoke`                     | `204`                                                                       |
 | `POST /client-participants/{participantId}/revoke`                        | `204`; the person's records stay                                            |
+| `GET /clients/{clientId}/imports/{importId}/portal-invitees`              | `{ items }`: the employees a confirmed employee import brought              |
+| `POST /clients/{clientId}/employee-participant-invitations`               | `200` with `{ results }`, one per invitation asked for                      |
 
 A participant carries the `channel` and `address` of the accepted invitation, which is what
 they sign in with, `noticeVersion`, and `language`, `ro` or `en` once they chose one in the
@@ -1047,6 +1049,29 @@ Errors carry a `reason` from `participantErrorReasons` in the contracts, all `40
 `employee_required`, `full_name_required`, `invalid_address`, `sent_recently`,
 `invitation_accepted`, `invitation_revoked`, plus `client_archived` and `client_is_lead`. A
 client, employee or invitation outside the organization is `404`.
+
+### Inviting the people of an employee import at once
+
+[ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md) adds the bulk
+invitation. `portal-invitees` lists the employees whose sheets a confirmed employee import filed
+among their files (`client_files.import_id`), which are the employees it created or completed:
+an import keeps no list of its own, and the files outlive its proposal. Each carries its email
+and phone as the row holds them, `current` (false for a former employee) and `portal`,
+`participant`, `invited` (an invitation neither accepted, revoked nor expired) or null.
+
+`employee-participant-invitations` takes `{ invitations: [{ employeeId, address }] }`, at most
+`bulkInvitationLimit` (25) rows with each employee once; the app sends a longer list in turns.
+The address is as typed: with `@` it goes by email, otherwise as a phone by SMS
+(`typedInvitationAddress` in the contracts, which the app uses too). Rows run one after the
+other. A former employee (`former_employee`), a participant (`employee_has_participant`) and an
+employee with an open invitation (`employee_invited`) are `skipped` with nothing saved or sent.
+Otherwise an address the employee's row does not hold is saved to it, as editing the employee
+does, and the invitation is the single one's: `create_participant_invitation`, the account, the
+message. A row that cannot be done is `failed` with its `reason`: a participant error reason,
+`invalid_address` for text that is neither, `employee_not_found`, `contact_not_saved` or
+`invitation_failed`; when only the account or the message failed, `invitation` holds the saved
+invitation for a resend. A failing row never stops the next. An archived client or a lead is
+`409` before any row, and a missing binding for a channel asked for `503`.
 
 ## Portal
 
