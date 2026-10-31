@@ -558,6 +558,11 @@ msgstr "If you give them an email address or a Romanian number, the code reaches
 msgid "Dacă îi dai o adresă de email, codul vine pe email și semnezi chiar azi."
 msgstr "If you give them an email address, the code comes by email and you sign today."
 
+#. placeholder {0}: target.shown
+#: src/features/auth/sign-in-page.tsx
+msgid "Dacă numărul are cont în portal, codul vine prin SMS în câteva minute la <0>{0}</0><1>Dacă nu primești nimic, cere-i specialistului SSM să-ți trimită invitația pe email.</1>"
+msgstr "If the number has a portal account, the code comes by SMS within a few minutes to <0>{0}</0><1>If nothing arrives, ask your SSM specialist to send you the invitation by email.</1>"
+
 #: src/features/my-data/my-data-page.tsx
 msgid "Data și locul nașterii"
 msgstr "Date and place of birth"
@@ -1077,10 +1082,6 @@ msgstr "We could not check your tests. Reload the page."
 #: src/features/signing/signing-messages.ts
 msgid "Nu avem o adresă de email sau un telefon la care să-ți trimitem codul. Spune-i specialistului."
 msgstr "We have no email address or phone number to send your code to. Tell your specialist."
-
-#: src/features/auth/sign-in-page.tsx
-msgid "Nu îți putem trimite acum codul prin SMS la acest număr. Dacă ai primit invitația și pe email, intră cu adresa de email. Altfel, spune-i specialistului SSM să-ți adauge o adresă de email."
-msgstr "We cannot text the code to this number now. If your invitation also came by email, sign in with that email address. Otherwise, ask your SSM specialist to add an email address."
 
 #: src/features/signing/sms-refusal-notice.tsx
 msgid "Nu îți putem trimite codul acum."

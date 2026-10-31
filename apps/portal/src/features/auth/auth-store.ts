@@ -22,16 +22,11 @@ export interface AuthClient {
   ): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
 }
 
-export type CodeRequestResult = 'requested' | 'unreachable' | 'challenge-failed' | 'sms-refused';
+export type CodeRequestResult = 'requested' | 'unreachable' | 'challenge-failed';
 export type CodeVerificationResult = 'signed-in' | 'invalid' | 'rate-limited' | 'unreachable';
 
 // supabase-js reports a request that never got an answer with status 0.
 const unreachable = (error: AuthError) => error.status === 0;
-
-// The Send SMS hook refuses with a 403, which Supabase passes on; a 5xx is a code that could not be
-// texted. A number with no account is a 422 (`otp_disabled`), a code asked for too soon a 429.
-const smsRefused = (error: AuthError) =>
-  error.status === 403 || (error.status !== undefined && error.status >= 500);
 
 export interface AuthSnapshot {
   status: 'loading' | 'ready' | 'error' | 'unconfigured';
@@ -94,12 +89,11 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
         listeners.delete(listener);
       };
     },
-    // An address nobody invited and a rate limit read as a code on its way: telling them apart
-    // would say which addresses have an account. A refused Turnstile token says nothing about
-    // the address, so it is told apart. So is a number the Send SMS hook will not text (a trial,
-    // no organization that may text): Supabase calls the hook only for an existing account, so
-    // this says the number has one, which is accepted so that the person is not left waiting
-    // for a code that never comes (ADR 029).
+    // Every refusal reads as a code on its way: an address nobody invited, a rate limit, and a
+    // number the Send SMS hook will not text (a trial, no organization that may text, a 403 or a
+    // 5xx). Supabase calls the hook only for an account that exists, so telling its refusal apart
+    // would say which numbers have one. The page's wording for a number covers the refusal
+    // instead. A refused Turnstile token says nothing about the address, so it is told apart.
     async requestCode(address: SignInAddress, captchaToken?: string): Promise<CodeRequestResult> {
       if (!client) return 'unreachable';
       await ready;
@@ -109,9 +103,7 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
           options: { shouldCreateUser: false, captchaToken },
         });
         if (error && unreachable(error)) return 'unreachable';
-        if (error?.code === 'captcha_failed') return 'challenge-failed';
-        if (error && 'phone' in address && smsRefused(error)) return 'sms-refused';
-        return 'requested';
+        return error?.code === 'captcha_failed' ? 'challenge-failed' : 'requested';
       } catch {
         return 'unreachable';
       }

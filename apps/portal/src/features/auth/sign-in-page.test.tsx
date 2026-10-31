@@ -83,42 +83,36 @@ describe('signing in with a code', () => {
   });
 
   it.each([
+    ['a number that was texted', null],
     [
-      'the SMS hook refuses',
-      { message: 'Codes are not texted during a trial; sign in with your email.', status: 403 },
-    ],
-    ['the code cannot be texted', { message: 'Error sending SMS', status: 500 }],
-  ])('says the code cannot go by SMS when %s, and asks for the email', async (_case, error) => {
-    const client = fakeAuthClient();
-    client.signInWithOtp.mockResolvedValue({ error } as never);
-    await requestCode(client, '0721 234 567');
-
-    expect((await screen.findByTestId('sign-in-address-error')).textContent).toBe(
-      'Nu îți putem trimite acum codul prin SMS la acest număr. Dacă ai primit invitația și pe email, intră cu adresa de email. Altfel, spune-i specialistului SSM să-ți adauge o adresă de email.'
-    );
-    expect(screen.queryByTestId('sign-in-code')).toBeNull();
-  });
-
-  it('keeps the same answer for an email address whatever Supabase answers', async () => {
-    const client = fakeAuthClient();
-    client.signInWithOtp.mockResolvedValue({
-      error: { message: 'Error sending email', status: 500 },
-    } as never);
-    await requestCode(client, 'ana@example.ro');
-
-    expect((await screen.findByTestId('sign-in-code-sent')).textContent).toMatch(sameAnswer);
-  });
-
-  it.each([
-    [
-      'an address nobody invited',
+      'a number nobody invited',
       { message: 'Signups not allowed for otp', code: 'otp_disabled', status: 422 },
     ],
     ['a rate limit', { message: 'Too many requests', status: 429 }],
+    [
+      'a number the SMS hook refuses',
+      { message: 'Codes are not texted during a trial; sign in with your email.', status: 403 },
+    ],
+    ['a code that could not be texted', { message: 'Error sending SMS', status: 500 }],
+  ])('answers %s with the same words for every number', async (_case, error) => {
+    const client = fakeAuthClient();
+    if (error) client.signInWithOtp.mockResolvedValue({ error } as never);
+    await requestCode(client, '0721 234 567');
+
+    expect((await screen.findByTestId('sign-in-code-sent')).textContent).toBe(
+      'Dacă numărul are cont în portal, codul vine prin SMS în câteva minute la +40721234567Dacă nu primești nimic, cere-i specialistului SSM să-ți trimită invitația pe email.'
+    );
+    expect(screen.getByTestId('sign-in-code')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it.each([
+    ['an address nobody invited', { message: 'Signups not allowed for otp', status: 422 }],
+    ['a refused email', { message: 'Error sending email', status: 500 }],
   ])('answers %s exactly like a known address', async (_case, error) => {
     const client = fakeAuthClient();
     client.signInWithOtp.mockResolvedValue({ error } as never);
-    await requestCode(client, '0721 234 567');
+    await requestCode(client, 'ana@example.ro');
 
     expect((await screen.findByTestId('sign-in-code-sent')).textContent).toMatch(sameAnswer);
     expect(screen.queryByRole('alert')).toBeNull();

@@ -26,7 +26,6 @@ const unreachableMessage = msg`Cererea nu a putut fi trimisă. Verifică conexiu
 const requestFailures: Record<Exclude<CodeRequestResult, 'requested'>, MessageDescriptor> = {
   unreachable: unreachableMessage,
   'challenge-failed': msg`Verificarea de securitate nu a reușit. Reîncarcă pagina și încearcă din nou.`,
-  'sms-refused': msg`Nu îți putem trimite acum codul prin SMS la acest număr. Dacă ai primit invitația și pe email, intră cu adresa de email. Altfel, spune-i specialistului SSM să-ți adauge o adresă de email.`,
 };
 
 const foreignNumberMessage = msg`Codurile prin SMS pleacă doar spre numere din România (+40). Intră cu adresa de email la care ai primit invitația sau spune-i specialistului SSM să-ți adauge una.`;
@@ -105,15 +104,33 @@ export function SignInPage() {
         title={t`Scrie codul primit`}
         description={
           <span data-testid="sign-in-code-sent">
-            <Trans>
-              Dacă adresa este cunoscută, un cod este pe drum spre{' '}
-              <span
-                data-testid="sign-in-code-target"
-                className="block font-medium wrap-anywhere text-foreground"
-              >
-                {target.shown}
-              </span>
-            </Trans>
+            {'phone' in target.address ? (
+              // The same words whether the number has an account, was refused by the SMS hook or
+              // was texted: anything else would say which numbers have an account.
+              <Trans>
+                Dacă numărul are cont în portal, codul vine prin SMS în câteva minute la{' '}
+                <span
+                  data-testid="sign-in-code-target"
+                  className="block font-medium wrap-anywhere text-foreground"
+                >
+                  {target.shown}
+                </span>
+                <span className="mt-2 block">
+                  Dacă nu primești nimic, cere-i specialistului SSM să-ți trimită invitația pe
+                  email.
+                </span>
+              </Trans>
+            ) : (
+              <Trans>
+                Dacă adresa este cunoscută, un cod este pe drum spre{' '}
+                <span
+                  data-testid="sign-in-code-target"
+                  className="block font-medium wrap-anywhere text-foreground"
+                >
+                  {target.shown}
+                </span>
+              </Trans>
+            )}
           </span>
         }
       >
