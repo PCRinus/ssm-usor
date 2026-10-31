@@ -416,10 +416,13 @@ export function UploadProgress({
     phase.step === 'shrinking'
       ? [
           `Micșorăm fotografiile: ${phase.done} din ${phase.total}`,
-          (phase.done / phase.total) * 100,
+          (phase.done / Math.max(1, phase.total)) * 100,
         ]
       : phase.step === 'hashing'
-        ? [`Pregătim fișierele: ${phase.done} din ${phase.total}`, (phase.done / phase.total) * 100]
+        ? [
+            `Pregătim fișierele: ${phase.done} din ${phase.total}`,
+            (phase.done / Math.max(1, phase.total)) * 100,
+          ]
         : phase.step === 'uploading'
           ? [
               `Se încarcă: ${formatFileSize(phase.sentBytes)} din ${formatFileSize(phase.totalBytes)}`,

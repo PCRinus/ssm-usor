@@ -186,6 +186,10 @@ function mockApi(
     if (url.pathname === `/clients/${clientId}/document-details`) {
       return Response.json({ documentDetails: emptyDocumentDetails });
     }
+    if (url.pathname === '/imports') return Response.json({ items: [] });
+    if (url.pathname === `/clients/${clientId}/found-sheets`) {
+      return Response.json({ items: [], total: 0 });
+    }
     if (url.pathname === `/clients/${clientId}/workplaces`) {
       return routes.workplaces?.(init, url) ?? Response.json({ items: [] });
     }
@@ -431,7 +435,7 @@ describe('client employees list', () => {
     const runtime = mountApp(authFixture(makeSession()).client, employeesPath);
     await screen.findByTestId('employees-empty');
     expect(screen.getByTestId('employees-count').textContent).toBe('0 angajați');
-    await userEvent.setup().click(screen.getByRole('link', { name: 'Adaugă primul angajat' }));
+    await userEvent.setup().click(screen.getByRole('link', { name: /^Adaugă primul angajat/ }));
     await screen.findByTestId('new-employee-page');
     expect(runtime.router.state.location.pathname).toBe(`${employeesPath}/new`);
     const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });

@@ -194,6 +194,9 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clients/$clientId/employees.tsx`                                    | pathless                                                    | Employees section layout carrying the breadcrumb title.                                                                                                                                                     |
 | `routes/_authenticated/clients/$clientId/employees/index.tsx`                              | `/clients/:id/employees`                                    | The client's employees with a status filter, the state filters (`trainingState`, `testState`) and a text search (`q`) in the search params.                                                                 |
 | `routes/_authenticated/clients/$clientId/employees/new.tsx`                                | `/clients/:id/employees/new`                                | Form that adds an employee to the client.                                                                                                                                                                   |
+| `routes/_authenticated/clients/$clientId/employees/import/$importId.tsx`                   | `/clients/:id/employees/import/:importId`                   | Layout of an employee import (ADR 032), full page, carrying the breadcrumb "Angajați din fișe" and the store its review saves through.                                                                      |
+| `routes/_authenticated/clients/$clientId/employees/import/$importId/index.tsx`             | `/clients/:id/employees/import/:importId`                   | The employee import: its steps and photographs while it runs, the people hub once it is ready.                                                                                                              |
+| `routes/_authenticated/clients/$clientId/employees/import/$importId/$personId.tsx`         | `/clients/:id/employees/import/:importId/:personId`         | One person of the import, by the proposal's id; the loader names the breadcrumb after them.                                                                                                                 |
 | `routes/_authenticated/clients/$clientId/job-positions/index.tsx`                          | `/clients/:id/job-positions`                                | The client's job positions (ADR 006): the posts it employs people in, then the risk evaluations that are not of a position (ADR 015).                                                                       |
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId.tsx`                 | `/clients/:id/job-positions/:jobPositionId`                 | Layout of one position: finds it in the client's list of positions and names the breadcrumb.                                                                                                                |
 | `routes/_authenticated/clients/$clientId/job-positions/$jobPositionId/index.tsx`           | `/clients/:id/job-positions/:jobPositionId`                 | One position with its protective equipment (ADR 011), the instruction modules it applies (ADR 012) and its risk evaluation (ADR 015).                                                                       |
@@ -991,6 +994,43 @@ their tab bars read.
   "Modificat de tine". Confirming shows what is created, added, changed and kept, posts
   `/confirm` with the version, and opens the client's "Detalii" with a notice held in memory for
   that one visit (`import-notice.ts`).
+- The employee import ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)),
+  in `src/features/imports/employees/`. The client's Angajați tab offers three ways: "Adaugă
+  angajat", "Importă din fișele găsite în documentație (N fotografii)" while `GET
+/clients/{id}/found-sheets` lists sheets no employee import has taken, and "Importă din
+  fotografii noi" ("Importă din fișele de instruire" when none were found); the empty list shows
+  them as cards, the found sheets with their thumbnails (`GET …/files/{fileId}/download`). An
+  open import of the client (`GET /imports?kind=employees&clientId=`) shows above the list with
+  "N din M verificați", the day it expires and "Continuă"; after a confirm, the tab shows what
+  was created, held in memory for that visit (`employees-imported-notice.ts`). The upload dialog
+  (`employee-upload-dialog.tsx`) reuses the client import's selection with the employee caps
+  (photographs and PDFs only, 500 photographs or PDF pages with a PDF's pages estimated in the
+  browser, 25 MiB a file, 1 GiB in all, two counters), offers the found sheets ("Din
+  documentația importată pe …", "Adaugă-le"), warns a client without posts, and before hashing
+  makes JPEG and PNG photographs at most 2,000 pixels a side (`shrink-photo.ts`:
+  `createImageBitmap` upright by EXIF, `OffscreenCanvas` or a canvas, JPEG at 0.85; a HEIC, an
+  unreadable or an already small one goes as it is). It creates the import with `kind:
+employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the rest as the
+  client import does, and opens the import's page. While it runs, the page shows four steps and
+  the photographs read one by one; once ready, the hub (`employee-hub.tsx`): the progress with
+  "Continuă cu" the first person to check, the job titles of the sheets (a near title to
+  confirm, a missing one chosen once for all its people or added through `JobPositionDialog`;
+  exact ones in a quiet line), the workplaces the same way when the client has several, the
+  people by state with those still to check split into "Cu ceva de hotărât" and "Încă
+  nedeschise", the photographs no person took (assigned in a dialog or left out), and
+  "Creează angajații…". The person page (`person-page.tsx`) has the sticky, collapsible photo
+  column (`SheetPageView`: the converted JPEG with zoom, or the PDF at its page), the decisions
+  first (post, CNP with the corrected one offered, workplace, values the pages disagree on), the
+  data by group with "Schimbă", or for an existing employee "Se adaugă", "Diferă de aplicație"
+  (the app's value kept) and "Rămân la fel", the trainings per domain with the hiring block, the
+  admission, the paper test, the periodic rows to tick and their tags, and "După import"; a
+  number beside a value opens its photograph, full screen on a phone (`SourceDialog`). Moving
+  to the previous or next person marks one with nothing to decide checked. What a person still
+  needs, the groups and the confirm's counts are pure functions (`employee-review-model.ts`),
+  mirroring `@ssm-usor/import`'s payload. Every change goes to `PUT
+/imports/{id}/employee-changes`, one save after another on the version the previous answered.
+  Confirming names the people still to check, who are left out, posts `/confirm` and opens the
+  Angajați tab; a refused value names the person and the field.
 - "Sursa" opens `SourceDialog`, near full screen, stepping through every passage that quotes the
   value. A Word file (the `.docx` the import made of a `.doc`) opens in the editor in view mode,
   the passage found line by line with `findMatches` and marked with `useHighlights`; a PDF is
