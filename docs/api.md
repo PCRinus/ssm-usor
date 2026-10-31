@@ -1204,11 +1204,11 @@ those passed in both domains, any other state those in it in either, through an 
 **A paper result** is a test filled in on the printed copy and passed: the day (not in the
 future), the examiner, the grade `admis` and the material, by default the test's name and code
 (`testResultMaterial`). It is taken while the test can be owed, read from the hiring training
-and the last pass rather than from the state, which a leaver has none of: a hiring result once
+and the results rather than from the state, which a leaver has none of: a hiring result once
 the domain's hiring training is recorded (the introductory general one for occupational safety,
-the workplace one for fire safety) and before any pass, otherwise `409 test_not_awaiting`; an
-annual fire-safety one at any time, since a paper sheet may record annual tests where its hiring
-one could not be read ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)). A failed paper test is not recorded.
+the workplace one for fire safety) and before a hiring pass in that domain, otherwise
+`409 test_not_awaiting`; an annual fire-safety one at any time, since a paper sheet may record
+annual tests where its hiring one could not be read ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)). A failed paper test is not recorded.
 `PATCH` replaces the examiner, and of a paper result the day and the material; a portal result's
 day and material are the attempt's (`TST06`).
 

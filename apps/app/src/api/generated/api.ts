@@ -17842,7 +17842,7 @@ export const getRecordPaperTestResultUrl = (clientId: string, employeeId: string
 };
 
 /**
- * A test filled in on paper and passed: the day, the examiner and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken while the hiring test awaits the employee (a hiring training recorded, no pass yet); an annual one once the employee has a fire-safety pass. Otherwise reason `test_not_awaiting`. The day is not in the future. The result fills its row of the employee's stored signed sheet.
+ * A test filled in on paper and passed: the day, the examiner and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken once the domain's hiring training is recorded and before a hiring pass in that domain, otherwise reason `test_not_awaiting`; an annual fire-safety one at any time, since a paper sheet may record annual tests where its hiring one could not be read. The day is not in the future. The result fills its row of the employee's stored signed sheet.
  * @summary Record a pass of the printed test
  */
 export const recordPaperTestResult = async (
