@@ -624,7 +624,7 @@ describe('employee creation', () => {
           ? Response.json(
               {
                 error: 'conflict',
-                message: 'An employee with this CNP already exists for this client.',
+                message: 'A current employee of this client already has this CNP.',
               },
               { status: 409 }
             )
@@ -1156,6 +1156,30 @@ describe('employee status changes', () => {
     });
     expect(await screen.findByText('Popescu Ion este din nou angajat actual.')).toBeTruthy();
   });
+
+  it('explains a reactivation refused because a current employee has the CNP', async () => {
+    mockApi({
+      list: () =>
+        Response.json(
+          page([{ ...sampleEmployee, status: 'terminated', terminatedAt: '2025-12-31' }])
+        ),
+      status: () =>
+        Response.json(
+          { error: 'conflict', message: 'A current employee of this client already has this CNP.' },
+          { status: 409 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeesPath}?status=terminated`);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-row-menu'));
+    await user.click(await screen.findByTestId('employees-reactivate'));
+    await user.click(await screen.findByTestId('employee-status-confirm'));
+    expect((await screen.findByTestId('employee-status-error')).textContent).toContain(
+      'un angajat actual al clientului are același CNP'
+    );
+    expect(screen.getByTestId('employee-status-dialog')).toBeTruthy();
+  });
 });
 
 describe('employee detail', () => {
@@ -1520,7 +1544,7 @@ describe('employee editing', () => {
         Response.json(
           {
             code: 'conflict',
-            message: 'An employee with this CNP already exists for this client.',
+            message: 'A current employee of this client already has this CNP.',
           },
           { status: 409 }
         ),

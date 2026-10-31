@@ -108,6 +108,17 @@ describe('findExistingEmployee', () => {
     ).toBe(existingPop.id);
   });
 
+  it('prefers the current employment to a former one with the same CNP', () => {
+    const former = { ...existingPop, id: 'former', terminatedAt: '2018-12-31' };
+
+    expect(
+      findExistingEmployee(
+        { cnp: cnps.pop, lastName: 'Pop', firstName: 'Elena', birthDate: null },
+        [former, existingPop]
+      )?.employee.id
+    ).toBe(existingPop.id);
+  });
+
   it('takes nobody for another CNP', () => {
     expect(
       findExistingEmployee(

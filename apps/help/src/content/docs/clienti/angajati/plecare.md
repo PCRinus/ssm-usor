@@ -26,6 +26,7 @@ sources:
   - apps/app/src/features/employees/employee-page.tsx
   - supabase/migrations/20260918100000_employees.sql
   - supabase/migrations/20260918120000_employees_drop_suspended.sql
+  - supabase/migrations/20261101191000_employee_identifiers_per_employment.sql
 ---
 
 Un angajat care pleacă nu dispare din aplicație. Trece la foștii angajați ai clientului, cu instruirile, fișele și fișierele lui, pentru că acestea sunt dovezi care se păstrează și după încetarea contractului.
@@ -57,11 +58,15 @@ Accesul la portal rămâne: angajatul își poate vedea în continuare instruiri
 
 **Reactivează…** îl readuce printre angajații actuali și șterge data plecării. Folosește-o doar ca să corectezi o plecare marcată din greșeală sau cu o dată greșită: reactivează, apoi marchează din nou plecarea, cu data bună.
 
+Un fost angajat nu poate fi reactivat cât timp un angajat actual al clientului are același CNP sau aceeași marcă, de obicei rândul adăugat când persoana a fost reangajată. Atunci vezi „Nu poate fi reactivat: un angajat actual al clientului are același CNP, de obicei rândul adăugat la reangajare.” Evidența de acum a persoanei e pe rândul acela.
+
 ## Reangajarea
 
 Cineva care revine după o pauză se adaugă ca angajat nou, cu data noii angajări. Instruirea lui începe din nou cu instruirile la angajare, iar rândul vechi rămâne la **Foști angajați**, cu evidența de atunci.
 
-CNP-ul și marca sunt unice la client și față de foștii angajați. Dacă fostul rând are CNP-ul sau marca completate, noul rând nu le poate primi și vezi „Există deja un angajat cu acest CNP la client.” Deocamdată, scrie CNP-ul și marca doar pe unul dintre rânduri.
+Rândul nou primește același CNP și, dacă clientul i-a păstrat-o, aceeași marcă: CNP-ul și marca sunt unice doar printre angajații actuali, iar fostul rând nu le mai ține ocupate.
+
+Dacă fostul rând are încă acces la portal, revocă-l din **Acces la portal**, pe pagina fostului rând, înainte să inviți rândul nou la aceeași adresă (vezi [Portalul și actul adițional](/clienti/angajati/portal-si-act-aditional/)).
 
 ## Un angajat nu se șterge
 

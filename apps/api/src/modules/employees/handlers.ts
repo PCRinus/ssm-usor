@@ -222,10 +222,10 @@ function sheetFields(body: CreateEmployeeRequest) {
 
 function conflictMessage(detail: string | undefined) {
   if (detail?.includes('employees_client_cnp_key')) {
-    return 'An employee with this CNP already exists for this client.';
+    return 'A current employee of this client already has this CNP.';
   }
   if (detail?.includes('employees_client_employee_number_key')) {
-    return 'An employee with this number already exists for this client.';
+    return 'A current employee of this client already has this number.';
   }
   return 'This employee conflicts with an existing one.';
 }
@@ -406,7 +406,11 @@ export const updateEmployeeStatus: RouteHandler<typeof updateEmployeeStatusRoute
     .eq('client_id', clientId)
     .select(employeeColumns)
     .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'update employee status');
+  if (error) {
+    throw error.code === '23505'
+      ? new ApiError('conflict', conflictMessage(error.message))
+      : fromDatabaseError(error, 'update employee status');
+  }
   if (!data) throw new ApiError('not_found', 'This employee does not exist under this client.');
   return c.json({ employee: toEmployee(data) }, 200);
 };

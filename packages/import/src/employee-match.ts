@@ -123,7 +123,10 @@ export function findExistingEmployee<E extends ExistingEmployee>(
   // A code whose control digit fails is a misread one, which must not hide the name and birth date.
   const cnp = person.cnp !== null && isValidCnp(person.cnp) ? person.cnp : null;
   if (cnp !== null) {
-    const byCnp = employees.find((employee) => employee.cnp === cnp);
+    // A rehire shares the CNP of the former employment, which the person no longer works under.
+    const byCnp = employees
+      .filter((employee) => employee.cnp === cnp)
+      .sort((a, b) => Number(a.terminatedAt !== null) - Number(b.terminatedAt !== null))[0];
     if (byCnp) return { employee: byCnp, matchedBy: 'cnp' };
   }
   if (person.lastName === null) return null;

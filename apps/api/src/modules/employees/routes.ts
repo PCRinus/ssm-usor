@@ -71,7 +71,8 @@ export const createEmployeeRoute = createRoute({
     400: { description: 'Invalid path or request body', content: errorContent },
     404: { description: 'The client does not exist in the organization', content: errorContent },
     409: {
-      description: 'The client is archived, or the CNP or employee number is already used',
+      description:
+        'The client is archived, or a current employee of the client has the CNP or number',
       content: errorContent,
     },
     ...membershipErrors,
@@ -108,7 +109,7 @@ export const updateEmployeeStatusRoute = createRoute({
   operationId: 'updateEmployeeStatus',
   summary: 'Mark an employee as former, or reactivate one',
   description:
-    'Terminating needs the leave date, on or after the hire date. Reactivating clears it and is meant for undoing a mistake; a rehire after a gap is a new employee.',
+    'Terminating needs the leave date, on or after the hire date. Reactivating clears it and is meant for undoing a mistake; a rehire after a gap is a new employee. The CNP and the employee number are unique among current employees, so reactivating is refused while a current employee holds either.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -135,6 +136,11 @@ export const updateEmployeeStatusRoute = createRoute({
     },
     404: {
       description: 'The employee does not exist under this client in the organization',
+      content: errorContent,
+    },
+    409: {
+      description:
+        'The client is archived, or a current employee of the client has the CNP or number of the one being reactivated',
       content: errorContent,
     },
     ...membershipErrors,
@@ -209,7 +215,7 @@ export const updateEmployeeRoute = createRoute({
     400: { description: 'Invalid path or request body', content: errorContent },
     404: { description: 'The employee does not exist under this client', content: errorContent },
     409: {
-      description: 'Another employee of the client has this CNP or number',
+      description: 'Another current employee of the client has this CNP or number',
       content: errorContent,
     },
     ...membershipErrors,

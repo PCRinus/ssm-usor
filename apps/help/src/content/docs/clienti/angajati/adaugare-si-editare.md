@@ -74,6 +74,7 @@ sources:
   - supabase/migrations/20260918100000_employees.sql
   - supabase/migrations/20261016200000_employee_sheet_fields.sql
   - supabase/migrations/20261018160000_employee_contract_number.sql
+  - supabase/migrations/20261101191000_employee_identifiers_per_employment.sql
 ---
 
 Formularul angajatului e același când adaugi pe cineva și când corectezi ce ai scris despre el. Doar cinci câmpuri sunt obligatorii; restul le completezi când le afli. Ce lipsește îți cere aplicația abia acolo unde e nevoie de el, de obicei la fișa de instruire.
@@ -117,9 +118,9 @@ Cel mai des e o cifră greșită sau două cifre inversate. Verifică CNP-ul pe 
 
 ### CNP sau marcă folosite deja
 
-La același client, doi angajați nu pot avea același CNP sau aceeași marcă. Dacă încerci, vezi sub câmp „Există deja un angajat cu acest CNP la client.” sau „Există deja un angajat cu această marcă la client.”
+La același client, doi angajați actuali nu pot avea același CNP sau aceeași marcă. Dacă încerci, vezi sub câmp „Un angajat actual al clientului are deja acest CNP.” sau „Un angajat actual al clientului are deja această marcă.”
 
-Regula îi include și pe foștii angajați. De obicei înseamnă că persoana e deja în listă: caut-o, inclusiv la **Foști angajați**, înainte s-o adaugi din nou. Despre reangajare vezi [Plecarea unui angajat](/clienti/angajati/plecare/).
+De obicei înseamnă că persoana e deja în listă: caut-o printre angajații actuali înainte s-o adaugi din nou. Foștii angajați nu țin ocupate CNP-ul și marca, așa că cineva reangajat după o pauză se adaugă ca angajat nou, cu aceleași date (vezi [Plecarea unui angajat](/clienti/angajati/plecare/)).
 
 ### Marca
 
