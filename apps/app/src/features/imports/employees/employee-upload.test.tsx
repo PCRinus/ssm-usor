@@ -220,3 +220,22 @@ describe('an upload that fails after the import was created', () => {
     });
   });
 });
+
+describe('a client without job positions', () => {
+  it('hides the way to the documentation import while the photographs upload', async () => {
+    const creating = deferred();
+    mockUpload({ jobPositions: [], create: () => creating.promise });
+    const dialog = await openDialog('employees-import-found');
+    expect(await within(dialog).findByTestId('employee-upload-no-posts')).toBeTruthy();
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('employee-upload-chosen').textContent).toContain(
+        '2 fotografii de citit'
+      )
+    );
+    await userEvent.click(within(dialog).getByTestId('employee-upload-submit'));
+    await waitFor(() => expect(requestsTo('/imports', 'POST')).toHaveLength(1));
+    expect(within(dialog).queryByTestId('employee-upload-no-posts')).toBeNull();
+    creating.resolve(refused('import_unavailable', 503));
+    await within(dialog).findByTestId('import-upload-error');
+  });
+});

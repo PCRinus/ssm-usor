@@ -228,7 +228,7 @@ function UploadForm({
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="mt-4 grid gap-3.5">
-            {noPosts && !noPostsDismissed && (
+            {choosing && noPosts && !noPostsDismissed && (
               <Notice
                 variant="warning"
                 icon={<BriefcaseBusiness aria-hidden="true" />}
