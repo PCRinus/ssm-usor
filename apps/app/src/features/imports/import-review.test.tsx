@@ -179,7 +179,7 @@ describe('the review hub', () => {
     );
     mount();
     expect((await screen.findByTestId('import-usage')).textContent).toBe(
-      'Depanare: cost citire 0,27\u00a0$ · 182.000 tokeni intrare (31.000 din cache) · 6.400 ieșire · 410.000 caractere citite · sortare 0,01\u00a0$, citire 0,22\u00a0$, scanare 0,04\u00a0$'
+      'Depanare: cost 0,27\u00a0$ · 182.000 tokeni intrare (31.000 din cache) · 6.400 ieșire · 410.000 caractere citite · sortare 0,01\u00a0$, citire 0,22\u00a0$, scanare 0,04\u00a0$'
     );
   });
 
@@ -200,7 +200,7 @@ describe('the review hub', () => {
     );
     mount();
     expect((await screen.findByTestId('import-usage')).textContent).toBe(
-      'Depanare: cost citire 0,20\u00a0$ · 1.500 tokeni intrare (0 din cache) · 300 ieșire · citire 0,20\u00a0$'
+      'Depanare: cost 0,20\u00a0$ · 1.500 tokeni intrare (0 din cache) · 300 ieșire · citire 0,20\u00a0$'
     );
   });
 
