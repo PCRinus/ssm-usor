@@ -20,6 +20,7 @@ import type { ExistingEmployee } from './employee-match';
 import type {
   EmployeeImportProposal,
   PersonField,
+  ProposedSheetPage,
   ProposedSheetPerson,
   ProposedSheetRow,
 } from './employee-proposal';
@@ -285,6 +286,20 @@ function fieldsOf(person: ProposedSheetPerson, change: PersonChange | undefined)
 }
 
 /**
+ * The files a person's pages become: each photograph, and each PDF a page of theirs is in,
+ * whole, so a PDF holding several people's pages is a file of each of them.
+ */
+export function sheetFilesOf(
+  personId: string,
+  pages: readonly Pick<ProposedSheetPage, 'fileId'>[]
+): EmployeeFilePayloadRow[] {
+  return [...new Set(pages.map((page) => page.fileId))].map((fileId) => ({
+    employee_key: personId,
+    import_file_id: fileId,
+  }));
+}
+
+/**
  * The proposal with the member's changes, shaped as `apply_employee_import` takes it, and what
  * keeps it from being confirmed. Only people marked checked are written.
  */
@@ -485,11 +500,9 @@ export function toEmployeePayload(input: {
     if (changed) quality.people.changed++;
     else quality.people.kept++;
 
-    const rows = proposal.pages.filter((page) => pages.has(page.id)).flatMap((page) => page.rows);
-    const fileIds = new Set(
-      proposal.pages.filter((page) => pages.has(page.id)).map((page) => page.fileId)
-    );
-    for (const fileId of fileIds) files.push({ employee_key: person.id, import_file_id: fileId });
+    const ownPages = proposal.pages.filter((page) => pages.has(page.id));
+    const rows = ownPages.flatMap((page) => page.rows);
+    files.push(...sheetFilesOf(person.id, ownPages));
 
     const hiringTests = hiringTestRowIds(
       rows.map((each) => ({ ...each, heldOn: rowValue(each, changes.rows[each.id], 'heldOn') }))

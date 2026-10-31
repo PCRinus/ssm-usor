@@ -53,6 +53,7 @@ export {
   type EmployeeMapping,
   type EmployeePayloadRow,
   matchOf,
+  sheetFilesOf,
   type TestResultPayloadRow,
   toEmployeePayload,
   type TrainingPayloadRow,
