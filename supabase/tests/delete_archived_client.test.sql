@@ -1,5 +1,5 @@
 begin;
-select plan(17);
+select plan(18);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), '{"provider":"email"}', '{}', now(), now()
@@ -108,6 +108,27 @@ where id = '10000000-0000-4000-8000-000000000001';
 update public.imports set status = 'confirmed', confirmed_at = now()
 where id = '10000000-0000-4000-8000-000000000001';
 
+insert into public.imports (id, organization_id, kind, client_id, into_existing_client) values
+  ('10000000-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'employees', 'c1c1c1c1-0000-4000-8000-000000000001', true);
+
+insert into public.import_files (id, import_id, organization_id, upload_path, original_file_name, mime_type, size_bytes, sha256) values
+  ('f0000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001',
+   'Fise.pdf', 'Fise.pdf', 'application/pdf', 2048, repeat('b', 64));
+
+insert into public.import_page_images (import_file_id, page, size_bytes, sha256) values
+  ('f0000000-0000-4000-8000-000000000002', 1, 512, repeat('c', 64));
+
+insert into public.client_files (id, organization_id, client_id, employee_id, name, original_file_name, mime_type, size_bytes, sha256, import_id, import_file_id, import_page) values
+  ('cf000000-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000001',
+   'Fise — pagina 1', 'Fise — pagina 1.jpg', 'image/jpeg', 512, repeat('c', 64), '10000000-0000-4000-8000-000000000002', 'f0000000-0000-4000-8000-000000000002', 1),
+  ('cf000000-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', null,
+   'Fise', 'Fise.pdf', 'application/pdf', 2048, repeat('b', 64), '10000000-0000-4000-8000-000000000002', 'f0000000-0000-4000-8000-000000000002', null);
+
+update public.imports set status = 'ready', started_at = now(), ready_at = now()
+where id = '10000000-0000-4000-8000-000000000002';
+update public.imports set status = 'confirmed', confirmed_at = now()
+where id = '10000000-0000-4000-8000-000000000002';
+
 insert into storage.objects (bucket_id, name) values
   ('documents', '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/d0d0d0d0-0000-4000-8000-000000000001/1.docx'),
   ('documents', '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/d0d0d0d0-0000-4000-8000-000000000001/1.pdf'),
@@ -116,7 +137,11 @@ insert into storage.objects (bucket_id, name) values
   ('documents', '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000002/d0d0d0d0-0000-4000-8000-000000000002/1.docx'),
   ('client-files', '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/cf000000-0000-4000-8000-000000000001.pdf'),
   ('imports', '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000001.pdf'),
-  ('imports', '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000001.txt');
+  ('imports', '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000001.txt'),
+  ('client-files', '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/cf000000-0000-4000-8000-000000000002.jpg'),
+  ('client-files', '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/cf000000-0000-4000-8000-000000000003.pdf'),
+  ('imports', '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000002/f0000000-0000-4000-8000-000000000002.pdf'),
+  ('imports', '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000002/f0000000-0000-4000-8000-000000000002.page-1.jpg');
 
 update public.clients set archived_at = now()
 where id in ('c1c1c1c1-0000-4000-8000-000000000001', 'c3c3c3c3-0000-4000-8000-000000000003');
@@ -163,12 +188,16 @@ select results_eq(
   $$ select bucket, path from deleted_objects order by 1, 2 $$,
   $$ values
     ('client-files', '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/cf000000-0000-4000-8000-000000000001.pdf'),
+    ('client-files', '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/cf000000-0000-4000-8000-000000000002.jpg'),
+    ('client-files', '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/cf000000-0000-4000-8000-000000000003.pdf'),
     ('documents', '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/d0d0d0d0-0000-4000-8000-000000000001/1.docx'),
     ('documents', '11111111-0000-4000-8000-000000000001/c1c1c1c1-0000-4000-8000-000000000001/d0d0d0d0-0000-4000-8000-000000000001/1.pdf'),
     ('documents', 'signed-sheets/c1c1c1c1-0000-4000-8000-000000000001/e1e1e1e1-0000-4000-8000-000000000001/ssm-1/v1-b.pdf'),
     ('documents', 'test-sheets/c1c1c1c1-0000-4000-8000-000000000001/e1e1e1e1-0000-4000-8000-000000000001/7e7e7e7e-0000-4000-8000-000000000001/v1-a.pdf'),
     ('imports', '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000001.pdf'),
-    ('imports', '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000001.txt') $$,
+    ('imports', '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/f0000000-0000-4000-8000-000000000001.txt'),
+    ('imports', '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000002/f0000000-0000-4000-8000-000000000002.page-1.jpg'),
+    ('imports', '11111111-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000002/f0000000-0000-4000-8000-000000000002.pdf') $$,
   'the client''s objects are returned, an unrecorded earlier version too, and no other client''s'
 );
 
@@ -181,6 +210,7 @@ select is((select count(*) from public.test_attempt_keys where attempt_id = 'a7a
 select is((select count(*) from public.client_documents where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its documents are gone');
 select is((select count(*) from public.client_files where client_id = 'c1c1c1c1-0000-4000-8000-000000000001'), 0::bigint, 'its files are gone');
 select is((select count(*) from public.imports where id = '10000000-0000-4000-8000-000000000001'), 0::bigint, 'its import is gone, with its files');
+select is((select count(*) from public.import_page_images where import_file_id = 'f0000000-0000-4000-8000-000000000002'), 0::bigint, 'its employee import is gone, with the pages it split a PDF into');
 select is((select count(*) from public.signing_sessions where id = '5e5e5e5e-0000-4000-8000-000000000001'), 0::bigint, 'its participants'' signing sessions are gone');
 
 select is(
