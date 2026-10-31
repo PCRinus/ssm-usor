@@ -56,8 +56,12 @@ sources:
   - apps/api/src/modules/imports/handlers.ts
   - apps/api/src/modules/imports/employees.ts
   - apps/api/src/modules/imports/cleanup.ts
+  - packages/import/src/sheet-people.ts
+  - packages/import/src/employee-match.ts
+  - packages/import/src/employee-checks.ts
   - apps/app/src/features/imports/start-ways.tsx
   - apps/app/src/features/imports/import-upload-dialog.tsx
+  - apps/app/src/features/imports/upload-selection.ts
   - apps/app/src/features/imports/review-hub.tsx
   - apps/app/src/features/imports/confirm-import-dialog.tsx
   - apps/app/src/features/imports/abandon-import-dialog.tsx
@@ -129,7 +133,9 @@ Poți încărca fotografii JPG, PNG și HEIC, PDF-uri scanate, un folder sau o a
 
 ### Cât intră într-un import
 
-Într-un import de angajați intră cel mult 500 de fotografii sau pagini PDF, cel mult 25 MB un fișier și 1 GB în total. Sub fereastra de încărcare vezi cât ai folosit din fiecare.
+Într-un import de angajați intră cel mult 500 de fotografii sau pagini PDF, cel mult 25 MB un fișier și 1 GB în total. În fereastra de încărcare vezi cât ai folosit din fiecare.
+
+Fotografiile JPG și PNG se socotesc după ce le micșorăm, așa că o fotografie mare nu e oprită când o alegi, iar totalul îl vezi aproximativ, de exemplu „cam 250 MB din 1 GB”. Dacă o fotografie are tot peste 25 MB după micșorare, îți spunem care e. Un PDF sau o fotografie HEIC de peste 25 MB e pusă deoparte de cum o alegi.
 
 Un client mai mare îl imporți în mai multe importuri, cu fișele fiecărei persoane în același import. Un import făcut mai târziu completează angajații creați de cel dinainte, ca pe orice angajat pe care clientul îl are deja.
 
@@ -137,14 +143,14 @@ Un client mai mare îl imporți în mai multe importuri, cu fișele fiecărei pe
 
 După **Încarcă și citește**, aplicația pregătește fotografiile, citește fiecare pagină, le grupează pe persoane și verifică datele. Durează câteva secunde pe pagină. Poți închide pagina: importul rămâne pe tabul **Angajați** al clientului, cu pasul la care a ajuns, și îl deschizi de acolo când persoanele sunt gata de verificat.
 
-O pagină ajunge la o persoană după CNP; fără CNP, după nume, chiar dacă e scris puțin diferit pe pagini; fără niciun nume, o pagină de continuare merge după pagina dinaintea ei, în ordinea încărcării.
+O pagină ajunge la o persoană după CNP, dacă cifra lui de control se potrivește; fără un CNP valid, după nume, chiar dacă e scris puțin diferit pe pagini sau cu prenumele înaintea numelui; fără CNP și fără nume, după marcă. Două prenume care diferă doar printr-o literă la sfârșit, ca Daniel și Daniela, sunt două persoane. O pagină de continuare fără niciunul dintre ele merge după pagina dinaintea ei, în ordinea încărcării, și e semnalată „O pagină pusă după ordine”.
 
 ## Lista persoanelor
 
 **Verifică angajații propuși** arată câte persoane au fost găsite și câte ai verificat. Fiecare persoană e:
 
 - **De verificat**: încă nu ai trecut prin ea sau are ceva de hotărât;
-- **Verificat**: o persoană fără nimic de hotărât devine verificată când treci de pe pagina ei la următoarea; una cu ceva de hotărât, după ce ai hotărât;
+- **Verificat**: o persoană fără nimic de hotărât devine verificată când treci de pe pagina ei la următoarea; una cu ceva de hotărât, după ce ai hotărât. Redevine **De verificat** când o corectură, o pagină pe care i-o dai sau o alegere îi lasă din nou ceva de hotărât;
 - **Lăsat deoparte**: nu se creează. O iei înapoi oricând, de pe pagina ei.
 
 Lista se filtrează după aceste stări. Persoanele de verificat sunt împărțite în **Cu ceva de hotărât** și **Încă nedeschise**. **Continuă cu …** te duce la următoarea persoană de verificat.
@@ -181,15 +187,25 @@ Poți alege și **Fără loc de muncă deocamdată**. Angajatul se creează, iar
 
 CNP-ul citit e verificat după cifra de control și după data nașterii. Când o cifră nu se citește și data nașterii o lămurește, aplicația îți propune CNP-ul corectat. Altfel îl scrii tu sau alegi **Lasă fără CNP** și îl completezi mai târziu, pe pagina angajatului.
 
+Un CNP valid, dar greșit, îl corectezi la **Date personale**. Un CNP a cărui cifră de control nu se potrivește nu e folosit nici la gruparea paginilor, nici la găsirea unui angajat existent.
+
 ### Un angajat pe care clientul îl are deja
 
 O persoană cu același CNP ca un angajat al clientului, sau cu același nume și aceeași dată a nașterii, nu se dublează: importul îl completează. Câmpurile goale se umplu de pe fișă, iar o valoare care diferă de cea din aplicație apare la **Diferă de aplicație**, unde valoarea din aplicație rămâne dacă nu alegi **Folosește valoarea de pe fișă**.
+
+O persoană fără un CNP valid și fără data nașterii, de obicei cu paginile de continuare aduse de un import ulterior, îți e propusă ca angajatul clientului cu același nume, dacă e unul singur. Confirmi că e el sau alegi că e altă persoană, care se creează ca angajat nou. Două persoane din import nu pot completa același angajat.
 
 O instruire de pe fișă care e deja în aplicație, același domeniu, același fel și aceeași zi, nu se adaugă a doua oară. Vezi câte sunt și le poți afișa.
 
 ### Cine a plecat din firmă
 
-O fișă cu data plecării e propusă nebifată. Bifează **Preia-l ca fost angajat, cu instruirile lui** dacă vrei să-l ai în evidență: apare la **Foști angajați**.
+O fișă cu data plecării e propusă nebifată. Bifează **Preia-l ca fost angajat, cu instruirile lui** dacă vrei să-l ai în evidență: apare la **Foști angajați**. Dacă ștergi data plecării, persoana e propusă bifată, ca angajat actual.
+
+Când persoana se potrivește cu un fost angajat al clientului, vezi asta pe pagina ei. Dacă fișa scrie o dată a angajării de după plecarea lui, persoana a fost reangajată, iar în aplicație o reangajare e un angajat nou (vezi [Reangajarea](/clienti/angajati/plecare/#reangajarea)). Importul nu reactivează fostul angajat, iar persoana are ceva de hotărât până alegi una dintre:
+
+- o creezi ca angajat nou; CNP-ul și marca le scrii doar pe unul dintre rânduri, ca la orice reangajare;
+- corectezi data angajării, dacă a fost citită greșit;
+- o lași deoparte.
 
 ### Rândurile de instruire
 
@@ -202,17 +218,24 @@ Unele rânduri poartă o etichetă:
 - **Nesemnat pe fișă**: rândul e completat, dar rubrica de semnătură e goală; e propus nebifat și se preia doar dacă îl bifezi;
 - **Semnătura nu se vede clar**: verifică pe fotografie.
 
-O durată a instruirii periodice alta decât 60, 90 sau 120 de minute și o dată dinaintea angajării sunt semnalate, dar nu opresc nimic: se preiau așa dacă nu le schimbi. O instruire cu data în viitor sau fără o valoare obligatorie trebuie corectată.
+O durată scrisă în ore, de exemplu „8 ore” sau „1h30”, e citită în minute. Sunt semnalate, dar nu opresc nimic:
 
-Testul anual PSI consemnat în tabelul instruirilor periodice devine un rezultat de test, nu o instruire.
+- o instruire periodică cu altă durată decât 60, 90 sau 120 de minute;
+- o instruire SSM la angajare sau suplimentară mai scurtă de o oră, cât cer normele cel puțin (HG 1425/2006, art. 80¹);
+- o instruire PSI la angajare sau suplimentară mai scurtă de 15 minute;
+- o dată dinaintea angajării.
+
+Se preiau așa dacă nu le schimbi. O instruire cu data în viitor sau fără o valoare obligatorie trebuie corectată.
+
+Testul anual PSI consemnat în tabelul instruirilor periodice devine un rezultat de test, nu o instruire. Dacă nu i s-a citit ziua sau examinatorul, îl ai de completat: alege **Schimbă** pe rândul testului.
 
 **După import** îți arată cum va arăta instruirea angajatului în aplicație cu alegerile de acum: starea, ultima instruire periodică și testul la angajare. Rândurile mai multor persoane cu același domeniu, același fel, aceeași zi, același instructor, aceeași durată și același material devin o singură instruire în **Instruiri ținute**, cu toți participanții ei. Altfel devin instruiri separate în aceeași zi.
 
 ### Testul la angajare verificat pe fișă
 
-Instruirea la angajare se încheie cu testul, iar rezultatul se consemnează în fișă (HG 1425/2006, art. 89 alin. (1) și (2)): pe fișă, cel care a verificat cunoștințele semnează în rubrica „Verificat”. Când semnătura lui se vede, importul înregistrează testul la angajare ca promovat pe hârtie, în ziua instruirii, cu el ca examinator: testul SSM din blocul fișei SSM, testul PSI din blocul fișei PSI.
+Instruirea la angajare se încheie cu testul. În SSM, rezultatul se consemnează în fișă (HG 1425/2006, art. 89 alin. (1) și (2)); în PSI, cei instruiți sunt verificați pe bază de teste la sfârșitul instructajului introductiv general și înainte de admiterea definitivă la lucru (OMAI 712/2005, art. 14 și 20). Pe fișă, cel care a verificat cunoștințele semnează în rubrica „Verificat”. Când semnătura lui se vede, importul înregistrează testul la angajare ca promovat pe hârtie, cu el ca examinator: testul SSM din blocul fișei SSM, testul PSI din blocul fișei PSI. Testul ia ziua rândului semnat, așa cum o lași după corecturi, și urmează paginile când le muți de la o persoană la alta.
 
-Când semnătura nu se vede, vezi „Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.” Dacă semnătura e pe original, bifează **Testul la angajare: verificat pe fișă** și completează examinatorul, dacă nu s-a citit. Altfel, angajatul ajunge cu testarea în starea **Neverificat pe fișă** (vezi [Starea testării](/clienti/angajati/)), iar rezultatul îl poți înregistra și mai târziu, pe pagina lui.
+Când semnătura nu se vede, vezi „Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.” Dacă semnătura e pe original, bifează **Testul la angajare: verificat pe fișă** și completează examinatorul, dacă nu s-a citit. Altfel, angajatul ajunge cu testarea în starea **Neverificat pe fișă** (vezi [Starea testării](/clienti/angajati/#starea-testării)), iar rezultatul îl poți înregistra și mai târziu, pe pagina lui.
 
 ## Salvarea și cele 14 zile
 
@@ -222,7 +245,7 @@ Un import la care nu mai lucrezi se păstrează 14 zile de la ultima schimbare; 
 
 ## Crearea angajaților
 
-Angajații se creează o singură dată, la final, cu **Creează angajații…**. Fereastra îți arată ce se adaugă: angajații noi, cei existenți care se completează, foștii angajați preluați, instruirile ținute, testele la angajare verificate pe fișă și fotografiile. Arată și ce rămâne de făcut după: emailurile și telefoanele lipsă, testele neverificate pe fișă, traseele de deplasare lipsă și valorile neobișnuite.
+Angajații se creează o singură dată, la final, cu **Creează angajații…**. Fereastra îți arată ce se adaugă: angajații noi, cei existenți care se completează, foștii angajați preluați, instruirile ținute, testele la angajare verificate pe fișă și fotografiile. Arată și ce rămâne de făcut după: emailurile și telefoanele lipsă, testele neverificate pe fișă, traseele de deplasare lipsă și valorile neobișnuite. Dacă la creare o valoare tot nu se poate salva, fereastra le numește pe toate cele refuzate, nu doar prima, iar tu le corectezi pe paginile persoanelor și încerci din nou.
 
 Poți crea angajații și înainte să-i verifici pe toți. Fereastra îi numește pe cei încă de verificat: ei și cei lăsați deoparte rămân în afara acestui import, iar un import nou îi poate aduce mai târziu. Nu poți crea doar o parte acum și restul din același import.
 
@@ -236,15 +259,15 @@ Instruirile importate poartă eticheta **Transcris de pe fișa pe hârtie** și 
 
 ### Originalele rămân la client
 
-Ce ai în aplicație e o transcriere a fișei, nu un înlocuitor al ei. Fișa de instruire individuală pe hârtie rămâne originalul semnat: o păstrează conducătorul locului de muncă, la client, de la angajare până la încetarea raporturilor de muncă (HG 1425/2006, art. 81 alin. (4) și (5)). Nicio prevedere nu permite distrugerea ei după ce a fost transcrisă.
+Ce ai în aplicație e o transcriere a fișei, nu un înlocuitor al ei. Fișa de instruire individuală pe hârtie rămâne originalul semnat: o păstrează conducătorul locului de muncă, la client, de la angajare până la încetarea raporturilor de muncă (HG 1425/2006, art. 81 alin. (4) și (5)); de fișa PSI răspunde tot conducătorul locului de muncă (OMAI 712/2005, art. 50). Normele nu prevăd înlocuirea fișei pe hârtie cu o transcriere a ei, așa că originalul rămâne la client.
 
 ### Nicio instruire și niciun test de refăcut
 
 Angajații importați lucrează deja la client, așa că nu li se cere din nou instruirea la angajare. Instruirea introductiv-generală se face la angajare, la detașarea sau delegarea unui lucrător de la altă firmă și pentru lucrătorul pus la dispoziție de un agent de muncă temporară (HG 1425/2006, art. 83). Schimbarea prestatorului SSM sau transcrierea fișelor nu e niciunul dintre aceste cazuri.
 
-Nici testul la angajare nu li se mai cere: testul care a încheiat o instruire la angajare de pe hârtie s-a dat pe hârtie (HG 1425/2006, art. 89). Nu apare în portal și nu se numără pe **Dashboard**, iar starea testării e **Promovat** sau **Neverificat pe fișă**.
+Nici testul la angajare nu li se mai cere: testul care a încheiat o instruire la angajare de pe hârtie s-a dat pe hârtie (HG 1425/2006, art. 89; OMAI 712/2005, art. 14 și 20). Nu apare în portal și nu se numără pe **Dashboard**. Starea testării unui angajat importat e, pe fiecare domeniu, **Promovat**, **Neverificat pe fișă** sau, în PSI, **Anual scadent**; e **Fără test** în domeniul în care fișele nu au instruirea la angajare.
 
-Termenul următoarei instruiri periodice se socotește de la datele de pe fișe. Testul anual PSI se cere la 12 luni de la ultimul test promovat (OMAI 712/2005, art. 30); dacă fișa nu consemnează niciun test anual, angajatul poate apărea cu testarea PSI **Anual scadent** imediat după import. E o obligație pe care clientul o are cu adevărat.
+Termenul următoarei instruiri periodice se socotește de la datele de pe fișe. OMAI 712/2005 cere o verificare anuală pe bază de test, consemnată în fișa individuală (art. 30); aplicația o cere la 12 luni de la ultimul test PSI promovat. Dacă fișa nu consemnează niciun test anual, angajatul poate apărea cu testarea PSI **Anual scadent** imediat după import. E o obligație pe care clientul o are cu adevărat.
 
 ### Portalul și actul adițional după import
 
