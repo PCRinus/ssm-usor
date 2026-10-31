@@ -49,11 +49,12 @@ export function EmployeeImportButtons({
   const found = useFoundSheets(clientId);
   const count = found.data?.total ?? 0;
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap">
       {count > 0 ? (
         <>
           <Button
             variant="outline"
+            className="max-sm:h-auto max-sm:min-h-9 max-sm:py-2 max-sm:whitespace-normal"
             data-testid="employees-import-found"
             onClick={() => onStart('found')}
           >
