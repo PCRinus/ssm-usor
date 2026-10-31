@@ -38,10 +38,6 @@ export type SmsPolicy =
       bills: boolean;
     };
 
-const romanianNumber = /^\+40\d{9}$/;
-
-export const isRomanianNumber = (phone: string) => romanianNumber.test(phone);
-
 // Stripe's months: the anchor's day, or the month's last day where the month is shorter.
 export function addMonths(anchor: Date, months: number) {
   const target = new Date(anchor);

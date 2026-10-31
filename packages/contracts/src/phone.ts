@@ -38,3 +38,6 @@ export const phoneSchema = z
     }
     return phone;
   });
+
+/** SMS go to Romanian numbers only, every kind of them (ADR 029). */
+export const isRomanianNumber = (e164: string) => /^\+40\d{9}$/.test(e164);

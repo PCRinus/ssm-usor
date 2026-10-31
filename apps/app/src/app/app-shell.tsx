@@ -502,6 +502,8 @@ export function AppShell() {
               {!phone && me.data?.subscription && (
                 <SubscriptionBadge
                   subscription={me.data.subscription}
+                  sms={me.data.smsThisMonth ?? null}
+                  credits={me.data.creditsThisMonth ?? null}
                   isOwner={me.data.membership?.role === 'owner'}
                   impersonating={Boolean(me.data.impersonation)}
                 />
@@ -535,6 +537,8 @@ export function AppShell() {
               {me.data?.subscription && !editorPage && (
                 <SubscriptionBar
                   subscription={me.data.subscription}
+                  sms={me.data.smsThisMonth ?? null}
+                  isOwner={me.data.membership?.role === 'owner'}
                   canAct={me.data.membership?.role === 'owner' && !me.data.impersonation}
                 />
               )}

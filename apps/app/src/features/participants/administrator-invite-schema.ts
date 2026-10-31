@@ -1,4 +1,4 @@
-import { normalizePhone } from '@ssm-usor/contracts';
+import { isRomanianNumber, normalizePhone } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import { invalidPhoneMessage } from '@/lib/phone';
@@ -39,12 +39,22 @@ export const administratorInviteFormSchema = z
         message: values.email ? 'Adresa de email nu este validă.' : 'Completează adresa de email.',
       });
     }
-    if (values.channel === 'sms' && !normalizePhone(values.phone)) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['phone'],
-        message: values.phone ? invalidPhoneMessage : 'Completează numărul de telefon.',
-      });
+    if (values.channel === 'sms') {
+      const phone = normalizePhone(values.phone);
+      if (!phone) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['phone'],
+          message: values.phone ? invalidPhoneMessage : 'Completează numărul de telefon.',
+        });
+      } else if (!isRomanianNumber(phone)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['phone'],
+          message:
+            'SMS trimitem doar spre numere din România (+40). Scrie un număr din România sau trimite invitația pe email.',
+        });
+      }
     }
   });
 

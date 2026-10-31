@@ -1,8 +1,10 @@
 import {
   type BillingChoice,
+  type BillingCreditsUsage,
   type BillingOverview,
   billingPlans,
   type BillingPreview,
+  type BillingSmsUsage,
   employeePacks,
   extraMember,
   smsOverage,
@@ -21,10 +23,12 @@ export function meFor({
   role = 'owner',
   subscription = null,
   impersonating = false,
+  smsThisMonth = null,
 }: {
   role?: 'owner' | 'specialist';
   subscription?: SubscriptionSummary | null;
   impersonating?: boolean;
+  smsThisMonth?: BillingSmsUsage | null;
 } = {}) {
   return {
     user: { id: 'user-one', email: 'ana@protectconsult.test' },
@@ -37,6 +41,43 @@ export function meFor({
         }
       : null,
     subscription,
+    smsThisMonth,
+  };
+}
+
+/** The month's import credits as the API reports them, on a paid Profesional unless told otherwise. */
+export function creditsUsage(overrides: Partial<BillingCreditsUsage> = {}): BillingCreditsUsage {
+  return {
+    used: 640,
+    included: 1500,
+    allowance: 1500,
+    granted: 0,
+    shortfall: 0,
+    left: 860,
+    giftLeft: 8640,
+    giftPending: 0,
+    period: 'month',
+    periodStart: inDays(-17),
+    periodEnd: inDays(14),
+    state: 'ok',
+    ...overrides,
+  };
+}
+
+/** The month's signing codes as the API reports them, on a paid plan unless told otherwise. */
+export function smsUsage(overrides: Partial<BillingSmsUsage> = {}): BillingSmsUsage {
+  return {
+    used: 0,
+    included: 300,
+    allowance: 300,
+    granted: 0,
+    cap: 900,
+    capFactor: 3,
+    overage: 0,
+    periodStart: inDays(-17),
+    periodEnd: inDays(14),
+    state: 'ok',
+    ...overrides,
   };
 }
 
@@ -144,12 +185,16 @@ export function overviewWith({
   employees = 312,
   members = 1,
   limits,
+  sms,
+  credits,
 }: {
   subscription: Subscription | null;
   owner?: Owner | null;
   employees?: number;
   members?: number;
   limits?: { employees: number | null; members: number | null; sms: number | null };
+  sms?: Partial<BillingSmsUsage>;
+  credits?: Partial<BillingCreditsUsage>;
 }): BillingOverview {
   return {
     subscription,
@@ -167,6 +212,7 @@ export function overviewWith({
         periodStart: null,
         periodEnd: null,
         state: limits?.sms ? 'ok' : 'none',
+        ...sms,
       },
       creditsThisMonth: {
         used: 0,
@@ -181,6 +227,7 @@ export function overviewWith({
         periodStart: '2026-10-01T08:00:00.000Z',
         periodEnd: '2026-10-31T08:00:00.000Z',
         state: 'ok',
+        ...credits,
       },
     },
     catalogue,

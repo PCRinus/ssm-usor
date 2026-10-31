@@ -7,6 +7,7 @@ import type { ApiEnv } from '../../lib/env';
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: 'https://example.supabase.co',
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
+  SUPABASE_SECRET_KEY: 'sb_secret_test_key_123456',
 };
 
 const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ana@example.ro' };
@@ -24,6 +25,7 @@ const trialRow = {
   trial_ends_at: '2026-11-25T10:00:00+00:00',
   access_until: '2026-11-25T10:00:00+00:00',
   stripe_subscription_id: null as string | null,
+  created_at: '2026-10-26T10:00:00+00:00',
 };
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -49,6 +51,12 @@ function mockUpstream({
       return Response.json(
         url.searchParams.get('organization_id') === `eq.${organization.id}` ? subscription : null
       );
+    }
+    if (url.pathname === '/rest/v1/rpc/credit_balance') {
+      return Response.json({ granted: 0, used: 640, shortfall: 0, balance: 860, gift_left: 8640 });
+    }
+    if (url.pathname === '/rest/v1/rpc/sms_period_usage') {
+      return Response.json({ used: 252, overage: 0, granted: 0 });
     }
     if (url.pathname === '/rest/v1/rpc/my_open_invitations') {
       return Response.json([
@@ -127,6 +135,8 @@ describe('GET /me', () => {
       membership: { organization, role: 'owner' },
       impersonation: null,
       subscription: null,
+      smsThisMonth: null,
+      creditsThisMonth: null,
     });
   });
 
@@ -171,6 +181,60 @@ describe('GET /me', () => {
     });
   });
 
+  describe("the month's signing codes by SMS", () => {
+    const paidRow = {
+      ...trialRow,
+      plan: 'profesional',
+      status: 'active',
+      created_at: '2026-09-14T09:00:00+00:00',
+      stripe_subscription_id: 'sub_123',
+      stripe_customer_id: 'cus_123',
+      tester_allowances: false,
+      first_paid_at: '2026-10-14T09:00:00+00:00',
+      billing_anchor_at: '2026-10-14T09:00:00+00:00',
+      current_period_end: '2026-11-14T09:00:00+00:00',
+      sms_cap_factor: 3,
+    };
+
+    it('counts them, and the credits, as the Abonament tab does, for the bar on every page', async () => {
+      mockUpstream({ subscription: paidRow });
+
+      const response = await request('/me');
+
+      const me = meResponseSchema.parse(await response.json());
+      expect(me.smsThisMonth).toMatchObject({ used: 252, included: 300, cap: 900, state: 'near' });
+      expect(me.creditsThisMonth).toMatchObject({
+        used: 640,
+        included: 1500,
+        left: 860,
+        giftLeft: 8640,
+        state: 'ok',
+      });
+    });
+
+    it('says none goes during a trial without a plan', async () => {
+      mockUpstream({ subscription: trialRow });
+
+      const response = await request('/me');
+
+      const me = meResponseSchema.parse(await response.json());
+      expect(me.smsThisMonth?.state).toBe('none');
+      expect(me.creditsThisMonth).toMatchObject({ included: 300, period: 'trial' });
+    });
+
+    it('leaves the count out instead of failing the page when it cannot be read', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockUpstream({ subscription: paidRow });
+
+      const response = await request('/me', {}, { ...env, SUPABASE_SECRET_KEY: undefined });
+
+      expect(response.status).toBe(200);
+      const me = meResponseSchema.parse(await response.json());
+      expect(me.smsThisMonth).toBeNull();
+      expect(me.creditsThisMonth).toBeNull();
+    });
+  });
+
   it('reads the organization by the membership, not by what the policies show', async () => {
     mockUpstream();
 
@@ -195,6 +259,8 @@ describe('GET /me', () => {
       membership: null,
       impersonation: null,
       subscription: null,
+      smsThisMonth: null,
+      creditsThisMonth: null,
     });
   });
 

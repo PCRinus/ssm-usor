@@ -260,6 +260,140 @@
               "access",
               "deletesAt"
             ]
+          },
+          "smsThisMonth": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "used": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "included": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "allowance": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "granted": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cap": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "capFactor": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 1
+              },
+              "overage": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "periodStart": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "periodEnd": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "state": {
+                "type": "string",
+                "enum": ["ok", "near", "over", "capped", "stopped", "none"]
+              }
+            },
+            "required": [
+              "used",
+              "included",
+              "allowance",
+              "granted",
+              "cap",
+              "capFactor",
+              "overage",
+              "periodStart",
+              "periodEnd",
+              "state"
+            ]
+          },
+          "creditsThisMonth": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "used": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "included": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "allowance": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "granted": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "shortfall": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "left": {
+                "type": "integer",
+                "nullable": true
+              },
+              "giftLeft": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "giftPending": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "period": {
+                "type": "string",
+                "enum": ["trial", "month"]
+              },
+              "periodStart": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "periodEnd": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "state": {
+                "type": "string",
+                "enum": ["ok", "near", "out", "negative", "unlimited"]
+              }
+            },
+            "required": [
+              "used",
+              "included",
+              "allowance",
+              "granted",
+              "shortfall",
+              "left",
+              "giftLeft",
+              "giftPending",
+              "period",
+              "periodStart",
+              "periodEnd",
+              "state"
+            ]
           }
         },
         "required": ["user", "profile", "membership"]

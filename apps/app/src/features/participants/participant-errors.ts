@@ -1,4 +1,4 @@
-import { participantErrorReasons } from '@ssm-usor/contracts';
+import { participantErrorReasons, type SmsRefusalReason } from '@ssm-usor/contracts';
 
 import type { ApiErrorResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
@@ -12,7 +12,19 @@ export interface ParticipantFailure {
   saved: boolean;
 }
 
+export const smsReasons: Record<SmsRefusalReason, string> = {
+  sms_trial:
+    'În perioada de probă nu trimitem SMS. Trimite invitația pe email; SMS-urile pornesc când se alege un plan.',
+  sms_foreign_number:
+    'SMS trimitem doar spre numere din România (+40). Trimite invitația pe email.',
+  sms_allowance_reached:
+    'Codurile de semnare prin SMS ale lunii s-au terminat. Până la reînnoire, folosește emailul.',
+  sms_cap_reached:
+    'S-a atins limita de siguranță pentru SMS a lunii. Până la reînnoire, folosește emailul.',
+};
+
 const addressReasons: Record<string, string> = {
+  ...smsReasons,
   [participantErrorReasons.addressHasParticipant]:
     'Această adresă aparține deja unui participant al clientului.',
   [participantErrorReasons.addressInvitedForAnotherPerson]:

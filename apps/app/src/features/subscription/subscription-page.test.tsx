@@ -1,16 +1,18 @@
 import type { BillingChoice, BillingOverview } from '@ssm-usor/contracts';
-import { screen, waitFor, within } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import {
   activeSubscription,
+  creditsUsage,
   inDays,
   meFor,
   overviewWith,
   ownerPart,
   previewFor,
+  smsUsage,
   summaryOf,
   trialChosenSubscription,
   trialSubscription,
@@ -23,6 +25,7 @@ import { roDate } from './subscription-copy';
 vi.mock('./leave', () => ({ leaveFor: vi.fn() }));
 
 type Route = (init: RequestInit | undefined) => Response;
+type Owner = NonNullable<BillingOverview['owner']>;
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -31,7 +34,9 @@ function mockApi({
   role = 'owner',
   impersonating = false,
   routes = {},
+  me = {},
 }: {
+  me?: Partial<Parameters<typeof meFor>[0]>;
   overview: BillingOverview;
   role?: 'owner' | 'specialist';
   impersonating?: boolean;
@@ -44,7 +49,7 @@ function mockApi({
     if (route) return route(init);
     if (pathname === '/me') {
       return Response.json(
-        meFor({ role, impersonating, subscription: summaryOf(overview.subscription) })
+        meFor({ role, impersonating, subscription: summaryOf(overview.subscription), ...me })
       );
     }
     if (pathname === '/billing' && method === 'GET') return Response.json(overview);
@@ -134,7 +139,7 @@ describe('the Abonament tab', () => {
     mockApi({
       overview: overviewWith({
         subscription,
-        limits: { employees: 1500, members: 3, sms: 300 },
+        limits: { employees: 1500, members: 3, sms: 50 },
         owner: ownerPart({
           card: { brand: 'visa', last4: '4242', expMonth: 8, expYear: 2028 },
           nextPayment: {
@@ -614,5 +619,241 @@ describe('the Abonament tab', () => {
     expect(bodyOf('/billing/invoice-email', 'PUT')).toEqual({
       email: 'contabilitate@protectconsult.ro',
     });
+  });
+});
+
+describe('the signing codes by SMS on the Abonament tab', () => {
+  const monthly = () =>
+    activeSubscription({ interval: 'month', employeePacks: 0, extraMembers: 0 });
+  const paidWith = (sms: Parameters<typeof smsUsage>[0], owner: Owner | null = ownerPart()) =>
+    overviewWith({ subscription: monthly(), owner, sms: smsUsage(sms) });
+
+  it('shows the owner the codes past the allowance and their price, and a member no amounts', async () => {
+    const sms = { used: 342, overage: 42, state: 'over' as const };
+    mockApi({ overview: paidWith(sms) });
+    mount();
+    const meter = await screen.findByTestId('meter-sms');
+    expect(meter.textContent).toContain('342 din 300');
+    expect(within(meter).getByTestId('meter-sms-hint').textContent).toContain(
+      '+42 peste cele incluse, 0,10\u00a0€ fiecare, pe factura din'
+    );
+    expect(within(meter).getByRole('meter').firstElementChild!.className).toContain('bg-chart-3');
+    cleanup();
+    disposeRuntimes();
+
+    mockApi({ overview: paidWith(sms, null), role: 'specialist' });
+    mount();
+    const forMember = await screen.findByTestId('meter-sms-hint');
+    expect(forMember.textContent).toBe(
+      '+42 peste cele incluse. Codurile se trimit mai departe, până la 900 de coduri pe lună.'
+    );
+  });
+
+  it('turns amber from 80 %', async () => {
+    mockApi({ overview: paidWith({ used: 252, state: 'near' }) });
+    mount();
+    const meter = await screen.findByTestId('meter-sms');
+    expect(within(meter).getByRole('meter').firstElementChild!.className).toContain(
+      'bg-warning-border'
+    );
+    expect(within(meter).getByTestId('meter-sms-hint').className).toContain(
+      'text-warning-foreground'
+    );
+  });
+
+  it('lets the owner raise the cap once it is reached, and says what the new one means', async () => {
+    let factor = 3;
+    mockApi({
+      overview: paidWith({ used: 900, overage: 600, state: 'capped' }),
+      routes: {
+        'PUT /billing/sms-cap': (init) => {
+          factor = (JSON.parse(String(init?.body)) as { factor: number }).factor;
+          return Response.json({ factor, cap: factor * 300 });
+        },
+      },
+    });
+    mount();
+    const meter = await screen.findByTestId('meter-sms');
+    expect(within(meter).getByRole('meter').firstElementChild!.className).toContain(
+      'bg-destructive'
+    );
+    expect(within(meter).getByTestId('meter-sms-hint').textContent).toContain(
+      'Cele 600 peste plan: 60 € + TVA'
+    );
+
+    const user = userEvent.setup();
+    await user.click(within(meter).getByTestId('meter-sms-raise'));
+    const dialog = await screen.findByTestId('sms-cap-dialog');
+    expect(dialog.textContent).toContain(
+      'Acum e de 900 de coduri pe lună, de 3 ori cele 300 ale planului.'
+    );
+    expect(within(dialog).getByTestId<HTMLSelectElement>('sms-cap-factor').value).toBe('4');
+    expect(within(dialog).getByTestId('sms-cap-summary').textContent).toContain(
+      'Până la 1.200 de coduri pe lună.'
+    );
+    expect(within(dialog).getByTestId('sms-cap-summary').textContent).toContain(
+      'cel mult 90 € + TVA pe lună'
+    );
+
+    await user.selectOptions(within(dialog).getByTestId('sms-cap-factor'), '5');
+    expect(within(dialog).getByTestId('sms-cap-summary').textContent).toContain(
+      'Până la 1.500 de coduri pe lună.'
+    );
+    await user.click(within(dialog).getByTestId('sms-cap-save'));
+    await waitFor(() => expect(factor).toBe(5));
+    expect(await screen.findByText('Limita e acum de 1.500 de coduri pe lună.')).toBeTruthy();
+    await waitFor(() => expect(screen.queryByTestId('sms-cap-dialog')).toBeNull());
+  });
+
+  it('opens the dialog from the bar, and says why a change was refused', async () => {
+    mockApi({
+      overview: paidWith({ used: 900, overage: 600, state: 'capped' }),
+      routes: {
+        'PUT /billing/sms-cap': () =>
+          Response.json(
+            { error: 'conflict', message: 'enterprise', reason: 'enterprise_plan' },
+            { status: 409 }
+          ),
+      },
+    });
+    mountApp(authFixture(makeSession()).client, '/organization/subscription?raiseCap=true');
+    const dialog = await screen.findByTestId('sms-cap-dialog');
+    await userEvent.click(within(dialog).getByTestId('sms-cap-save'));
+    expect((await within(dialog).findByTestId('sms-cap-error')).textContent).toContain(
+      'Abonamentul Enterprise se schimbă prin email'
+    );
+  });
+
+  it('opens the dialog from the bar while already on the tab', async () => {
+    const capped = smsUsage({ used: 900, overage: 600, state: 'capped' });
+    mockApi({ overview: paidWith(capped), me: { smsThisMonth: capped } });
+    mount();
+    await screen.findByTestId('meter-sms');
+    expect(screen.queryByTestId('sms-cap-dialog')).toBeNull();
+    await userEvent.click(await screen.findByTestId('subscription-bar-action'));
+    expect(await screen.findByTestId('sms-cap-dialog')).toBeTruthy();
+  });
+
+  it('offers a member no way to raise the cap', async () => {
+    mockApi({
+      overview: paidWith({ used: 900, overage: 600, state: 'capped' }, null),
+      role: 'specialist',
+    });
+    mountApp(authFixture(makeSession()).client, '/organization/subscription?raiseCap=true');
+    expect((await screen.findByTestId('meter-sms-hint')).textContent).toContain(
+      'Administratorul poate ridica limita.'
+    );
+    expect(screen.queryByTestId('meter-sms-raise')).toBeNull();
+    expect(screen.queryByTestId('sms-cap-dialog')).toBeNull();
+  });
+
+  it('shows the hard stop of a plan chosen during the trial, and a trial without SMS', async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: trialChosenSubscription(),
+        owner: ownerPart(),
+        sms: smsUsage({
+          used: 50,
+          included: 50,
+          allowance: 50,
+          cap: null,
+          capFactor: null,
+          state: 'stopped',
+        }),
+      }),
+    });
+    mount();
+    const hint = await screen.findByTestId('meter-sms-hint');
+    expect(hint.textContent).toMatch(/^Ai folosit cele 50 de până la prima plată\./);
+    expect(hint.className).toContain('text-destructive-foreground');
+    expect(screen.queryByTestId('meter-sms-raise')).toBeNull();
+    cleanup();
+    disposeRuntimes();
+
+    mockApi({ overview: overviewWith({ subscription: trialSubscription(), owner: ownerPart() }) });
+    mount();
+    const meter = await screen.findByTestId('meter-sms');
+    expect(within(meter).queryByRole('meter')).toBeNull();
+    expect(meter.textContent).toContain('În perioada de probă nu trimitem SMS');
+  });
+});
+
+describe('the import credits on the Abonament tab', () => {
+  const monthly = () =>
+    activeSubscription({ interval: 'month', employeePacks: 0, extraMembers: 0 });
+
+  it("shows the month's credits, the welcome gift left and what a credit is", async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: monthly(),
+        owner: ownerPart(),
+        credits: creditsUsage(),
+      }),
+    });
+    mount();
+    const meter = await screen.findByTestId('meter-credits');
+    expect(meter.textContent).toContain('Credite pentru import');
+    expect(meter.textContent).toContain('640 din 1.500');
+    const gift = screen.getByTestId('credits-gift');
+    expect(gift.dataset.look).toBe('balance');
+    expect(gift.textContent).toContain('8.640');
+    expect(gift.textContent).toContain('Rămase din 10.000. Nu expiră');
+    expect(screen.getByTestId('usage-card').textContent).toContain(
+      'Un credit e o pagină scanată sau o fotografie citită la import.'
+    );
+  });
+
+  it('shows a balance below zero short beside the label, with the sentence in the hint', async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: monthly(),
+        owner: ownerPart(),
+        credits: creditsUsage({ used: 1504, left: -4, giftLeft: 0, state: 'negative' }),
+      }),
+    });
+    mount();
+    const meter = await screen.findByTestId('meter-credits');
+    expect(within(meter).getByText('−4').className).toContain('sm:hidden');
+    expect(within(meter).getByText('−4 · se scad din luna viitoare').className).toContain(
+      'hidden sm:inline'
+    );
+    expect(within(meter).getByRole('meter').firstElementChild!.className).toContain('bg-chart-3');
+    expect(screen.getByTestId('credits-gift').dataset.look).toBe('spent');
+  });
+
+  it('turns red when used up, and promises the gift to a plan chosen during the trial', async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: monthly(),
+        owner: ownerPart(),
+        credits: creditsUsage({ used: 1500, left: 0, giftLeft: 0, state: 'out' }),
+      }),
+    });
+    mount();
+    const meter = await screen.findByTestId('meter-credits');
+    expect(within(meter).getByRole('meter').firstElementChild!.className).toContain(
+      'bg-destructive'
+    );
+    expect(within(meter).getByTestId('meter-credits-hint').textContent).toContain(
+      'îți adăugăm credite'
+    );
+    cleanup();
+    disposeRuntimes();
+
+    mockApi({
+      overview: overviewWith({
+        subscription: trialChosenSubscription(),
+        owner: ownerPart(),
+        credits: { used: 85, left: 215, giftPending: 2500 },
+      }),
+    });
+    mount();
+    const gift = await screen.findByTestId('credits-gift');
+    expect(gift.dataset.look).toBe('promise');
+    expect(gift.textContent).toContain('La prima plată primești 2.500 de credite de bun venit.');
+    expect(screen.getByTestId('meter-credits-hint').textContent).toContain(
+      'Cele 300 din perioada de probă, până la prima plată.'
+    );
+    expect(screen.getByTestId('meter-credits-hint').textContent).toContain('primești 300 pe lună');
   });
 });

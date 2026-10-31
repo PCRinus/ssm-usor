@@ -4,7 +4,9 @@ import type { ComponentProps, ReactNode } from 'react';
 
 import { HelpLink } from '@/components/help-link';
 
+import { toneFills } from './meter-tones';
 import { sealLooks } from './seal-looks';
+import type { MeterTone } from './sms-copy';
 import type { SealKind } from './subscription-copy';
 
 export function BillingCard({
@@ -105,15 +107,26 @@ export function UsageBar({
   limit,
   ticks = [],
   label,
+  tone,
+  className,
 }: {
   used: number;
   limit: number;
   // Where an included amount or a pack ends, as fractions of the limit.
   ticks?: number[];
   label: string;
+  tone?: MeterTone;
+  className?: string;
 }) {
   const share = limit > 0 ? Math.min(1, used / limit) : 1;
   const over = used > limit;
+  const fill = tone
+    ? toneFills[tone]
+    : over
+      ? 'bg-chart-3'
+      : share >= 0.85
+        ? 'bg-warning-border'
+        : 'bg-ring';
   return (
     <div
       role="meter"
@@ -121,13 +134,10 @@ export function UsageBar({
       aria-valuemin={0}
       aria-valuemax={limit}
       aria-valuenow={Math.min(used, limit)}
-      className="relative h-2.5 overflow-hidden rounded-full bg-muted"
+      className={cn('relative h-2.5 overflow-hidden rounded-full bg-muted', className)}
     >
       <div
-        className={cn(
-          'absolute inset-y-0 left-0 rounded-full',
-          over ? 'bg-chart-3' : share >= 0.85 ? 'bg-warning-border' : 'bg-ring'
-        )}
+        className={cn('absolute inset-y-0 left-0 rounded-full', fill)}
         style={{ width: `${share * 100}%` }}
       />
       {ticks.map((tick) => (

@@ -355,9 +355,14 @@ export const helpTopics = {
   'organizatie.anulare': { path: '/organizatie/abonament/', anchor: 'anularea-abonamentului' },
   'organizatie.colegii': { path: '/organizatie/abonament/', anchor: 'ce-văd-colegii' },
   'organizatie.consum': { path: '/organizatie/abonament/', anchor: 'cât-folosești' },
+  'organizatie.credite': { path: '/organizatie/abonament/', anchor: 'creditele-pentru-import' },
   'organizatie.doar-citire': {
     path: '/organizatie/abonament/',
     anchor: 'contul-doar-pentru-citire',
+  },
+  'organizatie.limita-sms': {
+    path: '/organizatie/abonament/',
+    anchor: 'limita-de-siguranță-pentru-sms',
   },
   'organizatie.pachete': {
     path: '/organizatie/abonament/',

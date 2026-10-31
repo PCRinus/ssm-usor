@@ -19,6 +19,13 @@ import { Notice } from '@/components/notice';
 import type { ParticipantMessage } from './participant-actions';
 import { participantFailure } from './participant-errors';
 import { channelLabels } from './participant-format';
+import {
+  foreignNumberLabel,
+  smsBlockLabels,
+  smsBlockOf,
+  trialSmsNotice,
+  useSmsOff,
+} from './sms-rules';
 import { useRefreshParticipants } from './use-refresh-participants';
 
 export interface InvitedEmployee {
@@ -59,19 +66,22 @@ function InviteEmployeeForm({
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const invite = useInviteEmployeeParticipant({ request: apiRequest });
   const refresh = useRefreshParticipants(employee.clientId);
+  const smsOff = useSmsOff();
+  const smsBlock = employee.phone ? smsBlockOf(employee.phone, smsOff) : null;
   const options = (
     [
-      ['email', employee.email],
-      ['sms', employee.phone],
+      ['email', employee.email, null],
+      ['sms', employee.phone, smsBlock],
     ] as const
-  ).flatMap(([channel, address]) => (address ? [{ channel, address }] : []));
+  ).flatMap(([channel, address, blocked]) => (address ? [{ channel, address, blocked }] : []));
+  const sendable = options.filter((option) => !option.blocked);
   // ADR 023: email first, since every signing code sent by SMS is paid for.
-  const [channel, setChannel] = useState<ParticipantChannel | null>(options[0]?.channel ?? null);
+  const [channel, setChannel] = useState<ParticipantChannel | null>(sendable[0]?.channel ?? null);
   const [error, setError] = useState<string | null>(null);
   const busy = invite.isPending;
 
   async function send() {
-    const picked = options.find((option) => option.channel === channel);
+    const picked = sendable.find((option) => option.channel === channel);
     if (!picked) return;
     setError(null);
     onMessage(null);
@@ -79,7 +89,7 @@ function InviteEmployeeForm({
       await invite.mutateAsync({
         clientId: employee.clientId,
         employeeId: employee.id,
-        data: picked,
+        data: { channel: picked.channel, address: picked.address },
       });
       toast.success(`Invitația a fost trimisă pe ${picked.address}.`);
       onClose();
@@ -133,32 +143,68 @@ function InviteEmployeeForm({
             <HelpLink topic="angajati.invitatie-fara-adresa">De ce?</HelpLink>
           </Notice>
         ) : (
-          <fieldset className="mt-5 grid gap-2">
-            <legend className="mb-2 text-sm font-medium">Trimite invitația pe</legend>
-            {options.map((option) => (
-              <label
-                key={option.channel}
-                data-testid="participant-invite-option"
-                className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm has-checked:border-primary has-checked:bg-muted/50"
-              >
-                <input
-                  type="radio"
-                  name="participant-invite-channel"
-                  value={option.channel}
-                  checked={channel === option.channel}
-                  disabled={busy}
-                  onChange={() => setChannel(option.channel)}
-                  className="mt-0.5 size-4 shrink-0 accent-primary"
-                />
-                <span className="grid min-w-0 gap-0.5">
-                  <span className="font-medium break-all">{option.address}</span>
-                  <span className="text-muted-foreground">
-                    {option.channel === 'email' ? 'Email' : channelLabels.sms}
+          <>
+            <fieldset className="mt-5 grid gap-2">
+              <legend className="mb-2 text-sm font-medium">Trimite invitația pe</legend>
+              {options.map((option) => (
+                <label
+                  key={option.channel}
+                  data-testid="participant-invite-option"
+                  className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm has-checked:border-primary has-checked:bg-muted/50 has-disabled:cursor-not-allowed has-disabled:text-muted-foreground"
+                >
+                  <input
+                    type="radio"
+                    name="participant-invite-channel"
+                    value={option.channel}
+                    checked={channel === option.channel}
+                    disabled={busy || Boolean(option.blocked)}
+                    onChange={() => setChannel(option.channel)}
+                    className="mt-0.5 size-4 shrink-0 accent-primary"
+                  />
+                  <span className="grid min-w-0 gap-0.5">
+                    <span className="font-medium break-all">{option.address}</span>
+                    {option.blocked ? (
+                      <span
+                        data-testid="participant-invite-blocked"
+                        className="text-warning-foreground"
+                      >
+                        {smsBlockLabels[option.blocked]}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {option.channel === 'email' ? 'Email' : channelLabels.sms}
+                      </span>
+                    )}
                   </span>
-                </span>
-              </label>
-            ))}
-          </fieldset>
+                </label>
+              ))}
+            </fieldset>
+            {smsBlock && (smsBlock === 'trial' || sendable.length === 0) && (
+              <Notice
+                variant="info"
+                data-testid="participant-invite-sms-notice"
+                className="mt-4"
+                action={
+                  sendable.length === 0 && (
+                    <Button asChild variant="outline" size="sm">
+                      <Link
+                        to="/clients/$clientId/employees/$employeeId/edit"
+                        params={{ clientId: employee.clientId, employeeId: employee.id }}
+                      >
+                        Modifică datele
+                      </Link>
+                    </Button>
+                  )
+                }
+              >
+                {smsBlock === 'foreign'
+                  ? `Angajatul are doar ${foreignNumberLabel(employee.phone ?? '')}, iar SMS trimitem doar spre numere din România. Adaugă-i o adresă de email, apoi trimite invitația.`
+                  : sendable.length > 0
+                    ? trialSmsNotice
+                    : 'În perioada de probă nu trimitem SMS, iar angajatul are doar un număr de telefon. Adaugă-i o adresă de email, apoi trimite invitația.'}
+              </Notice>
+            )}
+          </>
         )}
         {error && (
           <Notice variant="destructive" data-testid="participant-invite-error" className="mt-4">
@@ -169,7 +215,7 @@ function InviteEmployeeForm({
           <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
             Renunță
           </Button>
-          {options.length > 0 && (
+          {sendable.length > 0 && (
             <Button type="submit" data-testid="participant-invite-submit" disabled={busy}>
               {busy ? 'Se trimite…' : 'Trimite invitația'}
             </Button>

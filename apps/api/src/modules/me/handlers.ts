@@ -7,11 +7,17 @@ import {
   type SubscriptionSummary,
   type SupportIdentity,
 } from '@ssm-usor/contracts';
+import type { Context } from 'hono';
 
 import type { Database } from '../../database.types';
+import { createAdminClient } from '../../lib/admin-db';
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { creditsStore } from '../credits/store';
+import { creditsUsageOf } from '../credits/usage';
+import { smsUsageStore } from '../sms-usage/store';
+import { smsUsageOf } from '../sms-usage/usage';
 import type {
   listMyInvitationsRoute,
   meRoute,
@@ -62,6 +68,28 @@ function toSubscription(
   };
 }
 
+const noUsage = { smsThisMonth: null, creditsThisMonth: null };
+
+// The logs of sends and credits are the secret key's alone. Every page waits for /me, so a failed
+// count leaves the bar and the badge's meters out instead of the app.
+async function usageOf(c: Context<ApiEnv>, organizationId: string) {
+  try {
+    const db = createAdminClient(c);
+    const store = smsUsageStore(db);
+    const row = await store.subscription(organizationId);
+    if (!row) return noUsage;
+    const now = new Date();
+    const [smsThisMonth, creditsThisMonth] = await Promise.all([
+      smsUsageOf(store, organizationId, row, now),
+      creditsUsageOf(creditsStore(db), organizationId, row, now),
+    ]);
+    return { smsThisMonth, creditsThisMonth };
+  } catch (error) {
+    console.error('Usage for /me failed:', error instanceof Error ? error.message : error);
+    return noUsage;
+  }
+}
+
 export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
   const user = c.get('user');
   const db = createDataClient(c);
@@ -91,6 +119,10 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
       ];
   if (organization.error) throw fromDatabaseError(organization.error, 'me organization');
   if (subscription.error) throw fromDatabaseError(subscription.error, 'me subscription');
+  const usage =
+    organizationId && subscription.data && membership.data[0]?.access === 'full'
+      ? await usageOf(c, organizationId)
+      : noUsage;
 
   const role = membership.data[0]?.role;
   return c.json(
@@ -112,6 +144,7 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
         subscription.data && membership.data[0]
           ? toSubscription(subscription.data, membership.data[0].access)
           : null,
+      ...usage,
     } satisfies MeResponse,
     200
   );

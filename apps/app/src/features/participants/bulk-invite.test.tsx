@@ -11,8 +11,13 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getListImportPortalInviteesQueryKey } from '@/api/generated/api';
+import { meQueryKey } from '@/features/account/use-me';
+import { AuthContext } from '@/features/auth/auth-context';
+import type { AuthStore } from '@/features/auth/auth-store';
 import { createQueryClient } from '@/lib/query-client';
 import type { RouterContext } from '@/routes/__root';
+import { makeSession } from '@/test/auth-fixture';
+import { meFor, smsUsage } from '@/test/billing-fixture';
 
 import {
   formerEmployeesSentence,
@@ -95,8 +100,19 @@ function Harness() {
   );
 }
 
-async function openDialog(cached?: ImportInvitee[]) {
+const session = makeSession();
+const snapshot = { status: 'ready', session };
+const auth = {
+  subscribe: () => () => {},
+  getSnapshot: () => snapshot,
+} as unknown as AuthStore;
+
+async function openDialog(cached?: ImportInvitee[], { trial = false } = {}) {
   const queryClient = createQueryClient();
+  queryClient.setQueryData(
+    meQueryKey(session.user.id),
+    meFor({ smsThisMonth: trial ? smsUsage({ state: 'none' }) : smsUsage() })
+  );
   if (cached) {
     queryClient.setQueryData(getListImportPortalInviteesQueryKey(clientId, importId), {
       items: cached,
@@ -113,9 +129,11 @@ async function openDialog(cached?: ImportInvitee[]) {
     },
   });
   render(
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <AuthContext.Provider value={auth}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </AuthContext.Provider>
   );
   const user = userEvent.setup();
   await user.click(await screen.findByRole('button', { name: /Invită în portal/ }));
@@ -280,6 +298,61 @@ describe('inviting the people of an employee import to the portal', () => {
     expect(sent().map((rows) => rows.length)).toEqual([10, 2]);
     expect(within(dialog).getAllByTestId('bulk-invite-row')[1]!.textContent).toContain(
       'La această adresă există deja o invitație deschisă pentru altă persoană a clientului.'
+    );
+  });
+
+  it('leaves out a phone during a trial and one from outside Romania, each with the reason', async () => {
+    const people = [
+      invitee('Dobre', 'Cristian', { phone: '+40742115980' }),
+      invitee('Ceban', 'Victor', { phone: '+37369412507' }),
+      invitee('Ionescu', 'Maria', { email: 'maria@example.ro' }),
+    ];
+    mockApi(people);
+    const { user, dialog } = await openDialog(undefined, { trial: true });
+    const rows = within(dialog).getAllByTestId('bulk-invite-row');
+    expect(rows[0]!.textContent).toContain('În perioada de probă nu trimitem SMS; scrie un email.');
+    expect(within(dialog).getByTestId('bulk-invite-sms').textContent).toContain(
+      'În perioada de probă nu trimitem SMS: invitațiile pleacă doar pe email.'
+    );
+
+    await user.click(within(dialog).getByTestId('bulk-invite-submit'));
+    await within(dialog).findByTestId('bulk-invite-summary');
+    expect(sent()).toEqual([[{ employeeId: people[2]!.employeeId, address: 'maria@example.ro' }]]);
+  });
+
+  it('says SMS go to Romanian numbers only, and words the refusals of each row', async () => {
+    const people = [
+      invitee('Ceban', 'Victor', { phone: '+37369412507' }),
+      invitee('Dobre', 'Cristian', { phone: '+40742115980' }),
+      invitee('Ionescu', 'Maria', { email: 'maria@example.ro' }),
+    ];
+    mockApi(people, (rows) =>
+      Response.json({
+        results: rows.map((row) =>
+          row.employeeId === people[1]!.employeeId
+            ? {
+                employeeId: row.employeeId,
+                outcome: 'failed',
+                reason: 'sms_trial',
+                invitation: null,
+              }
+            : { employeeId: row.employeeId, outcome: 'invited', reason: null, invitation: null }
+        ),
+      })
+    );
+    const { user, dialog } = await openDialog();
+    const rows = within(dialog).getAllByTestId('bulk-invite-row');
+    expect(rows[0]!.textContent).toContain(
+      'SMS trimitem doar spre numere din România (+40); scrie un email.'
+    );
+    expect(within(dialog).getByTestId('bulk-invite-sms').textContent).toBe(
+      'O invitație pleacă prin SMS. SMS trimitem doar spre numere din România (+40).'
+    );
+
+    await user.click(within(dialog).getByTestId('bulk-invite-submit'));
+    await within(dialog).findByTestId('bulk-invite-summary');
+    expect(within(dialog).getAllByTestId('bulk-invite-row')[1]!.textContent).toContain(
+      'În perioada de probă nu trimitem SMS; scrie un email.'
     );
   });
 

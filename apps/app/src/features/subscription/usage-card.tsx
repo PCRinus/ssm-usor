@@ -1,5 +1,7 @@
 import { type BillingOverview, billingPlans } from '@ssm-usor/contracts';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
+import { Gift } from 'lucide-react';
 
 import {
   employeeLimitOf,
@@ -12,18 +14,33 @@ import {
   shortPlanNames,
 } from './billing-format';
 import { BillingCard, UsageBar } from './billing-ui';
+import {
+  creditsExplained,
+  creditsLabel,
+  type CreditsMeter,
+  creditsMeterFor,
+  creditsReaderOf,
+  type GiftPanel,
+  giftPanelFor,
+} from './credits-copy';
+import { toneInks } from './meter-tones';
+import { type MeterTone, type SmsMeter, smsMeterFor, stopOf } from './sms-copy';
 import { roDate } from './subscription-copy';
 import { currentChoice, hasLiveSubscription, type SubscriptionView } from './use-billing';
 
 interface Meter {
-  key: 'employees' | 'members' | 'sms';
+  key: 'employees' | 'members' | 'sms' | 'credits';
   label: string;
   used: number | null;
   limit: number | null;
   value?: string;
+  valueShort?: string | null;
+  hintShort?: string | null;
   ticks?: number[];
+  tone?: MeterTone;
   hint: string;
   action?: { label: string; search: { packs?: number; members?: number } };
+  raiseCap?: boolean;
 }
 
 function periodLabel(overview: BillingOverview, view: SubscriptionView) {
@@ -57,10 +74,12 @@ export function UsageCard({
   overview,
   view,
   canAct,
+  onRaiseCap,
 }: {
   overview: BillingOverview;
   view: SubscriptionView;
   canAct: boolean;
+  onRaiseCap: () => void;
 }) {
   const subscription = overview.subscription;
   const choice = currentChoice(subscription);
@@ -68,7 +87,6 @@ export function UsageCard({
   const live = hasLiveSubscription(subscription) && view !== 'readOnly';
   const employees = overview.usage.employees.used ?? 0;
   const members = overview.usage.members.used ?? 0;
-  const smsPrice = formatEuro(overview.catalogue.smsOverageCents);
 
   // Until a trial ends the API counts against the trial's limits; once a plan is chosen, the
   // tab shows the limits that plan brings at the trial's end.
@@ -133,24 +151,48 @@ export function UsageCard({
   }
 
   const sms = overview.usage.smsThisMonth;
-  const smsLimit = planLimits ? billingPlans[choice.plan].monthlySms : sms.included;
-  const smsUsed = sms.used;
-  let smsHint: string;
-  if (view === 'readOnly') {
-    smsHint = 'Cât contul e doar pentru citire, nu se mai trimit SMS-uri.';
-  } else if (smsLimit === null) {
-    smsHint = 'Fără limită.';
-  } else if (smsLimit === 0) {
-    smsHint =
-      'Codurile de conectare și de semnare pleacă pe email. SMS-urile pornesc când alegi un plan.';
-  } else {
-    const after =
-      sms.cap === null
-        ? `Se numără doar codurile de semnare. Peste ${formatCount(smsLimit)}, codul pleacă pe email, iar cine nu are email îl cere specialistului.`
-        : `Se numără doar codurile de semnare. Peste ${formatCount(smsLimit)}, fiecare costă ${smsPrice} și apare pe factura următoare, până la ${formatCount(sms.cap)} pe lună.`;
-    smsHint =
-      view === 'trialChosen' ? `SMS-urile au pornit odată cu alegerea planului. ${after}` : after;
-  }
+  const smsMeter: SmsMeter =
+    view === 'readOnly'
+      ? {
+          used: null,
+          limit: null,
+          value: null,
+          tone: 'normal',
+          hint: 'Cât contul e doar pentru citire, nu se mai trimit SMS-uri.',
+          raiseCap: false,
+        }
+      : smsMeterFor(sms, { owner, stop: stopOf(sms, Boolean(subscription?.planChosen)) });
+
+  const credits = overview.usage.creditsThisMonth;
+  const creditsMeter: CreditsMeter =
+    view === 'readOnly'
+      ? {
+          used: null,
+          limit: null,
+          value: '',
+          valueShort: null,
+          tone: 'normal',
+          hint: 'Cât contul e doar pentru citire, nu se mai pornesc importuri.',
+          hintShort: null,
+        }
+      : creditsMeterFor(
+          credits,
+          creditsReaderOf(credits, {
+            planChosen: Boolean(subscription?.planChosen),
+            nextMonthly: choice ? billingPlans[choice.plan].monthlyCredits : null,
+          })
+        );
+  const paidPlan =
+    choice && (view === 'active' || view === 'canceling' || view === 'pastDue')
+      ? choice.plan
+      : null;
+  const gift =
+    view === 'readOnly'
+      ? null
+      : giftPanelFor(credits, {
+          paid: paidPlan !== null,
+          welcomeCredits: paidPlan ? billingPlans[paidPlan].welcomeCredits : null,
+        });
 
   const meters: Meter[] = [
     {
@@ -188,9 +230,23 @@ export function UsageCard({
     {
       key: 'sms',
       label: 'Coduri de semnare prin SMS',
-      used: view === 'readOnly' || smsLimit === 0 ? null : smsUsed,
-      limit: view === 'readOnly' || smsLimit === 0 ? null : smsLimit,
-      hint: smsHint,
+      used: smsMeter.used,
+      limit: smsMeter.limit,
+      value: smsMeter.value ?? undefined,
+      tone: smsMeter.tone,
+      hint: smsMeter.hint,
+      raiseCap: canAct && smsMeter.raiseCap,
+    },
+    {
+      key: 'credits',
+      label: creditsLabel,
+      used: creditsMeter.used,
+      limit: creditsMeter.limit,
+      value: creditsMeter.value || undefined,
+      valueShort: creditsMeter.valueShort,
+      tone: creditsMeter.tone,
+      hint: creditsMeter.hint,
+      hintShort: creditsMeter.hintShort,
     },
   ];
 
@@ -206,11 +262,12 @@ export function UsageCard({
         {meters.map((meter) => {
           const bar = meter.used !== null && meter.limit !== null;
           const over = bar && meter.used! > meter.limit!;
+          const ink = meter.tone ? toneInks[meter.tone] : over ? 'text-warning-foreground' : null;
           const value =
             meter.value ??
             (bar
               ? `${formatCount(meter.used!)} din ${formatCount(meter.limit!)}`
-              : meter.used !== null && meter.key !== 'sms'
+              : meter.used !== null && meter.key !== 'sms' && meter.key !== 'credits'
                 ? formatCount(meter.used)
                 : null);
           return (
@@ -218,14 +275,15 @@ export function UsageCard({
               <div className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="font-medium">{meter.label}</span>
                 {value && (
-                  <span
-                    className={
-                      over
-                        ? 'font-semibold whitespace-nowrap text-warning-foreground tabular-nums'
-                        : 'font-semibold whitespace-nowrap tabular-nums'
-                    }
-                  >
-                    {value}
+                  <span className={cn('font-semibold whitespace-nowrap tabular-nums', ink)}>
+                    {meter.valueShort ? (
+                      <>
+                        <span className="sm:hidden">{meter.valueShort}</span>
+                        <span className="hidden sm:inline">{value}</span>
+                      </>
+                    ) : (
+                      value
+                    )}
                   </span>
                 )}
               </div>
@@ -235,17 +293,35 @@ export function UsageCard({
                   limit={meter.limit!}
                   ticks={meter.ticks}
                   label={meter.label}
+                  tone={meter.tone}
                 />
               )}
               <p
-                className={
-                  over
-                    ? 'text-[13px] leading-relaxed text-warning-foreground'
-                    : 'text-[13px] leading-relaxed text-muted-foreground'
-                }
+                data-testid={`meter-${meter.key}-hint`}
+                className={cn(
+                  'max-w-[68ch] text-[13px] leading-relaxed text-pretty',
+                  ink ?? 'text-muted-foreground'
+                )}
               >
-                {meter.hint}
+                {meter.hintShort ? (
+                  <>
+                    <span className="sm:hidden">{meter.hintShort}</span>
+                    <span className="hidden sm:inline">{meter.hint}</span>
+                  </>
+                ) : (
+                  meter.hint
+                )}
               </p>
+              {meter.raiseCap && (
+                <button
+                  type="button"
+                  onClick={onRaiseCap}
+                  data-testid={`meter-${meter.key}-raise`}
+                  className="inline-flex min-h-8 w-fit cursor-pointer items-center text-sm font-semibold underline-offset-2 hover:underline"
+                >
+                  Ridică limita
+                </button>
+              )}
               {meter.action && (
                 <Link
                   to="/organization/subscription/choose"
@@ -260,6 +336,67 @@ export function UsageCard({
           );
         })}
       </div>
+      {gift && <GiftPanelView gift={gift} />}
+      {view !== 'readOnly' && credits.included !== null && (
+        <p className="max-w-[68ch] border-t pt-3.5 text-[13px] leading-relaxed text-pretty text-muted-foreground">
+          {creditsExplained}
+        </p>
+      )}
     </BillingCard>
+  );
+}
+
+const giftLooks: Record<GiftPanel['look'], { panel: string; badge: string; value: string }> = {
+  balance: {
+    panel: 'border-success-border bg-success',
+    badge: 'bg-brand-lime text-foreground',
+    value: 'text-foreground',
+  },
+  promise: {
+    panel: 'border-dashed border-success-foreground/45 bg-card',
+    badge: 'bg-success text-success-foreground',
+    value: 'text-foreground',
+  },
+  spent: {
+    panel: 'border-border bg-muted/60',
+    badge: 'bg-muted text-muted-foreground',
+    value: 'text-muted-foreground',
+  },
+};
+
+function GiftPanelView({ gift }: { gift: GiftPanel }) {
+  const look = giftLooks[gift.look];
+  return (
+    <div
+      data-testid="credits-gift"
+      data-look={gift.look}
+      className={cn(
+        'flex items-center gap-3 rounded-xl border px-3.5 py-3 sm:gap-3.5 sm:px-4 sm:py-3.5',
+        look.panel
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn('grid size-9 shrink-0 place-items-center rounded-[10px]', look.badge)}
+      >
+        <Gift className="size-[18px]" />
+      </span>
+      <div className="grid min-w-0 flex-1 gap-0.5">
+        <span className="text-sm font-semibold">{gift.title}</span>
+        <span className="text-[13px] leading-relaxed text-pretty text-muted-foreground">
+          {gift.text}
+        </span>
+      </div>
+      {gift.value !== null && (
+        <strong
+          className={cn(
+            'shrink-0 text-xl leading-none font-bold tracking-tight tabular-nums sm:text-2xl',
+            look.value
+          )}
+        >
+          {gift.value}
+        </strong>
+      )}
+    </div>
   );
 }

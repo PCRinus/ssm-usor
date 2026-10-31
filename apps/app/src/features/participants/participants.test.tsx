@@ -1,9 +1,11 @@
+import type { BillingSmsUsage } from '@ssm-usor/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiHttpError } from '@/api/http';
 import { authFixture, makeSession } from '@/test/auth-fixture';
+import { smsUsage } from '@/test/billing-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 import { noTests, untrained } from '@/test/training-fixture';
 
@@ -119,13 +121,20 @@ function mockApi(
       'state' | 'invite' | 'list' | 'administrator' | 'resend' | 'revoke' | 'revokeAccess',
       Route
     >
-  > & { client?: typeof sampleClient; employee?: typeof sampleEmployee } = {}
+  > & {
+    client?: typeof sampleClient;
+    employee?: typeof sampleEmployee;
+    sms?: BillingSmsUsage;
+  } = {}
 ) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
     const method = init?.method ?? 'GET';
     if (pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
+      return Response.json({
+        user: { id: 'user-one', email: 'review@example.test' },
+        smsThisMonth: routes.sms ?? null,
+      });
     }
     if (pathname === `/clients/${clientId}`) {
       return Response.json({ client: routes.client ?? sampleClient });
@@ -246,6 +255,46 @@ describe("the employee's portal access", () => {
         { channel: 'email', address: 'ion.popescu@example.com' },
       ])
     );
+  });
+
+  it('offers the email only during a trial, and says why', async () => {
+    mockApi({ sms: smsUsage({ state: 'none', included: 0 }) });
+    const user = userEvent.setup();
+    mountEmployee();
+    const card = await portalCard();
+    await user.click(await within(card).findByTestId('participant-invite'));
+    const dialog = await screen.findByTestId('participant-invite-dialog');
+    const phone = within(dialog).getByRole<HTMLInputElement>('radio', { name: /\+40721000000/ });
+    expect(phone.disabled).toBe(true);
+    expect(within(dialog).getByTestId('participant-invite-blocked').textContent).toBe(
+      'SMS, după ce alegi un plan'
+    );
+    expect(within(dialog).getByTestId('participant-invite-sms-notice').textContent).toBe(
+      'În perioada de probă nu trimitem SMS. Invitația și codurile de semnare pleacă pe email; SMS-urile pornesc când alegi un plan.'
+    );
+    await user.click(within(dialog).getByTestId('participant-invite-submit'));
+    await waitFor(() =>
+      expect(requests(invitePath, 'POST')).toEqual([
+        { channel: 'email', address: 'ion.popescu@example.com' },
+      ])
+    );
+  });
+
+  it('asks for an email when the employee has only a number from outside Romania', async () => {
+    mockApi({ employee: { ...sampleEmployee, email: null, phone: '+37369412507' } });
+    const user = userEvent.setup();
+    mountEmployee();
+    const card = await portalCard();
+    await user.click(await within(card).findByTestId('participant-invite'));
+    const dialog = await screen.findByTestId('participant-invite-dialog');
+    expect(within(dialog).getByTestId('participant-invite-blocked').textContent).toBe(
+      'SMS doar spre numere din România'
+    );
+    expect(within(dialog).getByTestId('participant-invite-sms-notice').textContent).toContain(
+      'Angajatul are doar un număr din Republica Moldova, iar SMS trimitem doar spre numere din România.'
+    );
+    expect(within(dialog).getByRole('link', { name: 'Modifică datele' })).toBeTruthy();
+    expect(within(dialog).queryByTestId('participant-invite-submit')).toBeNull();
   });
 
   it('picks the only address the employee has', async () => {
@@ -591,7 +640,22 @@ describe("the client's Portal tab", () => {
     );
   });
 
-  it("invites by SMS at a number in its own country's format, refusing one that does not fit", async () => {
+  it('keeps SMS off for the client administrator during a trial', async () => {
+    mockApi({ sms: smsUsage({ state: 'none', included: 0 }) });
+    mountPortal();
+    const card = await screen.findByTestId('client-administrator-card');
+    await userEvent.click(await within(card).findByTestId('administrator-invite'));
+    const dialog = await screen.findByTestId('administrator-invite-dialog');
+    const sms = within(dialog).getByRole<HTMLInputElement>('radio', {
+      name: 'SMS, după ce alegi un plan',
+    });
+    expect(sms.disabled).toBe(true);
+    expect(within(dialog).getByTestId('administrator-sms-trial').textContent).toContain(
+      'În perioada de probă nu trimitem SMS'
+    );
+  });
+
+  it('invites by SMS at a Romanian number only, refusing one that does not fit', async () => {
     mockApi();
     const user = userEvent.setup();
     mountPortal();
@@ -615,9 +679,21 @@ describe("the client's Portal tab", () => {
     await user.selectOptions(country, 'MD');
     await user.type(phone, '069 123 456');
     await user.click(within(dialog).getByTestId('administrator-invite-submit'));
+    expect((await within(dialog).findByTestId('administrator-phone-error')).textContent).toBe(
+      'SMS trimitem doar spre numere din România (+40). Scrie un număr din România sau trimite invitația pe email.'
+    );
+    expect(requests(`/clients/${clientId}/participant-invitations`, 'POST')).toEqual([]);
+
+    await user.clear(phone);
+    await user.selectOptions(country, 'RO');
+    await user.type(phone, '0721 000 222');
+    expect(
+      within(dialog).getByText('SMS trimitem doar spre numere din România (+40).')
+    ).toBeTruthy();
+    await user.click(within(dialog).getByTestId('administrator-invite-submit'));
     await waitFor(() =>
       expect(requests(`/clients/${clientId}/participant-invitations`, 'POST')).toEqual([
-        { channel: 'sms', address: '+37369123456', fullName: 'Maria Popescu' },
+        { channel: 'sms', address: '+40721000222', fullName: 'Maria Popescu' },
       ])
     );
   });
@@ -642,6 +718,15 @@ describe('participant failures', () => {
     expect(message('invalid_address')).toContain('nu poate primi o invitație');
     expect(message('client_archived')).toContain('arhivat');
     expect(message('client_is_lead')).toContain('client potențial');
+    expect(message('sms_trial')).toBe(
+      'În perioada de probă nu trimitem SMS. Trimite invitația pe email; SMS-urile pornesc când se alege un plan.'
+    );
+    expect(message('sms_foreign_number', 422)).toBe(
+      'SMS trimitem doar spre numere din România (+40). Trimite invitația pe email.'
+    );
+    expect(participantFailure(new ApiHttpError(409, { reason: 'sms_trial' })).aboutAddress).toBe(
+      true
+    );
     expect(
       participantFailure(new ApiHttpError(503, { reason: 'participant_account_unavailable' }))
     ).toMatchObject({ saved: true, message: expect.stringContaining('salvată') });
