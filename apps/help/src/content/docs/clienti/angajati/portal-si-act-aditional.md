@@ -46,7 +46,7 @@ Pe tabul **Date** al unui angajat, două carduri țin de semnarea electronică: 
 
 ## Accesul la portal
 
-În portal, angajatul își vede instruirile, fișele individuale și datele pe care le tipăresc fișele, își semnează rubricile din instruiri și susține testele. Nu vede CNP-ul și nici observațiile tale. Intră cu un cod primit pe email sau prin SMS, fără parolă.
+În portal, angajatul își vede instruirile, fișele individuale și datele pe care le tipăresc fișele, își semnează rubricile din instruiri și susține testele. Nu vede CNP-ul și nici observațiile tale. Intră cu un cod primit pe email sau prin SMS, fără parolă. Uneori, înainte să trimită codul, pagina de intrare îi cere să bifeze o casetă care confirmă că nu e un program automat.
 
 Portalul îi dă angajatului acces direct la o parte din datele pe care angajatorul le ține despre el. Dreptul de acces din GDPR (art. 15) rămâne neschimbat: angajatul îl exercită printr-o cerere către angajator.
 

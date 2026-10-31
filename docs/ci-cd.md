@@ -146,7 +146,8 @@ without it the job only leaves a notice, and `POST /run` answers `404`.
 
 When `supabase/config.toml` or a migration changes, a last job applies the file to the
 environment's project with `supabase config push`, after the API, because the Send Email hook it declares
-must not point at an endpoint that is not deployed yet. Only properties the file declares are
+must not point at an endpoint that is not deployed yet, and after the SPA and the portal, because
+the CAPTCHA it turns on refuses a sign-in without the Turnstile token only the new pages send. Only properties the file declares are
 written; `[remotes.production]` and `[remotes.non-prod]` hold the values that differ from the
 local stack, and the CLI picks the block whose `project_id` is the project's. The push does not
 ask for confirmation in CI, so the job prints `supabase config diff` first. It and the
@@ -154,7 +155,7 @@ migrations job refuse to run unless `SUPABASE_PROJECT_ID` is the `project_id` of
 `[remotes.<environment>]` block, so a project id set in the wrong GitHub environment cannot
 reach the other environment's database. It needs
 `SUPABASE_AUTH_HOOK_SECRET` and `SUPABASE_AUTH_SMS_HOOK_SECRET`, which the API deployment uploads
-too, and so does the migrations job, whose `supabase link` reads the file. After the push it
+too, and `TURNSTILE_SECRET_KEY`, and so does the migrations job, whose `supabase link` reads the file. After the push it
 sets through the Management API the three sign-in settings the file cannot hold: the texted
 code's expiry, phone confirmation, which the CLI pushes inverted
 ([supabase/cli#6997](https://github.com/supabase/cli/issues/6997)), and the cap of 60 auth
@@ -178,7 +179,9 @@ can create users and "send" email and codes without touching production. No depl
 
 Browser tests run in their own job, **Verify deployed SPA**, after the SPA deployment has
 finished and been reported, and remain advisory. They run against the environment just
-deployed with a real account of its own (`E2E_EMAIL`, `E2E_PASSWORD`), so they stay small; flows that create users or send email are tested against a
+deployed with a real account of its own (`E2E_EMAIL`), so they stay small. The login form needs a
+Turnstile token that a browser on a runner is not given, so the account's session comes from a
+magic link the Auth Admin API makes with `SUPABASE_SECRET_KEY`, which only that step receives; flows that create users or send email are tested against a
 local stack on pull requests instead. The job caches the Chromium download by Playwright
 version and installs only its system packages on a cache hit. API smoke-test failures block
 an accompanying SPA release. The portal has the same pair of jobs, **Deploy portal** and

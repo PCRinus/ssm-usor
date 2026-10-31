@@ -69,6 +69,7 @@ describe('dashboard authentication and routing', () => {
     expect(client.signInWithPassword).toHaveBeenCalledWith({
       email: 'review@example.test',
       password: '  password with spaces  ',
+      options: { captchaToken: 'turnstile-token-1' },
     });
     client.signInWithPassword.mockResolvedValue({ data: { session: makeSession() }, error: null });
     await user.clear(screen.getByTestId('login-password'));
@@ -76,6 +77,11 @@ describe('dashboard authentication and routing', () => {
     await user.click(screen.getByTestId('login-submit'));
     await screen.findByTestId('dashboard-page');
     expect(client.signInWithPassword).toHaveBeenCalledTimes(2);
+    expect(client.signInWithPassword).toHaveBeenLastCalledWith({
+      email: 'review@example.test',
+      password: 'correct-password',
+      options: { captchaToken: 'turnstile-token-2' },
+    });
   });
 
   it('redirects a signed-out direct dashboard visit to login', async () => {
@@ -117,6 +123,23 @@ describe('dashboard authentication and routing', () => {
     expect(runtime.queryClient.getMutationCache().getAll()).toHaveLength(0);
   });
 
+  it('says the security check failed when Supabase refuses the Turnstile token', async () => {
+    const { client } = authFixture();
+    client.signInWithPassword.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'captcha protection: request disallowed', code: 'captcha_failed' },
+    });
+    mount(client, '/login');
+    const user = userEvent.setup();
+    await screen.findByTestId('login-page');
+    await user.type(screen.getByTestId('login-email'), 'review@example.test');
+    await user.type(screen.getByTestId('login-password'), 'test-password');
+    await user.click(screen.getByTestId('login-submit'));
+    expect((await screen.findByTestId('login-auth-error')).textContent).toBe(
+      'Verificarea de securitate nu a reușit. Reîncarcă pagina și încearcă din nou.'
+    );
+  });
+
   it('logs in with the SDK, displays the account, and logs out with an empty query cache', async () => {
     const { client } = authFixture();
     client.signInWithPassword.mockResolvedValue({ data: { session: makeSession() }, error: null });
@@ -130,6 +153,7 @@ describe('dashboard authentication and routing', () => {
     expect(client.signInWithPassword).toHaveBeenCalledWith({
       email: 'review@example.test',
       password: 'test-password',
+      options: { captchaToken: 'turnstile-token-1' },
     });
     expect(screen.getByText('review@example.test')).toBeTruthy();
     runtime.queryClient.setQueryData(['private-client-data'], { name: 'Private client' });

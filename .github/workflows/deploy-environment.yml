@@ -221,6 +221,7 @@ jobs:
       VITE_HELP_URL: ${{ vars.HELP_URL }}
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
       VITE_POSTHOG_PROJECT_TOKEN: ${{ vars.VITE_POSTHOG_PROJECT_TOKEN }}
       VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.VITE_STRIPE_PUBLISHABLE_KEY }}
       POSTHOG_PROJECT_ID: ${{ vars.POSTHOG_PROJECT_ID }}
@@ -267,6 +268,14 @@ jobs:
             echo "Set an HTTPS Supabase URL and an sb_publishable_ key."
             exit 1
           fi
+
+      # Supabase Auth refuses a sign-in without a Turnstile token, so a build without the key
+      # would ship a login page that cannot sign anyone in.
+      - name: Check the Turnstile site key
+        if: needs.changes.outputs.app == 'true' || needs.changes.outputs.portal == 'true'
+        shell: bash
+        run: |
+          : "${VITE_TURNSTILE_SITE_KEY:?Set TURNSTILE_SITE_KEY in GitHub variables}"
 
       - uses: ./.github/actions/setup
         with:
@@ -416,6 +425,7 @@ jobs:
       SUPABASE_AUTH_SMS_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_SMS_HOOK_SECRET }}
       SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID }}
       SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET }}
+      TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -434,6 +444,7 @@ jobs:
           : "${SUPABASE_AUTH_SMS_HOOK_SECRET:?Set SUPABASE_AUTH_SMS_HOOK_SECRET in GitHub secrets}"
           : "${SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID:?Set SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID in GitHub secrets}"
           : "${SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET:?Set SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET in GitHub secrets}"
+          : "${TURNSTILE_SECRET_KEY:?Set TURNSTILE_SECRET_KEY in GitHub secrets}"
           remote=$(python3 -c 'import sys, tomllib; print(tomllib.load(open("supabase/config.toml", "rb")).get("remotes", {}).get(sys.argv[1], {}).get("project_id", ""))' "$ENVIRONMENT")
           if [[ "$remote" != "$SUPABASE_PROJECT_ID" ]]; then
             echo "::error::SUPABASE_PROJECT_ID is $SUPABASE_PROJECT_ID, but [remotes.$ENVIRONMENT] in supabase/config.toml names ${remote:-no project}."
@@ -881,18 +892,24 @@ jobs:
 
   deploy-auth-config:
     name: Deploy Supabase configuration
-    needs: [changes, validate, test, deploy-api]
+    needs: [changes, validate, test, deploy-api, deploy-app, deploy-portal]
     # After the API: the Send Email and Send SMS hooks must not point at an endpoint that is not
-    # deployed yet.
-    # A skipped API deployment is fine only when the API was not selected; when it was selected
-    # and skipped, something before it failed and the endpoint may be missing.
+    # deployed yet. After the SPA and the portal too: Supabase Auth's CAPTCHA refuses a sign-in
+    # without a Turnstile token, and ignores one while it is off, so the pages that send it go
+    # first.
+    # A skipped deployment is fine only when its application was not selected; when it was
+    # selected and skipped, something before it failed.
     if: >-
       !cancelled() &&
       needs.changes.outputs.database == 'true' &&
       needs.validate.result == 'success' &&
       needs.test.result == 'success' &&
       (needs.deploy-api.result == 'success' ||
-        (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true'))
+        (needs.deploy-api.result == 'skipped' && needs.changes.outputs.api != 'true')) &&
+      (needs.deploy-app.result == 'success' ||
+        (needs.deploy-app.result == 'skipped' && needs.changes.outputs.app != 'true')) &&
+      (needs.deploy-portal.result == 'success' ||
+        (needs.deploy-portal.result == 'skipped' && needs.changes.outputs.portal != 'true'))
     runs-on: ubuntu-latest
     # Never beside a deployment of the same thing, and never cancelled halfway: a newer run
     # waits its turn.
@@ -911,6 +928,7 @@ jobs:
       SUPABASE_AUTH_SMS_HOOK_SECRET: ${{ secrets.SUPABASE_AUTH_SMS_HOOK_SECRET }}
       SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID }}
       SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET }}
+      TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -925,6 +943,7 @@ jobs:
           : "${SUPABASE_AUTH_SMS_HOOK_SECRET:?Set SUPABASE_AUTH_SMS_HOOK_SECRET in GitHub secrets}"
           : "${SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID:?Set SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID in GitHub secrets}"
           : "${SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET:?Set SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET in GitHub secrets}"
+          : "${TURNSTILE_SECRET_KEY:?Set TURNSTILE_SECRET_KEY in GitHub secrets}"
           remote=$(python3 -c 'import sys, tomllib; print(tomllib.load(open("supabase/config.toml", "rb")).get("remotes", {}).get(sys.argv[1], {}).get("project_id", ""))' "$ENVIRONMENT")
           if [[ "$remote" != "$SUPABASE_PROJECT_ID" ]]; then
             echo "::error::SUPABASE_PROJECT_ID is $SUPABASE_PROJECT_ID, but [remotes.$ENVIRONMENT] in supabase/config.toml names ${remote:-no project}."
@@ -1060,7 +1079,12 @@ jobs:
         continue-on-error: true
         env:
           E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
-          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          E2E_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          # Makes the test account's session through the Admin API: the login form needs a
+          # Turnstile token, which a browser on a runner does not get. Only the test's Node
+          # process reads it, and the authenticated project keeps no traces.
+          E2E_SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: pnpm --filter @ssm-usor/app test:e2e --project=chromium --project=authenticated
 
       - name: Report browser verification warning

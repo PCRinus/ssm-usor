@@ -187,12 +187,13 @@ jobs:
       # The builds the flows serve bake in the local stack's address and publishable key. Both
       # are the pinned CLI's defaults, so the builds need not wait for the stack, which the step
       # after it is up checks. The other values are the ports of the playwright.flows.config.ts
-      # files.
+      # files, and Cloudflare's Turnstile test key, which pairs with the local stack's test secret.
       - name: Build the SPA and the portal while the local stack starts
         env:
           VITE_SUPABASE_URL: ${{ env.LOCAL_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.LOCAL_SUPABASE_PUBLISHABLE_KEY }}
           VITE_API_URL: http://localhost:8797
+          VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
         run: |
           VITE_HELP_URL=http://localhost:4331 pnpm --filter @ssm-usor/app exec vite build --outDir dist-e2e --logLevel warn
           pnpm --filter @ssm-usor/portal exec vite build --outDir dist-e2e --logLevel warn

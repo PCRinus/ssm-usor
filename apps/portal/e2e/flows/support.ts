@@ -5,6 +5,9 @@ const admin = createClient(process.env.E2E_SUPABASE_URL!, process.env.E2E_SUPABA
 });
 
 const password = 'Parola-e2e-1';
+// Turnstile's dummy token, the only one the local stack's test secret accepts
+// (supabase/config.toml).
+const captchaToken = 'XXXX.DUMMY.TOKEN.XXXX';
 
 // Never collides with another run, or with the app's flows sharing the local stack.
 const run = `${Date.now().toString(36)}p${process.env.TEST_WORKER_INDEX ?? ''}`;
@@ -74,7 +77,11 @@ export async function createProvider(
     process.env.E2E_SUPABASE_PUBLISHABLE_KEY!,
     { auth: { persistSession: false, autoRefreshToken: false } }
   );
-  const signedIn = await session.auth.signInWithPassword({ email, password });
+  const signedIn = await session.auth.signInWithPassword({
+    email,
+    password,
+    options: { captchaToken },
+  });
   if (signedIn.error) throw signedIn.error;
   return {
     token: signedIn.data.session.access_token,

@@ -118,6 +118,16 @@ client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
 skip_nonce_check = false
 
+# Every call that signs in with a password, signs up, asks for a reset link or asks for a code
+# needs a Cloudflare Turnstile token (ADR 004). The secret here is Cloudflare's public test
+# secret, which accepts only the dummy token `XXXX.DUMMY.TOKEN.XXXX` that the test site key
+# hands out; each hosted project gets the real widget's from its [remotes.*] block below.
+# Supabase checks the token with Cloudflare, so signing in locally needs an internet connection.
+[auth.captcha]
+enabled = true
+provider = "turnstile"
+secret = "1x0000000000000000000000000000000AA"
+
 # Per hour, for the whole project. The default of 30 is less than a client onboarding a floor of
 # employees in one afternoon needs, and the cap is what bounds the cost of misuse (ADR 022).
 # Emails go through the Send Email hook, which the default of 2 still applies to: the third
@@ -163,6 +173,10 @@ enabled = true
 uri = "https://api.ssmusor.ro/hooks/supabase/send-sms"
 secrets = "env(SUPABASE_AUTH_SMS_HOOK_SECRET)"
 
+# The marketing site's waitlist widget, whose domains cover the app and the portal.
+[remotes.production.auth.captcha]
+secret = "env(TURNSTILE_SECRET_KEY)"
+
 # The same meaning as `enable_confirmations = true` above: the CLI pushes this key to a
 # hosted project un-negated, so there it means the opposite of what it means locally
 # (supabase/cli#6997). The deployment workflow sets the hosted value again after the push.
@@ -185,6 +199,9 @@ secrets = "env(SUPABASE_AUTH_HOOK_SECRET)"
 enabled = true
 uri = "https://api.non-prod.ssmusor.ro/hooks/supabase/send-sms"
 secrets = "env(SUPABASE_AUTH_SMS_HOOK_SECRET)"
+
+[remotes.non-prod.auth.captcha]
+secret = "env(TURNSTILE_SECRET_KEY)"
 
 # Inverted as in production above (supabase/cli#6997).
 [remotes.non-prod.auth.sms]

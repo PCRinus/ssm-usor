@@ -3,6 +3,8 @@ import { afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
 import { activateLocale, sourceLocale } from '@/app/i18n';
 
+import { fakeTurnstile } from './turnstile';
+
 beforeAll(() => activateLocale(sourceLocale));
 
 afterEach(cleanup);
@@ -38,3 +40,6 @@ beforeEach(() => {
   Element.prototype.setPointerCapture = vi.fn();
   Element.prototype.releasePointerCapture = vi.fn();
 });
+
+// jsdom loads no external script, so the widget is a fake that hands out tokens at once.
+beforeEach(() => vi.stubGlobal('turnstile', fakeTurnstile()));

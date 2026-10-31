@@ -4,6 +4,7 @@
 - Date: 2026-09-18
 - Amended 2026-10-24: onboarding takes an optional CUI and looks it up at ANAF; see the amendment below.
 - Amended by [ADR 027](adr-027-sign-in-with-google.md): an account made with Google needs no emailed confirmation.
+- Amended 2026-10-31: CAPTCHA is on for every auth call Supabase gates; see the amendment below.
 
 ## Context
 
@@ -66,3 +67,15 @@ The details are saved once the organization exists, through the owner's company-
 `GET /companies/lookup` now also serves an account with a confirmed email and no membership, the accounts the create-organization function accepts. It neither throttles nor caches ANAF; anyone can register and create an organization, so it was no less open before.
 
 Two PostHog events measure the journey: `signed_up` with `method`, and `organization_created` with `with_cui` and `details_from_anaf`. They carry no personal or company data. PostHog still starts only for members ([ADR 009](adr-009-problem-report-intake.md)), who have accepted the terms with their organization, so both events wait in the browser and go out, stamped with when they happened, in that account's first member session there. A sign-up confirmed in another browser, or never followed by an organization, is not counted.
+
+## Amendment (2026-10-31): CAPTCHA on Supabase Auth
+
+The CAPTCHA this ADR required before registration is linked is Supabase's own, `[auth.captcha]` in `supabase/config.toml`, with Cloudflare Turnstile, approved by Mircea on 2026-10-31 as step 15 of [ADR 029](adr-029-billing-plans-and-trials.md) requires. A gate of our own in front of signup was not considered: anyone with the publishable key can call Supabase directly, so only Supabase can refuse the call.
+
+Supabase checks a token on every route it gates, not on signup alone. Read from the Auth server's source (`supabase/auth`, `internal/api/api.go` and `verifyCaptcha` in `middleware.go`, 2026-10-30): `/signup`, `/recover`, `/resend`, `/magiclink`, `/otp`, `/token` with the `password` grant (and `web3`, and any grant it does not name), SSO and passkey sign-in. The `refresh_token`, `pkce` and `id_token` grants, `/verify`, `/authorize` and the OAuth callback are not gated, nor is a call made with the secret key. So the app sends a token with its password sign-in (the login page, the sign-in after accepting an invitation, and the check of the current password before a change), its signup, and its reset-link requests (the forgot-password page and the first password of an account made with Google); the portal with every code request. Google sign-in, confirming an email, using a recovery link and refreshing a session need none.
+
+The widget is the marketing waitlist's, `ssm-usor-marketing-subscribe`, in managed mode: its domains already cover the app and the portal, and its keys are already in both GitHub environments. It is rendered with `interaction-only`, so a person sees it only when Turnstile wants a click. A token works once and for five minutes, so each attempt takes a fresh one and the widget is reset after every call, successful or not. A refused token reads "Verificarea de securitate nu a reușit"; the portal tells it apart from the answer that a code is on its way, since it says nothing about the address.
+
+Locally and in the browser flow tests the stack uses Cloudflare's public test secret, which accepts only the dummy token that the test site key gives. The deployed SPA check cannot pass a real challenge from a CI runner, so it gets its session from a magic link the Auth Admin API makes, and the login form is left to the flow tests.
+
+The consequence above, that anyone who finds the switch can make us send confirmation emails, now needs a browser that passes Turnstile for each one.

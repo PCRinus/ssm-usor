@@ -217,6 +217,14 @@ Cloudflare dashboard (managed mode), save its site key as the `TURNSTILE_SITE_KE
 and its secret as the `TURNSTILE_SECRET_KEY` secret of the `production` environment, then
 redeploy marketing and the API. Turnstile's script loads only when a visitor focuses the form.
 
+The same widget guards sign-in: Supabase Auth's CAPTCHA checks a token from it on every
+password sign-in, signup, reset-link request and portal code request (ADR 004). Its domains,
+`ssmusor.ro` and `non-prod.ssmusor.ro`, cover the `app.` and `portal.` subdomains. The SPA and
+the portal are built with `TURNSTILE_SITE_KEY` as `VITE_TURNSTILE_SITE_KEY`, and the
+**Deploy Supabase configuration** job pushes `TURNSTILE_SECRET_KEY` to the hosted project
+through the `[remotes.*]` blocks of `supabase/config.toml`. Replacing the widget means changing
+both values and redeploying the SPA, the portal and the configuration together.
+
 Locally, copy `apps/marketing/.env.example` to `.env`: it holds Cloudflare's test site key,
 which always passes and pairs with the test secret in `apps/api/.dev.vars.example`. Run
 `pnpm dev:api` and `pnpm dev:mail` next to the site; the confirmation link is printed by the

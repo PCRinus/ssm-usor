@@ -1584,6 +1584,10 @@ msgstr "Următorul test anual: {nextAnnual}"
 msgid "Verifică conexiunea la internet și încearcă din nou."
 msgstr "Verifică conexiunea la internet și încearcă din nou."
 
+#: src/features/auth/sign-in-page.tsx
+msgid "Verificarea de securitate nu a reușit. Reîncarcă pagina și încearcă din nou."
+msgstr "Verificarea de securitate nu a reușit. Reîncarcă pagina și încearcă din nou."
+
 #: src/features/signing/signing-messages.ts
 msgid "verificator"
 msgstr "verificator"

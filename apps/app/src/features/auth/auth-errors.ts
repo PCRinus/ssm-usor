@@ -1,6 +1,10 @@
 const codeOf = (error: unknown) =>
   typeof error === 'object' && error !== null && 'code' in error ? error.code : null;
 
+// Turnstile's token was missing or refused: its script was blocked, or the challenge failed.
+const challengeFailed =
+  'Verificarea de securitate nu a reușit. Reîncarcă pagina și încearcă din nou.';
+
 export function loginErrorMessage(error: unknown): string {
   const code = codeOf(error);
   switch (code) {
@@ -11,6 +15,8 @@ export function loginErrorMessage(error: unknown): string {
     case 'over_request_rate_limit':
     case 'over_email_send_rate_limit':
       return 'Prea multe încercări. Așteaptă puțin și încearcă din nou.';
+    case 'captcha_failed':
+      return challengeFailed;
     default:
       return 'Nu te-am putut autentifica. Verifică conexiunea și încearcă din nou.';
   }
@@ -30,6 +36,8 @@ export function newPasswordErrorMessage(error: unknown): string {
       return 'Parola este prea slabă. Alege una mai greu de ghicit.';
     case 'over_request_rate_limit':
       return rateLimited;
+    case 'captcha_failed':
+      return challengeFailed;
     default:
       return 'Nu am putut schimba parola. Verifică conexiunea și încearcă din nou.';
   }
@@ -40,6 +48,8 @@ export function forgotPasswordErrorMessage(error: unknown): string {
     case 'over_request_rate_limit':
     case 'over_email_send_rate_limit':
       return 'Ai cerut deja un email de resetare. Așteaptă un minut și încearcă din nou.';
+    case 'captcha_failed':
+      return challengeFailed;
     default:
       return 'Nu am putut trimite emailul. Verifică conexiunea și încearcă din nou.';
   }
@@ -55,6 +65,8 @@ export function registerErrorMessage(error: unknown): string {
     case 'over_request_rate_limit':
     case 'over_email_send_rate_limit':
       return 'Prea multe încercări. Așteaptă un minut și încearcă din nou.';
+    case 'captcha_failed':
+      return challengeFailed;
     default:
       return 'Nu am putut crea contul. Verifică conexiunea și încearcă din nou.';
   }

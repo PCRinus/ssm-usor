@@ -59,7 +59,9 @@ describe('forgot password', () => {
 
     const sent = await screen.findByTestId('forgot-password-sent');
     expect(sent.textContent).toContain('Dacă există un cont cu adresa Ion@Example.test');
-    expect(auth.client.resetPasswordForEmail).toHaveBeenCalledWith('Ion@Example.test');
+    expect(auth.client.resetPasswordForEmail).toHaveBeenCalledWith('Ion@Example.test', {
+      captchaToken: 'turnstile-token-1',
+    });
   });
 
   it('validates the address before asking', async () => {
@@ -225,6 +227,7 @@ describe('change password on the profile page', () => {
     expect(auth.client.signInWithPassword).toHaveBeenCalledWith({
       email: 'review@example.test',
       password: 'ParolaVeche1',
+      options: { captchaToken: 'turnstile-token-1' },
     });
     expect(auth.client.updateUser).toHaveBeenCalledWith({ password: 'ParolaNoua1' });
     expect(auth.client.signOut).toHaveBeenCalledWith({ scope: 'others' });

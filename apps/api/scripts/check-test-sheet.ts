@@ -93,6 +93,10 @@ function must<R extends { data: unknown; error: { message: string } | null }>(
   return result.data as NonNullable<R['data']>;
 }
 
+// Turnstile's dummy token, the only one the local stack's test secret accepts
+// (supabase/config.toml).
+const captchaToken = 'XXXX.DUMMY.TOKEN.XXXX';
+
 async function account(email: string) {
   const password = `Check-${crypto.randomUUID()}`;
   const created = await admin.auth.admin.createUser({ email, password, email_confirm: true });
@@ -100,7 +104,7 @@ async function account(email: string) {
   made.accounts.push(created.data.user.id);
   const session = await createClient(status.API_URL, status.PUBLISHABLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
-  }).auth.signInWithPassword({ email, password });
+  }).auth.signInWithPassword({ email, password, options: { captchaToken } });
   if (session.error) throw new Error(`sign in ${email}: ${session.error.message}`);
   return { id: created.data.user.id, email, token: session.data.session.access_token };
 }

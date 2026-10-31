@@ -102,6 +102,7 @@ describe('register', () => {
     expect(auth.client.signUp).toHaveBeenCalledWith({
       email: 'Ion@Example.test',
       password: 'Parola123',
+      options: { captchaToken: 'turnstile-token-1' },
     });
     expect(captured).toHaveBeenCalledExactlyOnceWith('user-one', 'signed_up', {
       method: 'password',

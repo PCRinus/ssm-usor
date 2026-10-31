@@ -4,10 +4,12 @@ import { useForm } from 'react-hook-form';
 
 import { useAuth } from './auth-context';
 import { loginErrorMessage } from './auth-errors';
+import { useCaptcha } from './captcha';
 import { loginSchema, type LoginValues } from './login-schema';
 
 export function useLoginForm(invitation?: string) {
   const { auth } = useAuth();
+  const { ref: captchaRef, withToken } = useCaptcha();
   const navigate = useNavigate();
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -16,7 +18,7 @@ export function useLoginForm(invitation?: string) {
 
   const onSubmit = form.handleSubmit(async ({ email, password }) => {
     try {
-      await auth.signIn(email, password);
+      await withToken((token) => auth.signIn(email, password, token));
       form.reset();
       await navigate(
         invitation
@@ -32,5 +34,5 @@ export function useLoginForm(invitation?: string) {
   // and swaps its `formState` on every render; the React Compiler would memoize a copy on
   // that stable identity and freeze the first `formState`, so errors and the submitting
   // state would never reach the page. Read `form.formState` while rendering instead.
-  return { form, onSubmit };
+  return { form, onSubmit, captchaRef };
 }

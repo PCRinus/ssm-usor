@@ -15,14 +15,14 @@ export interface AuthClient {
   };
   signOut(options: { scope: 'local' }): Promise<{ error: AuthError | null }>;
   signInWithOtp(
-    credentials: SignInAddress & { options: { shouldCreateUser: false } }
+    credentials: SignInAddress & { options: { shouldCreateUser: false; captchaToken?: string } }
   ): Promise<{ error: AuthError | null }>;
   verifyOtp(
     params: OtpVerification
   ): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
 }
 
-export type CodeRequestResult = 'requested' | 'unreachable';
+export type CodeRequestResult = 'requested' | 'unreachable' | 'challenge-failed';
 export type CodeVerificationResult = 'signed-in' | 'invalid' | 'rate-limited' | 'unreachable';
 
 // supabase-js reports a request that never got an answer with status 0.
@@ -91,15 +91,17 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
     },
     // Every refusal reads as a code on its way: an address nobody invited, a number the SMS hook
     // will not text, a rate limit. Telling them apart would say which addresses have an account.
-    async requestCode(address: SignInAddress): Promise<CodeRequestResult> {
+    // A refused Turnstile token says nothing about the address, so it is told apart.
+    async requestCode(address: SignInAddress, captchaToken?: string): Promise<CodeRequestResult> {
       if (!client) return 'unreachable';
       await ready;
       try {
         const { error } = await client.signInWithOtp({
           ...address,
-          options: { shouldCreateUser: false },
+          options: { shouldCreateUser: false, captchaToken },
         });
-        return error && unreachable(error) ? 'unreachable' : 'requested';
+        if (error && unreachable(error)) return 'unreachable';
+        return error?.code === 'captcha_failed' ? 'challenge-failed' : 'requested';
       } catch {
         return 'unreachable';
       }

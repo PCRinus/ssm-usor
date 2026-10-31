@@ -41,15 +41,14 @@ and protection rules of the environment it deploys. Add these values to both:
 | `POSTHOG_PROJECT_ID`                                            | Variable | Numeric project ID in the same EU PostHog project, used for source-map upload.                                                                                                                                                                                                                                                                |
 | `POSTHOG_SOURCEMAPS_UPLOAD_KEY`                                 | Secret   | A PostHog personal API key, scoped to the organization with Error tracking: Write and Organization: Read, that uploads the SPA's and the portal's source maps during the build. One key serves both environments: it can only write source maps and error tracking. Never exposed as a `VITE_` value.                                         |
 | `POSTHOG_SUPPORT_SECRET_KEY`                                    | Secret   | Secret key for signed Support widget identity, from the same PostHog project. Passed only to the API Worker.                                                                                                                                                                                                                                  |
-| `E2E_EMAIL`                                                     | Secret   | Email of a test user on the hosted Supabase project. The local seed account does not exist there.                                                                                                                                                                                                                                             |
-| `E2E_PASSWORD`                                                  | Secret   | Password for that test user.                                                                                                                                                                                                                                                                                                                  |
+| `E2E_EMAIL`                                                     | Secret   | Email of a test user on the hosted Supabase project. The local seed account does not exist there. The deployed check signs it in through a magic link the Admin API makes, so its password is no longer read.                                                                                                                                 |
 | `SUPABASE_PROJECT_ID`                                           | Variable | The project reference (`xvhiwymggufbvjdfywjg` for the current project).                                                                                                                                                                                                                                                                       |
 | `SUPABASE_ACCESS_TOKEN`                                         | Secret   | A Supabase personal access token, used by the CLI to link the project for migrations.                                                                                                                                                                                                                                                         |
 | `SUPABASE_DB_PASSWORD`                                          | Secret   | The project's database password from Supabase **Settings → Database**, used by `db push`.                                                                                                                                                                                                                                                     |
 | `SUPABASE_SECRET_KEY`                                           | Secret   | The project's `sb_secret_…` key from **Settings → API Keys**, used by the seed workflow, the API's waitlist and the legislation Worker.                                                                                                                                                                                                       |
 | `SUPABASE_AUTH_HOOK_SECRET`                                     | Secret   | Signs Supabase Auth's Send Email hook. We choose it: `v1,whsec_` followed by 32 random bytes in base64. CI gives the same value to Supabase and to the API.                                                                                                                                                                                   |
-| `TURNSTILE_SITE_KEY`                                            | Variable | Site key of the same Turnstile widget, built into the marketing site; without it the form is a mailto link.                                                                                                                                                                                                                                   |
-| `TURNSTILE_SECRET_KEY`                                          | Secret   | Secret key of the Turnstile widget protecting the marketing site's waitlist form.                                                                                                                                                                                                                                                             |
+| `TURNSTILE_SITE_KEY`                                            | Variable | Site key of the Turnstile widget, built into the marketing site (without it the form is a mailto link), the SPA and the portal (their build fails without it).                                                                                                                                                                                |
+| `TURNSTILE_SECRET_KEY`                                          | Secret   | Secret key of that widget: the API checks the waitlist form's tokens with it, and the configuration push gives it to Supabase Auth, which checks every sign-in, signup, reset and code request with it.                                                                                                                                       |
 | `RESEND_API_KEY`                                                | Secret   | Sending-only Resend key for the mail Worker; see the [mail Worker guide](mail.md).                                                                                                                                                                                                                                                            |
 | `SUPABASE_AUTH_SMS_HOOK_SECRET`                                 | Secret   | Signs Supabase Auth's Send SMS hook, chosen like `SUPABASE_AUTH_HOOK_SECRET` but a different value. CI gives the same value to Supabase and to the API.                                                                                                                                                                                       |
 | `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID`                       | Secret   | The environment's Google OAuth client ID for sign-in with Google (ADR 027); see [Google sign-in](#google-sign-in). Read by `supabase/config.toml` through `env()`.                                                                                                                                                                            |
@@ -314,8 +313,10 @@ Install the browser once:
 pnpm --filter @ssm-usor/app exec playwright install chromium
 ```
 
-To run against a deployment, export its origins and the existing test user's credentials in
-your shell (`E2E_EMAIL` and `E2E_PASSWORD`):
+To run against a deployment, export its origins, the existing test user's address (`E2E_EMAIL`)
+and the project's `E2E_SUPABASE_URL`, `E2E_SUPABASE_PUBLISHABLE_KEY` and `E2E_SUPABASE_SECRET_KEY`
+in your shell. The login form needs a Turnstile token, so the `authenticated` project makes the
+user's session from a magic link through the Auth Admin API instead of typing a password:
 
 ```bash
 export E2E_API_URL=https://api.ssmusor.ro
@@ -331,7 +332,7 @@ pnpm --filter @ssm-usor/app test:e2e --project=chromium
 pnpm --filter @ssm-usor/app test:e2e --project=authenticated
 ```
 
-Only `authenticated` requires credentials; it fails explicitly if they are missing. It is
+Only `authenticated` requires these values; it fails explicitly if they are missing. It is
 run after each SPA deployment, but its failure is advisory. Use the [development account](development-admin.md)
 for local checks against our development Supabase project.
 
@@ -345,7 +346,7 @@ pnpm dev:api
 # In another terminal:
 VITE_API_URL=http://localhost:8787 pnpm --filter @ssm-usor/app build
 pnpm --filter @ssm-usor/app exec wrangler dev --port 4174
-# In another terminal, with E2E_EMAIL and E2E_PASSWORD exported:
+# In another terminal, with the E2E_ values above exported:
 pnpm --filter @ssm-usor/app test:e2e
 ```
 
