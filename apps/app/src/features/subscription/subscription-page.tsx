@@ -23,6 +23,7 @@ import { InvoicesCard } from './invoices-card';
 import { leaveFor } from './leave';
 import { PaymentCard } from './payment-card';
 import { type ActionsMode, PlanCard } from './plan-card';
+import { SmsCapDialog } from './sms-cap-dialog';
 import { contactEmail, endedSentence, pricingUrl, roDate } from './subscription-copy';
 import { UsageCard } from './usage-card';
 import {
@@ -34,7 +35,14 @@ import {
   viewOf,
 } from './use-billing';
 
-export function SubscriptionPage() {
+export function SubscriptionPage({
+  raiseCap = false,
+  onRaiseCapClosed,
+}: {
+  // Opened from the bar's "Ridică limita", which links here.
+  raiseCap?: boolean;
+  onRaiseCapClosed?: () => void;
+}) {
   const me = useMe();
   const billing = useBilling();
 
@@ -68,7 +76,13 @@ export function SubscriptionPage() {
   const isOwner = me.data.membership?.role === 'owner';
   const impersonating = Boolean(me.data.impersonation);
   return (
-    <SubscriptionContent overview={billing.data} isOwner={isOwner} impersonating={impersonating} />
+    <SubscriptionContent
+      overview={billing.data}
+      isOwner={isOwner}
+      impersonating={impersonating}
+      raiseCap={raiseCap}
+      onRaiseCapClosed={onRaiseCapClosed}
+    />
   );
 }
 
@@ -76,10 +90,14 @@ function SubscriptionContent({
   overview,
   isOwner,
   impersonating,
+  raiseCap,
+  onRaiseCapClosed,
 }: {
   overview: BillingOverview;
   isOwner: boolean;
   impersonating: boolean;
+  raiseCap: boolean;
+  onRaiseCapClosed?: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const view = viewOf(overview.subscription);
@@ -91,6 +109,9 @@ function SubscriptionContent({
   const actionsMode: ActionsMode = canAct ? 'enabled' : isOwner ? 'disabled' : 'hidden';
   const [cancelling, setCancelling] = useState(false);
   const [changeTarget, setChangeTarget] = useState<BillingChoice | null>(null);
+  const sms = overview.usage.smsThisMonth;
+  const capAdjustable = canAct && sms.cap !== null && sms.capFactor !== null;
+  const [raisingCap, setRaisingCap] = useState(raiseCap && capAdjustable);
   const [busy, setBusy] = useState<'resume' | 'card' | 'withdraw' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -160,7 +181,12 @@ function SubscriptionContent({
               busy: busy !== null,
             }}
           />
-          <UsageCard overview={overview} view={view} canAct={canAct} />
+          <UsageCard
+            overview={overview}
+            view={view}
+            canAct={canAct}
+            onRaiseCap={() => setRaisingCap(true)}
+          />
         </div>
         <div className="grid min-w-0 gap-4 sm:gap-5">
           {owner ? (
@@ -204,6 +230,16 @@ function SubscriptionContent({
           scheduledChange={owner?.scheduledChange ?? null}
           open={cancelling}
           onClose={() => setCancelling(false)}
+        />
+      )}
+      {capAdjustable && (
+        <SmsCapDialog
+          sms={sms}
+          open={raisingCap}
+          onClose={() => {
+            setRaisingCap(false);
+            if (raiseCap) onRaiseCapClosed?.();
+          }}
         />
       )}
       {choice && (

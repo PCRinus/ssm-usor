@@ -1,4 +1,5 @@
 import { type BillingOverview, billingPlans } from '@ssm-usor/contracts';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 
 import {
@@ -12,6 +13,8 @@ import {
   shortPlanNames,
 } from './billing-format';
 import { BillingCard, UsageBar } from './billing-ui';
+import { toneInks } from './meter-tones';
+import { type MeterTone, type SmsMeter, smsMeterFor, stopOf } from './sms-copy';
 import { roDate } from './subscription-copy';
 import { currentChoice, hasLiveSubscription, type SubscriptionView } from './use-billing';
 
@@ -22,8 +25,10 @@ interface Meter {
   limit: number | null;
   value?: string;
   ticks?: number[];
+  tone?: MeterTone;
   hint: string;
   action?: { label: string; search: { packs?: number; members?: number } };
+  raiseCap?: boolean;
 }
 
 function periodLabel(overview: BillingOverview, view: SubscriptionView) {
@@ -57,10 +62,12 @@ export function UsageCard({
   overview,
   view,
   canAct,
+  onRaiseCap,
 }: {
   overview: BillingOverview;
   view: SubscriptionView;
   canAct: boolean;
+  onRaiseCap: () => void;
 }) {
   const subscription = overview.subscription;
   const choice = currentChoice(subscription);
@@ -68,7 +75,6 @@ export function UsageCard({
   const live = hasLiveSubscription(subscription) && view !== 'readOnly';
   const employees = overview.usage.employees.used ?? 0;
   const members = overview.usage.members.used ?? 0;
-  const smsPrice = formatEuro(overview.catalogue.smsOverageCents);
 
   // Until a trial ends the API counts against the trial's limits; once a plan is chosen, the
   // tab shows the limits that plan brings at the trial's end.
@@ -133,24 +139,17 @@ export function UsageCard({
   }
 
   const sms = overview.usage.smsThisMonth;
-  const smsLimit = planLimits ? billingPlans[choice.plan].monthlySms : sms.included;
-  const smsUsed = sms.used;
-  let smsHint: string;
-  if (view === 'readOnly') {
-    smsHint = 'Cât contul e doar pentru citire, nu se mai trimit SMS-uri.';
-  } else if (smsLimit === null) {
-    smsHint = 'Fără limită.';
-  } else if (smsLimit === 0) {
-    smsHint =
-      'Codurile de conectare și de semnare pleacă pe email. SMS-urile pornesc când alegi un plan.';
-  } else {
-    const after =
-      sms.cap === null
-        ? `Se numără doar codurile de semnare. Peste ${formatCount(smsLimit)}, codul pleacă pe email, iar cine nu are email îl cere specialistului.`
-        : `Se numără doar codurile de semnare. Peste ${formatCount(smsLimit)}, fiecare costă ${smsPrice} și apare pe factura următoare, până la ${formatCount(sms.cap)} pe lună.`;
-    smsHint =
-      view === 'trialChosen' ? `SMS-urile au pornit odată cu alegerea planului. ${after}` : after;
-  }
+  const smsMeter: SmsMeter =
+    view === 'readOnly'
+      ? {
+          used: null,
+          limit: null,
+          value: null,
+          tone: 'normal',
+          hint: 'Cât contul e doar pentru citire, nu se mai trimit SMS-uri.',
+          raiseCap: false,
+        }
+      : smsMeterFor(sms, { owner, stop: stopOf(sms, Boolean(subscription?.planChosen)) });
 
   const meters: Meter[] = [
     {
@@ -188,9 +187,12 @@ export function UsageCard({
     {
       key: 'sms',
       label: 'Coduri de semnare prin SMS',
-      used: view === 'readOnly' || smsLimit === 0 ? null : smsUsed,
-      limit: view === 'readOnly' || smsLimit === 0 ? null : smsLimit,
-      hint: smsHint,
+      used: smsMeter.used,
+      limit: smsMeter.limit,
+      value: smsMeter.value ?? undefined,
+      tone: smsMeter.tone,
+      hint: smsMeter.hint,
+      raiseCap: canAct && smsMeter.raiseCap,
     },
   ];
 
@@ -206,6 +208,7 @@ export function UsageCard({
         {meters.map((meter) => {
           const bar = meter.used !== null && meter.limit !== null;
           const over = bar && meter.used! > meter.limit!;
+          const ink = meter.tone ? toneInks[meter.tone] : over ? 'text-warning-foreground' : null;
           const value =
             meter.value ??
             (bar
@@ -218,13 +221,7 @@ export function UsageCard({
               <div className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="font-medium">{meter.label}</span>
                 {value && (
-                  <span
-                    className={
-                      over
-                        ? 'font-semibold whitespace-nowrap text-warning-foreground tabular-nums'
-                        : 'font-semibold whitespace-nowrap tabular-nums'
-                    }
-                  >
+                  <span className={cn('font-semibold whitespace-nowrap tabular-nums', ink)}>
                     {value}
                   </span>
                 )}
@@ -235,17 +232,28 @@ export function UsageCard({
                   limit={meter.limit!}
                   ticks={meter.ticks}
                   label={meter.label}
+                  tone={meter.tone}
                 />
               )}
               <p
-                className={
-                  over
-                    ? 'text-[13px] leading-relaxed text-warning-foreground'
-                    : 'text-[13px] leading-relaxed text-muted-foreground'
-                }
+                data-testid={`meter-${meter.key}-hint`}
+                className={cn(
+                  'max-w-[68ch] text-[13px] leading-relaxed text-pretty',
+                  ink ?? 'text-muted-foreground'
+                )}
               >
                 {meter.hint}
               </p>
+              {meter.raiseCap && (
+                <button
+                  type="button"
+                  onClick={onRaiseCap}
+                  data-testid={`meter-${meter.key}-raise`}
+                  className="inline-flex min-h-8 w-fit cursor-pointer items-center text-sm font-semibold underline-offset-2 hover:underline"
+                >
+                  Ridică limita
+                </button>
+              )}
               {meter.action && (
                 <Link
                   to="/organization/subscription/choose"
