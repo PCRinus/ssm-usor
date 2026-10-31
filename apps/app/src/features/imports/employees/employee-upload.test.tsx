@@ -1,10 +1,10 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { clientId, importId, positions, workplaces } from '@/test/employee-import-fixture';
-import { fetchMock, mockApi, requestsTo } from '@/test/import-fixture';
+import { bodyOf, fetchMock, mockApi, requestsTo } from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
 const client = {
@@ -110,11 +110,20 @@ function mockUpload({
   });
 }
 
+function deferred() {
+  let resolve!: (response: Response) => void;
+  const promise = new Promise<Response>((done) => (resolve = done));
+  return { promise, resolve };
+}
+
 async function openDialog(button: 'employees-import' | 'employees-import-found') {
   mountApp(authFixture(makeSession()).client, `/clients/${clientId}/employees`);
   await userEvent.click(await screen.findByTestId(button));
   return screen.findByTestId('employee-upload-dialog');
 }
+
+const refused = (reason: string, status = 422) =>
+  Response.json({ error: 'refused', message: reason, reason }, { status });
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -146,5 +155,68 @@ describe('photographs over the caps until they are shrunk', () => {
       'Fotografia „IMG_4001.jpg” are peste 25 MB și nu am putut-o micșora. Salveaz-o mai mică sau fotografiaz-o din nou, apoi alege fotografiile din nou.'
     );
     expect(requestsTo('/imports', 'POST')).toEqual([]);
+  });
+});
+
+describe('an upload that fails after the import was created', () => {
+  it('lets the import go before saying so, so a retry can take the same sheets', async () => {
+    const abandoning = deferred();
+    let attempt = 0;
+    mockUpload({
+      addFound: () => {
+        attempt += 1;
+        return attempt === 1
+          ? Response.json({}, { status: 500 })
+          : Response.json({ files: [] }, { status: 201 });
+      },
+      abandon: () => abandoning.promise,
+    });
+    const dialog = await openDialog('employees-import-found');
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('employee-upload-chosen').textContent).toContain(
+        '2 fotografii de citit'
+      )
+    );
+    await userEvent.click(within(dialog).getByTestId('employee-upload-submit'));
+    await waitFor(() => expect(requestsTo(`/imports/${importId}/abandon`, 'POST')).toHaveLength(1));
+    expect(within(dialog).queryByTestId('import-upload-error')).toBeNull();
+    expect(within(dialog).getByTestId('employee-upload-submit')).toHaveProperty('disabled', true);
+
+    abandoning.resolve(Response.json({ import: { ...uploading, status: 'abandoned' } }));
+    await within(dialog).findByTestId('import-upload-error');
+    expect(within(dialog).getByTestId('employee-upload-submit')).toHaveProperty('disabled', false);
+  });
+
+  it('drops the sheets another import took meanwhile and sends only the rest', async () => {
+    let taken = false;
+    mockUpload({
+      found: () => foundOf(taken ? [2] : [1, 2]),
+      addFound: () => {
+        if (taken) return Response.json({ files: [] }, { status: 201 });
+        taken = true;
+        return refused('import_no_found_sheets');
+      },
+    });
+    const dialog = await openDialog('employees-import-found');
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('employee-upload-chosen').textContent).toContain(
+        '2 fotografii de citit'
+      )
+    );
+    await userEvent.click(within(dialog).getByTestId('employee-upload-submit'));
+    await within(dialog).findByTestId('import-upload-error');
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('employee-upload-chosen').textContent).toContain(
+        'O fotografie de citit'
+      )
+    );
+
+    await userEvent.click(within(dialog).getByTestId('employee-upload-submit'));
+    await waitFor(() =>
+      expect(requestsTo(`/imports/${importId}/found-sheets`, 'POST')).toHaveLength(2)
+    );
+    expect(bodyOf(`/imports/${importId}/found-sheets`, 'POST', 1)).toEqual({
+      fileIds: [sheet(2).id],
+    });
   });
 });

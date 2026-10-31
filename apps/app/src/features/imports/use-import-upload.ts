@@ -8,6 +8,7 @@ import {
   addFoundSheets,
   createImport,
   getGetImportQueryKey,
+  getListFoundSheetsQueryKey,
   getListImportsQueryKey,
   registerImportFiles,
   startImport,
@@ -233,9 +234,15 @@ export function useImportUpload(
       else await send(id, jobs);
     } catch (cause) {
       if (abandoned.current) return;
-      // Its files are half registered, so trying again starts a new import.
-      if (importId.current) void abandonImport(importId.current, apiRequest).catch(() => undefined);
+      // Its files are half registered, so trying again starts a new import. It must be gone first:
+      // until then its found sheets count as taken, and the retry would be refused them.
+      const id = importId.current;
       importId.current = null;
+      if (id) await abandonImport(id, apiRequest).catch(() => undefined);
+      if (abandoned.current) return;
+      if (importErrorReason(cause) === importErrorReasons.noFoundSheets && clientId) {
+        await queryClient.invalidateQueries({ queryKey: getListFoundSheetsQueryKey(clientId) });
+      }
       setPhase({
         step: 'failed',
         error: importErrorMessage(
