@@ -91,7 +91,7 @@ Sunt două importuri, în această ordine: întâi clientul, din documentația l
 
 ## Importul unui client din documente
 
-Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou, sau de pe pagina unui client existent, cu **Completează din documentație**. Încarci documentația unei singure firme: fișiere, un folder sau o arhivă ZIP, în PDF, DOC, DOCX, JPG, PNG sau HEIC, cel mult 150 de fișiere și 100 MB în total.
+Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou, sau de pe pagina unui client existent, cu **Completează din documentație**. Încarci documentația unei singure firme: fișiere, un folder sau o arhivă ZIP, în PDF, DOC, DOCX, JPG, PNG sau HEIC, cel mult 150 de fișiere și 100 MB în total. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră.
 
 Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege, instrucțiunile proprii), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele PSI și echipamentul de protecție. Le verifici pe secțiuni, cu sursa fiecărei valori la un clic, apoi confirmi. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
 
@@ -135,9 +135,9 @@ Fotografiile alese le vezi în fereastră ca miniaturi. Un clic pe una o deschid
 
 ### Cât intră într-un import
 
-Într-un import de angajați intră cel mult 500 de fotografii sau pagini PDF, cel mult 25 MB un fișier și 1 GB în total. În fereastra de încărcare vezi cât ai folosit din fiecare.
+Într-un import de angajați intră cel mult 500 de fotografii sau pagini PDF, cel mult 25 MB un fișier și 1 GB în total. În fereastra de încărcare vezi câte fotografii ai ales și cât ocupă; când te apropii de una dintre limite, vezi și cât ai folosit din fiecare.
 
-Fotografiile JPG și PNG se socotesc după ce le micșorăm, așa că o fotografie mare nu e oprită când o alegi, iar totalul îl vezi aproximativ, de exemplu „cam 250 MB din 1 GB”. Dacă o fotografie are tot peste 25 MB după micșorare, îți spunem care e. Un PDF sau o fotografie HEIC de peste 25 MB e pusă deoparte de cum o alegi.
+Fotografiile JPG și PNG se socotesc după ce le micșorăm, așa că o fotografie mare nu e oprită când o alegi, iar totalul îl vezi aproximativ, de exemplu „cam 250 MB”. Dacă o fotografie are tot peste 25 MB după micșorare, îți spunem care e. Un PDF sau o fotografie HEIC de peste 25 MB e pusă deoparte de cum o alegi.
 
 Un client mai mare îl imporți în mai multe importuri, cu fișele fiecărei persoane în același import. Un import făcut mai târziu completează angajații creați de cel dinainte, ca pe orice angajat pe care clientul îl are deja.
 
